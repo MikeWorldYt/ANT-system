@@ -9,6 +9,9 @@
 
 # 📄 MAIN CONCEPTS
 ## 2\* 1. Levels and Folder's Structure
+
+![image](https://img001.prntscr.com/file/img001/T42IATfESsycBd5K0_QfKA.png)
+
 ### 2\* 1.1 The Level 1 - Main Categories
 🛈 Is the highest hierarchy, inside from your Root Storage Folder;
 Content the Main General Categories, with an incremental enumeration with three digits, followed by a '.', followed by the Main Category name in Capitals
