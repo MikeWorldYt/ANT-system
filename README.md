@@ -1,4 +1,10 @@
 # 1* GETTING STARTED
+**ANT on the system** (Archive Nesting Technique on the System) is a hierarchical organizational method designed to streamline the storage, making it easier to manage and find your documents.
+
+## **Key Benefits of ANT System:**
+
+- Structured Organization: Files are organized in a clear hierarchical structure,
+
 !!! To edit)
 
 2* MAIN CONCEPTS
