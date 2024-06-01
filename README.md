@@ -3,9 +3,12 @@
 
 ## Key Benefits of ANT System:
 
-- Structured Organization: Files are organized in a clear hierarchical structure,
+1. **Structured Organization:** Files are organized in a clear hierarchical structure, making navigation easy.
+2. **Convenient Nomenclature:** Folders and subfolders are named with an incremental and intuitive patern, improving the organization, creation, and search of content.
+3. **Clean Desktop:** A special 'Projects' folder serves as a Temporary Repository for current and future projects, eliminating the need to use the desktop for these purposes and keeping clutter-free.
+4. **Master Tracking Work/School Projects:** It allows you track ongoing projects and store ideas, When a project is done you'll know it, If you need files from another project you'll know where they are.
 
-!!! To edit)
+Following this system will ensure that your digital files are well-organized, easily accessible, and efficiently managed.
 
 # 📄 MAIN CONCEPTS
 ## 2\* 1. Levels and Folder's Structure
