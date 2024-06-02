@@ -1,17 +1,19 @@
 # 🚀 GETTING STARTED 
+**Welcome to the ANT Documentation ! ! !**
+
 > [!IMPORTANT] 
 > **ANT on the system** (Archive Nesting Technique on the System) is a *Hierarchical Organizational Method* designed to streamline the storage, making it easier to manage and find your documents.
-
+<!--
 [...]
-
+-->
 > #### How works?
 > Her rules **organize files in a way that mimics a nested for categories** by following a naming convention and incremental numbering, Where the main categories are at the highest level, and each subsequent level provides more specific subcategories.
-
+<!--
 ### QUICK START
 1. [Download the scrip (not avaible yet)](not-available)
 2. [Seeing The Rules](#-main-concepts)
 3. Let's Organize!
-
+-->
 ### Key Benefits of ANT System:
 
 1. **Structured Organization:** Files are organized in a clear hierarchical structure, making navigation easy.
@@ -21,12 +23,12 @@
 
 Following this method will ensure that your Digital Storage is well-organized, Easily accessible, and Efficiently managed
 
+![image](https://img001.prntscr.com/file/img001/T42IATfESsycBd5K0_QfKA.png)
+
 # 📄 MAIN CONCEPTS
 ## 1. Levels and Folder's Structure
 
-![image](https://img001.prntscr.com/file/img001/T42IATfESsycBd5K0_QfKA.png)
-
-### 2\* 1.1 The Level 1 - Main Categories
+### 1.1 The Level 1 - Main Categories
 🛈 Is the highest hierarchy, inside from your Root Storage Folder;
 Content the Main General Categories, with an incremental enumeration with three digits, followed by a '.', followed by the Main Category name in Capitals
 
@@ -59,7 +61,7 @@ Content the Main General Categories, with an incremental enumeration with three 
 ├── 📁 999.Setting
 ```
 
-### 2\* 1.2 The Levels 2 - Categories, Subjects
+### 1.2 The Levels 2 - Categories, Subjects
 🛈 Is inside of the main category;
 For each folder add an incremental enumeration with two digits, followed by a '.', followed by the Categories Name
 
@@ -75,7 +77,7 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 ├── 📁 98.Review <-- Support Folder
 ```
 
-### 2\* 1.3 The Levels 3 - Subcategories, Topics or Theme. 
+### 1.3 The Levels 3 - Subcategories, Topics or Theme. 
 🛈 Is inside of the Category folder;
 For each folder add an incremental enumeration with two digits, followed by a '.', followed by the Topic's Name, all without spaces.
 ```Structure
@@ -89,7 +91,7 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 ├── 📁 98.Review <-- Support Folder
 ```
 
-### 2* 1.4 Projects Folder
+### 1.4 Projects Folder
 🛈 Works as a temporal repository, It should contentain shortcuts to current project paths, and If you want also idea or inspiration folders
 
 ```Structure
@@ -106,7 +108,7 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 ├── ↗️ 🔗 PJ_133_(24-05-12)_My-Project-Name <-- Shortcut
 ├── ↗️ 🔗 PJ_134_(24-06-01)_My-Little-Project <-- Shortcut
 ```
-## 2* 2. Support Folders
+## 2. Support Folders
 🛈 The support folders in that sense should provide help at the current level.
 
 These have a unique enumeration that helps them not to mix with other files and to be ordered in a way that they can be quickly identified.
@@ -119,23 +121,23 @@ These can be graphic customizations like wallpapers or configurations such as Ne
 
 !!! Notes:Parameters for Software
 
-### 2* 2.2 Review Folder (98)
+### 2.2 Review Folder (98)
 Its unique enumeration is '98', so you will find it as '98.Review'.
 !!! To edit)
 
-### 2* 2.3 Undefined Folder (97)
+### 2.3 Undefined Folder (97)
 Its unique enumeration is '97', so you will find it as '97.UnDefined' or 97.UnCategorized'.
 !!! To edit)
 
-### 2* 2.4 Resources Folder (90)
+### 2.4 Resources Folder (90)
 Its unique enumeration is '90', so you will find it as '90.Resources'.
 !!! To edit)
 
-### 2* 2.5 Archive Folder (00)
+### 2.5 Archive Folder (00)
 Its unique enumeration is '00', so you will find it as '00.Archive'.
 !!! To edit)
 
-## 2* 3. Nomenclature
+## 3. Nomenclature
 
 ### F O R M A T
 <font color="#00a782">Identicator\_ </font><font color="#de7802">(Date)</font> \_ Keywords \_ <font color="#FF4500">Version</font>  
