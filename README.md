@@ -27,10 +27,15 @@ Following this method will ensure that your Digital Storage is well-organized, E
 
 # 📄 MAIN CONCEPTS
 ## 1. Levels and Folder's Structure
+Levels refer to the depth within the folder tree directory.
+
+> [!TIP]
+> The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.
 
 ### 1.1 The Level 1 - Main Categories
-🛈 Is the highest hierarchy, inside from your Root Storage Folder;
-Content the Main General Categories, with an incremental enumeration with three digits, followed by a '.', followed by the Main Category name in Capitals
+> Is the highest hierarchy, inside from your Root Storage Folder;
+
+Content the Main Categories, with an incremental enumeration with three digits, followed by a '.', followed by the Main Category name in Capitals
 
 ```Structure
 📁 Root_Storage
@@ -40,10 +45,9 @@ Content the Main General Categories, with an incremental enumeration with three 
 ├── 📁 003.PROJECTS-FOLDER
 ├── 📁 004.MAIN-CATEGORY
 ├── 📁 005.MAIN-CATEGORY
-   -- Support Folders
-├── 📁 900.Resources
-├── 📁 998.Review
-├── 📁 999.Setting
+├── 📁 900.Resources <-- Support Folder
+├── 📁 998.Review <-- Support Folder
+├── 📁 999.Setting <-- Support Folder
 ```
 
 **Suggest:**
@@ -55,10 +59,9 @@ Content the Main General Categories, with an incremental enumeration with three 
 ├── 📁 003.PROJECTS
 ├── 📁 004.ACADEMIC
 ├── 📁 005.HOBBIES
-   -- Support Folders
-├── 📁 900.Resources
-├── 📁 998.Review
-├── 📁 999.Setting
+├── 📁 900.Resources <-- Support Folder
+├── 📁 998.Review <-- Support Folder
+├── 📁 999.Setting <-- Support Folder
 ```
 
 ### 1.2 The Levels 2 - Categories, Subjects
