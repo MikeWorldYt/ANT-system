@@ -7,7 +7,10 @@
 > #### How works?
 > Her rules **organize files in a way that mimics a nested for categories** by following a naming convention and incremental numbering, Where the main categories are at the highest level, and each subsequent level provides more specific subcategories.
 
-[START SEEING THE RULES](#-main-concepts)
+### QUICK START
+1. [Download the scrip (not avaible yet)](not-available)
+2. [Seeing The Rules](#-main-concepts)
+3. Let's Organize!
 
 ### Key Benefits of ANT System:
 
