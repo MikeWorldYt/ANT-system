@@ -7,6 +7,8 @@
 > #### How works?
 > Her rules **organize files in a way that mimics a nested for categories** by following a naming convention and incremental numbering, Where the main categories are at the highest level, and each subsequent level provides more specific subcategories.
 
+[START SEEING THE RULES](#-main-concepts)
+
 ### Key Benefits of ANT System:
 
 1. **Structured Organization:** Files are organized in a clear hierarchical structure, making navigation easy.
@@ -17,7 +19,7 @@
 Following this method will ensure that your Digital Storage is well-organized, Easily accessible, and Efficiently managed
 
 # 📄 MAIN CONCEPTS
-## 2\* 1. Levels and Folder's Structure
+## 1. Levels and Folder's Structure
 
 ![image](https://img001.prntscr.com/file/img001/T42IATfESsycBd5K0_QfKA.png)
 
