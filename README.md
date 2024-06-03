@@ -1,5 +1,5 @@
 # 🚀 GETTING STARTED 
-**Welcome to the ANT Documentation ! ! !**
+![ANT- Github _TEM__welcome](https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/78213cc7-687a-46ac-8f76-8aaf7d6d6ae8)
 
 > [!IMPORTANT] 
 > **ANT on the system** (Archive Nesting Technique on the System) is a *Hierarchical Organizational Method* designed to streamline the storage, making it easier to manage and find your documents.
