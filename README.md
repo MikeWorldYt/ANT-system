@@ -1,6 +1,9 @@
+<div align="center"> 
+  
 # 🚀 GETTING STARTED 
-![ANT- Github _TEM__welcome](https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/78213cc7-687a-46ac-8f76-8aaf7d6d6ae8)
-
+  <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/78213cc7-687a-46ac-8f76-8aaf7d6d6ae8)" >
+</div>
+  
 > [!IMPORTANT] 
 > **ANT on the system** (Archive Nesting Technique on the System) is a *Hierarchical Organizational Method* designed to streamline the storage, making it easier to manage and find your documents.
 <!--
@@ -26,8 +29,11 @@ Following this method will ensure that your Digital Storage is well-organized, E
 
 <img src="https://img001.prntscr.com/file/img001/T42IATfESsycBd5K0_QfKA.png" alt="Diagrama del Proyecto" height="400">
 
-
+<div align="center"> 
+  
 # 📄 MAIN CONCEPTS
+</div>
+
 ## 1. Levels and Folder's Structure
 Levels refer to the depth within the folder tree directory.
 
