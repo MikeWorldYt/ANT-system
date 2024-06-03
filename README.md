@@ -23,9 +23,8 @@
 
 Following this method will ensure that your Digital Storage is well-organized, Easily accessible, and Efficiently managed
 
-![image](https://img001.prntscr.com/file/img001/T42IATfESsycBd5K0_QfKA.png)
 
-<img src="https://img001.prntscr.com/file/img001/T42IATfESsycBd5K0_QfKA.png" alt="Diagrama del Proyecto" width="600" height="400">
+<img src="https://img001.prntscr.com/file/img001/T42IATfESsycBd5K0_QfKA.png" alt="Diagrama del Proyecto" height="400">
 
 
 # 📄 MAIN CONCEPTS
