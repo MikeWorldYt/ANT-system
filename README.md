@@ -45,11 +45,11 @@ Levels refer to the depth within the folder tree directory.
 
 Content the Main Categories, with an incremental enumeration with three digits, followed by a '.', followed by the Main Category name in Capitals
 
-![ANT- Github _ILL_pictures_01](https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/50de8c61-aa64-44ee-819f-f07696d8c093)
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/50de8c61-aa64-44ee-819f-f07696d8c093" alt="ILL_pictures_01" width="350">
 
 **Suggest:**
 
-![ANT- Github _ILL_pictures_02](https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/21c22369-0107-427a-b61c-23f5c37755d6)
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/21c22369-0107-427a-b61c-23f5c37755d6" alt="ILL_pictures_02" width="350">
 
 ### 1.2 The Levels 2 - Categories, Subjects
 > 🛈 Is inside of the main category;
