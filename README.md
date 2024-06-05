@@ -26,9 +26,9 @@
 
 Following this method will ensure that your Digital Storage is well-organized, Easily accessible, and Efficiently managed
 
-
+<!--
 <img src="https://img001.prntscr.com/file/img001/T42IATfESsycBd5K0_QfKA.png" alt="Diagrama del Proyecto" height="400">
-
+-->
 <div align="center"> 
   
 # 📄 MAIN CONCEPTS
