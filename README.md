@@ -35,6 +35,9 @@ Following this method will ensure that your Digital Storage is well-organized, E
 </div>
 
 ## 1. Levels and Folder's Structure
+
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/90fd9ad9-8299-45b1-9d6b-c8a4a19acdd6" alt="ILL_pictures_03" width="350">
+
 Levels refer to the depth within the folder tree directory.
 
 > [!TIP]
