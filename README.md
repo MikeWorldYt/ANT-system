@@ -44,21 +44,18 @@ Levels refer to the depth within the folder tree directory.
 > 🛈 The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.
 
 ### 1.1 The Level 1 - Main Categories
+
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/50de8c61-aa64-44ee-819f-f07696d8c093" alt="ILL_pictures_01" width="350">
+
 > 🛈 Is the highest hierarchy, inside from your Root Storage Folder;
 
 Content the Main Categories, with an incremental enumeration with three digits, followed by a '.', followed by the Main Category name in Capitals
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/50de8c61-aa64-44ee-819f-f07696d8c093" alt="ILL_pictures_01" width="350">
-
-**Suggest:**
+**Usage Suggestions:**
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/21c22369-0107-427a-b61c-23f5c37755d6" alt="ILL_pictures_02" width="350">
 
 ### 1.2 The Levels 2 - Categories, Subjects
-> 🛈 Is inside of the main category;
-
-For each folder add an incremental enumeration with two digits, followed by a '.', followed by the Categories Name
-
 ```Structure
 📁 MAIN CATEGORY
 │
@@ -71,10 +68,12 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 ├── 📁 98.Review <-- Support Folder
 ```
 
-### 1.3 The Levels 3 - Subcategories, Topics or Theme. 
-> 🛈 Is inside of the Category folder;
+> 🛈 Is inside of the main category;
 
-For each folder add an incremental enumeration with two digits, followed by a '.', followed by the Topic's Name, all without spaces.
+For each folder add an incremental enumeration with two digits, followed by a '.', followed by the Categories Name
+
+
+### 1.3 The Levels 3 - Subcategories, Topics or Theme. 
 ```Structure
 📁 03.Category
 │
@@ -86,9 +85,12 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 ├── 📁 98.Review <-- Support Folder
 ```
 
-### 1.4 Projects Folder
-> 🛈 Works as a temporal repository, It should contentain shortcuts to current project paths, and If you want also idea or inspiration folders
+> 🛈 Is inside of the Category folder;
 
+For each folder add an incremental enumeration with two digits, followed by a '.', followed by the Topic's Name, all without spaces.
+
+
+### 1.4 Projects Folder
 ```Structure
 📁 003.PROJECTS
 │
@@ -103,6 +105,10 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 ├── ↗️ 🔗 PJ_133_(24-05-12)_My-Project-Name <-- Shortcut
 ├── ↗️ 🔗 PJ_134_(24-06-01)_My-Little-Project <-- Shortcut
 ```
+
+> 🛈 Works as a temporal repository, It should contentain shortcuts to current project paths, and If you want also idea or inspiration folders
+
+
 ## 2. Support Folders
 > 🛈 The support folders in that sense should provide help at the current level.
 
