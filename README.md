@@ -56,22 +56,16 @@ Content the Main Categories, with an incremental enumeration with three digits, 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/21c22369-0107-427a-b61c-23f5c37755d6" alt="ILL_pictures_02" width="350">
 
 ### 1.2 The Levels 2 - Categories, Subjects
-```Structure
-📁 MAIN CATEGORY
-│
-├── 📁 01.Category
-├── 📁 02.Category
-├── 📁 03.Category
-├   ...
-├── 📁 90.Resources <-- Support Folder
-├── 📁 97.Undefined <-- Support Folder
-├── 📁 98.Review <-- Support Folder
-```
 
-> 🛈 Is inside of the main category;
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4c090700-6138-4a5f-bc90-49b3c896d0b8" alt="ILL_pictures_04" width="350">
+
+> 🛈 Is inside of your main category selectioned;
 
 For each folder add an incremental enumeration with two digits, followed by a '.', followed by the Categories Name
 
+**Usage Suggestions:**
+
+<--! picture 05 here -->
 
 ### 1.3 The Levels 3 - Subcategories, Topics or Theme. 
 ```Structure
