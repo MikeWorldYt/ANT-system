@@ -65,9 +65,11 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 
 **Usage Suggestions:**
 
-<--! picture 05 here -->
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/3685ca90-d3e2-4594-a488-b2f74a0cbdb4" alt="ILL_pictures_05" width="350">
 
 ### 1.3 The Levels 3 - Subcategories, Topics or Theme. 
+<--! picture 06 here -->
+
 ```Structure
 📁 03.Category
 │
