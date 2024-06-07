@@ -30,7 +30,11 @@ os.makedirs(f'{root}/{a1}/01.MyDocuments(Suggested)/01.FinancialDocs(Suggested)'
 os.makedirs(f'{root}/{a1}/02.FamilyDocuments(Suggested)/{rev}', exist_ok=True)
 os.makedirs(f'{root}/{a1}/03.OtherDocuments(Suggested)/{rev}', exist_ok=True)
 os.makedirs(f'{root}/{a1}/04.MyGallery(Suggested)/01.Family(Suggested)', exist_ok=True)
-os.makedirs(f'{root}/{a1}/05.Portfolio(Suggested)/{rev}', exist_ok=True)
+os.makedirs(f'{root}/{a1}/04.MyGallery(Suggested)/02.Friends(Suggested)', exist_ok=True)
+os.makedirs(f'{root}/{a1}/05.Curriculum(Suggested)/{rev}', exist_ok=True)
+os.makedirs(f'{root}/{a1}/05.Curriculum(Suggested)/01.Networking(Suggested)', exist_ok=True)
+os.makedirs(f'{root}/{a1}/05.Curriculum(Suggested)/02.Portfolio(Suggested)', exist_ok=True)
+os.makedirs(f'{root}/{a1}/05.Curriculum(Suggested)/03.Certificates(Suggested)', exist_ok=True)
 
 ## --- 02 work
 os.makedirs(f'{root}/{a2}/{rev}', exist_ok=True)
@@ -47,9 +51,22 @@ os.makedirs(f'{root}/{a3}/{rev}', exist_ok=True)
 os.makedirs(f'{root}/{a4}/{rev}', exist_ok=True)
 os.makedirs(f'{root}/{a4}/{res}', exist_ok=True)
 
-os.makedirs(f'{root}/{a4}/01.Subjet-Names(Suggested)/{rev}', exist_ok=True)
-os.makedirs(f'{root}/{a4}/02.Subjet-Names(Suggested)/{rev}', exist_ok=True)
-os.makedirs(f'{root}/{a4}/03.Subjet-Names(Suggested)/{rev}', exist_ok=True)
+os.makedirs(f'{root}/{a4}/01.Lenguage [English] (Suggested)/{rev}', exist_ok=True)
+os.makedirs(f'{root}/{a4}/02.Math (Suggested)/{rev}', exist_ok=True)
+
+paths_list = ["Unit01.Foundations", "Unit02.OperatingSystems", "Unit03.DataStructures", "Unit04.Networks&Communications",]
+
+os.makedirs(f'{root}/{a4}/03.Teachnology (Suggested)/{rev}', exist_ok=True)
+for path in paths_list:
+    os.makedirs(f'{root}/{a4}/03.Teachnology (Suggested)/{path}', exist_ok=True)
+
+paths_list = ["01.prueba", "02.prueba", "03.prueba"]
+
+os.makedirs(f'{root}/{a4}/04.Science (Suggested)/{rev}', exist_ok=True)
+for path in paths_list:
+    os.makedirs(f'{root}/{a4}/04.Science (Suggested)/{path}/{rev}', exist_ok=True)
+
+os.makedirs(f'{root}/{a4}/05.ForeignLanguage [Spanish] (Suggested)/{rev}', exist_ok=True)
 
 ## --- 05 hobbies
 os.makedirs(f'{root}/{a5}/{rev}', exist_ok=True)
