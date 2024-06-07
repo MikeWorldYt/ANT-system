@@ -70,23 +70,42 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/3685ca90-d3e2-4594-a488-b2f74a0cbdb4" alt="ILL_pictures_05" width="350">
 
 ### 1.3 The Levels 3 - Subcategories, Topics or Theme. 
-<--! picture 06 here -->
+There are two ways to structure, If categories stay for a long time should be use a "Chill Structure", Otherwise if its a temporary data, meaning it'll only be used for a short period, *then* you should use a “control structure”.
 
-```Structure
-📁 03.Category
-│
-├── 📁 00.Archive <-- Support Folder
-├── 📁 01.Topic
-├── 📁 02.Topic
-├── 📁 03.Topic
-├   ...
-├── 📁 98.Review <-- Support Folder
+#### 1.3.1 Chill Structure
+```image_07
+> 01.Subcategory
+> Unit01.ThemeName
 ```
 
-> 🛈 Is inside of the Category folder;
+> Is simple, It has an incremental enumeration with two or more digits, tho it doesn't necesary go at the beginning, as it'll depend on the needs/customization of each one. 
 
-For each folder add an incremental enumeration with two digits, followed by a '.', followed by the Topic's Name, all without spaces.
+Use if:
+- You need a static sequence
+- The directory is a permanent category
 
+**Usage Suggestions:**
+```
+image_08 & image_09 doing...
+```
+
+#### 1.3.2 Control Structure
+```image_10
+> PJ_001(YY-MM-DD)_proyect name
+> PP_Category[Topic]_Presentation
+> DB_Category[Topic]_database name
+```
+
+> It's ideal por projects, presentations, homeworks, etc. Use a naming convetion for controling and easy identification
+
+Use if:
+- You Need to have control
+- The data is temporary and will most likely be deleted later
+- Share with more people if you
+
+```
+image_11 doing...
+```
 
 ### 1.4 Projects Folder
 ```Structure
