@@ -1,6 +1,5 @@
 <div align="center"> 
-  
-# 🚀 GETTING STARTED 
+<h1>🚀 GETTING STARTED</h1>
   <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/78213cc7-687a-46ac-8f76-8aaf7d6d6ae8)" ></div>
 
 > [!IMPORTANT] 
@@ -31,11 +30,10 @@ Following this method will ensure that your Digital Storage is well-organized, E
 <div align="center"> 
   
 # 📄 MAIN CONCEPTS
-## 1. Levels and Folder's Structure </div>
+## 1. Levels and Folder's Structure 
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/e6ac25f7-51ba-440d-b292-6d94bd1fea07" alt="ILL_pictures_03" width="350">
-<br>
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/ce88f6b7-3093-4574-849b-a3fe29af4ab0" alt="ILL_pictures_06" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/767d172a-a1c8-4f9e-84b5-5c14b0528a65" alt="ILL_pictures_03" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/ae61a29d-0a6b-4fd8-9f60-1e7443832596" alt="ILL_pictures_06" width="350"></div>
 
 Levels refer to the depth within the folder tree directory.
 
@@ -44,9 +42,9 @@ Levels refer to the depth within the folder tree directory.
 
 <div align="center"> 
 
-### 1.1 The Level 1 - (Main Categories) </div>
+### 1.1 The Level 1 - (Main Categories) 
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/9db77e92-f03c-4392-b315-05739024d9e8" alt="ILL_pictures_01" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/9db77e92-f03c-4392-b315-05739024d9e8" alt="ILL_pictures_01" width="350"></div>
 
 > 🛈 Is the highest hierarchy, inside from your Root Storage Folder, content the main categegories;
 
@@ -58,9 +56,9 @@ With an incremental enumeration with three digits (100, 200, 300, ...), followed
 
 <div align="center"> 
 
-### 1.2 The Levels 2 - (Categories, Subjects) </div>
+### 1.2 The Levels 2 - (Categories, Subjects) 
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4c090700-6138-4a5f-bc90-49b3c896d0b8" alt="ILL_pictures_04" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4c090700-6138-4a5f-bc90-49b3c896d0b8" alt="ILL_pictures_04" width="350"></div>
 
 > 🛈 Is inside of your main category selectioned;
 
@@ -76,9 +74,11 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 
 There are two ways to structure, If categories stay for a long time should be use a "Chill Structure", Otherwise if its a temporary data, meaning it'll only be used for a short period, *then* you should use a “control structure”.
 
+<div align="center"> 
+
 #### 1.3.1 Chill Structure
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/797bbad4-cb0b-4050-b5d6-169050892212" alt="ILL_pictures_07" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/797bbad4-cb0b-4050-b5d6-169050892212" alt="ILL_pictures_07" width="350"></div>
 
 > Is simple, It has an incremental enumeration with two or more digits, tho it doesn't necesary go at the beginning, as it'll depend on the needs/customization of each one. 
 
@@ -91,7 +91,9 @@ Use if:
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4580a952-06d0-48c8-8f42-b1d29bd41d58" alt="ILL_pictures_08" width="350">
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/77aefeb6-9067-4a85-9a0c-1ec5a8f589ae" alt="ILL_pictures_09" width="350">
 
-#### 1.3.2 Control Structure
+<div align="center"> 
+
+#### 1.3.2 Control Structure </div>
 ```image_10
 > PJ_001(YY-MM-DD)_proyect name
 > PP_Category[Topic]_Presentation
@@ -111,22 +113,9 @@ Use if:
 
 <div align="center"> 
 
-### 1.4 Projects Folder </div>
+### 1.4 Projects Folder 
 
-```Structure
-📁 003.PROJECTS
-│
-├── 📁 Brainstorm [Varied Ideas]
-├── 📁 Science Fair Ideas
-├── 📁 Inspiration Project [by Bill Ready]
-├   ...
-├── 📁 97.Undefined <-- Support Folder
-├── 📁 98.Review <-- Support Folder
-├   ...
-├── ↗️ 🔗 103.05.MyLargeProject <-- Shortcut
-├── ↗️ 🔗 PJ_133_(24-05-12)_My-Project-Name <-- Shortcut
-├── ↗️ 🔗 PJ_134_(24-06-01)_My-Little-Project <-- Shortcut
-```
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4bc06bae-f3c0-4a97-ae6a-d096833e401a" alt="ILL_pictures_13" width="350"></div>
 
 > 🛈 Works as a temporal repository, It should contentain shortcuts to current project paths, and If you want also idea or inspiration folders
 
