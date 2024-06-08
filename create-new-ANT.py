@@ -72,8 +72,16 @@ os.makedirs(f'{root}/{a4}/{res}/01.SchoolAgend (Suggested)', exist_ok=True)
 			### --- 401 Lenguage [English]
 os.makedirs(f'{root}/{a4}/01.Lenguage [English] (Suggested)/{rev}', exist_ok=True)
 
+paths_list = ["Unit01.Comprehension", "Unit02.LiteraryAnalysis", "Unit03.WritingEssays", "Unit04.GrammarAndUsage", "Unit05.CreativeWriting", "Unit06.Speaking", "Unit07.PersuasiveWriting", "Unit08.ThecnicalVocabulary"]
+for path in paths_list:
+  os.makedirs(f'{root}/{a4}/01.Lenguage [English] (Suggested)/{path}', exist_ok=True)
+
 			### --- 402 Math
 os.makedirs(f'{root}/{a4}/02.Math (Suggested)/{rev}', exist_ok=True)
+
+paths_list = ["Unit01.Algebra", "Unit02.Geometry", "Unit03.Trigonometry", "Unit04.Statistics", "Unit05.Probability", "Unit06.Functions", "Unit07.Equations&Inequalities", "Unit08.LinearAlgebra", "Unit09.Polynomials", "Unit10.Sequences&Series", "Unit11.Logarithms&Exponents", "Unit12.RationalExpressions", "Unit13.QuadraticFunctions", "Unit14.SimultaneousEquations", "Unit15.MathematicalModeling"]
+for path in paths_list:
+  os.makedirs(f'{root}/{a4}/02.Math (Suggested)/{path}', exist_ok=True)
 
 			### --- 403 Technology
 os.makedirs(f'{root}/{a4}/03.Teachnology (Suggested)/{rev}', exist_ok=True)
