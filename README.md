@@ -113,22 +113,9 @@ Use if:
 
 <div align="center"> 
 
-### 1.4 Projects Folder </div>
+### 1.4 Projects Folder 
 
-```Structure
-📁 003.PROJECTS
-│
-├── 📁 Brainstorm [Varied Ideas]
-├── 📁 Science Fair Ideas
-├── 📁 Inspiration Project [by Bill Ready]
-├   ...
-├── 📁 97.Undefined <-- Support Folder
-├── 📁 98.Review <-- Support Folder
-├   ...
-├── ↗️ 🔗 103.05.MyLargeProject <-- Shortcut
-├── ↗️ 🔗 PJ_133_(24-05-12)_My-Project-Name <-- Shortcut
-├── ↗️ 🔗 PJ_134_(24-06-01)_My-Little-Project <-- Shortcut
-```
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4bc06bae-f3c0-4a97-ae6a-d096833e401a" alt="ILL_pictures_13" width="350"></div>
 
 > 🛈 Works as a temporal repository, It should contentain shortcuts to current project paths, and If you want also idea or inspiration folders
 
