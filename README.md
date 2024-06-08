@@ -74,7 +74,7 @@ There are two ways to structure, If categories stay for a long time should be us
 
 #### 1.3.1 Chill Structure
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/9cad8375-ac72-4332-88a6-6314687cbdfd" alt="ILL_pictures_07" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/797bbad4-cb0b-4050-b5d6-169050892212" alt="ILL_pictures_07" width="350">
 
 > Is simple, It has an incremental enumeration with two or more digits, tho it doesn't necesary go at the beginning, as it'll depend on the needs/customization of each one. 
 
