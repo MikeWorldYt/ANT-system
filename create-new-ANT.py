@@ -93,19 +93,43 @@ for path in paths_list:
 			### --- 404 Science
 os.makedirs(f'{root}/{a4}/04.Science (Suggested)/{rev}', exist_ok=True)
 
-paths_list = ["01.prueba", "02.prueba", "03.prueba"]
+paths_list = ["Unit01.IntroductionToPhysics", "Unit02.Mechanics", "Unit03.Thermodynamics", "Unit04.WavesAndOptics", "Unit05.Electrostatics", "Unit06.ElectricityAndMagnetism", "Unit07.ModernPhysics"]
 for path in paths_list:
   os.makedirs(f'{root}/{a4}/04.Science (Suggested)/{path}/{rev}', exist_ok=True)
 
 			### --- 405 History
 os.makedirs(f'{root}/{a4}/05.History (Suggested)/{rev}', exist_ok=True)
 
+paths_list = ["01.AncientCivilizations", "02.MedievalHistory", "03.RenaissanceAndReformation", "04.AgeOfExploration", "05.IndustrialRevolution", "06.WorldWarI", "07.InterwarPeriod", "08.WorldWarII", "09.ColdWarEra", "10.ModernHistory"]
+for path in paths_list:
+  os.makedirs(f'{root}/{a4}/05.History (Suggested)/{path}/{rev}', exist_ok=True)
+
 			### --- 406 ForeignLanguage [Spanish]
 os.makedirs(f'{root}/{a4}/06.ForeignLanguage [Spanish] (Suggested)/{rev}', exist_ok=True)
 
+paths_list = ["Capitulo01.IntroducciónAlEspañol", "Capitulo02.Vocabulario", "Capitulo03.Gramática", "Capitulo04.ConversaciónYExpresiones", "Capitulo05.Verbos", "Capitulo06.ComprensiónAuditiva", "Capitulo07.LecturaYComprensión", "Capitulo08.Escritura", "Capitulo09.CulturaYSociedad", "Capitulo10.CineYLiteratura", "Capitulo11.Repaso(Examen)"]
+for path in paths_list:
+  os.makedirs(f'{root}/{a4}/06.ForeignLanguage [Spanish] (Suggested)/{path}', exist_ok=True)
+
 			### --- 407 ForeignLanguage [French]
+os.makedirs(f'{root}/{a4}/07.ForeignLanguage [French] (Suggested)/{rev}', exist_ok=True)
+
+paths_list = ["Chapitre01.IntroductionAuFrançais", "Chapitre02.Vocabulaire", "Chapitre03.Grammaire", "Chapitre04.ConversationEtExpressions", "Chapitre05.Verbes", "Chapitre06.CompréhensionOrale", "Chapitre07.LectureEtCompréhension", "Chapitre08.Écriture", "Chapitre09.CultureEtSociété", "Chapitre10.CinémaEtLittérature", "Chapitre11.Revue(Examen)"]
+for path in paths_list:
+  os.makedirs(f'{root}/{a4}/07.ForeignLanguage [French] (Suggested)/{path}', exist_ok=True)
+
 			### --- 408 EEA [VisualArts]
+os.makedirs(f'{root}/{a4}/08.EEA [VisualArts] (Suggested)/{rev}', exist_ok=True)
+
+paths_list = ["01.IntroductionToVisualArts", "02.ElementsAndPrinciplesOfDesign", "03.ArtHistory", "04.Art&Culture", "05.ColorTheory", "06.PaintingTechniques", "07.DigitalArt", "08.ContemporaryArt", "09.ArtCriticism", "10.PortfolioDevelopment", "11.ExhibitionPreparation"]
+for path in paths_list:
+  os.makedirs(f'{root}/{a4}/08.EEA [VisualArts] (Suggested)/{path}/{rev}', exist_ok=True)
+
 			### --- 409	EEA [Music]
+os.makedirs(f'{root}/{a4}/09.EEA [Music] (Suggested)/{rev}', exist_ok=True)
+
+paths_list = ["01.IntroductionToMusic", "02.MusicHistory", "03.MusicTheory", "04.Rhythm&Meter", "05.Melody&Harmony", "06.Notation", "07.InstrumentalTechniques", "08.CompositionAndSongwriting", "09.EnsemblePerformance", "10.Production", "11.Demo(PortfolioExam)"]
+
 			### --- 410	EEA [AcademicDecathlon]
 			### --- 411	MyCourses
 
