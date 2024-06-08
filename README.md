@@ -102,9 +102,9 @@ Use if:
 - The data is temporary and will most likely be deleted later
 - Share with more people if you
 
-```
-image_11 doing...
-```
+**Usage Suggestions:**
+
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/28a5e444-aab8-4ae1-9c75-bf46a3aed611" alt="ILL_pictures_11" width="350">
 
 ### 1.4 Projects Folder
 ```Structure
