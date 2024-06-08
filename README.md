@@ -84,8 +84,10 @@ Use if:
 
 **Usage Suggestions:**
 ```
-image_08 & image_09 doing...
+image_08 doing...
 ```
+
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/77aefeb6-9067-4a85-9a0c-1ec5a8f589ae" alt="ILL_pictures_07" width="350">
 
 #### 1.3.2 Control Structure
 ```image_10
