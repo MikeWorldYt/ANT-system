@@ -73,10 +73,8 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 There are two ways to structure, If categories stay for a long time should be use a "Chill Structure", Otherwise if its a temporary data, meaning it'll only be used for a short period, *then* you should use a “control structure”.
 
 #### 1.3.1 Chill Structure
-```image_07
-> 01.Subcategory
-> Unit01.ThemeName
-```
+
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/9cad8375-ac72-4332-88a6-6314687cbdfd" alt="ILL_pictures_07" width="350">
 
 > Is simple, It has an incremental enumeration with two or more digits, tho it doesn't necesary go at the beginning, as it'll depend on the needs/customization of each one. 
 
