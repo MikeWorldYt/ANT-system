@@ -33,9 +33,8 @@ Following this method will ensure that your Digital Storage is well-organized, E
 # 📄 MAIN CONCEPTS
 ## 1. Levels and Folder's Structure </div>
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/e6ac25f7-51ba-440d-b292-6d94bd1fea07" alt="ILL_pictures_03" width="350">
-<br>
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/ce88f6b7-3093-4574-849b-a3fe29af4ab0" alt="ILL_pictures_06" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/767d172a-a1c8-4f9e-84b5-5c14b0528a65" alt="ILL_pictures_03" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/ab7abf48-d6b4-4788-beb9-da622fd84059" alt="ILL_pictures_06" width="350">
 
 Levels refer to the depth within the folder tree directory.
 
