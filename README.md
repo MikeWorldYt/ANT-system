@@ -47,15 +47,15 @@ Levels refer to the depth within the folder tree directory.
 
 ### 1.1 The Level 1 - Main Categories
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/50de8c61-aa64-44ee-819f-f07696d8c093" alt="ILL_pictures_01" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/9db77e92-f03c-4392-b315-05739024d9e8" alt="ILL_pictures_01" width="350">
 
-> 🛈 Is the highest hierarchy, inside from your Root Storage Folder;
+> 🛈 Is the highest hierarchy, inside from your Root Storage Folder, content the main categegories;
 
-Content the Main Categories, with an incremental enumeration with three digits, followed by a '.', followed by the Main Category name in Capitals
+With an incremental enumeration with three digits (100, 200, 300, ...), followed by a '.', followed by the Main Category name in Capitals
 
 **Usage Suggestions:**
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/21c22369-0107-427a-b61c-23f5c37755d6" alt="ILL_pictures_02" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/b1fab983-9b50-4a00-ab6f-4592a3bd6178" alt="ILL_pictures_02" width="350">
 
 ### 1.2 The Levels 2 - Categories, Subjects
 
@@ -83,11 +83,10 @@ Use if:
 - The directory is a permanent category
 
 **Usage Suggestions:**
-```
-image_08 doing...
-```
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/77aefeb6-9067-4a85-9a0c-1ec5a8f589ae" alt="ILL_pictures_07" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4580a952-06d0-48c8-8f42-b1d29bd41d58" alt="ILL_pictures_08" width="350">
+<br>
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/77aefeb6-9067-4a85-9a0c-1ec5a8f589ae" alt="ILL_pictures_09" width="350">
 
 #### 1.3.2 Control Structure
 ```image_10
