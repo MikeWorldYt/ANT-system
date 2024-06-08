@@ -78,7 +78,7 @@ os.makedirs(f'{root}/{a4}/02.Math (Suggested)/{rev}', exist_ok=True)
 			### --- 403 Technology
 os.makedirs(f'{root}/{a4}/03.Teachnology (Suggested)/{rev}', exist_ok=True)
 
-paths_list = ["Unit01.Foundations", "Unit02.OperatingSystems", "Unit03.DataStructures", "Unit04.Networks&Communications",]
+paths_list = ["Unit01.Foundations", "Unit02.OperatingSystems", "Unit03.DataStructures", "Unit04.Networks&Communications", "Unit05.Databases", "Unit06.WebDevelopment", "Unit07.Automation", "Unit08.ArtificalInteligence", "Unit09.Cybersecurity"]
 for path in paths_list:
   os.makedirs(f'{root}/{a4}/03.Teachnology (Suggested)/{path}', exist_ok=True)
 
