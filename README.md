@@ -1,9 +1,8 @@
 <div align="center"> 
   
 # 🚀 GETTING STARTED 
-  <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/78213cc7-687a-46ac-8f76-8aaf7d6d6ae8)" >
-</div>
-  
+  <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/78213cc7-687a-46ac-8f76-8aaf7d6d6ae8)" ></div>
+
 > [!IMPORTANT] 
 > **ANT on the system** (Archive Nesting Technique on the System) is a *Hierarchical Organizational Method* designed to streamline the storage, making it easier to manage and find your documents.
 <!--
@@ -32,9 +31,8 @@ Following this method will ensure that your Digital Storage is well-organized, E
 <div align="center"> 
   
 # 📄 MAIN CONCEPTS
-</div>
-
 ## 1. Levels and Folder's Structure
+</div>
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/e6ac25f7-51ba-440d-b292-6d94bd1fea07" alt="ILL_pictures_03" width="350">
 <br>
@@ -85,7 +83,6 @@ Use if:
 **Usage Suggestions:**
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4580a952-06d0-48c8-8f42-b1d29bd41d58" alt="ILL_pictures_08" width="350">
-<br>
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/77aefeb6-9067-4a85-9a0c-1ec5a8f589ae" alt="ILL_pictures_09" width="350">
 
 #### 1.3.2 Control Structure
@@ -125,7 +122,11 @@ Use if:
 > 🛈 Works as a temporal repository, It should contentain shortcuts to current project paths, and If you want also idea or inspiration folders
 
 
+<div align="center">
+
 ## 2. Support Folders
+</div>
+
 > 🛈 The support folders in that sense should provide help at the current level.
 
 These have a unique enumeration that helps them not to mix with other files and to be ordered in a way that they can be quickly identified.
@@ -154,7 +155,9 @@ Its unique enumeration is '90', so you will find it as '90.Resources'.
 Its unique enumeration is '00', so you will find it as '00.Archive'.
 !!! To edit)
 
-## 3. Nomenclature
+<div align="center"> 
+
+## 3. Nomenclature </div>
 
 ### F O R M A T
 <font color="#00a782">Identicator\_ </font><font color="#de7802">(Date)</font> \_ Keywords \_ <font color="#FF4500">Version</font>  
