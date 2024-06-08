@@ -31,8 +31,7 @@ Following this method will ensure that your Digital Storage is well-organized, E
 <div align="center"> 
   
 # 📄 MAIN CONCEPTS
-## 1. Levels and Folder's Structure
-</div>
+## 1. Levels and Folder's Structure </div>
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/e6ac25f7-51ba-440d-b292-6d94bd1fea07" alt="ILL_pictures_03" width="350">
 <br>
@@ -43,7 +42,9 @@ Levels refer to the depth within the folder tree directory.
 > [!TIP]
 > 🛈 The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.
 
-### 1.1 The Level 1 - Main Categories
+<div align="center"> 
+
+### 1.1 The Level 1 - (Main Categories) </div>
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/9db77e92-f03c-4392-b315-05739024d9e8" alt="ILL_pictures_01" width="350">
 
@@ -55,7 +56,9 @@ With an incremental enumeration with three digits (100, 200, 300, ...), followed
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/b1fab983-9b50-4a00-ab6f-4592a3bd6178" alt="ILL_pictures_02" width="350">
 
-### 1.2 The Levels 2 - Categories, Subjects
+<div align="center"> 
+
+### 1.2 The Levels 2 - (Categories, Subjects) </div>
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4c090700-6138-4a5f-bc90-49b3c896d0b8" alt="ILL_pictures_04" width="350">
 
@@ -67,7 +70,10 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/3685ca90-d3e2-4594-a488-b2f74a0cbdb4" alt="ILL_pictures_05" width="350">
 
-### 1.3 The Levels 3 - Subcategories, Topics or Theme. 
+<div align="center"> 
+
+### 1.3 The Levels 3 - Subcategories, Topics or Theme. </div>
+
 There are two ways to structure, If categories stay for a long time should be use a "Chill Structure", Otherwise if its a temporary data, meaning it'll only be used for a short period, *then* you should use a “control structure”.
 
 #### 1.3.1 Chill Structure
@@ -103,7 +109,10 @@ Use if:
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/28a5e444-aab8-4ae1-9c75-bf46a3aed611" alt="ILL_pictures_11" width="350">
 
-### 1.4 Projects Folder
+<div align="center"> 
+
+### 1.4 Projects Folder </div>
+
 ```Structure
 📁 003.PROJECTS
 │
