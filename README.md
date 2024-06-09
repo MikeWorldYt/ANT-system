@@ -93,14 +93,23 @@ Use if:
 
 <div align="center"> 
 
-#### 1.3.2 Control Structure </div>
-```image_10
-> PJ_001(YY-MM-DD)_proyect name
-> PP_Category[Topic]_Presentation
-> DB_Category[Topic]_database name
-```
+#### 1.3.2 Control Structure 
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/7005153f-27a6-4932-8932-40c2d65e9d67" alt="ILL_pictures_08" width="350"></div>
 
-> It's ideal por projects, presentations, homeworks, etc. Use a naming convetion for controling and easy identification
+> It's ideal for projects, presentations, database, homeworks, etc. Use a naming convetion for controling and easy identification
+
+|               |                                                            |
+| ------------- | ---------------------------------------------------------- |
+| Identificator | It's a code label that identifies it.                      |
+| Traker        | It's your tracking index, if you use.                      |
+| Date          | The format is 'YY-MM-DD' within parentheses                |
+| Breadcrumb    | Use current or nearby folder category name.                |
+| Holder        | Refers to client, organization, school, or reference name. |
+| Name          | Is the proj, pres, DB, hw name.                            |
+| Keywords      | Are descriptive words or phrases.                          |
+
+> [!TIP]
+>  It's not necessary to have all the fields, tho follow in that order, adapt it to your needs
 
 Use if:
 - You Need to have control
