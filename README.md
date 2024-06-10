@@ -2,7 +2,7 @@
 <h1>🚀 GETTING STARTED</h1>
   <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/78213cc7-687a-46ac-8f76-8aaf7d6d6ae8)" ></div>
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 > **ANT on the system** (Archive Nesting Technique on the System) is a *Hierarchical Organizational Method* designed to streamline the storage, making it easier to manage and find your documents.
 <!--
 [...]
@@ -28,10 +28,10 @@ Following this method will ensure that your Digital Storage is well-organized, E
 <!--
 <img src="https://img001.prntscr.com/file/img001/T42IATfESsycBd5K0_QfKA.png" alt="Diagrama del Proyecto" height="400">
 -->
-<div align="center"> 
-  
-# 📄 MAIN CONCEPTS
-## 1. Levels and Folder's Structure 
+<div align="center">
+<h1> 📄 MAIN CONCEPTS </h1>
+<!-- ------------------------------   .   -   '   -   .    ------------------------------ -->
+<h2> 1. Levels and Folder's Structure </h2>  
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/767d172a-a1c8-4f9e-84b5-5c14b0528a65" alt="ILL_pictures_03" width="350">
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/ae61a29d-0a6b-4fd8-9f60-1e7443832596" alt="ILL_pictures_06" width="350"></div>
@@ -41,11 +41,8 @@ Levels refer to the depth within the folder tree directory.
 > [!TIP]
 > The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.
 
-<div align="center"> 
-
-### 1.1 The Level 1 - (Main Categories) 
-
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/9db77e92-f03c-4392-b315-05739024d9e8" alt="ILL_pictures_01" width="350"></div>
+<div align="center"> <!-- .   -   '   -   . --> <h3> 1.1 The Level 1 - (Main Categories) </h3> <!-- .   -   '   -   . -->
+  <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/9db77e92-f03c-4392-b315-05739024d9e8" alt="ILL_pictures_01" width="350"></div>
 
 Is the highest hierarchy, inside from your Root Storage Folder, content the main categories;
 
@@ -55,11 +52,8 @@ Is the highest hierarchy, inside from your Root Storage Folder, content the main
 **Usage Suggestions:** <br>
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/217c9300-edcf-4716-9502-08ff7d3be85a" alt="ILL_pictures_02" width="350">
 
-<div align="center"> 
-
-### 1.2 The Levels 2 - (Categories, Subjects) 
-
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4c090700-6138-4a5f-bc90-49b3c896d0b8" alt="ILL_pictures_04" width="350"></div>
+<div align="center"> <!-- .   -   '   -   . --> <h3> 1.2 The Levels 2 - (Categories, Subjects) </h3> <!-- .   -   '   -   . -->
+  <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4c090700-6138-4a5f-bc90-49b3c896d0b8" alt="ILL_pictures_04" width="350"></div>
 
 Is inside of your main category selectioned;
 
@@ -69,15 +63,14 @@ Is inside of your main category selectioned;
 **Usage Suggestions:** <br>
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/24286609-4c19-4ced-b147-0a7429a29001" alt="ILL_pictures_05" width="350">
 
-<div align="center"> 
-
-### 1.3 The Levels 3 - Subcategories, Topics or Theme. </div>
+<div align="center"> <!-- .   -   '   -   . --> <h3> 1.3 The Levels 3 - Subcategories, Topics or Theme.</h3> <!-- .   -   '   -   . -->
+</div>
 
 There are two ways to structure;
 <br>If the Directory stay for a long time should be use a **"Chill Structure"**, Otherwise if it's a Temporary Directory (it'll only be used for a short period), you should be use a **“control structure”**.
 
 <div align="center"> 
-<h4>1.3.1 Chill Structure </h4>
+  <h4>1.3.1 Chill Structure </h4>
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/797bbad4-cb0b-4050-b5d6-169050892212" alt="ILL_pictures_07" width="350"></div>
 
 > [!IMPORTANT]
@@ -95,7 +88,7 @@ Use if:
 > That the way you organize will determine whether your support folders come before or after. <br> Remember, the order always be Symbols-Numbers-Letters."
 
 <div align="center"> 
-<h4>1.3.2 Control Structure</h4> 
+  <h4>1.3.2 Control Structure</h4> 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/7005153f-27a6-4932-8932-40c2d65e9d67" alt="ILL_pictures_08" width="350"></div>
 
 It's ideal for projects, presentations, database, homeworks, etc. Use a naming convetion for controling and easy identification
@@ -124,26 +117,21 @@ Use if:
 **Usage Suggestions:** <br>
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/e367dbf2-d863-41af-a193-86adb18effad" alt="ILL_pictures_11" width="350">
 
-<div align="center"> 
-
-### 1.4 Projects Folder 
-
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4bc06bae-f3c0-4a97-ae6a-d096833e401a" alt="ILL_pictures_13" width="350"></div>
+<div align="center"> <!-- .   -   '   -   . --> <h3> 1.4 Projects Folder </h3> <!-- .   -   '   -   . -->
+  <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4bc06bae-f3c0-4a97-ae6a-d096833e401a" alt="ILL_pictures_13" width="350"></div>
 
 Works as a temporal repository, It should contentain shortcuts to current project paths, and If you want also idea or inspiration folders
 
 
 <div align="center">
+<!-- ------------------------------   .   -   '   -   .    ------------------------------ -->
+<h2> 2. Support Folders </h2></div>
 
-## 2. Support Folders
-</div>
-
-The support folders are designed to be helpful at the current level. In that sense support the user.
-
+The support folders are designed to be helpful at the current level. In that sense support the user. <br>
 Each has a unique identifier, making it easy to differentiate and quickly identify them;
 
-<div align="center">
-<h3> 2.1 Settings Folder (99)</h3> </div>
+<div align="center"> <!-- .   -   '   -   . --> <h3> 2.1 Settings Folder (99) </h3> <!-- .   -   '   -   . -->
+</div>
   
 Its unique identifier is '99', so you will find it as '99.Settings'
 This folder contains general configurations for 'ANT', for your programs, interfaces, or Operating System.
@@ -173,8 +161,8 @@ Its unique enumeration is '00', so you will find it as '00.Archive'.
 !!! To edit)
 
 <div align="center"> 
-
-## 3. Nomenclature </div>
+<!-- ------------------------------   .   -   '   -   .    ------------------------------ -->
+<h2> 3. Nomenclature </h2></div>
 
 ### F O R M A T
 > F O R M A T
