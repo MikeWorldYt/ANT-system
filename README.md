@@ -101,7 +101,10 @@ Use if:
 <h4>1.3.2 Control Structure</h4> 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/7005153f-27a6-4932-8932-40c2d65e9d67" alt="ILL_pictures_08" width="350"></div>
 
-> It's ideal for projects, presentations, database, homeworks, etc. Use a naming convetion for controling and easy identification
+It's ideal for projects, presentations, database, homeworks, etc. Use a naming convetion for controling and easy identification
+
+> [!IMPORTANT]
+> It has a naming convention, here is the meaning of each part;
 
 |               |                                                            |
 | ------------- | ---------------------------------------------------------- |
@@ -114,7 +117,7 @@ Use if:
 | Keywords      | Are descriptive words or phrases.                           |
 
 > [!TIP]
->  It's not necessary to have all the fields, tho follow in that order, adapt it to your needs
+>  It's not necessary to have all the fields, tho follow in that order, (adapt it to your needs).
 
 Use if:
 - You Need to have control
