@@ -122,6 +122,8 @@ Use if:
 
 Works as a temporal repository, It should contentain shortcuts to current project paths, and If you want also idea or inspiration folders
 
+**Usage Suggestions:** <br>
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/69d8d735-9b03-4bc7-a992-1c577cdc8108" alt="ILL_pictures_13" width="350">
 
 <div align="center">
 <!-- ------------------------------   .   -   '   -   .    ------------------------------ -->
@@ -135,6 +137,8 @@ Each has a unique identifier, making it easy to differentiate and quickly identi
   
 Its unique identifier is '99', so you will find it as '99.Settings'
 This folder contains general configurations for 'ANT', for your programs, interfaces, or Operating System.
+
+
 
 # ⚠️ - EDITION CONTROL
 
