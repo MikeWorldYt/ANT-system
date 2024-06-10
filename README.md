@@ -134,17 +134,23 @@ Use if:
 ## 2. Support Folders
 </div>
 
-> 🛈 The support folders in that sense should provide help at the current level.
+> 🛈 The support folders are designed to be helpful at the current level. In that sense support the user.
 
-These have a unique enumeration that helps them not to mix with other files and to be ordered in a way that they can be quickly identified.
+Each has a unique identifier, making it easy to differentiate and quickly identify them;
 
-### 2* 2.1 Settings Folder (99)
-Its unique enumeration is '99', so you will find it as '99.Settings'.
-This folder contains general configurations for both the 'ANT System', Your programs, interfaces, and Operating System.
+<div align="center">
+<h3> 2.1 Settings Folder (99)</h3> </div>
+  
+Its unique identifier is '99', so you will find it as '99.Settings'
+This folder contains general configurations for 'ANT', for your programs, interfaces, or Operating System.
 
-These can be graphic customizations like wallpapers or configurations such as Network settings or Registry.
+# ⚠️ - EDITION CONTROL
 
-!!! Notes:Parameters for Software
+> [!CAUTION]
+> hey it's not finished yet, you just reached a checkpoint
+
+![image](https://st.depositphotos.com/3332767/4585/i/950/depositphotos_45854107-stock-photo-man-holding-stop-sign.jpg)
+
 
 ### 2.2 Review Folder (98)
 Its unique enumeration is '98', so you will find it as '98.Review'.
