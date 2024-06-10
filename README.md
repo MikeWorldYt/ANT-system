@@ -66,7 +66,7 @@ For each folder add an incremental enumeration with two digits, followed by a '.
 
 **Usage Suggestions:**
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/3685ca90-d3e2-4594-a488-b2f74a0cbdb4" alt="ILL_pictures_05" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/24286609-4c19-4ced-b147-0a7429a29001" alt="ILL_pictures_05" width="350">
 
 <div align="center"> 
 
