@@ -94,6 +94,9 @@ Use if:
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/df5f2d4c-7dbd-46ee-b532-2f886dcc8066" alt="ILL_pictures_08" width="350">
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/15797a01-4421-42ca-be6e-20f6d68e86b3" alt="ILL_pictures_09" width="350">
 
+> [!NOTE]
+> That the way you organize will determine whether your support folders come before or after. <br> Remember, the order always be Symbols-Numbers-Letters."
+
 <div align="center"> 
 <h4>1.3.2 Control Structure</h4> 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/7005153f-27a6-4932-8932-40c2d65e9d67" alt="ILL_pictures_08" width="350"></div>
