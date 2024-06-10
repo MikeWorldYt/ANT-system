@@ -118,7 +118,7 @@ Use if:
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/e367dbf2-d863-41af-a193-86adb18effad" alt="ILL_pictures_11" width="350">
 
 <div align="center"> <!-- .   -   '   -   . --> <h3> 1.4 Projects Folder </h3> <!-- .   -   '   -   . -->
-  <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4bc06bae-f3c0-4a97-ae6a-d096833e401a" alt="ILL_pictures_13" width="350"></div>
+  <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/0573df39-8d66-4136-bab4-e79ab1909fc8" alt="ILL_pictures_13" width="350"></div>
 
 Works as a temporal repository, It should contentain shortcuts to current project paths, and If you want also idea or inspiration folders
 
