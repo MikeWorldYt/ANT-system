@@ -52,8 +52,7 @@ Is the highest hierarchy, inside from your Root Storage Folder, content the main
 > [!IMPORTANT]
 > Use an Incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals
 
-**Usage Suggestions:**
-
+**Usage Suggestions:** <br>
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/217c9300-edcf-4716-9502-08ff7d3be85a" alt="ILL_pictures_02" width="350">
 
 <div align="center"> 
@@ -67,8 +66,7 @@ Is inside of your main category selectioned;
 > [!IMPORTANT]
 > For each directory add an Incremental enumeration with two digits, followed by a dot, followed by the Categories Name
 
-**Usage Suggestions:**
-
+**Usage Suggestions:** <br>
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/24286609-4c19-4ced-b147-0a7429a29001" alt="ILL_pictures_05" width="350">
 
 <div align="center"> 
@@ -89,8 +87,7 @@ Use if:
 - You need a static sequence
 - The directory is a permanent category
 
-**Usage Suggestions:**
-
+**Usage Suggestions:** <br>
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/df5f2d4c-7dbd-46ee-b532-2f886dcc8066" alt="ILL_pictures_08" width="350">
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/15797a01-4421-42ca-be6e-20f6d68e86b3" alt="ILL_pictures_09" width="350">
 
@@ -124,8 +121,7 @@ Use if:
 - The data is temporary and will most likely be deleted later
 - Share with more people if you
 
-**Usage Suggestions:**
-
+**Usage Suggestions:** <br>
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/e367dbf2-d863-41af-a193-86adb18effad" alt="ILL_pictures_11" width="350">
 
 <div align="center"> 
