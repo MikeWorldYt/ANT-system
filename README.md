@@ -38,7 +38,7 @@ Following this method will ensure that your Digital Storage is well-organized, E
 Levels refer to the depth within the folder tree directory.
 
 > [!TIP]
-> 🛈 The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.
+> The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.
 
 <div align="center"> 
 
@@ -46,9 +46,10 @@ Levels refer to the depth within the folder tree directory.
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/9db77e92-f03c-4392-b315-05739024d9e8" alt="ILL_pictures_01" width="350"></div>
 
-> 🛈 Is the highest hierarchy, inside from your Root Storage Folder, content the main categegories;
+Is the highest hierarchy, inside from your Root Storage Folder, content the main categegories;
 
-With an incremental enumeration with three digits (100, 200, 300, ...), followed by a '.', followed by the Main Category name in Capitals
+> [!TIP]
+> Use an incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals
 
 **Usage Suggestions:**
 
@@ -60,9 +61,10 @@ With an incremental enumeration with three digits (100, 200, 300, ...), followed
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4c090700-6138-4a5f-bc90-49b3c896d0b8" alt="ILL_pictures_04" width="350"></div>
 
-> 🛈 Is inside of your main category selectioned;
+Is inside of your main category selectioned;
 
-For each folder add an incremental enumeration with two digits, followed by a '.', followed by the Categories Name
+> [!TIP]
+> For each folder add an incremental enumeration with two digits, followed by a dot, followed by the Categories Name
 
 **Usage Suggestions:**
 
@@ -126,7 +128,7 @@ Use if:
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/4bc06bae-f3c0-4a97-ae6a-d096833e401a" alt="ILL_pictures_13" width="350"></div>
 
-> 🛈 Works as a temporal repository, It should contentain shortcuts to current project paths, and If you want also idea or inspiration folders
+Works as a temporal repository, It should contentain shortcuts to current project paths, and If you want also idea or inspiration folders
 
 
 <div align="center">
@@ -134,7 +136,7 @@ Use if:
 ## 2. Support Folders
 </div>
 
-> 🛈 The support folders are designed to be helpful at the current level. In that sense support the user.
+The support folders are designed to be helpful at the current level. In that sense support the user.
 
 Each has a unique identifier, making it easy to differentiate and quickly identify them;
 
