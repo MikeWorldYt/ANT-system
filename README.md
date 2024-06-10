@@ -173,17 +173,18 @@ Its unique enumeration is '00', so you will find it as '00.Archive'.
 ## 3. Nomenclature </div>
 
 ### F O R M A T
-<font color="#00a782">Identicator\_ </font><font color="#de7802">(Date)</font> \_ Keywords \_ <font color="#FF4500">Version</font>  
-<font color="#00a782">IDD\_</font><font color="#de7802">(YY-MM-DD)\_</font>key-words-tags-labels\_<font color="#FF4500">v.1.0.0</font>
-
-<font color="#de7802">(Date)\_ </font> <font color="#00a782">Identicator\_ </font> Keywords \_ <font color="#fd5c63">Version</font>  
-<font color="#de7802">(YY-MM-DD)\_</font><font color="#00a782">IDD\_</font>key-words-tags-labels\_<font color="#FF4500">v.1.0.1</font>
-
-<font color="#00a782">Identicator\_</font> <font color="#de7802">Topic-[Sub-Topic]\_</font> Keywords \_ <font color="red">(TrackNumber)</font>  
-<font color="#00a782">IDD\_</font><font color="#de7802">Topic-[Sub-Topic]\_</font>key-words-tags-labels_<font color="red">(01)</font>
-
-<font color="#de7802">Topic-[Sub-Topic]\_</font> <font color="#00a782">Identificator\_</font>  Keywords\_ <font color="red">(TrackNumber)</font>  
-<font color="#de7802">Topic-[Sub-Topic]\_</font><font color="#00a782">IDD\_</font>key-words-tags-labels_<font color="red">(02)</font>
-.
-~~<font color="#de7802">(Date)_Topic-[Sub-Topic]\_</font>~~ better use name's folder
+> F O R M A T
+> <font color="#00a782">Identicator\_ </font><font color="#ADFF2F">(Date) \_</font> </font><font color="#de7802">Keywords \_ </font><font color="#FF3800">Version</font>
+> <font color="#00a782">IDD\_</font><font color="#ADFF2F">(YY-MM-DD)\_</font><font color="#de7802">key-words-tags-labels\_</font><font color="#FF3800">v.1.0.0</font>
+> 
+> <font color="#de7802">(Date)\_ </font> <font color="#00a782">Identicator\_ </font> Keywords \_ <font color="#fd5c63">Version</font>
+> <font color="#de7802">(YY-MM-DD)\_</font><font color="#00a782">IDD\_</font>key-words-tags-labels\_<font color="#FF4500">v.1.0.1</font>
+> 
+>  <font color="#00a782">Identicator\_</font> <font color="#de7802">Breadcrumbs[Holder]\_</font> Keywords \_ <font color="red">(TrackNumber)</font>
+> <font color="#00a782">IDD\_</font><font color="#de7802">Breadcrumbs[Holder]\_</font>key-words-tags-labels_<font color="red">(01)</font>
+> 
+>  <font color="#de7802">Breadcrumbs[Holder]\_</font> <font color="#00a782">Identificator\_</font>  Keywords\_ <font color="red">(TrackNumber)</font>
+>  <font color="#de7802">Breadcrumbs[Holder]\_</font><font color="#00a782">IDD\_</font>key-words-tags-labels_<font color="red">(02)</font>
+>  .
+>  ~~<font color="#de7802">(Date)_Breadcrumbs[Holder]\_</font>~~ better use name's folder
 
