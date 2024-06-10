@@ -46,10 +46,10 @@ Levels refer to the depth within the folder tree directory.
 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/9db77e92-f03c-4392-b315-05739024d9e8" alt="ILL_pictures_01" width="350"></div>
 
-Is the highest hierarchy, inside from your Root Storage Folder, content the main categegories;
+Is the highest hierarchy, inside from your Root Storage Folder, content the main categories;
 
-> [!TIP]
-> Use an incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals
+> [!IMPORTANT]
+> Use an Incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals
 
 **Usage Suggestions:**
 
@@ -63,8 +63,8 @@ Is the highest hierarchy, inside from your Root Storage Folder, content the main
 
 Is inside of your main category selectioned;
 
-> [!TIP]
-> For each folder add an incremental enumeration with two digits, followed by a dot, followed by the Categories Name
+> [!IMPORTANT]
+> For each directory add an Incremental enumeration with two digits, followed by a dot, followed by the Categories Name
 
 **Usage Suggestions:**
 
