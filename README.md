@@ -100,13 +100,13 @@ Use if:
 
 |               |                                                            |
 | ------------- | ---------------------------------------------------------- |
-| Identificator | It's a code label that identifies it.                      |
-| Traker        | It's your tracking index, if you use.                      |
-| Date          | The format is 'YY-MM-DD' within parentheses                |
-| Breadcrumb    | Use current or nearby folder category name.                |
-| Holder        | Refers to client, organization, school, or reference name. |
-| Name          | Is the proj, pres, DB, hw name.                            |
-| Keywords      | Are descriptive words or phrases.                          |
+| Identificator | It's a code label that identifies it.                       |
+| Traker        | It's your tracking index, if you use.                       |
+| Date          | The format is 'YY-MM-DD', within parentheses                |
+| Breadcrumb    | Use current or nearby folder category name.                 |
+| Holder        | Refers to client, organization, school, or reference name, within brackets |
+| Name          | Is the proj, pres, DB, hw name.                             |
+| Keywords      | Are descriptive words or phrases.                           |
 
 > [!TIP]
 >  It's not necessary to have all the fields, tho follow in that order, adapt it to your needs
