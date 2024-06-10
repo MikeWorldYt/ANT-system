@@ -52,7 +52,7 @@ With an incremental enumeration with three digits (100, 200, 300, ...), followed
 
 **Usage Suggestions:**
 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/b1fab983-9b50-4a00-ab6f-4592a3bd6178" alt="ILL_pictures_02" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/217c9300-edcf-4716-9502-08ff7d3be85a" alt="ILL_pictures_02" width="350">
 
 <div align="center"> 
 
