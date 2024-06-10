@@ -7,8 +7,9 @@
 <!--
 [...]
 -->
-> #### How works?
-> Her rules **organize files in a way that mimics a nested for categories** by following a naming convention and incremental numbering, Where the main categories are at the highest level, and each subsequent level provides more specific subcategories.
+ 
+### How works?
+Her rules **organize files in a way that mimics a nested for categories** by following a naming convention and incremental numbering, Where the main categories are at the highest level, and each subsequent level provides more specific subcategories.
 <!--
 ### QUICK START
 1. [Download the scrip (not avaible yet)](not-available)
@@ -74,15 +75,15 @@ Is inside of your main category selectioned;
 
 ### 1.3 The Levels 3 - Subcategories, Topics or Theme. </div>
 
-There are two ways to structure, If categories stay for a long time should be use a "Chill Structure", Otherwise if its a temporary data, meaning it'll only be used for a short period, *then* you should use a “control structure”.
+There are two ways to structure;
+<br>If the Directory stay for a long time should be use a **"Chill Structure"**, Otherwise if it's a Temporary Directory (it'll only be used for a short period), you should be use a **“control structure”**.
 
 <div align="center"> 
-
-#### 1.3.1 Chill Structure
-
+<h4>1.3.1 Chill Structure </h4>
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/797bbad4-cb0b-4050-b5d6-169050892212" alt="ILL_pictures_07" width="350"></div>
 
-> Is simple, It has an incremental enumeration with two or more digits, tho it doesn't necesary go at the beginning, as it'll depend on the needs/customization of each one. 
+> [!IMPORTANT]
+>  Is simple, It has an incremental enumeration with two or more digits, tho it doesn't necesary go at the beginning, as it'll depend on the needs/customization of each one. 
 
 Use if:
 - You need a static sequence
@@ -94,8 +95,7 @@ Use if:
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/15797a01-4421-42ca-be6e-20f6d68e86b3" alt="ILL_pictures_09" width="350">
 
 <div align="center"> 
-
-#### 1.3.2 Control Structure 
+<h4>1.3.2 Control Structure</h4> 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/7005153f-27a6-4932-8932-40c2d65e9d67" alt="ILL_pictures_08" width="350"></div>
 
 > It's ideal for projects, presentations, database, homeworks, etc. Use a naming convetion for controling and easy identification
