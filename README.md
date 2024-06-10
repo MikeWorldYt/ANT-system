@@ -134,11 +134,43 @@ Each has a unique identifier, making it easy to differentiate and quickly identi
 
 <div align="center"> <!-- .   -   '   -   . --> <h3> 2.1 Settings Folder (99) </h3> <!-- .   -   '   -   . -->
 </div>
-  
+
+```
+> image_16
+```
+
 Its unique identifier is '99', so you will find it as '99.Settings'
 This folder contains general configurations for 'ANT', for your programs, interfaces, or Operating System.
 
+<div align="center"> <!-- .   -   '   -   . --> <h3> 2.2 Review Folder (98) </h3>  <!-- .   -   '   -   . -->
+</div>
 
+```
+> image_17
+```
+
+Its unique identifier is '98', so you will find it as '98.Review'
+This folder contains all your files and directories that have no classification, need renaming, or maybe are not from the current level.
+In other words, they need to be reviewed before being into the system, and this folder helps you avoid mixing them with your other files.
+
+> [!IMPORTANT]
+> Use the identifier, followed by a dot, followed by the name of the current path
+
+```image_18
+> image_18
+
+e.g. 98.ACADEMIC for
+e.g. 98.Portfolio
+e.g. 98.MyDocuments
+e.g. 98.Math
+e.g. 98.CallOfDuty
+e.g. 98.MrBeast(Editions)
+
+```
+
+### 2.3 Undefined Folder (97)
+Its unique enumeration is '97', so you will find it as '97.UnDefined' or 97.UnCategorized'.
+!!! To edit)
 
 # ⚠️ - EDITION CONTROL
 
@@ -146,15 +178,6 @@ This folder contains general configurations for 'ANT', for your programs, interf
 > hey it's not finished yet, you just reached a checkpoint
 
 ![image](https://st.depositphotos.com/3332767/4585/i/950/depositphotos_45854107-stock-photo-man-holding-stop-sign.jpg)
-
-
-### 2.2 Review Folder (98)
-Its unique enumeration is '98', so you will find it as '98.Review'.
-!!! To edit)
-
-### 2.3 Undefined Folder (97)
-Its unique enumeration is '97', so you will find it as '97.UnDefined' or 97.UnCategorized'.
-!!! To edit)
 
 ### 2.4 Resources Folder (90)
 Its unique enumeration is '90', so you will find it as '90.Resources'.
