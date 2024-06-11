@@ -135,9 +135,7 @@ Each has a unique identifier, making it easy to differentiate and quickly identi
 <div align="center"> <!-- .   -   '   -   . --> <h3> 2.1 Settings Folder (99) </h3> <!-- .   -   '   -   . -->
 </div>
 
-```
-> image_16
-```
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/fc5f6fa2-b6d8-4f17-b320-8d6c4efcddb8" alt="ILL_pictures_16" width="350">
 
 Its unique identifier is '99', so you will find it as '99.Settings'
 This folder contains general configurations for 'ANT', for your programs, interfaces, or Operating System.
