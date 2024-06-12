@@ -161,8 +161,8 @@ e.g. 98.MrBeast(Editions)
 ```
 
 <div align="center"> 
-  <h4>2.2.1 998.Review</h4> 
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/6baaf90d-a2da-4aac-b393-11ab40896e4e" alt="ILL_pictures_19" width="350"></div>
+  <h4>2.2.1 Review Directory (998.Review)</h4> 
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/6baaf90d-a2da-4aac-b393-11ab40896e4e" alt="ILL_pictures_19" width="100"></div>
 
 Its unique identifier is '998', so you will find it as '998.Review' in your Root Storage;<br>
 It functions as a directory for your Review folders, should content shortcuts of your Review Folders.
