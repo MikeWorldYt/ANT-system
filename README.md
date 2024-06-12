@@ -171,9 +171,15 @@ The intention is that you don't have to navigate directly to the path to save th
 > [!NOTE]
 > Try to keep it updated if you create a new review folder
 
-### 2.3 Undefined Folder (97)
-Its unique enumeration is '97', so you will find it as '97.UnDefined' or 97.UnCategorized'.
-!!! To edit)
+<div align="center"> 
+  <h3> 2.3 Undefined Folder (97) </h3>
+</div>
+
+Its unique identifier is '97'. This is a folder that will help you organize a couple of files without adding them to '98.review'.<br>
+Because those files either don't belong at that level or are **needed immediately** <br>
+> [!NOTE]
+> It doesn't really need an identifier, but this way, you'll know to delete it when it's empty. <br>
+> You can also call it '~temp', 'temporal', anyway, just remember delete it.
 
 # ⚠️ - EDITION CONTROL
 
