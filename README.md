@@ -133,19 +133,13 @@ The support folders are designed to be helpful at the current level. In that sen
 Each has a unique identifier, making it easy to differentiate and quickly identify them;
 
 <div align="center"> <!-- .   -   '   -   . --> <h3> 2.1 Settings Folder (99) </h3> <!-- .   -   '   -   . -->
-</div>
-
-<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/fc5f6fa2-b6d8-4f17-b320-8d6c4efcddb8" alt="ILL_pictures_16" width="350">
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/fc5f6fa2-b6d8-4f17-b320-8d6c4efcddb8" alt="ILL_pictures_16" width="350"></div>
 
 Its unique identifier is '99', so you will find it as '99.Settings'
 This folder contains general configurations for 'ANT', for your programs, interfaces, or Operating System.
 
 <div align="center"> <!-- .   -   '   -   . --> <h3> 2.2 Review Folder (98) </h3>  <!-- .   -   '   -   . -->
-</div>
-
-```
-> image_17
-```
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/756fdbef-55d6-4319-98d6-b7244ae10fe9" alt="ILL_pictures_17" width="350"></div>
 
 Its unique identifier is '98', so you will find it as '98.Review'
 This folder contains all your files and directories that have no classification, need renaming, or maybe are not from the current level.
@@ -165,6 +159,17 @@ e.g. 98.CallOfDuty
 e.g. 98.MrBeast(Editions)
 
 ```
+
+<div align="center"> 
+  <h4>2.2.1 998.Review</h4> 
+<img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/6baaf90d-a2da-4aac-b393-11ab40896e4e" alt="ILL_pictures_19" width="350"></div>
+
+Its unique identifier is '998', so you will find it as '998.Review' in your Root Storage;<br>
+It functions as a directory for your Review folders, should content shortcuts of your Review Folders.
+The intention is that you don't have to navigate directly to the path to save the files that need to be reviewed; instead, you can directly access them with the help of this folder.
+
+> [!NOTE]
+> Try to keep it updated if you create a new review folder
 
 ### 2.3 Undefined Folder (97)
 Its unique enumeration is '97', so you will find it as '97.UnDefined' or 97.UnCategorized'.
