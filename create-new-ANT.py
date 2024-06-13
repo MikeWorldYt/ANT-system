@@ -26,11 +26,12 @@ os.makedirs(f'{root}/{a1}/{rev}', exist_ok=True)
 os.makedirs(f'{root}/{a1}/{res}', exist_ok=True)
 
       ### 101 MyDocuments
-os.makedirs(f'{root}/{a1}/01.MyDocuments (Suggested)/{rev}', exist_ok=True)
+os.makedirs(f'{root}/{a1}/01.MyDocuments (Suggested)/{rev}.MyDocuments', exist_ok=True)
 
-paths_list = ["01.IdentityDocs", "02.FinancialDocs", "03.HealthDocs", ]
-for path in paths_list:
-	os.makedirs(f'{root}/{a1}/01.MyDocuments (Suggested)/{path} (Suggested)/{rev}', exist_ok=True)
+paths_list = ["IdentityDocs", "FinancialDocs", "HealthDocs", ]
+for index, path in enumerate(paths_list, start=1):
+  sequence_number = f'{index:02}' # Format in two digits
+  os.makedirs(f'{root}/{a1}/01.MyDocuments (Suggested)/{sequence_number}.{path} (Suggested)/{rev}.{path}', exist_ok=True)
 
 			### 102 FamilyDocuments
 os.makedirs(f'{root}/{a1}/02.FamilyDocuments (Suggested)/{rev}', exist_ok=True)
