@@ -135,18 +135,18 @@ Each has a unique identifier, making it easy to differentiate and quickly identi
 <div align="center"> <!-- .   -   '   -   . --> <h3> 2.1 Settings Folder (99) </h3> <!-- .   -   '   -   . -->
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/fc5f6fa2-b6d8-4f17-b320-8d6c4efcddb8" alt="ILL_pictures_16" width="350"></div>
 
-Its unique identifier is '99', so you will find it as '99.Settings'
+Its unique identifier is '99', so you'll probably find it as '99.Settings'
 This folder contains general configurations for 'ANT', for your programs, interfaces, or Operating System.
 
 <div align="center"> <!-- .   -   '   -   . --> <h3> 2.2 Review Folder (98) </h3>  <!-- .   -   '   -   . -->
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/756fdbef-55d6-4319-98d6-b7244ae10fe9" alt="ILL_pictures_17" width="350"></div>
 
-Its unique identifier is '98', so you will find it as '98.Review'
+Its unique identifier is '98', so you'll probably find it as '98.math', '98.marketing' or '98.instagram'
 This folder contains all your files and directories that have no classification, need renaming, or maybe are not from the current level.
 In other words, they need to be reviewed before being into the system, and this folder helps you avoid mixing them with your other files.
 
 > [!IMPORTANT]
-> Use the identifier, followed by a dot, followed by the name of the current path
+> Use the identifier, followed by a dot, followed by the name of the current path or similar (preferably write it in kebab-case) 
 
 ```image_18
 > image_18
@@ -164,7 +164,7 @@ e.g. 98.MrBeast(Editions)
   <h4>2.2.1 Review Directory (998.Review)</h4> 
 <img src="https://github.com/MikeWorldYt/ANT-on-the-system/assets/118069844/6baaf90d-a2da-4aac-b393-11ab40896e4e" alt="ILL_pictures_19" width="100"></div>
 
-Its unique identifier is '998', so you will find it as '998.Review' in your Root Storage;<br>
+Its unique identifier is '998', so you'll find it as '998.Review' in your Root Storage;<br>
 It functions as a directory for your Review folders, should content shortcuts of your Review Folders.
 The intention is that you don't have to navigate directly to the path to save the files that need to be reviewed; instead, you can directly access them with the help of this folder.
 
@@ -175,11 +175,29 @@ The intention is that you don't have to navigate directly to the path to save th
   <h3> 2.3 Undefined Folder (97) </h3>
 </div>
 
-Its unique identifier is '97'. This is a folder that will help you organize a couple of files without adding them to '98.review'.<br>
+Its unique identifier is '97'. so you'll probably find it as '97.Undefined', '~97.undef', '~97.agascfsa' <br>
+This is a folder that will help you organize a couple of files without adding them to '98.review'.<br>
 Because those files either don't belong at that level or are **needed immediately** <br>
 > [!NOTE]
 > It doesn't really need an identifier, but this way, you'll know to delete it when it's empty. <br>
 > You can also call it '~temp', 'temporal', anyway, just remember delete it.
+
+### 2.4 Resources Folder (90)
+```
+> edit image_21
+```
+
+It's unique identifier is '90'. so you'll probably find it as '90.Resources'
+This folder helps organize those files that due to their nature;
+are frequently needed, provide guidelines, are presets, for use.
+
+**Usage Suggestions:** <br>
+```
+> edit image_22
+e.g. Templates, Presets, Effects, Materials Stock, 
+e.g. Brand Style Guide, Databases, Watermarks, Scripts, App-Presets
+e.g. Books, Databases, Tutorials, Articles, References
+```
 
 # ⚠️ - EDITION CONTROL
 
@@ -188,9 +206,7 @@ Because those files either don't belong at that level or are **needed immediatel
 
 ![image](https://st.depositphotos.com/3332767/4585/i/950/depositphotos_45854107-stock-photo-man-holding-stop-sign.jpg)
 
-### 2.4 Resources Folder (90)
-Its unique enumeration is '90', so you will find it as '90.Resources'.
-!!! To edit)
+
 
 ### 2.5 Archive Folder (00)
 Its unique enumeration is '00', so you will find it as '00.Archive'.
