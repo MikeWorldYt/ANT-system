@@ -182,7 +182,10 @@ Because those files either don't belong at that level or are **needed immediatel
 > It doesn't really need an identifier, but this way, you'll know to delete it when it's empty. <br>
 > You can also call it '~temp', 'temporal', anyway, just remember delete it.
 
-### 2.4 Resources Folder (90)
+<div align="center"> 
+  <h3> 2.4 Resources Folder (90) </h3>
+</div>
+
 ```
 > edit image_21
 ```
@@ -199,6 +202,33 @@ e.g. Brand Style Guide, Databases, Watermarks, Scripts, App-Presets
 e.g. Books, Databases, Tutorials, Articles, References
 ```
 
+<div align="center"> 
+  <h3> 2.5 Archive Folder (00) </h3>
+</div>
+
+```
+> edit image_23
+```
+Its unique identifier is '00',so you'll can use it as '00.Final', '00.Ready', '00.Renders', '00.forProduction', etc. <br>
+This folder it's meant contain your deliverables or already delivered items, e.g. for your projects, homeworks, presentations, or any completed job, as well as each of its subsequent versions.
+
+> [!NOTE]
+> It's only for your Final Files. <br>
+> Don't create one folder for each one. 
+
+**Usage Suggestions:** <br>
+```
+> edit image_24
+e.g. 
+```
+
+<div align="center"> 
+<!-- ------------------------------   .   -   '   -   .    ------------------------------ -->
+<h2> 3. Nomenclature </h2></div>
+
+
+
+
 # ⚠️ - EDITION CONTROL
 
 > [!CAUTION]
@@ -207,14 +237,6 @@ e.g. Books, Databases, Tutorials, Articles, References
 ![image](https://st.depositphotos.com/3332767/4585/i/950/depositphotos_45854107-stock-photo-man-holding-stop-sign.jpg)
 
 
-
-### 2.5 Archive Folder (00)
-Its unique enumeration is '00', so you will find it as '00.Archive'.
-!!! To edit)
-
-<div align="center"> 
-<!-- ------------------------------   .   -   '   -   .    ------------------------------ -->
-<h2> 3. Nomenclature </h2></div>
 
 ### F O R M A T
 > F O R M A T
