@@ -171,8 +171,7 @@ The intention is that you don't have to navigate directly to the path to save th
 > [!NOTE]
 > Try to keep it updated if you create a new review folder
 
-<div align="center"> 
-  <h3> 2.3 Undefined Folder (97) </h3>
+<div align="center"> <!-- .   -   '   -   . --> <h3> 2.3 Undefined Folder (97) </h3>
 </div>
 
 Its unique identifier is '97'. so you'll probably find it as '97.Undefined', '~97.undef', '~97.agascfsa' <br>
@@ -182,8 +181,7 @@ Because those files either don't belong at that level or are **needed immediatel
 > It doesn't really need an identifier, but this way, you'll know to delete it when it's empty. <br>
 > You can also call it '~temp', 'temporal', anyway, just remember delete it.
 
-<div align="center"> 
-  <h3> 2.4 Resources Folder (90) </h3>
+<div align="center"> <!-- .   -   '   -   . --> <h3> 2.4 Resources Folder (90) </h3>
 </div>
 
 ```
@@ -202,8 +200,7 @@ e.g. Brand Style Guide, Databases, Watermarks, Scripts, App-Presets
 e.g. Books, Databases, Tutorials, Articles, References
 ```
 
-<div align="center"> 
-  <h3> 2.5 Archive Folder (00) </h3>
+<div align="center"> <!-- .   -   '   -   . --> <h3> 2.5 Archive Folder (00) </h3>
 </div>
 
 ```
@@ -226,8 +223,24 @@ e.g.
 <!-- ------------------------------   .   -   '   -   .    ------------------------------ -->
 <h2> 3. Nomenclature </h2></div>
 
+The format contains 4 fields which can be split into two Data parts;
+the Static data fields (Green) and the Description data fields (Yellow) 
+```
+> edit image_25
+ID.traker_(YY-MM-DD)Bread[Holder] _ key-words-tags-labels_version
+```
+
+<font color="#00a782">ID.traker\_</font><font color='#ADFF2F'>(YY-MM-DD)Bread[Holder]</font>\_<font color="#fcde4d">keywords-tags-labels_</font><font color="#ff5c00">version</font>.docx
 
 
+
+<div align="center"> <!-- .   -   '   -   . --> <h3> 3.2. Description Data Fields </h3> <!-- .   -   '   -   . -->
+</div>
+
+Shold be attrubuttes statics, it's meant contain data that due to their nature will not be modified for a long time or even never.
+
+<div align="center"> <!-- .   -   '   -   . --> <h3> 3.1. Static Data Fiels </h3> <!-- .   -   '   -   . -->
+</div>
 
 # ⚠️ - EDITION CONTROL
 
