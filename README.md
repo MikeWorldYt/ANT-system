@@ -171,7 +171,8 @@ The intention is that you don't have to navigate directly to the path to save th
 > [!NOTE]
 > Try to keep it updated if you create a new review folder
 
-<div align="center"> <!-- .   -   '   -   . --> <h3> 2.3 Undefined Folder (97) </h3>
+<div align="center"> <!-- .   -   '   -   . --> 
+  <h3> 2.3 Undefined Folder (97) </h3>
 </div>
 
 Its unique identifier is '97'. so you'll probably find it as '97.Undefined', '~97.undef', '~97.agascfsa' <br>
@@ -232,15 +233,41 @@ ID.traker_(YY-MM-DD)Bread[Holder] _ key-words-tags-labels_version
 
 <font color="#00a782">ID.traker\_</font><font color='#ADFF2F'>(YY-MM-DD)Bread[Holder]</font>\_<font color="#fcde4d">keywords-tags-labels_</font><font color="#ff5c00">version</font>.docx
 
+<div align="center"> <!-- .   -   '   -   . --> <h3> 3.1. Static Data Fiels </h3> <!-- .   -   '   -   . -->
+</div>
+
+Shold be attrubuttes statics, it's meant contain data that due to their nature will not be modified for a long time or even never.
+
+It's conformed by:
+
+|               |                                                                            |
+| ------------- | -------------------------------------------------------------------------- |
+| Identificator | It's a code label that identifies it.                                      |
+| Traker        | It's your tracking index, if you use.                                      |
+| Date          | The format is 'YY-MM-DD', within parentheses.                              |
+| Breadcrumb    | Use current or nearby folder category name.                                |
+| Holder        | Refers to client, organization, school, or reference name, within brackets |
+
+[!TIP] tip
+> It's not necessary to have all the fields, tho follow in that order, (adapt it to your needs).
+
+<h4> <span style="background:rgba(136, 49, 204, 0.2)"> 3.1.1 Identificators (ID) and Traker </span> </h4>
+The **ID** It's a code label that identifies it.
+This utility is used to separate large amounts of files in the same place based on their functionality or purpose and always is in Capitals.
+Here is a [Idenficators Guide](https://docs.google.com/spreadsheets/d/e/2PACX-1vTXWGayu4tMQb1W1HtCT-tmRGfwDyoRkHh1Lfsc20i9s4lNmRB_X2TTRkjC16WalbuJ9spkqwjPj019/pubhtml) as reference.
+
+The **Traker** is a record from some company/college database or personal control system and is purely optional.
+
+For example, if the file is a recording that will be made into a time-lapse, it would be 'timelapse' and its identifier would be 'TML'. If it's a project, its identifier would be 'PJ'. If it's an audio recording, 'AUD'. But if the audio is for a podcast, it would be 'POD'.
+Following the identifier, you could add your tracker.
 
 
 <div align="center"> <!-- .   -   '   -   . --> <h3> 3.2. Description Data Fields </h3> <!-- .   -   '   -   . -->
 </div>
 
-Shold be attrubuttes statics, it's meant contain data that due to their nature will not be modified for a long time or even never.
 
-<div align="center"> <!-- .   -   '   -   . --> <h3> 3.1. Static Data Fiels </h3> <!-- .   -   '   -   . -->
-</div>
+
+
 
 # ⚠️ - EDITION CONTROL
 
