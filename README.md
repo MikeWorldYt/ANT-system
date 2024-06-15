@@ -262,6 +262,17 @@ The **Traker** is a record from some company/college database or personal contro
 For example, if the file is a recording that will be made into a time-lapse, it would be 'timelapse' and its identifier would be 'TML'. If it's a project, its identifier would be 'PJ'. If it's an audio recording, 'AUD'. But if the audio is for a podcast, it would be 'POD'.
 Following the identifier, you could add your tracker.
 
+<h4>3.1.2 Date</h4>
+
+> editing...
+
+<h4>3.1.3 Breadcrumb</h4>
+
+> editing...
+
+<h4>3.1.2 Holder</h4>
+
+> editing...
 
 <div align="center"> <!-- .   -   '   -   . --> <h3> 3.2. Description Data Fields </h3> <!-- .   -   '   -   . -->
 </div>
@@ -276,22 +287,3 @@ Following the identifier, you could add your tracker.
 > hey it's not finished yet, you just reached a checkpoint
 
 ![image](https://st.depositphotos.com/3332767/4585/i/950/depositphotos_45854107-stock-photo-man-holding-stop-sign.jpg)
-
-
-
-### F O R M A T
-> F O R M A T
-> <font color="#00a782">Identicator\_ </font><font color="#ADFF2F">(Date) \_</font> </font><font color="#de7802">Keywords \_ </font><font color="#FF3800">Version</font>
-> <font color="#00a782">IDD\_</font><font color="#ADFF2F">(YY-MM-DD)\_</font><font color="#de7802">key-words-tags-labels\_</font><font color="#FF3800">v.1.0.0</font>
-> 
-> <font color="#de7802">(Date)\_ </font> <font color="#00a782">Identicator\_ </font> Keywords \_ <font color="#fd5c63">Version</font>
-> <font color="#de7802">(YY-MM-DD)\_</font><font color="#00a782">IDD\_</font>key-words-tags-labels\_<font color="#FF4500">v.1.0.1</font>
-> 
->  <font color="#00a782">Identicator\_</font> <font color="#de7802">Breadcrumbs[Holder]\_</font> Keywords \_ <font color="red">(TrackNumber)</font>
-> <font color="#00a782">IDD\_</font><font color="#de7802">Breadcrumbs[Holder]\_</font>key-words-tags-labels_<font color="red">(01)</font>
-> 
->  <font color="#de7802">Breadcrumbs[Holder]\_</font> <font color="#00a782">Identificator\_</font>  Keywords\_ <font color="red">(TrackNumber)</font>
->  <font color="#de7802">Breadcrumbs[Holder]\_</font><font color="#00a782">IDD\_</font>key-words-tags-labels_<font color="red">(02)</font>
->  .
->  ~~<font color="#de7802">(Date)_Breadcrumbs[Holder]\_</font>~~ better use name's folder
-
