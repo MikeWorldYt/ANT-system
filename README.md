@@ -292,16 +292,31 @@ Should be descriptive attributes, it's meant contain specific data that make it 
 
 <h4>3.2.1 Title Name </h4>
 
-> editing...
+The **title name** is the specific name given to the file. It should be descriptive enough to understand the content or purpose of the file at a glance.
 
 <h4>3.2.2 Keywords </h4>
 
-> editing...
+The **keywords** are tags or terms that relate to the content of the file. These help in searching (indexation) and organizing the files efficiently.
+
+These tags may be a Particular Topic, Subject, Locations, or what ever give information.
+
+> [!INOTE] 
+> If dnt need it, no use it or not use many
 
 <h4>3.2.3 Version </h4>
 
-> editing...
+The **version** is an additional identifier at the end, denotes the iteration or edition number of the project/file. This helps in tracking changes and updates to the file over time.
+
+> [!IMPORTANT] 
+> Use the letter 'v', followed by a dot, followed numbers or states
+
+e.g. ...MyProject_v.1.0  ...MyProject_v.1.1
+e.g. ...MyProject_v.1.0  ...MyProject_v.1.0 beta
+e.g. ...MyPicture_v.Red  ...MyPicture_v.Blue
 
 <h4>3.2.4 Sufix </h4>
 
-> editing...
+The **suffix** is an additional identifier at the end reather version, to denote variations or types, meanly within parentheses
+
+e.g. ...MyPicture_<font color="#de7802"> (2)</font>   ...MyPicture_(03)
+e.g. ...MyPicture_(Red)  ...MyPicture_(Blue)
