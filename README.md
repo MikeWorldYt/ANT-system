@@ -282,13 +282,26 @@ Now in some cases as well may be the name of the category or character's name.
 <div align="center"> <!-- .   -   '   -   . --> <h3> 3.2. Description Data Fields </h3> <!-- .   -   '   -   . -->
 </div>
 
+Should be descriptive attributes, it's meant contain specific data that make it individual as her title name, keywords, version or sufix.
+
+| Name     | It's the specific name given to the file.                                   |
+| -------- | --------------------------------------------------------------------------- |
+| Keywords | Tags or terms that relate to the content of the file.                       |
+| Version  | The iteration or edition number of the file.                                |
+| Sufix    | Additional identifier at the end of the name to denote variations or types. |
+
+<h4>3.2.1 Title Name </h4>
+
 > editing...
 
+<h4>3.2.2 Keywords </h4>
 
+> editing...
 
-# ⚠️ - EDITION CONTROL
+<h4>3.2.3 Version </h4>
 
-> [!CAUTION]
-> hey it's not finished yet, you just reached a checkpoint
+> editing...
 
-![image](https://st.depositphotos.com/3332767/4585/i/950/depositphotos_45854107-stock-photo-man-holding-stop-sign.jpg)
+<h4>3.2.4 Sufix </h4>
+
+> editing...
