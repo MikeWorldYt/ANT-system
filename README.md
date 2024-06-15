@@ -7,7 +7,7 @@
 <!--
 [...]
 -->
- 
+
 ### How works?
 Her rules **organize files in a way that mimics a nested for categories** by following a naming convention and incremental numbering, Where the main categories are at the highest level, and each subsequent level provides more specific subcategories.
 <!--
@@ -292,7 +292,8 @@ Should be descriptive attributes, it's meant contain specific data that make it 
 
 <h4>3.2.1 Title Name </h4>
 
-The **title name** is the specific name given to the file. It should be descriptive enough to understand the content or purpose of the file at a glance.
+The **title name** is the specific name given to the file. <br>
+It should be descriptive enough to understand the content or purpose of the file at a glance.
 
 <h4>3.2.2 Keywords </h4>
 
@@ -300,23 +301,24 @@ The **keywords** are tags or terms that relate to the content of the file. These
 
 These tags may be a Particular Topic, Subject, Locations, or what ever give information.
 
-> [!INOTE] 
+> [!NOTE]
 > If dnt need it, no use it or not use many
 
 <h4>3.2.3 Version </h4>
 
-The **version** is an additional identifier at the end, denotes the iteration or edition number of the project/file. This helps in tracking changes and updates to the file over time.
+The **version** is an additional identifier at the end, denotes the iteration or edition number of the project/file. <br>
+This helps in tracking changes and updates to the file over time.
 
 > [!IMPORTANT] 
 > Use the letter 'v', followed by a dot, followed numbers or states
 
-e.g. ...MyProject_v.1.0  ...MyProject_v.1.1
-e.g. ...MyProject_v.1.0  ...MyProject_v.1.0 beta
+e.g. ...MyProject_v.1.0  ...MyProject_v.1.1 <br>
+e.g. ...MyProject_v.1.0  ...MyProject_v.1.0 beta <br>
 e.g. ...MyPicture_v.Red  ...MyPicture_v.Blue
 
 <h4>3.2.4 Sufix </h4>
 
 The **suffix** is an additional identifier at the end reather version, to denote variations or types, meanly within parentheses
 
-e.g. ...MyPicture_<font color="#de7802"> (2)</font>   ...MyPicture_(03)
+e.g. ...MyPicture_<font color="#de7802"> (2)</font>   ...MyPicture_(03) <br>
 e.g. ...MyPicture_(Red)  ...MyPicture_(Blue)
