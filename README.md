@@ -248,13 +248,13 @@ It's conformed by:
 | Breadcrumb    | Use current or nearby folder category name.                                |
 | Holder        | Refers to client, organization, school, or reference name, within brackets |
 
-[!TIP] tip
+> [!TIP]
 > It's not necessary to have all the fields, tho follow in that order, (adapt it to your needs).
 
 <h4> <span style="background:rgba(136, 49, 204, 0.2)"> 3.1.1 Identificators (ID) and Traker </span> </h4>
 The **ID** It's a code label that identifies it.
 This utility is used to separate large amounts of files in the same place based on their functionality or purpose and always is in Capitals.
-Here is a [Idenficators Guide](https://docs.google.com/spreadsheets/d/e/2PACX-1vTXWGayu4tMQb1W1HtCT-tmRGfwDyoRkHh1Lfsc20i9s4lNmRB_X2TTRkjC16WalbuJ9spkqwjPj019/pubhtml) as reference.
+Here is a <a href='https://docs.google.com/spreadsheets/d/e/2PACX-1vTXWGayu4tMQb1W1HtCT-tmRGfwDyoRkHh1Lfsc20i9s4lNmRB_X2TTRkjC16WalbuJ9spkqwjPj019/pubhtml'>Identificator Guide</a> as reference.
 
 The **Traker** is a record from some company/college database or personal control system and is purely optional.
 
