@@ -1,14 +1,11 @@
 <!DOCTYPE html>
-<main class="main">
-  <h1 class="text-3xl font-bold">ANT on the System</h1>
-
-  <h2>GETTING STARTED</h2>
-  <p>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Animi hic nulla quia libero!<br>
-  Consectetur hic, animi id fugiat aut facilis cum nobis officia iste, non velit iure ad libero<br>
-  repudiandae?</p>
-
-  <h1 class="text-3xl font-bold text-amber-800"> Testing</h1>
-
+<main class="app">
+  <app-nav />
+  <div class="grid grid-cols-12 grid-areas-layout">
+    <app-sidebar class="col-span-3" />
+    <app-main class="col-span-9 overflow-y-scroll" />
+  </div>
+  
 </main>
 
 
