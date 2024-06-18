@@ -1,0 +1,12 @@
+h3 {
+    @apply font-bold text-xl
+}
+
+h4 {
+    @apply text-base
+}
+
+li {
+    @apply text-gray-400;
+    padding-left: 1rem;
+}
