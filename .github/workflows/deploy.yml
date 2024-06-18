@@ -15,14 +15,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      # Set up Nodejs
-      - name: Setup Node.js
-        uses: actions/setup-node@v20
-        with:
-          node-version: '18'
-      # Clean npm cache
-      - name: Clean npm cache
-        run: npm cache clean --force
+
       # Install dependencies
       - name: Install deps
         run: npm i
