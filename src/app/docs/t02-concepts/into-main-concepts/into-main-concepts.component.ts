@@ -1,12 +1,12 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'app-into-main-concepts',
+  selector: 'docs-t02-into-main-concepts',
   standalone: true,
   imports: [],
   templateUrl: './into-main-concepts.component.html',
   styleUrl: './into-main-concepts.component.css'
 })
-export class IntoMainConceptsComponent {
+export class Docs_T02_IntoComponent {
 
 }
