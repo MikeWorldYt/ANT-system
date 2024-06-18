@@ -4,8 +4,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build --base=/ANT-on-the-system/",
-    "deploy": "ng build --prod --base=/ANT-on-the-system/",
+    "build": "ng build",
+    "deploy": "ng build --prod --base-href=/ANT-on-the-system/",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
