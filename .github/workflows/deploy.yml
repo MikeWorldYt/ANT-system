@@ -14,16 +14,23 @@ jobs:
 
     steps:
       - name: Checkout
-      - uses: actions/checkout@v3
-
-      - name: Install packages
-        run: npm install
-
-      - name: Bundle
-        run: npm run build
-
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@4.1.4
+        uses: actions/checkout@v3
+      # Set up Nodejs
+      - name: Setup Nodejs
+        uses: actions/setup-node@v3
         with:
-          branch: production
-          folder: dist
+          node-version: "20.14.0"
+      # Install dependencies
+      - name: Install deps
+        run: npm i
+      # Build app for production
+      - name: Build app bundle
+        run: npm run build
+      # Deploy to GitHub Pages
+      - name: Deploy
+        uses: crazy-max/ghaction-github-pages@v3
+        with:
+          target_branch: gh-pages
+          build_dir: dist/angular-app
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
