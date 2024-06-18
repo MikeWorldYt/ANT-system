@@ -16,10 +16,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       # Set up Nodejs
-      - name: Setup Nodejs
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "20.14.0"
+          node-version: '20.x'
+      # Clean npm cache
+      - name: Clean npm cache
+        run: npm cache clean --force
       # Install dependencies
       - name: Install deps
         run: npm i
