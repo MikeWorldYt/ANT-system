@@ -30,7 +30,7 @@ jobs:
       - name: Deploy
         uses: crazy-max/ghaction-github-pages@v3
         with:
-          target_branch: gh-pages
+          target_branch: production
           build_dir: dist/angular-app
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
