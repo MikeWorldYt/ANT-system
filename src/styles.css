@@ -13,10 +13,13 @@
 
 header {
     height: 8vh;
+    max-height: 9vh;
 }
 
 .sidebar {
     min-height: 90vh;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .main {
