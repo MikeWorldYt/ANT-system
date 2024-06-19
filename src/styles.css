@@ -32,6 +32,10 @@ header {
     height: 900px;
 }
 
+.centerDiv {
+    @apply flex justify-center;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
