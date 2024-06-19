@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './into-getting-starter.component.html',
-  styleUrl: './into-getting-starter.component.css'
+  styleUrl: '../../docs.component.css'
 })
 export class Docs_T01_IntoComponent {
 
