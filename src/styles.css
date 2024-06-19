@@ -42,3 +42,7 @@ header {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.icon {
+    @apply w-6 h-6 stroke-current text-black dark:text-white;
+}
