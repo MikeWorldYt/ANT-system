@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './into-main-concepts.component.html',
-  styleUrl: './into-main-concepts.component.css'
+  styleUrl: '../../docs.component.css'
 })
 export class Docs_T02_IntoComponent {
 
