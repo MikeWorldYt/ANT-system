@@ -23,7 +23,7 @@
     @apply text-2xl font-bold text-white mb-2;
 }
 
-.subtitle-2 {
+.docs-subtitle-thiny {
     @apply text-xl font-semibold mt-4 mb-1;
 }
 
@@ -41,4 +41,9 @@ p {
 
 .pic-container img {
     @apply max-h-[220px];
+}
+
+li {
+    list-style: inside;
+    padding-left: .5rem;
 }
