@@ -1,9 +1,12 @@
 import { Component } from '@angular/core';
+import { FooterComponent } from '../../../layout/footer/footer.component';
 
 @Component({
   selector: 'docs-t02-into-main-concepts',
   standalone: true,
-  imports: [],
+  imports: [
+    FooterComponent
+  ],
   templateUrl: './into-main-concepts.component.html',
   styleUrl: '../../docs.component.css'
 })
