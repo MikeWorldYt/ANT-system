@@ -14,10 +14,15 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 })
 export class NavComponent {
   // Toogle
+  currentSection: string = '';
   showMe: boolean = true;
   visible: boolean = false;
-  toggle() {
-    this.showMe = !this.showMe;
+  toggle(section: string) {
+    if (this.currentSection === section) {
+      this.currentSection = ''; // Si se hace clic en la misma sección, la ocultamos
+    } else {
+      this.currentSection = section; // Si se hace clic en una nueva sección, la mostramos
+    }
   }
 
 }
