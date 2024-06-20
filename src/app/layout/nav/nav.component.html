@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <nav class="flex flex-col p-2 relative">
   <h1>Getting Started</h1> <!-- anchor for Default Component ---->
-  <a routerLink="/home/docs/introduction" routerLinkActive="active">
+  <a routerLink="/home/docs/introduction" routerLinkActive="active" (click)="toggle()">
     <h1>Introduction</h1>
   </a>
-  <h2>What is ANT?</h2>
-    <ul>
+  @if (showMe) {
+    <h2>What is ANT?</h2>
+    <!-- <ul>
       <li>How works?</li>
       <li>Key benefits</li>
-    </ul>
-  <h2>Quick Start</h2>
+    </ul> -->
+    <h2 >Quick Start</h2>
+  }
 
   <a routerLink="docs/concepts" routerLinkActive="active">
     <h1>Main Concepts</h1>

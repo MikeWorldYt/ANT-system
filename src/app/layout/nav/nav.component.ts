@@ -13,5 +13,11 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   styleUrl: './nav.component.css'
 })
 export class NavComponent {
+  // Toogle
+  showMe: boolean = true;
+  visible: boolean = false;
+  toggle() {
+    this.showMe = !this.showMe;
+  }
 
 }
