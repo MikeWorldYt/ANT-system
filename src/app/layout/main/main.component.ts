@@ -9,9 +9,7 @@ import { RouterOutlet } from '@angular/router';
   standalone: true,
   imports: [
     Docs_T01_IntoComponent,
-    Docs_T02_IntoComponent,
     RouterOutlet,
-    FooterComponent
   ],
   templateUrl: './main.component.html',
   styleUrl: './main.component.css'

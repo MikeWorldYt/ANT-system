@@ -7,6 +7,7 @@ import { Docs_T02_IntoComponent } from './docs/t02-concepts/into-main-concepts/i
 export const routes: Routes = [
   {  path: 'home', component: HomeComponent,  
     children: [
+      { path: '', redirectTo: 'docs/introduction', pathMatch: 'full' },
       {  path: 'docs/introduction', component: Docs_T01_IntoComponent  },
       {  path: 'docs/concepts', component: Docs_T02_IntoComponent  },
     ]
