@@ -4,7 +4,8 @@
 
   <div>
     <a routerLink="/home/docs/introduction" routerLinkActive="active" (click)="toggle('introduction')">
-    <h1>Introduction</h1>
+      <h1 class="cursor-pointer" [ngClass]="{ 'currentH1': currentSection === 'introduction' }">
+        Introduction</h1>
     </a>
 
     @if (currentSection === 'introduction') {
@@ -14,12 +15,14 @@
           <li>Key benefits</li>
         </ul> -->
       <h2>Quick Start</h2>
+      <div class="pl-10 border-b border-emerald-600/50"></div>
     }
   </div>
 
   <div>
     <a routerLink="docs/concepts" routerLinkActive="active" (click)="toggle('concepts')">
-    <h1>Main Concepts</h1>
+      <h1 class="cursor-pointer" [ngClass]="{ 'currentH1': currentSection === 'concepts' }">
+        Main Concepts</h1>
     </a>
 
     @if (currentSection === 'concepts') {
@@ -38,6 +41,7 @@
             <li>2.5 Archive/Final Product Folder (00)</li>
         </ul> -->
       <h2>3. File's Nomenclature</h2>
+      <div class="pl-10 border-b border-emerald-600/50"></div>
     }
   </div>
 

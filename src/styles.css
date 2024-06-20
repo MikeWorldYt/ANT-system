@@ -46,3 +46,7 @@ header {
 .icon {
     @apply w-6 h-6 stroke-current text-black dark:text-white;
 }
+
+.currentH1 {
+    @apply bg-emerald-400 rounded-l-lg pl-5 mt-2 text-gray-950;
+}

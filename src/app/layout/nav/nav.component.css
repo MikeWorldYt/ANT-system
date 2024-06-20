@@ -1,9 +1,9 @@
 h1 {
-    @apply font-bold text-xl
+    @apply font-bold text-xl;
 }
 
 h2 {
-    @apply text-base
+    @apply text-base pl-10;
 }
 
 li {
