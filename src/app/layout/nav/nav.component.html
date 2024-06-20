@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <nav class="flex flex-col p-2 relative">
   <h1>Getting Started</h1> <!-- anchor for Default Component ---->
-  <a href="">
+  <a routerLink="/home">
     <h1>Introduction</h1>
   </a>
   <h2>What is ANT?</h2>
@@ -11,7 +11,10 @@
     </ul>
   <h2>Quick Start</h2>
 
-  <h1>Main Concepts</h1>
+  <a routerLink="docs/concepts">
+    <h1>Main Concepts</h1>
+  </a>
+
   <h2>1. Levels and Structure</h2>
     <ul>
       <li>1.1 The Level 1 </li>
@@ -32,3 +35,4 @@
     <li>- M</li>
   </ul>
 </nav>
+<router-outlet></router-outlet>
