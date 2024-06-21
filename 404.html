@@ -2,18 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=https://mikeworldyt.github.io/ANT-on-the-system/">
   <title>404 - Not Found</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 20%;
+    }
+  </style>
   <script type="text/javascript">
-    // Manually redirect
-    setTimeout(function() {
-      var path = window.location.pathname.replace('/ANT-on-the-system/', '');
-      window.location.href = '/ANT-on-the-system/' + path;
-    }, 0);
+    // Función para actualizar el contador y redirigir después de 3 segundos
+    function startRedirectCountdown() {
+      var countdown = 3;
+      var countdownElement = document.getElementById('countdown');
+      countdownElement.textContent = countdown;
+
+      var interval = setInterval(function() {
+        countdown--;
+        countdownElement.textContent = countdown;
+        if (countdown === 0) {
+          clearInterval(interval);
+          var path = window.location.pathname.replace('/ANT-on-the-system/', '');
+          window.location.href = '/ANT-on-the-system/' + path;
+        }
+      }, 1000);
+    }
+
+    // Iniciar el contador cuando la página esté cargada
+    window.onload = startRedirectCountdown;
   </script>
 </head>
 <body>
-    <h1>404 - Not Found</h1>
-    <p>Redireccionando a la <a href="https://mikeworldyt.github.io/ANT-on-the-system/">página principal</a>...</p>
+  <h1>404 - Not Found</h1>
+  <p>Redireccionando a la <a href="https://mikeworldyt.github.io/ANT-on-the-system/">página principal</a> en <span id="countdown">3</span> segundos...</p>
 </body>
 </html>
