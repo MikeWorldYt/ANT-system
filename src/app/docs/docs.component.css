@@ -43,7 +43,21 @@ p {
     @apply max-h-[220px];
 }
 
+/* --------- Tables --------- */
 li {
     list-style: inside;
     padding-left: .5rem;
+}
+
+table {
+    width: 120vh;
+    border-collapse: collapse;
+}
+th, td {
+    border: .8px solid #6d9387;
+    padding: 8px;
+    text-align: left;
+}
+th {
+    background-color: #6d9387;
 }
