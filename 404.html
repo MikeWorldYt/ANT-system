@@ -13,7 +13,7 @@
   <script type="text/javascript">
     // Función para actualizar el contador y redirigir después de 3 segundos
     function startRedirectCountdown() {
-      var countdown = 3;
+      var countdown = 33;
       var countdownElement = document.getElementById('countdown');
       countdownElement.textContent = countdown;
 
@@ -23,7 +23,7 @@
         if (countdown === 0) {
           clearInterval(interval);
           var path = window.location.pathname.replace('/ANT-on-the-system/', '');
-          window.location.href = '/ANT-on-the-system/' + path;
+          window.location.href = 'https://mikeworldyt.github.io/ANT-on-the-system/' + path;
         }
       }, 1000);
     }
@@ -34,6 +34,6 @@
 </head>
 <body>
   <h1>404 - Not Found</h1>
-  <p>Redireccionando a la <a href="https://mikeworldyt.github.io/ANT-on-the-system/">página principal</a> en <span id="countdown">3</span> segundos...</p>
+  <p>Automatically redirecting to <a href="https://mikeworldyt.github.io/ANT-on-the-system/">ANT Docs | Home</a> en <span id="countdown">33</span> segundos...</p>
 </body>
 </html>
