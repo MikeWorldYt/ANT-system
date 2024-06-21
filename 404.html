@@ -4,14 +4,24 @@
   <meta charset="UTF-8">
   <title>404 - Not Found</title>
   <style>
+    :root {
+      color-scheme: light dark;
+    }
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      margin-top: 20%;
+      margin-top: 10px;
+    }
+    .big-text {
+      font-size: 50px;
+      font-weight: bold;
+    }
+    img {
+      max-height: 40vh;
     }
   </style>
   <script type="text/javascript">
-    // Función para actualizar el contador y redirigir después de 3 segundos
+    // redir
     function startRedirectCountdown() {
       var countdown = 33;
       var countdownElement = document.getElementById('countdown');
@@ -23,7 +33,7 @@
         if (countdown === 0) {
           clearInterval(interval);
           var path = window.location.pathname.replace('/ANT-on-the-system/', '');
-          window.location.href = 'https://mikeworldyt.github.io/ANT-on-the-system/' + path;
+          window.location.href = 'https://mikeworldyt.github.io/ANT-on-the-system/';
         }
       }, 1000);
     }
@@ -33,7 +43,10 @@
   </script>
 </head>
 <body>
-  <h1>404 - Not Found</h1>
-  <p>Automatically redirecting to <a href="https://mikeworldyt.github.io/ANT-on-the-system/">ANT Docs | Home</a> en <span id="countdown">33</span> segundos...</p>
-</body>
+  <h1 class="big-text">Oops!</h1>
+  <h1>We cant seems to find the page, or maybe we had a problem bad gateway error</h1>
+  <p>Automatically redirecting to <a href="https://mikeworldyt.github.io/ANT-on-the-system/">ANT Docs | Home</a> in <span id="countdown">33</span> secondss...</p>
+  <img src="https://media1.tenor.com/m/bVDDalfRHA8AAAAC/cat-power.gif" alt="">
+  <p>Error code: 404</p>
+  </body>
 </html>
