@@ -22,7 +22,7 @@ import { NgClass } from '@angular/common';
 })
 export default class HomeComponent {
   // Menu
-    menu: boolean = true;
+    menu: boolean = false;
   showMenu() {
     this.menu = !this.menu;
   }
