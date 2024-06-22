@@ -1,19 +1,23 @@
 <!DOCTYPE html>
-<section class="sidebar bg-zinc-800 pt-3 pl-3 pr-1 pb-3 relative">
-  <app-nav />
-
-  <div class="absolute bottom-3 left-3">
-    <div class="dialog flex items-center">
-      <p>Is this page usefull?</p>
-      <a class="p-2" href="">
-        <img class="icon" src="assets/thumb-up.svg" alt="Yes">
-      </a>
-      <a class="p-2" href="">
-        <img class="icon" src="assets/thumb-down.svg" alt="No">
-      </a>
+<button (click)="showMenu()" class="menu">x</button>
+@if (menu === true) {
+  <section class="sidebar bg-gradient-to-b from-zinc-800/30 pt-3 pl-3 pb-3 relative">
+    <app-nav />
+  
+    <div class="absolute bottom-3 left-3">
+      <div class="dialog flex items-center">
+        <p>Is this page usefull?</p>
+        <a class="p-2" href="">
+          <img class="icon" src="assets/thumb-up.svg" alt="Yes">
+        </a>
+        <a class="p-2" href="">
+          <img class="icon" src="assets/thumb-down.svg" alt="No">
+        </a>
+      </div>
+    
+      <a href="https://github.com/MikeWorldYt/ANT-on-the-system/issues" target="_blank">Report a bug</a>
     </div>
+  
+  </section>
 
-    <a href="https://github.com/MikeWorldYt/ANT-on-the-system/issues" target="_blank">Report a bug</a>
-  </div>
-
-</section>
+}

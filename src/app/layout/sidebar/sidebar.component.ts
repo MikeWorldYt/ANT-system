@@ -12,4 +12,10 @@ import { NavComponent } from '../nav/nav.component';
 })
 export class SidebarComponent {
 
+    // Menu
+    menu: boolean = false;
+    showMenu() {
+      console.log('menu');
+      this.menu = !this.menu;
+    }
 }
