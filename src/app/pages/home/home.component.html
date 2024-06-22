@@ -3,20 +3,30 @@
 <app-header />
 
 <div class="grid grid-cols-12 grid-areas-layout min-h-90vh overflow-hidden">
-  
-  @if (menu === true) {
-    <div class="col-span-3 z-10 fixed md:static">
-      <button (click)="showMenu()" class="menu-open z-20 fixed">x</button>
-      <app-sidebar class="w-1/2 md:w-full left-0 top-auto h-full md:block"/>
-    </div>
-    <app-main class="col-span-12 md:col-span-9 overflow-y-scroll" />
+  <div menu-container
+    class="z-10 fixed"
+    [ngClass]="{ 'md:col-span-3 md:static' : menu === true }"
+  >
+    @if (menu === true) {
+      <button 
+        (click)="showMenu()" class="menu-open"> x
+      </button>
+      <app-sidebar
+        class="w-1/2 md:w-full left-0 top-auto h-full md:block"
+      />
+    } @else {
+      <button 
+        (click)="showMenu()" class="menu-closed "> x
+      </button>
+      <app-sidebar
+        class="w-1/2 md:w-full left-0 top-auto h-full md:block hidden -translate-x-full"
+      />
+    }
+  </div>
 
-  } @else {
-    <div class="z-10 fixed">
-      <button (click)="showMenu()" class="menu-closed ">x</button>
-      <app-sidebar class="w-1/2 md:w-full left-0 top-auto h-full md:block hidden -translate-x-full" />
-    </div>
-    <app-main class="col-span-12 overflow-y-scroll" />
-  }
+  <app-main 
+    class="col-span-12 md:col-span-9 overflow-y-scroll"
+    [ngClass]="{ 'md:col-span-9' : menu === true }"
+  />
 
 </div>

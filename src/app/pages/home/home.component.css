@@ -1,0 +1,7 @@
+.menu-open {
+    @apply z-20 fixed;
+}
+
+.menu-closed {
+    @apply static;
+}
