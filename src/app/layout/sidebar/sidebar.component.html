@@ -1,9 +1,6 @@
 <!DOCTYPE html>
-<button (click)="showMenu()" class="menu">x</button>
-@if (menu === true) {
   <section class="sidebar bg-zinc-800 md:bg-gradient-to-b md:from-zinc-800/30 pt-3 pl-3 pb-3 relative">
     <app-nav />
-
     <div class="absolute bottom-3 left-3">
       <div class="dialog flex items-center">
         <p>Is this page usefull?</p>
@@ -19,5 +16,3 @@
     </div>
 
   </section>
-
-}

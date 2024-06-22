@@ -11,11 +11,4 @@ import { NavComponent } from '../nav/nav.component';
   styleUrl: './sidebar.component.css'
 })
 export class SidebarComponent {
-
-    // Menu
-    menu: boolean = false;
-    showMenu() {
-      console.log('menu');
-      this.menu = !this.menu;
-    }
 }

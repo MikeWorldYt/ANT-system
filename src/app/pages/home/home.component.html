@@ -3,6 +3,20 @@
 <app-header />
 
 <div class="grid grid-cols-12 grid-areas-layout min-h-90vh overflow-hidden">
-  <app-sidebar class="z-10 fixed md:static w-1/2 md:w-full left-0 top-auto h-full md:col-span-3 md:block" />
-  <app-main class="col-span-12 overflow-y-scroll md:col-span-9" />
+  
+  @if (menu === true) {
+    <div class="z-10 fixed">
+      <button (click)="showMenu()" class="menu">x</button>
+      <app-sidebar class="w-1/2 md:w-full left-0 top-auto h-full md:block hidden -translate-x-full"/>
+    </div>
+    <app-main class="col-span-12 overflow-y-scroll" />
+
+  } @else {
+    <div class="col-span-3 z-10 fixed md:static">
+      <button (click)="showMenu()" class="z-20 fixed menu">x</button>
+      <app-sidebar class="w-1/2 md:w-full left-0 top-auto h-full md:block" />
+    </div>
+    <app-main class="col-span-12 md:col-span-9 overflow-y-scroll" />
+  }
+
 </div>

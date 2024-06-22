@@ -19,5 +19,11 @@ import { FooterComponent } from '../../layout/footer/footer.component';
   styleUrl: './home.component.css'
 })
 export default class HomeComponent {
+  // Menu
+    menu: boolean = false;
+  showMenu() {
+    console.log('menu');
+    this.menu = !this.menu;
+  }
 
 }
