@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './mod-01-levels-structure.component.html',
-  styleUrl: './mod-01-levels-structure.component.css'
+  styleUrl: '../../docs.component.css'
 })
 export class Mod01LevelsStructureComponent {
 
