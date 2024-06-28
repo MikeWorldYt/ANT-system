@@ -5,7 +5,7 @@
 <div class="grid grid-cols-12 grid-areas-layout min-h-90vh overflow-hidden">
   <div menu-container
     class="z-10 fixed"
-    [ngClass]="{ 'md:col-span-3 md:static' : menu === true }"
+    [ngClass]="menu ? 'md:col-span-3 md:static' : ''"
   >
     @if (menu === true) {
       <div class="icon-cnt-open">
