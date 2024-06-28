@@ -1,0 +1,63 @@
+
+.docs-decorative-header {
+    @apply rounded-xl bg-slate-600/30 flex overflow-hidden mb-4 relative;
+}
+
+.docs-header-content {
+    @apply box-border p-6 pe-0 grow;
+}
+
+.docs-header {
+    @apply text-sm pb-[14px];
+}
+
+.docs-tittle {
+    @apply text-3xl pe-0 font-semibold text-emerald-400;
+}
+
+.docs-subtitle {
+    @apply text-2xl font-bold text-emerald-500 mb-2;
+}
+
+.docs-subtitle-light {
+    @apply text-2xl font-bold text-white mb-2;
+}
+
+.docs-subtitle-thiny {
+    @apply text-xl font-semibold mt-4 mb-1;
+}
+
+p {
+    @apply leading-none;
+}
+
+.dialog {
+    @apply bg-emerald-500/20 pt-4 pb-4 pl-6 pr-6 mt-1 mb-1 rounded-md;
+}
+
+.pic-container {
+    @apply flex gap-3 mt-2;
+}
+
+.pic-container img {
+    @apply max-h-[220px];
+}
+
+/* --------- Tables --------- */
+li {
+    list-style: inside;
+    padding-left: .5rem;
+}
+
+table {
+    width: 120vh;
+    border-collapse: collapse;
+}
+th, td {
+    border: .8px solid #6d9387;
+    padding: 8px;
+    text-align: left;
+}
+th {
+    background-color: #6d9387;
+}

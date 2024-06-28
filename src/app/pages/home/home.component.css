@@ -1,0 +1,43 @@
+.icon-cnt-open {
+    @apply z-20 sticky bg-red-500 w-full relative;
+}
+
+.menu-open {
+    @apply absolute top-0 right-3;
+}
+
+.icon-cnt-close {
+    z-index: 20;
+    position: sticky;
+    top: 0;
+}
+
+.menu-closed {
+    position: relative;
+    left: 0;
+    top: 15px;
+    @apply bg-emerald-800/50;
+    border-radius: 0 50% 50% 0;
+    height: 20px;
+    width: 10px;
+    transition: width 1s ease-in 0s; 
+}
+
+.menu-closed:hover {
+    position: relative;
+    width: 20px;
+    @apply bg-emerald-800/90;
+    transition: width 1s ease-in 0s; 
+}
+
+.icon-home {
+    width: 1.5rem;
+    height: 1.5rem;
+    /* background-size: cover;
+    background-position: center;
+    background-image: url("./../../../../public/assets/menu.svg"); */
+}
+
+/* .icon-home:hover {
+    background-image: url("./../../../../public/assets/menu-close.gif");
+} */

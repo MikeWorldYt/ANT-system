@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './mod-02-support-folders.component.html',
-  styleUrl: './mod-02-support-folders.component.css'
+  styleUrl: '../../docs.component.css'
 })
 export class Mod02SupportFoldersComponent {
 

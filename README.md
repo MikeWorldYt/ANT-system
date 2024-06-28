@@ -9,7 +9,9 @@
 -->
 
 ### How works?
-Her rules **organize files in a way that mimics a nested for categories** by following a naming convention and incremental numbering, Where the main categories are at the highest level, and each subsequent level provides more specific subcategories.
+Her rules **organize files in a way that mimics a Ant Colony** with a categories pathways in levels and some nested paths.  
+Also, it employs a naming convention that allows the user to find a file anywhere.
+
 <!--
 ### QUICK START
 1. [Download the scrip (not avaible yet)](not-available)

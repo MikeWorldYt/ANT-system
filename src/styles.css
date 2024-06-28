@@ -13,10 +13,13 @@
 
 header {
     height: 8vh;
+    max-height: 9vh;
 }
 
 .sidebar {
     min-height: 90vh;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .main {
@@ -32,6 +35,18 @@ header {
     height: 900px;
 }
 
+.centerDiv {
+    @apply flex justify-center;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.icon {
+    @apply w-6 h-6 stroke-current text-black dark:text-white;
+}
+
+.currentH1 {
+    @apply bg-emerald-400 rounded-l-lg pl-5 mt-2 text-gray-950;
+}

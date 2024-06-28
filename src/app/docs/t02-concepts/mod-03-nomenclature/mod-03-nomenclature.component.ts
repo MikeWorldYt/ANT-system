@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './mod-03-nomenclature.component.html',
-  styleUrl: './mod-03-nomenclature.component.css'
+  styleUrl: '../../docs.component.css'
 })
 export class Mod03NomenclatureComponent {
 

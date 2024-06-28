@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+<app-header />
+
+<div class="grid grid-cols-12 grid-areas-layout min-h-90vh overflow-hidden">
+  <div menu-container
+    class="z-10 fixed"
+    [ngClass]="{ 'md:col-span-3 md:static' : menu === true }"
+  >
+    @if (menu === true) {
+      <div class="icon-cnt-open">
+        <button 
+          (click)="showMenu()" class="menu-open"> x
+        </button>
+      </div>
+      <app-sidebar
+        class="w-full md:w-full left-0 top-auto h-full md:block"
+      />
+    } @else {
+      <div class="icon-cnt-close">
+        <button 
+          (click)="showMenu()" class="menu-closed"> 
+        </button>
+      </div>
+
+      
+      <app-sidebar
+        class="w-full left-0 top-auto h-full md:block hidden -translate-x-full"
+      />
+    }
+  </div>
+
+  <app-main 
+    class="col-span-12 md:col-span-9 overflow-y-scroll"
+    [ngClass]="{ 'md:col-span-9' : menu === true }"
+  />
+
+</div>

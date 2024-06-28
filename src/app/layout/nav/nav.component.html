@@ -1,31 +1,48 @@
 <!DOCTYPE html>
-<nav class="flex flex-col bg-gray-800 p-2 relative">
-  <h3>Getting Started</h3> <!-- anchor for Default Component ---->
-  <h4>What is it?</h4>
-    <ul>
-      <li>How works?</li>
-      <li>Key benefits</li>
-    </ul>
-  <h4>Quick Start</h4>
+<nav class="flex flex-col pl-2 pt-3 relative w-full">
+  <h1>Getting Started</h1> <!-- anchor for Default Component ---->
 
-  <h3>Main Concepts</h3>
-  <h4>1. Levels and Structure</h4>
-    <ul>
-      <li>1.1 The Level 1 </li>
-      <li>1.2 The Levels 2 </li>
-      <li>1.3 The Levels 3 </li>
-    </ul>
-  <h4>2. Support Folders</h4>
-  <ul>
-    <li>2.1 Settings Folder (99)</li>
-    <li>2.2 Review Folder (98)</li>
-    <li>2.3 Undefined Folder (97)</li>
-    <li>2.4 Resources Folder (90)</li>
-    <li>2.5 Archive/Final Product Folder (00)</li>
-  </ul>
-  <h4>3. File's Nomenclature</h4>
-  <ul>
-    <li>- Ge</li>
-    <li>- M</li>
-  </ul>
+  <div>
+    <a routerLink="/home/docs/introduction" routerLinkActive="active" (click)="toggle('introduction')">
+      <h1 class="cursor-pointer" [ngClass]="{ 'currentH1': currentSection === 'introduction' }">
+        Introduction</h1>
+    </a>
+
+    @if (currentSection === 'introduction') {
+      <h2>What is ANT?</h2>
+        <!-- <ul>
+          <li>How works?</li>
+          <li>Key benefits</li>
+        </ul> -->
+      <h2>Quick Start</h2>
+      <div class="pl-10 border-b border-emerald-600/50"></div>
+    }
+  </div>
+
+  <div>
+    <a routerLink="docs/concepts" routerLinkActive="active" (click)="toggle('concepts')">
+      <h1 class="cursor-pointer" [ngClass]="{ 'currentH1': currentSection === 'concepts' }">
+        Main Concepts</h1>
+    </a>
+
+    @if (currentSection === 'concepts') {
+      <h2>1. Levels and Structure</h2>
+        <!-- <ul>
+          <li>1.1 The Level 1 </li>
+          <li>1.2 The Levels 2 </li>
+          <li>1.3 The Levels 3 </li>
+        </ul> -->
+      <h2>2. Support Folders</h2>
+        <!-- <ul>
+          <li>2.1 Settings Folder (99)</li>
+            <li>2.2 Review Folder (98)</li>
+            <li>2.3 Undefined Folder (97)</li>
+            <li>2.4 Resources Folder (90)</li>
+            <li>2.5 Archive/Final Product Folder (00)</li>
+        </ul> -->
+      <h2>3. File's Nomenclature</h2>
+      <div class="pl-10 border-b border-emerald-600/50"></div>
+    }
+  </div>
+
 </nav>

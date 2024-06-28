@@ -11,5 +11,4 @@ import { NavComponent } from '../nav/nav.component';
   styleUrl: './sidebar.component.css'
 })
 export class SidebarComponent {
-
 }
