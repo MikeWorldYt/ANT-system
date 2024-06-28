@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 
-<app-header />
-
 <div class="grid grid-cols-12 grid-areas-layout min-h-90vh overflow-hidden">
   <div menu-container
     class="z-10 fixed"
@@ -26,9 +24,12 @@
       />
   </div>
 
-  <app-main 
+  <div main-container
     class="col-span-12 md:col-span-9 overflow-y-scroll"
     [ngClass]="{ 'md:col-span-9' : menu === true }"
-  />
+  >
+    <app-header />
+    <app-main />
+  </div>
 
 </div>
