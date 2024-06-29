@@ -1,9 +1,9 @@
 .icon-cnt-open {
-    @apply z-20 sticky bg-red-500 w-full relative;
+    @apply z-20 sticky w-full relative;
 }
 
 .menu-open {
-    @apply absolute top-0 right-3;
+    @apply absolute right-3 flex items-center py-2 w-8;
 }
 
 .icon-cnt-close {
