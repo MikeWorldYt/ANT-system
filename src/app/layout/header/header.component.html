@@ -1,9 +1,13 @@
 <!DOCTYPE html>
 <header class="flex bg-zinc-800/30 p-2 relative">
-  <div class="flex items-center">
-    <a href="#" class="py-2">
-      <img class="w-8" src="img/ant.svg" alt="ant">
-    </a>
-    <h2 class="font-bold text-emerald-200 pl-2">DOCS</h2>
+
+  <div class="flex items-center py-2"
+    [ngClass]="menu ? 'pl-5' : 'pl-10'"
+  >
+    <img class="w-8" src="img/ale_safety.png" alt="safety">
+    <h2>Website Under Construction</h2>
+  </div>
+  <div class="text-white pl-5">
+    <p>menu is: {{ menu }}</p>
   </div>
 </header>

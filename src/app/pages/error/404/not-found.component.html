@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>404 - Not Found (app)</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 10px;
+    }
+    .big-text {
+      font-size: 50px;
+      font-weight: bold;
+    }
+    img {
+      max-height: 40vh;
+    }
+  </style>
+  <script type="text/javascript">
+    // redir
+    function startRedirectCountdown() {
+      var countdown = 33;
+      var countdownElement = document.getElementById('countdown');
+      countdownElement.textContent = countdown;
+
+      var interval = setInterval(function() {
+        countdown--;
+        countdownElement.textContent = countdown;
+        if (countdown === 0) {
+          clearInterval(interval);
+          var path = window.location.pathname.replace('/ANT-on-the-system/', '');
+          window.location.href = 'https://mikeworldyt.github.io/ANT-on-the-system/';
+        }
+      }, 1000);
+    }
+
+    // Iniciar el contador cuando la página esté cargada
+    window.onload = startRedirectCountdown;
+  </script>
+</head>
+<body>
+  <h1 class="big-text">Oops!</h1>
+  <h1>We cant seems to find the page, or maybe we had a gateway error</h1>
+  <p>Automatically redirecting to <a href="https://mikeworldyt.github.io/ANT-on-the-system/">ANT Docs | Home</a> in <span id="countdown">33</span> secondss...</p>
+  <img src="https://media1.tenor.com/m/bVDDalfRHA8AAAAC/cat-power.gif" alt="">
+  <p>Error code: 404</p>
+  </body>
+</html>

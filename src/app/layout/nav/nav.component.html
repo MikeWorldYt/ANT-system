@@ -1,9 +1,17 @@
 <!DOCTYPE html>
+<header class="flex bg-zinc-800/30 p-2 relative">
+  <div class="flex items-center py-2">
+    <a href="#">
+      <img class="w-8" src="img/ant.svg" alt="ant">
+    </a>
+    <h2 class="font-bold text-emerald-200 pl-2">DOCS</h2>
+  </div>
+</header>
 <nav class="flex flex-col pl-2 pt-3 relative w-full">
   <h1>Getting Started</h1> <!-- anchor for Default Component ---->
 
   <div>
-    <a routerLink="/home/docs/introduction" routerLinkActive="active" (click)="toggle('introduction')">
+    <a [routerLink]="'docs/introduction'" routerLinkActive="active" (click)="toggle('introduction')">
       <h1 class="cursor-pointer" [ngClass]="{ 'currentH1': currentSection === 'introduction' }">
         Introduction</h1>
     </a>

@@ -5,6 +5,7 @@ import { SidebarComponent } from '../../layout/sidebar/sidebar.component';
 import { MainComponent } from '../../layout/main/main.component';
 import { FooterComponent } from '../../layout/footer/footer.component';
 import { NgClass } from '@angular/common';
+import { MenuService } from '../../services/menu.service';
 
 @Component({
   selector: 'app-home',
@@ -22,9 +23,12 @@ import { NgClass } from '@angular/common';
 })
 export default class HomeComponent {
   // Menu
-    menu: boolean = false;
+    menu: boolean = true;
+    constructor(private menuService: MenuService) {}
+
   showMenu() {
     this.menu = !this.menu;
+    this.menuService.changeMenu(this.menu);
   }
 
 }
