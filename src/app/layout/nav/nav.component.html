@@ -11,7 +11,7 @@
   <h1>Getting Started</h1> <!-- anchor for Default Component ---->
 
   <div>
-    <a routerLink="/home/docs/introduction" routerLinkActive="active" (click)="toggle('introduction')">
+    <a [routerLink]="'docs/introduction'" routerLinkActive="active" (click)="toggle('introduction')">
       <h1 class="cursor-pointer" [ngClass]="{ 'currentH1': currentSection === 'introduction' }">
         Introduction</h1>
     </a>
