@@ -24,13 +24,7 @@ export const routes: Routes = [
 ];
 
 @NgModule({
-  declarations: [
-    AppComponent,
-    HomeComponent,
-    Docs_T01_IntoComponent,
-    Docs_T02_IntoComponent,
-    NotFoundComponentComponent
-  ],
+  declarations: [  ],
   imports:[
     BrowserModule,
     RouterModule.forRoot(routes, {
