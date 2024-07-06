@@ -9,7 +9,6 @@
 </header>
 <nav class="flex flex-col pl-2 pt-3 relative w-full">
   <h1>Getting Started</h1> <!-- anchor for Default Component ---->
-
   <div>
     <a [routerLink]="'docs/introduction'" routerLinkActive="active" (click)="toggle('introduction')">
       <h1 class="cursor-pointer" [ngClass]="{ 'currentH1': currentSection === 'introduction' }">
@@ -52,5 +51,4 @@
       <div class="pl-10 border-b border-emerald-600/50"></div>
     }
   </div>
-
 </nav>
