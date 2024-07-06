@@ -6,6 +6,7 @@ import { Docs_T02_IntoComponent } from './docs/t02-concepts/into-main-concepts/i
 import { NgModule } from '@angular/core';
 import { HashLocationStrategy, LocationStrategy } from '@angular/common';
 import { NotFoundComponentComponent } from './pages/error/404/not-found.component';
+import { AppComponent } from './app.component';
 
 export const routes: Routes = [
   {  path: '', component: HomeComponent,  
@@ -17,10 +18,17 @@ export const routes: Routes = [
     ]
   },
   { path: 'not-found', component: NotFoundComponentComponent },
-  { path: '**', redirectTo: '/not-found',  pathMatch: 'full'  }
+  { path: '**', component: NotFoundComponentComponent,  pathMatch: 'full'  }
 ];
 
 @NgModule({
+  declarations: [
+    AppComponent,
+    HomeComponent,
+    Docs_T01_IntoComponent,
+    Docs_T02_IntoComponent,
+    NotFoundComponentComponent
+  ],
   imports:[
     BrowserModule,
     RouterModule.forRoot(routes, {
@@ -33,6 +41,7 @@ export const routes: Routes = [
       useClass: HashLocationStrategy
     }
   ],
+  bootstrap: [AppComponent]
 })
 
-export class AppRoutingModule { }
+export class AppRoutingModule { }5
