@@ -9,9 +9,15 @@
       }
     }
   ],
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  // "routes": [
+  //   { "handle": "filesystem" },
+  //   { "src": "/(.*)", "dest": "/index.html" }
+  // ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "redirects": [
+    { "source": "/", "destination": "/home", "statusCode": 301 }
   ],
   "headers": [
     { "source": "/(.*)\\.(js|css|png|jpg|jpeg|gif|ico|svg)$", 
