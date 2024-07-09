@@ -13,7 +13,7 @@
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "redirects": [
-    { "source": "/", "destination": "/home", "statusCode": 301 }
+    { "source": "/", "destination": "/introduction", "statusCode": 301 }
   ],
   "headers": [
     { "source": "/(.*)\\.(js|css|png|jpg|jpeg|gif|ico|svg)$", 
