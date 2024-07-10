@@ -16,7 +16,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 })
 export class NavComponent {
   // Toogle
-  currentSection: string = 'introduction';
+  currentSection: string = ''; // default property
   showMe: boolean = true;
   visible: boolean = false;
   toggle(section: string) {
