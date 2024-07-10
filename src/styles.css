@@ -48,5 +48,5 @@ header {
 }
 
 .currentH1 {
-    @apply bg-emerald-400 rounded-l-lg pl-5 mt-2 text-gray-950;
+    @apply bg-emerald-400 rounded-r-lg text-gray-950 ease-in duration-500;
 }
