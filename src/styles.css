@@ -9,6 +9,7 @@
     margin: 0;
     padding: 0;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    scroll-behavior: smooth;
 }
 
 header {
@@ -47,6 +48,14 @@ header {
     @apply w-6 h-6 stroke-current text-black dark:text-white;
 }
 
+section[id] {
+    scroll-margin-top: 8vh;
+}
+
 .currentH1 {
     @apply bg-emerald-400 rounded-r-lg text-gray-950 ease-in duration-500;
+}
+
+.currentH2 {
+    background-color: rgba(172, 255, 47, 0.239); /* For debugging */
 }
