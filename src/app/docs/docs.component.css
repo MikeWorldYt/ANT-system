@@ -61,3 +61,15 @@ th, td {
 th {
     background-color: #6d9387;
 }
+
+
+.hash-link {
+    position: absolute;
+    top: 2px;
+    left: -20px;
+    color: white;
+  }
+  
+  h2:hover .hash-link {
+    visibility: visible;
+  }
