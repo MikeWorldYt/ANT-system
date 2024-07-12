@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-nav',
@@ -29,16 +30,29 @@ export class NavComponent {
 
   // Module section control
   moduleSection: string = '';
+  hovered: boolean = false;
+
+  constructor(private route: ActivatedRoute, private router: Router) { }
+
+  ngAfterViewInit() {
+    this.route.fragment.subscribe(fragment => {
+      if (fragment) {
+        this.moduleSection = fragment;
+        // this.scrollToSection(fragment);
+      }
+    })
+  }
 
   @HostListener('window:scroll', [])
 onWindowScroll() {
+  console.log('Scrolling...');
   const sections = document.querySelectorAll('h2');
   sections.forEach(section => {
     const rect = section.getBoundingClientRect();
     if (rect.top >= 0 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight)) {
       this.moduleSection = section.id;
     }
-  });
+  }); 
 }
 
   scrollToSection(sectionId: string) {
@@ -50,4 +64,10 @@ onWindowScroll() {
     this.moduleSection = section;
   }
 
+  onAnchorClick(event: Event, sectionId: string) {
+    event.preventDefault();
+    this.scrollToSection(sectionId);
+    this.router.navigate([], { fragment: sectionId });
+    console.log('esta funcionando');
+  }
 }
