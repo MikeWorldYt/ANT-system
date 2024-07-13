@@ -34,7 +34,7 @@
 
     @if (currentSection === 'concepts') {
       <a href="concepts#m10" (click)="onAnchorClick($event, 'm10')">
-        <h2 id="m10"
+        <h2
         [ngClass]="{ 'currentH2': moduleSection === 'm10' }"
         (click)="scrollToSection('m10')"
         >1. Levels and Structure</h2>
@@ -46,7 +46,7 @@
           <li>1.3 The Levels 3 </li>
         </ul> -->
       <a href="concepts#m11">
-        <h2 id="m11"
+        <h2
         [ngClass]="{ 'currentH2': moduleSection === 'm11' }"
         (click)="scrollToSection('m11')"
         >2. Support Folders</h2>
