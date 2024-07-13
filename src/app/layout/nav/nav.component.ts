@@ -43,7 +43,7 @@ export class NavComponent {
     })
   }
 
-  @HostListener('window:scroll', [])
+  @HostListener('document:scroll', [])
 onWindowScroll() {
   console.log('Scrolling...');
   const sections = document.querySelectorAll('h2');
