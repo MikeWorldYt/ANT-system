@@ -28,8 +28,11 @@
 
   <div>
     <a routerLink="concepts" routerLinkActive="active" (click)="toggle('concepts')">
-      <h1 class="cursor-pointer" [ngClass]="{ 'currentH1': currentSection === 'concepts' }">
-        Main Concepts</h1>
+      <div class="flex items-center">
+        <img class="absolute w-4 mt-3 transition-transform duration-300 ease-in" [ngClass]="{ 'rotate-90': currentSection === 'concepts' }" src="assets/ChevronLeft.svg" alt=">">
+        <h1 class="cursor-pointer w-full" [ngClass]="{ 'currentH1': currentSection === 'concepts' }">
+          Main Concepts</h1>
+      </div>
     </a>
 
     @if (currentSection === 'concepts') {
