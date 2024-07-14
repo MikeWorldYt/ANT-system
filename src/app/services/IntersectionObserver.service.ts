@@ -9,7 +9,8 @@ export class IntersectionService {
 
   constructor() {
     this.observer = new IntersectionObserver(this.intersectionCallback.bind(this), {
-      threshold: 0.1 // 10% viewport
+      // threshold: 0.1, // 10% viewport
+      rootMargin: '-40px 0px -90% 0px' // Ajuste para 2.5rem desde el top
     });
   }
 
