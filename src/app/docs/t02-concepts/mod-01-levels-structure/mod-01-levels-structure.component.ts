@@ -24,11 +24,6 @@ hideHash(event: Event) {
   this.hovered = false;
 }
 
-@HostListener('click', ['$even'])
-onWindowScroll( $even: Event ) {
-  console.log('Scrolling...');
-  }
-
   // service 
   @ViewChildren('section') sections!: QueryList<ElementRef>;
   
