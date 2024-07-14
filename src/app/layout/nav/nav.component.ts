@@ -68,6 +68,5 @@ onWindowScroll() {
     event.preventDefault();
     this.scrollToSection(sectionId);
     this.router.navigate([], { fragment: sectionId });
-    console.log('esta funcionando');
   }
 }
