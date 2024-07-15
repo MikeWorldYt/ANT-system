@@ -53,7 +53,8 @@ section[id] {
 }
 
 .currentH1 {
-    @apply bg-emerald-400 rounded-r-lg text-gray-950 ease-in duration-500;
+    /* @apply bg-emerald-400 rounded-r-lg text-gray-950 ease-in duration-500; */
+    @apply text-emerald-400 ease-in-out duration-500;
 }
 
 .currentH2 {

@@ -23,8 +23,10 @@ export class NavComponent {
   toggle(section: string) {
     if (this.currentSection === section) {
       this.currentSection = ''; // Si se hace clic en la misma sección, la ocultamos
+      console.log(`s ${this.currentSection} se ha cerrado`);
     } else {
       this.currentSection = section; // Si se hace clic en una nueva sección, la mostramos
+      console.log(`s ${this.currentSection} se ha abierto`);
     }
   }
 
