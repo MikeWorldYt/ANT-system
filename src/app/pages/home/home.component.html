@@ -2,7 +2,7 @@
 
 <div class="grid grid-cols-12 grid-areas-layout min-h-90vh overflow-hidden">
   <div menu-container
-    class="z-10 fixed"
+    class="z-20 fixed"
     [ngClass]="menu ? 'md:col-span-3 md:static' : ''"
   >
       <div
@@ -16,6 +16,7 @@
         } @else {
           <button 
             (click)="showMenu()" class="menu-closed"> 
+            <img src="assets/menu.svg" alt="">
           </button>
         }
       </div>
@@ -29,7 +30,7 @@
     class="col-span-12 md:col-span-9 overflow-y-scroll"
     [ngClass]="{ 'md:col-span-9' : menu === true }"
   >
-    <app-header />
+    <app-header class="relative"/>
     <app-main />
   </div>
 </div>

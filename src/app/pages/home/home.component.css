@@ -14,18 +14,14 @@
 
 .menu-closed {
     position: relative;
-    left: 0;
-    top: 15px;
-    @apply bg-emerald-800/50;
-    border-radius: 0 50% 50% 0;
-    height: 20px;
-    width: 10px;
+    @apply bg-emerald-800/0 p-2 w-10 my-2;
     transition: width 1s ease-in 0s; 
 }
 
 .menu-closed:hover {
+    /* background-image: url('../../../../public/assets/menu-close.gif');
+    background-size: cover; */
     position: relative;
-    width: 20px;
     @apply bg-emerald-800/90;
     transition: width 1s ease-in 0s; 
 }
