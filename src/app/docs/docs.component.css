@@ -40,7 +40,7 @@ p {
 }
 
 .pic-container img {
-    @apply max-h-[220px];
+    @apply max-h-[220px] object-contain;
 }
 
 /* --------- Tables --------- */
@@ -50,13 +50,21 @@ li {
 }
 
 table {
-    width: 120vh;
+    width: 100%;
     border-collapse: collapse;
 }
 th, td {
     border: .8px solid #6d9387;
-    padding: 8px;
+    padding: 2px;
     text-align: left;
+}
+td:first-child {
+    white-space: nowrap;
+}
+td:last-child {
+    word-wrap: break-word;
+    word-break: normal;
+    white-space: normal;
 }
 th {
     background-color: #6d9387;
