@@ -36,7 +36,7 @@ p {
 }
 
 .pic-container {
-    @apply flex gap-3 mt-2;
+    @apply flex flex-col md:flex-row gap-3 mt-2;
 }
 
 .pic-container img {
