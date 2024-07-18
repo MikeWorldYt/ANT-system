@@ -9,12 +9,20 @@ import { Docs_T02_IntoComponent } from './docs/t02-concepts/into-main-concepts/i
 
 import HomeComponent from './pages/home/home.component';
 import { NotFoundComponentComponent } from './pages/error/404/not-found.component';
+import { Docs_T02_Mod01_Component } from './docs/t02-concepts/mod-01-levels-structure/mod-01-levels-structure.component';
+import { Docs_T02_Mod02_Component } from './docs/t02-concepts/mod-02-support-folders/mod-02-support-folders.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent,  
     children: [
       { path: 'introduction', component: Docs_T01_IntoComponent },
-      { path: 'concepts', component: Docs_T02_IntoComponent },
+      { path: 'concepts', component: Docs_T02_IntoComponent,
+        children: [
+          { path: 'levels-and-structure', component: Docs_T02_Mod01_Component },
+          { path: 'support-folders', component: Docs_T02_Mod02_Component },
+          { path: '', redirectTo: 'levels-and-structure', pathMatch: 'full' },
+        ]
+      },
       { path: '', redirectTo: 'introduction', pathMatch: 'full' },
     ]
   },
