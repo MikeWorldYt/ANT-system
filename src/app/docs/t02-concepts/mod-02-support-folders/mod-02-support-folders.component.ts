@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { HeaderT02Component } from '../header-t02/header-t02.component';
 
 @Component({
-  selector: 'app-mod-02-support-folders',
+  selector: 'doc-t02-mod-02-support-folders',
   standalone: true,
   imports: [
     HeaderT02Component,
@@ -10,6 +10,6 @@ import { HeaderT02Component } from '../header-t02/header-t02.component';
   templateUrl: './mod-02-support-folders.component.html',
   styleUrl: '../../docs.component.css'
 })
-export class Mod02SupportFoldersComponent {
+export class Docs_T02_Mod02_Component {
 
 }
