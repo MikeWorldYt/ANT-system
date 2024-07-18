@@ -3,27 +3,29 @@
 }
 
 .menu-open {
-    @apply absolute right-3 flex items-center py-2 w-8;
+    @apply absolute right-3 flex items-center py-2 w-8 ;
 }
 
 .icon-cnt-close {
     z-index: 20;
-    position: sticky;
-    top: 0;
+}
+
+.icon-cnt-close:hover {
+    @apply md:bg-emerald-800/90 md:p-[2px] md:w-12;
+    transition: .2s ease-in 0s;
 }
 
 .menu-closed {
     position: relative;
-    @apply bg-emerald-800/0 p-2 w-10 my-2;
-    transition: width 1s ease-in 0s; 
+    @apply flex items-center bg-emerald-800/0 m-2 w-8 box-border;
+    transition: width 1s ease-in 0s;
+    
 }
 
 .menu-closed:hover {
     /* background-image: url('../../../../public/assets/menu-close.gif');
     background-size: cover; */
     position: relative;
-    @apply bg-emerald-800/90;
-    transition: width 1s ease-in 0s; 
 }
 
 .icon-home {
