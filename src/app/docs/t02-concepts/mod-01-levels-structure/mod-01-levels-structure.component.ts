@@ -14,17 +14,18 @@ import { IntersectionService } from '../../../services/IntersectionObserver.serv
   styleUrl: '../../docs.component.css'
 })
 export class Docs_T02_Mod01_Component {
+  // Hash Sections
   hovered = false;
 
-showHash(event: Event) {
-  this.hovered = true;
-}
+  showHash(event: Event) {
+    this.hovered = true;
+  }
+  
+  hideHash(event: Event) {
+    this.hovered = false;
+  }
 
-hideHash(event: Event) {
-  this.hovered = false;
-}
-
-  // service 
+  // service Hash Sections
   @ViewChildren('section') sections!: QueryList<ElementRef>;
   
   idActive: string = '';
