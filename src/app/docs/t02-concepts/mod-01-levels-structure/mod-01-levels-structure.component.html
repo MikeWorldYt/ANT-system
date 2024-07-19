@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 
 <div class="w-full">
-  <header-t02 mod="Levels and Directory Structure"/>
+  <!-- <header-t02 mod="Levels and Directory Structure"/> -->
 
   <!-- ------------------------------   .   -   1.   -   .    ------------------------------ -->
-  <section class="relative" id="levels-and-structure" appHostListener #section>
+  <section class="relative" id="levels-and-structure" #section>
     <h2 class="docs-subtitle" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)" >
     1. Levels and Directory Structure</h2>
     <span class="hash-link bg-red" *ngIf="hovered">
@@ -25,7 +25,7 @@
   </section>
 
   <!-- ------------------------------   .   -   1.1   -   .    ------------------------------ -->
-  <section class="relative" id="m11" #section>
+  <section class="relative" id="level-1" #section>
     <h2 class="docs-subtitle-light" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)">
       1.1 The Level 1 - Main Categories </h2>
     <span class="hash-link" *ngIf="hovered">

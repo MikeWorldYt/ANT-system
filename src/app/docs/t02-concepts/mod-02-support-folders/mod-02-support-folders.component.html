@@ -1,14 +1,28 @@
 <!DOCTYPE html>
 
 <div class="w-full">
-	<header-t02 mod="Support Folders"/>
+	<!-- <header-t02 mod="Support Folders"/> -->
+
 	<!-- ------------------------------   .   -   2.   -   .    ------------------------------ -->
 	<section class="relative" id="support-folders" #section>
-		<h2 class="docs-subtitle">
+		<h2 class="docs-subtitle" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)">
 		2. Support Folders</h2>
 		<span class="hash-link bg-red" *ngIf="hovered">
 			<h2 class="docs-subtitle">#</h2>
 		</span>
+		<p>
+			The support folders are designed to be helpful at the current level. In that sense support the user.
+Each has a unique identifier, making it easy to differentiate and quickly identify them
+		</p>
+	</section>
+
+	<!-- ------------------------------   .   -   2.1   -   .    ------------------------------ -->
+	<section class="relative" id="Settings-folder" #section>
+		<h2 class="docs-subtitle-light" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)">
+			Settings Folder (99)</h2>
+			<span class="hash-link" *ngIf="hovered">
+				<h2 class="docs-subtitle-light">#</h2>
+			</span>
 	</section>
 
 </div>
