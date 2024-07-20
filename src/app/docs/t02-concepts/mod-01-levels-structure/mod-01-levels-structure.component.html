@@ -14,8 +14,12 @@
       Levels refer to the depth within the folder tree directory.
     </p>
     <div class="pic-container" >
-      <img src="https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png" alt="img">
-      <img src="https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png" alt="img">
+      <img src="https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png" alt="img" (click)="openLightbox($event)">
+      <img src="https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png" alt="img" (click)="openLightbox($event)">
+    </div>
+    <div class="lightbox" *ngIf="isLightboxOpen" (click)="closeLightbox()">
+      <img [src]="lightboxImage" alt="img" (click)="$event.stopPropagation()" (wheel)="zoomImage($event)">
+      <span class="close-icon" (click)="closeLightbox()">&#10006;</span>
     </div>
     <div class="dialog">
       <p>

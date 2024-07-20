@@ -42,5 +42,37 @@ export class Docs_T02_Mod01_Component {
       console.log(this.idActive);
     }, 100);
   }
+  // Lightbox
+  isLightboxOpen = false;
+  lightboxImage: string | null = null;
+  zoomLevel = 1;
+
+  openLightbox(event: MouseEvent): void {
+    const imgElement = event.target as HTMLImageElement;
+    this.lightboxImage = imgElement.src;
+    this.isLightboxOpen = true;
+  }
+
+  closeLightbox(): void {
+    this.isLightboxOpen = false;
+    this.lightboxImage = null;
+    this.zoomLevel = 1;
+  }
+
+  zoomImage(event: WheelEvent): void {
+    event.preventDefault();
+    const imgElement = event.target as HTMLImageElement;
+    if (event.deltaY < 0) {
+      // Zoom in
+      this.zoomLevel += 0.1;
+    } else {
+      // Zoom out
+      this.zoomLevel -= 0.1;
+      if (this.zoomLevel < 1) {
+        this.zoomLevel = 1;
+      }
+    }
+    imgElement.style.transform = `scale(${this.zoomLevel})`;
+  }
 
 }
