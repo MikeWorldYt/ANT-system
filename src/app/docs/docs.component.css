@@ -62,7 +62,7 @@ th {
     background-color: #6d9387;
 }
 
-x.hash-link {
+.hash-link {
     position: absolute;
     top: 2px;
     left: -20px;
@@ -75,4 +75,8 @@ h2:hover .hash-link {
 
 .pic-container {
     @apply flex flex-col md:flex-row gap-3 mt-2;
+}
+
+section {
+    position: relative;
 }
