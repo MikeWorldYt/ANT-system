@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+
+<div class="pic-container">
+    <img [src]="src" alt="img" (click)="openLightbox()">
+  </div>
+
+  <div class="lightbox" *ngIf="isLightboxOpen" (click)="closeLightbox()">
+    <img [src]="lightboxImage" alt="img" (click)="$event.stopPropagation()"
+        (wheel)="zoomImage($event)"
+        (mousedown)="startDrag($event)"
+        (mousemove)="dragImage($event)"
+        (mouseup)="endDrag()"
+        (mouseleave)="endDrag()">
+    <span class="close-icon" (click)="closeLightbox()">&#10006;</span>
+  </div>
+

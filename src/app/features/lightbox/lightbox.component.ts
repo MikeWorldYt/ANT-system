@@ -1,50 +1,15 @@
-import { Component, ElementRef, HostListener, QueryList, ViewChildren } from '@angular/core';
-import { HeaderT02Component } from '../header-t02/header-t02.component';
 import { CommonModule } from '@angular/common';
-import { IntersectionService } from '../../../services/IntersectionObserver.service';
-import { LightboxComponent } from '../../../features/lightbox/lightbox.component';
+import { Component, Input } from '@angular/core';
 
 @Component({
-  selector: 'doc-t02-mod-01-levels-structure',
+  selector: 'lightbox',
   standalone: true,
-  imports: [
-    HeaderT02Component,
-    CommonModule,
-    LightboxComponent
-  ],
-  templateUrl: './mod-01-levels-structure.component.html',
-  styleUrl: '../../docs.component.css'
+  imports: [ CommonModule ],
+  templateUrl: './lightbox.component.html',
+  styleUrl: './lightbox.component.css'
 })
-export class Docs_T02_Mod01_Component {
-  // Hash Sections
-  hovered = false;
-
-  showHash(event: Event) {
-    this.hovered = true;
-  }
-  
-  hideHash(event: Event) {
-    this.hovered = false;
-  }
-
-  // service Hash Sections
-  @ViewChildren('section') sections!: QueryList<ElementRef>;
-  
-  idActive: string = '';
-
-  constructor(private intersectionService: IntersectionService) { }
-  
-  ngAfterViewInit() {
-    this.sections.forEach(section => {
-      this.intersectionService.observe(section.nativeElement);
-    });
-
-    setInterval(() => {
-      this.idActive = this.intersectionService.getCurrentId();
-      console.log(this.idActive);
-    }, 100);
-  }
-  // Lightbox
+export class LightboxComponent {
+  @Input() src!: string;
   isLightboxOpen = false;
   lightboxImage: string | null = null;
   zoomLevel = 1;
@@ -52,11 +17,10 @@ export class Docs_T02_Mod01_Component {
   startX = 0;
   startY = 0;
   translateX = 0;
-  translateY = 0;
+  translateY = 0
 
-  openLightbox(event: MouseEvent): void {
-    const imgElement = event.target as HTMLImageElement;
-    this.lightboxImage = imgElement.src;
+  openLightbox(): void {
+    this.lightboxImage = this.src;
     this.isLightboxOpen = true;
   }
 
@@ -112,5 +76,4 @@ export class Docs_T02_Mod01_Component {
       imgElement.classList.remove('dragging');
     }
   }
-
 }

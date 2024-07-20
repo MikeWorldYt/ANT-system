@@ -35,14 +35,6 @@ p {
     @apply bg-emerald-500/20 pt-4 pb-4 pl-6 pr-6 mt-1 mb-1 rounded-md;
 }
 
-.pic-container {
-    @apply flex flex-col md:flex-row gap-3 mt-2;
-}
-
-.pic-container img {
-    @apply max-h-[220px] object-contain;
-}
-
 /* --------- Tables --------- */
 li {
     list-style: inside;
@@ -70,8 +62,7 @@ th {
     background-color: #6d9387;
 }
 
-
-.hash-link {
+x.hash-link {
     position: absolute;
     top: 2px;
     left: -20px;
@@ -82,47 +73,6 @@ h2:hover .hash-link {
     visibility: visible;
 }
 
-/* --------- Lightbox --------- */
-.pic-container img {
-    cursor: pointer;
-}
-
-.lightbox {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    overflow: hidden;
-}
-
-.lightbox img {
-    max-width: 90%;
-    max-height: 90%;
-    transition: transform 0.3s ease;
-    cursor: grab;
-    user-drag: none;
-    -webkit-user-drag: none;
-}
-
-.lightbox img.dragging {
-    transition: none; /* Desactiva la transición mientras se arrastra */
-  }
-
-.lightbox img:active {
-    cursor: grabbing;
-}
-
-.close-icon {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
+.pic-container {
+    @apply flex flex-col md:flex-row gap-3 mt-2;
 }
