@@ -18,7 +18,11 @@
       <img src="https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png" alt="img" (click)="openLightbox($event)">
     </div>
     <div class="lightbox" *ngIf="isLightboxOpen" (click)="closeLightbox()">
-      <img [src]="lightboxImage" alt="img" (click)="$event.stopPropagation()" (wheel)="zoomImage($event)">
+      <img [src]="lightboxImage" alt="img" (click)="$event.stopPropagation()"
+      (wheel)="zoomImage($event)"
+      (mousedown)="startDrag($event)"
+      (mousemove)="dragImage($event)"
+      (mouseup)="endDrag()">
       <span class="close-icon" (click)="closeLightbox()">&#10006;</span>
     </div>
     <div class="dialog">

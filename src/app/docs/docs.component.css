@@ -98,11 +98,24 @@ h2:hover .hash-link {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    overflow: hidden;
 }
 
 .lightbox img {
     max-width: 90%;
     max-height: 90%;
+    transition: transform 0.3s ease;
+    cursor: grab;
+    user-drag: none;
+    -webkit-user-drag: none;
+}
+
+.lightbox img.dragging {
+    transition: none; /* Desactiva la transición mientras se arrastra */
+  }
+
+.lightbox img:active {
+    cursor: grabbing;
 }
 
 .close-icon {

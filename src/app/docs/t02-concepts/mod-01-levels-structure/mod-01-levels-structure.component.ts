@@ -46,6 +46,11 @@ export class Docs_T02_Mod01_Component {
   isLightboxOpen = false;
   lightboxImage: string | null = null;
   zoomLevel = 1;
+  isDragging = false;
+  startX = 0;
+  startY = 0;
+  translateX = 0;
+  translateY = 0;
 
   openLightbox(event: MouseEvent): void {
     const imgElement = event.target as HTMLImageElement;
@@ -57,6 +62,9 @@ export class Docs_T02_Mod01_Component {
     this.isLightboxOpen = false;
     this.lightboxImage = null;
     this.zoomLevel = 1;
+    this.translateX = 0;
+    this.translateY = 0;
+    this.isDragging = false;
   }
 
   zoomImage(event: WheelEvent): void {
@@ -72,7 +80,35 @@ export class Docs_T02_Mod01_Component {
         this.zoomLevel = 1;
       }
     }
-    imgElement.style.transform = `scale(${this.zoomLevel})`;
+    imgElement.style.transform = `scale(${this.zoomLevel})
+      translate(${this.translateX}px, ${this.translateY}px)`;
+  }
+
+  startDrag(event: MouseEvent): void {
+    event.preventDefault();
+    this.isDragging = true;
+    this.startX = event.clientX - this.translateX;
+    this.startY = event.clientY - this.translateY;
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.classList.add('dragging');
+  }
+
+  dragImage(event: MouseEvent): void {
+    if (this.isDragging) {
+      this.translateX = event.clientX - this.startX;
+      this.translateY = event.clientY - this.startY;
+      const imgElement = event.target as HTMLImageElement;
+      imgElement.style.transform = `scale(${this.zoomLevel})
+        translate(${this.translateX}px, ${this.translateY}px)`;
+    }
+  }
+
+  endDrag(): void {
+    this.isDragging = false;
+    const imgElement = document.querySelector('.lightbox img.dragging') as HTMLImageElement;
+    if (imgElement) {
+      imgElement.classList.remove('dragging');
+    }
   }
 
 }
