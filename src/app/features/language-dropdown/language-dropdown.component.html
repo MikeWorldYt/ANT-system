@@ -1,7 +1,18 @@
 <!DOCTYPE html>
 
-<select (change)="changeLanguage($event)">
-    <option *ngFor="let language of languages" [value]="language">
-        {{ language === 'EN' ? 'English' : 'Español' }}
-    </option>
-</select>
+<div class="flex items-center group border-solid border-2 rounded-lg border-orange-700 p-1">
+    <div class="exp-img relative ">
+        <img class="w-5 experimental" 
+        src="assets/flask.svg" alt="Experimental">
+        <span class="tooltip tooltip-bottom group-hover:visible group-hover:opacity-100">
+            This is an experimental feature, probably has bugs
+        </span>
+    </div>
+
+    <select (change)="changeLanguage($event)" 
+    class="bg-gray-800 text-white border border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <option *ngFor="let language of languages" [value]="language">
+            {{ language === 'EN' ? 'English' : 'Español' }}
+        </option>
+    </select>
+</div>
