@@ -1,38 +1,37 @@
 <!DOCTYPE html>
 
 <div class="w-full">
-  <!-- <header-t02 mod="Levels and Directory Structure"/> -->
+  <!-- <header-t02 mod="- Levels and Directory Structure"/> -->
+  <header-t02 />
 
   <!-- ------------------------------   .   -   1.   -   .    ------------------------------ -->
   <section id="Levels-and-Structure" #section>
-    <h2 class="docs-subtitle" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)" >
-    1. Levels and Directory Structure</h2>
+    <h2 class="docs-subtitle" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)"
+      [innerHTML]="write.section10.h1" >
+      1. Levels and Directory Structure</h2>
     <span class="hash-link" *ngIf="hovered">
       <h2 class="docs-subtitle">#</h2>
     </span>
     <p [innerHTML]="write.section10.p1"> </p>
-    <button (click)="switchLanguage('EN')">Switch to English</button>
-    <button (click)="switchLanguage('ES')">Switch to Spanish</button>
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png" />
       <lightbox src="https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png" />
     </div>
     <div class="dialog">
-      <p>
-        Tip: The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.
-      </p>
+      <p [innerHTML]="write.section10.d1"> </p>
     </div>
   </section>
 
   <!-- ------------------------------   .   -   1.1   -   .    ------------------------------ -->
   <section id="Level-1" #section>
-    <h2 class="docs-subtitle-light" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)">
+    <h2 class="docs-subtitle-light" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)"
+      [innerHTML]="write.section11.h1">
       1.1 The Level 1 - Main Categories </h2>
     <span class="hash-link" *ngIf="hovered">
       <h2 class="docs-subtitle-light">#</h2>
     </span>
     <div class="pic-container" >
-      <!-- <img src="" alt="img"> -->
+      <!-- <lightbox src="https: . . ." /> -->
     </div>
     <p>
       Is the highest hierarchy, inside from your Root Storage Folder, content the main categories;
@@ -43,20 +42,21 @@
       </p>
     </div>
     <div class="pic-container" >
-      <!-- <img src="" alt="img"> -->
+      <!-- <lightbox src="https: . . ." /> -->
     </div>
   </section>
 
 
   <!-- ------------------------------   .   -   1.2   -   .    ------------------------------ -->
   <section id="Level-2" #section>
-    <h2 class="docs-subtitle-light" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)">
+    <h2 class="docs-subtitle-light" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)"
+      [innerHTML]="write.section12.h1">
       1.2 The Levels 2 - Categories (Subjects) </h2>
     <span class="hash-link bg-red" *ngIf="hovered">
       <h2 class="docs-subtitle-light">#</h2>
     </span>
     <div class="pic-container" >
-      <!-- <img src="" alt="img"> -->
+      <!-- <lightbox src="https: . . ." /> -->
     </div>
     <p>
       Is inside of the main category;
@@ -67,13 +67,14 @@
       </p>
     </div>
     <div class="pic-container" >
-      <!-- <img src="" alt="img"> -->
+      <!-- <lightbox src="https: . . ." /> -->
     </div>
   </section>
 
   <!-- ------------------------------   .   -   1.3   -   .    ------------------------------ -->
   <section id="Level-3" #section>
-    <h2 class="docs-subtitle-light" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)">
+    <h2 class="docs-subtitle-light" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)"
+      [innerHTML]="write.section13.h1">
       1.3 The Levels 3 - Subcategories (Units, Theme, Topics, etc.) </h2>
     <span class="hash-link bg-red" *ngIf="hovered">
       <h2 class="docs-subtitle-light">#</h2>
@@ -85,9 +86,11 @@
   
   
     <!-- ------------------------------   .   -   1.3.1   -   .    ------------------------------ -->
-    <h2 class="docs-subtitle-thiny"> 1.3.1 Chill Structure </h2>
+    <h2 class="docs-subtitle-thiny"
+      [innerHTML]="write.section13_1.h1">
+      1.3.1 Chill Structure </h2>
     <div class="pic-container" >
-      <!-- <img src="" alt="img"> -->
+      <!-- <lightbox src="https: . . ." /> -->
     </div>
     <p>
       Is simple, It has an incremental enumeration with two or more digits, tho it doesn't necesary go at the beginning, as it'll depend on the needs/customization of each one. <br>
@@ -98,8 +101,8 @@
       <li>the directory is a permanent category</li>
     </ul>
     <div class="pic-container" >
-      <!-- <img src="" alt="img"> -->
-      <!-- <img src="" alt="img"> -->
+      <!-- <lightbox src="https: . . ." /> -->
+      <!-- <lightbox src="https: . . ." /> -->
     </div>
     <div class="dialog">
       <p>
@@ -109,9 +112,11 @@
     </div>
 
     <!-- ------------------------------   .   -   1.3.2   -   .    ------------------------------ -->
-    <h2 class="docs-subtitle-thiny">1.3.2 Control Structure</h2>
+    <h2 class="docs-subtitle-thiny"
+      [innerHTML]="write.section13_2.h1">
+      1.3.2 Control Structure</h2>
     <div class="pic-container" >
-      <!-- <img src="" alt="img"> -->
+      <!-- <lightbox src="https: . . ." /> -->
     </div>
     <p>
       It's ideal for projects, presentations, database, homeworks, etc. Use a naming convetion for controling and easy identification
@@ -175,7 +180,7 @@
       <li>Share with more people if you</li>
     </ul>
     <div class="pic-container" >
-      <!-- <img src="" alt="img"> -->
+      <!-- <lightbox src="https: . . ." /> -->
     </div>
   </section>
 
