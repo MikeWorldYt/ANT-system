@@ -1,12 +1,14 @@
 import { NgClass } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { MenuService } from '../../services/menu.service';
+import { LanguageDropdownComponent } from '../../features/language-dropdown/language-dropdown.component';
 
 @Component({
   selector: 'app-header',
   standalone: true,
   imports: [
-    NgClass
+    NgClass,
+    LanguageDropdownComponent
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.css'
