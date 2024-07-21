@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+
+<select (change)="changeLanguage($event)">
+    <option *ngFor="let language of languages" [value]="language">
+        {{ language === 'EN' ? 'English' : 'Español' }}
+    </option>
+</select>

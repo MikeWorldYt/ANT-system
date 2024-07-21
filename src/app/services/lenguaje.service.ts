@@ -5,7 +5,7 @@ import { BehaviorSubject } from 'rxjs';
     providedIn: 'root'
 })
 
-export class LenguageService {
+export class LanguageService {
     private languageSubject = new BehaviorSubject<string>('EN');
     language$ = this.languageSubject.asObservable();
     
