@@ -1,8 +1,11 @@
-import { Component, ElementRef, HostListener, QueryList, ViewChildren } from '@angular/core';
+import { Component, ElementRef, HostListener, QueryList, ViewChildren, OnInit } from '@angular/core';
 import { HeaderT02Component } from '../header-t02/header-t02.component';
 import { CommonModule } from '@angular/common';
 import { IntersectionService } from '../../../services/IntersectionObserver.service';
 import { LightboxComponent } from '../../../features/lightbox/lightbox.component';
+import { LenguageService } from '../../../services/lenguaje.service';
+import { content } from '../../content/content';
+// import { en } from '../../content/content.json'
 
 @Component({
   selector: 'doc-t02-mod-01-levels-structure',
@@ -10,12 +13,22 @@ import { LightboxComponent } from '../../../features/lightbox/lightbox.component
   imports: [
     HeaderT02Component,
     CommonModule,
-    LightboxComponent
+
+    LightboxComponent,
   ],
   templateUrl: './mod-01-levels-structure.component.html',
   styleUrl: '../../docs.component.css'
 })
 export class Docs_T02_Mod01_Component {
+  constructor(private intersectionService: IntersectionService) { }
+
+  // For inner content
+  write: any;
+
+  ngOnInit(): void {
+    this.write = content.EN.title_02.module_01; 
+  }
+
   // Hash Sections
   hovered = false;
 
@@ -32,8 +45,6 @@ export class Docs_T02_Mod01_Component {
   
   idActive: string = '';
 
-  constructor(private intersectionService: IntersectionService) { }
-  
   ngAfterViewInit() {
     this.sections.forEach(section => {
       this.intersectionService.observe(section.nativeElement);
