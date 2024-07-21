@@ -1,10 +1,11 @@
-import { Component, ElementRef, HostListener, QueryList, ViewChildren, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, QueryList, ViewChildren, OnInit, AfterViewInit } from '@angular/core';
 import { HeaderT02Component } from '../header-t02/header-t02.component';
 import { CommonModule } from '@angular/common';
 import { IntersectionService } from '../../../services/IntersectionObserver.service';
 import { LightboxComponent } from '../../../features/lightbox/lightbox.component';
-import { LenguageService } from '../../../services/lenguaje.service';
+import { LanguageService } from '../../../services/lenguaje.service';
 import { content } from '../../content/content';
+import { Language } from '../../../services/language.types';
 // import { en } from '../../content/content.json'
 
 @Component({
@@ -19,15 +20,39 @@ import { content } from '../../content/content';
   templateUrl: './mod-01-levels-structure.component.html',
   styleUrl: '../../docs.component.css'
 })
-export class Docs_T02_Mod01_Component {
-  constructor(private intersectionService: IntersectionService) { }
+export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
+  constructor(
+    private intersectionService: IntersectionService,
+    private languageService: LanguageService
+  ) { }
 
   // For inner content
   write: any;
 
+  // Language
+  currentLanguage: Language = 'ES';
+
   ngOnInit(): void {
-    this.write = content.EN.title_02.module_01; 
+    // Initial content
+    this.write = content[this.currentLanguage].title_02.module_01;
+
+    // Suscribe to Language Service
+    this.languageService.language$.subscribe((language: string) => {
+      if (this.isValidLanguage(language)) {
+        this.write = content[language].title_02.module_01;
+        this.currentLanguage = language;
+      }
+    });
   }
+
+  private isValidLanguage(language: string): language is Language {
+    return language === 'EN' || language === 'ES';
+  }
+
+  switchLanguage(language: Language) {
+    this.languageService.setLanguage(language);
+  }
+  
 
   // Hash Sections
   hovered = false;

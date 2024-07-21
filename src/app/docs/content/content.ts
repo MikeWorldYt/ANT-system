@@ -1,4 +1,6 @@
-export const content = {
+import { Language } from '../../services/language.types';
+
+export const content: Record<Language, any> = {
   EN: {
     title_01: {
       module_01: {
