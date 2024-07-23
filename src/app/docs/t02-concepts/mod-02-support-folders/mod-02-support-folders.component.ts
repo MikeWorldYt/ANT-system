@@ -14,6 +14,10 @@ import { CommonModule } from '@angular/common';
   styleUrl: '../../docs.component.css'
 })
 export class Docs_T02_Mod02_Component {
+  constructor(
+    private intersectionService: IntersectionService,
+
+  ) { }
   // Hash Sections
   hovered = false;
 
@@ -30,7 +34,7 @@ export class Docs_T02_Mod02_Component {
   
   idActive: string = '';
 
-  constructor(private intersectionService: IntersectionService) { }
+  
   
   ngAfterViewInit() {
     this.sections.forEach(section => {
