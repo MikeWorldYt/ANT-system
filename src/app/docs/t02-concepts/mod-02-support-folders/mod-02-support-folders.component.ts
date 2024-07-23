@@ -29,12 +29,12 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     // Initial content
-    this.write = content[this.currentLanguage].title_02.module_01;
+    this.write = content[this.currentLanguage].title_02.module_02;
 
     // Suscribe to Language Service
     this.languageService.language$.subscribe((language: string) => {
       if (this.isValidLanguage(language)) {
-        this.write = content[language].title_02.module_01;
+        this.write = content[language].title_02.module_02;
         this.currentLanguage = language;
       }
     });
