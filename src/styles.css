@@ -29,7 +29,8 @@ header {
 }
 
 .footer {
-    @apply flex flex-row items-start mt-3 gap-x-10;
+    @apply flex flex-col items-start mt-3;
+    @apply md:flex-row md:gap-x-10;
 }
 
 .window {
