@@ -29,7 +29,7 @@ header {
 }
 
 .footer {
-    min-height: 30vh;
+    @apply flex flex-row items-start mt-3 gap-x-10;
 }
 
 .window {
