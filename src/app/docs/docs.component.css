@@ -1,3 +1,61 @@
+section {
+    position: relative;
+}
+
+p {
+    @apply leading-none;
+}
+
+.dialog {
+    @apply bg-emerald-500/20 pt-4 pb-4 pl-6 pr-6 mt-1 mb-1 rounded-md;
+}
+
+/* --------- Tables --------- */
+li {
+    list-style: inside;
+    padding-left: .5rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    border: .8px solid #6d9387;
+    padding: 2px;
+    text-align: left;
+}
+td:first-child {
+    white-space: nowrap;
+}
+td:last-child {
+    word-wrap: break-word;
+    word-break: normal;
+    white-space: normal;
+}
+th {
+    background-color: #6d9387;
+}
+
+.hash-link {
+    position: absolute;
+    top: 2px;
+    left: -20px;
+    color: white;
+}
+
+h2:hover .hash-link {
+    visibility: visible;
+}
+
+.pic-container {
+    @apply flex flex-col md:flex-row gap-3 mt-2;
+}
+
+
+
+
+/* EXPEREMENTAL */
 
 .docs-decorative-header {
     @apply rounded-xl bg-slate-600/30 flex overflow-hidden mb-4 relative;
@@ -26,50 +84,3 @@
 .docs-subtitle-thiny {
     @apply text-xl font-semibold mt-4 mb-1;
 }
-
-p {
-    @apply leading-none;
-}
-
-.dialog {
-    @apply bg-emerald-500/20 pt-4 pb-4 pl-6 pr-6 mt-1 mb-1 rounded-md;
-}
-
-.pic-container {
-    @apply flex gap-3 mt-2;
-}
-
-.pic-container img {
-    @apply max-h-[220px];
-}
-
-/* --------- Tables --------- */
-li {
-    list-style: inside;
-    padding-left: .5rem;
-}
-
-table {
-    width: 120vh;
-    border-collapse: collapse;
-}
-th, td {
-    border: .8px solid #6d9387;
-    padding: 8px;
-    text-align: left;
-}
-th {
-    background-color: #6d9387;
-}
-
-
-.hash-link {
-    position: absolute;
-    top: 2px;
-    left: -20px;
-    color: white;
-  }
-  
-  h2:hover .hash-link {
-    visibility: visible;
-  }

@@ -23,8 +23,10 @@ import { MenuService } from '../../services/menu.service';
 })
 export default class HomeComponent {
   // Menu
-    menu: boolean = true;
-    constructor(private menuService: MenuService) {}
+    menu: boolean;
+    constructor(private menuService: MenuService) {
+      this.menu = window.innerWidth > 768 ? true : false;
+    }
 
   showMenu() {
     this.menu = !this.menu;

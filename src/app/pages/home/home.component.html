@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 
-<div class="grid grid-cols-12 grid-areas-layout min-h-90vh overflow-hidden">
+<div class="grid grid-cols-12 grid-areas-layout overflow-hidden">
   <div menu-container
-    class="z-20 fixed"
-    [ngClass]="menu ? 'md:col-span-3 md:static' : ''"
+    class="z-20 fixed menu-container"
+    [ngClass]="menu ? 'md:col-span-3 md:static w-full h-full bg-gradient-to-b md:from-zinc-800/30 from-zinc-800 to-zinc-800' : ''"
   >
       <div
       [ngClass]="menu ? 'icon-cnt-open' : 'icon-cnt-close'"

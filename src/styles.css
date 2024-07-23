@@ -29,7 +29,8 @@ header {
 }
 
 .footer {
-    min-height: 30vh;
+    @apply flex flex-col items-start mt-3;
+    @apply md:flex-row md:gap-x-10;
 }
 
 .window {
@@ -59,4 +60,58 @@ section[id] {
 
 .currentH2 {
     background-color: rgba(172, 255, 47, 0.239); /* For debugging */
+}
+
+/* Tooltip */
+.tooltip {
+    visibility: hidden;
+    width: auto;
+    background-color: #1a1b1e;
+    color: #FFF;
+    text-align: center;
+    border-radius: 5px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.7rem;
+}
+
+.tooltip-top {
+    bottom: 125%;
+}
+
+
+.tooltip-bottom {
+    top: 125%;
+}
+
+.tooltip::after {
+    position: absolute;
+    background: #1a1b1e;
+    content: "";
+    display: block;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    width: 18px;
+    height: 8px;
+    left: calc(50% - 9px);
+}
+
+.tooltip-top::after {
+    bottom: -10px;
+}
+
+.tooltip-bottom::after {
+    top: -10px;
+}
+
+.group-hover:visible {
+    visibility: visible;
+}
+
+.group-hover:opacity-100 {
+    opacity: 1;
 }
