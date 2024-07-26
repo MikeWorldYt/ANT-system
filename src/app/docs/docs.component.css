@@ -21,23 +21,23 @@ p {
 }
 
 .callout.info {
-    @apply bg-blue-100 border-blue-500 text-blue-700;
+    @apply bg-blue-100/10 border-blue-500 text-blue-300;
 }
 
 .callout.success {
-    @apply bg-green-100 border-green-500 text-green-700;
+    @apply bg-green-100/10 border-green-500 text-green-300;
 }
 
 .callout.warning {
-    @apply bg-orange-100 border-orange-500 text-orange-700;
+    @apply bg-orange-100/10 border-orange-500 text-orange-300;
 }
 
 .callout.danger {
-    @apply bg-red-100 border-red-500 text-red-700;
+    @apply bg-red-100/10 border-red-500 text-red-500;
 }
 
 .callout.quote {
-    @apply bg-gray-100 border-gray-500 text-gray-700;
+    @apply bg-gray-100/10 border-gray-500 text-gray-500;
 }
 
 .dialog {
