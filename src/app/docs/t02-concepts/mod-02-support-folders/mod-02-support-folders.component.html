@@ -37,7 +37,8 @@
 		<p [innerHTML]="write.section22.p1">  </p>
 		<p [innerHTML]="write.section22.p2">  </p>
 		<p [innerHTML]="write.section22.p3">  </p>
-		<div>
+		<div class="callout warning">
+			<img src="/assets/call-warning.svg" alt="">
 			<p [innerHTML]="write.section22.d1">  </p>
 		</div>
 	</section>
@@ -65,7 +66,8 @@
 		</span>
 		<p [innerHTML]="write.section24.p1">  </p>
 		<p [innerHTML]="write.section24.p2">  </p>
-		<div>
+		<div class="callout info">
+			<img src="/assets/call-info.svg" alt="">
 			<p [innerHTML]="write.section24.d1">  </p>
 		</div>
 		<p [innerHTML]="write.section24.p3">  </p>
@@ -80,9 +82,21 @@
 			<h2 class="docs-subtitle-light">#</h2>
 		</span>
 		<p [innerHTML]="write.section25.p1">  </p>
+		<div class="callout info">
+			<img src="/assets/call-info.svg" alt="">
+			<p [innerHTML]="write.section25.d1">  </p>
+		</div>
+		<div class="callout success">
+			<img src="/assets/call-success.svg" alt="">
+			<p [innerHTML]="write.section25.d2">  </p>
+		</div>
 		<p [innerHTML]="write.section25.p2">  </p>
 		<p [innerHTML]="write.section25.p3">  </p>
-		<p [innerHTML]="write.section25.p4">  </p>
+		<div class="callout quote">
+			<img src="/assets/call-quote.svg" alt="">
+			<p [innerHTML]="write.section25.d3">  </p>
+		</div>
+
 	</section>
 
 	<!-- ------------------------------   .   -   2.6   -   .    ------------------------------ -->
@@ -95,7 +109,11 @@
 		</span>
 		<p [innerHTML]="write.section26.p1">  </p>
 		<p [innerHTML]="write.section26.p2">  </p>
-		<div [innerHTML]="write.section26.l1">  </div>
+		<ul>
+			<li [innerHTML]="write.section26.ul1_li1">  </li>
+			<li [innerHTML]="write.section26.ul1_li2">  </li>
+			<li [innerHTML]="write.section26.ul1_li3">  </li>
+		</ul>
 	</section>
 
 </div>
