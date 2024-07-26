@@ -6,6 +6,40 @@ p {
     @apply leading-none;
 }
 
+/* --------- Call outs --------- */
+
+.callout {
+    @apply flex items-center p-4 rounded-md border-l-4;
+}
+
+.callout img {
+    @apply w-6 h-6 mr-2;
+}
+
+.callout p {
+    @apply m-0;
+}
+
+.callout.info {
+    @apply bg-blue-100 border-blue-500 text-blue-700;
+}
+
+.callout.success {
+    @apply bg-green-100 border-green-500 text-green-700;
+}
+
+.callout.warning {
+    @apply bg-orange-100 border-orange-500 text-orange-700;
+}
+
+.callout.danger {
+    @apply bg-red-100 border-red-500 text-red-700;
+}
+
+.callout.quote {
+    @apply bg-gray-100 border-gray-500 text-gray-700;
+}
+
 .dialog {
     @apply bg-emerald-500/20 pt-4 pb-4 pl-6 pr-6 mt-1 mb-1 rounded-md;
 }
