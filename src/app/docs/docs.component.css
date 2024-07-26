@@ -9,7 +9,7 @@ p {
 /* --------- Call outs --------- */
 
 .callout {
-    @apply flex items-center p-4 rounded-md border-l-4;
+    @apply flex items-center p-4 my-2 rounded-md border-l-4;
 }
 
 .callout img {
