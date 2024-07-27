@@ -36,17 +36,31 @@ export const content: Record<Language, any> = {
 					h1: '1.3.1 Chill Structure',
 					p1: 'Is simple, It has an incremental enumeration with two or more digits, tho it doesn\'t necesary go at the beginning, as it\'ll depend on the needs/customization of each one.',
 					p2: 'You can use if:',
-					l1: '<ul>  <li>need a static sequence</li>  <li>the directory is a permanent category</li>  </ul>',
+					ul1_li1: 'Need a static sequence',
+					ul1_li2: 'The directory is a permanent category',
 					d1: '<strong>Note</strong>: That the way you organize will determine whether your support folders come before or after. Remember, the order always be Symbols-Numbers-Letters."',
-					l2: '<ul>  <li>Share with more people if you</li>  </ul>',
 				},
 				section13_2: {
 					h1: '1.3.2 Control Structure',
 					p1: 'It\'s ideal for projects, presentations, database, homeworks, etc. Use a naming convetion for controling and easy identification',
 					d1: '<strong>Important</strong>: It has a naming convention, here is the meaning of each part;',
+					table1_head: [
+						{ col_1: 'Part', col_2: 'Meaning' },
+					],
+					table1_content: [
+						{ col_1: 'Identificator', col_2: 'It\'s a code label that identifies it.' },
+						{ col_1: 'Traker', col_2: 'It\'s your tracking index, if you use.' },
+						{ col_1: 'Date', col_2: 'The format is \'YY-MM-DD\', within parentheses' },
+						{ col_1: 'Breadcrumb', col_2: 'Use current or nearby folder category name.' },
+						{ col_1: 'Holder', col_2: 'Refers to client, organization, school, or reference name, within brackets' },
+						{ col_1: 'Name', col_2: 'Is the proj, pres, DB, hw name.' },
+						{ col_1: 'Keywords', col_2: 'Are descriptive words or phrases. @@@@@' }
+					],
 					d2: '<strong>Tip</strong>: It\'s not necessary to have all the fields, tho follow in that order, (adapt it to your needs).',
 					p2: 'You can use if:',
-					ul1_li1: '<ul>  <li>need a static sequence</li>  <li>the directory is a permanent category</li>  <li>Share with more people if you</li>  </ul>',
+					ul1_li1: 'You Need to have control',
+					ul1_li2: 'The data is temporary and will most likely be deleted later',
+					ul1_li3: 'Share with more people if you',
 				}
       },
 			module_02: {
@@ -96,7 +110,6 @@ export const content: Record<Language, any> = {
 					ul1_li1: 'need a static sequence',
 					ul1_li2: 'the directory is a permanent category',
 					ul1_li3: 'Share with more people if you',
-				
 				}
 			}
     }
