@@ -183,6 +183,43 @@ export const content: Record<Language, any> = {
 					h1: 'Carpeta de Configuracion (99)',
 					p1: "Su identificador unico es '99', probablemente lo encontras de un '99.Configuracion'",
 					p2: "Esta carpeta por lo general deberia contener configuracion de tu 'ANT', tus programas, configuraciones de Interfaces, y tu Sistema Operativo.",
+				},
+				section22: {
+					h1: 'Carpeta de Revision (98)',
+					p1: '...',
+					p2: '...',
+					p3: '...',
+					d1: '...'
+				},
+				section23: {
+					h1: 'Carpeta de Recursos (90)',
+					p1: '...',
+					p2: '...',
+					p3: '...'
+				},
+				section24: {
+					h1: 'Carpeta Archivadora (00)',
+					p1: '...',
+					p2: '...',
+					d1: '<strong>Nota</strong>:',
+					p3: '...'
+				},
+				section25: {
+					h1: 'Carpeta Temporal (~)',
+					p1: '...',
+					d1: '<strong>Nota</strong>: ',
+					d2: '<strong>Tip</strong>:',
+					p2: '...',
+					p3: '...',
+					d3: '...'
+				},
+				section26: {
+					h1: 'Espacio de Trabajo (Tarea, Proyecto, Presentación)',
+					p1: '...',
+					p2: '...',
+					ul1_li1: '...',
+					ul1_li2: '...',
+					ul1_li3: '...',
 				}
 			}
 		}
