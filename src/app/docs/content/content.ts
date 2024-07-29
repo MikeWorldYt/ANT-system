@@ -36,8 +36,8 @@ export const content: Record<Language, any> = {
 					h1: '1.3.1 Chill Structure',
 					p1: 'Is simple, It has an incremental enumeration with two or more digits, tho it doesn\'t necesary go at the beginning, as it\'ll depend on the needs/customization of each one.',
 					p2: 'You can use if:',
-					ul1_li1: 'Need a static sequence',
-					ul1_li2: 'The directory is a permanent category',
+					ul1_li1: 'Had or Need a static sequence (eg. 01.Name 02.Name 03.Name ...)',
+					ul1_li2: 'The directory will remain for a long time or permanently',
 					d1: '<strong>Note</strong>: That the way you organize will determine whether your support folders come before or after. Remember, the order always be Symbols-Numbers-Letters."',
 				},
 				section13_2: {
@@ -127,38 +127,37 @@ export const content: Record<Language, any> = {
 				section10: {
 					h1: '1. Estructura de Niveles y Carpetas',
 					p1: 'Por <strong>niveles</strong> significa la profundidad dentro del arbol de carpetas.',
-					d1: 'Tip: La estructura basica sugiere 3 niveles, aunque en podrías tener más. Sin embargo, es recomendable no tener demasiados niveles y usarlos solo si son necesarios.'
+					d1: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles, aunque en podrías tener más. Sin embargo, es recomendable no tener demasiados niveles y usarlos solo si son necesarios.'
 				},
 				section11: {
 					h1: '1.1 Nivel 1 - Categorías principales',
-					p1: '',
-					d1: '',
+					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales;',
+					d1: "<strong>Importante</strong>: Usa una enumeración incremental con tres dígitos (100, 200, 300, ...), seguida de un punto, seguida del nombre de la Categoría Principal en mayúsculas.",
 				},
 				section12: {
 					h1: '1.2 Nivel 2 - Categorías (Temas)',
-					p1: '',
-					p2: '',
-					d1: '',
+					p1: 'Es la segunda jerarquía, dentro de tu Carpeta de Almacenamiento Raíz, contiene los temas;',
+					d1: '<strong>Importante</strong>: Para cada directorio, agrega una enumeración incremental con dos dígitos, seguida de un punto, seguida del nombre de la Categoría.',
 				},
 				section13: {
 					h1: '1.3 Nivel 3 - Categorías (Unidades, Tema, Temas, etc.)',
-					p1: '',
+					p1: 'Hay dos formas de estructurar; Si el Directorio se mantiene por mucho tiempo, se debe usar una <strong>Estructura Fria</strong>, de lo contrario, si es un Directorio Temporal (solo se usará por un período corto), se debe usar una <strong>Estructura de Control</strong>.',
 				},
 				section13_1: {
-					h1: '1.3.1 Estructura Sencilla',
-					p1: '',
-					p2: '',
-					ul1_li1: '',
-					ul1_li2: '',
-					d1: '',
+					h1: '1.3.1 Estructura Fria',
+					p1: 'Es simple, tiene una enumeración incremental con dos o más dígitos, aunque no necesariamente va al principio, ya que dependerá de las necesidades/personalizaciones de cada quien.',
+					p2: 'Puedes usarla si:',
+					ul1_li1: 'Necesitas o ya tiene una secuencia estatica (ej. 01.Nombre 02.Nombre 03.Nombre ...)',
+					ul1_li2: 'La carpeta permanecera para un tiempo largo o permanentemente',
+					d1: '<strong>Nota</strong>: La forma en que organizas determinará si tus carpetas de soporte vienen antes o después. Consulta <a href="https://ticsw.gitbooks.io/talleres/content/BigO_Sort/tipos_de_ordenamientos.html#Ordenamiento%20Lexicográfico" target="_blank"><u><i>prioridad de orden lexicográfico</u></i></a>',
 				},
 				section13_2: {
 					h1: '1.3.2 Estructura de Control',
-					p1: '',
-					d1: '',
+					p1: 'Es ideal para proyectos, presentaciones, bases de datos, tareas, etc. Se utiliza una convención de nombres para controlar y facilitar su identificación.',
+					d1: '<strong>Importante</strong>: Tiene una convención de nombres, enseguida se muestra una tabla de referencia',
 					table1_head: [
 						{ col_1: 'Parte', col_2: 'Significado' },
-					],
+					], 
 					table1_content: [
 						{ col_1: 'Identificador', col_2: 'Es una etiqueta de código que lo identifica.' },
 						{ col_1: 'Traker', col_2: 'Es tu índice de seguimiento (si lo usas).' },
@@ -168,11 +167,22 @@ export const content: Record<Language, any> = {
 						{ col_1: 'Nombre', col_2: 'Es el nombre del proyecto, presentación, base de datos o tarea.' },
 						{ col_1: 'Keywords', col_2: 'Son palabras o frases descriptivas, palabras clave.' }
 					],
-					d2: '',
-					p2: '',
-					ul1_li1: '',
-					ul2_li2: '',
-					ul3_li3: '',
+					d2: '<strong>Tip</strong>: No es necesario rellenar todos los campos, solo continuar con el orden.',
+					p2: 'Puedes usarla si:',
+					ul1_li1: 'Requieres un control',
+					ul1_li2: 'La información se mantendra por mucho tiempo',
+					ul1_li3: 'Compartiras con mas de una persona',
+				}
+			},
+			module_02: {
+				section20: {
+					h1: 'Carpetas de Soporte',
+					p1: 'Estas carpetas fueron diseñadas que te sirvan de ayuda en el nivel donde estes. En ese sentido Ayuda al usuario. Cada una cuenta con un idenficador unico, que lo hace diferenciarse y de rapida identificación.'
+				},
+				section21: {
+					h1: 'Carpeta de Configuracion (99)',
+					p1: "Su identificador unico es '99', probablemente lo encontras de un '99.Configuracion'",
+					p2: "Esta carpeta por lo general deberia contener configuracion de tu 'ANT', tus programas, configuraciones de Interfaces, y tu Sistema Operativo.",
 				}
 			}
 		}
