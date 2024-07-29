@@ -131,18 +131,48 @@ export const content: Record<Language, any> = {
 				},
 				section11: {
 					h1: '1.1 Nivel 1 - Categorías principales',
+					p1: '',
+					d1: '',
 				},
 				section12: {
 					h1: '1.2 Nivel 2 - Categorías (Temas)',
+					p1: '',
+					p2: '',
+					d1: '',
 				},
 				section13: {
 					h1: '1.3 Nivel 3 - Categorías (Unidades, Tema, Temas, etc.)',
+					p1: '',
 				},
 				section13_1: {
 					h1: '1.3.1 Estructura Sencilla',
+					p1: '',
+					p2: '',
+					ul1_li1: '',
+					ul1_li2: '',
+					d1: '',
 				},
 				section13_2: {
 					h1: '1.3.2 Estructura de Control',
+					p1: '',
+					d1: '',
+					table1_head: [
+						{ col_1: 'Parte', col_2: 'Significado' },
+					],
+					table1_content: [
+						{ col_1: 'Identificador', col_2: 'Es una etiqueta de código que lo identifica.' },
+						{ col_1: 'Traker', col_2: 'Es tu índice de seguimiento (si lo usas).' },
+						{ col_1: 'Fecha', col_2: "La fecha con formato 'AA-MM-DD', va entre paréntesis." },
+						{ col_1: 'Breadcrumb', col_2: 'Usa el nombre de la categoría de la carpeta actual o cercana.' },
+						{ col_1: 'Holder', col_2: 'Se refiere al cliente, organización, escuela o nombre de referencia, va entre corchetes.' },
+						{ col_1: 'Nombre', col_2: 'Es el nombre del proyecto, presentación, base de datos o tarea.' },
+						{ col_1: 'Keywords', col_2: 'Son palabras o frases descriptivas, palabras clave.' }
+					],
+					d2: '',
+					p2: '',
+					ul1_li1: '',
+					ul2_li2: '',
+					ul3_li3: '',
 				}
 			}
 		}
