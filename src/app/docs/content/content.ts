@@ -11,9 +11,19 @@ export const content: Record<Language, any> = {
 				},
 				section01: {
 					d1: '<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>hierarchical organizational method</i> designed to streamline  <br>      the storage, easier to manage and find files.',
+					p1: 'Emerges in a Workplace <strong>to Manage a Large Volume of files</strong><br> and is adapted for Home use.'
 				},
 				section02: {
 					h1: 'How works?',
+					p1: 'Her rules organize files in a way that mimics an ant colony, <br> with a categories pathways in levels and some nested paths. <br> Also, it employs a naming convention that allows the user to find a file anywhere. <br> <br>Following this method will ensure that your Digital Storage is well-organized, <br>Easily accessible, and Efficiently managed'
+				},
+				section03: {
+					h1: 'Key Benefits of ANT System:',
+					ul1_li1: '',
+					ul1_li2: '',
+					ul1_li3: '',
+					ul1_li4: '',
+					p1: ''
 				}
       },
     },
