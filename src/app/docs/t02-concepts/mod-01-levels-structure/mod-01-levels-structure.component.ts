@@ -49,11 +49,6 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
     return language === 'EN' || language === 'ES';
   }
 
-  switchLanguage(language: Language) {
-    this.languageService.setLanguage(language);
-  }
-  
-
   // Hash Sections
   hovered = false;
 

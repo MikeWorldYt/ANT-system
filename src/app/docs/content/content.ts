@@ -4,12 +4,34 @@ export const content: Record<Language, any> = {
   EN: {
     title_01: {
       module_01: {
-				section_01 : {
+				header : {
+					h3: 'Introduction',
 					h1: 'What is ANT?',
+					d1: 'ANT on the system (Archive Nesting Technique on the System) is a hierarchical organizational method designed to streamline the storage, easier to manage and find files.',
+				},
+				section01: {
+					d1: '<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>hierarchical organizational method</i> designed to streamline  <br>      the storage, easier to manage and find files.',
+					p1: 'Emerges in a Workplace <strong>to Manage a Large Volume of files</strong><br> and is adapted for Home use.'
+				},
+				section02: {
+					h1: 'How works?',
+					p1: 'Her rules organize files in a way that mimics an ant colony, <br> with a categories pathways in levels and some nested paths. <br> Also, it employs a naming convention that allows the user to find a file anywhere. <br> <br>Following this method will ensure that your Digital Storage is well-organized, <br>Easily accessible, and Efficiently managed'
+				},
+				section03: {
+					h1: 'Key Benefits of ANT System:',
+					ul1_li1: '<strong>1. Structured Organization:</strong>  Files are organized in a clear hierarchical structure, making navigation easy.',
+					ul1_li2: '<strong>2. Convenient Nomenclature:</strong>  Folders and subfolders are named with an incremental and intuitive patern, improving the organization, creation, and search of content.',
+					ul1_li3: "<strong>3.Clean Desktop:</strong>  A special 'Projects' folder serves as a Temporary Repository for current and future projects, eliminating the need to use the desktop for these purposes and keeping clutter-free.",
+					ul1_li4: '<strong>4.Master Tracking Work/School Projects:</strong>   It allows you track ongoing projects and store ideas, When a project is done you\'ll know it, If you need files from another project you\'ll know where they are.',
+					p1: ''
 				}
       },
     },
     title_02: {
+			header: {
+				h3: '',
+				h1: ''
+			},
       module_01: {
 				section10: {
 					h1: '1. Levels and Directory Structure',
@@ -36,17 +58,31 @@ export const content: Record<Language, any> = {
 					h1: '1.3.1 Chill Structure',
 					p1: 'Is simple, It has an incremental enumeration with two or more digits, tho it doesn\'t necesary go at the beginning, as it\'ll depend on the needs/customization of each one.',
 					p2: 'You can use if:',
-					l1: '<ul>  <li>need a static sequence</li>  <li>the directory is a permanent category</li>  </ul>',
+					ul1_li1: 'Had or Need a static sequence (eg. 01.Name 02.Name 03.Name ...)',
+					ul1_li2: 'The directory will remain for a long time or permanently',
 					d1: '<strong>Note</strong>: That the way you organize will determine whether your support folders come before or after. Remember, the order always be Symbols-Numbers-Letters."',
-					l2: '<ul>  <li>Share with more people if you</li>  </ul>',
 				},
 				section13_2: {
 					h1: '1.3.2 Control Structure',
 					p1: 'It\'s ideal for projects, presentations, database, homeworks, etc. Use a naming convetion for controling and easy identification',
 					d1: '<strong>Important</strong>: It has a naming convention, here is the meaning of each part;',
+					table1_head: [
+						{ col_1: 'Part', col_2: 'Meaning' },
+					],
+					table1_content: [
+						{ col_1: 'Identificator', col_2: 'It\'s a code label that identifies it.' },
+						{ col_1: 'Traker', col_2: 'It\'s your tracking index, if you use.' },
+						{ col_1: 'Date', col_2: 'The format is \'YY-MM-DD\', within parentheses' },
+						{ col_1: 'Breadcrumb', col_2: 'Use current or nearby folder category name.' },
+						{ col_1: 'Holder', col_2: 'Refers to client, organization, school, or reference name, within brackets' },
+						{ col_1: 'Name', col_2: 'Is the proj, pres, DB, hw name.' },
+						{ col_1: 'Keywords', col_2: 'Are descriptive words or phrases. @@@@@' }
+					],
 					d2: '<strong>Tip</strong>: It\'s not necessary to have all the fields, tho follow in that order, (adapt it to your needs).',
 					p2: 'You can use if:',
-					ul1_li1: '<ul>  <li>need a static sequence</li>  <li>the directory is a permanent category</li>  <li>Share with more people if you</li>  </ul>',
+					ul1_li1: 'You Need to have control',
+					ul1_li2: 'The data is temporary and will most likely be deleted later',
+					ul1_li3: 'Share with more people if you',
 				}
       },
 			module_02: {
@@ -96,7 +132,6 @@ export const content: Record<Language, any> = {
 					ul1_li1: 'need a static sequence',
 					ul1_li2: 'the directory is a permanent category',
 					ul1_li3: 'Share with more people if you',
-				
 				}
 			}
     }
@@ -104,8 +139,24 @@ export const content: Record<Language, any> = {
   ES: {
     title_01: {
 			module_01: {
-				section_01 : {
+				header : {
+					h3: 'Introducción',
 					h1: '¿Que es ANT?',
+				},
+				section01: {
+					d1: '<strong>El sistema ANT</strong> (Archive Nesting Technique System) <br>      en un <i>metodo de organizacion jerarquico</i> diseñado para optimizar     <br>      el almacenamiento, administrar y encontrar archivos de forma facil y rápida.',
+					p1: '...',
+				},
+				section02: {
+					h1: '¿Como funciona?',
+					p1: '...'
+				},
+				section03: {
+					h1: 'Beneficios de usar ANT',
+					ul1_li1: '...',
+					ul1_li2: '...',
+					ul1_li3: '...',
+					ul1_li4: '...',
 				}
 			},
 		},
@@ -114,22 +165,99 @@ export const content: Record<Language, any> = {
 				section10: {
 					h1: '1. Estructura de Niveles y Carpetas',
 					p1: 'Por <strong>niveles</strong> significa la profundidad dentro del arbol de carpetas.',
-					d1: 'Tip: La estructura basica sugiere 3 niveles, aunque en podrías tener más. Sin embargo, es recomendable no tener demasiados niveles y usarlos solo si son necesarios.'
+					d1: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles, aunque en podrías tener más. Sin embargo, es recomendable no tener demasiados niveles y usarlos solo si son necesarios.'
 				},
 				section11: {
 					h1: '1.1 Nivel 1 - Categorías principales',
+					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales;',
+					d1: "<strong>Importante</strong>: Usa una enumeración incremental con tres dígitos (100, 200, 300, ...), seguida de un punto, seguida del nombre de la Categoría Principal en mayúsculas.",
 				},
 				section12: {
 					h1: '1.2 Nivel 2 - Categorías (Temas)',
+					p1: 'Es la segunda jerarquía, dentro de tu Carpeta de Almacenamiento Raíz, contiene los temas;',
+					d1: '<strong>Importante</strong>: Para cada directorio, agrega una enumeración incremental con dos dígitos, seguida de un punto, seguida del nombre de la Categoría.',
 				},
 				section13: {
 					h1: '1.3 Nivel 3 - Categorías (Unidades, Tema, Temas, etc.)',
+					p1: 'Hay dos formas de estructurar; Si el Directorio se mantiene por mucho tiempo, se debe usar una <strong>Estructura Fria</strong>, de lo contrario, si es un Directorio Temporal (solo se usará por un período corto), se debe usar una <strong>Estructura de Control</strong>.',
 				},
 				section13_1: {
-					h1: '1.3.1 Estructura Sencilla',
+					h1: '1.3.1 Estructura Fria',
+					p1: 'Es simple, tiene una enumeración incremental con dos o más dígitos, aunque no necesariamente va al principio, ya que dependerá de las necesidades/personalizaciones de cada quien.',
+					p2: 'Puedes usarla si:',
+					ul1_li1: 'Necesitas o ya tiene una secuencia estatica (ej. 01.Nombre 02.Nombre 03.Nombre ...)',
+					ul1_li2: 'La carpeta permanecera para un tiempo largo o permanentemente',
+					d1: '<strong>Nota</strong>: La forma en que organizas determinará si tus carpetas de soporte vienen antes o después. Consulta <a href="https://ticsw.gitbooks.io/talleres/content/BigO_Sort/tipos_de_ordenamientos.html#Ordenamiento%20Lexicográfico" target="_blank"><u><i>prioridad de orden lexicográfico</u></i></a>',
 				},
 				section13_2: {
 					h1: '1.3.2 Estructura de Control',
+					p1: 'Es ideal para proyectos, presentaciones, bases de datos, tareas, etc. Se utiliza una convención de nombres para controlar y facilitar su identificación.',
+					d1: '<strong>Importante</strong>: Tiene una convención de nombres, enseguida se muestra una tabla de referencia',
+					table1_head: [
+						{ col_1: 'Parte', col_2: 'Significado' },
+					], 
+					table1_content: [
+						{ col_1: 'Identificador', col_2: 'Es una etiqueta de código que lo identifica.' },
+						{ col_1: 'Traker', col_2: 'Es tu índice de seguimiento (si lo usas).' },
+						{ col_1: 'Fecha', col_2: "La fecha con formato 'AA-MM-DD', va entre paréntesis." },
+						{ col_1: 'Breadcrumb', col_2: 'Usa el nombre de la categoría de la carpeta actual o cercana.' },
+						{ col_1: 'Holder', col_2: 'Se refiere al cliente, organización, escuela o nombre de referencia, va entre corchetes.' },
+						{ col_1: 'Nombre', col_2: 'Es el nombre del proyecto, presentación, base de datos o tarea.' },
+						{ col_1: 'Keywords', col_2: 'Son palabras o frases descriptivas, palabras clave.' }
+					],
+					d2: '<strong>Tip</strong>: No es necesario rellenar todos los campos, solo continuar con el orden.',
+					p2: 'Puedes usarla si:',
+					ul1_li1: 'Requieres un control',
+					ul1_li2: 'La información se mantendra por mucho tiempo',
+					ul1_li3: 'Compartiras con mas de una persona',
+				}
+			},
+			module_02: {
+				section20: {
+					h1: 'Carpetas de Soporte',
+					p1: 'Estas carpetas fueron diseñadas que te sirvan de ayuda en el nivel donde estes. En ese sentido Ayuda al usuario. Cada una cuenta con un idenficador unico, que lo hace diferenciarse y de rapida identificación.'
+				},
+				section21: {
+					h1: 'Carpeta de Configuracion (99)',
+					p1: "Su identificador unico es '99', probablemente lo encontras de un '99.Configuracion'",
+					p2: "Esta carpeta por lo general deberia contener configuracion de tu 'ANT', tus programas, configuraciones de Interfaces, y tu Sistema Operativo.",
+				},
+				section22: {
+					h1: 'Carpeta de Revision (98)',
+					p1: '...',
+					p2: '...',
+					p3: '...',
+					d1: '...'
+				},
+				section23: {
+					h1: 'Carpeta de Recursos (90)',
+					p1: '...',
+					p2: '...',
+					p3: '...'
+				},
+				section24: {
+					h1: 'Carpeta Archivadora (00)',
+					p1: '...',
+					p2: '...',
+					d1: '<strong>Nota</strong>:',
+					p3: '...'
+				},
+				section25: {
+					h1: 'Carpeta Temporal (~)',
+					p1: '...',
+					d1: '<strong>Nota</strong>: ',
+					d2: '<strong>Tip</strong>:',
+					p2: '...',
+					p3: '...',
+					d3: '...'
+				},
+				section26: {
+					h1: 'Espacio de Trabajo (Tarea, Proyecto, Presentación)',
+					p1: '...',
+					p2: '...',
+					ul1_li1: '...',
+					ul1_li2: '...',
+					ul1_li3: '...',
 				}
 			}
 		}

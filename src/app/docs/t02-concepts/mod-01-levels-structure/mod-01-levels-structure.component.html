@@ -83,13 +83,11 @@
     <div class="pic-container" >
       <!-- <lightbox src="https: . . ." /> -->
     </div>
-    <p>
-      Is simple, It has an incremental enumeration with two or more digits, tho it doesn't necesary go at the beginning, as it'll depend on the needs/customization of each one. <br>
-      You can use if:
-    </p>
+    <p [innerHTML]="write.section13_1.p1">  </p>
+    <p [innerHTML]="write.section13_1.p2">  </p>
     <ul>
-      <li>need a static sequence</li>
-      <li>the directory is a permanent category</li>
+      <li [innerHTML]="write.section13_1.ul1_li1">   </li>
+      <li [innerHTML]="write.section13_1.ul1_li2">   y</li>
     </ul>
     <div class="pic-container" >
       <!-- <lightbox src="https: . . ." /> -->
@@ -107,9 +105,7 @@
     <div class="pic-container" >
       <!-- <lightbox src="https: . . ." /> -->
     </div>
-    <p>
-      It's ideal for projects, presentations, database, homeworks, etc. Use a naming convetion for controling and easy identification
-    </p>
+    <p [innerHTML]="write.section13_2.p1">  </p>
     <div class="callout warning">
       <img src="/assets/call-warning.svg" alt="">
       <p [innerHTML]="write.section13_2.d1">   </p>
@@ -117,39 +113,16 @@
     <!-- -  Begin Table   - -->
     <table>
       <thead>
-          <tr>
-              <th></th>
-              <th></th>
+          <tr *ngFor="let row of write.section13_2.table1_head">
+              <!--   Col1    -    Col2   -->
+              <th [innerHTML]="row.col_1"> </th>
+              <th [innerHTML]="row.col_2"> </th>      
           </tr>
       </thead>
       <tbody>
-          <tr>
-              <td>Identificator</td>
-              <td>It's a code label that identifies it.</td>
-          </tr>
-          <tr>
-              <td>Traker</td>
-              <td>It's your tracking index, if you use.</td>
-          </tr>
-          <tr>
-              <td>Date</td>
-              <td>The format is 'YY-MM-DD', within parentheses</td>
-          </tr>
-          <tr>
-              <td>Breadcrumb</td>
-              <td>Use current or nearby folder category name.</td>
-          </tr>
-          <tr>
-              <td>Holder</td>
-              <td>Refers to client, organization, school, or reference name, within brackets</td>
-          </tr>
-          <tr>
-              <td>Name</td>
-              <td>Is the proj, pres, DB, hw name.</td>
-          </tr>
-          <tr>
-              <td>Keywords</td>
-              <td>Are descriptive words or phrases.</td>
+          <tr *ngFor="let row of write.section13_2.table1_content">
+            <td [innerHTML]="row.col_1"></td>
+            <td [innerHTML]="row.col_2"></td>
           </tr>
       </tbody>
     </table>
@@ -158,13 +131,11 @@
       <img src="/assets/call-success.svg" alt="">
       <p [innerHTML]="write.section13_2.d2">   </p>
     </div>
-    <p>
-      You can use if:
-    </p>
+    <p [innerHTML]="write.section13_2.p2">  </p>
     <ul>
-      <li>You Need to have control</li>
-      <li>The data is temporary and will most likely be deleted later</li>
-      <li>Share with more people if you</li>
+      <li [innerHTML]="write.section13_2.ul1_li1">   </li>
+      <li [innerHTML]="write.section13_2.ul1_li2">   </li>
+      <li [innerHTML]="write.section13_2.ul1_li3">   </li>
     </ul>
     <div class="pic-container" >
       <!-- <lightbox src="https: . . ." /> -->

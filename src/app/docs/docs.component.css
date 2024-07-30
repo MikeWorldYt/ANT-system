@@ -59,6 +59,9 @@ th, td {
     padding: 2px;
     text-align: left;
 }
+th {
+    @apply text-slate-900;
+}
 td:first-child {
     white-space: nowrap;
 }
