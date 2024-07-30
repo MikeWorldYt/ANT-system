@@ -19,15 +19,19 @@ export const content: Record<Language, any> = {
 				},
 				section03: {
 					h1: 'Key Benefits of ANT System:',
-					ul1_li1: '',
-					ul1_li2: '',
-					ul1_li3: '',
-					ul1_li4: '',
+					ul1_li1: '<strong>1. Structured Organization:</strong>  Files are organized in a clear hierarchical structure, making navigation easy.',
+					ul1_li2: '<strong>2. Convenient Nomenclature:</strong>  Folders and subfolders are named with an incremental and intuitive patern, improving the organization, creation, and search of content.',
+					ul1_li3: "<strong>3.Clean Desktop:</strong>  A special 'Projects' folder serves as a Temporary Repository for current and future projects, eliminating the need to use the desktop for these purposes and keeping clutter-free.",
+					ul1_li4: '<strong>4.Master Tracking Work/School Projects:</strong>   It allows you track ongoing projects and store ideas, When a project is done you\'ll know it, If you need files from another project you\'ll know where they are.',
 					p1: ''
 				}
       },
     },
     title_02: {
+			header: {
+				h3: '',
+				h1: ''
+			},
       module_01: {
 				section10: {
 					h1: '1. Levels and Directory Structure',
@@ -141,9 +145,18 @@ export const content: Record<Language, any> = {
 				},
 				section01: {
 					d1: '<strong>El sistema ANT</strong> (Archive Nesting Technique System) <br>      en un <i>metodo de organizacion jerarquico</i> diseñado para optimizar     <br>      el almacenamiento, administrar y encontrar archivos de forma facil y rápida.',
+					p1: '...',
 				},
 				section02: {
 					h1: '¿Como funciona?',
+					p1: '...'
+				},
+				section03: {
+					h1: 'Beneficios de usar ANT',
+					ul1_li1: '...',
+					ul1_li2: '...',
+					ul1_li3: '...',
+					ul1_li4: '...',
 				}
 			},
 		},
