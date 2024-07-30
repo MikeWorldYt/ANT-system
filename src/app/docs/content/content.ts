@@ -4,11 +4,15 @@ export const content: Record<Language, any> = {
   EN: {
     title_01: {
       module_01: {
-				section_01 : {
+				header : {
+					h3: 'Introduction',
 					h1: 'What is ANT?',
 					d1: 'ANT on the system (Archive Nesting Technique on the System) is a hierarchical organizational method designed to streamline the storage, easier to manage and find files.',
 				},
-				section_02: {
+				section01: {
+					d1: '<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>hierarchical organizational method</i> designed to streamline  <br>      the storage, easier to manage and find files.',
+				},
+				section02: {
 					h1: 'How works?',
 				}
       },
@@ -121,8 +125,15 @@ export const content: Record<Language, any> = {
   ES: {
     title_01: {
 			module_01: {
-				section_01 : {
+				header : {
+					h3: 'Introducción',
 					h1: '¿Que es ANT?',
+				},
+				section01: {
+					d1: '<strong>El sistema ANT</strong> (Archive Nesting Technique System) <br>      en un <i>metodo de organizacion jerarquico</i> diseñado para optimizar     <br>      el almacenamiento, administrar y encontrar archivos de forma facil y rápida.',
+				},
+				section02: {
+					h1: '¿Como funciona?',
 				}
 			},
 		},
