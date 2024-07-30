@@ -6,6 +6,10 @@ export const content: Record<Language, any> = {
       module_01: {
 				section_01 : {
 					h1: 'What is ANT?',
+					d1: 'ANT on the system (Archive Nesting Technique on the System) is a hierarchical organizational method designed to streamline the storage, easier to manage and find files.',
+				},
+				section_02: {
+					h1: 'How works?',
 				}
       },
     },
