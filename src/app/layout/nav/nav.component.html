@@ -43,7 +43,10 @@
     </a>
 
     @if (currentSection === 'concepts') {
-      <a href="concepts#Levels-and-Structure">
+      <a 
+      routerLink="concepts"
+      fragment="Levels-and-Structure"
+      >
         <h2
         [ngClass]="{ 'currentH2': moduleSection === 'Levels-and-Structure' }"
         (click)="scrollToSection('levels-and-structure')"
