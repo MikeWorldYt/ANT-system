@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, AfterViewInit } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, HostListener, AfterViewInit, OnInit } from '@angular/core';
+import { NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
@@ -15,7 +15,7 @@ import { ActivatedRoute, Router } from '@angular/router';
   templateUrl: './nav.component.html',
   styleUrl: './nav.component.css'
 })
-export class NavComponent {
+export class NavComponent implements OnInit{
   // Toogle
   currentSection: string = ''; // default property
   showMe: boolean = true;
@@ -35,6 +35,21 @@ export class NavComponent {
   hovered: boolean = false;
 
   constructor(private route: ActivatedRoute, private router: Router) { }
+
+  ngOnInit() {
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        const urlTree = this.router.parseUrl(this.router.url);
+        const fragment = urlTree.fragment;
+        if (fragment) {
+          const element = document.getElementById(fragment);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      }
+    })
+  }
 
   ngAfterViewInit() {
     this.route.fragment.subscribe(fragment => {

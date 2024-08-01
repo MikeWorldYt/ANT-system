@@ -115,3 +115,34 @@ section[id] {
 .group-hover:opacity-100 {
     opacity: 1;
 }
+
+/* Scrollbar */
+:root {
+    --scrollbar-bg: #202225; /* Color de fondo de la barra de desplazamiento */
+    --scrollbar-thumb: #10B981; /* Color del pulgar de la barra de desplazamiento */
+    --scrollbar-thumb-hover: #059669; /* Color del pulgar cuando se pasa el ratón por encima */  
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bg);
+}
+
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 10px;
+    border: 3px solid var(--scrollbar-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-button {
+    display: none;
+}
