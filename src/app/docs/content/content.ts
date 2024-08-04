@@ -145,18 +145,18 @@ export const content: Record<Language, any> = {
 				},
 				section01: {
 					d1: '<strong>El sistema ANT</strong> (Archive Nesting Technique System) <br>      en un <i>metodo de organizacion jerarquico</i> diseñado para optimizar     <br>      el almacenamiento, administrar y encontrar archivos de forma facil y rápida.',
-					p1: '...',
+					p1: 'Surge en un ambiente de trabajo para <strong>gestionar un gran volumen de archivos</strong> y es adaptado para su uso domestico.',
 				},
 				section02: {
 					h1: '¿Como funciona?',
-					p1: '...'
+					p1: 'Sus reglas organizan archivos de una manera que imita una colonia de hormigas, <br> teniendo los archivos en rutas por categorías en niveles y rutas convenientemente anidadas. <br> Además, emplea una convención de nombres que permite al usuario encontrar un archivo en cualquier lugar. <br> <br>Seguir este método garantizará que tu Almacenamiento Digital esté bien organizado, <br>fácilmente accesible y eficientemente gestionado.'
 				},
 				section03: {
-					h1: 'Beneficios de usar ANT',
-					ul1_li1: '...',
-					ul1_li2: '...',
-					ul1_li3: '...',
-					ul1_li4: '...',
+					h1: 'Beneficios al usar ANT',
+					ul1_li1: '<strong>1. Organización Estructurada:</strong> Los archivos están organizados en una estructura jerárquica clara, lo que facilita su navegación.',
+					ul1_li2: '<strong>2. Nomenclatura Conveniente:</strong> Las carpetas y subcarpetas están nombradas con un patrón incremental e intuitivo, mejorando la organización, creación y búsqueda de contenido.',
+					ul1_li3: "<strong>3. Escritorio Limpio:</strong> Una carpeta especial de 'Proyectos' sirve como un Repositorio Temporal para proyectos actuales y futuros, eliminando la necesidad de usar el escritorio para estos fines y manteniéndolo libre de desorden.",
+					ul1_li4: "<strong>4. Seguimiento Maestro de Proyectos de Trabajo/Escuela:</strong> Permite rastrear proyectos en curso y almacenar ideas. Cuando un proyecto esté terminado, lo sabrás. Si necesitas archivos de otro proyecto, sabrás dónde están.",
 				}
 			},
 		},
