@@ -133,6 +133,12 @@ export const content: Record<Language, any> = {
 					ul1_li2: 'the directory is a permanent category',
 					ul1_li3: 'Share with more people if you',
 				}
+			},
+			module_03: {
+				section30: {
+					h1: "3. Files Nomenclature",
+					p1: "test lorem ipsum"
+				}
 			}
     }
   },
@@ -258,6 +264,12 @@ export const content: Record<Language, any> = {
 					ul1_li1: '...',
 					ul1_li2: '...',
 					ul1_li3: '...',
+				}
+			},
+			module_03: {
+				section30: {
+					h1: "3. TEST ESPANOL",
+					p1: "test lorem ipsum"
 				}
 			}
 		}
