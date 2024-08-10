@@ -1,10 +1,16 @@
 import { AfterViewInit, Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
-import { HeaderT02Component } from '../header-t02/header-t02.component';
-import { IntersectionService } from '../../../services/IntersectionObserver.service';
 import { CommonModule } from '@angular/common';
+
+// ▲ SERVICES ▲
+import { IntersectionService } from '../../../services/IntersectionObserver.service';
 import { LanguageService } from '../../../services/lenguaje.service';
-import { content } from '../../content/content';
 import { Language } from '../../../services/language.types';
+
+// ▲ CONTENT ▲
+import { content } from '../../content/content';
+
+// Testing
+import { HeaderT02Component } from '../header-t02/header-t02.component';
 
 @Component({
   selector: 'doc-t02-mod-02-support-folders',
@@ -17,20 +23,18 @@ import { Language } from '../../../services/language.types';
   styleUrl: '../../docs.component.css'
 })
 export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
+  // ▲ SERVICES ▲
   constructor(
     private intersectionService: IntersectionService,
     private languageService: LanguageService
   ) { }
-  // For inner content
+  // ▬▬▬ For inner content
   write: any;
 
-  // Language
-  currentLanguage: Language = 'ES';
-
+  // ████ Fill Content (inner) ███
   ngOnInit(): void {
     // Initial content
     this.write = content[this.currentLanguage].title_02.module_02;
-
     // Suscribe to Language Service
     this.languageService.language$.subscribe((language: string) => {
       if (this.isValidLanguage(language)) {
@@ -40,6 +44,10 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
     });
   }
 
+  // ▬▬▬ Language
+  currentLanguage: Language = 'ES';
+
+  // ███ Language Controller ███
   private isValidLanguage(language: string): language is Language {
     return language === 'EN' || language === 'ES';
   }
@@ -48,9 +56,10 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
     this.languageService.setLanguage(language);
   }
 
-  // Hash Sections
+  //  ▬▬▬ Hash Sections
   hovered = false;
 
+  // ████ Hash Sections ████
   showHash(event: Event) {
     this.hovered = true;
   }
@@ -59,7 +68,7 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
     this.hovered = false;
   }
 
-  // service Hash Sections
+  // ▲ service Hash Sections
   @ViewChildren('section') sections!: QueryList<ElementRef>;
   
   idActive: string = '';
