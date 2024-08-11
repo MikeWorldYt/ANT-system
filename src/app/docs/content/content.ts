@@ -93,32 +93,32 @@ export const content: Record<Language, any> = {
 				},
 				section21: {
 					h1: "Settings Folder (99)",
-					p1: "Its unique identifier is '99', so you'll probably find it as '99.Settings'",
+					p1: "Its unique identifier should be '99', so you'll probably find it as '99.Settings'",
 					p2: "This folder contains general configurations for 'ANT', for your programs, interfaces, or Operating System."				
 				},
 				section22: {
 					h1: "Review Folder (98)",
-					p1: "Its unique identifier is '98', so you'll probably find it as '98.math', '98.marketing' or '98.instagram'.",
+					p1: "Its unique identifier should be '98', so you'll probably find it as '98.math', '98.marketing' or '98.instagram'.",
 					p2: "This folder contains all your files and directories that have no classification, need renaming, or maybe are not from the current level.",
 					p3: "In other words, they need to be reviewed before being into the system, and this folder helps you avoid mixing them with your other files.",
 					d1: "<strong>Important</strong>: Use the identifier, followed by a dot, followed by the name of the current path or similar (preferably write it in kebab-case)"
 				},
 				section23: {
 					h1: "Resources Folder (90)",
-					p1: "It's unique identifier is '90'. so you'll probably find it as '90.Resources'",
-					p2: "This folder helps organize those files that due to their nature; are frequently needed, provide guidelines, are presets, for use.",
+					p1: "It's unique identifier should be '90'. so it should be named '90.Resources'.",
+					p2: "This folder helps organize those files that due to their nature; are frequently used, as brand guidelines, presets, multimedia, libraries, logos, or any other for use.",
 					p3: "Usage Suggestions:",
 				},
 				section24: {
 					h1: "Archive Folder (00)",
-					p1: "Its unique identifier is '00', so you'll can use it as '00.Final', '00.Ready', '00.Renders', '00.forProduction', etc.",
+					p1: "Its unique identifier should be '00', so you'll can use it as '00.Final', '00.Ready', '00.Renders', '00.forProduction', etc.",
 					p2: "This folder it's meant contain your deliverables or already delivered items, e.g. for your projects, homeworks, presentations, or any completed job, as well as each of its subsequent versions.",
 					d1: "<strong>Note</strong>: It's only for your Final Files. Don't create one folder for each one.",
 					p3: "Usage Suggestions:",
 				},
 				section25: {
 					h1: "Temporal Folder (~)",
-					p1: "Its unique identifier is '~'. so you'll probably find it as '~.temporal', '~temp', '~agascfsa'",
+					p1: "Its unique identifier should be '~'. so you'll probably find it as '~.temporal', '~temp', '~agascfsa'",
 					d1: "<strong>Note</strong>: It doesn't really need an identifier, but this way, you'll know to delete it when it's empty.",
 					d2: "You can also call it '~temp', 'temporal', anyway, just remember delete it.",
 					p2: "This is a folder that will help you organize a couple of files without adding them to 'temporal' and be easy to identify.",
@@ -133,6 +133,12 @@ export const content: Record<Language, any> = {
 					ul1_li2: 'the directory is a permanent category',
 					ul1_li3: 'Share with more people if you',
 				}
+			},
+			module_03: {
+				section30: {
+					h1: "3. Files Nomenclature",
+					p1: "test lorem ipsum"
+				}
 			}
     }
   },
@@ -145,18 +151,18 @@ export const content: Record<Language, any> = {
 				},
 				section01: {
 					d1: '<strong>El sistema ANT</strong> (Archive Nesting Technique System) <br>      en un <i>metodo de organizacion jerarquico</i> diseñado para optimizar     <br>      el almacenamiento, administrar y encontrar archivos de forma facil y rápida.',
-					p1: '...',
+					p1: 'Surge en un ambiente de trabajo para <strong>gestionar un gran volumen de archivos</strong> y es adaptado para su uso domestico.',
 				},
 				section02: {
 					h1: '¿Como funciona?',
-					p1: '...'
+					p1: 'Sus reglas organizan archivos de una manera que imita una colonia de hormigas, <br> teniendo los archivos en rutas por categorías en niveles y rutas convenientemente anidadas. <br> Además, emplea una convención de nombres que permite al usuario encontrar un archivo en cualquier lugar. <br> <br>Seguir este método garantizará que tu Almacenamiento Digital esté bien organizado, <br>fácilmente accesible y eficientemente gestionado.'
 				},
 				section03: {
-					h1: 'Beneficios de usar ANT',
-					ul1_li1: '...',
-					ul1_li2: '...',
-					ul1_li3: '...',
-					ul1_li4: '...',
+					h1: 'Beneficios al usar ANT',
+					ul1_li1: '<strong>1. Organización Estructurada:</strong> Los archivos están organizados en una estructura jerárquica clara, lo que facilita su navegación.',
+					ul1_li2: '<strong>2. Nomenclatura Conveniente:</strong> Las carpetas y subcarpetas están nombradas con un patrón incremental e intuitivo, mejorando la organización, creación y búsqueda de contenido.',
+					ul1_li3: "<strong>3. Escritorio Limpio:</strong> Una carpeta especial de 'Proyectos' sirve como un Repositorio Temporal para proyectos actuales y futuros, eliminando la necesidad de usar el escritorio para estos fines y manteniéndolo libre de desorden.",
+					ul1_li4: "<strong>4. Seguimiento Maestro de Proyectos de Trabajo/Escuela:</strong> Permite rastrear proyectos en curso y almacenar ideas. Cuando un proyecto esté terminado, lo sabrás. Si necesitas archivos de otro proyecto, sabrás dónde están.",
 				}
 			},
 		},
@@ -215,25 +221,25 @@ export const content: Record<Language, any> = {
 			module_02: {
 				section20: {
 					h1: 'Carpetas de Soporte',
-					p1: 'Estas carpetas fueron diseñadas que te sirvan de ayuda en el nivel donde estes. En ese sentido Ayuda al usuario. Cada una cuenta con un idenficador unico, que lo hace diferenciarse y de rapida identificación.'
+					p1: 'Estas carpetas fueron diseñadas para que te sirvan de ayuda en el nivel donde estes. En ese sentido Ayuda al usuario. Cada una cuenta con un idenficador unico, lo que la hace diferenciarse e identificarse rapidamente del resto.'
 				},
 				section21: {
 					h1: 'Carpeta de Configuracion (99)',
-					p1: "Su identificador unico es '99', probablemente lo encontras de un '99.Configuracion'",
+					p1: "Su identificador deberia ser '99', probablemente ya la tienes como '99.Configuracion'",
 					p2: "Esta carpeta por lo general deberia contener configuracion de tu 'ANT', tus programas, configuraciones de Interfaces, y tu Sistema Operativo.",
 				},
 				section22: {
 					h1: 'Carpeta de Revision (98)',
-					p1: '...',
-					p2: '...',
-					p3: '...',
-					d1: '...'
+					p1: "Su Identificadro deberia ser '98', probablemente lo encontraras como '98.Matematicas', '98.Marketing' o '98.Instragram'. ",
+					p2: 'Este folder contiene todos tus archivos y carpetas que no tienes clasificados, necesitan renombrarse o probablemente ni pertenecen al actual nivel.',
+					p3: 'En otras palabras, necesitan revision antes de ingresar al sistema, y este folder te ayuda a esto y para no mezclarlo con otros archivos.',
+					d1: '<strong>Importante</strong>: Usa el identificador, seguido de un punto, seguido del nombre de la actual ruta o similar (preferentemente usa kebab-case)'
 				},
 				section23: {
 					h1: 'Carpeta de Recursos (90)',
-					p1: '...',
-					p2: '...',
-					p3: '...'
+					p1: "Su Identificadro deberia ser '90', asi que deberia estar nombrada como '90.Recursos'.",
+					p2: 'Esa carpeta ayuda a organizar aquellos archivos que, debido a su naturaleza, son frecuentemente usados, como un manual de identidad, ajustes preestablecidos, multimedia, librerias, logotipos, o cualquier archivo que sirva como un recurso. ',
+					p3: ''
 				},
 				section24: {
 					h1: 'Carpeta Archivadora (00)',
@@ -258,6 +264,12 @@ export const content: Record<Language, any> = {
 					ul1_li1: '...',
 					ul1_li2: '...',
 					ul1_li3: '...',
+				}
+			},
+			module_03: {
+				section30: {
+					h1: "3. Nomenclatura de Archivos",
+					p1: "test lorem ipsum"
 				}
 			}
 		}
