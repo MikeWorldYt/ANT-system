@@ -6,6 +6,11 @@ p {
     @apply leading-none;
 }
 
+a {
+    display: inline;
+    text-decoration: underline !important;
+}
+
 .not-available {
     opacity: 0.2;
 }
@@ -29,13 +34,6 @@ p {
     display: inline-flex;
     flex-wrap: wrap;
     align-items: center;
-}
-
-.callout a {
-    margin: 0;
-    padding: 0;
-    display: inline;
-    text-decoration: underline !important;
 }
 
 .callout.info {
@@ -104,7 +102,7 @@ h2:hover .hash-link {
 }
 
 .pic-container {
-    @apply flex flex-col md:flex-row gap-3 mt-2;
+    @apply flex flex-col md:flex-row gap-3 my-2;
 }
 
 
