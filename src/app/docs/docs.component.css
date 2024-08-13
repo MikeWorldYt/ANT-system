@@ -6,6 +6,10 @@ p {
     @apply leading-none;
 }
 
+.not-available {
+    opacity: 0.2;
+}
+
 /* --------- Call outs --------- */
 
 .callout {
@@ -18,6 +22,20 @@ p {
 
 .callout p {
     @apply m-0;
+    display: inline;
+}
+
+.callout .content {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.callout a {
+    margin: 0;
+    padding: 0;
+    display: inline;
+    text-decoration: underline !important;
 }
 
 .callout.info {
