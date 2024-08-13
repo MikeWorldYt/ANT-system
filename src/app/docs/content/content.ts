@@ -35,8 +35,8 @@ export const content: Record<Language, any> = {
       module_01: {
 				section10: {
 					h1: '1. Levels and Directory Structure',
-					p1: 'Levels refer to the depth within the folder tree directory.',
-					p2: '<strong>Control Structure</strong>',
+					p1: "The data structure used by <strong>ANT</strong> is hierarchical, tho it's designed to be decentralized.<br> Each folder acts as a node with paths that start at the 'root' and continue into deeper <strong><i>levels</i></strong>. <br> The term <strong><i>Levels </i></strong> refers to the depth of the folder within a tree directory.",
+					p2: 'Also, the directories are not static or exclusive, as they can move or connect with others, allowing for flexibility',
 					d1: '<strong>Tip</strong>: The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.'
 				},
 				section11: {
@@ -170,8 +170,9 @@ export const content: Record<Language, any> = {
 			module_01: {
 				section10: {
 					h1: '1. Estructura de Niveles y Carpetas',
-					p1: 'Por <strong>niveles</strong> significa la profundidad dentro del arbol de carpetas.',
-					d1: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles, aunque en podrías tener más. Sin embargo, es recomendable no tener demasiados niveles y usarlos solo si son necesarios.'
+					p1: "La estructura de datos que usa <strong>ANT</strong> aunque es jerarquica, esta pensada para ser decentralizada. <br> Cada carpeta son nodos con rutas que comienzan donde la 'raiz' y continuan en <strong><i> niveles </i></strong>mas adentro. <br> Por <strong>niveles</strong> se refiere a la profundidad dentro del arbol de carpetas.",
+					p2: 'Ademas, las carpetas no son estaticas o exclusivas, ya que pueden moverse o conectarse con otras, permitiendose su flexibilidad',
+					d1: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles. Si bien podrías tener más, es recomendable no tener demasiados niveles y usarlos solo en ciertos casos.'
 				},
 				section11: {
 					h1: '1.1 Nivel 1 - Categorías principales',
@@ -243,7 +244,7 @@ export const content: Record<Language, any> = {
 				},
 				section24: {
 					h1: 'Carpeta Archivadora (00)',
-					p1: '...',
+					p1: "...",
 					p2: '...',
 					d1: '<strong>Nota</strong>:',
 					p3: '...'
