@@ -35,14 +35,23 @@ export const content: Record<Language, any> = {
       module_01: {
 				section10: {
 					h1: '1. Levels and Directory Structure',
-					p1: "The data structure used by <strong>ANT</strong> is hierarchical, tho it's designed to be decentralized.<br> Each folder acts as a node with paths that start at the 'root' and continue into deeper <strong><i>levels</i></strong>. <br> The term <strong><i>Levels </i></strong> refers to the depth of the folder within a tree directory.",
-					p2: 'Also, the directories are not static or exclusive, as they can move or connect with others, allowing for flexibility',
-					d1: '<strong>Tip</strong>: The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.'
+					p1: "The data structure used by <strong>ANT</strong> is hierarchical, tho it's designed to be decentralized.<br> Each folder acts as a node with paths, that start at the 'root' and continue into deeper <strong><i>levels</i></strong>. <br> The term <strong><i>Levels </i></strong> refers to the depth of the folder within a tree directory.",
+					d1: '<strong>Tip</strong>: The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.',
+					d2: "<strong>Note</strong>: Directories are not exclusive or static; they can be moved to another path, or even shared with others simultaneously. In other words, they are flexible and can create associated connections that, in most cases, do not need to be renamed or copied.",
+					a1: "Read more"
 				},
 				section11: {
 					h1: '1.1 The Level 1 - Main Categories',
-					p1: 'Is the highest hierarchy, inside from your Root Storage Folder, content the main categories;',
-					d1: '<strong>Important</strong>: Use an incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals.',
+					p1: 'Is the highest hierarchy, inside from your Root Storage Folder, content the main categories. <br> Defines a portion of space, and the usage it will have.',
+					p2: "This use an incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals. ",
+					d1: '<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relinked again.',
+					p3: "We recommend using the following categories, in the following order;",
+					ul1_li1: '<strong>100.PERSONAL</strong>: For your personal files and documents.',
+					ul1_li2: '<strong>200.WORK</strong>: For work-related files.',
+					ul1_li3: '<strong>300.PROJECTS</strong>: Support Directory (optional order).',
+					ul1_li4: '<strong>400.ACADEMIC</strong>: For school or related files.',
+					ul1_li5: '<strong>500.HOBBIES</strong>: For files related to your leisure activities.',
+					a1: "Read more about Support Directory <i>Projects</i>"
 				},
 				section12: {
 					h1: '1.2 The Levels 2 - Categories (Subjects)',
@@ -170,14 +179,22 @@ export const content: Record<Language, any> = {
 			module_01: {
 				section10: {
 					h1: '1. Estructura de Niveles y Carpetas',
-					p1: "La estructura de datos que usa <strong>ANT</strong> aunque es jerarquica, esta pensada para ser decentralizada. <br> Cada carpeta son nodos con rutas que comienzan donde la 'raiz' y continuan en <strong><i> niveles </i></strong>mas adentro. <br> Por <strong>niveles</strong> se refiere a la profundidad dentro del arbol de carpetas.",
-					p2: 'Ademas, las carpetas no son estaticas o exclusivas, ya que pueden moverse o conectarse con otras, permitiendose su flexibilidad',
-					d1: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles. Si bien podrías tener más, es recomendable no tener demasiados niveles y usarlos solo en ciertos casos.'
+					p1: "La estructura de datos que usa <strong>ANT</strong> aunque es jerarquica, esta pensada para ser decentralizada. <br> Cada carpeta son nodos con rutas, que comienzan donde la 'raiz' y continuan en <strong><i> niveles </i></strong>mas adentro. <br> Por <strong>niveles</strong> se refiere a la profundidad dentro del arbol de carpetas.",
+					d1: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles. Si bien podrías tener más, es recomendable no tener demasiados niveles y usarlos solo en ciertos casos.',
+					d2: '<strong>Nota</strong>:Los directorios no son exclusivos o estaticos, se pueden mover a otra ruta, o incluso compartirse con otras al mismo tiempo, en otras palabras son flexibles y crear conexiones asociadas y que en su mayoria de casos no necesitaran renombrase o copiarse.',
+					a1: "Leer más..."
 				},
 				section11: {
 					h1: '1.1 Nivel 1 - Categorías principales',
-					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales;',
-					d1: "<strong>Importante</strong>: Usa una enumeración incremental con tres dígitos (100, 200, 300, ...), seguida de un punto, seguida del nombre de la Categoría Principal en mayúsculas.",
+					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales. <br> Define una porcion de tu espacio y el uso que tendra.',
+					p2: "Usa una enumeración incremental con tres dígitos (100, 200, 300, ...), seguida de un punto, seguida del nombre de la Categoría Principal en mayúsculas. ",
+					d1: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente.",
+					p3: "Recomendamos usar las siguientes categorias, en el siguiente orden;",
+					ul1_li1: '<strong>100.PERSONAL</strong>: Para tus archivos y documentos personales.',
+					ul1_li2: '<strong>200.TRABAJO</strong>: Para archivos relacionados de trabajo.',
+					ul1_li3: '<strong>300.PROJECTOS</strong>: Carpeta de soporte, (orden opcional).',
+					ul1_li4: '<strong>400.ACADEMICO</strong>: Para archivos escolares o relacionados.',
+					ul1_li5: '<strong>500.HOBBIES</strong>: Para archivos relacionados con actividades de tu tiempo libre.',
 				},
 				section12: {
 					h1: '1.2 Nivel 2 - Categorías (Temas)',

@@ -21,7 +21,15 @@
       <img src="/assets/call-success.svg" alt="">
       <p [innerHTML]="write.section10.d1"> </p>
     </div>
-    <p [innerHTML]="write.section10.p2"> </p>
+    <div class="callout info">
+      <img src="/assets/call-info.svg" alt="">
+      <div class="content">
+        <p [innerHTML]="write.section10.d2"></p>
+        <a [innerHTML]="write.section10.a1" class="not-available"
+          [routerLink]="['/advanced-concepts']" fragment="sharing" target="_blank"></a>
+      </div>
+
+    </div>
   </section>
 
   <!-- ------------------------------   .   -   1.1   -   .    ------------------------------ -->
@@ -32,14 +40,25 @@
     <span class="hash-link" *ngIf="hovered">
       <h2 class="docs-subtitle-light">#</h2>
     </span>
+    <p [innerHTML]="write.section11.p1">  </p>
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/91/0d/ef/910defb0518014ef1c730da9f4886085.png" />
     </div>
-    <p [innerHTML]="write.section11.p1">  </p>
-    <div class="callout warning">
-      <img src="/assets/call-warning.svg" alt="">
+    <p [innerHTML]="write.section11.p2"></p>
+    <div class="callout danger">
+      <img src="/assets/call-danger.svg" alt="">
       <p [innerHTML]="write.section11.d1">   </p>
     </div>
+    <p [innerHTML]="write.section11.p3">  </p>
+    <ul>
+      <li [innerHTML]="write.section11.ul1_li1">   </li>
+      <li [innerHTML]="write.section11.ul1_li2">   </li>
+      <li [innerHTML]="write.section11.ul1_li3">   </li>
+      <li [innerHTML]="write.section11.ul1_li4">   </li>
+      <li [innerHTML]="write.section11.ul1_li5">   </li>
+    </ul>
+    <a [innerHTML]="write.section11.a1" class="not-available"
+        [routerLink]="['/concepts']" fragment="Settings-folder"></a>
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/83/8e/6a/838e6af8130e5a3dab94df680a9c59df.png" />
     </div>
@@ -89,7 +108,7 @@
     <p [innerHTML]="write.section13_1.p2">  </p>
     <ul>
       <li [innerHTML]="write.section13_1.ul1_li1">   </li>
-      <li [innerHTML]="write.section13_1.ul1_li2">   y</li>
+      <li [innerHTML]="write.section13_1.ul1_li2">   </li>
     </ul>
     <div class="pic-container" >
       <!-- <lightbox src="https: . . ." /> -->
