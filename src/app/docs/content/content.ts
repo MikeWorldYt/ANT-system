@@ -51,13 +51,13 @@ export const content: Record<Language, any> = {
 					ul1_li3: '<strong>300.PROJECTS</strong>: Support Directory (optional order).',
 					ul1_li4: '<strong>400.ACADEMIC</strong>: For school or related files.',
 					ul1_li5: '<strong>500.HOBBIES</strong>: For files related to your leisure activities.',
-					a1: "Read more about Support Directory <i>Projects</i>"
+					a1: "Read more about <i>Support Folder \"PROJETCS\"</i>"
 				},
 				section12: {
 					h1: '1.2 The Levels 2 - Categories (Subjects)',
-					p1: 'Is the second hierarchy, inside from your Root Storage Folder, content the subjects;',
-					p2: 'Is inside of the main category;',
-					d1: '<strong>Important</strong>: For each directory add an Incremental enumeration with two digits, followed by a dot, followed by the Categories Name.',
+					p1: 'They are found within <strong><i>Level 1 directories</i></strong>, being the second in the hierarchy.<br> They contain more specific categories, such as Area, Topic, Subject, Organization, Type of work or relationed.',
+					p2: 'For each directory add an Incremental enumeration with two digits, followed by a dot, followed by the Categories Name in Capitals..',
+					d1: "The order in the sequence is not essential and only facilitates a visual organization. <br> Although it may not represent a logical sequence, numbering makes it <i>more predictable</i> for the user to find what they need. However, it can be useful for prioritizing or arranging it in a custom sequence rather than alphabetically. <br> Also when a folder is delted or added, It does'nt affect his order, <br> Numering creates a control to maintain the user's customized sequence.",
 				},
 				section13: {
 					h1: '1.3 The Levels 3 - Subcategories (Units, Theme, Topics, etc.)',
@@ -195,11 +195,13 @@ export const content: Record<Language, any> = {
 					ul1_li3: '<strong>300.PROJECTOS</strong>: Carpeta de soporte, (orden opcional).',
 					ul1_li4: '<strong>400.ACADEMICO</strong>: Para archivos escolares o relacionados.',
 					ul1_li5: '<strong>500.HOBBIES</strong>: Para archivos relacionados con actividades de tu tiempo libre.',
+					a1: "Leer más acerca de la carpeta de soporte <i>\"PROYECTOS\"</i>"
 				},
 				section12: {
 					h1: '1.2 Nivel 2 - Categorías (Temas)',
-					p1: 'Es la segunda jerarquía, dentro de tu Carpeta de Almacenamiento Raíz, contiene los temas;',
-					d1: '<strong>Importante</strong>: Para cada directorio, agrega una enumeración incremental con dos dígitos, seguida de un punto, seguida del nombre de la Categoría.',
+					p1: 'Se encuentran dentro de los <strong><i>Directorios de Nivel 1</i></strong>, siendo 2da en la jerarquia,<br> contiene categorias mas especificas, por ejemplo el Area, Tema o Materia.',
+					p2: "Para cada directorio, agrega una enumeración incremental con dos dígitos, seguida de un punto, seguida del nombre de la Categoría en mayúsculas.",
+					d1: "El orden en la secuencia no es escencial y solo facilita su organizacion visual. <br> Si bien podria no represantar una secuencia logica el hecho de numerar hace que sea mas predecible para el usuario encontrar la que necesita, <br> Sin embargo, puede ser util para priorizar u ordenarla en una secuencia personalizada y no alfabeticamente. <br> Ademas numerarlo crea un control para mantener la secuencia personlizada del usuario.",
 				},
 				section13: {
 					h1: '1.3 Nivel 3 - Categorías (Unidades, Tema, Temas, etc.)',
