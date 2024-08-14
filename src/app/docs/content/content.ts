@@ -35,20 +35,29 @@ export const content: Record<Language, any> = {
       module_01: {
 				section10: {
 					h1: '1. Levels and Directory Structure',
-					p1: 'Levels refer to the depth within the folder tree directory.',
-					p2: '<strong>Control Structure</strong>',
-					d1: '<strong>Tip</strong>: The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.'
+					p1: "The data structure used by <strong>ANT</strong> is hierarchical, tho it's designed to be decentralized.<br> Each folder acts as a node with paths, that start at the 'root' and continue into deeper <strong><i>levels</i></strong>. <br> The term <strong><i>Levels </i></strong> refers to the depth of the folder within a tree directory.",
+					d1: '<strong>Tip</strong>: The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.',
+					d2: "<strong>Note</strong>: Directories are not exclusive or static; they can be moved to another path, or even shared with others simultaneously. In other words, they are flexible and can create associated connections that, in most cases, do not need to be renamed or copied.",
+					a1: "Read more"
 				},
 				section11: {
 					h1: '1.1 The Level 1 - Main Categories',
-					p1: 'Is the highest hierarchy, inside from your Root Storage Folder, content the main categories;',
-					d1: '<strong>Important</strong>: Use an incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals.',
+					p1: 'Is the highest hierarchy, inside from your Root Storage Folder, content the main categories. <br> Defines a portion of space, and the usage it will have.',
+					p2: "This use an incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals. ",
+					d1: '<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relinked again.',
+					p3: "We recommend using the following categories, in the following order;",
+					ul1_li1: '<strong>100.PERSONAL</strong>: For your personal files and documents.',
+					ul1_li2: '<strong>200.WORK</strong>: For work-related files.',
+					ul1_li3: '<strong>300.PROJECTS</strong>: Support Directory (optional order).',
+					ul1_li4: '<strong>400.ACADEMIC</strong>: For school or related files.',
+					ul1_li5: '<strong>500.HOBBIES</strong>: For files related to your leisure activities.',
+					a1: "Read more about <i>Support Folder \"PROJETCS\"</i>"
 				},
 				section12: {
 					h1: '1.2 The Levels 2 - Categories (Subjects)',
-					p1: 'Is the second hierarchy, inside from your Root Storage Folder, content the subjects;',
-					p2: 'Is inside of the main category;',
-					d1: '<strong>Important</strong>: For each directory add an Incremental enumeration with two digits, followed by a dot, followed by the Categories Name.',
+					p1: 'They are found within <strong><i>Level 1 directories</i></strong>, being the second in the hierarchy.<br> They contain more specific categories, such as Area, Topic, Subject, Organization, Type of work or relationed.',
+					p2: 'For each directory add an Incremental enumeration with two digits, followed by a dot, followed by the Categories Name in Capitals..',
+					d1: "The order in the sequence is not essential and only facilitates a visual organization. <br> Although it may not represent a logical sequence, numbering makes it <i>more predictable</i> for the user to find what they need. However, it can be useful for prioritizing or arranging it in a custom sequence rather than alphabetically. <br> Also when a folder is delted or added, It does'nt affect his order, <br> Numering creates a control to maintain the user's customized sequence.",
 				},
 				section13: {
 					h1: '1.3 The Levels 3 - Subcategories (Units, Theme, Topics, etc.)',
@@ -170,18 +179,29 @@ export const content: Record<Language, any> = {
 			module_01: {
 				section10: {
 					h1: '1. Estructura de Niveles y Carpetas',
-					p1: 'Por <strong>niveles</strong> significa la profundidad dentro del arbol de carpetas.',
-					d1: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles, aunque en podrías tener más. Sin embargo, es recomendable no tener demasiados niveles y usarlos solo si son necesarios.'
+					p1: "La estructura de datos que usa <strong>ANT</strong> aunque es jerarquica, esta pensada para ser decentralizada. <br> Cada carpeta son nodos con rutas, que comienzan donde la 'raiz' y continuan en <strong><i> niveles </i></strong>mas adentro. <br> Por <strong>niveles</strong> se refiere a la profundidad dentro del arbol de carpetas.",
+					d1: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles. Si bien podrías tener más, es recomendable no tener demasiados niveles y usarlos solo en ciertos casos.',
+					d2: '<strong>Nota</strong>:Los directorios no son exclusivos o estaticos, se pueden mover a otra ruta, o incluso compartirse con otras al mismo tiempo, en otras palabras son flexibles y crear conexiones asociadas y que en su mayoria de casos no necesitaran renombrase o copiarse.',
+					a1: "Leer más..."
 				},
 				section11: {
 					h1: '1.1 Nivel 1 - Categorías principales',
-					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales;',
-					d1: "<strong>Importante</strong>: Usa una enumeración incremental con tres dígitos (100, 200, 300, ...), seguida de un punto, seguida del nombre de la Categoría Principal en mayúsculas.",
+					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales. <br> Define una porcion de tu espacio y el uso que tendra.',
+					p2: "Usa una enumeración incremental con tres dígitos (100, 200, 300, ...), seguida de un punto, seguida del nombre de la Categoría Principal en mayúsculas. ",
+					d1: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente.",
+					p3: "Recomendamos usar las siguientes categorias, en el siguiente orden;",
+					ul1_li1: '<strong>100.PERSONAL</strong>: Para tus archivos y documentos personales.',
+					ul1_li2: '<strong>200.TRABAJO</strong>: Para archivos relacionados de trabajo.',
+					ul1_li3: '<strong>300.PROJECTOS</strong>: Carpeta de soporte, (orden opcional).',
+					ul1_li4: '<strong>400.ACADEMICO</strong>: Para archivos escolares o relacionados.',
+					ul1_li5: '<strong>500.HOBBIES</strong>: Para archivos relacionados con actividades de tu tiempo libre.',
+					a1: "Leer más acerca de la carpeta de soporte <i>\"PROYECTOS\"</i>"
 				},
 				section12: {
 					h1: '1.2 Nivel 2 - Categorías (Temas)',
-					p1: 'Es la segunda jerarquía, dentro de tu Carpeta de Almacenamiento Raíz, contiene los temas;',
-					d1: '<strong>Importante</strong>: Para cada directorio, agrega una enumeración incremental con dos dígitos, seguida de un punto, seguida del nombre de la Categoría.',
+					p1: 'Se encuentran dentro de los <strong><i>Directorios de Nivel 1</i></strong>, siendo 2da en la jerarquia,<br> contiene categorias mas especificas, por ejemplo el Area, Tema o Materia.',
+					p2: "Para cada directorio, agrega una enumeración incremental con dos dígitos, seguida de un punto, seguida del nombre de la Categoría en mayúsculas.",
+					d1: "El orden en la secuencia no es escencial y solo facilita su organizacion visual. <br> Si bien podria no represantar una secuencia logica el hecho de numerar hace que sea mas predecible para el usuario encontrar la que necesita, <br> Sin embargo, puede ser util para priorizar u ordenarla en una secuencia personalizada y no alfabeticamente. <br> Ademas numerarlo crea un control para mantener la secuencia personlizada del usuario.",
 				},
 				section13: {
 					h1: '1.3 Nivel 3 - Categorías (Unidades, Tema, Temas, etc.)',
@@ -243,7 +263,7 @@ export const content: Record<Language, any> = {
 				},
 				section24: {
 					h1: 'Carpeta Archivadora (00)',
-					p1: '...',
+					p1: "...",
 					p2: '...',
 					d1: '<strong>Nota</strong>:',
 					p3: '...'

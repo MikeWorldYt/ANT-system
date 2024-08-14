@@ -8,7 +8,9 @@
   </div>
 </header>
 <nav class="flex flex-col pr-2 pt-3 relative w-full">
-  <h1>Getting Started</h1> <!-- anchor for Default Component ---->
+  <a [routerLink]="'getting-started'" routerLinkActive="active">
+    <h1>Getting Started</h1> <!-- anchor for Default Component ---->
+  </a>
   <div>
     <a [routerLink]="'introduction'" routerLinkActive="active" (click)="toggle('introduction')">
       <div class="flex items-center">

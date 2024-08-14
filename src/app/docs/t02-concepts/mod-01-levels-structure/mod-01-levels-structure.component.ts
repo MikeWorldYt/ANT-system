@@ -6,6 +6,7 @@ import { LightboxComponent } from '../../../features/lightbox/lightbox.component
 import { LanguageService } from '../../../services/lenguaje.service';
 import { content } from '../../content/content';
 import { Language } from '../../../services/language.types';
+import { RouterLink } from '@angular/router';
 // import { en } from '../../content/content.json'
 
 @Component({
@@ -14,7 +15,7 @@ import { Language } from '../../../services/language.types';
   imports: [
     HeaderT02Component,
     CommonModule,
-
+    RouterLink,
     LightboxComponent,
   ],
   templateUrl: './mod-01-levels-structure.component.html',

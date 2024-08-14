@@ -6,6 +6,15 @@ p {
     @apply leading-none;
 }
 
+a {
+    display: inline;
+    text-decoration: underline !important;
+}
+
+.not-available {
+    opacity: 0.2;
+}
+
 /* --------- Call outs --------- */
 
 .callout {
@@ -18,6 +27,13 @@ p {
 
 .callout p {
     @apply m-0;
+    display: inline;
+}
+
+.callout .content {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .callout.info {
@@ -86,7 +102,7 @@ h2:hover .hash-link {
 }
 
 .pic-container {
-    @apply flex flex-col md:flex-row gap-3 mt-2;
+    @apply flex flex-col md:flex-row gap-3 my-2;
 }
 
 
