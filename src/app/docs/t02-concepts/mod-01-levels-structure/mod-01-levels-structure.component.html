@@ -53,12 +53,15 @@
     <ul>
       <li [innerHTML]="write.section11.ul1_li1">   </li>
       <li [innerHTML]="write.section11.ul1_li2">   </li>
-      <li [innerHTML]="write.section11.ul1_li3">   </li>
+      <li>
+        <span [innerHTML]="write.section11.ul1_li3"></span>
+        <a [innerHTML]="write.section11.ul1_li3_a" class="not-available"
+          [routerLink]="['/concepts']" fragment="Settings-folder"></a>
+      </li>
       <li [innerHTML]="write.section11.ul1_li4">   </li>
       <li [innerHTML]="write.section11.ul1_li5">   </li>
     </ul>
-    <a [innerHTML]="write.section11.a1" class="not-available"
-        [routerLink]="['/concepts']" fragment="Settings-folder"></a>
+
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/83/8e/6a/838e6af8130e5a3dab94df680a9c59df.png" />
     </div>
