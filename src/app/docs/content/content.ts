@@ -35,9 +35,9 @@ export const content: Record<Language, any> = {
       module_01: {
 				section10: {
 					h1: '1. Levels and Directory Structure',
-					p1: "The data structure used by <strong>ANT</strong> is hierarchical, tho it's designed to be decentralized.<br> Each folder acts as a node with paths, that start at the 'root' and continue into deeper <strong><i>levels</i></strong>. <br> The term <strong><i>Levels </i></strong> refers to the depth of the folder within a tree directory.",
+					p1: " The data structure used by <strong>ANT</strong> is hierarchical, tho it's designed to be decentralized.<br> Each folder acts as a node with paths, that start at the 'root' and continue into deeper <strong><i>levels</i></strong>. <br> The term <strong><i>Levels </i></strong> refers to the depth of the folder within a tree directory.",
 					d1: '<strong>Tip</strong>: The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.',
-					d2: "<strong>Note</strong>: Directories are not exclusive or static; they can be moved to another path, or even shared with others simultaneously. In other words, they are flexible and can create associated connections that, in most cases, do not need to be renamed or copied.",
+					d2: "<strong>Note</strong>: Directories are not exclusive or static; they can be moved to another path, or even shared with others simultaneously. In other words, they are flexible and can create associated connections that, in most cases, do not need to be renamed or copied. ",
 					a1: "Read more"
 				},
 				section11: {
@@ -48,7 +48,8 @@ export const content: Record<Language, any> = {
 					p3: "We recommend using the following categories, in the following order;",
 					ul1_li1: '<strong>100.PERSONAL</strong>: For your personal files and documents.',
 					ul1_li2: '<strong>200.WORK</strong>: For work-related files.',
-					ul1_li3: '<strong>300.PROJECTS</strong>: Support Directory (optional order).',
+					ul1_li3: '<strong>300.PROJECTS</strong>: ',
+					ul1_li3_a: 'Support Directory (optional order)',
 					ul1_li4: '<strong>400.ACADEMIC</strong>: For school or related files.',
 					ul1_li5: '<strong>500.HOBBIES</strong>: For files related to your leisure activities.',
 					a1: "Read more about <i>Support Folder \"PROJETCS\"</i>",
@@ -98,7 +99,7 @@ export const content: Record<Language, any> = {
 			module_02: {
 
 				section20: {
-					h1: 'Support Folders',
+					h1: '2. Support Folders',
 					p1: 'The support folders are designed to be helpful at the current level. In that sense support the user. Each has a unique identifier, making it easy to differentiate and quickly identify them.'
 				},
 				section21: {
@@ -182,7 +183,7 @@ export const content: Record<Language, any> = {
 					h1: '1. Estructura de Niveles y Carpetas',
 					p1: "La estructura de datos que usa <strong>ANT</strong> aunque es jerarquica, esta pensada para ser decentralizada. <br> Cada carpeta son nodos con rutas, que comienzan donde la 'raiz' y continuan en <strong><i> niveles </i></strong>mas adentro. <br> Por <strong>niveles</strong> se refiere a la profundidad dentro del arbol de carpetas.",
 					d1: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles. Si bien podrías tener más, es recomendable no tener demasiados niveles y usarlos solo en ciertos casos.',
-					d2: '<strong>Nota</strong>:Los directorios no son exclusivos o estaticos, se pueden mover a otra ruta, o incluso compartirse con otras al mismo tiempo, en otras palabras son flexibles y crear conexiones asociadas y que en su mayoria de casos no necesitaran renombrase o copiarse.',
+					d2: '<strong>Nota</strong>:Los directorios no son exclusivos o estaticos, se pueden mover a otra ruta, o incluso compartirse con otras al mismo tiempo, en otras palabras son flexibles y crear conexiones asociadas que en su mayoria de casos no necesitaran renombrase o copiarse. ',
 					a1: "Leer más..."
 				},
 				section11: {
@@ -242,7 +243,7 @@ export const content: Record<Language, any> = {
 			},
 			module_02: {
 				section20: {
-					h1: 'Carpetas de Soporte',
+					h1: '2. Carpetas de Soporte',
 					p1: 'Estas carpetas fueron diseñadas para que te sirvan de ayuda en el nivel donde estes. En ese sentido Ayuda al usuario. Cada una cuenta con un idenficador unico, lo que la hace diferenciarse e identificarse rapidamente del resto.'
 				},
 				section21: {
