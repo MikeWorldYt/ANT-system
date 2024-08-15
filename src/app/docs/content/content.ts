@@ -41,17 +41,18 @@ export const content: Record<Language, any> = {
 					a1: "Read more"
 				},
 				section11: {
-					h1: '1.1 The Level 1 - Main Categories',
+					h1: '1.1 The Level 1 - Main Categories (Contexts)',
 					p1: 'Is the highest hierarchy, inside from your Root Storage Folder, content the main categories. <br> Defines a portion of space, and the usage it will have.',
 					p2: "This use an incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals. ",
-					d1: '<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relinked again.',
+					d1: '<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relink again.',
 					p3: "We recommend using the following categories, in the following order;",
 					ul1_li1: '<strong>100.PERSONAL</strong>: For your personal files and documents.',
 					ul1_li2: '<strong>200.WORK</strong>: For work-related files.',
 					ul1_li3: '<strong>300.PROJECTS</strong>: Support Directory (optional order).',
 					ul1_li4: '<strong>400.ACADEMIC</strong>: For school or related files.',
 					ul1_li5: '<strong>500.HOBBIES</strong>: For files related to your leisure activities.',
-					a1: "Read more about <i>Support Folder \"PROJETCS\"</i>"
+					a1: "Read more about <i>Support Folder \"PROJETCS\"</i>",
+					d2: "Separating by contexts allows for maintaining and managing files, creating a barder that <i>if respected</i> reduces the likelihood of mixing files and helps to have a clear focus on their use and what is found there."
 				},
 				section12: {
 					h1: '1.2 The Levels 2 - Categories (Subjects)',
@@ -185,7 +186,7 @@ export const content: Record<Language, any> = {
 					a1: "Leer más..."
 				},
 				section11: {
-					h1: '1.1 Nivel 1 - Categorías principales',
+					h1: '1.1 Nivel 1 - Categorías principales (Contextos)',
 					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales. <br> Define una porcion de tu espacio y el uso que tendra.',
 					p2: "Usa una enumeración incremental con tres dígitos (100, 200, 300, ...), seguida de un punto, seguida del nombre de la Categoría Principal en mayúsculas. ",
 					d1: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente.",
@@ -195,7 +196,8 @@ export const content: Record<Language, any> = {
 					ul1_li3: '<strong>300.PROJECTOS</strong>: Carpeta de soporte, (orden opcional).',
 					ul1_li4: '<strong>400.ACADEMICO</strong>: Para archivos escolares o relacionados.',
 					ul1_li5: '<strong>500.HOBBIES</strong>: Para archivos relacionados con actividades de tu tiempo libre.',
-					a1: "Leer más acerca de la carpeta de soporte <i>\"PROYECTOS\"</i>"
+					a1: "Leer más acerca de la carpeta de soporte <i>\"PROYECTOS\"</i>",
+					d2: "Separar en por contextos permite mantener y manejar archivos, crea una barrera <i>que si se respeta</i> reduce la probabilidad de mezclar archivos y ayuda a tener un enfoque claro de su uso y lo que se encuentra alli."
 				},
 				section12: {
 					h1: '1.2 Nivel 2 - Categorías (Temas)',
