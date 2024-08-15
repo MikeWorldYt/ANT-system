@@ -1,10 +1,11 @@
 section {
     position: relative;
     padding-bottom: 2rem;
+    line-height: 1;
 }
 
 p {
-    @apply leading-none;
+    display: inline;
 }
 
 a {
@@ -14,6 +15,22 @@ a {
 
 .not-available {
     opacity: 0.2;
+}
+
+/* --------- Headings --------- */
+.docs-subtitle {
+    @apply text-2xl font-bold text-emerald-500 mb-2 pb-1;
+    border-bottom: 1px solid rgba(46, 140, 110, 0.7);
+}
+
+.docs-subtitle-light {
+    @apply text-2xl font-bold text-white mb-2 pb-1;
+    border-bottom: 1px solid rgba(109, 147, 135, 0.2);
+}
+
+.docs-subtitle-thiny {
+    @apply text-xl font-semibold mt-4 mb-1 pb-1;
+    border-bottom: 1px solid rgba(74, 98, 90, 0.1);
 }
 
 /* --------- Call outs --------- */
@@ -26,15 +43,16 @@ a {
     @apply w-6 h-6 mr-2;
 }
 
-.callout p {
+.callout p, .callout a {
     @apply m-0;
     display: inline;
 }
 
 .callout .content {
-    display: inline-flex;
-    flex-wrap: wrap;
+    /* display: flex; */
+    display: inline;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .callout.info {
@@ -61,12 +79,19 @@ a {
     @apply bg-emerald-500/20 pt-4 pb-4 pl-6 pr-6 mt-1 mb-1 rounded-md;
 }
 
-/* --------- Tables --------- */
+/* --------- Lists --------- */
+
 li {
     list-style: inside;
     padding-left: .5rem;
+    padding-top: .25rem;
 }
 
+li:last-child {
+    padding-bottom: .25rem;
+}
+
+/* --------- Tables --------- */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -91,6 +116,7 @@ th {
     background-color: #6d9387;
 }
 
+/* --------- Hash links --------- */
 .hash-link {
     position: absolute;
     top: 2px;
@@ -102,10 +128,18 @@ h2:hover .hash-link {
     visibility: visible;
 }
 
+.hash-link .docs-subtitle {
+    border-bottom: none;
+}
+
+.hash-link .docs-subtitle-light {
+    border-bottom: none;
+}
+
+/* --------- Pictures --------- */
 .pic-container {
     @apply flex flex-col md:flex-row gap-3 my-2;
 }
-
 
 
 
@@ -127,14 +161,3 @@ h2:hover .hash-link {
     @apply text-3xl pe-0 font-semibold text-emerald-400;
 }
 
-.docs-subtitle {
-    @apply text-2xl font-bold text-emerald-500 mb-2;
-}
-
-.docs-subtitle-light {
-    @apply text-2xl font-bold text-white mb-2;
-}
-
-.docs-subtitle-thiny {
-    @apply text-xl font-semibold mt-4 mb-1;
-}
