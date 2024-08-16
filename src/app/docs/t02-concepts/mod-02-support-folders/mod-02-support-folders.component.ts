@@ -52,9 +52,6 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
     return language === 'EN' || language === 'ES';
   }
 
-  switchLanguage(language: Language) {
-    this.languageService.setLanguage(language);
-  }
 
   //  ▬▬▬ Hash Sections
   hovered = false;
@@ -71,12 +68,15 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
   // ▲ service Hash Sections
   @ViewChildren('section') sections!: QueryList<ElementRef>;
   
+  // ▬▬▬ Intersection Section <section>
   idActive: string = '';
 
   ngAfterViewInit() {
     this.sections.forEach(section => {
       this.intersectionService.observe(section.nativeElement);
     });
+
+    // Intersection Section
     this.intersectionService.getCurrentId().subscribe(id => {
       this.idActive = id;
     })

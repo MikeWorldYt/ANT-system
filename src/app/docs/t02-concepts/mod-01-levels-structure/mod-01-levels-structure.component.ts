@@ -2,13 +2,16 @@ import { Component, ElementRef, HostListener, QueryList, ViewChildren, OnInit, A
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
+// ▲ SERVICES ▲
 import { IntersectionService } from '../../../services/IntersectionObserver.service';
 import { LanguageService } from '../../../services/lenguaje.service';
 import { Language } from '../../../services/language.types';
 
+// ▲ CONTENT ▲
 import { content } from '../../content/content';
 import { LightboxComponent } from '../../../features/lightbox/lightbox.component';
 
+// Testing
 import { HeaderT02Component } from '../header-t02/header-t02.component';
 
 @Component({
@@ -24,20 +27,16 @@ import { HeaderT02Component } from '../header-t02/header-t02.component';
   styleUrl: '../../docs.component.css'
 })
 export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
+  // ▲ SERVICES ▲
   constructor(
     private intersectionService: IntersectionService,
     private languageService: LanguageService
   ) { }
 
-  // Intersection Section <section>
-  idActive: string = '';
-
-  // For inner content
+  // ▬▬▬ For inner content
   write: any;
 
-  // Language
-  currentLanguage: Language = 'ES';
-
+  // ████ Fill Content (inner) ███
   ngOnInit(): void {
     // Initial content
     this.write = content[this.currentLanguage].title_02.module_01;
@@ -51,12 +50,19 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
     });
   }
 
+  // ▬▬▬ Language
+  currentLanguage: Language = 'ES';
+
+  // ███ Language Controller ███
+
   private isValidLanguage(language: string): language is Language {
     return language === 'EN' || language === 'ES';
   }
 
-  // Hash Sections
+  // ▬▬▬ Hash Sections
   hovered = false;
+
+  // ████ Hash Sections ████
 
   showHash(event: Event) {
     this.hovered = true;
@@ -66,15 +72,18 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
     this.hovered = false;
   }
 
-  // service Hash Sections
+  // ▲ service Hash Sections
   @ViewChildren('section') sections!: QueryList<ElementRef>;
-  
-  
+
+  // ▬▬▬ Intersection Section <section>
+  idActive: string = '';
 
   ngAfterViewInit() {
     this.sections.forEach(section => {
       this.intersectionService.observe(section.nativeElement);
     });
+
+    // Intersection Section
     this.intersectionService.getCurrentId().subscribe(id => {
       this.idActive = id;
     })

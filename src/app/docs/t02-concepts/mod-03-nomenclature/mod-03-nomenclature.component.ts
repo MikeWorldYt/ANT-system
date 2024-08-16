@@ -54,7 +54,6 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   }
 
   // ▬▬▬ Hash Sections
-  idActive: string = '';
   hovered: boolean = false;
 
   // ███ Hash Sections ███
@@ -66,10 +65,14 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
     this.hovered = false;
   }
 
+  // ▬▬▬ Intersection Section <section>
+  idActive: string = '';
+
   // ▲ Hash Sections Service
   @ViewChildren('section') sections!: QueryList<ElementRef>;
 
   ngAfterViewInit() {
+    // Intersection Section
     this.sections.forEach(section => {
       this.intersectionService.observe(section.nativeElement);
     });
