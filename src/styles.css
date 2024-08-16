@@ -53,14 +53,6 @@ section[id] {
     scroll-margin-top: 8vh;
 }
 
-.currentH1 {
-    /* @apply bg-emerald-400 rounded-r-lg text-gray-950 ease-in duration-500; */
-    @apply text-emerald-400 ease-in-out duration-500;
-}
-
-.currentH2 {
-    background-color: rgba(172, 255, 47, 0.239); /* For debugging */
-}
 
 /* Tooltip */
 .tooltip {

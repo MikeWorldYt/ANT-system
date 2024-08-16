@@ -31,8 +31,8 @@ export class NavComponent implements OnInit, AfterViewInit{
   showMe: boolean = true;
   visible: boolean = false;
 
-  // ████ Toggle ████ ƒ
-  toggle(section: string) {
+  // ████ Toggle Title ████ ƒ
+  toggleTitle(section: string) {
     if (this.currTitle === section) {
       this.currTitle = ''; // Si se hace clic en la misma sección, la ocultamos
       console.log(`s ${this.currTitle} se ha cerrado`);
