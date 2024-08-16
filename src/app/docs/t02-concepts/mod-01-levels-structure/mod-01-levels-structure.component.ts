@@ -1,13 +1,15 @@
 import { Component, ElementRef, HostListener, QueryList, ViewChildren, OnInit, AfterViewInit } from '@angular/core';
-import { HeaderT02Component } from '../header-t02/header-t02.component';
 import { CommonModule } from '@angular/common';
-import { IntersectionService } from '../../../services/IntersectionObserver.service';
-import { LightboxComponent } from '../../../features/lightbox/lightbox.component';
-import { LanguageService } from '../../../services/lenguaje.service';
-import { content } from '../../content/content';
-import { Language } from '../../../services/language.types';
 import { RouterLink } from '@angular/router';
-// import { en } from '../../content/content.json'
+
+import { IntersectionService } from '../../../services/IntersectionObserver.service';
+import { LanguageService } from '../../../services/lenguaje.service';
+import { Language } from '../../../services/language.types';
+
+import { content } from '../../content/content';
+import { LightboxComponent } from '../../../features/lightbox/lightbox.component';
+
+import { HeaderT02Component } from '../header-t02/header-t02.component';
 
 @Component({
   selector: 'doc-t02-mod-01-levels-structure',
@@ -26,6 +28,9 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
     private intersectionService: IntersectionService,
     private languageService: LanguageService
   ) { }
+
+  // Intersection Section <section>
+  idActive: string = '';
 
   // For inner content
   write: any;
@@ -64,19 +69,16 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
   // service Hash Sections
   @ViewChildren('section') sections!: QueryList<ElementRef>;
   
-  idActive: string = '';
+  
 
   ngAfterViewInit() {
     this.sections.forEach(section => {
       this.intersectionService.observe(section.nativeElement);
     });
+    this.intersectionService.getCurrentId().subscribe(id => {
+      this.idActive = id;
+    })
 
-    setInterval(() => {
-      this.idActive = this.intersectionService.getCurrentId();
-      console.log(this.idActive);
-    }, 100);
   }
-
-
 
 }

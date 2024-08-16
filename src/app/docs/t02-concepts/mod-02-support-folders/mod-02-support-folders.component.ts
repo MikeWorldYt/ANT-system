@@ -77,12 +77,9 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
     this.sections.forEach(section => {
       this.intersectionService.observe(section.nativeElement);
     });
-
-    setInterval(() => {
-      this.idActive = this.intersectionService.getCurrentId();
-      console.log(this.idActive);
-    }, 100);
+    this.intersectionService.getCurrentId().subscribe(id => {
+      this.idActive = id;
+    })
   }
-
 
 }

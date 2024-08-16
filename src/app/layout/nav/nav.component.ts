@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, HostListener, AfterViewInit, OnInit } from '@angular/core';
 import { NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
+import { IntersectionService } from '../../services/IntersectionObserver.service';
 
 @Component({
   selector: 'app-nav',
@@ -15,7 +16,7 @@ import { ActivatedRoute, Router } from '@angular/router';
   templateUrl: './nav.component.html',
   styleUrl: './nav.component.css'
 })
-export class NavComponent implements OnInit{
+export class NavComponent implements OnInit, AfterViewInit{
   // Toogle
   currentSection: string = ''; // default property
   showMe: boolean = true;
@@ -30,11 +31,18 @@ export class NavComponent implements OnInit{
     }
   }
 
-  // Module section control
+  // Module <section> control
   moduleSection: string = '';
   hovered: boolean = false;
 
-  constructor(private route: ActivatedRoute, private router: Router) { }
+  //  ▬▬▬ Intersection Section <section>
+  idActive: string = '';
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private intersectionService: IntersectionService,
+  ) { }
 
   ngOnInit() {
     this.router.events.subscribe(event => {
@@ -57,6 +65,12 @@ export class NavComponent implements OnInit{
         this.moduleSection = fragment;
         // this.scrollToSection(fragment);
       }
+    });
+
+    // Intersection Observer
+
+    this.intersectionService.getCurrentId().subscribe(id => {
+      this.idActive = id;
     })
   }
 
