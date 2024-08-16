@@ -17,10 +17,19 @@ import { IntersectionService } from '../../services/IntersectionObserver.service
   styleUrl: './nav.component.css'
 })
 export class NavComponent implements OnInit, AfterViewInit{
+  // ▲ SERVICES ▲
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private intersectionService: IntersectionService,
+  ) { }
+
   // Toogle
   currentSection: string = ''; // default property
   showMe: boolean = true;
   visible: boolean = false;
+
+  // ████ Toggle ████ ƒ
   toggle(section: string) {
     if (this.currentSection === section) {
       this.currentSection = ''; // Si se hace clic en la misma sección, la ocultamos
@@ -37,12 +46,6 @@ export class NavComponent implements OnInit, AfterViewInit{
 
   //  ▬▬▬ Intersection Section <section>
   idActive: string = '';
-
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private intersectionService: IntersectionService,
-  ) { }
 
   ngOnInit() {
     this.router.events.subscribe(event => {
