@@ -3,6 +3,7 @@ import { Component, HostListener, AfterViewInit, OnInit } from '@angular/core';
 import { NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IntersectionService } from '../../services/IntersectionObserver.service';
+import { TitleStateService } from '../../services/title.service';
 
 @Component({
   selector: 'app-nav',
@@ -22,6 +23,7 @@ export class NavComponent implements OnInit, AfterViewInit{
     private route: ActivatedRoute,
     private router: Router,
     private intersectionService: IntersectionService,
+    private titleStateService: TitleStateService
   ) { }
 
   // Toogle
@@ -59,6 +61,10 @@ export class NavComponent implements OnInit, AfterViewInit{
           }
         }
       }
+    });
+    // Titles Toggle
+    this.titleStateService.currentSection$.subscribe(section => {
+      this.currentSection = section;
     })
   }
 

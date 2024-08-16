@@ -8,6 +8,7 @@ import { IntersectionService } from '../../../services/IntersectionObserver.serv
 import { LanguageService } from '../../../services/lenguaje.service';
 import { Language } from '../../../services/language.types';
 import { CommonModule } from '@angular/common';
+import { TitleStateService } from '../../../services/title.service';
 
 @Component({
   selector: 'docs-t01-into-getting-starter',
@@ -24,7 +25,8 @@ export class Docs_T01_IntoComponent implements OnInit, AfterViewInit {
 
   constructor(
     private intersectionService: IntersectionService,
-    private languageService: LanguageService
+    private languageService: LanguageService,
+    private titleStateService: TitleStateService
   ) { }
 
   // For inner content
@@ -44,6 +46,8 @@ export class Docs_T01_IntoComponent implements OnInit, AfterViewInit {
         this.currentLanguage = language;
       }
     });
+    // Set title section
+    this.titleStateService.setCurrentSection('introduction');
   }
 
   private isValidLanguage(language: string): language is Language {
