@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class IntersectionService {
   private observer: IntersectionObserver;
-  private currentId: string = '';
+  private currentId: BehaviorSubject<string> = new BehaviorSubject<string>('');
 
   constructor() {
     this.observer = new IntersectionObserver(this.intersectionCallback.bind(this), {
@@ -17,8 +18,7 @@ export class IntersectionService {
   private intersectionCallback(entries: IntersectionObserverEntry[]) {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        this.currentId = entry.target.id;
-        console.log('Sección visible:', this.currentId);
+        this.currentId.next(entry.target.id);
       }
     });
   }
@@ -31,7 +31,7 @@ export class IntersectionService {
     this.observer.unobserve(element);
   }
 
-  getCurrentId(): string {
-    return this.currentId;
+  getCurrentId(): Observable<string> {
+    return this.currentId.asObservable();
   }
 }
