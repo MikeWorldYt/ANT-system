@@ -16,14 +16,14 @@
     <a [routerLink]="'introduction'" routerLinkActive="active" (click)="toggle('introduction')">
       <div class="flex items-center">
         <img class="absolute w-4 mt-3 transition-transform duration-300 ease-in" 
-          [ngClass]="{ 'rotate-90': currentSection === 'introduction' }" 
+          [ngClass]="{ 'rotate-90': currTitle === 'introduction' }" 
           src="assets/ChevronLeft.svg" alt=">">
-        <h1 class="cursor-pointer" [ngClass]="{ 'currentH1': currentSection === 'introduction' }">
+        <h1 class="cursor-pointer" [ngClass]="{ 'currentH1': currTitle === 'introduction' }">
           Introduction</h1>
       </div>
     </a>
 
-    @if (currentSection === 'introduction') {
+    @if (currTitle === 'introduction') {
       <h2>What is ANT?</h2>
         <!-- <ul>
           <li>How works?</li>
@@ -38,14 +38,14 @@
     <a routerLink="concepts" routerLinkActive="active" (click)="toggle('concepts')">
       <div class="flex items-center">
         <img class="absolute w-4 mt-3 transition-transform duration-300 ease-in" 
-          [ngClass]="{ 'rotate-90': currentSection === 'concepts' }" 
+          [ngClass]="{ 'rotate-90': currTitle === 'concepts' }" 
           src="assets/ChevronLeft.svg" alt=">">
-        <h1 class="cursor-pointer w-full" [ngClass]="{ 'currentH1': currentSection === 'concepts' }">
+        <h1 class="cursor-pointer w-full" [ngClass]="{ 'currentH1': currTitle === 'concepts' }">
           Main Concepts</h1>
       </div>
     </a>
 
-    @if (currentSection === 'concepts') {
+    @if (currTitle === 'concepts') {
       <a 
       routerLink="concepts"
       fragment="Levels-and-Structure"

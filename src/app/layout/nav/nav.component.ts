@@ -27,18 +27,18 @@ export class NavComponent implements OnInit, AfterViewInit{
   ) { }
 
   // Toogle
-  currentSection: string = ''; // default property
+  currTitle: string = ''; // default property
   showMe: boolean = true;
   visible: boolean = false;
 
   // ████ Toggle ████ ƒ
   toggle(section: string) {
-    if (this.currentSection === section) {
-      this.currentSection = ''; // Si se hace clic en la misma sección, la ocultamos
-      console.log(`s ${this.currentSection} se ha cerrado`);
+    if (this.currTitle === section) {
+      this.currTitle = ''; // Si se hace clic en la misma sección, la ocultamos
+      console.log(`s ${this.currTitle} se ha cerrado`);
     } else {
-      this.currentSection = section; // Si se hace clic en una nueva sección, la mostramos
-      console.log(`s ${this.currentSection} se ha abierto`);
+      this.currTitle = section; // Si se hace clic en una nueva sección, la mostramos
+      console.log(`s ${this.currTitle} se ha abierto`);
     }
   }
 
@@ -63,8 +63,8 @@ export class NavComponent implements OnInit, AfterViewInit{
       }
     });
     // Titles Toggle
-    this.titleStateService.currentSection$.subscribe(section => {
-      this.currentSection = section;
+    this.titleStateService.currTitle$.subscribe(section => {
+      this.currTitle = section;
     })
   }
 

@@ -18,7 +18,7 @@ import { TitleStateService } from '../../../services/title.service';
   styleUrl: '../../docs.component.css'
 })
 export class Docs_T02_IntoComponent implements OnInit {
-  currentSection: string = 'introduction';
+  currTitle: string = 'introduction';
 
   constructor(
     private titleStateService: TitleStateService
@@ -26,11 +26,11 @@ export class Docs_T02_IntoComponent implements OnInit {
 
   ngOnInit(): void {
     // Set title section
-    this.titleStateService.setCurrentSection('concepts');
+    this.titleStateService.setCurrTitle('concepts');
   }
 
   toggle(section: string) {
-    this.currentSection = section;
+    this.currTitle = section;
   }
 
 }

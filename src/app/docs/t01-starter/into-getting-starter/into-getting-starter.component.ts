@@ -47,7 +47,7 @@ export class Docs_T01_IntoComponent implements OnInit, AfterViewInit {
       }
     });
     // Set title section
-    this.titleStateService.setCurrentSection('introduction');
+    this.titleStateService.setCurrTitle('introduction');
   }
 
   private isValidLanguage(language: string): language is Language {

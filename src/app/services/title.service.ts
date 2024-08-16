@@ -5,14 +5,14 @@ import { BehaviorSubject } from 'rxjs';
   providedIn: 'root'
 })
 export class TitleStateService {
-  private currentSectionSubject = new BehaviorSubject<string>('introduction');
-  currentSection$ = this.currentSectionSubject.asObservable();
+  private currTitleSubject = new BehaviorSubject<string>('introduction');
+  currTitle$ = this.currTitleSubject.asObservable();
 
-  setCurrentSection(section: string) {
-    this.currentSectionSubject.next(section);
+  setCurrTitle(section: string) {
+    this.currTitleSubject.next(section);
   }
 
-  getCurrentSection(): string {
-    return this.currentSectionSubject.value;
+  getCurrTitle(): string {
+    return this.currTitleSubject.value;
   }
 }
