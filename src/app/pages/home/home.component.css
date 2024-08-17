@@ -1,3 +1,22 @@
+.site-body {
+    overflow: hidden;
+    display: flex;
+    container-name: site-body;
+}
+
+@container (min-width: 768px) {
+    aside {
+        
+    }
+}
+
+aside {
+    max-width: 280px;
+        
+
+}
+
+/* MENU ICON */
 .icon-cnt-open {
     @apply z-20 sticky w-full relative;
 }
