@@ -1,5 +1,6 @@
 h1 {
     @apply font-bold text-xl pl-4 pr-6 mt-2;
+    white-space: nowrap;
 }
 
 .currentTitle {
