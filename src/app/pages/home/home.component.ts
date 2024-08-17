@@ -33,4 +33,17 @@ export default class HomeComponent {
     this.menuService.changeMenu(this.menu);
   }
 
+  closeMenu(event: MouseEvent) {
+    // Verifica si el ancho de la pantalla es menor a 768px
+    if (window.innerWidth >= 768) {
+      return;
+    }
+    // cierra el menu, si se hace click fuera (dispo moviles)
+    const target = event.target as HTMLElement;
+    const aside = document.querySelector('aside.menu-container');
+    if (this.menu && aside && !aside.contains(target)) {
+      this.menu = false;
+      this.menuService.changeMenu(this.menu);
+    }
+  }
 }
