@@ -1,9 +1,12 @@
 import { Component } from '@angular/core';
+import { FooterComponent } from '../../../layout/footer/footer.component';
 
 @Component({
   selector: 'docs-t03-into-nomenclature',
   standalone: true,
-  imports: [],
+  imports: [
+    FooterComponent
+  ],
   templateUrl: './into-main-getting.component.html',
   styleUrl: '../../docs.component.css'
 })
