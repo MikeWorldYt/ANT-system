@@ -27,11 +27,17 @@
       />
   </aside>
 
-  <main main-container
-    class="col-span-12 md:col-span-10 overflow-y-scroll scroll-smooth relative"
-    [ngClass]="{ 'md:col-span-9' : menu === true }"
+  <main
+    class="overflow-y-scroll scroll-smooth relative"
+    [ngClass]="{ '' : menu === true }"
   >
-    <app-header class="relative z-10"/>
-    <app-main class="scroll-smooth"/>
+    <div main-content class="flex-1">
+      <app-header class="relative z-10"/>
+      <app-main class="scroll-smooth"/>
+    </div>
+      <app-summary-bar
+    class="flex-1 right-0 top-0 z-30"
+    />
   </main>
+  
 </div>
