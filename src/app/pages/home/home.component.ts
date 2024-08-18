@@ -3,9 +3,9 @@ import { Router, RouterOutlet } from '@angular/router';
 import { HeaderComponent } from '../../layout/header/header.component';
 import { SidebarComponent } from '../../layout/sidebar/sidebar.component';
 import { MainComponent } from '../../layout/main/main.component';
-import { FooterComponent } from '../../layout/footer/footer.component';
 import { NgClass } from '@angular/common';
 import { MenuService } from '../../services/menu.service';
+import { SummaryBarComponent } from '../../layout/summary-bar/summary-bar.component';
 
 @Component({
   selector: 'app-home',
@@ -16,7 +16,7 @@ import { MenuService } from '../../services/menu.service';
       HeaderComponent,
       SidebarComponent,
       MainComponent,
-      FooterComponent
+      SummaryBarComponent
     ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'

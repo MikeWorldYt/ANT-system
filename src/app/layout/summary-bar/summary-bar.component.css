@@ -1,0 +1,9 @@
+h1 {
+    @apply font-bold text-xl pl-4 pr-6 mt-2;
+    @apply flex justify-center w-full;
+    white-space: nowrap;
+}
+
+h2 {
+    @apply text-base pl-10;
+}
