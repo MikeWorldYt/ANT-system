@@ -1,19 +1,39 @@
 .site-body {
     overflow: hidden;
     display: flex;
-    container-name: site-body;
+    container-type: inline-size;
+    container-name: sitebody;
 }
 
-@container (min-width: 768px) {
+@container sitebody (min-width: 768px) {
     aside {
         
     }
+
 }
 
 aside {
     max-width: 280px;
-        
+}
 
+main {
+    display: flex;
+    container-type: inline-size;
+    container-name: main;
+    width: 100%;
+}
+
+app-summary-bar {
+    min-width: 280px;
+    max-width: 280px;
+    width: 100%;
+    display: none;
+}
+
+@container main (min-width: 780px) {
+    app-summary-bar {
+        display: block;
+    }
 }
 
 /* MENU ICON */
