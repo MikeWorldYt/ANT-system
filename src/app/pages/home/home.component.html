@@ -27,17 +27,11 @@
       />
   </aside>
 
-  <main
-    class="overflow-y-scroll scroll-smooth relative"
-    [ngClass]="{ '' : menu === true }"
-  >
-    <div main-content class="flex-1">
-      <app-header class="relative z-10"/>
-      <app-main class="scroll-smooth"/>
+  <main>
+    <app-header />
+    <div id="main-content">
+      <app-main />
+      <app-summary-bar />
     </div>
-      <app-summary-bar
-    class="flex-1 sticky right-0 top-0 z-30"
-    />
   </main>
-  
 </div>
