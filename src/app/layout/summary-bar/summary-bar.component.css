@@ -7,3 +7,9 @@ h1 {
 h2 {
     @apply text-base pl-10;
 }
+
+.currentArticle {
+    opacity: 1;
+    border-left: 3px solid #4caf50;
+    color: #4caf50;
+}

@@ -1,10 +1,13 @@
 import { AfterViewInit, Component } from '@angular/core';
 import { IntersectionService } from '../../services/IntersectionObserver.service';
+import { NgClass } from '@angular/common';
 
 @Component({
   selector: 'app-summary-bar',
   standalone: true,
-  imports: [],
+  imports: [
+    NgClass
+  ],
   templateUrl: './summary-bar.component.html',
   styleUrl: './summary-bar.component.css'
 })
@@ -13,6 +16,7 @@ export class SummaryBarComponent implements AfterViewInit {
   constructor(
     private intersectionService: IntersectionService
   ) { }
+
 
   //  ▬▬▬ Intersection Section <section>
   idActive: string = '';
