@@ -1,5 +1,9 @@
 {
     "conventionalCommits.scopes": [
-        "summary-bar"
+        "summary-bar",
+        "docs",
+        "language",
+        "nav",
+        "sidebar",
     ]
 }
