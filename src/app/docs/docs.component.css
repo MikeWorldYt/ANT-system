@@ -6,6 +6,7 @@ section {
 
 p {
     display: inline;
+    line-height: 1.2;
 }
 
 a {
