@@ -31,7 +31,12 @@ export class SummaryBarComponent implements OnInit, AfterViewInit {
   // ████ AfterViewInit
 
   ngOnInit(): void {
-
+    // Suscribe to Language Service
+    this.languageService.language$.subscribe((language: string) => {
+      if (this.isValidLanguage(language)) {
+        this.currentLanguage = language;
+      }
+    });
   }
 
   ngAfterViewInit() {
