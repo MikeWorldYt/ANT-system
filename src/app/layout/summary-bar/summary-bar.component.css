@@ -8,6 +8,15 @@ h2 {
     @apply text-base pl-10;
 }
 
+.module-line {
+    position: relative;
+    padding-left: 1rem;
+    margin-left: .5rem;    
+    border-left: 1px solid #4caf50; 
+    opacity: 0.5; 
+    transition: border-color 0.3s ease;
+}
+
 .currentArticle {
     opacity: 1;
     border-left: 3px solid #4caf50;
