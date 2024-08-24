@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, OnInit } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { CommonModule, NgClass } from '@angular/common';
+import { AddHyphenPipe } from '../../pipes/add-hyphen.pipe';
 
 // ▲ SERVICES ▲
 import { LanguageService } from '../../services/lenguaje.service';
@@ -13,7 +14,9 @@ import { content } from '../../docs/content/content';
   selector: 'app-summary-bar',
   standalone: true,
   imports: [
-    NgClass
+    NgClass,
+    CommonModule,
+    AddHyphenPipe
   ],
   templateUrl: './summary-bar.component.html',
   styleUrl: './summary-bar.component.css'
@@ -35,15 +38,25 @@ export class SummaryBarComponent implements OnInit, AfterViewInit {
     this.languageService.language$.subscribe((language: string) => {
       if (this.isValidLanguage(language)) {
         this.currentLanguage = language;
+        this.getSummary();
       }
     });
   }
 
-  ngAfterViewInit() {
+  ngAfterViewInit(): void {
     // Intersection Observer function
     this.intersectionService.getCurrentId().subscribe(id => {
       this.idActive = id;
-    })
+    });
+  }
+
+  // ▬▬▬ Toogle Summary
+  articleID: string[] = [];
+
+  // ████ Map Tooogle Summary ███
+  getSummary(): void {
+    const moduleContent = content[this.currentLanguage].title_02.module_01;
+    this.articleID = Object.keys(moduleContent).map((key) => moduleContent[key].id);
   }
 
   // ▬▬▬ Language

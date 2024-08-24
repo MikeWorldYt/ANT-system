@@ -2,19 +2,12 @@
 <div class="flex flex-col w-full">
     <h1>On this Page</h1>
     <!-- ▼ Toogle summary ---->
-    <h2>Article name</h2>
-    <h2>Article name</h2>
-    <h2>Article name</h2>
-    <h2 
-        [ngClass]="{ 'currentArticle': idActive === 'Level-1' }"
-        >Level 1
+    <h2 *ngFor="let moduleName of articleID" 
+      class="module-line"
+      [innerHTML]="moduleName"
+      [ngClass]="{ 'currentArticle': idActive === (moduleName | addHyphen) }">
     </h2>
-    <h2 
-        [ngClass]="{ 'currentArticle': idActive === 'Level-2' }"
-        >Level 2
-        
 
-    </h2>
-    <p>debug section: {{ idActive }}</p>
+		<p>debug section: {{ idActive }}</p>
+    <p>debug current language: {{ currentLanguage }}</p>
 </div>
-
