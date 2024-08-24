@@ -1,6 +1,7 @@
 import { Component, ElementRef, HostListener, QueryList, ViewChildren, OnInit, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { AddHyphenPipe } from '../../../pipes/add-hyphen.pipe';
 
 // ▲ SERVICES ▲
 import { IntersectionService } from '../../../services/IntersectionObserver.service';
@@ -22,6 +23,7 @@ import { HeaderT02Component } from '../header-t02/header-t02.component';
     CommonModule,
     RouterLink,
     LightboxComponent,
+    AddHyphenPipe,
   ],
   templateUrl: './mod-01-levels-structure.component.html',
   styleUrl: '../../docs.component.css'
