@@ -8,7 +8,6 @@ import { RouterOutlet } from '@angular/router';
   selector: 'app-main',
   standalone: true,
   imports: [
-    Docs_T01_IntoComponent,
     RouterOutlet,
   ],
   templateUrl: './main.component.html',

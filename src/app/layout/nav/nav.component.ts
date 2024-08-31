@@ -40,6 +40,9 @@ export class NavComponent implements OnInit, AfterViewInit{
       this.currTitle = section; // Si se hace clic en una nueva sección, la mostramos
       console.log(`s ${this.currTitle} se ha abierto`);
     }
+    if (this.currTitle === 'concepts') {
+      this.moduleSection = 'levels-and-structure';
+    }
   }
 
   // Module <section> control
@@ -98,6 +101,8 @@ onWindowScroll() {
   scrollToSection(sectionId: string) {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
     this.moduleSection = sectionId;
+    console.log(`SectionId: ${sectionId}`);
+
   }
 
   moduletoggle(section: string) {

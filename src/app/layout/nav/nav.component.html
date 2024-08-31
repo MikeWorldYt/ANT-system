@@ -56,23 +56,23 @@
     <!-- ▼ Toogle Title CONCEPTS ---->
     @if (currTitle === 'concepts') {
       <!-- ● Module ---->
-      <a href="concepts#Levels-and-Structure" >
+      <a [routerLink]="['/concepts/levels-and-structure']">
         <h2   class="module-line"
-        [ngClass]="{ 'currentModule': moduleSection === 'Levels-and-Structure' }"
+        [ngClass]="{ 'currentModule': moduleSection === 'levels-and-structure' }"
         (click)="scrollToSection('levels-and-structure')"
         >1. Levels and Structure</h2>
       </a>
       <!-- ● Module ---->
-      <a href="concepts#Support-Folders">
+      <a [routerLink]="['/concepts/support-folders']">
         <h2   class="module-line"
-        [ngClass]="{ 'currentModule': moduleSection === 'Support-Folders' }"
+        [ngClass]="{ 'currentModule': moduleSection === 'support-folders' }"
         (click)="scrollToSection('support-folders')"
         >2. Support Folders</h2>
       </a>
       <!-- ● Module ---->
-      <a href="concepts#Files-Nomenclature">
+      <a [routerLink]="['/concepts/files-nomenclature']">
         <h2   class="module-line"
-        [ngClass]="{ 'currentModule': moduleSection === 'Files-Nomenclature' }"
+        [ngClass]="{ 'currentModule': moduleSection === 'file-nomenclature' }"
         (click)="scrollToSection('file-nomenclature')"
         >3. File's Nomenclature</h2>
       </a>
