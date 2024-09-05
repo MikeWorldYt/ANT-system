@@ -3,15 +3,17 @@ import { Language } from '../../services/language.types';
 export const content: Record<Language, any> = {
   EN: {
     title_01: {
-      module_01: {
+      page_01: {
 				header : {
 					h3: 'Introduction',
 					h1: 'What is ANT?',
 					d1: 'ANT on the system (Archive Nesting Technique on the System) is a hierarchical organizational method designed to streamline the storage, easier to manage and find files.',
 				},
 				article_01: {
-					d1: '<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>hierarchical organizational method</i> designed to streamline  <br>      the storage, easier to manage and find files.',
-					p1: 'Emerges in a Workplace <strong>to Manage a Large Volume of files</strong><br> and is adapted for Home use.'
+					d1: '<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>hierarchical organizational methods</i> designed to streamline  <br>      the storage, easier to manage and find files.',
+					p1: "This system originated in a Workplace <strong>to Manage a Large Volume of files</strong> and was <strong>re-adapted for a Home Use</strong> to make it easy for any user to implement. <br> Even so, we highlight that it's <strong><i>mainly focused on the Home Office and Students</i></strong>, but it still offers flexibility for other areas.",
+					p2: "<br> <br>This is a system with hierarchical organizational methods, structured in a way that mimics an ant colony, This system has a hierarchical system with a Directed acyclic graph (DAG) adapted to the conventional tree data structure of current Operating Systems, Additionality, it creates a decentralized and modular infrastructure, making it flexible yet resilient in handling information.",
+					p3: "<br> <br>The purpose of this system and its methods is not ensure that, even when handling a large amount and variety of data, it can be organized and dynamically managed; In other words, as long as the user follows these methods, when they create or add a new file to their system, they'll be free to edit, share, migrate, version, etc., with a very high probability that their information will not be compromised, duplicated, or lost among other files."
 				},
 				article_02: {
 					h1: 'How works?',
@@ -32,7 +34,7 @@ export const content: Record<Language, any> = {
 				h3: '',
 				h1: ''
 			},
-      module_01: {
+      page_01: {
 				article_10: {
 					id: 'Levels and Structure',
 					h1: '1. Levels and Directory Structure',
@@ -100,7 +102,7 @@ export const content: Record<Language, any> = {
 					ul1_li3: 'Share with more people if you',
 				}
       },
-			module_02: {
+			page_02: {
 
 				article_20: {
 					h1: '2. Support Folders',
@@ -149,7 +151,7 @@ export const content: Record<Language, any> = {
 					ul1_li3: 'Share with more people if you',
 				}
 			},
-			module_03: {
+			page_03: {
 				article_30: {
 					h1: "3. Files Nomenclature",
 					p1: "test lorem ipsum"
@@ -159,14 +161,16 @@ export const content: Record<Language, any> = {
   },
   ES: {
     title_01: {
-			module_01: {
+			page_01: {
 				header : {
 					h3: 'Introducción',
 					h1: '¿Que es ANT?',
 				},
 				article_01: {
-					d1: '<strong>El sistema ANT</strong> (Archive Nesting Technique System) <br>      en un <i>metodo de organizacion jerarquico</i> diseñado para optimizar     <br>      el almacenamiento, administrar y encontrar archivos de forma facil y rápida.',
-					p1: 'Surge en un ambiente de trabajo para <strong>gestionar un gran volumen de archivos</strong> y es adaptado para su uso domestico.',
+					d1: '<strong>El sistema ANT</strong> (Archive Nesting Technique System) <br> son una serie de  <i>metodos de organizacion jerarquico</i> diseñado para optimizar     <br>      el almacenamiento, administrar y encontrar archivos de forma facil y rápida.',
+					p1: 'Este sistema surgio en un un ambiente de trabajo para <strong>gestionar un gran volumen de archivos</strong> y fue <strong>re-adaptado para su uso domestico</strong> de modo que sea facil de implementar para cualquier usuario. <br> Aun asi destacamos que esta pensado <strong><i>principalmente para el home office y los estudiantes</i></strong>, pero cuenta con la flexibilidad para cubrir otras áreas.',
+					p2: "<br> <br>Es un sistema con metodos de organizacion jerarquico, estructurado de una manera que imita una colonia de hormigas, este sistema tiene una Estructura Jerárquica con Grafo Dirigido Acíclico (DAG) adaptado para la estructura de datos de arbol convencional de los sistemas operativos actuales. Por otro lado, crea una infraestructura descentralizada y modular, lo que lo hacer ser flexible pero ductil con la informacion.",
+					p3: "<br> <br> El objetivo de este sistema y sus metodos es que aunque se maneje una gran cantidad y variedad, esta pueda ser organizada y gestionada dinamicamente; En otras palabras, siempre y cuando el usuario siga estos metodos, al crear o entrar un archivo a su sistema sera libre de editar, compartir, migrar, versionar, etc, con una muy alta probabilidad de que su informacion no sea comprometida, duplicada y/o se pierda entre los demas archivos."
 				},
 				article_02: {
 					h1: '¿Como funciona?',
@@ -182,7 +186,7 @@ export const content: Record<Language, any> = {
 			},
 		},
 		title_02: {
-			module_01: {
+			page_01: {
 				article_10: {
 					id: 'Estructura y Niveles',
 					h1: '1. Estructura y Niveles',
@@ -249,7 +253,7 @@ export const content: Record<Language, any> = {
 					ul1_li3: 'Compartiras con mas de una persona',
 				}
 			},
-			module_02: {
+			page_02: {
 				article_20: {
 					h1: '2. Carpetas de Soporte',
 					p1: 'Estas carpetas fueron diseñadas para que te sirvan de ayuda en el nivel donde estes. En ese sentido Ayuda al usuario. Cada una cuenta con un idenficador unico, lo que la hace diferenciarse e identificarse rapidamente del resto.'
@@ -297,7 +301,7 @@ export const content: Record<Language, any> = {
 					ul1_li3: '...',
 				}
 			},
-			module_03: {
+			page_03: {
 				article_30: {
 					h1: "3. Nomenclatura de Archivos",
 					p1: "test lorem ipsum"
