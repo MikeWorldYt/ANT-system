@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FooterComponent } from '../../../layout/footer/footer.component';
-import { TitleStateService } from '../../../services/title.service';
+import { TitleService } from '../../../services/navTitle.service';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
@@ -17,12 +17,12 @@ export class Docs_T02_IntoComponent implements OnInit {
   currTitle: string = 'introduction';
 
   constructor(
-    private titleStateService: TitleStateService
+    private TitleService: TitleService
   ) {}
 
   ngOnInit(): void {
-    // Set title section
-    this.titleStateService.setCurrTitle('concepts');
+    // Set TitleValue Service
+    this.TitleService.setTitle('concepts');
   }
 
   toggle(section: string) {

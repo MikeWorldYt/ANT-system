@@ -5,10 +5,10 @@ import { FooterComponent } from '../../../layout/footer/footer.component';
 // Content
 import { content } from '../../content/content';
 import { IntersectionService } from '../../../services/IntersectionObserver.service';
-import { LanguageService } from '../../../services/lenguaje.service';
+import { LanguageService } from '../../../services/navLanguage.service';
 import { Language } from '../../../services/language.types';
 import { CommonModule } from '@angular/common';
-import { TitleStateService } from '../../../services/title.service';
+import { TitleService } from '../../../services/navTitle.service';
 
 @Component({
   selector: 'docs-t01-into-getting-starter',
@@ -26,7 +26,7 @@ export class Docs_T01_IntoComponent implements OnInit, AfterViewInit {
   constructor(
     private intersectionService: IntersectionService,
     private languageService: LanguageService,
-    private titleStateService: TitleStateService
+    private TitleService: TitleService
   ) { }
 
   // For inner content
@@ -37,17 +37,17 @@ export class Docs_T01_IntoComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     // Initial content
-    this.write = content[this.currentLanguage].title_01.module_01;
+    this.write = content[this.currentLanguage].title_01.page_01;
 
-    // Suscribe to Language Service
-    this.languageService.language$.subscribe((language: string) => {
+    // Subscribe to Language Service
+    this.languageService.currentLanguage$.subscribe((language: string) => {
       if (this.isValidLanguage(language)) {
-        this.write = content[language].title_01.module_01;
+        this.write = content[language].title_01.page_01;
         this.currentLanguage = language;
       }
     });
-    // Set title section
-    this.titleStateService.setCurrTitle('introduction');
+    // Set TitleValue Service
+    this.TitleService.setTitle('introduction');
   }
 
   private isValidLanguage(language: string): language is Language {
