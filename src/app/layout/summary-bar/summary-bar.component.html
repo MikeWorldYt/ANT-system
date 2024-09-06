@@ -6,12 +6,12 @@
       	<h2 
       	  class="module-line"
       	  [innerHTML]="moduleName"
-      	  [ngClass]="{ 'currentArticle': idActive === (moduleName | addHyphen) }">
+      	  [ngClass]="{ 'currentArticle': currentArticle === (moduleName | addHyphen) }">
       	</h2>
     }
 
     <p>debug current language: {{ currentLanguage }}</p>
     <p>debug current title: {{ currentTitle }}</p>
-    <p>debug section: {{ idActive }}</p>
+    <p>debug article: {{ currentArticle }}</p>
     
 </div> 

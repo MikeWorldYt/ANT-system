@@ -4,9 +4,9 @@ import { BehaviorSubject, Observable } from 'rxjs';
 @Injectable({
   providedIn: 'root'
 })
-export class IntersectionService {
+export class ArticleService {
   private observer: IntersectionObserver;
-  private currentId: BehaviorSubject<string> = new BehaviorSubject<string>('');
+  private currentArticle$: BehaviorSubject<string> = new BehaviorSubject<string>('');
 
   constructor() {
     this.observer = new IntersectionObserver(this.intersectionCallback.bind(this), {
@@ -18,7 +18,7 @@ export class IntersectionService {
   private intersectionCallback(entries: IntersectionObserverEntry[]) {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        this.currentId.next(entry.target.id);
+        this.currentArticle$.next(entry.target.id);
       }
     });
   }
@@ -31,7 +31,10 @@ export class IntersectionService {
     this.observer.unobserve(element);
   }
 
-  getCurrentId(): Observable<string> {
-    return this.currentId.asObservable();
+  getcurrentArticle(): Observable<string> {
+    return this.currentArticle$.asObservable();
   }
 }
+
+// This server get the <section name> when scrolling
+// and it intersect in an imaginary line

@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { AddHyphenPipe } from '../../../pipes/add-hyphen.pipe';
 
 // ▲ SERVICES ▲
-import { IntersectionService } from '../../../services/IntersectionObserver.service';
+import { ArticleService } from '../../../services/navArticleObserver.service';
 import { LanguageService } from '../../../services/navLanguage.service';
 import { Language } from '../../../services/language.types';
 
@@ -31,7 +31,7 @@ import { HeaderT02Component } from '../header-t02/header-t02.component';
 export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
   // ▲ SERVICES ▲
   constructor(
-    private intersectionService: IntersectionService,
+    private intersectionService: ArticleService,
     private languageService: LanguageService
   ) { }
 
@@ -78,16 +78,16 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
   @ViewChildren('section') sections!: QueryList<ElementRef>;
 
   // ▬▬▬ Intersection Section <section>
-  idActive: string = '';
+  currentArticle: string = '';
 
   ngAfterViewInit() {
     this.sections.forEach(section => {
       this.intersectionService.observe(section.nativeElement);
     });
 
-    // Intersection Section
-    this.intersectionService.getCurrentId().subscribe(id => {
-      this.idActive = id;
+    // Intersection Observer function
+    this.intersectionService.getcurrentArticle().subscribe(id => {
+      this.currentArticle = id;
     })
 
   }

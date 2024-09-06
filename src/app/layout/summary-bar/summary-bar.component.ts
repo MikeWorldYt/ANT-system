@@ -4,7 +4,7 @@ import { AddHyphenPipe } from '../../pipes/add-hyphen.pipe';
 
 // ▲ SERVICES ▲
 import { LanguageService } from '../../services/navLanguage.service';
-import { IntersectionService } from '../../services/IntersectionObserver.service';
+import { ArticleService } from '../../services/navArticleObserver.service';
 import { Language } from '../../services/language.types';
 
 // ▲ CONTENT ▲
@@ -25,22 +25,18 @@ import { TitleService } from '../../services/navTitle.service';
 export class SummaryBarComponent implements OnInit, AfterViewInit {
   // ▲ SERVICES ▲
   constructor(
-    private intersectionService: IntersectionService,
+    private intersectionService: ArticleService,
     private languageService: LanguageService,
-    private TitleService: TitleService
+    private titleService: TitleService,
   ) { }
 
   // ▬▬▬ Navigation Context
   currentLanguage: Language = 'ES';
   currentTitle: string = '';
-  // currentPage
-  // currentArticle
+  // currentPage: string = '';
+  currentArticle: string = '';
 
-  //  ▬▬▬ Intersection Section <section>
-  idActive: string = '';
-
-  // ████ AfterViewInit
-
+  // ████ OnInit
   ngOnInit(): void {
     // Subscribe to Language Service
     this.languageService.currentLanguage$.subscribe((language: string) => {
@@ -50,15 +46,16 @@ export class SummaryBarComponent implements OnInit, AfterViewInit {
       }
     });
     // Subsribe to Title Service
-    this.TitleService.currentTitle$.subscribe(title => {
+    this.titleService.currentTitle$.subscribe(title => {
       this.currentTitle = title;
     });
   }
 
+  // ████ AfterViewInit
   ngAfterViewInit(): void {
     // Intersection Observer function
-    this.intersectionService.getCurrentId().subscribe(id => {
-      this.idActive = id;
+    this.intersectionService.getcurrentArticle().subscribe(id => {
+      this.currentArticle = id;
     });
   }
 

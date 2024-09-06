@@ -4,7 +4,7 @@ import { FooterComponent } from '../../../layout/footer/footer.component';
 
 // Content
 import { content } from '../../content/content';
-import { IntersectionService } from '../../../services/IntersectionObserver.service';
+import { ArticleService } from '../../../services/navArticleObserver.service';
 import { LanguageService } from '../../../services/navLanguage.service';
 import { Language } from '../../../services/language.types';
 import { CommonModule } from '@angular/common';
@@ -24,7 +24,7 @@ import { TitleService } from '../../../services/navTitle.service';
 export class Docs_T01_IntoComponent implements OnInit, AfterViewInit {
 
   constructor(
-    private intersectionService: IntersectionService,
+    private intersectionService: ArticleService,
     private languageService: LanguageService,
     private TitleService: TitleService
   ) { }
@@ -67,7 +67,7 @@ export class Docs_T01_IntoComponent implements OnInit, AfterViewInit {
 
     // service Hash Sections
     @ViewChildren('section') sections!: QueryList<ElementRef>;
-    idActive: string = '';
+    currentArticle: string = '';
   ngAfterViewInit() {
     this.sections.forEach(section => {
       this.intersectionService.observe(section.nativeElement);

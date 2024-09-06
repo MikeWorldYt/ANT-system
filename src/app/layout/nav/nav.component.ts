@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, HostListener, AfterViewInit, OnInit } from '@angular/core';
 import { NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
-import { IntersectionService } from '../../services/IntersectionObserver.service';
+import { ArticleService } from '../../services/navArticleObserver.service';
 import { TitleService } from '../../services/navTitle.service';
 
 @Component({
@@ -22,7 +22,7 @@ export class NavComponent implements OnInit, AfterViewInit{
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private intersectionService: IntersectionService,
+    private intersectionService: ArticleService,
     private TitleService: TitleService
   ) { }
 
@@ -50,7 +50,7 @@ export class NavComponent implements OnInit, AfterViewInit{
   hovered: boolean = false;
 
   //  ▬▬▬ Intersection Section <section>
-  idActive: string = '';
+  currentArticle: string = '';
 
   ngOnInit() {
     this.router.events.subscribe(event => {
@@ -79,10 +79,9 @@ export class NavComponent implements OnInit, AfterViewInit{
       }
     });
 
-    // Intersection Observer
-
-    this.intersectionService.getCurrentId().subscribe(id => {
-      this.idActive = id;
+  // Intersection Observer function
+    this.intersectionService.getcurrentArticle().subscribe(id => {
+      this.currentArticle = id;
     })
   }
 

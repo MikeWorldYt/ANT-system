@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
 
 // ▲ SERVICES ▲
-import { IntersectionService } from '../../../services/IntersectionObserver.service';
+import { ArticleService } from '../../../services/navArticleObserver.service';
 import { LanguageService } from '../../../services/navLanguage.service';
 import { Language } from '../../../services/language.types';
 
@@ -21,7 +21,7 @@ import { content } from '../../content/content';
 export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   // ▲ SERVICES ▲
   constructor(
-    private intersectionService: IntersectionService,
+    private intersectionService: ArticleService,
     private languageService: LanguageService
   ) { }
 
@@ -66,7 +66,7 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   }
 
   // ▬▬▬ Intersection Section <section>
-  idActive: string = '';
+  currentArticle: string = '';
 
   // ▲ Hash Sections Service
   @ViewChildren('section') sections!: QueryList<ElementRef>;
