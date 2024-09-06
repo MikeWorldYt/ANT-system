@@ -23,7 +23,7 @@ export const routes: Routes = [
           { path: 'levels-and-structure', component: Docs_T02_Mod01_Component }, // doc-t02-mod-01-levels-structure
           { path: 'support-folders', component: Docs_T02_Mod02_Component }, // doc-t02-mod-02-support-folders
           { path: 'files-nomenclature', component: Docs_T02_Mod03_Component }, // doc-t02-mod-03-nomenclature
-          { path: '', redirectTo: 'levels-and-structure', pathMatch: 'full' },
+          { path: '', redirectTo: 'levels-and-structure', pathMatch: 'prefix' },
         ] 
       },
       { path: 'getting-started', component: Docs_T03_IntoComponent },
@@ -40,6 +40,7 @@ export const routes: Routes = [
     BrowserModule,
     RouterModule.forRoot(routes, {
       useHash: true,
+      // bindToComponentInputs: true
     })
   ],
   providers: [
