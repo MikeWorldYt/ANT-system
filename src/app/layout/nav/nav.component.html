@@ -13,9 +13,9 @@
   <a [routerLink]="'getting-started'" routerLinkActive="active" (click)="toggleTitle('getting-started')">
     <div class="flex items-center">
       <!-- <img class="absolute w-4 mt-3 transition-transform duration-300 ease-in" 
-      [ngClass]="{ 'rotate-90': currTitle === 'getting-started' }" 
+      [ngClass]="{ 'rotate-90': currentTitle === 'getting-started' }" 
       src="assets/ChevronLeft.svg" alt=">"> -->
-      <h1 class="cursor-pointer" [ngClass]="{ 'currentTitle': currTitle === 'getting-started' }">
+      <h1 class="cursor-pointer" [ngClass]="{ 'currentTitle': currentTitle === 'getting-started' }">
         Getting Started</h1>
     </div>
   </a>
@@ -25,18 +25,18 @@
     <a [routerLink]="'introduction'" routerLinkActive="active" (click)="toggleTitle('introduction')">
       <div class="flex items-center">
         <img class="absolute w-4 mt-3 transition-transform duration-300 ease-in" 
-          [ngClass]="{ 'rotate-90': currTitle === 'introduction' }" 
+          [ngClass]="{ 'rotate-90': currentTitle === 'introduction' }" 
           src="assets/ChevronLeft.svg" alt=">">
-        <h1 class="cursor-pointer" [ngClass]="{ 'currentTitle': currTitle === 'introduction' }">
+        <h1 class="cursor-pointer" [ngClass]="{ 'currentTitle': currentTitle === 'introduction' }">
           Introduction</h1>
       </div>
     </a>
     <!-- ▼ Toogle Title INTRODUCTION ---->
-    @if (currTitle === 'introduction') {
-      <!-- ● Module ---->
+    @if (currentTitle === 'introduction') {
+      <!-- ● Page ---->
       <h2   class="module-line"
         >What is ANT?</h2>
-      <!-- ● Module ---->
+      <!-- ● Page ---->
       <h2   class="module-line"
         >Quick Start</h2>
     }
@@ -47,38 +47,34 @@
     <a routerLink="concepts" routerLinkActive="active" (click)="toggleTitle('concepts')">
       <div class="flex items-center">
         <img class="absolute w-4 mt-3 transition-transform duration-300 ease-in" 
-          [ngClass]="{ 'rotate-90': currTitle === 'concepts' }" 
+          [ngClass]="{ 'rotate-90': currentTitle === 'concepts' }" 
           src="assets/ChevronLeft.svg" alt=">">
-        <h1 class="cursor-pointer w-full" [ngClass]="{ 'currentTitle': currTitle === 'concepts' }">
+        <h1 class="cursor-pointer w-full" [ngClass]="{ 'currentTitle': currentTitle === 'concepts' }">
           Main Concepts</h1>
       </div>
     </a>
     <!-- ▼ Toogle Title CONCEPTS ---->
-    @if (currTitle === 'concepts') {
-      <!-- ● Module ---->
+    @if (currentTitle === 'concepts') {
+      <!-- ● Page ---->
       <a [routerLink]="['/concepts/levels-and-structure']">
         <h2   class="module-line"
-        [ngClass]="{ 'currentModule': moduleSection === 'levels-and-structure' }"
-        (click)="scrollToSection('levels-and-structure')"
+        [ngClass]="{ 'currentModule': currentPage === 'levels-and-structure' }"
         >1. Levels and Structure</h2>
       </a>
-      <!-- ● Module ---->
+      <!-- ● Page ---->
       <a [routerLink]="['/concepts/support-folders']">
         <h2   class="module-line"
-        [ngClass]="{ 'currentModule': moduleSection === 'support-folders' }"
-        (click)="scrollToSection('support-folders')"
+        [ngClass]="{ 'currentModule': currentPage === 'support-folders' }"
         >2. Support Folders</h2>
       </a>
-      <!-- ● Module ---->
+      <!-- ● Page ---->
       <a [routerLink]="['/concepts/files-nomenclature']">
         <h2   class="module-line"
-        [ngClass]="{ 'currentModule': moduleSection === 'file-nomenclature' }"
-        (click)="scrollToSection('file-nomenclature')"
+        [ngClass]="{ 'currentModule': currentPage === 'file-nomenclature' }"
         >3. File's Nomenclature</h2>
       </a>
       
     }
   </div>
   <br>
-  <p>debug section: {{ currentArticle }}</p>
 </nav>

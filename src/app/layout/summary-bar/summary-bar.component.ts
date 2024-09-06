@@ -25,9 +25,9 @@ import { TitleService } from '../../services/navTitle.service';
 export class SummaryBarComponent implements OnInit, AfterViewInit {
   // ▲ SERVICES ▲
   constructor(
-    private intersectionService: ArticleService,
     private languageService: LanguageService,
     private titleService: TitleService,
+    private intersectionService: ArticleService,
   ) { }
 
   // ▬▬▬ Navigation Context

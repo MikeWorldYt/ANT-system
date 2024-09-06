@@ -2,8 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, HostListener, AfterViewInit, OnInit } from '@angular/core';
 import { NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
+
+// ▲ SERVICES ▲
 import { ArticleService } from '../../services/navArticleObserver.service';
 import { TitleService } from '../../services/navTitle.service';
+import { LanguageService } from '../../services/navLanguage.service';
 
 @Component({
   selector: 'app-nav',
@@ -22,37 +25,24 @@ export class NavComponent implements OnInit, AfterViewInit{
   constructor(
     private route: ActivatedRoute,
     private router: Router,
+    private languageService: LanguageService,
+    private TitleService: TitleService,
     private intersectionService: ArticleService,
-    private TitleService: TitleService
   ) { }
 
-  // Toogle
-  currTitle: string = ''; // default property
-  showMe: boolean = true;
-  visible: boolean = false;
-
-  // ████ Toggle Title ████ ƒ
-  toggleTitle(section: string) {
-    if (this.currTitle === section) {
-      this.currTitle = ''; // Si se hace clic en la misma sección, la ocultamos
-      console.log(`s ${this.currTitle} se ha cerrado`);
-    } else {
-      this.currTitle = section; // Si se hace clic en una nueva sección, la mostramos
-      console.log(`s ${this.currTitle} se ha abierto`);
-    }
-    if (this.currTitle === 'concepts') {
-      this.moduleSection = 'levels-and-structure';
-    }
-  }
-
-  // Module <section> control
-  moduleSection: string = '';
-  hovered: boolean = false;
-
-  //  ▬▬▬ Intersection Section <section>
+  // ▬▬▬ Navigation Context
+  currentLanguage: string = '';
+  currentTitle: string = '';
+  currentPage: string = '';
   currentArticle: string = '';
 
-  ngOnInit() {
+  // ████ OnInit
+  ngOnInit(): void {
+    // Subscribe to Language Service
+    this.languageService.currentLanguage$.subscribe(language => {
+      this.currentLanguage = language;
+    });
+    // TO DO: REVIEW THIS
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
         const urlTree = this.router.parseUrl(this.router.url);
@@ -65,25 +55,43 @@ export class NavComponent implements OnInit, AfterViewInit{
         }
       }
     });
-    // Titles Toggle
-    this.TitleService.currentTitle$.subscribe(section => {
-      this.currTitle = section;
+    // Subsribe to Title Service
+    this.TitleService.currentTitle$.subscribe(title => {
+      this.currentTitle = title;
     })
   }
 
+  // ████ AfterViewInit
   ngAfterViewInit() {
-    this.route.fragment.subscribe(fragment => {
-      if (fragment) {
-        this.moduleSection = fragment;
-        // this.scrollToSection(fragment);
+    this.route.fragment.subscribe(page => {
+      if (page) {
+        this.currentPage = page;
       }
     });
-
   // Intersection Observer function
     this.intersectionService.getcurrentArticle().subscribe(id => {
       this.currentArticle = id;
     })
   }
+
+  // Toogle
+  showMe: boolean = true;
+  visible: boolean = false;
+
+  // ████ Toggle Title ████ ƒ
+  toggleTitle(section: string) {
+    if (this.currentTitle === section) {
+      this.currentTitle = ''; // Si se hace clic en la misma sección, la ocultamos
+    } else {
+      this.currentTitle = section; // Si se hace clic en una nueva sección, la mostramos
+    }
+    if (this.currentTitle === 'concepts') {
+      this.currentPage = 'levels-and-structure';
+    }
+  }
+
+  // Module <section> control
+  hovered: boolean = false;
 
   @HostListener('document:scroll', [])
 onWindowScroll() {
@@ -92,25 +100,18 @@ onWindowScroll() {
   sections.forEach(section => {
     const rect = section.getBoundingClientRect();
     if (rect.top >= 0 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight)) {
-      this.moduleSection = section.id;
+      this.currentPage = section.id;
     }
   }); 
 }
 
-  scrollToSection(sectionId: string) {
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
-    this.moduleSection = sectionId;
-    console.log(`SectionId: ${sectionId}`);
-
+  navPageToggle(section: string) {
+    this.currentPage = section;
   }
 
-  moduletoggle(section: string) {
-    this.moduleSection = section;
-  }
-
-  onAnchorClick(event: Event, sectionId: string) {
+  onAnchorClick(event: Event, page: string) {
     event.preventDefault();
-    this.scrollToSection(sectionId);
-    this.router.navigate([], { fragment: sectionId });
+    this.router.navigate([], { fragment: page });
   }
+
 }
