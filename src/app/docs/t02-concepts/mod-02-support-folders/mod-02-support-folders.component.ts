@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 
 // ▲ SERVICES ▲
 import { IntersectionService } from '../../../services/IntersectionObserver.service';
-import { LanguageService } from '../../../services/lenguaje.service';
+import { LanguageService } from '../../../services/navLanguage.service';
 import { Language } from '../../../services/language.types';
 
 // ▲ CONTENT ▲
@@ -34,11 +34,11 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
   // ████ Fill Content (inner) ███
   ngOnInit(): void {
     // Initial content
-    this.write = content[this.currentLanguage].title_02.module_02;
-    // Suscribe to Language Service
-    this.languageService.language$.subscribe((language: string) => {
+    this.write = content[this.currentLanguage].title_02.page_02;
+    // Subscribe to Language Service
+    this.languageService.currentLanguage$.subscribe((language: string) => {
       if (this.isValidLanguage(language)) {
-        this.write = content[language].title_02.module_02;
+        this.write = content[language].title_02.page_02;
         this.currentLanguage = language;
       }
     });

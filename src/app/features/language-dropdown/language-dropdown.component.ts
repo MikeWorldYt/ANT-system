@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { LanguageService } from '../../services/lenguaje.service';
+import { LanguageService } from '../../services/navLanguage.service';
 import { Language } from '../../services/language.types';
 import { CommonModule } from '@angular/common';
 

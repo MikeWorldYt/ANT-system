@@ -3,7 +3,7 @@ import { AfterViewInit, Component, ElementRef, OnInit, QueryList, ViewChildren }
 
 // ▲ SERVICES ▲
 import { IntersectionService } from '../../../services/IntersectionObserver.service';
-import { LanguageService } from '../../../services/lenguaje.service';
+import { LanguageService } from '../../../services/navLanguage.service';
 import { Language } from '../../../services/language.types';
 
 // ▲ CONTENT ▲
@@ -31,11 +31,11 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   // ███ Fill Content (inner) ███ 
   ngOnInit(): void {
     // Initial content 
-    this.write = content[this.currentLanguage].title_02.module_03;
-    // Suscribe to Language Service
-    this.languageService.language$.subscribe((language: string) => {
+    this.write = content[this.currentLanguage].title_02.page_03;
+    // Subscribe to Language Service
+    this.languageService.currentLanguage$.subscribe((language: string) => {
       if (this.isValidLanguage(language)) {
-        this.write = content[language].title_02.module_03;
+        this.write = content[language].title_02.page_03;
         this.currentLanguage = language;
       }
     });
