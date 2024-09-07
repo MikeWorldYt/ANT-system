@@ -24,9 +24,9 @@ import { TitleService } from '../../../services/navTitle.service';
 export class Docs_T01_IntoComponent implements OnInit, AfterViewInit {
 
   constructor(
-    private intersectionService: ArticleService,
     private languageService: LanguageService,
-    private TitleService: TitleService
+    private TitleService: TitleService,
+    private intersectionService: ArticleService,
   ) { }
 
   // For inner content

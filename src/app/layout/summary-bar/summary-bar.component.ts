@@ -1,7 +1,7 @@
 import { AfterViewInit, Component, OnInit } from '@angular/core';
 import { CommonModule, NgClass } from '@angular/common';
 import { AddHyphenPipe } from '../../pipes/add-hyphen.pipe';
-import { Subscription } from 'rxjs';
+import { Subscription, combineLatest } from 'rxjs';
 
 // ▲ SERVICES ▲
 import { LanguageService } from '../../services/navLanguage.service';
@@ -34,35 +34,26 @@ export class SummaryBarComponent implements OnInit, AfterViewInit {
   ) { }
 
   // ▬▬▬ Navigation Context
-  currentLanguage: Language = 'ES';
+  currentLanguage: string = 'ES';
   currentTitle: string = '';
   currentPage: string = '';
   currentArticle: string = '';
 
   // ████ OnInit ████
   ngOnInit(): void {
-    this.subscribeToLanguageChanges();
-    this.subscribeToTitleChanges();
-    this.subscribeToPageChanges();
+    this.subscribeToChanges();
   }
 
-  languageSubscription: Subscription = new Subscription();
-  private subscribeToLanguageChanges(): void {
-    this.languageSubscription = this.languageService.currentLanguage$.subscribe((language: string) => {
-      this.currentLanguage = language as Language;
-    });
-  }
-
-  titleSubscription: Subscription = new Subscription();
-  private subscribeToTitleChanges(): void {
-    this.titleSubscription = this.titleService.currentTitle$.subscribe((title: string) => {
+  // ████ Subscriptions Navigation Context
+  subscription = new Subscription();
+  private subscribeToChanges(): void {
+    this.subscription = combineLatest([
+      this.languageService.currentLanguage$,
+      this.titleService.currentTitle$,
+      this.pageService.currentPage$
+    ]).subscribe(([language, title, page]) => {
+      this.currentLanguage = language as string;
       this.currentTitle = title as string;
-    });
-  }
-  
-  pageSubscription: Subscription = new Subscription();
-  private subscribeToPageChanges(): void {
-    this.pageSubscription = this.pageService.currentPage$.subscribe(page => {
       this.currentPage = page as string;
     });
   }

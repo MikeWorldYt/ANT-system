@@ -7,6 +7,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ArticleService } from '../../services/navArticleObserver.service';
 import { TitleService } from '../../services/navTitle.service';
 import { LanguageService } from '../../services/navLanguage.service';
+import { PageService } from '../../services/navPage.service';
 
 @Component({
   selector: 'app-nav',
@@ -27,6 +28,7 @@ export class NavComponent implements OnInit, AfterViewInit{
     private router: Router,
     private languageService: LanguageService,
     private TitleService: TitleService,
+    private pageService: PageService,
     private intersectionService: ArticleService,
   ) { }
 
@@ -105,8 +107,8 @@ onWindowScroll() {
   }); 
 }
 
-  navPageToggle(section: string) {
-    this.currentPage = section;
+  navPageToggle(page: string) {
+    this.pageService.setCurrentPage(page);
   }
 
   onAnchorClick(event: Event, page: string) {

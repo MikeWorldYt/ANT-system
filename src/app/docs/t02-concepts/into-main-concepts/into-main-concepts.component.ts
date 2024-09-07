@@ -1,7 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { FooterComponent } from '../../../layout/footer/footer.component';
-import { TitleService } from '../../../services/navTitle.service';
 import { RouterOutlet } from '@angular/router';
+
+// ▲ SERVICES ▲
+import { TitleService } from '../../../services/navTitle.service';
+import { PageService } from '../../../services/navPage.service';
+import { LanguageService } from '../../../services/navLanguage.service';
 
 @Component({
   selector: 'docs-t02-into-main-concepts',
@@ -17,12 +21,16 @@ export class Docs_T02_IntoComponent implements OnInit {
   currTitle: string = 'introduction';
 
   constructor(
-    private TitleService: TitleService
+    private languageService: LanguageService,
+    private TitleService: TitleService,
+    private pageService: PageService,
   ) {}
 
   ngOnInit(): void {
     // Set TitleValue Service
     this.TitleService.setTitle('concepts');
+    // Set currentPage
+    this.pageService.setCurrentPage('page_01z');
   }
 
   toggle(section: string) {
