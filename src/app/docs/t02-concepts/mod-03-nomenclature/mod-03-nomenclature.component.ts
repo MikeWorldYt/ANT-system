@@ -8,6 +8,8 @@ import { Language } from '../../../services/language.types';
 
 // ▲ CONTENT ▲
 import { content } from '../../content/content';
+import { PageService } from '../../../services/navPage.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'doc-t02-mod-03-nomenclature',
@@ -22,18 +24,40 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   // ▲ SERVICES ▲
   constructor(
     private intersectionService: ArticleService,
-    private languageService: LanguageService
+    private languageService: LanguageService,
+    private pageService: PageService,
   ) { }
 
   // ▬▬▬ For inner content
   write: any;
 
-  // ███ Fill Content (inner) ███ 
+  // ▬▬▬ Navigation Context
+  currentLanguage: Language = 'ES';
+  currentTitle: string = '';
+  currentPage: string = '';
+  currentArticle: string = '';
+  
+  // ▬▬▬ Hash Sections
+  hovered: boolean = false;
+  
+  private languageSubscription: Subscription = new Subscription();
+  
+  // ▲ Hash Sections Service
+  @ViewChildren('section') sections!: QueryList<ElementRef>;
+
+  // ███ OnInit ███ 
   ngOnInit(): void {
-    // Initial content 
+    this.initializeContent();
+    this.subscribeToLanguageChanges();
+    this.pageService.setCurrentPage('nomenclature');
+  }
+
+  private initializeContent(): void {
     this.write = content[this.currentLanguage].title_02.page_03;
-    // Subscribe to Language Service
-    this.languageService.currentLanguage$.subscribe((language: string) => {
+  }
+
+  private subscribeToLanguageChanges(): void {
+    this.languageSubscription = this.languageService.currentLanguage$.subscribe((language: string) => {
       if (this.isValidLanguage(language)) {
         this.write = content[language].title_02.page_03;
         this.currentLanguage = language;
@@ -41,20 +65,10 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
     });
   }
 
-  // ▬▬▬ Language
-  currentLanguage: Language = 'ES';
-
   // ███ Language Controller ███
   private isValidLanguage(language: string): language is Language {
     return language === 'EN' || language === 'ES';
   }
-
-  switchLanguage(language: Language) {
-    this.languageService.setLanguage(language);
-  }
-
-  // ▬▬▬ Hash Sections
-  hovered: boolean = false;
 
   // ███ Hash Sections ███
   showHash(event: Event) {
@@ -65,12 +79,7 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
     this.hovered = false;
   }
 
-  // ▬▬▬ Intersection Section <section>
-  currentArticle: string = '';
-
-  // ▲ Hash Sections Service
-  @ViewChildren('section') sections!: QueryList<ElementRef>;
-
+  // ████ AfterViewInit
   ngAfterViewInit() {
     // Intersection Section
     this.sections.forEach(section => {
