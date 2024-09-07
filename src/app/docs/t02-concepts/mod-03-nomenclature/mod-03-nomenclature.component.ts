@@ -32,7 +32,7 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   write: any;
 
   // ▬▬▬ Navigation Context
-  currentLanguage: Language = 'ES';
+  currentLanguage: Language = '';
   currentTitle: string = '';
   currentPage: string = '';
   currentArticle: string = '';
@@ -44,27 +44,20 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
 
   // ███ OnInit ███ 
   ngOnInit(): void {
-    this.initializeContent();
     this.subscribeToLanguageChanges();
     this.pageService.setCurrentPage('page_03');
+    this.initializeContent(this.currentLanguage);
   }
 
-  private initializeContent(): void {
-    this.write = content[this.currentLanguage].title_02.page_03;
+  private initializeContent(language: Language): void {
+    this.write = content[language].title_02.page_03;
   }
 
   private subscribeToLanguageChanges(): void {
     this.languageSubscription = this.languageService.currentLanguage$.subscribe((language: string) => {
-      if (this.isValidLanguage(language)) {
-        this.write = content[language].title_02.page_03;
-        this.currentLanguage = language;
-      }
+      this.currentLanguage = language as Language;
+      this.initializeContent(this.currentLanguage); 
     });
-  }
-
-  // ███ Language Controller 
-  private isValidLanguage(language: string): language is Language {
-    return language === 'EN' || language === 'ES';
   }
 
   // ███ Hash Sections 

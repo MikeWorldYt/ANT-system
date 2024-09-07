@@ -2,6 +2,7 @@ import { Component, ElementRef, HostListener, QueryList, ViewChildren, OnInit, A
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AddHyphenPipe } from '../../../pipes/add-hyphen.pipe';
+import { Subscription } from 'rxjs';
 
 // ▲ SERVICES ▲
 import { ArticleService } from '../../../services/navArticleObserver.service';
@@ -41,30 +42,33 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
   write: any;
 
   // ▬▬▬ Navigation Context
-  currentLanguage: Language = 'ES';
+  currentLanguage: Language = '';
   currentTitle: string = '';
   currentPage: string = '';
   currentArticle: string = '';
+
+  private languageSubscription: Subscription = new Subscription();
 
   // ▲ service Hash Sections
   @ViewChildren('section') sections!: QueryList<ElementRef>;
 
   // ████ OnInit ███
   ngOnInit(): void {
-    // Initial content
-    this.write = content[this.currentLanguage].title_02.page_01;
-
-    // Subscribe to Language Service
-    this.languageService.currentLanguage$.subscribe((language: string) => {
-      if (this.isValidLanguage(language)) {
-        this.write = content[language].title_02.page_01;
-        this.currentLanguage = language;
-      }
-    });
-    // Set currentPage
+    this.subscribeToLanguageChanges();
     this.pageService.setCurrentPage('page_01');
+    this.initializeContent(this.currentLanguage);
   }
 
+  private initializeContent(language: Language): void {
+    this.write = content[this.currentLanguage].title_02.page_01;
+  }
+
+  private subscribeToLanguageChanges(): void {
+    this.languageSubscription = this.languageService.currentLanguage$.subscribe((language: string) => {
+      this.currentLanguage = language as Language;
+      this.initializeContent(this.currentLanguage); 
+    });
+  }
 
   // ███ Language Controller 
   private isValidLanguage(language: string): language is Language {
@@ -78,7 +82,7 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
   showHash(event: Event) {
     this.hovered = true;
   }
-  
+
   hideHash(event: Event) {
     this.hovered = false;
   }

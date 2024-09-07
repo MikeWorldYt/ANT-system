@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
 
 // ▲ SERVICES ▲
 import { ArticleService } from '../../../services/navArticleObserver.service';
@@ -34,27 +35,34 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
   write: any;
 
   // ▬▬▬ Navigation Context
-  currentLanguage: Language = 'ES';
+  currentLanguage: Language = '';
   currentTitle: string = '';
   currentPage: string = '';
   currentArticle: string = '';
+
+  private languageSubscription: Subscription = new Subscription();
 
   // ▲ service Hash Sections
   @ViewChildren('section') sections!: QueryList<ElementRef>;
 
   //  ████ OnInit ████
   ngOnInit(): void {
-    // For inner content
-    this.write = content[this.currentLanguage].title_02.page_02;
-    // Subscribe to Language Service
-    this.languageService.currentLanguage$.subscribe((language: string) => {
-        this.write = content[language].title_02.page_02;
-        //this.currentLanguage = language as Language;
-    });
-    // Set currentPage
+    this.subscribeToLanguageChanges();
     this.pageService.setCurrentPage('page_02');
+    this.initializeContent(this.currentLanguage);
   }
   
+  private initializeContent(language: Language): void {
+    this.write = content[language].title_02.page_02;
+  }
+
+  private subscribeToLanguageChanges(): void {
+    this.languageSubscription = this.languageService.currentLanguage$.subscribe((language: string) => {
+      this.currentLanguage = language as Language;
+      this.initializeContent(this.currentLanguage); 
+    });
+  }
+
   // ████ Hash Sections
   hovered = false;
   showHash(event: Event) {
