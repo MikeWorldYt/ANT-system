@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { Subscription } from 'rxjs';
 
 // ▲ SERVICES ▲
 import { ArticleService } from '../../../services/navArticleObserver.service';
@@ -9,7 +10,6 @@ import { Language } from '../../../services/language.types';
 // ▲ CONTENT ▲
 import { content } from '../../content/content';
 import { PageService } from '../../../services/navPage.service';
-import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'doc-t02-mod-03-nomenclature',
@@ -23,9 +23,9 @@ import { Subscription } from 'rxjs';
 export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   // ▲ SERVICES ▲
   constructor(
-    private intersectionService: ArticleService,
     private languageService: LanguageService,
     private pageService: PageService,
+    private intersectionService: ArticleService,
   ) { }
 
   // ▬▬▬ For inner content
@@ -37,9 +37,6 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   currentPage: string = '';
   currentArticle: string = '';
   
-  // ▬▬▬ Hash Sections
-  hovered: boolean = false;
-  
   private languageSubscription: Subscription = new Subscription();
   
   // ▲ Hash Sections Service
@@ -49,7 +46,7 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.initializeContent();
     this.subscribeToLanguageChanges();
-    this.pageService.setCurrentPage('nomenclature');
+    this.pageService.setCurrentPage('page_03');
   }
 
   private initializeContent(): void {
@@ -65,12 +62,13 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
     });
   }
 
-  // ███ Language Controller ███
+  // ███ Language Controller 
   private isValidLanguage(language: string): language is Language {
     return language === 'EN' || language === 'ES';
   }
 
-  // ███ Hash Sections ███
+  // ███ Hash Sections 
+  hovered = false;
   showHash(event: Event) {
     this.hovered = true;
   }
@@ -79,7 +77,7 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
     this.hovered = false;
   }
 
-  // ████ AfterViewInit
+  // ████ AfterViewInit ████
   ngAfterViewInit() {
     // Intersection Section
     this.sections.forEach(section => {

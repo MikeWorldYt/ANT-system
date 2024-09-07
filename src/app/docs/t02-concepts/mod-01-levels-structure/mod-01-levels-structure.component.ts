@@ -6,6 +6,7 @@ import { AddHyphenPipe } from '../../../pipes/add-hyphen.pipe';
 // ▲ SERVICES ▲
 import { ArticleService } from '../../../services/navArticleObserver.service';
 import { LanguageService } from '../../../services/navLanguage.service';
+import { PageService } from '../../../services/navPage.service';
 import { Language } from '../../../services/language.types';
 
 // ▲ CONTENT ▲
@@ -31,14 +32,21 @@ import { HeaderT02Component } from '../header-t02/header-t02.component';
 export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
   // ▲ SERVICES ▲
   constructor(
+    private languageService: LanguageService,
+    private pageService: PageService,
     private intersectionService: ArticleService,
-    private languageService: LanguageService
   ) { }
 
   // ▬▬▬ For inner content
   write: any;
 
-  // ████ Fill Content (inner) ███
+  // ▬▬▬ Navigation Context
+  currentLanguage: Language = 'ES';
+  currentTitle: string = '';
+  currentPage: string = '';
+  currentArticle: string = '';
+
+  // ████ OnInit ███
   ngOnInit(): void {
     // Initial content
     this.write = content[this.currentLanguage].title_02.page_01;
@@ -52,19 +60,15 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
     });
   }
 
-  // ▬▬▬ Language
-  currentLanguage: Language = 'ES';
 
-  // ███ Language Controller ███
-
+  // ███ Language Controller 
   private isValidLanguage(language: string): language is Language {
     return language === 'EN' || language === 'ES';
   }
 
-  // ▬▬▬ Hash Sections
+  
+  // ████ Hash Sections 
   hovered = false;
-
-  // ████ Hash Sections ████
 
   showHash(event: Event) {
     this.hovered = true;
@@ -77,9 +81,7 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
   // ▲ service Hash Sections
   @ViewChildren('section') sections!: QueryList<ElementRef>;
 
-  // ▬▬▬ Intersection Section <section>
-  currentArticle: string = '';
-
+  // ████ AfterViewInit ████
   ngAfterViewInit() {
     this.sections.forEach(section => {
       this.intersectionService.observe(section.nativeElement);
