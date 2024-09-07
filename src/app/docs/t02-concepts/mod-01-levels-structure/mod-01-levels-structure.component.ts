@@ -46,6 +46,9 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
   currentPage: string = '';
   currentArticle: string = '';
 
+  // ▲ service Hash Sections
+  @ViewChildren('section') sections!: QueryList<ElementRef>;
+
   // ████ OnInit ███
   ngOnInit(): void {
     // Initial content
@@ -58,6 +61,8 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
         this.currentLanguage = language;
       }
     });
+    // Set currentPage
+    this.pageService.setCurrentPage('page_01');
   }
 
 
@@ -77,9 +82,6 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
   hideHash(event: Event) {
     this.hovered = false;
   }
-
-  // ▲ service Hash Sections
-  @ViewChildren('section') sections!: QueryList<ElementRef>;
 
   // ████ AfterViewInit ████
   ngAfterViewInit() {

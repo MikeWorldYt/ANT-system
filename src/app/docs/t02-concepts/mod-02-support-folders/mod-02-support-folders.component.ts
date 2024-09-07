@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { ArticleService } from '../../../services/navArticleObserver.service';
 import { LanguageService } from '../../../services/navLanguage.service';
 import { Language } from '../../../services/language.types';
+import { PageService } from '../../../services/navPage.service';
 
 // ▲ CONTENT ▲
 import { content } from '../../content/content';
@@ -26,37 +27,36 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
   // ▲ SERVICES ▲
   constructor(
     private intersectionService: ArticleService,
-    private languageService: LanguageService
+    private pageService: PageService,
+    private languageService: LanguageService,
   ) { }
   // ▬▬▬ For inner content
   write: any;
 
-  // ████ Fill Content (inner) ███
+  // ▬▬▬ Navigation Context
+  currentLanguage: Language = 'ES';
+  currentTitle: string = '';
+  currentPage: string = '';
+  currentArticle: string = '';
+
+  // ▲ service Hash Sections
+  @ViewChildren('section') sections!: QueryList<ElementRef>;
+
+  //  ████ OnInit ████
   ngOnInit(): void {
-    // Initial content
+    // For inner content
     this.write = content[this.currentLanguage].title_02.page_02;
     // Subscribe to Language Service
     this.languageService.currentLanguage$.subscribe((language: string) => {
-      if (this.isValidLanguage(language)) {
         this.write = content[language].title_02.page_02;
-        this.currentLanguage = language;
-      }
+        //this.currentLanguage = language as Language;
     });
+    // Set currentPage
+    this.pageService.setCurrentPage('page_02');
   }
-
-  // ▬▬▬ Language
-  currentLanguage: Language = 'ES';
-
-  // ███ Language Controller ███
-  private isValidLanguage(language: string): language is Language {
-    return language === 'EN' || language === 'ES';
-  }
-
-
-  //  ▬▬▬ Hash Sections
+  
+  // ████ Hash Sections
   hovered = false;
-
-  // ████ Hash Sections ████
   showHash(event: Event) {
     this.hovered = true;
   }
@@ -65,12 +65,7 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
     this.hovered = false;
   }
 
-  // ▲ service Hash Sections
-  @ViewChildren('section') sections!: QueryList<ElementRef>;
-  
-  // ▬▬▬ Intersection Section <section>
-  currentArticle: string = '';
-
+  // ████ AfterViewInit ████
   ngAfterViewInit() {
     this.sections.forEach(section => {
       this.intersectionService.observe(section.nativeElement);
