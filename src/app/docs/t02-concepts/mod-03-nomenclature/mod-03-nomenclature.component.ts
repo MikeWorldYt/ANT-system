@@ -37,8 +37,6 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   currentPage: string = '';
   currentArticle: string = '';
   
-  private languageSubscription: Subscription = new Subscription();
-  
   // ▲ Hash Sections Service
   @ViewChildren('section') sections!: QueryList<ElementRef>;
 
@@ -53,6 +51,7 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
     this.write = content[language].title_02.page_03;
   }
 
+  languageSubscription: Subscription = new Subscription();
   private subscribeToLanguageChanges(): void {
     this.languageSubscription = this.languageService.currentLanguage$.subscribe((language: string) => {
       this.currentLanguage = language as Language;
