@@ -5,7 +5,6 @@ import { Subscription } from 'rxjs';
 // ▲ SERVICES ▲
 import { ArticleService } from '../../../services/navArticleObserver.service';
 import { LanguageService } from '../../../services/navLanguage.service';
-import { Language } from '../../../services/language.types';
 import { PageService } from '../../../services/navPage.service';
 
 // ▲ CONTENT ▲
@@ -35,7 +34,7 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
   write: any;
 
   // ▬▬▬ Navigation Context
-  currentLanguage: Language = 'EN';
+  currentLanguage: string = 'EN';
   currentTitle: string = 'title_02';
   currentPage: string = 'page_02';
   currentArticle: string = '';
@@ -50,14 +49,14 @@ export class Docs_T02_Mod02_Component implements OnInit, AfterViewInit {
     this.initializeContent(this.currentLanguage, this.currentTitle, this.currentPage);
   }
   
-  private initializeContent(language: Language, title: string, page: string): void {
+  private initializeContent(language: string, title: string, page: string): void {
     this.write = content[language][title][page];
   }
 
   languageSubscription: Subscription = new Subscription();
   private subscribeToLanguageChanges(): void {
     this.languageSubscription = this.languageService.currentLanguage$.subscribe((language: string) => {
-      this.currentLanguage = language as Language;
+      this.currentLanguage = language as string;
       this.initializeContent(this.currentLanguage, this.currentTitle, this.currentPage); 
     });
   }

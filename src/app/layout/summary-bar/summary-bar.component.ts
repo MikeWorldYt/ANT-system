@@ -6,7 +6,6 @@ import { Subscription, combineLatest } from 'rxjs';
 // ▲ SERVICES ▲
 import { LanguageService } from '../../services/navLanguage.service';
 import { ArticleService } from '../../services/navArticleObserver.service';
-import { Language } from '../../services/language.types';
 
 // ▲ CONTENT ▲
 import { content } from '../../docs/content/content';

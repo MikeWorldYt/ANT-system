@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { LanguageService } from '../../services/navLanguage.service';
-import { Language } from '../../services/language.types';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -13,13 +12,13 @@ import { CommonModule } from '@angular/common';
   styleUrl: './language-dropdown.component.css'
 })
 export class LanguageDropdownComponent {
-  languages: Language[] = ['EN', 'ES']; // Idiomas disponibles
+  languages: string[] = ['EN', 'ES']; // Idiomas disponibles
 
   constructor(private languageService: LanguageService) {}
 
   changeLanguage(event: Event) {
     const selectElement = event.target as HTMLSelectElement;
-    const selectedLanguage = selectElement.value as Language;
+    const selectedLanguage = selectElement.value as string;
     this.languageService.setLanguage(selectedLanguage);
   }
 }

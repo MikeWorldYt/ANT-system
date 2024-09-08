@@ -1,5 +1,3 @@
-import { Language } from '../../services/language.types';
-
 export const content: Record<string, any> = {
   EN: {
     title_01: {
