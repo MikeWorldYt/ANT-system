@@ -8,6 +8,7 @@ import { Subscription } from 'rxjs';
 import { ArticleService } from '../../../services/navArticleObserver.service';
 import { LanguageService } from '../../../services/navLanguage.service';
 import { PageService } from '../../../services/navPage.service';
+import { HashHoverFeature } from '../../../services/ftHashHover.service';
 
 // ▲ CONTENT ▲
 import { content } from '../../content/content';
@@ -35,6 +36,7 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
     private languageService: LanguageService,
     private pageService: PageService,
     private intersectionService: ArticleService,
+    public hashHoverFeature: HashHoverFeature,
   ) { }
 
   // ▬▬▬ For inner content
@@ -66,17 +68,6 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
       this.currentLanguage = language as string;
       this.initializeContent(this.currentLanguage, this.currentTitle, this.currentPage); 
     });
-  }
-
-  // ████ Hash Sections 
-  hovered = false;
-
-  showHash(event: Event) {
-    this.hovered = true;
-  }
-
-  hideHash(event: Event) {
-    this.hovered = false;
   }
 
   // ████ AfterViewInit ████

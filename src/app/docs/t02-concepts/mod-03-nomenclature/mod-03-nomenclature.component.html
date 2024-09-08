@@ -4,10 +4,12 @@
 
   <!-- ------------------------------   .   -   3.   -   .    ------------------------------ -->
   <section id="Files-Nomenclature" #section>
-		<h2 class="docs-subtitle" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)"
+		<h2 class="docs-subtitle"
+    (mouseenter)="hashHoverFeature.showHash()"
+    (mouseleave)="hashHoverFeature.hideHash()"
     [innerHTML]="write.article_30.h1">
       3. Files Nomenclature</h2>
-    <span class="hash-link" *ngIf="hovered">
+    <span class="hash-link" *ngIf="hashHoverFeature.hovered">
       <h2 class="docs-subtitle">#</h2>
     </span>
   <p  [innerHTML]="write.article_30.p1"></p>
