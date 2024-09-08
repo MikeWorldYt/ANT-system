@@ -38,9 +38,6 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   currentTitle: string = 'title_02';
   currentPage: string = 'page_03';
   currentArticle: string = '';
-  
-  // ▲ Hash Sections Service
-  @ViewChildren('section') sections!: QueryList<ElementRef>;
 
   // ███ OnInit ███ 
   ngOnInit(): void {
@@ -70,6 +67,9 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   hideHash(event: Event) {
     this.hovered = false;
   }
+
+  // ▲ DOM QueryList Sections
+  @ViewChildren('section') sections!: QueryList<ElementRef>;
 
   // ████ AfterViewInit ████
   ngAfterViewInit() {
