@@ -138,3 +138,9 @@ section[id] {
 ::-webkit-scrollbar-button {
     display: none;
 }
+
+.debug {
+    margin: 30px 0px 30px 0px;
+    padding: 10px;
+    border: orange solid 1px;
+}
