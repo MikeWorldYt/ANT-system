@@ -70,12 +70,6 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
     });
   }
 
-  // ███ Language Controller 
-  private isValidLanguage(language: string): language is Language {
-    return language === 'EN' || language === 'ES';
-  }
-
-  
   // ████ Hash Sections 
   hovered = false;
 

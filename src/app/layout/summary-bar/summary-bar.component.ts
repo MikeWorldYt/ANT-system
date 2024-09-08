@@ -79,11 +79,4 @@ export class SummaryBarComponent implements OnInit, AfterViewInit {
     this.articleID = Object.keys(pageContent).map((key) => pageContent[key].id);
   }
 
-  // ███ Language Controller
-
-  private isValidLanguage(language: string): language is Language {
-    return language === 'EN' || language === 'ES';
-  }
-
-
 }
