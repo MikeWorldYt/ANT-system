@@ -1,11 +1,5 @@
 <!DOCTYPE html>
 <div class="w-full">
-    <!-- <h1 class="text-3xl font-bold text-emerald-500 mb-2">GETTING STARTED</h1> -->
-
-  <!-- <div class="centerDiv">
-    <img class="w-3/4 " src="img/docs-t01-into-welcome.png" alt="">
-  </div> -->
-  
   <div class="docs-decorative-header ">
     <div class="docs-header-content">
       <div class="docs-header">
@@ -30,10 +24,12 @@
 
   <!-- ------------------------------   .   -   0.2   -   .    ------------------------------ -->
   <section id="How-works" #section>
-    <h2 class="docs-subtitle-light" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)"
+    <h2 class="docs-subtitle-light"
+    (mouseenter)="hashHoverFeature.showHash()"
+    (mouseleave)="hashHoverFeature.hideHash()"
     [innerHTML]="write.article_02.h1"> 
       How works?</h2>
-    <span class="hash-link" *ngIf="hovered">
+    <span class="hash-link" *ngIf="hashHoverFeature.hovered">
       <h2 class="docs-subtitle-light">#</h2>
     </span>
     <p [innerHTML]="write.article_02.p1">
@@ -42,10 +38,12 @@
 
   <!-- ------------------------------   .   -   0.3   -   .    ------------------------------ -->
   <section id="Key-Benefits" #section>
-    <h2 class="docs-subtitle-light" (mouseenter)="showHash($event)" (mouseleave)="hideHash($event)"
+    <h2 class="docs-subtitle-light"
+    (mouseenter)="hashHoverFeature.showHash()"
+    (mouseleave)="hashHoverFeature.hideHash()"
     [innerHTML]="write.article_03.h1">
       Key Benefits of ANT System:</h2>
-    <span class="hash-link" *ngIf="hovered">
+    <span class="hash-link" *ngIf="hashHoverFeature.hovered">
       <h2 class="docs-subtitle-light">#</h2>
     </span>
     <ul>

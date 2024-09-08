@@ -1,14 +1,20 @@
 import { AfterViewInit, Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
+
+// ▲ COMPONENTS ▲
 import { FooterComponent } from '../../../layout/footer/footer.component';
 
-// Content
+// ▲ CONTENT ▲
 import { content } from '../../content/content';
+
+// ▲ SERVICES ▲
 import { ArticleService } from '../../../services/navArticleObserver.service';
 import { LanguageService } from '../../../services/navLanguage.service';
-import { Language } from '../../../services/language.types';
-import { CommonModule } from '@angular/common';
 import { TitleService } from '../../../services/navTitle.service';
+import { PageService } from '../../../services/navPage.service';
+import { HashHoverFeature } from '../../../services/ftHashHover.service';
 
 @Component({
   selector: 'docs-t01-into-getting-starter',
@@ -26,51 +32,48 @@ export class Docs_T01_IntoComponent implements OnInit, AfterViewInit {
   constructor(
     private languageService: LanguageService,
     private TitleService: TitleService,
+    private pageService: PageService,
     private intersectionService: ArticleService,
+    public hashHoverFeature: HashHoverFeature,
   ) { }
 
   // For inner content
   write: any;
 
   // Language
-  currentLanguage: Language = 'ES';
+  currentLanguage: string = 'ES';
+  currentTitle: string = 'title_01';
+  currentPage: string = 'page_01';
+  currentArticle: string = '';
 
+  // ███ OnInit ███
   ngOnInit(): void {
-    // Initial content
-    this.write = content[this.currentLanguage].title_01.page_01;
-
-    // Subscribe to Language Service
-    this.languageService.currentLanguage$.subscribe((language: string) => {
-      if (this.isValidLanguage(language)) {
-        this.write = content[language].title_01.page_01;
-        this.currentLanguage = language;
-      }
-    });
-    // Set TitleValue Service
+    this.subscribeToLanguageChanges();
     this.TitleService.setTitle('title_01');
+    this.pageService.setCurrentPage('page_01');
+    this.initializeContent(this.currentLanguage, this.currentTitle, this.currentPage);
   }
 
-  private isValidLanguage(language: string): language is Language {
-    return language === 'EN' || language === 'ES';
+  private initializeContent(language: string, title: string, page: string): void {
+    this.write = content[language][title][page];
   }
 
-  // Hash Sections
-  hovered = false;
-
-  showHash(event: Event) {
-    this.hovered = true;
-  }
-  
-  hideHash(event: Event) {
-    this.hovered = false;
+  languageSubscription: Subscription = new Subscription();
+  private subscribeToLanguageChanges(): void {
+    this.languageSubscription = this.languageService.currentLanguage$.subscribe((language: string) => {
+      this.currentLanguage = language as string;
+      this.initializeContent(this.currentLanguage, this.currentTitle, this.currentPage); 
+    });
   }
 
-    // service Hash Sections
-    @ViewChildren('section') sections!: QueryList<ElementRef>;
-    currentArticle: string = '';
+  // DOM QueryList Sections
+  @ViewChildren('section') sections!: QueryList<ElementRef>;
+
+  // ████ AfterViewInit ████
   ngAfterViewInit() {
     this.sections.forEach(section => {
       this.intersectionService.observe(section.nativeElement);
   });
-}
+  }
+
 }
