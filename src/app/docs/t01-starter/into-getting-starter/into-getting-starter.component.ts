@@ -47,7 +47,7 @@ export class Docs_T01_IntoComponent implements OnInit, AfterViewInit {
       }
     });
     // Set TitleValue Service
-    this.TitleService.setTitle('introduction');
+    this.TitleService.setTitle('title_01');
   }
 
   private isValidLanguage(language: string): language is Language {

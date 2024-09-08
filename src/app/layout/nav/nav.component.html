@@ -22,17 +22,17 @@
 
   <!-- TITLE INTRODUCTION ---->
   <div>
-    <a [routerLink]="'introduction'" routerLinkActive="active" (click)="toggleTitle('introduction')">
+    <a [routerLink]="'introduction'" routerLinkActive="active" (click)="toggleTitle('title_01')">
       <div class="flex items-center">
         <img class="absolute w-4 mt-3 transition-transform duration-300 ease-in" 
-          [ngClass]="{ 'rotate-90': currentTitle === 'introduction' }" 
+          [ngClass]="{ 'rotate-90': currentTitle === 'title_01' }" 
           src="assets/ChevronLeft.svg" alt=">">
-        <h1 class="cursor-pointer" [ngClass]="{ 'currentTitle': currentTitle === 'introduction' }">
+        <h1 class="cursor-pointer" [ngClass]="{ 'currentTitle': currentTitle === 'title_01' }">
           Introduction</h1>
       </div>
     </a>
     <!-- ▼ Toogle Title INTRODUCTION ---->
-    @if (currentTitle === 'introduction') {
+    @if (currentTitle === 'title_01') {
       <!-- ● Page ---->
       <h2   class="module-line"
         >What is ANT?</h2>
@@ -44,17 +44,17 @@
 
   <!-- TITLE CONCEPTS ---->
   <div>
-    <a routerLink="concepts" routerLinkActive="active" (click)="toggleTitle('concepts')">
+    <a routerLink="concepts" routerLinkActive="active" (click)="toggleTitle('title_02')">
       <div class="flex items-center">
         <img class="absolute w-4 mt-3 transition-transform duration-300 ease-in" 
-          [ngClass]="{ 'rotate-90': currentTitle === 'concepts' }" 
+          [ngClass]="{ 'rotate-90': currentTitle === 'title_02' }" 
           src="assets/ChevronLeft.svg" alt=">">
-        <h1 class="cursor-pointer w-full" [ngClass]="{ 'currentTitle': currentTitle === 'concepts' }">
+        <h1 class="cursor-pointer w-full" [ngClass]="{ 'currentTitle': currentTitle === 'title_02' }">
           Main Concepts</h1>
       </div>
     </a>
     <!-- ▼ Toogle Title CONCEPTS ---->
-    @if (currentTitle === 'concepts') {
+    @if (currentTitle === 'title_02') {
       <!-- ● Page ---->
       <a [routerLink]="['/concepts/levels-and-structure']">
         <h2   class="module-line"

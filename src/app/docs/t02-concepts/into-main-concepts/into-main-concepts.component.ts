@@ -28,9 +28,7 @@ export class Docs_T02_IntoComponent implements OnInit {
 
   ngOnInit(): void {
     // Set TitleValue Service
-    this.TitleService.setTitle('concepts');
-    // Set currentPage
-    this.pageService.setCurrentPage('page_01z');
+    this.TitleService.setTitle('title_02');
   }
 
   toggle(section: string) {

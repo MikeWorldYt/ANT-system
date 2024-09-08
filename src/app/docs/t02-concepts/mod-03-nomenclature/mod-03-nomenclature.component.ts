@@ -34,7 +34,7 @@ export class Docs_T02_Mod03_Component implements OnInit, AfterViewInit {
   write: any;
 
   // ▬▬▬ Navigation Context
-  currentLanguage: Language = '';
+  currentLanguage: Language = 'EN';
   currentTitle: string = '';
   currentPage: string = '';
   currentArticle: string = '';
