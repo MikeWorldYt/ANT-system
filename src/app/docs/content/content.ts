@@ -1,6 +1,6 @@
 import { Language } from '../../services/language.types';
 
-export const content: Record<Language, any> = {
+export const content: Record<string, any> = {
   EN: {
     title_01: {
       page_01: {
@@ -10,16 +10,19 @@ export const content: Record<Language, any> = {
 					d1: 'ANT on the system (Archive Nesting Technique on the System) is a hierarchical organizational method designed to streamline the storage, easier to manage and find files.',
 				},
 				article_01: {
+					id: 'Introduction',
 					d1: '<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>hierarchical organizational methods</i> designed to streamline  <br>      the storage, easier to manage and find files.',
 					p1: "This system originated in a Workplace <strong>to Manage a Large Volume of files</strong> and was <strong>re-adapted for a Home Use</strong> to make it easy for any user to implement. <br> Even so, we highlight that it's <strong><i>mainly focused on the Home Office and Students</i></strong>, but it still offers flexibility for other areas.",
 					p2: "<br> <br>This is a system with hierarchical organizational methods, structured in a way that mimics an ant colony, This system has a hierarchical system with a Directed acyclic graph (DAG) adapted to the conventional tree data structure of current Operating Systems, Additionality, it creates a decentralized and modular infrastructure, making it flexible yet resilient in handling information.",
 					p3: "<br> <br>The purpose of this system and its methods is not ensure that, even when handling a large amount and variety of data, it can be organized and dynamically managed; In other words, as long as the user follows these methods, when they create or add a new file to their system, they'll be free to edit, share, migrate, version, etc., with a very high probability that their information will not be compromised, duplicated, or lost among other files."
 				},
 				article_02: {
+					id: 'How works',
 					h1: 'How works?',
 					p1: 'Her rules organize files in a way that mimics an ant colony, <br> with a categories pathways in levels and some nested paths. <br> Also, it employs a naming convention that allows the user to find a file anywhere. <br> <br>Following this method will ensure that your Digital Storage is well-organized, <br>Easily accessible, and Efficiently managed'
 				},
 				article_03: {
+					id: 'Key benefits',
 					h1: 'Key Benefits of ANT System:',
 					ul1_li1: '<strong>1. Structured Organization:</strong>  Files are organized in a clear hierarchical structure, making navigation easy.',
 					ul1_li2: '<strong>2. Convenient Nomenclature:</strong>  Folders and subfolders are named with an incremental and intuitive patern, improving the organization, creation, and search of content.',
@@ -105,15 +108,18 @@ export const content: Record<Language, any> = {
 			page_02: {
 
 				article_20: {
+					id: 'Support Folders',
 					h1: '2. Support Folders',
 					p1: 'The support folders are designed to be helpful at the current level. In that sense support the user. Each has a unique identifier, making it easy to differentiate and quickly identify them.'
 				},
 				article_21: {
+					id: 'Settings Folder',
 					h1: "Settings Folder (99)",
 					p1: "Its unique identifier should be '99', so you'll probably find it as '99.Settings'",
 					p2: "This folder contains general configurations for 'ANT', for your programs, interfaces, or Operating System."				
 				},
 				article_22: {
+					id: 'Review Folder',
 					h1: "Review Folder (98)",
 					p1: "Its unique identifier should be '98', so you'll probably find it as '98.math', '98.marketing' or '98.instagram'.",
 					p2: "This folder contains all your files and directories that have no classification, need renaming, or maybe are not from the current level.",
@@ -121,12 +127,14 @@ export const content: Record<Language, any> = {
 					d1: "<strong>Important</strong>: Use the identifier, followed by a dot, followed by the name of the current path or similar (preferably write it in kebab-case)"
 				},
 				article_23: {
+					id: 'Resources Folder',
 					h1: "Resources Folder (90)",
 					p1: "It's unique identifier should be '90'. so it should be named '90.Resources'.",
 					p2: "This folder helps organize those files that due to their nature; are frequently used, as brand guidelines, presets, multimedia, libraries, logos, or any other for use.",
 					p3: "Usage Suggestions:",
 				},
 				article_24: {
+					id: 'Archive Folder',
 					h1: "Archive Folder (00)",
 					p1: "Its unique identifier should be '00', so you'll can use it as '00.Final', '00.Ready', '00.Renders', '00.forProduction', etc.",
 					p2: "This folder it's meant contain your deliverables or already delivered items, e.g. for your projects, homeworks, presentations, or any completed job, as well as each of its subsequent versions.",
@@ -134,6 +142,7 @@ export const content: Record<Language, any> = {
 					p3: "Usage Suggestions:",
 				},
 				article_25: {
+					id: 'Temporal Folder',
 					h1: "Temporal Folder (~)",
 					p1: "Its unique identifier should be '~'. so you'll probably find it as '~.temporal', '~temp', '~agascfsa'",
 					d1: "<strong>Note</strong>: It doesn't really need an identifier, but this way, you'll know to delete it when it's empty.",
@@ -143,6 +152,7 @@ export const content: Record<Language, any> = {
 					d3: "The reason was the symbol '~' is for the organizacion ASCI then this appears in the begin.",
 				},
 				article_26: {
+					id: 'Workboard Folder',
 					h1: "Workboard Folder (PJ, PR, PP, HW)",
 					p1: "Its could be different identifier.",
 					p2: "It helps organize your work-related files into distinct categories such as:",
@@ -154,7 +164,7 @@ export const content: Record<Language, any> = {
 			page_03: {
 				article_30: {
 					h1: "3. Files Nomenclature",
-					p1: "test lorem ipsum"
+					p1: "204 - No Content"
 				}
 			}
     }
@@ -304,7 +314,7 @@ export const content: Record<Language, any> = {
 			page_03: {
 				article_30: {
 					h1: "3. Nomenclatura de Archivos",
-					p1: "test lorem ipsum"
+					p1: "204 - No Content"
 				}
 			}
 		}
