@@ -42,6 +42,7 @@ export class SummaryBarComponent implements OnInit, AfterViewInit {
   // ████ OnInit ████
   ngOnInit(): void {
     this.subscribeToChanges();
+    this.getSummary(this.currentLanguage, this.currentTitle, this.currentPage);
   }
 
   // ████ Subscriptions Navigation Context
@@ -55,6 +56,7 @@ export class SummaryBarComponent implements OnInit, AfterViewInit {
       this.currentLanguage = language as string;
       this.currentTitle = title as string;
       this.currentPage = page as string;
+      this.getSummary(this.currentLanguage, this.currentTitle, this.currentPage);
     });
   }
 
@@ -66,17 +68,11 @@ export class SummaryBarComponent implements OnInit, AfterViewInit {
     });
   }
 
-
-  // ▬▬▬ Toogle Summary
-  articleID: string[] = [];
-  getPageSummary(id: string): void {
-    
-  }
-
   // ████ Map Tooogle Summary
-  getSummary(): void {
-    const pageContent = content[this.currentLanguage].title_02.page_01;
-    this.articleID = Object.keys(pageContent).map((key) => pageContent[key].id);
+  articleHeadings: string[] = [];
+  getSummary(language: string, title: string, page: string): void {
+    const pageContent = content[language][title][page];
+    this.articleHeadings = Object.keys(pageContent).map((key) => pageContent[key].id);
   }
 
 }

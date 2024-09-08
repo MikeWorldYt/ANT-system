@@ -2,11 +2,11 @@
 <div class="flex flex-col w-full">
     <h1>On this Page</h1>
     <!-- ▼ Toogle summary ---->
-    @for (moduleName of articleID; track $index ) {
+    @for (articleHeading of articleHeadings; track $index ) {
       	<h2 
       	  class="module-line"
-      	  [innerHTML]="moduleName"
-      	  [ngClass]="{ 'currentArticle': currentArticle === (moduleName | addHyphen) }">
+      	  [innerHTML]="articleHeading"
+      	  [ngClass]="{ 'currentArticle': currentArticle === (articleHeading | addHyphen) }">
       	</h2>
     }
 
