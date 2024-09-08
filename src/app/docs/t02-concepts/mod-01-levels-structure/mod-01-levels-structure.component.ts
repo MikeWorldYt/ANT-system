@@ -43,11 +43,9 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
 
   // ▬▬▬ Navigation Context
   currentLanguage: Language = 'EN';
-  currentTitle: string = '';
-  currentPage: string = '';
+  currentTitle: string = 'title_02';
+  currentPage: string = 'page_01';
   currentArticle: string = '';
-
-  private languageSubscription: Subscription = new Subscription();
 
   // ▲ service Hash Sections
   @ViewChildren('section') sections!: QueryList<ElementRef>;
@@ -56,17 +54,18 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.subscribeToLanguageChanges();
     this.pageService.setCurrentPage('page_01');
-    this.initializeContent(this.currentLanguage);
+    this.initializeContent(this.currentLanguage, this.currentTitle, this.currentPage);
   }
 
-  private initializeContent(language: Language): void {
-    this.write = content[this.currentLanguage].title_02.page_01;
+  private initializeContent(language: Language, title: string, page: string): void {
+    this.write = content[this.currentLanguage][title][page];
   }
 
+  languageSubscription: Subscription = new Subscription();
   private subscribeToLanguageChanges(): void {
     this.languageSubscription = this.languageService.currentLanguage$.subscribe((language: string) => {
       this.currentLanguage = language as Language;
-      this.initializeContent(this.currentLanguage); 
+      this.initializeContent(this.currentLanguage, this.currentTitle, this.currentPage); 
     });
   }
 
