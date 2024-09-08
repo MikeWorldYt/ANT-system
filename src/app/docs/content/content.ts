@@ -10,7 +10,7 @@ export const content: Record<string, any> = {
 					d1: 'ANT on the system (Archive Nesting Technique on the System) is a hierarchical organizational method designed to streamline the storage, easier to manage and find files.',
 				},
 				article_01: {
-					id: 'Introduction',
+					id: 'Intro',
 					d1: '<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>hierarchical organizational methods</i> designed to streamline  <br>      the storage, easier to manage and find files.',
 					p1: "This system originated in a Workplace <strong>to Manage a Large Volume of files</strong> and was <strong>re-adapted for a Home Use</strong> to make it easy for any user to implement. <br> Even so, we highlight that it's <strong><i>mainly focused on the Home Office and Students</i></strong>, but it still offers flexibility for other areas.",
 					p2: "<br> <br>This is a system with hierarchical organizational methods, structured in a way that mimics an ant colony, This system has a hierarchical system with a Directed acyclic graph (DAG) adapted to the conventional tree data structure of current Operating Systems, Additionality, it creates a decentralized and modular infrastructure, making it flexible yet resilient in handling information.",
@@ -106,7 +106,6 @@ export const content: Record<string, any> = {
 				}
       },
 			page_02: {
-
 				article_20: {
 					id: 'Support Folders',
 					h1: '2. Support Folders',
@@ -167,7 +166,14 @@ export const content: Record<string, any> = {
 					p1: "204 - No Content"
 				}
 			}
-    }
+    },
+		title_03: {
+			page_01: {
+				article_01: {
+					id: '',
+				}
+			}
+		}
   },
   ES: {
     title_01: {
