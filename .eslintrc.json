@@ -1,0 +1,12 @@
+{
+    "root": true,
+    "extends": [
+      "eslint:recommended",
+      "plugin:@angular-eslint/recommended",
+      "plugin:@angular-eslint/template/recommended"
+    ],
+    "rules": {
+      "attr-lowercase": "off",
+      "@angular-eslint/template/attr-lowercase": "off"
+    }
+}
