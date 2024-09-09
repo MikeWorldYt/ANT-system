@@ -1,0 +1,35 @@
+/* --------- Headings --------- */
+.docs-subtitle {
+    @apply text-2xl font-bold text-emerald-500 mb-2 pb-1;
+    border-bottom: 1px solid rgba(46, 140, 110, 0.7);
+}
+
+.docs-subtitle-light {
+    @apply text-2xl font-bold text-white mb-2 pb-1;
+    border-bottom: 1px solid rgba(109, 147, 135, 0.2);
+}
+
+.docs-subtitle-thiny {
+    @apply text-xl font-semibold mt-4 mb-1 pb-1;
+    border-bottom: 1px solid rgba(74, 98, 90, 0.1);
+}
+
+/* --------- Hash Hover --------- */
+.hash-link {
+    position: absolute;
+    top: 2px;
+    left: -20px;
+    color: white;
+}
+
+h2:hover .hash-link {
+    visibility: visible;
+}
+
+.hash-link .docs-subtitle {
+    border-bottom: none;
+}
+
+.hash-link .docs-subtitle-light {
+    border-bottom: none;
+}
