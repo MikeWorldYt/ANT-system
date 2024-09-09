@@ -15,6 +15,7 @@ import { content } from '../../content/content';
 // ▲ FEATURES ▲
 import { HeadingComponent } from '../../../features/heading/heading.component';
 import { LightboxComponent } from '../../../features/lightbox/lightbox.component';
+import { ParagraphComponent } from '../../../features/paragraph/paragraph.component';
 
 // Testing
 import { HeaderT02Component } from '../header-t02/header-t02.component';
@@ -29,6 +30,7 @@ import { HeaderT02Component } from '../header-t02/header-t02.component';
     LightboxComponent,
     AddHyphenPipe,
     HeadingComponent,
+    ParagraphComponent,
   ],
   templateUrl: './mod-01-levels-structure.component.html',
   styleUrl: '../../docs.component.css'

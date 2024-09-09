@@ -8,7 +8,7 @@
   <section id="{{ write.article_10.id | addHyphen }}" #section>
     <heading [path]="path" article="10" write="h1"
     subtitleClass="docs-subtitle" />
-    <p [innerHTML]="write.article_10.p1"> </p>
+    <paragraph [path]="path" article="10" write="p1" />
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png" />
       <lightbox src="https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png" />
@@ -31,16 +31,16 @@
   <section id="{{ write.article_11.id | addHyphen }}" #section>
     <heading [path]="path" article="11" write="h1"
     subtitleClass="docs-subtitle-light" />
-    <p [innerHTML]="write.article_11.p1">  </p>
+    <paragraph [path]="path" article="11" write="p1" />
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/91/0d/ef/910defb0518014ef1c730da9f4886085.png" />
     </div>
-    <p [innerHTML]="write.article_11.p2"></p>
+    <paragraph [path]="path" article="11" write="p2" />
     <div class="callout danger">
       <img src="/assets/call-danger.svg" alt="">
       <p [innerHTML]="write.article_11.d1">   </p>
     </div>
-    <p [innerHTML]="write.article_11.p3">  </p>
+    <paragraph [path]="path" article="11" write="p3" />
     <ul>
       <li [innerHTML]="write.article_11.ul1_li1">   </li>
       <li [innerHTML]="write.article_11.ul1_li2">   </li>
@@ -68,11 +68,11 @@
   <section id="{{ write.article_12.id | addHyphen }}" #section>
     <heading [path]="path" article="12" write="h1"
     subtitleClass="docs-subtitle-light" />
-    <p [innerHTML]="write.article_12.p1">  </p> 
+    <paragraph [path]="path" article="12" write="p1" />
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/ce/75/a5/ce75a5a8ff41ef1864cca5a66e72887a.png" />
     </div>
-    <p [innerHTML]="write.article_12.p2">  </p> 
+    <paragraph [path]="path" article="12" write="p2" />
     <div class="callout quote">
       <img src="/assets/call-quote.svg" alt="">
       <p [innerHTML]="write.article_12.d1">   </p>
@@ -86,7 +86,7 @@
   <section id="{{ write.article_13.id | addHyphen }}" #section>
     <heading [path]="path" article="13" write="h1"
     subtitleClass="docs-subtitle-light" />
-    <p [innerHTML]="write.article_13.p1">  </p>
+    <paragraph [path]="path" article="13" write="p1" />
 
     <!-- ------------------------------   .   -   1.3.1   -   .    ------------------------------ -->
     <heading [path]="path" article="13_1" write="h1" [hovering]="false"
@@ -95,8 +95,8 @@
       <!-- Is a Gif, need to change it -->
       <lightbox src="https://i.pinimg.com/originals/e3/c0/7e/e3c07edbe1b8d5a666feb929588178d8.png" />
     </div>
-    <p [innerHTML]="write.article_13_1.p1">  </p>
-    <p [innerHTML]="write.article_13_1.p2">  </p>
+    <paragraph [path]="path" article="13_1" write="p1" />
+    <paragraph [path]="path" article="13_1" write="p2" />
     <ul>
       <li [innerHTML]="write.article_13_1.ul1_li1">   </li>
       <li [innerHTML]="write.article_13_1.ul1_li2">   </li>
@@ -116,7 +116,7 @@
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/5c/17/67/5c1767b95d0d83f7d7023bb890e47482.png" />
     </div>
-    <p [innerHTML]="write.article_13_2.p1">  </p>
+    <paragraph [path]="path" article="13_2" write="p1" />
     <div class="callout warning">
       <img src="/assets/call-warning.svg" alt="">
       <p [innerHTML]="write.article_13_2.d1">   </p>
@@ -142,7 +142,7 @@
       <img src="/assets/call-success.svg" alt="">
       <p [innerHTML]="write.article_13_2.d2">   </p>
     </div>
-    <p [innerHTML]="write.article_13_2.p2">  </p>
+    <paragraph [path]="path" article="13_2" write="p2" />
     <ul>
       <li [innerHTML]="write.article_13_2.ul1_li1">   </li>
       <li [innerHTML]="write.article_13_2.ul1_li2">   </li>
