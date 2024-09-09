@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
-import { HashHoverFeature } from '../../services/ftHashHover.service';
 import { LanguageService } from '../../services/navLanguage.service';
 import { content } from '../../docs/content/content';
 import { Subscription } from 'rxjs';
@@ -20,7 +19,6 @@ export class ParagraphComponent {
   @Input() write!: string;
 
   constructor(
-    public hashHoverFeature: HashHoverFeature,
     private languageService: LanguageService,
   ) { }
 
@@ -45,9 +43,9 @@ export class ParagraphComponent {
     const article = this.article;
     const write = this.write;
     this.writer = content[lang][title][page][article][write];
-    console.log(`Paragraph: ${this.writer}`);
-    console.log(`path: ${this.path}`);
-    console.log(`article: ${this.article}`);
+    // console.log(`Paragraph: ${this.writer}`);
+    // console.log(`path: ${this.path}`);
+    // console.log(`article: ${this.article}`);
     // this.writer = content[lang][title][page][article].p1;
   }
 
