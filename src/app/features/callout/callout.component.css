@@ -1,0 +1,39 @@
+.callout {
+    @apply flex items-center p-4 my-2 rounded-md border-l-4;
+}
+
+.callout img {
+    @apply w-6 h-6 mr-2;
+}
+
+.callout p, .callout a {
+    @apply m-0;
+    display: inline;
+}
+
+.callout .content {
+    /* display: flex; */
+    display: inline;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.callout.info {
+    @apply bg-blue-100/10 border-blue-500 text-blue-300;
+}
+
+.callout.success {
+    @apply bg-green-100/10 border-green-500 text-green-300;
+}
+
+.callout.warning {
+    @apply bg-orange-100/10 border-orange-500 text-orange-300;
+}
+
+.callout.danger {
+    @apply bg-red-100/10 border-red-500 text-red-500;
+}
+
+.callout.quote {
+    @apply bg-gray-100/10 border-gray-500 text-gray-500;
+}
