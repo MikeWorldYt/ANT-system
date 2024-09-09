@@ -17,13 +17,13 @@ export class CalloutComponent {
   @Input() path!: [string, string, string];
   @Input() article!: string;
   @Input() write!: string;
-  @Input() type!: string;
 
   constructor(
     private languageService: LanguageService,
   ) { }
 
   writer: string = '';
+  type: string = '';
 
   ngOnInit(): void {
     this.article = this.concatArticle(this.article);
@@ -43,11 +43,12 @@ export class CalloutComponent {
     const [lang, title, page] = this.path;
     const article = this.article;
     const write = this.write;
-    this.writer = content[lang][title][page][article][write];
-    console.log(`Paragraph: ${this.writer}`);
-    console.log(`path: ${this.path}`);
-    console.log(`article: ${this.article}`);
-    // this.writer = content[lang][title][page][article].d1;
+    const langDEF = "EN";
+    this.writer = content[lang][title][page][article][write].c;
+    this.type = content[langDEF][title][page][article][write].t;
+    // console.log(`Paragraph: ${this.writer}
+    // path: ${this.path}`
+    // article: ${this.article}`);
   }
 
   private concatArticle(article: string): string {
