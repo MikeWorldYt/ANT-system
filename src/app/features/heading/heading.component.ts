@@ -44,7 +44,8 @@ export class HeadingComponent {
   private resolveContent(): void {
     const [lang, title, page] = this.path;
     const article = this.article;
-    this.writer = content[lang][title][page][article].h1;
+    const write = this.write;
+    this.writer = content[lang][title][page][article][write];
   }
 
   private concatArticle(article: string): string {
