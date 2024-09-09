@@ -8,10 +8,12 @@ import { Subscription } from 'rxjs';
 import { ArticleService } from '../../../services/navArticleObserver.service';
 import { LanguageService } from '../../../services/navLanguage.service';
 import { PageService } from '../../../services/navPage.service';
-import { HashHoverFeature } from '../../../services/ftHashHover.service';
 
 // ▲ CONTENT ▲
 import { content } from '../../content/content';
+
+// ▲ FEATURES ▲
+import { HeadingComponent } from '../../../features/heading/heading.component';
 import { LightboxComponent } from '../../../features/lightbox/lightbox.component';
 
 // Testing
@@ -26,6 +28,7 @@ import { HeaderT02Component } from '../header-t02/header-t02.component';
     RouterLink,
     LightboxComponent,
     AddHyphenPipe,
+    HeadingComponent,
   ],
   templateUrl: './mod-01-levels-structure.component.html',
   styleUrl: '../../docs.component.css'
@@ -36,7 +39,6 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
     private languageService: LanguageService,
     private pageService: PageService,
     private intersectionService: ArticleService,
-    public hashHoverFeature: HashHoverFeature,
   ) { }
 
   // ▬▬▬ For inner content
@@ -47,6 +49,7 @@ export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
   currentTitle: string = 'title_02';
   currentPage: string = 'page_01';
   currentArticle: string = '';
+  path: [string, string, string] = [this.currentLanguage, this.currentTitle, this.currentPage];
 
   // ▲ service Hash Sections
   @ViewChildren('section') sections!: QueryList<ElementRef>;

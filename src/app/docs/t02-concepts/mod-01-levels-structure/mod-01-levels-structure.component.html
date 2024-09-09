@@ -6,14 +6,8 @@
 
   <!-- ------------------------------   .   -   1.   -   .    ------------------------------ -->
   <section id="{{ write.article_10.id | addHyphen }}" #section>
-    <h2 class="docs-subtitle"
-    (mouseenter)="hashHoverFeature.showHash()"
-    (mouseleave)="hashHoverFeature.hideHash()"
-    [innerHTML]="write.article_10.h1" >
-      1. Levels and Directory Structure</h2>
-    <span class="hash-link" *ngIf="hashHoverFeature.hovered">
-      <h2 class="docs-subtitle">#</h2>
-    </span>
+    <heading [path]="path" article="10" write="h1"
+    subtitleClass="docs-subtitle" />
     <p [innerHTML]="write.article_10.p1"> </p>
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png" />
@@ -35,14 +29,8 @@
 
   <!-- ------------------------------   .   -   1.1   -   .    ------------------------------ -->
   <section id="{{ write.article_11.id | addHyphen }}" #section>
-    <h2 class="docs-subtitle-light"
-    (mouseenter)="hashHoverFeature.showHash()"
-    (mouseleave)="hashHoverFeature.hideHash()"
-    [innerHTML]="write.article_11.h1">
-      1.1 The Level 1 - Main Categories </h2>
-    <span class="hash-link" *ngIf="hashHoverFeature.hovered">
-      <h2 class="docs-subtitle-light">#</h2>
-    </span>
+    <heading [path]="path" article="11" write="h1"
+    subtitleClass="docs-subtitle-light" />
     <p [innerHTML]="write.article_11.p1">  </p>
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/91/0d/ef/910defb0518014ef1c730da9f4886085.png" />
@@ -78,14 +66,8 @@
 
   <!-- ------------------------------   .   -   1.2   -   .    ------------------------------ -->
   <section id="{{ write.article_12.id | addHyphen }}" #section>
-    <h2 class="docs-subtitle-light"
-    (mouseenter)="hashHoverFeature.showHash()"
-    (mouseleave)="hashHoverFeature.hideHash()"
-    [innerHTML]="write.article_12.h1">
-      1.2 The Levels 2 - Categories (Subjects) </h2>
-    <span class="hash-link bg-red" *ngIf="hashHoverFeature.hovered">
-      <h2 class="docs-subtitle-light">#</h2>
-    </span>
+    <heading [path]="path" article="12" write="h1"
+    subtitleClass="docs-subtitle-light" />
     <p [innerHTML]="write.article_12.p1">  </p> 
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/ce/75/a5/ce75a5a8ff41ef1864cca5a66e72887a.png" />
@@ -102,20 +84,13 @@
 
   <!-- ------------------------------   .   -   1.3   -   .    ------------------------------ -->
   <section id="{{ write.article_13.id | addHyphen }}" #section>
-    <h2 class="docs-subtitle-light"
-    (mouseenter)="hashHoverFeature.showHash()"
-    (mouseleave)="hashHoverFeature.hideHash()"
-    [innerHTML]="write.article_13.h1">
-      1.3 The Levels 3 - Subcategories (Units, Theme, Topics, etc.) </h2>
-    <span class="hash-link bg-red" *ngIf="hashHoverFeature.hovered">
-      <h2 class="docs-subtitle-light">#</h2>
-    </span>
+    <heading [path]="path" article="13" write="h1"
+    subtitleClass="docs-subtitle-light" />
     <p [innerHTML]="write.article_13.p1">  </p>
 
     <!-- ------------------------------   .   -   1.3.1   -   .    ------------------------------ -->
-    <h2 class="docs-subtitle-thiny"
-      [innerHTML]="write.article_13_1.h1">
-      1.3.1 Chill Structure </h2>
+    <heading [path]="path" article="13_1" write="h1" [hovering]="false"
+    subtitleClass="docs-subtitle-thiny" />
     <div class="pic-container" >
       <!-- Is a Gif, need to change it -->
       <lightbox src="https://i.pinimg.com/originals/e3/c0/7e/e3c07edbe1b8d5a666feb929588178d8.png" />
@@ -136,9 +111,8 @@
     </div>
 
     <!-- ------------------------------   .   -   1.3.2   -   .    ------------------------------ -->
-    <h2 class="docs-subtitle-thiny"
-      [innerHTML]="write.article_13_2.h1">
-      1.3.2 Control Structure</h2>
+    <heading [path]="path" article="13_2" write="h1" [hovering]="false"
+    subtitleClass="docs-subtitle-thiny" />
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/5c/17/67/5c1767b95d0d83f7d7023bb890e47482.png" />
     </div>
