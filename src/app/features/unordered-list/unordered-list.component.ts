@@ -5,7 +5,7 @@ import { LanguageService } from '../../services/navLanguage.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'unorderedList',
+  selector: 'unordered-list',
   standalone: true,
   imports: [
     CommonModule
@@ -22,7 +22,7 @@ export class UnorderedListComponent {
     private languageService: LanguageService,
   ) { }
 
-  writer: string = '';
+  items: string[] = [];
 
   ngOnInit(): void {
     this.article = this.concatArticle(this.article);
@@ -42,10 +42,8 @@ export class UnorderedListComponent {
     const [lang, title, page] = this.path;
     const article = this.article;
     const write = this.write;
-    this.writer = content[lang][title][page][article][write];
-    // console.log(`Paragraph: ${this.writer}
-    // path: ${this.path}`
-    // article: ${this.article}`);
+    const listContent = content[lang][title][page][article][write];
+    this.items = Object.values(listContent);
   }
 
   private concatArticle(article: string): string {
