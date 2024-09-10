@@ -9,6 +9,7 @@
     <heading [path]="path" article="10" write="h1"
     subtitleClass="docs-subtitle" />
     <paragraph [path]="path" article="10" write="p1" />
+    <unordered-list [path]="path" article="10" write="ul1" />
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png" />
       <lightbox src="https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png" />
@@ -88,10 +89,7 @@
     </div>
     <paragraph [path]="path" article="13_1" write="p1" />
     <paragraph [path]="path" article="13_1" write="p2" />
-    <ul>
-      <li [innerHTML]="write.article_13_1.ul1_li1">   </li>
-      <li [innerHTML]="write.article_13_1.ul1_li2">   </li>
-    </ul>
+    <unordered-list [path]="path" article="13_1" write="ul1" />
     <div class="pic-container" >
       <!-- <lightbox src="https: . . ." /> -->
       <!-- <lightbox src="https: . . ." /> -->
@@ -125,11 +123,7 @@
     <!-- -  End Table   - -->
     <callout [path]="path" article="13_2" write="c2" />
     <paragraph [path]="path" article="13_2" write="p2" />
-    <ul>
-      <li [innerHTML]="write.article_13_2.ul1_li1">   </li>
-      <li [innerHTML]="write.article_13_2.ul1_li2">   </li>
-      <li [innerHTML]="write.article_13_2.ul1_li3">   </li>
-    </ul>
+    <unordered-list [path]="path" article="13_2" write="ul1" />
     <div class="pic-container" >
       <!-- <lightbox src="https: . . ." /> -->
     </div>

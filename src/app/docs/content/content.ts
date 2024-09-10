@@ -100,8 +100,10 @@ export const content: Record<string, any> = {
 					h1: '1.3.1 Chill Structure',
 					p1: 'Is simple, It has an incremental enumeration with two or more digits, tho it doesn\'t necesary go at the beginning, as it\'ll depend on the needs/customization of each one.',
 					p2: 'You can use if:',
-					ul1_li1: 'Had or Need a static sequence (eg. 01.Name 02.Name 03.Name ...)',
-					ul1_li2: 'The directory will remain for a long time or permanently',
+					ul1: {
+						li_1: "Had or Need a static sequence (eg. 01.Name 02.Name 03.Name ...)",
+						li_2: "The directory will remain for a long time or permanently",
+					},
 					c1: {
 						t: 'info',
 						c: '<strong>Note</strong>: That the way you organize will determine whether your support folders come before or after. Remember, the order always be Symbols-Numbers-Letters."'
@@ -131,9 +133,11 @@ export const content: Record<string, any> = {
 						c: '<strong>Tip</strong>: It\'s not necessary to have all the fields, tho follow in that order, (adapt it to your needs).'
 					},
 					p2: 'You can use if:',
-					ul1_li1: 'You Need to have control',
-					ul1_li2: 'The data is temporary and will most likely be deleted later',
-					ul1_li3: 'Share with more people if you',
+					ul1: {
+						li_1: "You Need to have control",
+						li_2: "The data is temporary and will most likely be deleted later",
+						li_3: "Share with more people if you",
+					}
 				}
       },
 			page_02: {
@@ -244,7 +248,7 @@ export const content: Record<string, any> = {
 					c2: {
 						c: '<strong>Nota</strong>:Los directorios no son exclusivos o estaticos, se pueden mover a otra ruta, o incluso compartirse con otras al mismo tiempo, en otras palabras son flexibles y crear conexiones asociadas que en su mayoria de casos no necesitaran renombrase o copiarse. '
 					},
-					a1: "Leer más..."
+					a1: "Leer más...",
 				},
 				article_11: {
 					id: 'Nivel 1',
@@ -283,8 +287,10 @@ export const content: Record<string, any> = {
 					h1: '1.3.1 Estructura Fria',
 					p1: 'Es simple, tiene una enumeración incremental con dos o más dígitos, aunque no necesariamente va al principio, ya que dependerá de las necesidades/personalizaciones de cada quien.',
 					p2: 'Puedes usarla si:',
-					ul1_li1: 'Necesitas o ya tiene una secuencia estatica (ej. 01.Nombre 02.Nombre 03.Nombre ...)',
-					ul1_li2: 'La carpeta permanecera para un tiempo largo o permanentemente',
+					ul1: {
+						li_1: "Necesitas o ya tiene una secuencia estatica (ej. 01.Nombre 02.Nombre 03.Nombre ...)",
+						li_2: "La carpeta permanecera para un tiempo largo o permanentemente",
+					},
 					c1: {
 						c: '<strong>Nota</strong>: La forma en que organizas determinará si tus carpetas de soporte vienen antes o después. Consulta <a href="https://ticsw.gitbooks.io/talleres/content/BigO_Sort/tipos_de_ordenamientos.html#Ordenamiento%20Lexicográfico" target="_blank"><u><i>prioridad de orden lexicográfico</u></i></a>'
 					},
@@ -311,9 +317,11 @@ export const content: Record<string, any> = {
 						c: '<strong>Tip</strong>: No es necesario rellenar todos los campos, solo continuar con el orden.'
 					},
 					p2: 'Puedes usarla si:',
-					ul1_li1: 'Requieres un control',
-					ul1_li2: 'La información se mantendra por mucho tiempo',
-					ul1_li3: 'Compartiras con mas de una persona',
+					ul1: {
+						li_1: "Requieres un control",
+						li_2: "La información se mantendra por mucho tiempo",
+						li_3: "Compartiras con mas de una persona",
+					}
 				}
 			},
 			page_02: {
