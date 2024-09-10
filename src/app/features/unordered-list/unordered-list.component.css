@@ -1,0 +1,9 @@
+li {
+    list-style: inside;
+    padding-left: .5rem;
+    padding-top: .25rem;
+}
+
+li:last-child {
+    padding-bottom: .25rem;
+}
