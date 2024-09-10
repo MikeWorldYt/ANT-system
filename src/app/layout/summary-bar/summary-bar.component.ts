@@ -70,8 +70,12 @@ export class SummaryBarComponent implements OnInit, AfterViewInit {
   // ████ Map Tooogle Summary
   articleHeadings: string[] = [];
   getSummary(language: string, title: string, page: string): void {
-    const pageContent = content[language][title][page];
-    this.articleHeadings = Object.keys(pageContent).map((key) => pageContent[key].id);
+    const pageContent: any = content[language][title][page];
+    if (pageContent) {
+      this.articleHeadings = Object.keys(pageContent).map((key) => pageContent[key].id);
+    } else {
+      this.articleHeadings = [];
+    }
   }
 
 }
