@@ -1,4 +1,18 @@
 <div class="callout {{type}}">
-    <img src="/assets/call-{{type}}.svg" alt="">
-    <p [innerHTML]="writer"> </p>
+	<img src="/assets/call-{{type}}.svg" alt="">
+	<div class="content">
+		@for (item of items; track $index) {
+			@if ( item.key.startsWith('c_') ) {
+				<p [innerHTML]="item.value">
+				</p>
+			} @else if ( item.key.startsWith('a_') ) {
+				<anchor 
+					[path]="path" article="{{ articleInherit }}" 
+					subItem="{{ writeInherit }}"  write="a_{{ $index }}"
+				/>
+			} @else () {
+				<!-- nothing -->
+			}
+		}
+	</div>
 </div>

@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <div class="w-full">
   <!-- <header-t02 mod="- Levels and Directory Structure"/> -->
   <header-t02 />
@@ -14,18 +13,7 @@
       <lightbox src="https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png" />
     </div>
     <callout [path]="path" article="10" write="c1" />
-    <!-- <callout [path]="path" article="10" write="c2" /> -->
-    <!-- REVIEW THIS CASE -->
-    <div class="callout {{write.article_10.c2.t}}">
-      <img src="/assets/call-info.svg" alt="">
-      <div class="content">
-        <p [innerHTML]="write.article_10.c2.c"></p>
-        <!-- <anchor [path]="path" article="10" write="a1" /> -->
-        <a [innerHTML]="write.article_10.a1" class="not-available"
-          [routerLink]="['/advanced-concepts']" fragment="sharing" target="_blank"></a>
-      </div>
-    </div>
-    <!-- REVIEW THIS CASE -->
+    <callout [path]="path" article="10" write="c2" />
   </section>
 
   <!-- ------------------------------   .   -   1.1   -   .    ------------------------------ -->

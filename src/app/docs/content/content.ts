@@ -51,13 +51,17 @@ export const content: Record<string, any> = {
 						},
 					c2: {
 						t: 'info',
-						c: "<strong>Note</strong>: Directories are not exclusive or static; they can be moved to another path, or even shared with others simultaneously. In other words, they are flexible and can create associated connections that, in most cases, do not need to be renamed or copied. ",
+						c_1: "<strong>Note</strong>: Directories are not exclusive or static; they can be moved to another path, or even shared with others simultaneously. In other words, they are flexible and can create associated connections that, in most cases, do not need to be renamed or copied.",
+						a_1: [ 
+							[" empty array "] ,
+							[ // nested anchor
+								"NESTED ANCHOR TESTING",
+								"/introduction", // "/advanced-concepts",
+								"How-works", // "sharing"
+								"not-available"]
+						],
+						c_2: "more text here"
 						},
-					a1: {
-						c: "ANCHOR TESTING",
-						link: "/advanced-concepts",
-						fragmentLink: "sharing"
-					}
 				},
 				article_11: {
 					id: 'Level 1',

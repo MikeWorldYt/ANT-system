@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common';
 import { content } from '../../docs/content/content';
 import { LanguageService } from '../../services/navLanguage.service';
 import { Subscription } from 'rxjs';
+import { AnchorComponent } from '../anchor/anchor.component';
 
 @Component({
   selector: 'callout',
   standalone: true,
   imports: [
-    CommonModule
+    CommonModule,
+    AnchorComponent,
   ],
   templateUrl: './callout.component.html',
   styleUrl: './callout.component.css'
@@ -24,8 +26,13 @@ export class CalloutComponent {
 
   writer: string = '';
   type: string = '';
+  items: { key: string, value: any }[] = [];
+  articleInherit: string = '';
+  writeInherit: string = '';
 
   ngOnInit(): void {
+    this.articleInherit = this.article;
+    this.writeInherit = this.write;
     this.article = this.concatArticle(this.article);
     this.subscribeToLanguageChanges();
     this.resolveContent();
@@ -44,11 +51,13 @@ export class CalloutComponent {
     const article = this.article;
     const write = this.write;
     const langDEF = "EN";
-    this.writer = content[lang][title][page][article][write].c;
+    // Resolve Logic
+    this.writer = content[lang][title][page][article][write];
     this.type = content[langDEF][title][page][article][write].t;
-    // console.log(`Paragraph: ${this.writer}
-    // path: ${this.path}`
-    // article: ${this.article}`);
+    // Filter and return in "items"
+    this.items = Object.entries(this.writer)
+      .filter(([key]) => key.startsWith('c_') || key.startsWith('a_'))
+      .map(([key, value]) => ({ key, value }));
   }
 
   private concatArticle(article: string): string {
