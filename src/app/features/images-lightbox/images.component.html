@@ -1,3 +1,9 @@
 <div class="pic-container">
-    <lightbox [src]="imageSrc"></lightbox>
+    @for (item of items; track $index) {
+        @if (items[$index] === "empty";) {
+            <lightbox src="https://i.pinimg.com/originals/c5/fc/93/c5fc9347527030b2fb328370729500d4.jpg"></lightbox>
+        } @else {
+            <lightbox [src]="items[$index]"></lightbox>
+        }
+    }
 </div>

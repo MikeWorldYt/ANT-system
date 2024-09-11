@@ -24,7 +24,7 @@ export class ImagesComponent {
     private languageService: LanguageService,
   ) { }
 
-  imageSrc: string = '';
+  items: string[] = [];
 
   ngOnInit(): void {
     this.article = this.concatArticle(this.article);
@@ -44,15 +44,12 @@ export class ImagesComponent {
     const [lang, title, page] = this.path;
     const article = this.article;
     const write = this.write;
-    this.imageSrc = content[lang][title][page][article][write];
+    const listContent = content[lang][title][page][article][write];
+    this.items = Object.values(listContent);
   }
-
-
-
 
   private concatArticle(article: string): string {
     return `article_${article}`;
   }
-
 
 }

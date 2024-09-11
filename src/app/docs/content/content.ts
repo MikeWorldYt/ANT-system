@@ -40,8 +40,10 @@ export const content: Record<string, any> = {
 					id: 'Levels and Structure',
 					h1: '1. Levels and Directory Structure',
 					p1: " The data structure used by <strong>ANT</strong> is hierarchical, tho it's designed to be decentralized.<br> Each folder acts as a node with paths, that start at the 'root' and continue into deeper <strong><i>levels</i></strong>. <br> The term <strong><i>Levels </i></strong> refers to the depth of the folder within a tree directory.",
-					i1: "https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png",
-					i2: "https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png",
+					i1: {
+						p_1: "https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png",
+						p_2: "https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png",
+					},
 					c1: {
 						t: 'success',
 						c: '<strong>Tip</strong>: The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.',
@@ -69,6 +71,9 @@ export const content: Record<string, any> = {
 					id: 'Level 1',
 					h1: '1.1 The Level 1 - Main Categories (Contexts)', 
 					p1: 'Is the highest hierarchy, inside from your Root Storage Folder, content the main categories. <br> Defines a portion of space, and the usage it will have.',
+					i1: {
+						p_1: "https://i.pinimg.com/originals/91/0d/ef/910defb0518014ef1c730da9f4886085.png",
+					},
 					p2: "This use an incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals. ",
 					c1: {
 						t: 'danger',
@@ -90,6 +95,9 @@ export const content: Record<string, any> = {
 						li_3: "400.ACADEMIC For school or related files.", // <strong>400.ACADEMIC</strong>: For school or related files.
 						li_4: "500.HOBBIES For files related to your leisure activities.", // <strong>500.HOBBIES</strong>: For files related to your leisure activities.
 					},
+					i2: {
+						p_1: "https://i.pinimg.com/originals/83/8e/6a/838e6af8130e5a3dab94df680a9c59df.png",
+					},
 					a1: "Read more about <i>Support Folder \"PROJETCS\"</i>",
 					c2: {
 						t: 'quote',
@@ -100,10 +108,16 @@ export const content: Record<string, any> = {
 					id: 'Level 2',
 					h1: '1.2 The Levels 2 - Categories (Subjects)',
 					p1: 'They are found within <strong><i>Level 1 directories</i></strong>, being the second in the hierarchy.<br> They contain more specific categories, such as Area, Topic, Subject, Organization, Type of work or relationed.',
+					i1: {
+						p_1: "https://i.pinimg.com/originals/ce/75/a5/ce75a5a8ff41ef1864cca5a66e72887a.png",
+					},
 					p2: 'For each directory add an Incremental enumeration with two digits, followed by a dot, followed by the Categories Name in Capitals..',
 					c1: {
 						t: 'quote',
 						c: "The order in the sequence is not essential and only facilitates a visual organization. <br> Although it may not represent a logical sequence, numbering makes it <i>more predictable</i> for the user to find what they need. However, it can be useful for prioritizing or arranging it in a custom sequence rather than alphabetically. <br> Also when a folder is delted or added, It does'nt affect his order, <br> Numering creates a control to maintain the user's customized sequence."
+					},
+					i2: {
+						p_1: "empty",
 					}
 				},
 				article_13: {
@@ -113,11 +127,18 @@ export const content: Record<string, any> = {
 				},
 				article_13_1: {
 					h1: '1.3.1 Chill Structure',
+					i1: { // TODO: CHANGE IMAGE FOR A GIF
+						p_1: "https://i.pinimg.com/originals/e3/c0/7e/e3c07edbe1b8d5a666feb929588178d8.png",
+					},
 					p1: 'Is simple, It has an incremental enumeration with two or more digits, tho it doesn\'t necesary go at the beginning, as it\'ll depend on the needs/customization of each one.',
 					p2: 'You can use if:',
 					ul1: {
 						li_0: "Had or Need a static sequence (eg. 01.Name 02.Name 03.Name ...)",
 						li_1: "The directory will remain for a long time or permanently",
+					},
+					i2: {
+						p_1: "empty",
+						p_2: "empty"
 					},
 					c1: {
 						t: 'info',
@@ -126,6 +147,9 @@ export const content: Record<string, any> = {
 				},
 				article_13_2: {
 					h1: '1.3.2 Control Structure',
+					i1: {
+						p_1: "https://i.pinimg.com/originals/5c/17/67/5c1767b95d0d83f7d7023bb890e47482.png",
+					},
 					p1: 'It\'s ideal for projects, presentations, database, homeworks, etc. Use a naming convetion for controling and easy identification',
 					c1: {
 						t: 'warning',
@@ -152,6 +176,9 @@ export const content: Record<string, any> = {
 						li_0: "You Need to have control",
 						li_1: "The data is temporary and will most likely be deleted later",
 						li_2: "Share with more people if you",
+					},
+					i2: {
+						p_1: "empty",
 					}
 				}
       },
