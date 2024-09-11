@@ -9,16 +9,18 @@ p {
     line-height: 1.2;
 }
 
+/* TODO: DELETE RULE */
 a {
     display: inline;
     text-decoration: underline !important;
 }
 
+/* TODO: DELETE RULE */
 .not-available {
     opacity: 0.2;
 }
 
-/* --------- Headings --------- */
+/* --------- Headings --------- */ 
 .docs-subtitle {
     @apply text-2xl font-bold text-emerald-500 mb-2 pb-1;
     border-bottom: 1px solid rgba(46, 140, 110, 0.7);
@@ -34,6 +36,7 @@ a {
     border-bottom: 1px solid rgba(74, 98, 90, 0.1);
 }
 
+/* TODO: DELETE RULES */
 /* --------- Call outs --------- */
 
 .callout {
@@ -80,6 +83,7 @@ a {
     @apply bg-emerald-500/20 pt-4 pb-4 pl-6 pr-6 mt-1 mb-1 rounded-md;
 }
 
+/* TODO: DELETE RULES */
 /* --------- Lists --------- */
 
 li {
@@ -117,7 +121,8 @@ th {
     background-color: #6d9387;
 }
 
-/* --------- Hash links --------- */
+/* TODO: DELETE RULES */
+/* --------- Hash links --------- */ 
 .hash-link {
     position: absolute;
     top: 2px;
