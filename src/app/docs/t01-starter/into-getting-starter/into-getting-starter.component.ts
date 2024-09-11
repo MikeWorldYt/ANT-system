@@ -16,13 +16,21 @@ import { TitleService } from '../../../services/navTitle.service';
 import { PageService } from '../../../services/navPage.service';
 import { HashHoverFeature } from '../../../services/ftHashHover.service';
 
+// ▲ FEATURES ▲
+import { UnorderedListComponent } from '../../../features/unordered-list/unordered-list.component';
+import { LightboxComponent } from '../../../features/lightbox/lightbox.component';
+import { AnchorComponent } from '../../../features/anchor/anchor.component';
+
 @Component({
   selector: 'docs-t01-into-getting-starter',
   standalone: true,
   imports: [
     RouterOutlet,
     FooterComponent,
-    CommonModule
+    CommonModule,
+    UnorderedListComponent,
+    LightboxComponent,
+    AnchorComponent
   ],
   templateUrl: './into-getting-starter.component.html',
   styleUrl: '../../docs.component.css'
@@ -45,6 +53,7 @@ export class Docs_T01_IntoComponent implements OnInit, AfterViewInit {
   currentTitle: string = 'title_01';
   currentPage: string = 'page_01';
   currentArticle: string = '';
+  path: [string, string, string] = [this.currentLanguage, this.currentTitle, this.currentPage];
 
   // ███ OnInit ███
   ngOnInit(): void {
