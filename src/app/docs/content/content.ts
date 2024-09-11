@@ -69,12 +69,21 @@ export const content: Record<string, any> = {
 						c: "<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relink again."
 					},
 					p3: "We recommend using the following categories, in the following order;",
-					ul1_li1: '<strong>100.PERSONAL</strong>: For your personal files and documents.',
-					ul1_li2: '<strong>200.WORK</strong>: For work-related files.',
-					ul1_li3: '<strong>300.PROJECTS</strong>: ',
-					ul1_li3_a: 'Support Directory (optional order)',
-					ul1_li4: '<strong>400.ACADEMIC</strong>: For school or related files.',
-					ul1_li5: '<strong>500.HOBBIES</strong>: For files related to your leisure activities.',
+					ul1: {
+						// TODO: FIX STRONG TAG
+						li_0: "100.PERSONAL: For your personal files and documents.", // <strong>100.PERSONAL</strong>: For your personal files and documents.
+						li_1: "200.WORK: For work-related files.", // <strong>200.WORK</strong>: For work-related files.
+						li_2: [ 
+							["300.PROJECTS: "], // <strong>300.PROJECTS</strong>:
+							[ // nested anchor 
+								"Support Directory (optional order)",
+								"/introduction",
+								"How-works",
+								""
+							]	],
+						li_3: "400.ACADEMIC For school or related files.", // <strong>400.ACADEMIC</strong>: For school or related files.
+						li_4: "500.HOBBIES For files related to your leisure activities.", // <strong>500.HOBBIES</strong>: For files related to your leisure activities.
+					},
 					a1: "Read more about <i>Support Folder \"PROJETCS\"</i>",
 					c2: {
 						t: 'quote',
@@ -101,8 +110,8 @@ export const content: Record<string, any> = {
 					p1: 'Is simple, It has an incremental enumeration with two or more digits, tho it doesn\'t necesary go at the beginning, as it\'ll depend on the needs/customization of each one.',
 					p2: 'You can use if:',
 					ul1: {
-						li_1: "Had or Need a static sequence (eg. 01.Name 02.Name 03.Name ...)",
-						li_2: "The directory will remain for a long time or permanently",
+						li_0: "Had or Need a static sequence (eg. 01.Name 02.Name 03.Name ...)",
+						li_1: "The directory will remain for a long time or permanently",
 					},
 					c1: {
 						t: 'info',
@@ -134,9 +143,9 @@ export const content: Record<string, any> = {
 					},
 					p2: 'You can use if:',
 					ul1: {
-						li_1: "You Need to have control",
-						li_2: "The data is temporary and will most likely be deleted later",
-						li_3: "Share with more people if you",
+						li_0: "You Need to have control",
+						li_1: "The data is temporary and will most likely be deleted later",
+						li_2: "Share with more people if you",
 					}
 				}
       },
@@ -259,11 +268,21 @@ export const content: Record<string, any> = {
 						c: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente."
 					},
 					p3: "Recomendamos usar las siguientes categorias, en el siguiente orden;",
-					ul1_li1: '<strong>100.PERSONAL</strong>: Para tus archivos y documentos personales.',
-					ul1_li2: '<strong>200.TRABAJO</strong>: Para archivos relacionados de trabajo.',
-					ul1_li3: '<strong>300.PROJECTOS</strong>: Carpeta de soporte, (orden opcional).',
-					ul1_li4: '<strong>400.ACADEMICO</strong>: Para archivos escolares o relacionados.',
-					ul1_li5: '<strong>500.HOBBIES</strong>: Para archivos relacionados con actividades de tu tiempo libre.',
+					ul1: {
+						// TODO: FIX STRONG TAG
+						li_0: "100.PERSONAL: Para tus archivos y documentos personales", // <strong>100.PERSONAL</strong>: Para tus archivos y documentos personales.
+						li_1: "200.TRABAJO: Para archivos relacionados de trabajo", // <strong>200.TRABAJO</strong>: Para archivos relacionados de trabajo.
+						li_2: [
+							["300.PROJECTOS:"], // <strong>300.PROJECTOS</strong>:
+							[ // nested anchor 
+								"Carpeta de soporte, (orden opcional)",
+								"/introduction",
+								"How-works",
+								""
+							]	],
+						li_3: "400.ACADEMICO: Para archivos escolares o relacionados", // <strong>400.ACADEMICO</strong>: Para archivos escolares o relacionados.
+						li_4: "500.HOBBIES: Para archivos relacionados con actividades de tu tiempo libre", // <strong>500.HOBBIES</strong>: Para archivos relacionados con actividades de tu tiempo libre.
+					},
 					a1: "Leer más acerca de la carpeta de soporte <i>\"PROYECTOS\"</i>",
 					c2: {
 						c: "Separar en por contextos permite mantener y manejar archivos, crea una barrera <i>que si se respeta</i> reduce la probabilidad de mezclar archivos y ayuda a tener un enfoque claro de su uso y lo que se encuentra alli."
@@ -288,8 +307,8 @@ export const content: Record<string, any> = {
 					p1: 'Es simple, tiene una enumeración incremental con dos o más dígitos, aunque no necesariamente va al principio, ya que dependerá de las necesidades/personalizaciones de cada quien.',
 					p2: 'Puedes usarla si:',
 					ul1: {
-						li_1: "Necesitas o ya tiene una secuencia estatica (ej. 01.Nombre 02.Nombre 03.Nombre ...)",
-						li_2: "La carpeta permanecera para un tiempo largo o permanentemente",
+						li_0: "Necesitas o ya tiene una secuencia estatica (ej. 01.Nombre 02.Nombre 03.Nombre ...)",
+						li_1: "La carpeta permanecera para un tiempo largo o permanentemente",
 					},
 					c1: {
 						c: '<strong>Nota</strong>: La forma en que organizas determinará si tus carpetas de soporte vienen antes o después. Consulta <a href="https://ticsw.gitbooks.io/talleres/content/BigO_Sort/tipos_de_ordenamientos.html#Ordenamiento%20Lexicográfico" target="_blank"><u><i>prioridad de orden lexicográfico</u></i></a>'
@@ -318,9 +337,9 @@ export const content: Record<string, any> = {
 					},
 					p2: 'Puedes usarla si:',
 					ul1: {
-						li_1: "Requieres un control",
-						li_2: "La información se mantendra por mucho tiempo",
-						li_3: "Compartiras con mas de una persona",
+						li_0: "Requieres un control",
+						li_1: "La información se mantendra por mucho tiempo",
+						li_2: "Compartiras con mas de una persona",
 					}
 				}
 			},

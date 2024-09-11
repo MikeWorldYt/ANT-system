@@ -9,7 +9,6 @@
     <heading [path]="path" article="10" write="h1"
     subtitleClass="docs-subtitle" />
     <paragraph [path]="path" article="10" write="p1" />
-    <unordered-list [path]="path" article="10" write="ul1" />
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png" />
       <lightbox src="https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png" />
@@ -40,24 +39,12 @@
     <paragraph [path]="path" article="11" write="p2" />
     <callout [path]="path" article="11" write="c1" />
     <paragraph [path]="path" article="11" write="p3" />
-    <ul>
-      <li [innerHTML]="write.article_11.ul1_li1">   </li>
-      <li [innerHTML]="write.article_11.ul1_li2">   </li>
-      <li>
-        <span [innerHTML]="write.article_11.ul1_li3"></span>
-        <a [innerHTML]="write.article_11.ul1_li3_a" class="not-available"
-          [routerLink]="['/concepts']" fragment="Settings-folder"></a>
-      </li>
-      <li [innerHTML]="write.article_11.ul1_li4">   </li>
-      <li [innerHTML]="write.article_11.ul1_li5">   </li>
-    </ul>
-
+    <unordered-list [path]="path" article="11" write="ul1" />
     <div class="pic-container" >
       <lightbox src="https://i.pinimg.com/originals/83/8e/6a/838e6af8130e5a3dab94df680a9c59df.png" />
     </div>
     <callout [path]="path" article="11" write="c2" />
   </section>
-
 
   <!-- ------------------------------   .   -   1.2   -   .    ------------------------------ -->
   <section id="{{ write.article_12.id | addHyphen }}" #section>
