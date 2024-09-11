@@ -1,7 +1,21 @@
+<!DOCTYPE html>
 <ul>
-    @for (item of items; track $index) {
-        <li
-            [innerHTML]="item">
-        </li>
+  @for (item of items; track $index) {
+    @if (isArray(item)) {
+      <li>
+        <span>
+          {{ items[$index][0] }}
+        </span>
+        <anchor 
+					[path]="path" article="{{ articleInherit }}"
+          subItem="{{ writeInherit }}"  write="li_{{ $index }}"
+				/>
+      </li>
     }
+    @else {
+      <li>
+        {{ item }}
+      </li>
+    }
+  }
 </ul>

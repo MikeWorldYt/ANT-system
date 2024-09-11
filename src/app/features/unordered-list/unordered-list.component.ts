@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common';
 import { content } from '../../docs/content/content';
 import { LanguageService } from '../../services/navLanguage.service';
 import { Subscription } from 'rxjs';
+import { AnchorComponent } from '../anchor/anchor.component';
 
 @Component({
   selector: 'unordered-list',
   standalone: true,
   imports: [
-    CommonModule
+    CommonModule,
+    AnchorComponent
   ],
   templateUrl: './unordered-list.component.html',
   styleUrl: './unordered-list.component.css'
@@ -23,8 +25,12 @@ export class UnorderedListComponent {
   ) { }
 
   items: string[] = [];
+  articleInherit: string = '';
+  writeInherit: string = '';
 
   ngOnInit(): void {
+    this.articleInherit = this.article;
+    this.writeInherit = this.write;
     this.article = this.concatArticle(this.article);
     this.subscribeToLanguageChanges();
     this.resolveContent();
@@ -48,6 +54,10 @@ export class UnorderedListComponent {
 
   private concatArticle(article: string): string {
     return `article_${article}`;
+  }
+
+  isArray(value: any): boolean {
+    return Array.isArray(value);
   }
 
 }

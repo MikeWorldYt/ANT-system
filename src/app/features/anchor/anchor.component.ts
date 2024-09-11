@@ -20,12 +20,13 @@ export class AnchorComponent {
   @Input() article!: string;
   @Input() write!: string;
   @Input() available: boolean = true;
+  @Input() subItem?: string;
 
   constructor(
     private languageService: LanguageService,
   ) { }
 
-  writer: string = '';
+  writer: string[] = [];
   anchorLink: string = '';
   anchorFragmentLink: string = '';
 
@@ -50,13 +51,20 @@ export class AnchorComponent {
     const [lang, title, page] = this.path;
     const article = this.article;
     const write = this.write;
-    this.writer = content[lang][title][page][article][write].c;
-    this.anchorLink = content[lang][title][page][article][write].link;
-    this.anchorFragmentLink = content[lang][title][page][article][write].fragmentLink;
-    // console.log(`
-    //   a Paragraph: ${this.writer}
-    //   a path: ${this.path}
-    //   a article: ${this.article}`);
+    const contentItem = content[lang][title][page][article];
+    // Resolve Logic
+    if (this.subItem) {
+      // For nested Anchors
+      const subItemContent = contentItem[this.subItem];
+      this.writer = subItemContent[write][1][0];
+      this.anchorLink = subItemContent[write][1][1];
+      this.anchorFragmentLink = subItemContent[write][1][2];
+    } else {
+      // For normal Anchors
+      this.writer = contentItem[write][0];
+      this.anchorLink = contentItem[write][1];
+      this.anchorFragmentLink = contentItem[write][2];
+    }
   }
 
   private concatArticle(article: string): string {
