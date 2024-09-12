@@ -3,7 +3,7 @@
   @for (item of items; track $index) {
     @if (isArray(item)) {
       <li>
-        <span>
+        <span  [innerHTML]="items[$index][0]">
           {{ items[$index][0] }}
         </span>
         <anchor 
@@ -13,8 +13,7 @@
       </li>
     }
     @else {
-      <li>
-        {{ item }}
+      <li  [innerHTML]="item">
       </li>
     }
   }
