@@ -1,58 +1,14 @@
 <!DOCTYPE html>
-<div class="w-full">
-  <div class="docs-decorative-header ">
-    <div class="docs-header-content">
-      <div class="docs-header">
-        <h3 [innerHTML]="write.header.h3">Introduction</h3>
-      </div>
-      <div class="docs-tittle">
-        <h1 [innerHTML]="write.header.h1">What is ANT?</h1>
-      </div>
+
+<!-- <div class="docs-decorative-header ">
+  <div class="docs-header-content">
+    <div class="docs-header">
+      <h3 [innerHTML]="write.header.h3">Introduction</h3>
+    </div>
+    <div class="docs-tittle">
+      <h1 [innerHTML]="write.header.h1">What is ANT?</h1>
     </div>
   </div>
-
-  <!-- ------------------------------   .   -   0.1   -   .    ------------------------------ -->
-  <section id="Intro" #section>
-    <div class="callout quote"><!--  bg-emerald-500/20 pt-4 pb-4 pl-6 pr-6 mt-1 mb-1 rounded-md -->
-      <img src="/assets/call-quote.svg" alt="">
-      <p [innerHTML]="write.article_01.c1">  </p>
-    </div>
-    <p [innerHTML]="write.article_01.p1">  </p>
-    <p [innerHTML]="write.article_01.p2">  </p>
-    <p [innerHTML]="write.article_01.p3">  </p>
-  </section>
-
-  <!-- ------------------------------   .   -   0.2   -   .    ------------------------------ -->
-  <section id="How-works" #section>
-    <h2 class="docs-subtitle-light"
-    (mouseenter)="hashHoverFeature.showHash()"
-    (mouseleave)="hashHoverFeature.hideHash()"
-    [innerHTML]="write.article_02.h1"> 
-      How works?</h2>
-    <span class="hash-link" *ngIf="hashHoverFeature.hovered">
-      <h2 class="docs-subtitle-light">#</h2>
-    </span>
-    <p [innerHTML]="write.article_02.p1">
-    </p>
-  </section>
-
-  <!-- ------------------------------   .   -   0.3   -   .    ------------------------------ -->
-  <section id="Key-Benefits" #section>
-    <h2 class="docs-subtitle-light"
-    (mouseenter)="hashHoverFeature.showHash()"
-    (mouseleave)="hashHoverFeature.hideHash()"
-    [innerHTML]="write.article_03.h1">
-      Key Benefits of ANT System:</h2>
-    <span class="hash-link" *ngIf="hashHoverFeature.hovered">
-      <h2 class="docs-subtitle-light">#</h2>
-    </span>
-    <ul>
-      <li [innerHTML]="write.article_03.ul1_li1">   </li>
-      <li [innerHTML]="write.article_03.ul1_li2">   </li>
-      <li [innerHTML]="write.article_03.ul1_li3">   </li>
-      <li [innerHTML]="write.article_03.ul1_li4">   </li>
-    </ul>
-  </section>
-
-    <app-footer class="w-full bottom-0 left-0 "/>
-</div>
+</div> -->
+<get-content-page [path]="[currentLanguage, currentTitle, currentPage]"/>
+<app-footer />
