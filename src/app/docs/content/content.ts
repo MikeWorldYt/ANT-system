@@ -1,43 +1,49 @@
 export const content: Record<string, any> = {
-  EN: {
+	EN: {
     title_01: {
+			// header : {
+			// 		h3: 'Introduction',
+			// 		h1: 'What is ANT?',
+			// 		c1: "ANT on the system (Archive Nesting Technique on the System) is a hierarchical organizational method designed to streamline the storage, easier to manage and find files.",
+			// },
       page_01: {
-				header : {
-					h3: 'Introduction',
-					h1: 'What is ANT?',
-					c1: "ANT on the system (Archive Nesting Technique on the System) is a hierarchical organizational method designed to streamline the storage, easier to manage and find files.",
-				},
 				article_01: {
-					id: 'Intro',
-					c1: "<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>hierarchical organizational methods</i> designed to streamline  <br>      the storage, easier to manage and find files.",
+					_id: 'Intro',
+					h1: 'What is ANT?',
+					c1: {
+						t: "quote",
+						c_1: "<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>hierarchical organizational methods</i> designed to streamline  <br>      the storage, easier to manage and find files.",
+					},
 					p1: "This system originated in a Workplace <strong>to Manage a Large Volume of files</strong> and was <strong>re-adapted for a Home Use</strong> to make it easy for any user to implement. <br> Even so, we highlight that it's <strong><i>mainly focused on the Home Office and Students</i></strong>, but it still offers flexibility for other areas.",
 					p2: "<br> <br>This is a system with hierarchical organizational methods, structured in a way that mimics an ant colony, This system has a hierarchical system with a Directed acyclic graph (DAG) adapted to the conventional tree data structure of current Operating Systems, Additionality, it creates a decentralized and modular infrastructure, making it flexible yet resilient in handling information.",
 					p3: "<br> <br>The purpose of this system and its methods is not ensure that, even when handling a large amount and variety of data, it can be organized and dynamically managed; In other words, as long as the user follows these methods, when they create or add a new file to their system, they'll be free to edit, share, migrate, version, etc., with a very high probability that their information will not be compromised, duplicated, or lost among other files."
 				},
 				article_02: {
-					id: 'How works',
+					_id: 'How works',
 					h1: 'How works?',
 					p1: 'Her rules organize files in a way that mimics an ant colony, <br> with a categories pathways in levels and some nested paths. <br> Also, it employs a naming convention that allows the user to find a file anywhere. <br> <br>Following this method will ensure that your Digital Storage is well-organized, <br>Easily accessible, and Efficiently managed'
 				},
 				article_03: {
-					id: 'Key benefits',
+					_id: 'Key benefits',
 					h1: 'Key Benefits of ANT System:',
-					ul1_li1: '<strong>1. Structured Organization:</strong>  Files are organized in a clear hierarchical structure, making navigation easy.',
-					ul1_li2: '<strong>2. Convenient Nomenclature:</strong>  Folders and subfolders are named with an incremental and intuitive patern, improving the organization, creation, and search of content.',
-					ul1_li3: "<strong>3.Clean Desktop:</strong>  A special 'Projects' folder serves as a Temporary Repository for current and future projects, eliminating the need to use the desktop for these purposes and keeping clutter-free.",
-					ul1_li4: '<strong>4.Master Tracking Work/School Projects:</strong>   It allows you track ongoing projects and store ideas, When a project is done you\'ll know it, If you need files from another project you\'ll know where they are.',
+					ul1: {
+						li_0: "<strong>1. Structured Organization:</strong>  Files are organized in a clear hierarchical structure, making navigation easy.",
+						li_1: "<strong>2. Convenient Nomenclature:</strong>  Folders and subfolders are named with an incremental and intuitive patern, improving the organization, creation, and search of content.",
+						li_2: "<strong>3.Clean Desktop:</strong>  A special 'Projects' folder serves as a Temporary Repository for current and future projects, eliminating the need to use the desktop for these purposes and keeping clutter-free.",
+						li_3: "<strong>4.Master Tracking Work/School Projects:</strong>   It allows you track ongoing projects and store ideas, When a project is done you\'ll know it, If you need files from another project you\'ll know where they are."
+					},
 					p1: ''
 				}
       },
     },
     title_02: {
-			header: {
-				h3: '',
-				h1: ''
-			},
+			// header: {
+			// 	h3: '',
+			// 	h1: ''
+			// },
       page_01: {
 				article_10: {
-					id: 'Levels and Structure',
+					_id: 'Levels and Structure',
 					h1: '1. Levels and Directory Structure',
 					p1: " The data structure used by <strong>ANT</strong> is hierarchical, tho it's designed to be decentralized.<br> Each folder acts as a node with paths, that start at the 'root' and continue into deeper <strong><i>levels</i></strong>. <br> The term <strong><i>Levels </i></strong> refers to the depth of the folder within a tree directory.",
 					i1: {
@@ -70,7 +76,7 @@ export const content: Record<string, any> = {
 						},
 				},
 				article_11: {
-					id: 'Level 1',
+					_id: 'Level 1',
 					h1: '1.1 The Level 1 - Main Categories (Contexts)', 
 					p1: 'Is the highest hierarchy, inside from your Root Storage Folder, content the main categories. <br> Defines a portion of space, and the usage it will have.',
 					i1: {
@@ -107,7 +113,7 @@ export const content: Record<string, any> = {
 					}
 				},
 				article_12: {
-					id: 'Level 2',
+					_id: 'Level 2',
 					h1: '1.2 The Levels 2 - Categories (Subjects)',
 					p1: 'They are found within <strong><i>Level 1 directories</i></strong>, being the second in the hierarchy.<br> They contain more specific categories, such as Area, Topic, Subject, Organization, Type of work or relationed.',
 					i1: {
@@ -123,7 +129,7 @@ export const content: Record<string, any> = {
 					}
 				},
 				article_13: {
-					id: 'Level 3',
+					_id: 'Level 3',
 					h1: '1.3 The Levels 3 - Subcategories (Units, Theme, Topics, etc.)',
 					p1: 'There are two ways to structure; <br>If the Directory stay for a long time should be use a <strong>Chill Structure</strong>, Otherwise if it\'s a Temporary Directory (it\'ll only be used for a short period), you should be use a <strong>control structure</strong>.',
 				},
@@ -258,34 +264,42 @@ export const content: Record<string, any> = {
   },
   ES: {
     title_01: {
+			// header : {
+			// 	h3: 'Introducción',
+			// 	h1: '¿Que es ANT?',
+			// },
 			page_01: {
-				header : {
-					h3: 'Introducción',
-					h1: '¿Que es ANT?',
-				},
 				article_01: {
-					c1: '<strong>El sistema ANT</strong> (Archive Nesting Technique System) <br> son una serie de  <i>metodos de organizacion jerarquico</i> diseñado para optimizar     <br>      el almacenamiento, administrar y encontrar archivos de forma facil y rápida.',
+					_id: 'Intro',
+					h1: 'Qué es ANT?',
+					c1: {
+						c_1: "<strong>El sistema ANT</strong> (Archive Nesting Technique System) <br> son una serie de  <i>metodos de organizacion jerarquico</i> diseñado para optimizar     <br>      el almacenamiento, administrar y encontrar archivos de forma facil y rápida.",
+					},
 					p1: 'Este sistema surgio en un un ambiente de trabajo para <strong>gestionar un gran volumen de archivos</strong> y fue <strong>re-adaptado para su uso domestico</strong> de modo que sea facil de implementar para cualquier usuario. <br> Aun asi destacamos que esta pensado <strong><i>principalmente para el home office y los estudiantes</i></strong>, pero cuenta con la flexibilidad para cubrir otras áreas.',
 					p2: "<br> <br>Es un sistema con metodos de organizacion jerarquico, estructurado de una manera que imita una colonia de hormigas, este sistema tiene una Estructura Jerárquica con Grafo Dirigido Acíclico (DAG) adaptado para la estructura de datos de arbol convencional de los sistemas operativos actuales. Por otro lado, crea una infraestructura descentralizada y modular, lo que lo hacer ser flexible pero ductil con la informacion.",
 					p3: "<br> <br> El objetivo de este sistema y sus metodos es que aunque se maneje una gran cantidad y variedad, esta pueda ser organizada y gestionada dinamicamente; En otras palabras, siempre y cuando el usuario siga estos metodos, al crear o entrar un archivo a su sistema sera libre de editar, compartir, migrar, versionar, etc, con una muy alta probabilidad de que su informacion no sea comprometida, duplicada y/o se pierda entre los demas archivos."
 				},
 				article_02: {
+					_id: 'How works es',
 					h1: '¿Como funciona?',
 					p1: 'Sus reglas organizan archivos de una manera que imita una colonia de hormigas, <br> teniendo los archivos en rutas por categorías en niveles y rutas convenientemente anidadas. <br> Además, emplea una convención de nombres que permite al usuario encontrar un archivo en cualquier lugar. <br> <br>Seguir este método garantizará que tu Almacenamiento Digital esté bien organizado, <br>fácilmente accesible y eficientemente gestionado.'
 				},
 				article_03: {
+					_id: 'Key benefits es',
 					h1: 'Beneficios al usar ANT',
-					ul1_li1: '<strong>1. Organización Estructurada:</strong> Los archivos están organizados en una estructura jerárquica clara, lo que facilita su navegación.',
-					ul1_li2: '<strong>2. Nomenclatura Conveniente:</strong> Las carpetas y subcarpetas están nombradas con un patrón incremental e intuitivo, mejorando la organización, creación y búsqueda de contenido.',
-					ul1_li3: "<strong>3. Escritorio Limpio:</strong> Una carpeta especial de 'Proyectos' sirve como un Repositorio Temporal para proyectos actuales y futuros, eliminando la necesidad de usar el escritorio para estos fines y manteniéndolo libre de desorden.",
-					ul1_li4: "<strong>4. Seguimiento Maestro de Proyectos de Trabajo/Escuela:</strong> Permite rastrear proyectos en curso y almacenar ideas. Cuando un proyecto esté terminado, lo sabrás. Si necesitas archivos de otro proyecto, sabrás dónde están.",
+					ul1: {
+						li_0: "<strong>1. Organización Estructurada:</strong> Los archivos están organizados en una estructura jerárquica clara, lo que facilita su navegación.",
+						li_1: "<strong>2. Nomenclatura Conveniente:</strong> Las carpetas y subcarpetas están nombradas con un patrón incremental e intuitivo, mejorando la organización, creación y búsqueda de contenido.",
+						li_2: "<strong>3. Escritorio Limpio:</strong> Una carpeta especial de 'Proyectos' sirve como un Repositorio Temporal para proyectos actuales y futuros, eliminando la necesidad de usar el escritorio para estos fines y manteniéndolo libre de desorden.",
+						li_3: "<strong>4. Seguimiento Maestro de Proyectos de Trabajo/Escuela:</strong> Permite rastrear proyectos en curso y almacenar ideas. Cuando un proyecto esté terminado, lo sabrás. Si necesitas archivos de otro proyecto, sabrás dónde están."
+					},
 				}
 			},
 		},
 		title_02: {
 			page_01: {
 				article_10: {
-					id: 'Estructura y Niveles',
+					_id: 'Estructura y Niveles',
 					h1: '1. Estructura y Niveles',
 					p1: "La estructura de datos que usa <strong>ANT</strong> aunque es jerarquica, esta pensada para ser decentralizada. <br> Cada carpeta son nodos con rutas, que comienzan donde la 'raiz' y continuan en <strong><i> niveles </i></strong>mas adentro. <br> Por <strong>niveles</strong> se refiere a la profundidad dentro del arbol de carpetas.",
 					c1: {
@@ -297,7 +311,7 @@ export const content: Record<string, any> = {
 					a1: "Leer más...",
 				},
 				article_11: {
-					id: 'Nivel 1',
+					_id: 'Nivel 1',
 					h1: '1.1 Nivel 1 - Categorías principales (Contextos)',
 					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales. <br> Define una porcion de tu espacio y el uso que tendra.',
 					p2: "Usa una enumeración incremental con tres dígitos (100, 200, 300, ...), seguida de un punto, seguida del nombre de la Categoría Principal en mayúsculas. ",
@@ -326,7 +340,7 @@ export const content: Record<string, any> = {
 					}
 				},
 				article_12: {
-					id: 'Nivel 2',
+					_id: 'Nivel 2',
 					h1: '1.2 Nivel 2 - Categorías (Temas)',
 					p1: 'Se encuentran dentro de los <strong><i>Directorios de Nivel 1</i></strong>, siendo 2da en la jerarquia,<br> contiene categorias mas especificas, por ejemplo el Area, Tema o Materia.',
 					p2: "Para cada directorio, agrega una enumeración incremental con dos dígitos, seguida de un punto, seguida del nombre de la Categoría en mayúsculas.",
@@ -335,7 +349,7 @@ export const content: Record<string, any> = {
 					},
 				},
 				article_13: {
-					id: 'Nivel 3',
+					_id: 'Nivel 3',
 					h1: '1.3 Nivel 3 - Categorías (Unidades, Tema, Temas, etc.)',
 					p1: 'Hay dos formas de estructurar; Si el Directorio se mantiene por mucho tiempo, se debe usar una <strong>Estructura Fria</strong>, de lo contrario, si es un Directorio Temporal (solo se usará por un período corto), se debe usar una <strong>Estructura de Control</strong>.',
 				},
