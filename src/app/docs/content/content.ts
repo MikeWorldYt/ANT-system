@@ -157,18 +157,20 @@ export const content: Record<string, any> = {
 						t: 'warning',
 						c_1: '<strong>Important</strong>: It has a naming convention, here is the meaning of each part;'
 					},
-					table1_head: [
-						{ col_1: 'Part', col_2: 'Meaning' },
-					],
-					table1_content: [
-						{ col_1: 'Identificator', col_2: 'It\'s a code label that identifies it.' },
-						{ col_1: 'Traker', col_2: 'It\'s your tracking index, if you use.' },
-						{ col_1: 'Date', col_2: 'The format is \'YY-MM-DD\', within parentheses' },
-						{ col_1: 'Breadcrumb', col_2: 'Use current or nearby folder category name.' },
-						{ col_1: 'Holder', col_2: 'Refers to client, organization, school, or reference name, within brackets' },
-						{ col_1: 'Name', col_2: 'Is the proj, pres, DB, hw name.' },
-						{ col_1: 'Keywords', col_2: 'Are descriptive words or phrases.' }
-					],
+					t1: {
+						table1_head: [
+							{ col_1: 'Part', col_2: 'Meaning' },
+						],
+						table1_content: [
+							{ col_1: 'Identificator', col_2: 'It\'s a code label that identifies it.' },
+							{ col_1: 'Traker', col_2: 'It\'s your tracking index, if you use.' },
+							{ col_1: 'Date', col_2: 'The format is \'YY-MM-DD\', within parentheses' },
+							{ col_1: 'Breadcrumb', col_2: 'Use current or nearby folder category name.' },
+							{ col_1: 'Holder', col_2: 'Refers to client, organization, school, or reference name, within brackets' },
+							{ col_1: 'Name', col_2: 'Is the proj, pres, DB, hw name.' },
+							{ col_1: 'Keywords', col_2: 'Are descriptive words or phrases.' }
+						],
+					},
 					c2: {
 						t: 'success',
 						c_1: '<strong>Tip</strong>: It\'s not necessary to have all the fields, tho follow in that order, (adapt it to your needs).'
@@ -355,18 +357,20 @@ export const content: Record<string, any> = {
 					c1: {
 						c_1: '<strong>Importante</strong>: Tiene una convención de nombres, enseguida se muestra una tabla de referencia'
 					},
-					table1_head: [
-						{ col_1: 'Parte', col_2: 'Significado' },
-					], 
-					table1_content: [
-						{ col_1: 'Identificador', col_2: 'Es una etiqueta de código que lo identifica.' },
-						{ col_1: 'Traker', col_2: 'Es tu índice de seguimiento (si lo usas).' },
-						{ col_1: 'Fecha', col_2: "La fecha con formato 'AA-MM-DD', va entre paréntesis." },
-						{ col_1: 'Breadcrumb', col_2: 'Usa el nombre de la categoría de la carpeta actual o cercana.' },
-						{ col_1: 'Holder', col_2: 'Se refiere al cliente, organización, escuela o nombre de referencia, va entre corchetes.' },
-						{ col_1: 'Nombre', col_2: 'Es el nombre del proyecto, presentación, base de datos o tarea.' },
-						{ col_1: 'Keywords', col_2: 'Son palabras o frases descriptivas, palabras clave.' }
-					],
+					t1: {
+						table1_head: [
+							{ col_1: 'Parte', col_2: 'Significado' },
+						], 
+						table1_content: [
+							{ col_1: 'Identificador', col_2: 'Es una etiqueta de código que lo identifica.' },
+							{ col_1: 'Traker', col_2: 'Es tu índice de seguimiento (si lo usas).' },
+							{ col_1: 'Fecha', col_2: "La fecha con formato 'AA-MM-DD', va entre paréntesis." },
+							{ col_1: 'Breadcrumb', col_2: 'Usa el nombre de la categoría de la carpeta actual o cercana.' },
+							{ col_1: 'Holder', col_2: 'Se refiere al cliente, organización, escuela o nombre de referencia, va entre corchetes.' },
+							{ col_1: 'Nombre', col_2: 'Es el nombre del proyecto, presentación, base de datos o tarea.' },
+							{ col_1: 'Keywords', col_2: 'Son palabras o frases descriptivas, palabras clave.' }
+						],
+					},
 					c2: {
 						c_1: '<strong>Tip</strong>: No es necesario rellenar todos los campos, solo continuar con el orden.'
 					},

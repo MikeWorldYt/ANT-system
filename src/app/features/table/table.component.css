@@ -1,0 +1,24 @@
+/* --------- Tables --------- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    border: .8px solid #6d9387;
+    padding: 2px;
+    text-align: left;
+}
+th {
+    @apply text-slate-900;
+}
+td:first-child {
+    white-space: nowrap;
+}
+td:last-child {
+    word-wrap: break-word;
+    word-break: normal;
+    white-space: normal;
+}
+th {
+    background-color: #6d9387;
+}

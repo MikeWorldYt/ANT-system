@@ -20,6 +20,7 @@ import { CalloutComponent } from '../../../features/callout/callout.component';
 import { AnchorComponent } from '../../../features/anchor/anchor.component';
 import { UnorderedListComponent } from '../../../features/unordered-list/unordered-list.component';
 import { ImagesComponent } from '../../../features/images-lightbox/images.component';
+import { TableComponent } from '../../../features/table/table.component';
 
 // Testing
 import { HeaderT02Component } from '../header-t02/header-t02.component';
@@ -39,6 +40,7 @@ import { HeaderT02Component } from '../header-t02/header-t02.component';
     AnchorComponent,
     UnorderedListComponent,
     ImagesComponent,
+    TableComponent,
   ],
   templateUrl: './mod-01-levels-structure.component.html',
   styleUrl: '../../docs.component.css'

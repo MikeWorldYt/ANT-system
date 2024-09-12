@@ -60,23 +60,7 @@
     <images [path]="path" article="13_2" write="i1" />
     <paragraph [path]="path" article="13_2" write="p1" />
     <callout [path]="path" article="13_2" write="c1" />
-    <!-- -  Begin Table   - -->
-    <table>
-      <thead>
-          <tr *ngFor="let row of write.article_13_2.table1_head">
-              <!--   Col1    -    Col2   -->
-              <th [innerHTML]="row.col_1"> </th>
-              <th [innerHTML]="row.col_2"> </th>      
-          </tr>
-      </thead>
-      <tbody>
-          <tr *ngFor="let row of write.article_13_2.table1_content">
-            <td [innerHTML]="row.col_1"></td>
-            <td [innerHTML]="row.col_2"></td>
-          </tr>
-      </tbody>
-    </table>
-    <!-- -  End Table   - -->
+    <table-it [path]="path" article="13_2" write="t1" />
     <callout [path]="path" article="13_2" write="c2" />
     <paragraph [path]="path" article="13_2" write="p2" />
     <unordered-list [path]="path" article="13_2" write="ul1" />
