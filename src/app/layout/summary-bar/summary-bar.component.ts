@@ -72,7 +72,7 @@ export class SummaryBarComponent implements OnInit, AfterViewInit {
   getSummary(language: string, title: string, page: string): void {
     const pageContent: any = content[language][title][page];
     if (pageContent) {
-      this.articleHeadings = Object.keys(pageContent).map((key) => pageContent[key].id);
+      this.articleHeadings = Object.keys(pageContent).map((key) => pageContent[key]._id);
     } else {
       this.articleHeadings = [];
     }
