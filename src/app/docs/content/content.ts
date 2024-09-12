@@ -46,12 +46,14 @@ export const content: Record<string, any> = {
 					},
 					c1: {
 						t: 'success',
-						c: '<strong>Tip</strong>: The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.',
-						a1: {
-							c: "Read more",
-							link: "/advanced-concepts",
-							fragmentLink: "sharing"
-							}
+						c_1: '<strong>Tip</strong>: The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.',
+						// a_1: [
+						// 	[" empty array "] ,
+						// 	[ // nested anchor 
+						// 		"Read more",
+						// 		"/advanced-concepts",
+						// 		"sharing"
+						// 	] ],
 						},
 					c2: {
 						t: 'info',
@@ -77,7 +79,7 @@ export const content: Record<string, any> = {
 					p2: "This use an incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals. ",
 					c1: {
 						t: 'danger',
-						c: "<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relink again."
+						c_1: "<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relink again."
 					},
 					p3: "We recommend using the following categories, in the following order;",
 					ul1: {
@@ -101,7 +103,7 @@ export const content: Record<string, any> = {
 					a1: "Read more about <i>Support Folder \"PROJETCS\"</i>",
 					c2: {
 						t: 'quote',
-						c: "Separating by contexts allows for maintaining and managing files, creating a barder that <i>if respected</i> reduces the likelihood of mixing files and helps to have a clear focus on their use and what is found there."
+						c_1: "Separating by contexts allows for maintaining and managing files, creating a barder that <i>if respected</i> reduces the likelihood of mixing files and helps to have a clear focus on their use and what is found there."
 					}
 				},
 				article_12: {
@@ -114,7 +116,7 @@ export const content: Record<string, any> = {
 					p2: 'For each directory add an Incremental enumeration with two digits, followed by a dot, followed by the Categories Name in Capitals..',
 					c1: {
 						t: 'quote',
-						c: "The order in the sequence is not essential and only facilitates a visual organization. <br> Although it may not represent a logical sequence, numbering makes it <i>more predictable</i> for the user to find what they need. However, it can be useful for prioritizing or arranging it in a custom sequence rather than alphabetically. <br> Also when a folder is delted or added, It does'nt affect his order, <br> Numering creates a control to maintain the user's customized sequence."
+						c_1: "The order in the sequence is not essential and only facilitates a visual organization. <br> Although it may not represent a logical sequence, numbering makes it <i>more predictable</i> for the user to find what they need. However, it can be useful for prioritizing or arranging it in a custom sequence rather than alphabetically. <br> Also when a folder is delted or added, It does'nt affect his order, <br> Numering creates a control to maintain the user's customized sequence."
 					},
 					i2: {
 						p_1: "empty",
@@ -142,7 +144,7 @@ export const content: Record<string, any> = {
 					},
 					c1: {
 						t: 'info',
-						c: '<strong>Note</strong>: That the way you organize will determine whether your support folders come before or after. Remember, the order always be Symbols-Numbers-Letters."'
+						c_1: '<strong>Note</strong>: That the way you organize will determine whether your support folders come before or after. Remember, the order always be Symbols-Numbers-Letters."'
 					}
 				},
 				article_13_2: {
@@ -153,7 +155,7 @@ export const content: Record<string, any> = {
 					p1: 'It\'s ideal for projects, presentations, database, homeworks, etc. Use a naming convetion for controling and easy identification',
 					c1: {
 						t: 'warning',
-						c: '<strong>Important</strong>: It has a naming convention, here is the meaning of each part;'
+						c_1: '<strong>Important</strong>: It has a naming convention, here is the meaning of each part;'
 					},
 					table1_head: [
 						{ col_1: 'Part', col_2: 'Meaning' },
@@ -169,7 +171,7 @@ export const content: Record<string, any> = {
 					],
 					c2: {
 						t: 'success',
-						c: '<strong>Tip</strong>: It\'s not necessary to have all the fields, tho follow in that order, (adapt it to your needs).'
+						c_1: '<strong>Tip</strong>: It\'s not necessary to have all the fields, tho follow in that order, (adapt it to your needs).'
 					},
 					p2: 'You can use if:',
 					ul1: {
@@ -285,10 +287,10 @@ export const content: Record<string, any> = {
 					h1: '1. Estructura y Niveles',
 					p1: "La estructura de datos que usa <strong>ANT</strong> aunque es jerarquica, esta pensada para ser decentralizada. <br> Cada carpeta son nodos con rutas, que comienzan donde la 'raiz' y continuan en <strong><i> niveles </i></strong>mas adentro. <br> Por <strong>niveles</strong> se refiere a la profundidad dentro del arbol de carpetas.",
 					c1: {
-						c: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles. Si bien podrías tener más, es recomendable no tener demasiados niveles y usarlos solo en ciertos casos.'
+						c_1: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles. Si bien podrías tener más, es recomendable no tener demasiados niveles y usarlos solo en ciertos casos.'
 					},
 					c2: {
-						c: '<strong>Nota</strong>:Los directorios no son exclusivos o estaticos, se pueden mover a otra ruta, o incluso compartirse con otras al mismo tiempo, en otras palabras son flexibles y crear conexiones asociadas que en su mayoria de casos no necesitaran renombrase o copiarse. '
+						c_1: '<strong>Nota</strong>:Los directorios no son exclusivos o estaticos, se pueden mover a otra ruta, o incluso compartirse con otras al mismo tiempo, en otras palabras son flexibles y crear conexiones asociadas que en su mayoria de casos no necesitaran renombrase o copiarse. '
 					},
 					a1: "Leer más...",
 				},
@@ -298,7 +300,7 @@ export const content: Record<string, any> = {
 					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales. <br> Define una porcion de tu espacio y el uso que tendra.',
 					p2: "Usa una enumeración incremental con tres dígitos (100, 200, 300, ...), seguida de un punto, seguida del nombre de la Categoría Principal en mayúsculas. ",
 					c1: {
-						c: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente."
+						c_1: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente."
 					},
 					p3: "Recomendamos usar las siguientes categorias, en el siguiente orden;",
 					ul1: {
@@ -318,7 +320,7 @@ export const content: Record<string, any> = {
 					},
 					a1: "Leer más acerca de la carpeta de soporte <i>\"PROYECTOS\"</i>",
 					c2: {
-						c: "Separar en por contextos permite mantener y manejar archivos, crea una barrera <i>que si se respeta</i> reduce la probabilidad de mezclar archivos y ayuda a tener un enfoque claro de su uso y lo que se encuentra alli."
+						c_1: "Separar en por contextos permite mantener y manejar archivos, crea una barrera <i>que si se respeta</i> reduce la probabilidad de mezclar archivos y ayuda a tener un enfoque claro de su uso y lo que se encuentra alli."
 					}
 				},
 				article_12: {
@@ -327,7 +329,7 @@ export const content: Record<string, any> = {
 					p1: 'Se encuentran dentro de los <strong><i>Directorios de Nivel 1</i></strong>, siendo 2da en la jerarquia,<br> contiene categorias mas especificas, por ejemplo el Area, Tema o Materia.',
 					p2: "Para cada directorio, agrega una enumeración incremental con dos dígitos, seguida de un punto, seguida del nombre de la Categoría en mayúsculas.",
 					c1: {
-						c: "El orden en la secuencia no es escencial y solo facilita su organizacion visual. <br> Si bien podria no represantar una secuencia logica el hecho de numerar hace que sea mas predecible para el usuario encontrar la que necesita, <br> Sin embargo, puede ser util para priorizar u ordenarla en una secuencia personalizada y no alfabeticamente. <br> Ademas numerarlo crea un control para mantener la secuencia personlizada del usuario."
+						c_1: "El orden en la secuencia no es escencial y solo facilita su organizacion visual. <br> Si bien podria no represantar una secuencia logica el hecho de numerar hace que sea mas predecible para el usuario encontrar la que necesita, <br> Sin embargo, puede ser util para priorizar u ordenarla en una secuencia personalizada y no alfabeticamente. <br> Ademas numerarlo crea un control para mantener la secuencia personlizada del usuario."
 					},
 				},
 				article_13: {
@@ -344,14 +346,14 @@ export const content: Record<string, any> = {
 						li_1: "La carpeta permanecera para un tiempo largo o permanentemente",
 					},
 					c1: {
-						c: '<strong>Nota</strong>: La forma en que organizas determinará si tus carpetas de soporte vienen antes o después. Consulta <a href="https://ticsw.gitbooks.io/talleres/content/BigO_Sort/tipos_de_ordenamientos.html#Ordenamiento%20Lexicográfico" target="_blank"><u><i>prioridad de orden lexicográfico</u></i></a>'
+						c_1: '<strong>Nota</strong>: La forma en que organizas determinará si tus carpetas de soporte vienen antes o después. Consulta <a href="https://ticsw.gitbooks.io/talleres/content/BigO_Sort/tipos_de_ordenamientos.html#Ordenamiento%20Lexicográfico" target="_blank"><u><i>prioridad de orden lexicográfico</u></i></a>'
 					},
 				},
 				article_13_2: {
 					h1: '1.3.2 Estructura de Control',
 					p1: 'Es ideal para proyectos, presentaciones, bases de datos, tareas, etc. Se utiliza una convención de nombres para controlar y facilitar su identificación.',
 					c1: {
-						c: '<strong>Importante</strong>: Tiene una convención de nombres, enseguida se muestra una tabla de referencia'
+						c_1: '<strong>Importante</strong>: Tiene una convención de nombres, enseguida se muestra una tabla de referencia'
 					},
 					table1_head: [
 						{ col_1: 'Parte', col_2: 'Significado' },
@@ -366,7 +368,7 @@ export const content: Record<string, any> = {
 						{ col_1: 'Keywords', col_2: 'Son palabras o frases descriptivas, palabras clave.' }
 					],
 					c2: {
-						c: '<strong>Tip</strong>: No es necesario rellenar todos los campos, solo continuar con el orden.'
+						c_1: '<strong>Tip</strong>: No es necesario rellenar todos los campos, solo continuar con el orden.'
 					},
 					p2: 'Puedes usarla si:',
 					ul1: {
@@ -393,7 +395,7 @@ export const content: Record<string, any> = {
 					p3: 'En otras palabras, necesitan revision antes de ingresar al sistema, y este folder te ayuda a esto y para no mezclarlo con otros archivos.',
 					c1: {
 						t: '',
-						c: '<strong>Importante</strong>: Usa el identificador, seguido de un punto, seguido del nombre de la actual ruta o similar (preferentemente usa kebab-case)'
+						c_1: '<strong>Importante</strong>: Usa el identificador, seguido de un punto, seguido del nombre de la actual ruta o similar (preferentemente usa kebab-case)'
 					}
 				},
 				article_23: {
