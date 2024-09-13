@@ -12,7 +12,7 @@ import { HashHoverFeature } from '../../../services/ftHashHover.service';
 import { content } from '../../content/content';
 
 // Testing
-import { HeaderT02Component } from '../header-t02/header-t02.component';
+import { HeaderT02Component } from '../../../features/header-t02/header-t02.component';
 
 @Component({
   selector: 'doc-t02-mod-02-support-folders',

@@ -21,9 +21,9 @@ import { AnchorComponent } from '../../../features/anchor/anchor.component';
 import { UnorderedListComponent } from '../../../features/unordered-list/unordered-list.component';
 import { ImagesComponent } from '../../../features/images-lightbox/images.component';
 import { TableComponent } from '../../../features/table/table.component';
+import { HeaderT02Component } from '../../../features/header-t02/header-t02.component';
 
 // Testing
-import { HeaderT02Component } from '../header-t02/header-t02.component';
 
 @Component({
   selector: 'doc-t02-mod-01-levels-structure',

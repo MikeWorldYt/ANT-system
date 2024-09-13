@@ -141,29 +141,3 @@ h2:hover .hash-link {
 .hash-link .docs-subtitle-light {
     border-bottom: none;
 }
-
-/* --------- Pictures --------- */
-.pic-container {
-    @apply flex flex-col md:flex-row gap-3 my-2;
-}
-
-
-
-/* EXPEREMENTAL */
-
-.docs-decorative-header {
-    @apply rounded-xl bg-slate-600/30 flex overflow-hidden mb-4 relative;
-}
-
-.docs-header-content {
-    @apply box-border p-6 pe-0 grow;
-}
-
-.docs-header {
-    @apply text-sm pb-[14px];
-}
-
-.docs-tittle {
-    @apply text-3xl pe-0 font-semibold text-emerald-400;
-}
-

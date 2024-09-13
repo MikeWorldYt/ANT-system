@@ -5,7 +5,7 @@ import { Component, Input } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './header-t02.component.html',
-  styleUrl: '../../docs.component.css'
+  styleUrl: './header-t02.component.css'
 })
 export class HeaderT02Component {
   @Input() mod: string = '';
