@@ -1,8 +1,4 @@
-import { BrowserModule, Title } from '@angular/platform-browser';
-import { RouterModule, Routes } from '@angular/router';
-import { NgModule } from '@angular/core';
-
-// import { HashLocationStrategy, LocationStrategy } from '@angular/common';
+import { Routes } from '@angular/router';
 
 import { Docs_T01_IntoComponent } from './docs/t01-starter/into-t01-getting-starter/into-title-01.component';
 import { Docs_T02_IntoComponent } from './docs/t02-concepts/into-t02-main-concepts/into-title-02.component';
@@ -29,29 +25,9 @@ export const routes: Routes = [
       },
       { path: 'getting-started', component: Docs_T03_IntoComponent },
       { path: 'test', component: DocsPageComponent },
-      { path: 'test/:title', component: DocsPageComponent },
       { path: '', redirectTo: 'introduction', pathMatch: 'full' },
     ]
   },
   { path: 'not-found', component: NotFoundComponentComponent },
   { path: '**', redirectTo: 'not-found', pathMatch: 'full' },
 ];
-
-@NgModule({
-  declarations: [  ],
-  imports:[
-    BrowserModule,
-    RouterModule.forRoot(routes, {
-      useHash: true,
-      bindToComponentInputs: true
-    })
-  ],
-  providers: [
-    // {
-    //   provide: LocationStrategy,
-    //   useClass: HashLocationStrategy
-    // }
-  ]
-})
-
-export class AppRoutingModule { }
