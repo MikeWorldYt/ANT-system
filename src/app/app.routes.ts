@@ -4,12 +4,12 @@ import { NgModule } from '@angular/core';
 
 // import { HashLocationStrategy, LocationStrategy } from '@angular/common';
 
-import { Docs_T01_IntoComponent } from './docs/t01-starter/into-getting-starter/into-title-01.component';
+import { Docs_T01_IntoComponent } from './docs/t01-starter/into-t01-getting-starter/into-title-01.component';
 import { Docs_T02_IntoComponent } from './docs/t02-concepts/into-t02-main-concepts/into-title-02.component';
 import { Docs_T02_Pag01_Component } from './docs/t02-concepts/t02-page-01/page-01.component';
 import { Docs_T02_Pag02_Component } from './docs/t02-concepts/t02-page-02/page-02.component';
 import { Docs_T02_Pag03_Component } from './docs/t02-concepts/t02-page-03/page-03.component';
-import { Docs_T03_IntoComponent } from './docs/t03-getting-started/into-main-getting/into-title-03.component';
+import { Docs_T03_IntoComponent } from './docs/t03-getting-started/into-t03-main-getting/into-title-03.component';
 
 import HomeComponent from './pages/home/home.component';
 import { NotFoundComponentComponent } from './pages/error/404/not-found.component';
