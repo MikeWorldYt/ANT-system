@@ -1,101 +1,47 @@
-import { Component, ElementRef, QueryList, ViewChildren, OnInit, AfterViewInit } from '@angular/core';
+import { Component, Input } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { AddHyphenPipe } from '../../../pipes/add-hyphen.pipe';
-import { Subscription } from 'rxjs';
+
+// ▲ COMPONENTS ▲
+import { FooterComponent } from '../../../layout/footer/footer.component';
 
 // ▲ SERVICES ▲
-import { ArticleService } from '../../../services/navArticleObserver.service';
-import { LanguageService } from '../../../services/navLanguage.service';
+import { TitleService } from '../../../services/navTitle.service';
 import { PageService } from '../../../services/navPage.service';
 
-// ▲ CONTENT ▲
-import { content } from '../../content/content';
-
 // ▲ FEATURES ▲
-import { HeadingComponent } from '../../../features/heading/heading.component';
-import { LightboxComponent } from '../../../features/lightbox/lightbox.component';
-import { ParagraphComponent } from '../../../features/paragraph/paragraph.component';
-import { CalloutComponent } from '../../../features/callout/callout.component';
-import { AnchorComponent } from '../../../features/anchor/anchor.component';
-import { UnorderedListComponent } from '../../../features/unordered-list/unordered-list.component';
-import { ImagesComponent } from '../../../features/images-lightbox/images.component';
-import { TableComponent } from '../../../features/table/table.component';
-import { HeaderT02Component } from '../../../features/header-t02/header-t02.component';
-
-// Testing
+import { ContentPageComponent } from '../../content-page/content-page.component';
 
 @Component({
   selector: 'doc-t02-mod-01-levels-structure',
   standalone: true,
   imports: [
-    HeaderT02Component,
     CommonModule,
-    RouterLink,
-    LightboxComponent,
-    AddHyphenPipe,
-    HeadingComponent,
-    ParagraphComponent,
-    CalloutComponent,
-    AnchorComponent,
-    UnorderedListComponent,
-    ImagesComponent,
-    TableComponent,
+    RouterOutlet,
+    FooterComponent,
+    ContentPageComponent
   ],
   templateUrl: './mod-01-levels-structure.component.html',
   styleUrl: '../../docs.component.css'
 })
-export class Docs_T02_Mod01_Component implements OnInit, AfterViewInit {
+export class Docs_T02_Mod01_Component {
+
   // ▲ SERVICES ▲
   constructor(
-    private languageService: LanguageService,
+    private titleService: TitleService,
     private pageService: PageService,
-    private intersectionService: ArticleService,
   ) { }
-
-  // ▬▬▬ For inner content
-  write: any;
 
   // ▬▬▬ Navigation Context
   currentLanguage: string = 'EN';
   currentTitle: string = 'title_02';
   currentPage: string = 'page_01';
   currentArticle: string = '';
-  path: [string, string, string] = [this.currentLanguage, this.currentTitle, this.currentPage];
-
-  // ▲ service Hash Sections
-  @ViewChildren('section') sections!: QueryList<ElementRef>;
 
   // ████ OnInit ███
   ngOnInit(): void {
-    this.subscribeToLanguageChanges();
-    this.pageService.setCurrentPage('page_01');
-    this.initializeContent(this.currentLanguage, this.currentTitle, this.currentPage);
-  }
-
-  private initializeContent(language: string, title: string, page: string): void {
-    this.write = content[this.currentLanguage][title][page];
-  }
-
-  languageSubscription: Subscription = new Subscription();
-  private subscribeToLanguageChanges(): void {
-    this.languageSubscription = this.languageService.currentLanguage$.subscribe((language: string) => {
-      this.currentLanguage = language as string;
-      this.initializeContent(this.currentLanguage, this.currentTitle, this.currentPage); 
-    });
-  }
-
-  // ████ AfterViewInit ████
-  ngAfterViewInit() {
-    this.sections.forEach(section => {
-      this.intersectionService.observe(section.nativeElement);
-    });
-
-    // Intersection Observer function
-    this.intersectionService.getcurrentArticle().subscribe(id => {
-      this.currentArticle = id;
-    })
-
+    this.titleService.setTitle(this.currentTitle);
+    this.pageService.setCurrentPage(this.currentPage);
   }
 
 }
