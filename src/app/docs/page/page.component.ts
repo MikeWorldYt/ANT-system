@@ -5,6 +5,9 @@ import { LanguageService } from '../../services/navLanguage.service';
 import { TitleService } from '../../services/navTitle.service';
 import { PageService } from '../../services/navPage.service';
 
+// ▲ RESOLVE  ▲
+import { pathResolve } from '../content/pathResolve';
+
 // ▲ FEATURES ▲
 import { ContentPageComponent } from '../content-page/content-page.component';
 
@@ -23,14 +26,16 @@ export class DocsPageComponent {
     this.language.setLanguage(this.validLang);
     this.updatePath();
   };
-  @Input() set title (newTitle: string) { 
-    this.currentTitle = newTitle;
-    this.titleService.setTitle(newTitle);
+  @Input() set title (newTitle: string) {
+    const resolvedTitle = this.resolveTitle(newTitle);
+    this.currentTitle = resolvedTitle ? resolvedTitle : newTitle;
+    this.titleService.setTitle(this.currentTitle);
     this.updatePath();
   };
   @Input() set page(newPage: string) {
-    this.currentPage = newPage;
-    this.pageService.setCurrentPage(newPage);
+    const resolvedPage = this.resolvePage(newPage);
+    this.currentPage = resolvedPage ? resolvedPage : newPage;
+    this.pageService.setCurrentPage(this.currentPage);
     this.updatePath();
   }
 
@@ -45,6 +50,23 @@ export class DocsPageComponent {
   currentTitle: string = '';
   currentPage: string = '';
   path: [string, string, string] | null = null;
+
+  resolveTitle(titleKey: string): string | null {
+    if (pathResolve[titleKey] && pathResolve[titleKey].key) {
+      return pathResolve[titleKey].key;
+    }
+    return null;
+  }
+
+  resolvePage(pageKey: string): string | null {
+    const section = Object.keys(pathResolve).find(
+      key => pathResolve[key].key === this.currentTitle
+    );
+    if (section && pathResolve[section][pageKey]) {
+      return pathResolve[section][pageKey];
+    }
+    return null;
+  }
 
   private updatePath(): void {
     this.path = null; // When the path is updated, it forces a re-render
