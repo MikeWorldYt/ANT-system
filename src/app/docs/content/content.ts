@@ -194,57 +194,75 @@ export const content: Record<string, any> = {
       },
 			page_02: {
 				article_20: {
-					id: 'Support Folders',
+					_id: 'Support Folders',
 					h1: '2. Support Folders',
 					p1: 'The support folders are designed to be helpful at the current level. In that sense support the user. Each has a unique identifier, making it easy to differentiate and quickly identify them.'
 				},
 				article_21: {
-					id: 'Settings Folder',
+					_id: 'Settings Folder',
 					h1: "Settings Folder (99)",
 					p1: "Its unique identifier should be '99', so you'll probably find it as '99.Settings'",
 					p2: "This folder contains general configurations for 'ANT', for your programs, interfaces, or Operating System."				
 				},
 				article_22: {
-					id: 'Review Folder',
+					_id: 'Review Folder',
 					h1: "Review Folder (98)",
 					p1: "Its unique identifier should be '98', so you'll probably find it as '98.math', '98.marketing' or '98.instagram'.",
 					p2: "This folder contains all your files and directories that have no classification, need renaming, or maybe are not from the current level.",
 					p3: "In other words, they need to be reviewed before being into the system, and this folder helps you avoid mixing them with your other files.",
-					c1: "<strong>Important</strong>: Use the identifier, followed by a dot, followed by the name of the current path or similar (preferably write it in kebab-case)"
+					c1: {
+						t: 'warning',
+						c_1: "<strong>Important</strong>: Use the identifier, followed by a dot, followed by the name of the current path or similar (preferably write it in kebab-case)",
+					},
+					
 				},
 				article_23: {
-					id: 'Resources Folder',
+					_id: 'Resources Folder',
 					h1: "Resources Folder (90)",
 					p1: "It's unique identifier should be '90'. so it should be named '90.Resources'.",
 					p2: "This folder helps organize those files that due to their nature; are frequently used, as brand guidelines, presets, multimedia, libraries, logos, or any other for use.",
 					p3: "Usage Suggestions:",
 				},
 				article_24: {
-					id: 'Archive Folder',
+					_id: 'Archive Folder',
 					h1: "Archive Folder (00)",
 					p1: "Its unique identifier should be '00', so you'll can use it as '00.Final', '00.Ready', '00.Renders', '00.forProduction', etc.",
 					p2: "This folder it's meant contain your deliverables or already delivered items, e.g. for your projects, homeworks, presentations, or any completed job, as well as each of its subsequent versions.",
-					c1: "<strong>Note</strong>: It's only for your Final Files. Don't create one folder for each one.",
+					c1: {
+						t: 'info',
+						c_1: "<strong>Note</strong>: It's only for your Final Files. Don't create one folder for each one.",
+					},
 					p3: "Usage Suggestions:",
 				},
 				article_25: {
-					id: 'Temporal Folder',
+					_id: 'Temporal Folder',
 					h1: "Temporal Folder (~)",
 					p1: "Its unique identifier should be '~'. so you'll probably find it as '~.temporal', '~temp', '~agascfsa'",
-					c1: "<strong>Note</strong>: It doesn't really need an identifier, but this way, you'll know to delete it when it's empty.",
-					c2: "You can also call it '~temp', 'temporal', anyway, just remember delete it.",
+					c1: {
+						t: 'info',
+						c_1: "<strong>Note</strong>: It doesn't really need an identifier, but this way, you'll know to delete it when it's empty.",
+					},
+					c2: {
+						t: 'success',
+						c_1: "You can also call it '~temp', 'temporal', anyway, just remember delete it.",
+					},
 					p2: "This is a folder that will help you organize a couple of files without adding them to 'temporal' and be easy to identify.",
 					p3: "Because those files either don't belong at that level or are needed immediately.",
-					c3: "The reason was the symbol '~' is for the organizacion ASCI then this appears in the begin.",
+					c3: {
+						t: 'quote',
+						c_1: "The reason was the symbol '~' is for the organizacion ASCI then this appears in the begin.",
+					},
 				},
 				article_26: {
-					id: 'Workboard Folder',
+					_id: 'Workboard Folder',
 					h1: "Workboard Folder (PJ, PR, PP, HW)",
 					p1: "Its could be different identifier.",
 					p2: "It helps organize your work-related files into distinct categories such as:",
-					ul1_li1: 'need a static sequence',
-					ul1_li2: 'the directory is a permanent category',
-					ul1_li3: 'Share with more people if you',
+					ul1: {
+						li_0: "need a static sequence",
+						li_1: "the directory is a permanent category",
+						li_2: "Share with more people if you",
+					},
 				}
 			},
 			page_03: {
@@ -257,7 +275,9 @@ export const content: Record<string, any> = {
 		title_03: {
 			page_01: {
 				article_01: {
-					id: '',
+					_id: '',
+					h1: "3. Nomenclature",
+					p1: "204 - No Content"
 				}
 			}
 		}
@@ -398,57 +418,77 @@ export const content: Record<string, any> = {
 			},
 			page_02: {
 				article_20: {
+					_id: 'Support Folders',
 					h1: '2. Carpetas de Soporte',
 					p1: 'Estas carpetas fueron diseñadas para que te sirvan de ayuda en el nivel donde estes. En ese sentido Ayuda al usuario. Cada una cuenta con un idenficador unico, lo que la hace diferenciarse e identificarse rapidamente del resto.'
 				},
 				article_21: {
+					_id: 'Settings Folder',
 					h1: 'Carpeta de Configuracion (99)',
 					p1: "Su identificador deberia ser '99', probablemente ya la tienes como '99.Configuracion'",
 					p2: "Esta carpeta por lo general deberia contener configuracion de tu 'ANT', tus programas, configuraciones de Interfaces, y tu Sistema Operativo.",
 				},
 				article_22: {
+					_id: 'Review Folder',
 					h1: 'Carpeta de Revision (98)',
 					p1: "Su Identificadro deberia ser '98', probablemente lo encontraras como '98.Matematicas', '98.Marketing' o '98.Instragram'. ",
 					p2: 'Este folder contiene todos tus archivos y carpetas que no tienes clasificados, necesitan renombrarse o probablemente ni pertenecen al actual nivel.',
 					p3: 'En otras palabras, necesitan revision antes de ingresar al sistema, y este folder te ayuda a esto y para no mezclarlo con otros archivos.',
 					c1: {
-						t: '',
 						c_1: '<strong>Importante</strong>: Usa el identificador, seguido de un punto, seguido del nombre de la actual ruta o similar (preferentemente usa kebab-case)'
 					}
 				},
 				article_23: {
+					_id: 'Resources Folder',
 					h1: 'Carpeta de Recursos (90)',
 					p1: "Su Identificadro deberia ser '90', asi que deberia estar nombrada como '90.Recursos'.",
 					p2: 'Esa carpeta ayuda a organizar aquellos archivos que, debido a su naturaleza, son frecuentemente usados, como un manual de identidad, ajustes preestablecidos, multimedia, librerias, logotipos, o cualquier archivo que sirva como un recurso. ',
 					p3: ''
 				},
 				article_24: {
+					_id: 'Archive Folder',
 					h1: 'Carpeta Archivadora (00)',
 					p1: "...",
 					p2: '...',
-					c1: '<strong>Nota</strong>:',
+					c1: {
+						c_1: "<strong>Nota</strong>:",
+					},
+					
 					p3: '...'
 				},
 				article_25: {
+					_id: 'Temporal Folder',
 					h1: 'Carpeta Temporal (~)',
 					p1: '...',
-					c1: '<strong>Nota</strong>: ',
-					c2: '<strong>Tip</strong>:',
+					c1: {
+						c_1: "<strong>Nota</strong>:",
+					},
+					c2: {
+						c_1: "<strong>Tip</strong>:",
+					},
+					
 					p2: '...',
 					p3: '...',
-					c3: '...'
+					c3: {
+						c_1: "...",
+					},
+					
 				},
 				article_26: {
+					_id: 'Workboard Folder',
 					h1: 'Espacio de Trabajo (Tarea, Proyecto, Presentación)',
 					p1: '...',
 					p2: '...',
-					ul1_li1: '...',
-					ul1_li2: '...',
-					ul1_li3: '...',
+					ul1: {
+						li_0: "...",
+						li_1: "...",
+						li_2: "...",
+					},
 				}
 			},
 			page_03: {
 				article_30: {
+					_id: '',
 					h1: "3. Nomenclatura de Archivos",
 					p1: "204 - No Content"
 				}
