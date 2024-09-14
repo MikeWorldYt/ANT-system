@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { Docs_T01_IntoComponent } from './into-title-01.component';
+import { PageComponent } from './page.component';
 
-describe('Docs_T01_IntoComponent', () => {
-  let component: Docs_T01_IntoComponent;
-  let fixture: ComponentFixture<Docs_T01_IntoComponent>;
+describe('PageComponent', () => {
+  let component: PageComponent;
+  let fixture: ComponentFixture<PageComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Docs_T01_IntoComponent]
+      imports: [PageComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(Docs_T01_IntoComponent);
+    fixture = TestBed.createComponent(PageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

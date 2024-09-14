@@ -13,7 +13,7 @@ import { PageService } from '../../../services/navPage.service';
 import { ContentPageComponent } from '../../content-page/content-page.component';
 
 @Component({
-  selector: 'doc-t02-mod-01-levels-structure',
+  selector: 'doc-t02-mod-02-support-folders',
   standalone: true,
   imports: [
     CommonModule,
@@ -21,10 +21,11 @@ import { ContentPageComponent } from '../../content-page/content-page.component'
     FooterComponent,
     ContentPageComponent
   ],
-  templateUrl: './mod-01-levels-structure.component.html',
+  templateUrl: './page-02.component.html',
   styleUrl: '../../docs.component.css'
 })
-export class Docs_T02_Mod01_Component {
+export class Docs_T02_Pag02_Component {
+  // @Input() 
 
   // ▲ SERVICES ▲
   constructor(
@@ -35,13 +36,14 @@ export class Docs_T02_Mod01_Component {
   // ▬▬▬ Navigation Context
   currentLanguage: string = 'EN';
   currentTitle: string = 'title_02';
-  currentPage: string = 'page_01';
+  currentPage: string = 'page_02';
   currentArticle: string = '';
 
-  // ████ OnInit ███
+  //  ████ OnInit ████
   ngOnInit(): void {
     this.titleService.setTitle(this.currentTitle);
     this.pageService.setCurrentPage(this.currentPage);
   }
+  
 
 }

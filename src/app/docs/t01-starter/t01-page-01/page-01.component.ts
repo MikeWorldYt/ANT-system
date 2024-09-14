@@ -1,6 +1,7 @@
-import { Component, Input, } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
+
 // ▲ COMPONENTS ▲
 import { FooterComponent } from '../../../layout/footer/footer.component';
 
@@ -12,7 +13,7 @@ import { PageService } from '../../../services/navPage.service';
 import { ContentPageComponent } from '../../content-page/content-page.component';
 
 @Component({
-  selector: 'docs-t03-into-nomenclature',
+  selector: 'doc-t02-mod-01-levels-structure',
   standalone: true,
   imports: [
     CommonModule,
@@ -20,11 +21,10 @@ import { ContentPageComponent } from '../../content-page/content-page.component'
     FooterComponent,
     ContentPageComponent
   ],
-  templateUrl: './into-main-getting.component.html',
+  templateUrl: './page-01.component.html',
   styleUrl: '../../docs.component.css'
 })
-export class Docs_T03_IntoComponent {
-  // @Input() path: [string, string, string] = ['EN', 'title_02', 'page_01'];
+export class Docs_T01_Pag01_Component {
 
   // ▲ SERVICES ▲
   constructor(
@@ -34,10 +34,11 @@ export class Docs_T03_IntoComponent {
 
   // ▬▬▬ Navigation Context
   currentLanguage: string = 'EN';
-  currentTitle: string = 'title_03';
+  currentTitle: string = 'title_01';
   currentPage: string = 'page_01';
+  currentArticle: string = '';
 
-  // ███ OnInit ███ 
+  // ████ OnInit ███
   ngOnInit(): void {
     this.titleService.setTitle(this.currentTitle);
     this.pageService.setCurrentPage(this.currentPage);

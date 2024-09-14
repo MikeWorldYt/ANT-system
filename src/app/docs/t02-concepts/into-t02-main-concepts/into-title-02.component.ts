@@ -14,7 +14,7 @@ import { LanguageService } from '../../../services/navLanguage.service';
     FooterComponent,
     RouterOutlet
   ],
-  templateUrl: './into-main-concepts.component.html',
+  templateUrl: './into-title-02.component.html',
   styleUrl: '../../docs.component.css'
 })
 export class Docs_T02_IntoComponent implements OnInit {
