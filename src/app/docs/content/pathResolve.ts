@@ -1,14 +1,17 @@
 export const pathResolve: Record<string, any> = {
-    Introduction: {
+    introduction: {
         key: "title_01",
+        into: "page_01",
     },
-    Concepts: {
+    concepts: {
         key: "title_02",
-        LevelsandStructure: "page_01",
-        SupportFolders: "page_02",
-        filesNomenclature: "page_03"
+        into: "page_01",
+        levelsandstructure: "page_01", 
+        supportfolders: "page_02",
+        filesnomenclature: "page_03"
     },
-    GettingStarted: {
+    gettingstarted: {
         key: "title_03",
+        into: "page_01",
     }
 } 

@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 
 // ▲ SERVICES ▲
 import { LanguageService } from '../../services/navLanguage.service';
@@ -27,23 +28,45 @@ export class DocsPageComponent {
     this.updatePath();
   };
   @Input() set title (newTitle: string) {
-    const resolvedTitle = this.resolveTitle(newTitle);
+    const formattedTitle = this.formatKey(newTitle);
+    const resolvedTitle = this.resolveTitle(formattedTitle);
     this.currentTitle = resolvedTitle ? resolvedTitle : newTitle;
     this.titleService.setTitle(this.currentTitle);
     this.updatePath();
   };
   @Input() set page(newPage: string) {
-    const resolvedPage = this.resolvePage(newPage);
-    this.currentPage = resolvedPage ? resolvedPage : newPage;
+    const formattedPage = this.formatKey(newPage);
+    let resolvedPage = this.resolvePage(formattedPage);
+    if (!newPage && this.currentTitle) {
+      resolvedPage = 'page_01'; // Valor por defecto
+      this.router.navigate(['/test', this.validLang, this.currentTitle, resolvedPage]);
+    } 
+    if (newPage && this.currentTitle) {
+      this.currentPage = resolvedPage ? resolvedPage : formattedPage;
+      this.pageService.setCurrentPage(this.currentPage);
+      this.updatePath();
+    }
+    this.currentPage = resolvedPage ? resolvedPage : formattedPage;
     this.pageService.setCurrentPage(this.currentPage);
     this.updatePath();
   }
 
   constructor(
+    private router: Router,
+    private activatedRoute: ActivatedRoute,
     private language: LanguageService,
     private titleService: TitleService,
     private pageService: PageService,
-  ) { }
+  ) {
+    this.activatedRoute.params.subscribe(params => {
+      if (!params['page']) {
+        const lang = params['lang'];
+        const title = params['title'];
+        const defaultPage = 'into';
+        this.router.navigate(['/test', lang, title, defaultPage]);
+      }
+    });
+  }
 
   // ▬▬▬ Navigation Context
   validLang: string = '';
@@ -66,6 +89,10 @@ export class DocsPageComponent {
       return pathResolve[section][pageKey];
     }
     return null;
+  }
+
+  formatKey(input: string): string {
+    return input.toLowerCase().replace(/[-_]/g, '');
   }
 
   private updatePath(): void {
