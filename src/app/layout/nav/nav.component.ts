@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, AfterViewInit, OnInit } from '@angular/core';
+import { Component, HostListener, AfterViewInit, OnInit, ChangeDetectorRef } from '@angular/core';
 import { NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -30,6 +30,7 @@ export class NavComponent implements OnInit, AfterViewInit{
     private TitleService: TitleService,
     private pageService: PageService,
     private intersectionService: ArticleService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   // ▬▬▬ Navigation Context
@@ -43,6 +44,7 @@ export class NavComponent implements OnInit, AfterViewInit{
     // Subscribe to Language Service
     this.languageService.currentLanguage$.subscribe(language => {
       this.currentLanguage = language;
+      this.cdr.detectChanges();
     });
     // TO DO: REVIEW THIS
     this.router.events.subscribe(event => {
@@ -60,6 +62,7 @@ export class NavComponent implements OnInit, AfterViewInit{
     // Subsribe to Title Service
     this.TitleService.currentTitle$.subscribe(title => {
       this.currentTitle = title;
+      this.cdr.detectChanges();
     })
   }
 
