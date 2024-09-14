@@ -1,25 +1,56 @@
 import { Component, Input } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+
+// ▲ SERVICES ▲
+import { LanguageService } from '../../services/navLanguage.service';
+import { TitleService } from '../../services/navTitle.service';
+import { PageService } from '../../services/navPage.service';
+
+// ▲ FEATURES ▲
+import { ContentPageComponent } from '../content-page/content-page.component';
 
 @Component({
   selector: 'app-page',
   standalone: true,
-  imports: [],
+  imports: [
+    ContentPageComponent,
+  ],
   templateUrl: './page.component.html',
   styleUrl: './page.component.css'
 })
 export class DocsPageComponent {
-  title: string = '';
-  // @Input() title!: string;
+  @Input() set lang(newLang: string){
+    this.validLang = (newLang === 'EN' || newLang === 'ES') ? newLang : 'EN';
+    this.language.setLanguage(this.validLang);
+    this.updatePath();
+  };
+  @Input() set title (newTitle: string) { 
+    this.currentTitle = newTitle;
+    this.titleService.setTitle(newTitle);
+    this.updatePath();
+  };
+  @Input() set page(newPage: string) {
+    this.currentPage = newPage;
+    this.pageService.setCurrentPage(newPage);
+    this.updatePath();
+  }
 
   constructor(
-    private route: ActivatedRoute,
+    private language: LanguageService,
+    private titleService: TitleService,
+    private pageService: PageService,
   ) { }
 
-  ngOnInit(): void {
-    this.route.paramMap.subscribe(params => {
-      this.title = params.get('title') || '';
-    });
+  // ▬▬▬ Navigation Context
+  validLang: string = '';
+  currentTitle: string = '';
+  currentPage: string = '';
+  path: [string, string, string] | null = null;
+
+  private updatePath(): void {
+    this.path = null; // When the path is updated, it forces a re-render
+    setTimeout(() => {
+      this.path = [this.validLang, this.currentTitle, this.currentPage];
+    }, 0);
   }
 
 }

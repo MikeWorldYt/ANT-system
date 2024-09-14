@@ -24,7 +24,7 @@ export const routes: Routes = [
         ] 
       },
       { path: 'getting-started', component: Docs_T03_IntoComponent },
-      { path: 'test', component: DocsPageComponent },
+      { path: 'test/:lang/:title/:page', component: DocsPageComponent },
       { path: '', redirectTo: 'introduction', pathMatch: 'full' },
     ]
   },

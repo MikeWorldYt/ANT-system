@@ -1,2 +1,4 @@
-<p>page works!</p>
-<h1>{{ title }}</h1>
+<!DOCTYPE html>
+@if (path) {
+    <get-content-page [path]="[validLang, currentTitle, currentPage]"/>
+}
