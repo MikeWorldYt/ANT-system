@@ -108,7 +108,7 @@ export class ContentPageComponent {
     // Intersection Observer function
     this.intersectionService.getcurrentArticle().subscribe(_id => {
       this.currentArticle = _id;
-      console.log(this.currentArticle);
+      // console.log(this.currentArticle);
     })
   }
 
