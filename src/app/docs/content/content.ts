@@ -43,27 +43,22 @@ export const content: Record<string, any> = {
 			// },
       page_01: {
 				article_10: {
-					_id: 'Levels and Structure',
-					h1: '1. Levels and Directory Structure',
-					p1: "The data structure used by <strong>ANT</strong> is hierarchical, tho it's designed to be decentralized.<br> Each folder acts as a node with paths, that start at the 'root' and continue into deeper <strong><i>levels</i></strong>. <br> The term <strong><i>Levels </i></strong> refers to the depth of the folder within a tree directory.",
+					_id: 'Structure and Infrastructure',
+					h1: '1. Structure and Infrastructure',
+					p1: "<strong>ANT has a hierarchical structure</strong> adapted to be immediately implemented in the conventional tree structure. <br> However, <strong>due to it's has a decentralized modular infrastructure</strong>, it follows a specific structural rules that ensures its proper functioning. <br> To understand this, we must first grasp the terms \"Levels\", \"Nodes\" and \"Modules\" within this system;",
+					p2: "<br> The term <strong>\"Levels\"</strong> refers to the depth of the folder in relation to her root folder",
+					c1: {
+						t: 'success',
+						c_1: "<strong>Tip</strong>: We suggests 3 levels, although in some cases there may be more. <br> However, try not to create more than 3, unless you think it's necessary.",
+					},
 					i1: {
 						p_1: "https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png",
 						p_2: "https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png",
 					},
-					c1: {
-						t: 'success',
-						c_1: '<strong>Tip</strong>: The basic structure suggests 3 levels, although in some cases there may be more. However, it is recommended not to have too many levels and to use them only in certain cases.',
-						// a_1: [
-						// 	[" empty array "] ,
-						// 	[ // nested anchor 
-						// 		"Read more",
-						// 		"/advanced-concepts",
-						// 		"sharing"
-						// 	] ],
-						},
+					p3: "The term <strong>\"Node\"</strong> refers to each of the folders.",
 					c2: {
-						t: 'info',
-						c_1: "<strong>Note</strong>: Directories are not exclusive or static; they can be moved to another path, or even shared with others simultaneously. In other words, they are flexible and can create associated connections that, in most cases, do not need to be renamed or copied.",
+						t: 'quote',
+						c_1: "It's true, We could simply call them <i>folders</i>, but in this system, each folder acts as a Node (vertice or points),<br> Having one or more in/out degrees, being part of a module (group), and in some cases having a lifespan (existence).",
 						a_1: [ 
 							[" empty array "] ,
 							[ // nested anchor
@@ -72,8 +67,15 @@ export const content: Record<string, any> = {
 								"How-works", // "sharing"
 								"not-available"]
 						],
-						c_2: "more text here"
-						},
+					},
+					i2: {
+						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
+					},
+					p4: "Lastly, the term <strong>\"Module\"</strong> refers to a grouping of nodes in relation to their level. This means that, regardless of their connections, the nodes maintain a hierarchical grouping within the tree structure.",
+					i3: {
+						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
+						p_2: "empty",
+					},
 				},
 				article_11: {
 					_id: 'Level 1',
@@ -321,14 +323,27 @@ export const content: Record<string, any> = {
 				article_10: {
 					_id: 'Estructura y Niveles',
 					h1: '1. Estructura y Niveles',
-					p1: "La estructura de datos que usa <strong>ANT</strong> aunque es jerarquica, esta pensada para ser decentralizada. <br> Cada carpeta son nodos con rutas, que comienzan donde la 'raiz' y continuan en <strong><i> niveles </i></strong>mas adentro. <br> Por <strong>niveles</strong> se refiere a la profundidad dentro del arbol de carpetas.",
+					p1: "<strong>ANT tiene una estructura jerarquica</strong> adaptada para ser implementada en la estructura de arbol convencional, <br> <strong>Sin embargo, al tener una infraestructura modular decentralizada</strong>, sigue unas normas de estructura especificas que garantizara su correcto funcionamiento. <br> Para esto debemos entender los terminos de \"Niveles\", \"Nodos\" y \"Modulos\" de este sistema.",
+					p2: "<br> El termino <strong>\"Niveles\"</strong> se refeire a la profundidad de la carpeta con respecto a su carpeta raiz",
 					c1: {
-						c_1: '<strong>Tip</strong>: La estructura basica sugiere 3 niveles. Si bien podrías tener más, es recomendable no tener demasiados niveles y usarlos solo en ciertos casos.'
+						c_1: '<strong>Tip</strong>: Sugerimos 3 niveles. <br> Si bien podrías tener más, es recomendable no tener demasiados niveles y usarlos solo en ciertos casos.'
 					},
+					i1: {
+						p_1: "https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png",
+						p_2: "https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png",
+					},
+					p3: "El termino <strong>\"Nodo\"</strong> se refiere a cada una de las carpetas.",
 					c2: {
-						c_1: '<strong>Nota</strong>:Los directorios no son exclusivos o estaticos, se pueden mover a otra ruta, o incluso compartirse con otras al mismo tiempo, en otras palabras son flexibles y crear conexiones asociadas que en su mayoria de casos no necesitaran renombrase o copiarse. '
+						c_1: "Es cierto, podriamos solo llamarle <i>carpeta</i>, pero en este sistema, cada carpeta actua como un nodo (vertice o punto), <br> Teniendo uno o más entradas/salidas, siendo parte de un modulo (grupo), y en ciertos casos teniendo una Vida de archivo (duración de existencia).",
 					},
-					a1: "Leer más...",
+					i2: {
+						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
+					},
+					p4: "Por ultimo, el termino <strong>\"Modulo\"</strong> se refiere a un grupo de nodos con respecto a un nivel. Es decir, que los nodos independientemente de sus conexiones, guardan una agrupacion jerarquica en la estructura de arbol",
+					i3: {
+						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
+						p_2: "empty",
+					},
 				},
 				article_11: {
 					_id: 'Nivel 1',
