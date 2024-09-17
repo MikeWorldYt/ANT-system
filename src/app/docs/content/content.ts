@@ -12,16 +12,19 @@ export const content: Record<string, any> = {
 					h1: 'What is ANT?',
 					c1: {
 						t: "quote",
-						c_1: "<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>hierarchical organizational methods</i> designed to streamline  <br>      the storage, easier to manage and find files.",
+						c_1: "<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>organizational methods system</i> designed to streamline the storage, project managment and quickly find files.",
 					},
 					p1: "This system originated in a Workplace <strong>to Manage a Large Volume of files</strong> and was <strong>re-adapted for a Home Use</strong> to make it easy for any user to implement. <br> Even so, we highlight that it's <strong><i>mainly focused on the Home Office and Students</i></strong>, but it still offers flexibility for other areas.",
-					p2: "<br>This is a system with hierarchical organizational methods, structured in a way that mimics an ant colony, this system has a hierarchical system with a Directed Acyclic Graph (DAG) adapted to the conventional Tree data structure of current Operating Systems, Additionality, it creates a decentralized and modular infrastructure, making it flexible yet resilient in handling information.",
-					p3: "<br>The purpose of this system and its methods is not ensure that, even when handling a large amount and variety of data, it can be organized and dynamically managed; In other words, as long as the user follows these methods, when they create or add a new file to their system, they'll be free to edit, share, migrate, version, etc., with a very high probability that their information will not be compromised, duplicated, or lost among other files."
+					p2: "<br>This system has organizational methods is infrastructured in a way that mimics an ant colony, Technically it works as herarchical structure with a Directed Acyclic Graph (DAG) adapted to the conventional Tree Data Structure, Also it creates a decentralized and modular infrastructure, making it flexible yet resilient in handling information.",
+					p3: "<br>The purpose of this system and its methods is not ensure that even when handling a large amount and variety of data, It can be organized and dynamically managed.",
+					hidden_p4: "In other words, As long as the user follows these methods, when they create or add a new file to their system, they'll be free to edit, share, migrate, version, etc., with a very high probability that their information will not be compromised, duplicated, or lost among other files."
 				},
 				article_02: {
 					_id: 'How works',
 					h1: 'How works?',
-					p1: 'Her rules organize files in a way that mimics an ant colony, <br> with a categories pathways in levels and some nested paths. <br> Also, it employs a naming convention that allows the user to find a file anywhere. <br> <br>Following this method will ensure that your Digital Storage is well-organized, <br>Easily accessible, and Efficiently managed'
+					p1: "This system combines a series of rules and classification processes, allowing it, as the name suggests, to <i>classify</i> by dividing and organizing all the information that enters or is created within it in a logical and flexible way.",
+					p2: "<br>It is important to highlight that these classification processes were inspired by classification systems like the DDC and UDC, and was created at the request of a private institution, thus it had testing during its development and was supported by people who continuously provided feedback, allowing it to adapt and improve throughout the process.",
+					p3: "<br>These processes organize the files into levels and categories, and also employ a naming convention to ensure ease of search and identification. This, in turn, helps the indexing engine find files with greater precision and speed, making them easier to locate through the search box."
 				},
 				article_03: {
 					_id: 'Key benefits',
@@ -305,16 +308,19 @@ export const content: Record<string, any> = {
 					_id: 'Intro',
 					h1: 'Qué es ANT?',
 					c1: {
-						c_1: "<strong>El sistema ANT</strong> (Archive Nesting Technique System) <br> son una serie de  <i>metodos de organizacion jerarquico</i> diseñado para optimizar     <br>      el almacenamiento, administrar y encontrar archivos de forma facil y rápida.",
+						c_1: "<strong>El sistema ANT</strong> (Archive Nesting Technique System) <br> es un sistema de <i>metodos de organizacion</i> diseñado para optimizar el almacenamiento, administración de proyectos y encontrar archivos de forma facil y rápida.",
 					},
 					p1: 'Este sistema surgio en un un ambiente de trabajo para <strong>gestionar un gran volumen de archivos</strong> y fue <strong>re-adaptado para su uso domestico</strong> de modo que sea facil de implementar para cualquier usuario. <br> Aun asi destacamos que esta pensado <strong><i>principalmente para el home office y los estudiantes</i></strong>, pero cuenta con la flexibilidad para cubrir otras áreas.',
-					p2: "<br> <br>Es un sistema con metodos de organizacion jerarquico, estructurado de una manera que imita una colonia de hormigas, este sistema tiene una Estructura Jerárquica con Grafo Dirigido Acíclico (DAG) adaptado para la estructura de datos de arbol convencional de los sistemas operativos actuales. Por otro lado, crea una infraestructura descentralizada y modular, lo que lo hacer ser flexible pero ductil con la informacion.",
-					p3: "<br> <br> El objetivo de este sistema y sus metodos es que aunque se maneje una gran cantidad y variedad, esta pueda ser organizada y gestionada dinamicamente; En otras palabras, siempre y cuando el usuario siga estos metodos, al crear o entrar un archivo a su sistema sera libre de editar, compartir, migrar, versionar, etc, con una muy alta probabilidad de que su informacion no sea comprometida, duplicada y/o se pierda entre los demas archivos."
+					p2: "<br>Es un sistema con metodos de organizacion esta estructurado de una manera que imita una colonia de hormigas, Tecnicamente funciona con una Estructura Jerárquica con Grafo Dirigido Acíclico (DAG) adaptado para la estructura de datos de arbol convencional, Por otro lado, crea una infraestructura descentralizada y modular, lo que lo hacer ser flexible pero ductil con la informacion.",
+					p3: "<br> El objetivo de este sistema y sus metodos es que aunque se maneje una gran cantidad y variedad, esta pueda ser organizada y gestionada dinamicamente",
+					hidden_p4: "En otras palabras, siempre y cuando el usuario siga estos metodos, al crear o entrar un archivo a su sistema sera libre de editar, compartir, migrar, versionar, etc, con una muy alta probabilidad de que su informacion no sea comprometida, duplicada y/o se pierda entre los demas archivos."
 				},
 				article_02: {
 					_id: 'How works es',
 					h1: '¿Como funciona?',
-					p1: 'Sus reglas organizan archivos de una manera que imita una colonia de hormigas, <br> teniendo los archivos en rutas por categorías en niveles y rutas convenientemente anidadas. <br> Además, emplea una convención de nombres que permite al usuario encontrar un archivo en cualquier lugar. <br> <br>Seguir este método garantizará que tu Almacenamiento Digital esté bien organizado, <br>fácilmente accesible y eficientemente gestionado.'
+					p1: "Este sistema conbina una serie de reglas y procesos de clasificacion, que le permite como indica <i>clasificar</i>, dividiendo y ordenando de una forma logica y flexible toda la informacion que entra o se crea dentro de ella.",
+					p2: "<br>Es importante destacar que entre estos procesos de clasificacion fueron inspirados en sistemas de clasificacion como el CDD y el CDU, y fue creado a peticion de una institucion privada, por lo que tuvo pruebas durante su desarrollo y contó con el apoyo de personas que continuamente brindaron su retroalimentación, permitiendo que se adaptara y mejorara durante todo el proceso.",
+					p3: "<br>Estos procesos organizan los archivos en niveles y categorías. También emplean una convención de nomenclatura para garantizar la facilidad de búsqueda e identificación. Esto, a su vez, facilita al motor de indexación encontrar archivos, dándoles mayor precisión y rapidez para encontrarlos con la caja de búsqueda."
 				},
 				article_03: {
 					_id: 'Key benefits es',
