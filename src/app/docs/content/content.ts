@@ -15,8 +15,8 @@ export const content: Record<string, any> = {
 						c_1: "<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>hierarchical organizational methods</i> designed to streamline  <br>      the storage, easier to manage and find files.",
 					},
 					p1: "This system originated in a Workplace <strong>to Manage a Large Volume of files</strong> and was <strong>re-adapted for a Home Use</strong> to make it easy for any user to implement. <br> Even so, we highlight that it's <strong><i>mainly focused on the Home Office and Students</i></strong>, but it still offers flexibility for other areas.",
-					p2: "<br> <br>This is a system with hierarchical organizational methods, structured in a way that mimics an ant colony, This system has a hierarchical system with a Directed acyclic graph (DAG) adapted to the conventional tree data structure of current Operating Systems, Additionality, it creates a decentralized and modular infrastructure, making it flexible yet resilient in handling information.",
-					p3: "<br> <br>The purpose of this system and its methods is not ensure that, even when handling a large amount and variety of data, it can be organized and dynamically managed; In other words, as long as the user follows these methods, when they create or add a new file to their system, they'll be free to edit, share, migrate, version, etc., with a very high probability that their information will not be compromised, duplicated, or lost among other files."
+					p2: "<br>This is a system with hierarchical organizational methods, structured in a way that mimics an ant colony, this system has a hierarchical system with a Directed Acyclic Graph (DAG) adapted to the conventional Tree data structure of current Operating Systems, Additionality, it creates a decentralized and modular infrastructure, making it flexible yet resilient in handling information.",
+					p3: "<br>The purpose of this system and its methods is not ensure that, even when handling a large amount and variety of data, it can be organized and dynamically managed; In other words, as long as the user follows these methods, when they create or add a new file to their system, they'll be free to edit, share, migrate, version, etc., with a very high probability that their information will not be compromised, duplicated, or lost among other files."
 				},
 				article_02: {
 					_id: 'How works',
@@ -43,10 +43,12 @@ export const content: Record<string, any> = {
 			// },
       page_01: {
 				article_10: {
-					_id: 'Structure and Infrastructure',
-					h1: '1. Structure and Infrastructure',
+					_id: 'Structure & Infrastructure',
+					h1: '1. Structure & Infrastructure',
 					p1: "<strong>ANT has a hierarchical structure</strong> adapted to be immediately implemented in the conventional tree structure. <br> However, <strong>due to it's has a decentralized modular infrastructure</strong>, it follows a specific structural rules that ensures its proper functioning. <br> To understand this, we must first grasp the terms \"Levels\", \"Nodes\" and \"Modules\" within this system;",
-					p2: "<br> The term <strong>\"Levels\"</strong> refers to the depth of the folder in relation to her root folder",
+					ul1: {
+						li_0: "The term <strong>\"Levels\"</strong> refers to the depth of the folder in relation to her root folder",
+					},
 					c1: {
 						t: 'success',
 						c_1: "<strong>Tip</strong>: We suggests 3 levels, although in some cases there may be more. <br> However, try not to create more than 3, unless you think it's necessary.",
@@ -55,7 +57,9 @@ export const content: Record<string, any> = {
 						p_1: "https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png",
 						p_2: "https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png",
 					},
-					p3: "The term <strong>\"Node\"</strong> refers to each of the folders.",
+					ul2: {
+						li_0: "The term <strong>\"Node\"</strong> refers to each of the folders.",
+					},
 					c2: {
 						t: 'quote',
 						c_1: "It's true, We could simply call them <i>folders</i>, but in this system, each folder acts as a Node (vertice or points),<br> Having one or more in/out degrees, being part of a module (group), and in some cases having a lifespan (existence).",
@@ -63,7 +67,7 @@ export const content: Record<string, any> = {
 							[" empty array "] ,
 							[ // nested anchor
 								"NESTED ANCHOR TESTING",
-								"/introduction", // "/advanced-concepts",
+								"/test/EN/introduction/into", // "/advanced-concepts",
 								"How-works", // "sharing"
 								"not-available"]
 						],
@@ -71,7 +75,9 @@ export const content: Record<string, any> = {
 					i2: {
 						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
 					},
-					p4: "Lastly, the term <strong>\"Module\"</strong> refers to a grouping of nodes in relation to their level. This means that, regardless of their connections, the nodes maintain a hierarchical grouping within the tree structure.",
+					ul3: {
+						li_0: "Lastly, the term <strong>\"Module\"</strong> refers to a grouping of nodes in relation to their level. This means that, regardless of their connections, the nodes maintain a hierarchical grouping within the Tree data structure.",
+					},
 					i3: {
 						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
 						p_2: "empty",
@@ -133,14 +139,18 @@ export const content: Record<string, any> = {
 				article_13: {
 					_id: 'Level 3',
 					h1: '1.3 The Levels 3 - Subcategories (Units, Theme, Topics, etc.)',
-					p1: 'There are two ways to structure; <br>If the Directory stay for a long time should be use a <strong>Chill Structure</strong>, Otherwise if it\'s a Temporary Directory (it\'ll only be used for a short period), you should be use a <strong>control structure</strong>.',
+					p1: "There are two ways to structure; <br>If the Folder will stay for a long time you should be use a <strong>Chill Structure</strong>,<br> Otherwise if it's a Temporary Folder (only used for a period of time), you should be use a <strong>Control Structure</strong>.",
 				},
 				article_13_1: {
 					h1: '1.3.1 Chill Structure',
 					i1: { // TODO: CHANGE IMAGE FOR A GIF
 						p_1: "https://i.pinimg.com/originals/e3/c0/7e/e3c07edbe1b8d5a666feb929588178d8.png",
 					},
-					p1: 'Is simple, It has an incremental enumeration with two or more digits, tho it doesn\'t necesary go at the beginning, as it\'ll depend on the needs/customization of each one.',
+					p1: "Is easy, Just use an incremental enumeration with two or more digits, followed by a descriptive name.",
+					c1: {
+						t: 'warning',
+						c_1: "Remember, this folder should remain for a long time, so it's essential to name it with something descriptive, like a topic, theme,  job, or subject"
+					},
 					p2: 'You can use if:',
 					ul1: {
 						li_0: "Had or Need a static sequence (eg. 01.Name 02.Name 03.Name ...)",
@@ -150,7 +160,7 @@ export const content: Record<string, any> = {
 						p_1: "empty",
 						p_2: "empty"
 					},
-					c1: {
+					c2: {
 						t: 'info',
 						c_1: '<strong>Note</strong>: That the way you organize will determine whether your support folders come before or after. Remember, the order always be Symbols-Numbers-Letters."'
 					}
@@ -321,10 +331,12 @@ export const content: Record<string, any> = {
 		title_02: {
 			page_01: {
 				article_10: {
-					_id: 'Estructura y Niveles',
-					h1: '1. Estructura y Niveles',
+					_id: 'Estructura e Infraestructura',
+					h1: '1. Estructura e Infraestructura',
 					p1: "<strong>ANT tiene una estructura jerarquica</strong> adaptada para ser implementada en la estructura de arbol convencional, <br> <strong>Sin embargo, al tener una infraestructura modular decentralizada</strong>, sigue unas normas de estructura especificas que garantizara su correcto funcionamiento. <br> Para esto debemos entender los terminos de \"Niveles\", \"Nodos\" y \"Modulos\" de este sistema.",
-					p2: "<br> El termino <strong>\"Niveles\"</strong> se refeire a la profundidad de la carpeta con respecto a su carpeta raiz",
+					ul1: {
+						li_0: "El termino <strong>\"Niveles\"</strong> se refeire a la profundidad de la carpeta con respecto a su carpeta raiz",
+					},
 					c1: {
 						c_1: '<strong>Tip</strong>: Sugerimos 3 niveles. <br> Si bien podrías tener más, es recomendable no tener demasiados niveles y usarlos solo en ciertos casos.'
 					},
@@ -332,14 +344,18 @@ export const content: Record<string, any> = {
 						p_1: "https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png",
 						p_2: "https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png",
 					},
-					p3: "El termino <strong>\"Nodo\"</strong> se refiere a cada una de las carpetas.",
+					ul2: {
+						li_0: "El termino <strong>\"Nodo\"</strong> se refiere a cada una de las carpetas.",
+					},
 					c2: {
-						c_1: "Es cierto, podriamos solo llamarle <i>carpeta</i>, pero en este sistema, cada carpeta actua como un nodo (vertice o punto), <br> Teniendo uno o más entradas/salidas, siendo parte de un modulo (grupo), y en ciertos casos teniendo una Vida de archivo (duración de existencia).",
+						c_1: "Es cierto, podriamos solo llamarle <i>carpeta</i>, pero en este sistema, cada carpeta actuará como un nodo (vertice o punto), <br> Teniendo uno o más entradas/salidas, siendo parte de un modulo (grupo), y en ciertos casos teniendo una Vida de archivo (duración de existencia).",
 					},
 					i2: {
 						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
 					},
-					p4: "Por ultimo, el termino <strong>\"Modulo\"</strong> se refiere a un grupo de nodos con respecto a un nivel. Es decir, que los nodos independientemente de sus conexiones, guardan una agrupacion jerarquica en la estructura de arbol",
+					ul3: {
+						li_0: "Por ultimo, el termino <strong>\"Modulo\"</strong> se refiere a un grupo de nodos con respecto a un nivel. Es decir, que los nodos independientemente de sus conexiones, guardan una agrupacion jerarquica en la estructura de arbol",
+					},
 					i3: {
 						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
 						p_2: "empty",
@@ -386,10 +402,10 @@ export const content: Record<string, any> = {
 				article_13: {
 					_id: 'Nivel 3',
 					h1: '1.3 Nivel 3 - Categorías (Unidades, Tema, Temas, etc.)',
-					p1: 'Hay dos formas de estructurar; Si el Directorio se mantiene por mucho tiempo, se debe usar una <strong>Estructura Fria</strong>, de lo contrario, si es un Directorio Temporal (solo se usará por un período corto), se debe usar una <strong>Estructura de Control</strong>.',
+					p1: "Hay dos formas de estructurar;<br> Si la Carpeta la tendras por mucho tiempo, deberias usar una <strong>Estructura de Congelación</strong>,<br> De lo contrario, si es una Carpeta Temporal (solo se usará por un período corto), usa una <strong>Estructura de Control</strong>.",
 				},
 				article_13_1: {
-					h1: '1.3.1 Estructura Fria',
+					h1: '1.3.1 Estructura de Congelación',
 					p1: 'Es simple, tiene una enumeración incremental con dos o más dígitos, aunque no necesariamente va al principio, ya que dependerá de las necesidades/personalizaciones de cada quien.',
 					p2: 'Puedes usarla si:',
 					ul1: {
