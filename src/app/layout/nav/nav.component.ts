@@ -64,6 +64,11 @@ export class NavComponent implements OnInit, AfterViewInit{
       this.currentTitle = title;
       this.cdr.detectChanges();
     })
+    // Subsribe to Page Service
+    this.pageService.currentPage$.subscribe(page => {
+      this.currentPage = page;
+      this.cdr.detectChanges();
+    })
   }
 
   // ████ AfterViewInit
@@ -91,7 +96,7 @@ export class NavComponent implements OnInit, AfterViewInit{
       this.currentTitle = section; // Si se hace clic en una nueva sección, la mostramos
     }
     if (this.currentTitle === 'concepts') {
-      this.currentPage = 'levels-and-structure';
+      this.currentPage = 'structure&infrastructure';
     }
   }
 

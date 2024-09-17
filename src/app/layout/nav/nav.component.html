@@ -56,21 +56,21 @@
     <!-- ▼ Toogle Title CONCEPTS ---->
     @if (currentTitle === 'title_02') {
       <!-- ● Page ---->
-      <a [routerLink]="['/concepts/levels-and-structure']">
+      <a [routerLink]="['/concepts/structure&infrastructure']">
         <h2   class="module-line"
-        [ngClass]="{ 'currentModule': currentPage === 'levels-and-structure' }"
-        >1. Levels and Structure</h2>
+        [ngClass]="{ 'currentPage': currentPage === 'page_01' }"
+        >1. Structure & Infrastructure</h2>
       </a>
       <!-- ● Page ---->
       <a [routerLink]="['/concepts/support-folders']">
         <h2   class="module-line"
-        [ngClass]="{ 'currentModule': currentPage === 'support-folders' }"
+        [ngClass]="{ 'currentPage': currentPage === 'page_02' }"
         >2. Support Folders</h2>
       </a>
       <!-- ● Page ---->
       <a [routerLink]="['/concepts/files-nomenclature']">
         <h2   class="module-line"
-        [ngClass]="{ 'currentModule': currentPage === 'file-nomenclature' }"
+        [ngClass]="{ 'currentPage': currentPage === 'page_03' }"
         >3. File's Nomenclature</h2>
       </a>
       

@@ -21,7 +21,7 @@ h2 {
     transition: border-color 0.3s ease;
 }
 
-.currentModule {
+.currentPage {
     opacity: 1;
     border-left: 3px solid #4caf50;
     color: #4caf50;
