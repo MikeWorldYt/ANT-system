@@ -17,10 +17,10 @@ export const routes: Routes = [
       { path: 'introduction', component: Docs_T01_IntoComponent }, // docs-t01-into-getting-starter
       { path: 'concepts', component: Docs_T02_IntoComponent, // docs-t02-into-main-concepts
         children: [
-          { path: 'levels-and-structure', component: Docs_T02_Pag01_Component }, // doc-t02-mod-01-levels-structure
+          { path: 'structure&infrastructure', component: Docs_T02_Pag01_Component }, // doc-t02-mod-01-levels-structure
           { path: 'support-folders', component: Docs_T02_Pag02_Component }, // doc-t02-mod-02-support-folders
           { path: 'files-nomenclature', component: Docs_T02_Pag03_Component }, // doc-t02-mod-03-nomenclature
-          { path: '', redirectTo: 'levels-and-structure', pathMatch: 'prefix' },
+          { path: '', redirectTo: 'structure&infrastructure', pathMatch: 'prefix' },
         ] 
       },
       { path: 'getting-started', component: Docs_T03_IntoComponent },

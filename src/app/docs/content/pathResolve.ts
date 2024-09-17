@@ -6,7 +6,7 @@ export const pathResolve: Record<string, any> = {
     concepts: {
         key: "title_02",
         into: "page_01",
-        levelsandstructure: "page_01", 
+        structure: "page_01", 
         supportfolders: "page_02",
         filesnomenclature: "page_03"
     },
