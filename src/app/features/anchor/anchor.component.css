@@ -1,0 +1,8 @@
+a {
+    display: inline;
+    text-decoration: underline;
+}
+
+.not-available {
+    opacity: 0.2;
+}

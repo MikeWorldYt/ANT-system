@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<div class="w-full">
+	
+	@for (key of objectKeys(articles); track $index) {
+		<section id="{{ articles[key]._id | addHyphen }}" #section>
+			@if (isParentArticle(key)) {
+				<heading [path]="path" article="{{key.slice(8)}}" write="h1" 
+				subtitleClass="{{ $index === 0 ? 'docs-subtitle' : 'docs-subtitle-light' }}" />
+				@for (innerKey of objectKeys(articles[key]); track $index) {
+					@switch (innerKey[0]) {
+						@case ('p') {
+							<paragraph [path]="path" [article]="key.slice(8)" write="{{ innerKey }}" />
+						}
+						@case ('i') {
+							<images [path]="path" [article]="key.slice(8)" write="{{ innerKey }}" />
+						}
+						@case ('c') {
+							<callout [path]="path" [article]="key.slice(8)" write="{{ innerKey }}" />
+						}
+						@case ('t') {
+							<table-it [path]="path" [article]="key.slice(8)" write="{{ innerKey }}" />
+						}
+						@case ('u') {
+							<unordered-list [path]="path" [article]="key.slice(8)" write="{{ innerKey }}" />
+						}
+					}
+				}
+			} @else if (isChildArticle(key)) {
+				<heading [path]="path" article="{{key.slice(8)}}" write="h1" [hovering]="false"
+				subtitleClass="docs-subtitle-thiny" />
+				@for (innerKey of objectKeys(articles[key]); track $index) {
+					@switch (innerKey[0]) {
+						@case ('p') {
+							<paragraph [path]="path" [article]="key.slice(8)" write="{{ innerKey }}" />
+						}
+						@case ('i') {
+							<images [path]="path" [article]="key.slice(8)" write="{{ innerKey }}" />
+						}
+						@case ('c') {
+							<callout [path]="path" [article]="key.slice(8)" write="{{ innerKey }}" />
+						}
+						@case ('t') {
+							<table-it [path]="path" [article]="key.slice(8)" write="{{ innerKey }}" />
+						}
+						@case ('u') {
+							<unordered-list [path]="path" [article]="key.slice(8)" write="{{ innerKey }}" />
+						}
+					}
+				}
+			}
+		</section>
+	}
+	
+</div>

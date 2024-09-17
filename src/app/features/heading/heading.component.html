@@ -1,0 +1,10 @@
+<h2 class="{{ subtitleClass }}"
+    (mouseenter)="hovering && hashHoverFeature.showHash()"
+    (mouseleave)="hovering && hashHoverFeature.hideHash()"
+    [innerHTML]="writer">
+</h2>
+@if (hovering == true) {
+<span class="hash-link" *ngIf="hashHoverFeature.hovered">
+    <h2 class="{{ subtitleClass }}">#</h2>
+</span>
+}

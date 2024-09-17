@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 
-<div class="grid grid-cols-12 grid-areas-layout overflow-hidden">
-  <div menu-container
+<div class="site-body" (click)="closeMenu($event)">
+  <aside menu-container
     class="z-20 fixed menu-container"
-    [ngClass]="menu ? 'md:col-span-3 md:static w-full h-full bg-gradient-to-b md:from-zinc-800/30 from-zinc-800 to-zinc-800' : ''"
+    [ngClass]="menu ? 'md:col-span-2 md:static w-full h-full bg-gradient-to-b md:from-zinc-800/30 from-zinc-800 to-zinc-800' : ''"
+    (click)="$event.stopPropagation()"
   >
       <div
       [ngClass]="menu ? 'icon-cnt-open' : 'icon-cnt-close'"
@@ -24,13 +25,13 @@
         class="w-full left-0 top-auto h-full md:block"
         [ngClass]="menu ? 'md:w-full' : 'hidden -translate-x-full'"
       />
-  </div>
+  </aside>
 
-  <div main-container
-    class="col-span-12 md:col-span-9 overflow-y-scroll scroll-smooth relative"
-    [ngClass]="{ 'md:col-span-9' : menu === true }"
-  >
-    <app-header class="relative z-10"/>
-    <app-main class="scroll-smooth"/>
-  </div>
+  <main>
+    <app-header />
+    <div id="main-content">
+      <app-main />
+      <app-summary-bar />
+    </div>
+  </main>
 </div>

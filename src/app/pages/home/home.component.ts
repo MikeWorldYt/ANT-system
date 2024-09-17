@@ -3,9 +3,9 @@ import { Router, RouterOutlet } from '@angular/router';
 import { HeaderComponent } from '../../layout/header/header.component';
 import { SidebarComponent } from '../../layout/sidebar/sidebar.component';
 import { MainComponent } from '../../layout/main/main.component';
-import { FooterComponent } from '../../layout/footer/footer.component';
 import { NgClass } from '@angular/common';
 import { MenuService } from '../../services/menu.service';
+import { SummaryBarComponent } from '../../layout/summary-bar/summary-bar.component';
 
 @Component({
   selector: 'app-home',
@@ -16,7 +16,7 @@ import { MenuService } from '../../services/menu.service';
       HeaderComponent,
       SidebarComponent,
       MainComponent,
-      FooterComponent
+      SummaryBarComponent
     ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
@@ -33,4 +33,17 @@ export default class HomeComponent {
     this.menuService.changeMenu(this.menu);
   }
 
+  closeMenu(event: MouseEvent) {
+    // Verifica si el ancho de la pantalla es menor a 768px
+    if (window.innerWidth >= 768) {
+      return;
+    }
+    // cierra el menu, si se hace click fuera (dispo moviles)
+    const target = event.target as HTMLElement;
+    const aside = document.querySelector('aside.menu-container');
+    if (this.menu && aside && !aside.contains(target)) {
+      this.menu = false;
+      this.menuService.changeMenu(this.menu);
+    }
+  }
 }

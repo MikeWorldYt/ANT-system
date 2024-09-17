@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<div class="flex flex-col w-full">
+    <h1>On this Page</h1>
+    <!-- ▼ Toogle summary ---->
+    @for (articleHeading of articleHeadings; track $index ) {
+      	<h2 
+      	  class="module-line"
+      	  [innerHTML]="articleHeading"
+      	  [ngClass]="{ 'currentArticle': currentArticle === (articleHeading | addHyphen) }">
+      	</h2>
+    }
+
+  <div class="debug hidden">
+    <p>current language: {{ currentLanguage }}</p>
+    <p>current title: {{ currentTitle }}</p>
+    <p>current page: {{ currentPage }}</p>
+    <p>article: {{ currentArticle }}</p>
+  </div>
+
+</div> 

@@ -1,3 +1,65 @@
+.site-body {
+    overflow: hidden;
+    display: flex;
+    container-type: inline-size;
+    container-name: sitebody;
+    height: 100vh;
+}
+
+@container sitebody (min-width: 768px) {
+    aside {
+        
+    }
+}
+
+aside {
+    max-width: 280px;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    container-type: inline-size;
+    container-name: main;
+    width: 100%;
+    height: auto;
+    scroll-behavior: smooth;
+}
+
+app-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    overflow-y: scroll;
+}
+
+app-main {
+    flex: 1;
+}
+
+app-summary-bar {
+    flex: 1;
+    min-width: 280px;
+    max-width: 280px;
+    display: none;
+    position: sticky;
+    top: 0;
+}
+
+@container main (min-width: 780px) {
+    app-summary-bar {
+        display: block;
+    }
+}
+
+/* MENU ICON */
 .icon-cnt-open {
     @apply z-20 sticky w-full relative;
 }

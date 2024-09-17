@@ -29,8 +29,8 @@ header {
 }
 
 .footer {
-    @apply flex flex-col items-start mt-3;
-    @apply md:flex-row md:gap-x-10;
+    @apply flex flex-col pt-2 items-start mt-3;
+    @apply md:flex-row md:gap-x-5;
 }
 
 .window {
@@ -53,14 +53,6 @@ section[id] {
     scroll-margin-top: 8vh;
 }
 
-.currentH1 {
-    /* @apply bg-emerald-400 rounded-r-lg text-gray-950 ease-in duration-500; */
-    @apply text-emerald-400 ease-in-out duration-500;
-}
-
-.currentH2 {
-    background-color: rgba(172, 255, 47, 0.239); /* For debugging */
-}
 
 /* Tooltip */
 .tooltip {
@@ -145,4 +137,11 @@ section[id] {
 
 ::-webkit-scrollbar-button {
     display: none;
+}
+
+.debug {
+    margin: 30px 0px 30px 0px;
+    padding: 10px;
+    border: orange solid 1px;
+    background-color: rgba(255, 166, 0, 0.087);
 }

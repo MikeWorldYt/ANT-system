@@ -1,9 +1,30 @@
 h1 {
     @apply font-bold text-xl pl-4 pr-6 mt-2;
+    white-space: nowrap;
+}
+
+.currentTitle {
+    /* @apply bg-emerald-400 rounded-r-lg text-gray-950 ease-in duration-500; */
+    @apply text-emerald-400 ease-in-out duration-500;
 }
 
 h2 {
     @apply text-base pl-10;
+}
+
+.module-line {
+    position: relative;
+    padding-left: 1rem;
+    margin-left: .5rem;    
+    border-left: 1px solid #4caf50; 
+    opacity: 0.5; 
+    transition: border-color 0.3s ease;
+}
+
+.currentPage {
+    opacity: 1;
+    border-left: 3px solid #4caf50;
+    color: #4caf50;
 }
 
 li {

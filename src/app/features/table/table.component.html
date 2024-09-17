@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<table>
+  <thead>
+    @for (row of tableHead; track $index) {
+			<tr>
+        <th [innerHTML]="row.col_1"></th>
+        <th [innerHTML]="row.col_2"></th>
+			</tr>
+    }
+  </thead>
+
+	<tbody>
+    @for (row of tableContent; track $index) {
+			<tr>
+        <td [innerHTML]="row.col_1"></td>
+        <td [innerHTML]="row.col_2"></td>
+			</tr>
+    }
+  </tbody>
+</table>
