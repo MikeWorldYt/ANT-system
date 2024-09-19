@@ -20,8 +20,8 @@ export const content: Record<string, any> = {
 					hidden_p4: "In other words, As long as the user follows these methods, when they create or add a new file to their system, they'll be free to edit, share, migrate, version, etc., with a very high probability that their information will not be compromised, duplicated, or lost among other files."
 				},
 				article_02: {
-					_id: 'How works',
-					h1: 'How works?',
+					_id: 'How does ANT work',
+					h1: 'How does ANT work?',
 					p1: "This system combines a set of rules and categorization processes that allow it, as the name suggests, to <i>categorize</i> by dividing and organizing all the information that enters or is created within it, in a logical and flexible way.",
 					p2: "<br>These processes organize files into levels and categories, and they also employ a naming convention to ensure ease of search and identification. This, in turn, helps the indexing engine find files with greater precision and speed, making them easier to locate through the search function.",
 					p3: "<br>It is important to note that these categorization processes were inspired by systems like the DDC and UDC, and it was designed at the request of a private institution, where it underwent testing during its development, continuously provided feedback from users helped it adapt and improve throughout the process.",
@@ -327,7 +327,7 @@ export const content: Record<string, any> = {
 					hidden_p4: "En otras palabras, siempre y cuando el usuario siga estos metodos, al crear o entrar un archivo a su sistema sera libre de editar, compartir, migrar, versionar, etc, con una muy alta probabilidad de que su informacion no sea comprometida, duplicada y/o se pierda entre los demas archivos."
 				},
 				article_02: {
-					_id: 'How works es',
+					_id: 'How does ANT work',
 					h1: '¿Como funciona?',
 					p1: "Este sistema conbina una serie de reglas y procesos de categorización, que le permite como indica <i>categoriza</i>, dividiendo y ordenando de una forma logica y flexible toda la informacion que entra o se crea dentro de ella.",
 					p2: "<br>Estos procesos organizan los archivos en niveles y categorías. También emplean una convención de nomenclatura para garantizar la facilidad de búsqueda e identificación. Esto, a su vez, facilita al motor de indexación encontrar archivos, dándoles mayor precisión y rapidez para encontrarlos con la caja de búsqueda.",
