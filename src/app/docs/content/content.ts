@@ -12,7 +12,7 @@ export const content: Record<string, any> = {
 					h1: 'What is ANT?',
 					c1: {
 						t: "quote",
-						c_1: "<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>organizational methods system</i> designed to streamline the storage, project managment and quickly find files.",
+						c_1: "<strong>ANT system</strong> (Archive Nesting Technique System) <br> is a <i>organizational methods system</i> designed to streamline the storage, project managment and quickly find files.",
 					},
 					p1: "This system originated in a Workplace <strong>to Manage a Large Volume of files</strong> and was <strong>re-adapted for a Home Use</strong> to make it easy for any user to implement. <br> Even so, we highlight that it's <strong><i>mainly focused on the Home Office and Students</i></strong>, but it still offers flexibility for other areas.",
 					p2: "<br>This system has organizational methods is infrastructured in a way that mimics an ant colony, Technically it works as herarchical structure with a Directed Acyclic Graph (DAG) adapted to the conventional Tree Data Structure, Also it creates a decentralized and modular infrastructure, making it flexible yet resilient in handling information.",
