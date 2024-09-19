@@ -12,19 +12,19 @@ export const content: Record<string, any> = {
 					h1: 'What is ANT?',
 					c1: {
 						t: "quote",
-						c_1: "<strong>ANT system</strong> (Archive Nesting Technique System) <br> is a <i>organizational methods system</i> designed to streamline the storage, project managment and quickly find files.",
+						c_1: "<strong>ANT system</strong> (Archive Nesting Technique System) <br> is a <i>organizational methods system</i> designed to streamline the storage, project management and file retrieval.",
 					},
-					p1: "This system originated in a Workplace <strong>to Manage a Large Volume of files</strong> and was <strong>re-adapted for a Home Use</strong> to make it easy for any user to implement. <br> Even so, we highlight that it's <strong><i>mainly focused on the Home Office and Students</i></strong>, but it still offers flexibility for other areas.",
-					p2: "<br>This system has organizational methods is infrastructured in a way that mimics an ant colony, Technically it works as herarchical structure with a Directed Acyclic Graph (DAG) adapted to the conventional Tree Data Structure, Also it creates a decentralized and modular infrastructure, making it flexible yet resilient in handling information.",
-					p3: "<br>The purpose of this system and its methods is not ensure that even when handling a large amount and variety of data, It can be organized and dynamically managed.",
+					p1: "This system originated in a Workplace environment <strong>to Manage a Large Volume of files</strong> and was <strong>re-adapted for Home Use</strong>, maaking it easy for any user to implement. <br> Even so, we highlight that it's <strong><i>mainly focused on the Home Offices and Students</i></strong>, but it still offers flexibility for other areas.",
+					p2: "<br>This system has organizational methods is infrastructured in a way that mimics an ant colony; Technically, it works as a herarchical structure with a Directed Acyclic Graph (DAG) adapted to the conventional Tree Data Structure, Also it creates a decentralized and modular infrastructure, making it both flexible and resilient in handling information.",
+					p3: "<br>The purpose of this system and its methods is to ensure that even when managing a large amount and variety of data, It can be organized and dynamically managed.",
 					hidden_p4: "In other words, As long as the user follows these methods, when they create or add a new file to their system, they'll be free to edit, share, migrate, version, etc., with a very high probability that their information will not be compromised, duplicated, or lost among other files."
 				},
 				article_02: {
 					_id: 'How works',
 					h1: 'How works?',
-					p1: "This system combines a series of rules and classification processes, allowing it, as the name suggests, to <i>classify</i> by dividing and organizing all the information that enters or is created within it in a logical and flexible way.",
-					p2: "<br>It is important to highlight that these classification processes were inspired by classification systems like the DDC and UDC, and was created at the request of a private institution, thus it had testing during its development and was supported by people who continuously provided feedback, allowing it to adapt and improve throughout the process.",
-					p3: "<br>These processes organize the files into levels and categories, and also employ a naming convention to ensure ease of search and identification. This, in turn, helps the indexing engine find files with greater precision and speed, making them easier to locate through the search box."
+					p1: "This system combines a set of rules and categorization processes that allow it, as the name suggests, to <i>categorize</i> by dividing and organizing all the information that enters or is created within it, in a logical and flexible way.",
+					p2: "<br>These processes organize files into levels and categories, and they also employ a naming convention to ensure ease of search and identification. This, in turn, helps the indexing engine find files with greater precision and speed, making them easier to locate through the search function.",
+					p3: "<br>It is important to note that these categorization processes were inspired by systems like the DDC and UDC, and it was designed at the request of a private institution, where it underwent testing during its development, continuously provided feedback from users helped it adapt and improve throughout the process.",
 				},
 				article_03: {
 					_id: 'Adapts to Different Users',
@@ -329,9 +329,9 @@ export const content: Record<string, any> = {
 				article_02: {
 					_id: 'How works es',
 					h1: '¿Como funciona?',
-					p1: "Este sistema conbina una serie de reglas y procesos de clasificacion, que le permite como indica <i>clasificar</i>, dividiendo y ordenando de una forma logica y flexible toda la informacion que entra o se crea dentro de ella.",
-					p2: "<br>Es importante destacar que entre estos procesos de clasificacion fueron inspirados en sistemas de clasificacion como el CDD y el CDU, y fue creado a peticion de una institucion privada, por lo que tuvo pruebas durante su desarrollo y contó con el apoyo de personas que continuamente brindaron su retroalimentación, permitiendo que se adaptara y mejorara durante todo el proceso.",
-					p3: "<br>Estos procesos organizan los archivos en niveles y categorías. También emplean una convención de nomenclatura para garantizar la facilidad de búsqueda e identificación. Esto, a su vez, facilita al motor de indexación encontrar archivos, dándoles mayor precisión y rapidez para encontrarlos con la caja de búsqueda."
+					p1: "Este sistema conbina una serie de reglas y procesos de categorización, que le permite como indica <i>categoriza</i>, dividiendo y ordenando de una forma logica y flexible toda la informacion que entra o se crea dentro de ella.",
+					p2: "<br>Estos procesos organizan los archivos en niveles y categorías. También emplean una convención de nomenclatura para garantizar la facilidad de búsqueda e identificación. Esto, a su vez, facilita al motor de indexación encontrar archivos, dándoles mayor precisión y rapidez para encontrarlos con la caja de búsqueda.",
+					p3: "<br>Es importante destacar que entre estos procesos fueron inspirados en sistemas como el CDD y el CDU, y fue diseñado a peticion de una institucion privada, por lo que tuvo pruebas durante su desarrollo y contó con el apoyo de personas que continuamente brindaron su retroalimentación, permitiendo que se adaptara y mejorara durante todo el proceso.",
 				},
 				article_03: {
 					_id: 'Adapts to Different Users',
