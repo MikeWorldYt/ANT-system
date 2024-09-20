@@ -101,17 +101,22 @@ export const content: Record<string, any> = {
 				article_11: {
 					_id: 'Level 1',
 					h1: '1.1 The Level 1 - Main Categories (Contexts)', 
-					p1: 'Is the highest hierarchy, inside from your Root Storage Folder, content the main categories. <br> Defines a portion of space, and the usage it will have.',
+					p1: "Is the highest hierarchy, inside from your Root Storage Folder, content the main categories. <br> Define the initial storage Modules (portion of space). The name is highly descriptive, as it specifies the use of that space.",
 					i1: {
 						p_1: "https://i.pinimg.com/originals/91/0d/ef/910defb0518014ef1c730da9f4886085.png",
 					},
-					p2: "This use an incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals. ",
+					p2: "These initial nodes (folders) are named using the following convention:",
+					ul1: {
+						li_0: "Incremental numbering of 3 digits in a sequence of 100.",
+						li_1: "A dot (separator).",
+						li_2: "Name in UPPERCASE (Capitals).",
+					},
 					c1: {
 						t: 'danger',
-						c_1: "<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relink again."
+						c_1: "<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it after some time may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relink again."
 					},
 					p3: "We recommend using the following categories, in the following order;",
-					ul1: {
+					ul2: {
 						// TODO: FIX STRONG TAG
 						li_0: "100.PERSONAL: For your personal files and documents.", // <strong>100.PERSONAL</strong>: For your personal files and documents.
 						li_1: "200.WORK: For work-related files.", // <strong>200.WORK</strong>: For work-related files.
@@ -394,13 +399,21 @@ export const content: Record<string, any> = {
 				article_11: {
 					_id: 'Nivel 1',
 					h1: '1.1 Nivel 1 - Categorías principales (Contextos)',
-					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales. <br> Define una porcion de tu espacio y el uso que tendra.',
-					p2: "Usa una enumeración incremental con tres dígitos (100, 200, 300, ...), seguida de un punto, seguida del nombre de la Categoría Principal en mayúsculas. ",
+					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales. <br> Define los primeros modulos de almacenamiento (porcio de espacio), el nombre es altamente descriptivo, ya que detalla el uso que tiene ese espacio.',
+					i1: {
+						p_1: "empty",
+					},
+					p2: "Estos primeros nodos (carpetas) y se nombran con la siguiente convencion:. ",
+					ul1: {
+						li_0: "Numeracion incremental de 3 digitos en secuencia de 100.",
+						li_1: "Un punto (separador).",
+						li_2: "Nombre en UPPERCASE (Mayusculas).",
+					},
 					c1: {
-						c_1: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente."
+						c_1: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo despues de un tiempo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente."
 					},
 					p3: "Recomendamos usar las siguientes categorias, en el siguiente orden;",
-					ul1: {
+					ul2: {
 						// TODO: FIX STRONG TAG
 						li_0: "100.PERSONAL: Para tus archivos y documentos personales", // <strong>100.PERSONAL</strong>: Para tus archivos y documentos personales.
 						li_1: "200.TRABAJO: Para archivos relacionados de trabajo", // <strong>200.TRABAJO</strong>: Para archivos relacionados de trabajo.
