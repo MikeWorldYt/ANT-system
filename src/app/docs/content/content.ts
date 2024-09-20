@@ -12,29 +12,30 @@ export const content: Record<string, any> = {
 					h1: 'What is ANT?',
 					c1: {
 						t: "quote",
-						c_1: "<strong>ANT system</strong> (Archive Nesting Technique System) <br>      is a <i>organizational methods system</i> designed to streamline the storage, project managment and quickly find files.",
+						c_1: "<strong>ANT system</strong> (Archive Nesting Technique System) <br> is a <i>organizational methods system</i> designed to streamline the storage, project management and file retrieval.",
 					},
-					p1: "This system originated in a Workplace <strong>to Manage a Large Volume of files</strong> and was <strong>re-adapted for a Home Use</strong> to make it easy for any user to implement. <br> Even so, we highlight that it's <strong><i>mainly focused on the Home Office and Students</i></strong>, but it still offers flexibility for other areas.",
-					p2: "<br>This system has organizational methods is infrastructured in a way that mimics an ant colony, Technically it works as herarchical structure with a Directed Acyclic Graph (DAG) adapted to the conventional Tree Data Structure, Also it creates a decentralized and modular infrastructure, making it flexible yet resilient in handling information.",
-					p3: "<br>The purpose of this system and its methods is not ensure that even when handling a large amount and variety of data, It can be organized and dynamically managed.",
+					p1: "This system originated in a Workplace environment <strong>to Manage a Large Volume of files</strong> and was <strong>re-adapted for Home Use</strong>, maaking it easy for any user to implement. <br> Even so, we highlight that it's <strong><i>mainly focused on the Home Offices and Students</i></strong>, but it still offers flexibility for other areas.",
+					p2: "<br>This system has organizational methods is infrastructured in a way that mimics an ant colony; Technically, it works as a herarchical structure with a Directed Acyclic Graph (DAG) adapted to the conventional Tree Data Structure, Also it creates a decentralized and modular infrastructure, making it both flexible and resilient in handling information.",
+					p3: "<br>The purpose of this system and its methods is to ensure that even when managing a large amount and variety of data, It can be organized and dynamically managed.",
 					hidden_p4: "In other words, As long as the user follows these methods, when they create or add a new file to their system, they'll be free to edit, share, migrate, version, etc., with a very high probability that their information will not be compromised, duplicated, or lost among other files."
 				},
 				article_02: {
-					_id: 'How works',
-					h1: 'How works?',
-					p1: "This system combines a series of rules and classification processes, allowing it, as the name suggests, to <i>classify</i> by dividing and organizing all the information that enters or is created within it in a logical and flexible way.",
-					p2: "<br>It is important to highlight that these classification processes were inspired by classification systems like the DDC and UDC, and was created at the request of a private institution, thus it had testing during its development and was supported by people who continuously provided feedback, allowing it to adapt and improve throughout the process.",
-					p3: "<br>These processes organize the files into levels and categories, and also employ a naming convention to ensure ease of search and identification. This, in turn, helps the indexing engine find files with greater precision and speed, making them easier to locate through the search box."
+					_id: 'How does ANT work',
+					h1: 'How does ANT work?',
+					p1: "This system combines a set of rules and categorization processes that allow it, as the name suggests, to <i>categorize</i> by dividing and organizing all the information that enters or is created within it, in a logical and flexible way.",
+					p2: "<br>These processes organize files into levels and categories, and they also employ a naming convention to ensure ease of search and identification. This, in turn, helps the indexing engine find files with greater precision and speed, making them easier to locate through the search function.",
+					p3: "<br>It is important to note that these categorization processes were inspired by systems like the DDC and UDC, and it was designed at the request of a private institution, where it underwent testing during its development, continuously provided feedback from users helped it adapt and improve throughout the process.",
 				},
 				article_03: {
 					_id: 'Adapts to Different Users',
 					h1: 'How ANT Adapts to Different Users?',
-					p1: "While initially designed for institutional use, the ANT system is flexible enough to be tailored for various user profiles, such as students, freelancers, and home offices.",
+					p1: "While initially designed for institutional use, the ANT system is flexible enough to be tailored for various user profiles, such as Students, Freelancers, Home Offices, and others.",
 					p2: "<br>",
 					ul1: {
-						li_0: "<strong>For Students:</strong> Allows easy management of coursework, research, and project files, with the ability to track versions and group files by subjects or semesters..",
-						li_1: "<strong>For Home Offices:</strong> For Home Offices: Managing work-related files becomes more straightforward with a dedicated structure for ongoing and completed projects, invoices, and reference materials.",
-						li_2: "<strong>For Personal Use:</strong> ANT helps users maintain a clutter-free digital space, offering a methodical approach to organizing photos, personal documents, and hobbies"
+						li_0: "<strong>For Students:</strong> Allows easy management of coursework, research, and project files, with the ability to track versions and group files by subjects or semesters.",
+						li_1: "<strong>For Home Offices:</strong> Managing work-related files becomes more straightforward with a dedicated structure for ongoing and completed projects, invoices, and reference materials.",
+						li_2: "<strong>For Personal Use:</strong> ANT helps users maintain a clutter-free digital space, offering a methodical approach to organizing photos, Personal Documents, and Hobbies.",
+						p3: "Although it is multipurpose, you can have more than one of these profiles and use the system in the same Root Storage."
 					}
 				},
 				article_04: {
@@ -100,17 +101,22 @@ export const content: Record<string, any> = {
 				article_11: {
 					_id: 'Level 1',
 					h1: '1.1 The Level 1 - Main Categories (Contexts)', 
-					p1: 'Is the highest hierarchy, inside from your Root Storage Folder, content the main categories. <br> Defines a portion of space, and the usage it will have.',
+					p1: "Is the highest hierarchy, inside from your Root Storage Folder, content the main categories. <br> Define the initial storage Modules (portion of space). The name is highly descriptive, as it specifies the use of that space.",
 					i1: {
 						p_1: "https://i.pinimg.com/originals/91/0d/ef/910defb0518014ef1c730da9f4886085.png",
 					},
-					p2: "This use an incremental enumeration with three digits (100, 200, 300, ...), followed by a dot, followed by the Main Category name in Capitals. ",
+					p2: "These initial nodes (folders) are named using the following convention:",
+					ul1: {
+						li_0: "Incremental numbering of 3 digits in a sequence of 100.",
+						li_1: "A dot (separator).",
+						li_2: "Name in UPPERCASE (Capitals).",
+					},
 					c1: {
 						t: 'danger',
-						c_1: "<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relink again."
+						c_1: "<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it after some time may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relink again."
 					},
 					p3: "We recommend using the following categories, in the following order;",
-					ul1: {
+					ul2: {
 						// TODO: FIX STRONG TAG
 						li_0: "100.PERSONAL: For your personal files and documents.", // <strong>100.PERSONAL</strong>: For your personal files and documents.
 						li_1: "200.WORK: For work-related files.", // <strong>200.WORK</strong>: For work-related files.
@@ -327,11 +333,11 @@ export const content: Record<string, any> = {
 					hidden_p4: "En otras palabras, siempre y cuando el usuario siga estos metodos, al crear o entrar un archivo a su sistema sera libre de editar, compartir, migrar, versionar, etc, con una muy alta probabilidad de que su informacion no sea comprometida, duplicada y/o se pierda entre los demas archivos."
 				},
 				article_02: {
-					_id: 'How works es',
+					_id: 'How does ANT work',
 					h1: '¿Como funciona?',
-					p1: "Este sistema conbina una serie de reglas y procesos de clasificacion, que le permite como indica <i>clasificar</i>, dividiendo y ordenando de una forma logica y flexible toda la informacion que entra o se crea dentro de ella.",
-					p2: "<br>Es importante destacar que entre estos procesos de clasificacion fueron inspirados en sistemas de clasificacion como el CDD y el CDU, y fue creado a peticion de una institucion privada, por lo que tuvo pruebas durante su desarrollo y contó con el apoyo de personas que continuamente brindaron su retroalimentación, permitiendo que se adaptara y mejorara durante todo el proceso.",
-					p3: "<br>Estos procesos organizan los archivos en niveles y categorías. También emplean una convención de nomenclatura para garantizar la facilidad de búsqueda e identificación. Esto, a su vez, facilita al motor de indexación encontrar archivos, dándoles mayor precisión y rapidez para encontrarlos con la caja de búsqueda."
+					p1: "Este sistema conbina una serie de reglas y procesos de categorización, que le permite como indica <i>categoriza</i>, dividiendo y ordenando de una forma logica y flexible toda la informacion que entra o se crea dentro de ella.",
+					p2: "<br>Estos procesos organizan los archivos en niveles y categorías. También emplean una convención de nomenclatura para garantizar la facilidad de búsqueda e identificación. Esto, a su vez, facilita al motor de indexación encontrar archivos, dándoles mayor precisión y rapidez para encontrarlos con la caja de búsqueda.",
+					p3: "<br>Es importante destacar que entre estos procesos fueron inspirados en sistemas como el CDD y el CDU, y fue diseñado a peticion de una institucion privada, por lo que tuvo pruebas durante su desarrollo y contó con el apoyo de personas que continuamente brindaron su retroalimentación, permitiendo que se adaptara y mejorara durante todo el proceso.",
 				},
 				article_03: {
 					_id: 'Adapts to Different Users',
@@ -342,7 +348,7 @@ export const content: Record<string, any> = {
 						li_0: "<strong>Para Estudiantes:</strong> Permite gestionar fácilmente tareas, investigaciones y archivos de proyectos, con la capacidad de hacer seguimiento de versiones y agrupar archivos por materias o semestres.",
 						li_1: "<strong>Para el Home Office:</strong> La gestión de archivos relacionados con el trabajo se vuelve más sencilla con una estructura dedicada a proyectos en curso y completados, facturas y materiales de referencia.",
 						li_2: "<strong>Para uso Personal:</strong> ANT ayuda a los usuarios a mantener un espacio digital libre de desorden, ofreciendo un enfoque metódico para organizar fotos, documentos personales y pasatiempos.",
-
+						p3: "Aunque es multiproposito, puedes tener mas de uno de estos perfiles y usar el sistema en el mismo Almacenamiento Raíz.",
 					},
 				},
 				article_04: {
@@ -393,13 +399,21 @@ export const content: Record<string, any> = {
 				article_11: {
 					_id: 'Nivel 1',
 					h1: '1.1 Nivel 1 - Categorías principales (Contextos)',
-					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales. <br> Define una porcion de tu espacio y el uso que tendra.',
-					p2: "Usa una enumeración incremental con tres dígitos (100, 200, 300, ...), seguida de un punto, seguida del nombre de la Categoría Principal en mayúsculas. ",
+					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales. <br> Define los primeros modulos de almacenamiento (porcio de espacio), el nombre es altamente descriptivo, ya que detalla el uso que tiene ese espacio.',
+					i1: {
+						p_1: "empty",
+					},
+					p2: "Estos primeros nodos (carpetas) y se nombran con la siguiente convencion:. ",
+					ul1: {
+						li_0: "Numeracion incremental de 3 digitos en secuencia de 100.",
+						li_1: "Un punto (separador).",
+						li_2: "Nombre en UPPERCASE (Mayusculas).",
+					},
 					c1: {
-						c_1: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente."
+						c_1: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo despues de un tiempo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente."
 					},
 					p3: "Recomendamos usar las siguientes categorias, en el siguiente orden;",
-					ul1: {
+					ul2: {
 						// TODO: FIX STRONG TAG
 						li_0: "100.PERSONAL: Para tus archivos y documentos personales", // <strong>100.PERSONAL</strong>: Para tus archivos y documentos personales.
 						li_1: "200.TRABAJO: Para archivos relacionados de trabajo", // <strong>200.TRABAJO</strong>: Para archivos relacionados de trabajo.
