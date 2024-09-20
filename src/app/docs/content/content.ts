@@ -29,12 +29,13 @@ export const content: Record<string, any> = {
 				article_03: {
 					_id: 'Adapts to Different Users',
 					h1: 'How ANT Adapts to Different Users?',
-					p1: "While initially designed for institutional use, the ANT system is flexible enough to be tailored for various user profiles, such as students, freelancers, and home offices.",
+					p1: "While initially designed for institutional use, the ANT system is flexible enough to be tailored for various user profiles, such as Students, Freelancers, Home Offices, and others.",
 					p2: "<br>",
 					ul1: {
-						li_0: "<strong>For Students:</strong> Allows easy management of coursework, research, and project files, with the ability to track versions and group files by subjects or semesters..",
-						li_1: "<strong>For Home Offices:</strong> For Home Offices: Managing work-related files becomes more straightforward with a dedicated structure for ongoing and completed projects, invoices, and reference materials.",
-						li_2: "<strong>For Personal Use:</strong> ANT helps users maintain a clutter-free digital space, offering a methodical approach to organizing photos, personal documents, and hobbies"
+						li_0: "<strong>For Students:</strong> Allows easy management of coursework, research, and project files, with the ability to track versions and group files by subjects or semesters.",
+						li_1: "<strong>For Home Offices:</strong> Managing work-related files becomes more straightforward with a dedicated structure for ongoing and completed projects, invoices, and reference materials.",
+						li_2: "<strong>For Personal Use:</strong> ANT helps users maintain a clutter-free digital space, offering a methodical approach to organizing photos, Personal Documents, and Hobbies.",
+						p3: "Although it is multipurpose, you can have more than one of these profiles and use the system in the same Root Storage."
 					}
 				},
 				article_04: {
@@ -342,7 +343,7 @@ export const content: Record<string, any> = {
 						li_0: "<strong>Para Estudiantes:</strong> Permite gestionar fácilmente tareas, investigaciones y archivos de proyectos, con la capacidad de hacer seguimiento de versiones y agrupar archivos por materias o semestres.",
 						li_1: "<strong>Para el Home Office:</strong> La gestión de archivos relacionados con el trabajo se vuelve más sencilla con una estructura dedicada a proyectos en curso y completados, facturas y materiales de referencia.",
 						li_2: "<strong>Para uso Personal:</strong> ANT ayuda a los usuarios a mantener un espacio digital libre de desorden, ofreciendo un enfoque metódico para organizar fotos, documentos personales y pasatiempos.",
-
+						p3: "Aunque es multiproposito, puedes tener mas de uno de estos perfiles y usar el sistema en el mismo Almacenamiento Raíz.",
 					},
 				},
 				article_04: {
