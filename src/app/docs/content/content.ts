@@ -77,7 +77,7 @@ export const content: Record<string, any> = {
 					},
 					c2: {
 						t: 'quote',
-						c_1: "It's true, We could simply call them <i>folders</i>, but in this system, each folder acts as a Node (vertice or points),<br> Having one or more in/out degrees, being part of a module (group), and in some cases having a lifespan (existence).",
+						c_1: "It's true, We could simply call them <i>folders</i>, but in this system, each folder acts as a Node,<br> Having one or more in/out degrees, being part of a module (group), and in some cases having a lifespan (existence).",
 						a_1: [ 
 							[" empty array "] ,
 							[ // nested anchor
@@ -88,14 +88,13 @@ export const content: Record<string, any> = {
 						],
 					},
 					i2: {
-						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
+						p_1: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExd2phNHR3aGlkZ281NDh6NHhmbDM2OThvc2MxZ3R6MDN2NmVwcTA0ZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9dg/OPUFqtt4ydWj5rmPNM/giphy.gif",
 					},
 					ul3: {
 						li_0: "Lastly, the term <strong>\"Module\"</strong> refers to a grouping of nodes in relation to their level. This means that, regardless of their connections, the nodes maintain a hierarchical grouping within the Tree data structure.",
 					},
 					i3: {
-						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
-						p_2: "empty",
+						p_1: "empty",
 					},
 				},
 				article_11: {
