@@ -7,7 +7,7 @@ export const pathResolve: Record<string, any> = {
         key: "title_02",
         into: "page_01",
         structure: "page_01", 
-        supportfolders: "page_02",
+        supportnodes: "page_02",
         filesnomenclature: "page_03"
     },
     gettingstarted: {
