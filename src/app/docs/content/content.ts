@@ -77,7 +77,7 @@ export const content: Record<string, any> = {
 					},
 					c2: {
 						t: 'quote',
-						c_1: "It's true, We could simply call them <i>folders</i>, but in this system, each folder acts as a Node (vertice or points),<br> Having one or more in/out degrees, being part of a module (group), and in some cases having a lifespan (existence).",
+						c_1: "It's true, We could simply call them <i>folders</i>, but in this system, each folder acts as a Node,<br> Having one or more in/out degrees, being part of a module (group), and in some cases having a lifespan (existence).",
 						a_1: [ 
 							[" empty array "] ,
 							[ // nested anchor
@@ -88,67 +88,100 @@ export const content: Record<string, any> = {
 						],
 					},
 					i2: {
-						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
+						p_1: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExd2phNHR3aGlkZ281NDh6NHhmbDM2OThvc2MxZ3R6MDN2NmVwcTA0ZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9dg/OPUFqtt4ydWj5rmPNM/giphy.gif",
 					},
 					ul3: {
-						li_0: "Lastly, the term <strong>\"Module\"</strong> refers to a grouping of nodes in relation to their level. This means that, regardless of their connections, the nodes maintain a hierarchical grouping within the Tree data structure.",
+						li_0: "Lastly, the term <strong>\"Module\"</strong> refers to a grouping of nodes in relation to their level, her <strong>category</strong>. This means that, regardless of their connections, the nodes maintain a hierarchical grouping within the Tree data structure.",
 					},
 					i3: {
-						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
-						p_2: "empty",
+						p_1: "empty",
 					},
 				},
 				article_11: {
 					_id: 'Level 1',
-					h1: '1.1 The Level 1 - Main Categories (Contexts)', 
-					p1: "Is the highest hierarchy, inside from your Root Storage Folder, content the main categories. <br> Define the initial storage Modules (portion of space). The name is highly descriptive, as it specifies the use of that space.",
-					i1: {
-						p_1: "https://i.pinimg.com/originals/91/0d/ef/910defb0518014ef1c730da9f4886085.png",
-					},
-					p2: "These initial nodes (folders) are named using the following convention:",
+					h1: '1.1 The Level 1 - Main Categories', 
+					p1: "Here are the first nodes (Folders) within your Root Storage; <br> The names is highly descriptive, as it specifies the category contained.",
+          c1: {
+            t: 'warning',
+            c_1: "Each node only serve to assign and group the modules for the next level; <br> There should be no other files here just folders."
+          },
+          p2: "<br>The Storage nodes (folders) are named using the following convention:",
 					ul1: {
 						li_0: "Incremental numbering of 3 digits in a sequence of 100.",
-						li_1: "A dot (separator).",
+						li_1: "A dot (as separator).",
 						li_2: "Name in UPPERCASE (Capitals).",
 					},
-					c1: {
+					c2: {
 						t: 'danger',
 						c_1: "<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it after some time may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relink again."
 					},
-					p3: "We recommend using the following categories, in the following order;",
+					p3: "We recommend using the following category names, in the following order;",
 					ul2: {
-						// TODO: FIX STRONG TAG
-						li_0: "100.PERSONAL: For your personal files and documents.", // <strong>100.PERSONAL</strong>: For your personal files and documents.
-						li_1: "200.WORK: For work-related files.", // <strong>200.WORK</strong>: For work-related files.
+						li_0: "<strong>100.PERSONAL</strong>: For your personal files and documents.",
+						li_1: "<strong>200.WORK</strong>: For work-related files.", 
 						li_2: [ 
-							["300.PROJECTS: "], // <strong>300.PROJECTS</strong>:
+							["<strong>300.PROJECTS</strong>: "],
 							[ // nested anchor 
 								"Support Directory (optional order)",
-								"/introduction",
-								"How-works",
+								"/concepts/Support-Nodes",
+								"Project-Folder",
 								""
 							]	],
-						li_3: "400.ACADEMIC For school or related files.", // <strong>400.ACADEMIC</strong>: For school or related files.
-						li_4: "500.HOBBIES For files related to your leisure activities.", // <strong>500.HOBBIES</strong>: For files related to your leisure activities.
-					},
-					i2: {
-						p_1: "https://i.pinimg.com/originals/83/8e/6a/838e6af8130e5a3dab94df680a9c59df.png",
+						li_3: "<strong>400.ACADEMIC</strong>: For school or related files.",
+						li_4: " <strong>500.HOBBIES</strong>: For files related to your leisure activities.", 
 					},
 					a1: "Read more about <i>Support Folder \"PROJETCS\"</i>",
-					c2: {
-						t: 'quote',
-						c_1: "Separating by contexts allows for maintaining and managing files, creating a barder that <i>if respected</i> reduces the likelihood of mixing files and helps to have a clear focus on their use and what is found there."
-					}
+					c3: {
+						t: 'success',
+						c_1: "Separating it into these contexts allows for maintaining and managing files separately, reducing the likelihood of mixing files, while also helping to keep a clear focus on their use and what is stored there."
+					},
+					p4: "Likewise, at the same level, we will have three additional Support Nodes:",
+					ul3: {
+						li_0: [ 
+							["<strong>900.RESOURCES</strong>: Tools and Programs"],
+							[ // nested anchor 
+								"read more",
+								"/concepts/Support-Nodes",
+								"Resources-Folder",
+								""
+							]	],
+						li_1: [ 
+							["<strong>998.REVIEW</strong>: A directory of shortcuts to the Review Folder"],
+							[ // nested anchor 
+								"read more",
+								"/concepts/Support-Nodes",
+								"Review-Folder",
+								""
+							]	],
+							li_2: [ 
+								["<strong>999.SETTINGS</strong>:configurations for the ANT system, Programs and the Operating System"],
+								[ // nested anchor 
+									"read more",
+									"/concepts/Support-Nodes",
+									"Settings-Folder",
+									""
+								]	],
+					},
+					p5: "<br>It should look like this:",
+					i2: {
+						p_1: "https://i.pinimg.com/originals/2e/00/e0/2e00e04710e709dafda6acda28baac13.png",
+					},
 				},
 				article_12: {
 					_id: 'Level 2',
-					h1: '1.2 The Levels 2 - Categories (Subjects)',
-					p1: 'They are found within <strong><i>Level 1 directories</i></strong>, being the second in the hierarchy.<br> They contain more specific categories, such as Area, Topic, Subject, Organization, Type of work or relationed.',
-					i1: {
-						p_1: "https://i.pinimg.com/originals/ce/75/a5/ce75a5a8ff41ef1864cca5a66e72887a.png",
+					h1: '1.2 The Levels 2 - Categories',
+					p1: "These are located within a \"Level 1\" folder, their child nodes.<br> The name should describe a topic or subject related to its parent. Thus, being more specific, this would include things like Area, Topic, Subject, Organization, Type of work, or something related.",
+          c1: {
+            t: 'warning',
+            c_1: "Each node only serve to assign and group the modules for the next level; <br> There should be no other files here just folders."
+          },
+          p2: "The Storage nodes (folders) are named using the following convention:",
+          ul1: {
+						li_0: "Incremental numbering of 2 digits (from 1 to 89).",
+						li_1: "A dot (as separator).",
+						li_2: "Name in PascalCase",
 					},
-					p2: 'For each directory add an Incremental enumeration with two digits, followed by a dot, followed by the Categories Name in Capitals..',
-					c1: {
+					c2: {
 						t: 'quote',
 						c_1: "The order in the sequence is not essential and only facilitates a visual organization. <br> Although it may not represent a logical sequence, numbering makes it <i>more predictable</i> for the user to find what they need. However, it can be useful for prioritizing or arranging it in a custom sequence rather than alphabetically. <br> Also when a folder is delted or added, It does'nt affect his order, <br> Numering creates a control to maintain the user's customized sequence."
 					},
@@ -182,7 +215,7 @@ export const content: Record<string, any> = {
 					},
 					c2: {
 						t: 'info',
-						c_1: '<strong>Note</strong>: That the way you organize will determine whether your support folders come before or after. Remember, the order always be Symbols-Numbers-Letters."'
+						c_1: '<strong>Note</strong>: That the way you organize will determine whether your Support Nodes come before or after. Remember, the order always be Symbols-Numbers-Letters."'
 					}
 				},
 				article_13_2: {
@@ -226,9 +259,9 @@ export const content: Record<string, any> = {
       },
 			page_02: {
 				article_20: {
-					_id: 'Support Folders',
-					h1: '2. Support Folders',
-					p1: 'The support folders are designed to be helpful at the current level. In that sense support the user. Each has a unique identifier, making it easy to differentiate and quickly identify them.'
+					_id: 'Support Nodes',
+					h1: '2. Support Nodes',
+					p1: 'The Support Nodes are designed to be helpful at the current level. In that sense support the user. Each has a unique identifier, making it easy to differentiate and quickly identify them.'
 				},
 				article_21: {
 					_id: 'Settings Folder',
@@ -386,61 +419,103 @@ export const content: Record<string, any> = {
 						c_1: "Es cierto, podriamos solo llamarle <i>carpeta</i>, pero en este sistema, cada carpeta actuará como un nodo (vertice o punto), <br> Teniendo uno o más entradas/salidas, siendo parte de un modulo (grupo), y en ciertos casos teniendo una Vida de archivo (duración de existencia).",
 					},
 					i2: {
-						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
+						p_1: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExd2phNHR3aGlkZ281NDh6NHhmbDM2OThvc2MxZ3R6MDN2NmVwcTA0ZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9dg/OPUFqtt4ydWj5rmPNM/giphy.gif",
 					},
 					ul3: {
-						li_0: "Por ultimo, el termino <strong>\"Modulo\"</strong> se refiere a un grupo de nodos con respecto a un nivel. Es decir, que los nodos independientemente de sus conexiones, guardan una agrupacion jerarquica en la estructura de arbol",
+						li_0: "Por ultimo, el termino <strong>\"Modulo\"</strong> se refiere a un grupo de nodos con respecto a un nivel, su <strong>Categoría</strong>. Es decir, que los nodos independientemente de sus conexiones, guardan una agrupacion jerarquica en la estructura de arbol",
 					},
 					i3: {
-						p_1: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDlscXNpOHd5YXZhN3J3azlveHZ3NzU5ZnR6MDVrMXA4ZDJrbDZiMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1J9EdzfOSgfyueLm/giphy.webp",
-						p_2: "empty",
+						p_1: "empty",
 					},
 				},
 				article_11: {
 					_id: 'Nivel 1',
-					h1: '1.1 Nivel 1 - Categorías principales (Contextos)',
-					p1: 'Es la jerarquía más alta, dentro de tu Carpeta de Almacenamiento Raíz, contiene las categorías principales. <br> Define los primeros modulos de almacenamiento (porcio de espacio), el nombre es altamente descriptivo, ya que detalla el uso que tiene ese espacio.',
-					i1: {
-						p_1: "empty",
-					},
-					p2: "Estos primeros nodos (carpetas) y se nombran con la siguiente convencion:. ",
+					h1: '1.1 Nivel 1 - Categorías Principales',
+					p1: "Son los primeros nodos (Carpetas) dentro de tu Carpeta de Almacenamiento Raíz; <br> El nombre es altamente descriptivo, ya que detalla el contenido de ese espacio.",
+          c1: {
+            t: 'warning',
+            c_1: "Cada nodo solo servirá como contexto, asignando y agrupando los modulos del siguiente nivel. <br> Aqui solamente hay carpetas; no debe existir ningun archivo."
+          },
+					p2: "<br>Estos primeros nodos (carpetas) se nombran con la siguiente convencion: ",
 					ul1: {
 						li_0: "Numeracion incremental de 3 digitos en secuencia de 100.",
-						li_1: "Un punto (separador).",
+						li_1: "Un punto (como separador).",
 						li_2: "Nombre en UPPERCASE (Mayusculas).",
 					},
-					c1: {
+					c2: {
 						c_1: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo despues de un tiempo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente."
 					},
-					p3: "Recomendamos usar las siguientes categorias, en el siguiente orden;",
+					p3: "Recomendamos usar los siguientes nombres de categorias, en el siguiente orden;",
 					ul2: {
-						// TODO: FIX STRONG TAG
-						li_0: "100.PERSONAL: Para tus archivos y documentos personales", // <strong>100.PERSONAL</strong>: Para tus archivos y documentos personales.
-						li_1: "200.TRABAJO: Para archivos relacionados de trabajo", // <strong>200.TRABAJO</strong>: Para archivos relacionados de trabajo.
+						li_0: "<strong>100.PERSONAL</strong>: Para tus archivos y documentos personales",
+						li_1: "<strong>200.TRABAJO</strong>: Para archivos relacionados de trabajo",
 						li_2: [
-							["300.PROJECTOS:"], // <strong>300.PROJECTOS</strong>:
+							["<strong>300.PROJECTOS</strong>:"],
 							[ // nested anchor 
 								"Carpeta de soporte, (orden opcional)",
-								"/introduction",
-								"How-works",
+								"/concepts/Support-Nodes",
+								"Project-Folder",
 								""
 							]	],
-						li_3: "400.ACADEMICO: Para archivos escolares o relacionados", // <strong>400.ACADEMICO</strong>: Para archivos escolares o relacionados.
-						li_4: "500.HOBBIES: Para archivos relacionados con actividades de tu tiempo libre", // <strong>500.HOBBIES</strong>: Para archivos relacionados con actividades de tu tiempo libre.
+						li_3: "<strong>400.ACADEMICO</strong>: Para archivos escolares o relacionados",
+						li_4: "<strong>500.HOBBIES</strong>: Para archivos relacionados con actividades de tu tiempo libre", // 
 					},
 					a1: "Leer más acerca de la carpeta de soporte <i>\"PROYECTOS\"</i>",
-					c2: {
-						c_1: "Separar en por contextos permite mantener y manejar archivos, crea una barrera <i>que si se respeta</i> reduce la probabilidad de mezclar archivos y ayuda a tener un enfoque claro de su uso y lo que se encuentra alli."
-					}
+					c3: {
+						c_1: "Separarlo en estos contextos permite mantener y manejar archivos por separado, reduciendo la probabilidad de mezclar archivos, ademas deayudar a mantener un enfoque claro de su uso y lo que se encuentra alli."
+					},
+					p4: "Asi mismo en el mismo nivel tendremos otras 3 Nodos de Soporte:",
+					ul3: {
+						li_0: [ 
+							["<strong>900.RESOURCES</strong>: Herramientas y Programas"],
+							[ // nested anchor 
+								"read more",
+								"/concepts/Support-Nodes",
+								"Resources-Folder",
+								""
+							]	],
+						li_1: [ 
+							["<strong>998.REVIEW</strong>: Un directorio de accesos directos a Carpetas de Revision"],
+							[ // nested anchor 
+								"read more",
+								"/concepts/Support-Nodes",
+								"Review-Folder",
+								""
+							]	],
+							li_2: [ 
+								["<strong>999.SETTINGS</strong>:Configuraciones del sistema ANT, Programas y del Sistema Operativo"],
+								[ // nested anchor 
+									"read more",
+									"/concepts/Support-Nodes",
+									"Settings-Folder",
+									""
+								]	],
+					},
+					p5: "<br>Se deberia ver de esta manera:",
+					i2: {
+						p_1: "empty",
+					},
 				},
 				article_12: {
 					_id: 'Nivel 2',
-					h1: '1.2 Nivel 2 - Categorías (Temas)',
-					p1: 'Se encuentran dentro de los <strong><i>Directorios de Nivel 1</i></strong>, siendo 2da en la jerarquia,<br> contiene categorias mas especificas, por ejemplo el Area, Tema o Materia.',
-					p2: "Para cada directorio, agrega una enumeración incremental con dos dígitos, seguida de un punto, seguida del nombre de la Categoría en mayúsculas.",
-					c1: {
+					h1: '1.2 Nivel 2 - Categorías',
+					p1: "Estos se encuentran dentro de una carpeta de \"Nivel 1\", sus nodos hijos; <br> El nombre deberia describir un tema o sujeto correspondiente a su padre. Entonces al ser mas especificas este seria como Área, Tema, Asunto, Organización, Tipo de trabajo o relacionado.",
+          c1: {
+            t: 'warning',
+            c_1: "Cada nodo solo servirá como contexto, asignando y agrupando los modulos del siguiente nivel. <br> Aqui solamente hay carpetas; no debe existir ningun archivo."
+          },
+					p2: "Estos nodos (carpetas) se nombran con la siguiente convencion:.",
+          ul1: {
+						li_0: "Numeracion incremental de 2 digitos (del 1 al 89).",
+						li_1: "Un punto (como separador).",
+						li_2: "Nombre en PascalCase",
+					},
+					c2: {
 						c_1: "El orden en la secuencia no es escencial y solo facilita su organizacion visual. <br> Si bien podria no represantar una secuencia logica el hecho de numerar hace que sea mas predecible para el usuario encontrar la que necesita, <br> Sin embargo, puede ser util para priorizar u ordenarla en una secuencia personalizada y no alfabeticamente. <br> Ademas numerarlo crea un control para mantener la secuencia personlizada del usuario."
 					},
+          i2: {
+						p_1: "empty",
+					}
 				},
 				article_13: {
 					_id: 'Nivel 3',
@@ -492,7 +567,7 @@ export const content: Record<string, any> = {
 			},
 			page_02: {
 				article_20: {
-					_id: 'Support Folders',
+					_id: 'Support Nodes',
 					h1: '2. Carpetas de Soporte',
 					p1: 'Estas carpetas fueron diseñadas para que te sirvan de ayuda en el nivel donde estes. En ese sentido Ayuda al usuario. Cada una cuenta con un idenficador unico, lo que la hace diferenciarse e identificarse rapidamente del resto.'
 				},
