@@ -100,14 +100,18 @@ export const content: Record<string, any> = {
 				article_11: {
 					_id: 'Level 1',
 					h1: '1.1 The Level 1 - Main Categories', 
-					p1: "Here are the first nodes (Folders) within your Root Storage; <br> The names is highly descriptive, as it specifies the category contained. Each node only serve to assign and group the modules for the next level. There should be no other files here just folders.",
-					p2: "<br>The Storage nodes (folders) are named using the following convention:",
+					p1: "Here are the first nodes (Folders) within your Root Storage; <br> The names is highly descriptive, as it specifies the category contained.",
+          c1: {
+            t: 'warning',
+            c_1: "Each node only serve to assign and group the modules for the next level; <br> There should be no other files here just folders."
+          },
+          p2: "<br>The Storage nodes (folders) are named using the following convention:",
 					ul1: {
 						li_0: "Incremental numbering of 3 digits in a sequence of 100.",
 						li_1: "A dot (as separator).",
 						li_2: "Name in UPPERCASE (Capitals).",
 					},
-					c1: {
+					c2: {
 						t: 'danger',
 						c_1: "<strong>Important</strong>: This is defined the first time and should remain that way. <br> Renaming it after some time may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relink again."
 					},
@@ -127,7 +131,7 @@ export const content: Record<string, any> = {
 						li_4: " <strong>500.HOBBIES</strong>: For files related to your leisure activities.", 
 					},
 					a1: "Read more about <i>Support Folder \"PROJETCS\"</i>",
-					c2: {
+					c3: {
 						t: 'success',
 						c_1: "Separating it into these contexts allows for maintaining and managing files separately, reducing the likelihood of mixing files, while also helping to keep a clear focus on their use and what is stored there."
 					},
@@ -165,13 +169,19 @@ export const content: Record<string, any> = {
 				},
 				article_12: {
 					_id: 'Level 2',
-					h1: '1.2 The Levels 2 - Categories (Subjects)',
-					p1: 'They are found within <strong><i>Level 1 directories</i></strong>, being the second in the hierarchy.<br> They contain more specific categories, such as Area, Topic, Subject, Organization, Type of work or relationed.',
-					i1: {
-						p_1: "https://i.pinimg.com/originals/ce/75/a5/ce75a5a8ff41ef1864cca5a66e72887a.png",
+					h1: '1.2 The Levels 2 - Categories',
+					p1: "These are located within a \"Level 1\" folder, their child nodes.<br> The name should describe a topic or subject related to its parent. Thus, being more specific, this would include things like Area, Topic, Subject, Organization, Type of work, or something related.",
+          c1: {
+            t: 'warning',
+            c_1: "Each node only serve to assign and group the modules for the next level; <br> There should be no other files here just folders."
+          },
+          p2: "The Storage nodes (folders) are named using the following convention:",
+          ul1: {
+						li_0: "Incremental numbering of 2 digits (from 1 to 89).",
+						li_1: "A dot (as separator).",
+						li_2: "Name in PascalCase",
 					},
-					p2: 'For each directory add an Incremental enumeration with two digits, followed by a dot, followed by the Categories Name in Capitals..',
-					c1: {
+					c2: {
 						t: 'quote',
 						c_1: "The order in the sequence is not essential and only facilitates a visual organization. <br> Although it may not represent a logical sequence, numbering makes it <i>more predictable</i> for the user to find what they need. However, it can be useful for prioritizing or arranging it in a custom sequence rather than alphabetically. <br> Also when a folder is delted or added, It does'nt affect his order, <br> Numering creates a control to maintain the user's customized sequence."
 					},
@@ -421,14 +431,18 @@ export const content: Record<string, any> = {
 				article_11: {
 					_id: 'Nivel 1',
 					h1: '1.1 Nivel 1 - Categorías Principales',
-					p1: "Son los primeros nodos (Carpetas) dentro de tu Carpeta de Almacenamiento Raíz; <br> El nombre es altamente descriptivo, ya que detalla el contenido de ese espacio. Cada nodo solo servirá como contexto, asignando y agrupando los modulos del siguiente nivel. Aqui solamente hay carpetas, no debe existir ningun archivo. ",
+					p1: "Son los primeros nodos (Carpetas) dentro de tu Carpeta de Almacenamiento Raíz; <br> El nombre es altamente descriptivo, ya que detalla el contenido de ese espacio.",
+          c1: {
+            t: 'warning',
+            c_1: "Cada nodo solo servirá como contexto, asignando y agrupando los modulos del siguiente nivel. <br> Aqui solamente hay carpetas; no debe existir ningun archivo."
+          },
 					p2: "<br>Estos primeros nodos (carpetas) se nombran con la siguiente convencion: ",
 					ul1: {
 						li_0: "Numeracion incremental de 3 digitos en secuencia de 100.",
 						li_1: "Un punto (como separador).",
 						li_2: "Nombre en UPPERCASE (Mayusculas).",
 					},
-					c1: {
+					c2: {
 						c_1: "<strong>Importante</strong>: Se define la primera vez y debera permanecer asi, el renombrarlo despues de un tiempo puede causar conflictos con programas que usan rutas absolutas, teniendo que revincular TODO nuevamente."
 					},
 					p3: "Recomendamos usar los siguientes nombres de categorias, en el siguiente orden;",
@@ -447,7 +461,7 @@ export const content: Record<string, any> = {
 						li_4: "<strong>500.HOBBIES</strong>: Para archivos relacionados con actividades de tu tiempo libre", // 
 					},
 					a1: "Leer más acerca de la carpeta de soporte <i>\"PROYECTOS\"</i>",
-					c2: {
+					c3: {
 						c_1: "Separarlo en estos contextos permite mantener y manejar archivos por separado, reduciendo la probabilidad de mezclar archivos, ademas deayudar a mantener un enfoque claro de su uso y lo que se encuentra alli."
 					},
 					p4: "Asi mismo en el mismo nivel tendremos otras 3 Nodos de Soporte:",
@@ -484,12 +498,24 @@ export const content: Record<string, any> = {
 				},
 				article_12: {
 					_id: 'Nivel 2',
-					h1: '1.2 Nivel 2 - Categorías (Temas)',
-					p1: 'Se encuentran dentro de los <strong><i>Directorios de Nivel 1</i></strong>, siendo 2da en la jerarquia,<br> contiene categorias mas especificas, por ejemplo el Area, Tema o Materia.',
-					p2: "Para cada directorio, agrega una enumeración incremental con dos dígitos, seguida de un punto, seguida del nombre de la Categoría en mayúsculas.",
-					c1: {
+					h1: '1.2 Nivel 2 - Categorías',
+					p1: "Estos se encuentran dentro de una carpeta de \"Nivel 1\", sus nodos hijos; <br> El nombre deberia describir un tema o sujeto correspondiente a su padre. Entonces al ser mas especificas este seria como Área, Tema, Asunto, Organización, Tipo de trabajo o relacionado.",
+          c1: {
+            t: 'warning',
+            c_1: "Cada nodo solo servirá como contexto, asignando y agrupando los modulos del siguiente nivel. <br> Aqui solamente hay carpetas; no debe existir ningun archivo."
+          },
+					p2: "Estos nodos (carpetas) se nombran con la siguiente convencion:.",
+          ul1: {
+						li_0: "Numeracion incremental de 2 digitos (del 1 al 89).",
+						li_1: "Un punto (como separador).",
+						li_2: "Nombre en PascalCase",
+					},
+					c2: {
 						c_1: "El orden en la secuencia no es escencial y solo facilita su organizacion visual. <br> Si bien podria no represantar una secuencia logica el hecho de numerar hace que sea mas predecible para el usuario encontrar la que necesita, <br> Sin embargo, puede ser util para priorizar u ordenarla en una secuencia personalizada y no alfabeticamente. <br> Ademas numerarlo crea un control para mantener la secuencia personlizada del usuario."
 					},
+          i2: {
+						p_1: "empty",
+					}
 				},
 				article_13: {
 					_id: 'Nivel 3',
