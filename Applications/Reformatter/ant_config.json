@@ -1,0 +1,12 @@
+{
+  "Reformat" : {
+    "date": {"enabled": true, "value": "25-01-01"},
+    "breadcrumb": {"enabled": true, "depth": 2},
+    "holder": {"enabled": true, "value": "Amazon"},
+    "ident": {"enabled": true, "value": "AAA"},
+    "postfor": {"enabled": false, "value": ""}
+  },
+  "LibZero" :{
+    "enabled": true
+  }
+}
