@@ -13,6 +13,7 @@ Whether you're managing documents, media files, or project assets, this tool hel
 - 🔍 Live preview of the final filename format.
 - 🧠 Auto-resolves folder names and structure using breadcrumb logic.
 - 🚫 Skips temporary/system files automatically.
+- 🐍 Developed on python 3.11
 - 🎛️ User-friendly interface.
 
 ---
@@ -70,11 +71,11 @@ Renamed to:
 (25-06-24) Stocktaking [Amazon]_DOC_Q2 report-final-version.pdf
 ```
 
-*(Assuming selected sections are: Date, Breadcrumb, Identifier, and Postformat)*
-*Date: 25-06-24*
-*Breadcrumb: Amazon*
-*Identifier: DOC*
-*Postformat: Q2*
+*Assuming selected sections are: Date, Breadcrumb, Identifier, and Postformat;*
+- *Date: 25-06-24*
+- *Breadcrumb: Amazon*
+- *Identifier: DOC*
+- *Postformat: Q2*
 
 ---
 
