@@ -91,7 +91,7 @@ Renamed to:
 This software is licensed under a custom non-commercial license.  
 You are free to use, modify, and share it for non-commercial purposes.  
 **Commercial use requires prior written permission.**  
-See the [LICENSE.txt](./LICENSE.md) file for full terms.
+See the [LICENSE.txt](https://github.com/MikeWorldYt/ANT-system/blob/main/Applications/Reformatter/Licence.md) file for full terms.
 
 ---
 
