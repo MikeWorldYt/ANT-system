@@ -4,7 +4,7 @@
 
 Whether you're managing documents, media files, or project assets, this tool helps you keep everything consistently named and easy to sort.
 
----
+
 
 ## ✨ Features
 
@@ -16,7 +16,7 @@ Whether you're managing documents, media files, or project assets, this tool hel
 - 🐍 Developed on python 3.11
 - 🎛️ User-friendly interface.
 
----
+
 
 ## 🚀 Getting Started
 
@@ -34,7 +34,7 @@ No installation, Python, or setup is required — just download and run the `.ex
 2. Double-click the executable file: `ANT_Reformatter.exe`.
 3. Application will launch immediately.
 
----
+
 
 ## 🧭 How to Use
 
@@ -57,7 +57,7 @@ No installation, Python, or setup is required — just download and run the `.ex
 
 [Identifier List Guide](https://docs.google.com/spreadsheets/d/e/2PACX-1vTXWGayu4tMQb1W1HtCT-tmRGfwDyoRkHh1Lfsc20i9s4lNmRB_X2TTRkjC16WalbuJ9spkqwjPj019/pubhtml)
 
----
+
 
 ## 📁 Example Output
 
@@ -77,7 +77,7 @@ Renamed to:
 - *Identifier: DOC*
 - *Postformat: Q2*
 
----
+
 
 ## 📌 Notes
 
@@ -85,7 +85,7 @@ Renamed to:
 - Includes a progress bar and status message to indicate completion.
 - The app detect OS files and ignored them, so as not corrupt the system (e.g. `desktop.ini`).
 
----
+
 
 ## 📜 License
 
@@ -94,13 +94,13 @@ You are free to use, modify, and share it for non-commercial purposes.
 **Commercial use requires prior written permission.**  
 See the [LICENSE.txt](https://github.com/MikeWorldYt/ANT-system/blob/main/Applications/Reformatter/Licence.md) file for full terms.
 
----
+
 
 ## 🤝 Contributing
 
 Feel free to fork the project and submit pull requests. Guidelines will be provided soon.
 
----
+
 
 ## 📬 Contact
 
