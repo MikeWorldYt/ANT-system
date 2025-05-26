@@ -40,15 +40,21 @@ No installation, Python, or setup is required — just download and run the `.ex
 1. **Choose a folder** with the files you want to rename, then **ok**.
 2. When load the second window:
    - Enable or disable different parts of the naming template.
-   - Configure each section:
+   - Configure each field:
      - 📅 `Date`: Add a custom date (by default its their current date).
      - 🧭 `Breadcrumb`: Insert parent folder names (by default load selected folder name).
-     - 🏷️ `Holder`: Add a static text or label.
-     - 🔢 `Identifier`: Add a unique number or text.
+     - 🏷️ `Holder`: Add a holder name or label.
+     - 🔢 `Identifier`: Add a identifier (by default its `$ID`).
      - 📝 `Postformat`: Append any extra text.
-3. See the **live filename preview** update as you edit.
-4. When ready, click **Rename Files**.
-5. Wait for the status message to confirm completion.
+3. See the **filename preview** at the top, meanwhile you edit the fields.
+4. If **filename preview** for any reason is not correct, click on **Update All**
+5. When ready, click **Start batch**.
+6. A status message will appear, Ensure all information is correctly, then click **OK**.
+7. Wait the application rename the files with the new format.
+8. When done, click **OK**.
+9. If you want to rename other files, just repeat the process, if is another folder click on **Back**.
+
+[Identifier List Guide](https://docs.google.com/spreadsheets/d/e/2PACX-1vTXWGayu4tMQb1W1HtCT-tmRGfwDyoRkHh1Lfsc20i9s4lNmRB_X2TTRkjC16WalbuJ9spkqwjPj019/pubhtml)
 
 ---
 
@@ -56,29 +62,36 @@ No installation, Python, or setup is required — just download and run the `.ex
 
 Original filename:  
 ```
-report_final_version.pdf
+report-final-version.pdf
 ```
 
 Renamed to:  
 ```
-2024-05_ProjectA_Q1_Report_v2.pdf
+(25-06-24) Stocktaking [Amazon]_DOC_Q2 report-final-version.pdf
 ```
 
 *(Assuming selected sections are: Date, Breadcrumb, Identifier, and Postformat)*
+*Date: 25-06-24*
+*Breadcrumb: Amazon*
+*Identifier: DOC*
+*Postformat: Q2*
 
 ---
 
 ## 📌 Notes
 
-- Files that begin with `~` or match the script name will be ignored.
+- Files that begin with `~`, `.`, `#`, `@`, `!` or match the script name will be ignored.
 - Includes a progress bar and status message to indicate completion.
-- A `desktop.ini` or custom icons can be handled manually if needed later.
+- The app detect OS files and ignored them, so as not corrupt the system (e.g. `desktop.ini`).
 
 ---
 
 ## 📜 License
 
-MIT License
+This software is licensed under a custom non-commercial license.  
+You are free to use, modify, and share it for non-commercial purposes.  
+**Commercial use requires prior written permission.**  
+See the [LICENSE.txt](./LICENSE.md) file for full terms.
 
 ---
 
