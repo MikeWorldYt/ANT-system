@@ -12,7 +12,7 @@ Permission is hereby granted to any person to use, copy, modify, and distribute 
 4. By using or modifying the Software, you agree not to remove or obscure any copyright or license notices from the original code or interfaces.
 
 5. For inquiries about commercial licensing or extended permissions, please contact:
-   MikeWorldYt — [your-email@example.com]
+   MikeWorldYt — [mikeworldyt@gmail.com]
 
 Unauthorized commercial use will be considered a violation of this license and may be subject to legal action.
 
