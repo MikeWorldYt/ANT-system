@@ -1,4 +1,5 @@
 import React from "react";
+import '../../styles/callout.css';
 
 type CalloutType = 'quote' | 'info' | 'success' | 'warning' | 'danger';
 
