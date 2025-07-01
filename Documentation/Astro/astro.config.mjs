@@ -8,6 +8,7 @@ import react from '@astrojs/react';
 export default defineConfig({
 	integrations: [
 		react(),
+		tailwind(),
 		starlight({
 			title: 'My Docs',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/MikeWorldYt/ANT-system/' }],
