@@ -8,7 +8,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'My Docs',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' }],
+			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/MikeWorldYt/ANT-system/' }],
 			// sidebar: [
 			// 	{
 			// 		label: 'Guides',
@@ -25,6 +25,7 @@ export default defineConfig({
 			// ],
 			customCss: [
 				'./src/styles/custom.css',
+				'./src/styles/callout.css',
 			],
 		}),
 	],

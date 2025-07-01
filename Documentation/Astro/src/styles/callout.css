@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.callout {
+	display: flex;
+	align-items: center;
+	padding: 1rem;
+	margin-top: 0.5rem;    
+	margin-bottom: 0.5rem;
+	border-radius: 0.375rem;
+	border-left-width: 4px;
+}
+
+/* === Icono === */
+.callout img {
+	width: 1.5rem; /* 24px */
+	height: 1.5rem;
+	margin-right: 0.5rem;
+}
+
+/* === Texto y enlaces === */
+.callout p,
+.callout a {
+	margin: 0;
+	display: inline;
+}
+
+/* === Contenedor del texto === */
+.callout .content {
+	display: inline;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+/* === Variantes de color === */
+.callout.info {
+	background-color: rgba(219, 234, 254, 0.1); /* bg-blue-100/10 */
+	border-color: #3b82f6; /* border-blue-500 */
+	color: #93c5fd; /* text-blue-300 */
+}
+
+.callout.success {
+	background-color: rgba(220, 252, 231, 0.1); /* bg-green-100/10 */
+	border-color: #22c55e; /* border-green-500 */
+	color: #86efac; /* text-green-300 */
+}
+
+.callout.warning {
+	background-color: rgba(255, 237, 213, 0.1); /* bg-orange-100/10 */
+	border-color: #f97316; /* border-orange-500 */
+	color: #fdba74; /* text-orange-300 */
+}
+
+.callout.danger {
+	background-color: rgba(254, 202, 202, 0.1); /* bg-red-100/10 */
+	border-color: #ef4444; /* border-red-500 */
+	color: #ef4444; /* text-red-500 */
+}
+
+.callout.quote {
+	background-color: rgba(243, 244, 246, 0.1); /* bg-gray-100/10 */
+	border-color: #6b7280; /* border-gray-500 */
+	color: #6b7280; /* text-gray-500 */
+}
+
+/* === Diálogo especial === */
+.dialog {
+	background-color: rgba(16, 185, 129, 0.2); /* bg-emerald-500/20 */
+	padding-top: 1rem;
+	padding-bottom: 1rem;
+	padding-left: 1.5rem;
+	padding-right: 1.5rem;
+	margin-top: 0.25rem;
+	margin-bottom: 0.25rem;
+	border-radius: 0.375rem;
+}
