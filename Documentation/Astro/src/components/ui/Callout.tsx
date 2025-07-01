@@ -1,4 +1,4 @@
-mport React from "react";
+import React from "react";
 
 type CalloutType = 'quote' | 'info' | 'success' | 'warning' | 'danger';
 
