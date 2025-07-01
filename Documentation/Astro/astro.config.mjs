@@ -1,14 +1,10 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import tailwind from '@astrojs/tailwind';
-import react from '@astrojs/react';
+import { defineConfig } from 'astro/config';
 
 // https://astro.build/config
 export default defineConfig({
 	integrations: [
-		react(),
-		tailwind(),
 		starlight({
 			title: 'My Docs',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/MikeWorldYt/ANT-system/' }],
