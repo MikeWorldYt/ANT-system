@@ -6,8 +6,11 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
 	integrations: [
 		starlight({
-			title: 'My Docs',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/MikeWorldYt/ANT-system/' }],
+			title: 'Docs',
+			social: [
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/MikeWorldYt/ANT-system/' },
+				{ icon: 'linkedin', label: 'Linkedin', href: 'https://www.linkedin.com/in/mikeworldyt/' },
+			],
 			// sidebar: [
 			// 	{
 			// 		label: 'Guides',
