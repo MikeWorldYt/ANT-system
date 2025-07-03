@@ -1,3 +1,17 @@
+.pic-container {
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	gap: 0.2rem;
+	width: 100%;
+}
+
+.pic-container img {
+	width: 50%;
+	height: auto;
+}
+
+
 /* Dark mode colors. */
 :root {
 	--sl-color-accent-low: #222000;
