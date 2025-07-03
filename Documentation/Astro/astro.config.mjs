@@ -7,6 +7,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Docs',
+			favicon: '/favicon.ico',
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/MikeWorldYt/ANT-system/' },
 				{ icon: 'linkedin', label: 'Linkedin', href: 'https://www.linkedin.com/in/mikeworldyt/' },
@@ -24,7 +25,11 @@ export default defineConfig({
 					},
 					{
 						label: 'Foundationals',
-						autogenerate: { directory: 'foundationals' },
+						//autogenerate: { directory: 'foundationals' },
+						items: [
+							{ label: 'Structure and Infrastructure', link: 'foundationals/1-structure-and-infrastructure' },
+							
+						]
 					},
 					{
 						label: 'Reference',
