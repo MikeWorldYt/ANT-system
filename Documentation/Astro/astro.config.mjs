@@ -27,8 +27,8 @@ export default defineConfig({
 						label: 'Foundationals',
 						//autogenerate: { directory: 'foundationals' },
 						items: [
-							{ label: 'Structure and Infrastructure', link: 'foundationals/1-structure-and-infrastructure' },
-							
+							{ label: 'Core Concepts', link: 'foundationals/core-concepts' },
+							{ label: 'Folder Structure', link: 'foundationals/folder-structure' },
 						]
 					},
 					{
