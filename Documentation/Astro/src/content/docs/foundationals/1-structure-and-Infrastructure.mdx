@@ -1,16 +1,78 @@
 ---
-title: Structure & Infrastructure
+title:  Core Concepts
 description: .
 ---
+import Callout from "../../../components/ui/Callout.astro";
 
 **ANT has a hierarchical structure** adapted to be immediately implemented in the conventional tree structure.  
 However, **due to it's has a decentralized modular infrastructure**, it follows a specific structural rules that ensures its proper functioning.  
 To understand this, we must first grasp the terms "Levels", "Nodes" and "Modules" within this system;
-- The term **"Levels"** refers to the depth of the folder in relation to her root folder
+### Levels
+The term "**Levels**" refers to the depth of the folder in relation to her root folder
 
+<div class="pic-container not-content">
+    <img src="https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png" />
+    <img src="https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png" />
+</div>
 
-    ![](https://i.pinimg.com/originals/d1/50/7f/d1507f192fcecd9bdce59a557bf468b7.png)
-    ![](https://i.pinimg.com/originals/39/c3/d2/39c3d209134b6385ff52e63a21cf0b83.png)
+Although we advise keeping 3 Levels, there may be more. <br/> However, it is recommended not to have too many levels and to use them only in certain cases.
+Because it adds complexity to the system and can make it difficult to navigate.
 
+### Nodes
+The term "**Node**" refers to each folder.
 
+<div class="pic-container not-content">
+    <img src="https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExd2phNHR3aGlkZ281NDh6NHhmbDM2OThvc2MxZ3R6MDN2NmVwcTA0ZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9dg/OPUFqtt4ydWj5rmPNM/giphy.gif" />
+</div>
+This system is structured in a way that each folder its conected and follow thier way/path. <br/>
+Each node or *"folder"* have one or more in/out ways, Its being part of a [module](#modules), and in some cases having a lifespan (existence).
 
+### Modules
+The term "**Module**" refers to a grouping of nodes in relation to their level, It is a **category**.
+<div class="pic-container not-content">
+    <img src="https://i.pinimg.com/originals/c5/fc/93/c5fc9347527030b2fb328370729500d4.jpg" />
+</div>
+
+It means that, regardless of their connections, nodes should maintain a hierarchical grouping and these itself consistent within the conventional [Tree data structure](/reference/another-concepts#tree-data-structure).<br/>
+This keeping a logical, consistent and easy to navigate, tho doesn't take away their flexibility.
+
+## Folder Structure
+
+### Level 1
+The first level is whitin the root folder, where should be the main [nodes](#nodes) are located. <br/>
+
+<Callout type="danger">
+  <h4> Only once is named </h4>
+  <p>
+    This is defined the first time and should remain that way.
+    Renaming it after some time may cause conflicts with programs that use absolute paths, requiring EVERYTHING to be relink again.
+  </p>
+</Callout>
+
+##### Key points for the Level 1:
+1. Conventional Name: Use a the nomenclature simple, It's about to use incremental numbering of 3 digits in a sequence of 100, followed by a dot (.), and their name in UPPERCASE (Capitals).
+
+2. Define Categories: Each node serve to assign and group modules for the next level, In that way, It must be global and highly descriptive. Each category define their content.
+
+3. Do not have files: This level shouldn't files or external folders or unorganized.
+
+4. Support Nodes: These have reserved the sequence 900, beside mix with their own identifier. e.g. 998.Review
+instead 98.Review.
+
+##### Recomendation for the Level 1:
+
+```
+📁 Root
+ ├── 📁 100.PERSONAL
+ ├── 📁 200.WORK
+ ├── 📁 300.PROJECTS
+ ├── 📁 400.ACADEMIC
+ ├── 📁 500.HOBBIES
+ ├── 📁 900.Resources
+ ├── 📁 998.Review (Index)
+ └── 📁 999.Settings
+
+```
+
+### Level 2
+The second level is whitin some a [Level 1](#level-1) folder, where should be the modules are located. <br/>
