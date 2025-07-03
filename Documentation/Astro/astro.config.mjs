@@ -29,6 +29,8 @@ export default defineConfig({
 						items: [
 							{ label: 'Core Concepts', link: 'foundationals/core-concepts' },
 							{ label: 'Folder Structure', link: 'foundationals/folder-structure' },
+							{ label: 'Support Nodes', link: 'foundationals/support-nodes' },
+							{ label: 'Nomenclature', link: 'foundationals/nomenclature' },
 						]
 					},
 					{
