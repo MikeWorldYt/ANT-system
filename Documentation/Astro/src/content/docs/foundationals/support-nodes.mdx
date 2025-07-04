@@ -1,6 +1,7 @@
 ---
 title: Support Nodes
 ---
+import Callout from "../../../components/ui/Callout.astro";
 
 Support Nodes are folders that are used to store files or directories that are not directly related to the current level. 
 Its purpose is to provide a way to store additional information or resources at their same level, In that way support the user.
@@ -9,6 +10,31 @@ Each Support Node should has a unique identifier, making it easy to differentiat
 
 ## 99.Settings Folder
 Its should have identifier **99**.  
+This [node](/foundationals/core-concepts#nodes) (folder) stores preset configurations for programs, the Operating system, or the ANT system itself. It consolidates all environment-specific settings in a single location for immediate access.
+
+Here you should contain subfolders, depending on the type of settings being stored.
+
+<Callout type="warning">
+  <p>
+    As recommendation, you should only deploy at Level 1 and Level 2 to ensure global accessibility while preventing **file fragmentation**.
+  </p>
+</Callout>
+
+You can include:
+- Program/OS configuration files (e.g., `.env`, `config.json`, etc.)
+- System customization assets (icons, themes, scripts)
+- Templates or presets
+- Automation workflows
+- Custom Profiles
+- Set-up Programs
+
+<h5> Naming Convention: </h5>
+This node may or not inherit their name from parent node.  
+Just looking like **99.Settings** is enough.
+
+<h5> Uttility </h5> 
+Acts as a central hub for storing configurations, presets, and other settings that are required for your programs and files.
+
 
 ## 98.Review Folder
 Its should have identifier **98**.  
