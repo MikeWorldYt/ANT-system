@@ -46,7 +46,7 @@ This [node](/foundationals/core-concepts#nodes) (folder) contains all your files
 <h5> Naming Convention: </h5>
 This node will inherit just their name from parent node, with prefix **98.** before the name.  
 
-```js {5}
+```css {5}
  📁 04.Marketing                       ←−−− Parent
   ├── 📁 01.Foundations of Marketing
   ├── 📁 02.Web Analytics and SEO
@@ -70,12 +70,12 @@ This [node](/foundationals/core-concepts#nodes) (folder) stores blueprint struct
 <h5> Naming Convention: </h5>
 Does not inherit parent name. Always appears as **97.Templates** with relevant subfolders:
 
-```js {2}
+```css {2}
  📁 02.Video-Edition                       ←−−− Parent
   ├── 📁 97.Templates                      ←−−− Templates Folder
   │    ├── 📁 PJ.999_(YY-MM-DD) Breadcrumb [Holder]_unnamed-project
   │    └── 📁 PR.999_(YY-MM-DD) Breadcrumb [Holder]_new-practice
-  ├── 📁 PJ.133_(25-07-03) Video-Edition [Mr Beast]_template-use-example
+  ├── 📁 PJ.133_(25-07-03) Video-Edition [Mr-Beast]_template-use-example
   ├── 📁 . . .
 ```
 
@@ -92,7 +92,7 @@ This [node](/foundationals/core-concepts#nodes) (folder) serves as a centralized
 <h5> Naming Convention: </h5>
 This node appears as `90.Resources-of-` and continue inherit their name from parent node.
 
-```js {2}
+```css {2}
  📁 02.Video-Edition                       ←−−− Parent
   ├── 📁 90.Resources-of-Video-Edition     ←−−− Resources Folder
   │    ├── 📁 01.Templates-and-presets
@@ -103,9 +103,21 @@ This node appears as `90.Resources-of-` and continue inherit their name from par
 <h5> Utility </h5>
 Functions as an **always-available toolkit** for your projects, tasks or homework. It provides a place to store frequently used files, templates, and resources that are accessible from current level.
 
-
 ## (00) Done Folder
 Its should have identifier **00**.  
+This [node](/foundationals/core-concepts#nodes) serves exclusively as the **final archive** for completed outputs. When a [workboard folder](#workboard-folders) reaches end-of-life after project/task completion, only the finalized assets are preserved here.
+
+<h5> Naming Convention: </h5>
+Always it should appears as **00.Done** at every level where workboards exist.  
+if that you want, you may name it whatever you want but need to use the prefix **00.** before the name.
+
+```css {2}
+ 📁 02.Video-Edition                       ←−−− Parent
+  ├── 📁 00.Edition-Portfolio              ←−−− Done Folder
+  │    ├── 📁 01.Templates-and-presets
+  │    ├── 📁 02.Music-and-SFX
+  │    ├── 📁 . . .
+```
 
 ## Temporal Folders (~)
 Alright, thats not a identifier as such, it's just a mark  
