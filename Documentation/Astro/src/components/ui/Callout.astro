@@ -11,23 +11,27 @@ const iconMap: Record<CalloutType, string> = {
 
 interface Props {
   type: CalloutType;
+  title: string;
 }
 
-const { type } = Astro.props;
+const { type, title } = Astro.props;
 const iconSrc = iconMap[type];
 ---
 
 <aside class={`not-content callout ${type}`}>
-  <img src={iconSrc} alt={`callout ${type}`} />
-  <div class="content">
-    <slot />
+  <div class="callout__header">
+    <img src={iconSrc} alt={`callout ${type}`} />
+    <h4 class="callout__title">{title}</h4>
+  </div>
+  <div class="callout__content">
+    <p> <slot /> </p>
   </div>
 </aside>
 
 <style>
   .callout {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     padding: 1rem;
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
@@ -35,6 +39,11 @@ const iconSrc = iconMap[type];
     border-left-width: 4px;
   }
 
+  .callout__header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
   /* === Icono === */
   .callout img {
     width: 1.5rem; /* 24px */
@@ -42,6 +51,14 @@ const iconSrc = iconMap[type];
     margin-right: 0.5rem;
   }
 
+  .callout__title {
+    margin: 0;
+    font-weight: bold;
+  }
+  .callout__content {
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
   /* === Texto y enlaces === */
   .callout p,
   .callout a {
