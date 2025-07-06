@@ -50,7 +50,7 @@ The second level is a child of a [Level 1](#level-1) node, then should use a sub
 These means areas, subjects, types of job, or another group related their parent node.
 
 <h5> Naming Convention: </h5>
-Employ an incremental number system (01-89), followed by a dot (.) and each one node use Train Case.
+**Chill naming:** Employ an incremental numbered (01-89), followed by a dot (.) and each one node use Train Case.
 
 ```css {3-5, 7-9}
  📁 Root
@@ -77,18 +77,36 @@ avoid redundant names.
 
 
 ## Level 3
-The third level is a child of a [Level 2](#level-2) node, .
+The third level is a child of a [Level 2](#level-2) node, supports additional organization, either through category extensions or working folders.
 
-```css {4-5, 10-12}
+<h5> Naming Convention: </h5>
+You can use two naming conventions;  
+**1.-** If you need extend *with subjects, topics, more categories,* use the `Chill naming` yet.  
+**Chill naming:** Employ an incremental numbered (01-89), followed by a dot (.) and each one node use Train Case.
+
+```css {4-6}
  📁 Root    
   ├── 📁 100.PERSONAL
   │    ├── 📁 01.Documents
   │    │    ├── 📁 01.Finantials
+  │    │    ├── 📁 02.
   │    │    └── 📁 . . .
   │    ├── 📁 02.Gallery
   │    └── 📁 . . .
+```
+
+**2.-** If the you need manage it *for tasks, projects, etc.** use the `Control naming` Convention.  
+**Control naming:** Use the parent node name, followed by a dot (.) and each one node use Train Case.
+
+```css {5-6, 8-10}
+ 📁 Root    
+  ├── 📁 100.PERSONAL
   ├── 📁 200.WORK
   │    ├── 📁 01.Development
+  │    │    ├── 📁 PJ.006_(23-03-03) Landingpage [Wallter-White]_Astro Carwash 
+  │    │    └── 📁 . . .
+  │    ├── 📁 02.Projects
+  │    │    ├── 📁 PJ.006_(23-03-03) Landingpage [Wallter-White]_Astro Carwash 
   │    │    ├── 📁 PJ.006_(23-03-03) Landingpage [Wallter-White]_Astro Carwash 
   │    │    └── 📁 . . .
 ```
