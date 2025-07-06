@@ -7,20 +7,28 @@ import Callout from "../../../components/ui/Callout.astro";
 
 ## Level 1
 The first level lies directly inside the storage root.  
-They are the **principal categories** that define the general purpose of each [node](/foundationals/core-concepts#nodes) (e.g. PERSONAL, WORK, ACADEMIC).
+They are the **principal categories** that define the general purpose of each [node](/foundationals/core-concepts#nodes).
+
+<h5> Naming Convention: </h5>
+Employ an incremental numbering of 3 digits in a sequence of 100, followed by a dot (.), and their name in UPPERCASE (Capitals).
+
+```css {2-4}
+ 📁 Root
+  ├── 📁 100.PERSONAL
+  ├── 📁 200.WORK
+  ├── 📁 300.PROJECTS
+```
 
 <Callout type="danger" title="Only be named once">
   This is defined the first time and should not be renamed againto prevent any conflicts with programs with linked paths, dependencies or shortcuts.
 </Callout>
 
 ##### Key points for the Level 1:
-1. Conventional Name: Use a the nomenclature simple, It's about to use incremental numbering of 3 digits in a sequence of 100, followed by a dot (.), and their name in UPPERCASE (Capitals).
+- **Define Categories:** Each node serve to assign and group modules for the next level, In that way, It must be global and highly descriptive. Each category define their content.
 
-2. Define Categories: Each node serve to assign and group modules for the next level, In that way, It must be global and highly descriptive. Each category define their content.
+- **Content:** This level shouldn't files or external folders or unorganized.
 
-3. Do not have files: This level shouldn't files or external folders or unorganized.
-
-4. Support Nodes: These have reserved the sequence 900, beside mix with their own identifier. e.g. 998.Review
+- **Support Nodes:** These have reserved the sequence 900, beside mix with their own identifier. e.g. 998.Review
 instead 98.Review.
 
 ##### Recomendation for the Level 1:
@@ -38,12 +46,12 @@ instead 98.Review.
 ```
 
 ## Level 2
-The second level is whitin some a [Level 1](#level-1) folder, where should be the modules are located. <br/>
+The second level is a child of a [Level 1](#level-1) node, then should use a subcategorie to the parent.  
+These means areas, subjects, types of job, or another group related their parent node.
 
-##### Key points for the Level 2:
+<h5> Naming Convention: </h5>
+Employ an incremental number system (01-89), followed by a dot (.) and each one node use Train Case.
 
-
-##### Recomendation for the Level 2:
 ```css {3-5, 7-9}
  📁 Root
   ├── 📁 100.PERSONAL
@@ -55,14 +63,22 @@ The second level is whitin some a [Level 1](#level-1) folder, where should be th
   │    └── 📁 . . .
 ```
 
+##### Key points for the Level 2:
+- **Defined Subcategories:** Each node serve to assign and group modules for the next level, In that way, It must be global and highly descriptive.
+
+avoid duplicate names.
+avoid redundant names.
+
+- **Content:** This level shouldn't files or external folders or unorganized.
+
+- **Support Nodes:** These have reserved the sequence "90-99" and "00" to be used for their own identifier.
+
+##### Recomendation for the Level 2:
+
 
 ## Level 3
+The third level is a child of a [Level 2](#level-2) node, .
 
-
-##### Key points for the Level 3:
-
-
-##### Recomendation for the Level 3:
 ```css {4-5, 10-12}
  📁 Root    
   ├── 📁 100.PERSONAL
@@ -76,3 +92,8 @@ The second level is whitin some a [Level 1](#level-1) folder, where should be th
   │    │    ├── 📁 PJ.006_(23-03-03) Landingpage [Wallter-White]_Astro Carwash 
   │    │    └── 📁 . . .
 ```
+
+##### Key points for the Level 3:
+
+
+##### Recomendation for the Level 3:
