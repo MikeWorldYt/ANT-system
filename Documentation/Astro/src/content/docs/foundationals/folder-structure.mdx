@@ -2,8 +2,8 @@
 title: Folder Structure
 ---
 import Callout from "../../../components/ui/Callout.astro";
-
-
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { FileTree } from '@astrojs/starlight/components';
 
 ## Level 1
 The first level lies directly inside the storage root.  
@@ -28,7 +28,7 @@ This means that we are talking about the **principal categories** that define th
 - **Support Nodes:** These reserve the sequence 900 combined with their identifier (e.g. 998.Review
 instead of 98.Review).
 
-##### Recomendation for the Level 1:
+##### Principal Categories Recomendation:
 
 ```css {2-9}
  📁 Root
@@ -67,9 +67,6 @@ This means that we are talking about the areas, subjects, types of job, or anoth
 <h5> Key points: </h5>
 - **Storage** This level must not contain files, external folders, or unorganized content. It should only include [nodes (folders)](/foundationals/core-concepts#nodes) considered as subcategories of the parent defining their own content.
 - **Support Nodes:** These have reserve sequences "90-99" and "00" for their identifiers.
-
-##### Recomendation for the Level 2:
-
 
 ## Level 3
 The third level is a child of a [Level 2](#level-2) node, **supports additional organization**, either through category extensions or [**Workboard Nodes**](/foundationals/workboard-nodes) **(folders)**.
@@ -110,4 +107,51 @@ You can use 2 naming conventions;
 <h5> Key points: </h5>
 
 
-##### Recomendation for the Level 3:
+## Folder Structure Recomendation
+
+<Tabs>
+  <TabItem label="PERSONAL" icon="seti:folder">
+    <FileTree>
+    - Root
+      - **100.PERSONAL**
+        - 01.Documents
+          - 01.identify/
+          - 02.Household/
+          - 03.Education/
+          - 04.Bussiness/
+          - 05.Finantials/
+          - 06.Health/
+          - ...
+        - 02.Gallery/
+          - 01.Family/
+          - 02.Friends/
+          - 03.Travels/
+          - 04.Memories/
+          - ...
+        - 03.Church/
+          - 01.Newsletters-and-events/
+          - 02.Sacred-text-and-Books/
+          - 03.Study/
+          - 04.Music/
+          - ...
+        - ...
+      - 200.WORK/
+      - 400.ACADEMIC/
+      - 500.HOBBIES/
+      - 900.RESOURCES/
+      - 998.REVIEW/
+      - 999.SETTINGS/
+    </FileTree>
+  </TabItem>
+  <TabItem label="WORK" icon="seti:folder">
+    Lorem ipsum
+  </TabItem>
+  <TabItem label="ACADEMIC" icon="seti:folder">
+    Lorem ipsum
+  </TabItem>
+  <TabItem label="HOBBIES" icon="seti:folder">
+    Lorem ipsum
+  </TabItem>
+</Tabs>
+
+
