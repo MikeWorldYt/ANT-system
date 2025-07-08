@@ -7,6 +7,15 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Docs',
+			defaultLocale: 'en',
+			locales: {
+				en: {
+					label: 'English',
+				},
+				es: {
+					label: 'Español',
+				},
+			},
 			favicon: '/favicon.ico',
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/MikeWorldYt/ANT-system/' },
