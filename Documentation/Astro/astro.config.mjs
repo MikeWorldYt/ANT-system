@@ -2,27 +2,22 @@
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 
-// https://astro.build/config
 export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Docs',
 			defaultLocale: 'en',
 			locales: {
-				en: {
-					label: 'English',
-				},
-				es: {
-					label: 'Español',
-				},
+				en: { label: 'English', },
+				es: { label: 'Español', },
 			},
 			favicon: '/favicon.ico',
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/MikeWorldYt/ANT-system/' },
 				{ icon: 'linkedin', label: 'Linkedin', href: 'https://www.linkedin.com/in/mikeworldyt/' },
 			],
-				sidebar: [
-					//{ label: 'Home', link: '/' },
+			sidebar: [
+				
 					{
 						label: 'Start Here',
 						items: [
@@ -53,7 +48,7 @@ export default defineConfig({
 						label: 'Reference',
 						autogenerate: { directory: 'reference' },
 					},
-				],
+			],
 			customCss: [
 				'./src/styles/custom.css',
 			],
