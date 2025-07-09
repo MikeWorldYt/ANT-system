@@ -15,11 +15,29 @@ h1, h2 {
 	color: var(--sl-color-accent-high);
 }
 
+/* Codeblock */
+
+.ec-line {
+	padding: 0px !important;
+	margin: 0px !important;
+	line-height: 1.2 !important;
+}
+
+.ec-line code {
+	padding: 0px !important;
+	margin: 0px !important;
+}
+
+[data-language="fs"] span[style] {
+  color: var(--sl-color-accent-contrast) !important; 
+}
+
 /* Dark mode colors. */
 :root {
 	--sl-color-accent-low: #222000;
 	--sl-color-accent: #24433e;
 	--sl-color-accent-high: #10b981;
+	--sl-color-accent-contrast: #f3d79d;
 	--sl-color-white: #ffffff;
 	--sl-color-gray-1: #e7eff5;
 	--sl-color-gray-2: #bac3cb;
@@ -34,6 +52,7 @@ h1, h2 {
 	--sl-color-accent-low: #222000;
 	--sl-color-accent: #178b64;
 	--sl-color-accent-high: #24433e;
+	--sl-color-accent-contrast: #5d3102;
 	--sl-color-white: #12191e;
 	--sl-color-gray-1: #1a2934;
 	--sl-color-gray-2: #2b3a46;
