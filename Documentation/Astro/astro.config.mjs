@@ -42,9 +42,9 @@ export default defineConfig({
 						items: [
 							{ label: 'Core Concepts', link: 'foundationals/core-concepts', translations: { es: 'Conceptos Básicos' } },
 							{ label: 'Folder Structure', link: 'foundationals/folder-structure', translations: { es: 'Estructura de Carpetas' } },
-							{ label: 'Workboard Nodes', link: 'foundationals/workboard-nodes', translations: { es: 'Nodos del Tablero de Trabajo' } },
+							{ label: 'Naming Conventions', link: 'foundationals/naming-conventions', translations: { es: 'Nomenclaturas' } },
 							{ label: 'Support Nodes', link: 'foundationals/support-nodes', translations: { es: 'Nodos de Soporte' } },
-							{ label: 'Nomenclature', link: 'foundationals/nomenclature', translations: { es: 'Nomenclatura' } },
+							{ label: 'Workboard Nodes', link: 'foundationals/workboard-nodes', translations: { es: 'Nodos del Tablero de Trabajo' } },
 						]
 					},
 					{
