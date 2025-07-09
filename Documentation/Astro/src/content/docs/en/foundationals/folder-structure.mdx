@@ -3,6 +3,7 @@ title: Folder Structure
 ---
 import Callout from "/src/components/ui/Callout.astro";
 import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { LinkCard } from '@astrojs/starlight/components';
 import { FileTree } from '@astrojs/starlight/components';
 
 ## Level 1
@@ -10,7 +11,13 @@ The first level lies directly inside the storage root.
 This means that we are talking about the **principal categories** that define the content of each [node](/foundationals/core-concepts#nodes).
 
 <h5> Naming Convention: </h5>
-> **Sequence Chill Naming:** Employ an incremental numbering of 3 digits in a sequence of 100, followed by a dot, and their name in UPPERCASE (Capitals).
+In this level, you must use a [Sequential Chill Naming](/foundationals/naming-conventions#sequential-chill-naming) Convention.
+
+<LinkCard
+  title="Sequential Chill Naming"
+  href="/foundationals/naming-conventions#sequential-chill-naming"
+  description="Employ an incremental numbering of 3 digits in a sequence of 100, followed by a dot, and their name in UPPERCASE (Capitals)."
+/>
 
 ```css {2-4}
  📁 Root
@@ -47,7 +54,13 @@ The second level is a child of a [Level 1](#level-1) node, these must use subcat
 This means that we are talking about the areas, subjects, types of job, or another group related their parent node.
 
 <h5> Naming Convention: </h5>
-> **Chill Naming:** Employ an incremental numbered (01-89), followed by a dot and each one node use Train Case.
+In this level, you must use a [Chill Naming](/foundationals/naming-conventions#chill-naming) Convention.
+
+<LinkCard
+  title="Chill Naming"
+  href="/foundationals/naming-conventions#chill-naming"
+  description="Employ an incremental numbered (01-89), followed by a dot and each one node use Train Case."
+/>
 
 ```css {3-4, 7}
  📁 Root
@@ -73,8 +86,13 @@ The third level is a child of a [Level 2](#level-2) node, **supports additional 
 
 <h5> Naming Convention: </h5>
 You can use 2 naming conventions;  
-**1.-** If you need extend *with subjects, topics, more categories,* use the `Chill Naming` yet.  
-> **Chill Naming:** Employ an incremental numbered (01-89), followed by a dot and each one node use Train Case.
+**1.-** If you need an extend *with subjects, topics, more categories,* use the `Chill Naming` yet.  
+
+<LinkCard
+  title="Chill Naming"
+  href="/foundationals/naming-conventions#chill-naming"
+  description="Employ an incremental numbered (01-89), followed by a dot and each one node use Train Case."
+/>
 
 ```css {4-6}
  📁 Root    
@@ -89,7 +107,12 @@ You can use 2 naming conventions;
 ```
 
 **2.-** If the you need manage it *for tasks, projects, etc.** use the `Control Naming` Convention.  
-> **Control Naming:** Use the parent node name, followed by a dot and each one node use Train Case.
+
+<LinkCard
+  title="Control Naming"
+  href="/foundationals/naming-conventions#control-naming"
+  description="This follows a variable-based structure, where each part is defined by the user's own criteria. Although parts may share patterns or context, the structure is flexible and tailored individually to each case, making it ideal for managing projects and tasks with contextual control and clarity."
+/>
 
 ```css {5, 8-9}
  📁 Root    
