@@ -38,6 +38,8 @@ h1, h2 {
 	--sl-color-accent: #24433e;
 	--sl-color-accent-high: #10b981;
 	--sl-color-accent-contrast: #f3d79d;
+	--sl-color-accent-contrast-high: #ffeb3b;
+	/* --sl-color-highlight: #84baa8; light green */
 	--sl-color-white: #ffffff;
 	--sl-color-gray-1: #e7eff5;
 	--sl-color-gray-2: #bac3cb;
