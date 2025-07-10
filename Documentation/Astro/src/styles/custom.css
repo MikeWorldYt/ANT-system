@@ -40,6 +40,15 @@ b {
   color: var(--sl-color-accent-contrast) !important; 
 }
 
+/* Usage Tabs */
+.usage-tabs li[role="presentation"]:nth-child(1) > a[role="tab"] {
+	color: #28c76f;
+}
+
+.usage-tabs li[role="presentation"]:nth-child(2) > a[role="tab"] {
+	color: #ff4d4d;
+}
+
 /* Dark mode colors. */
 :root {
 	--sl-color-accent-low: #222000;
