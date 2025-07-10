@@ -37,7 +37,7 @@ b {
 }
 
 [data-language="fs"] span[style] {
-  color: var(--sl-color-accent-contrast) !important; 
+	color: var(--sl-color-accent-contrast) !important; 
 }
 
 /* Usage Tabs */
