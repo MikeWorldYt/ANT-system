@@ -82,11 +82,36 @@ Although labeled as “Date”, this element works like a flexible timestamp tha
 - `9G`, `10G`, `12G` (Grade) — For schoolar grades; 9th grade, 10th grade, 12th grade.  
 - `S2`, `S3`, `S4` (Semester) — For School Semester, often used in curriculum tracking.
 
-#### Breadcrumb for Workboards
+#### Breadcrumbs for Workboards
 A breadcrumb defines the contextual type of the workboard, usually based on the parent folder’s category.
 
 > This one is not required but completely recommended, Because acts like a category-tag, aiding as extra filter and avoiding the creation of more levels.
 
+<div class="usage-tabs">
+<Tabs>
+  <TabItem label="Use example" icon="approve-check" color="green">
+    When use it, you create a visual grouping in the same level.
+
+    ```fs ins="Video-Tutorial" ins="Gameplay"
+    📁 02.Video-Edition
+     ├── 📁 PJ.015_(25-04-01) Video-Tutorial [Sadvir]_How-To . . .
+     ├── 📁 PJ.016_(25-04-08) Video-Tutorial [Sadvir]_Making . . .
+     └── 📁 PJ.016_(25-04-11) Gameplay [Aradir]_Weather-simul . . .
+    ```
+  </TabItem>
+  <TabItem label="Whitout use it" icon="close">
+    Otherwise, you force to create more levels to group them even if just have a few.
+    ```fs del="Video-Tutorials" del="Gameplay"
+    📁 02.Video-Edition
+     ├── 📁 01.Video-Tutorials
+     │    ├── 📁 PJ.015_(25-04-01) [Sadvir]_How-To . . .
+     │    └── 📁 PJ.016_(25-04-08) [Sadvir]_Making . . .
+     ├── 📁 02.Gameplay
+     │    └──📁 PJ.016_(25-04-11) [Aradir]_Weather-simul . . .
+    ```
+  </TabItem>
+</Tabs>
+</div>
 
 #### Holder for Workboards
 
@@ -94,3 +119,9 @@ A breadcrumb defines the contextual type of the workboard, usually based on the 
 #### Name for Workboards
 
 ### Control Naming for Files
+
+
+
+
+
+
