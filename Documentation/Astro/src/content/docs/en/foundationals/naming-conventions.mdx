@@ -1,7 +1,7 @@
 ---
 title: Naming Conventions
 ---
-
+import Callout from "/src/components/ui/Callout.astro";
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 A nomenclature "**Naming Convention**" is a system for naming things in a specific way. It can be used to create a consistent and organized way to refer to things in a specific context.
@@ -64,8 +64,10 @@ Used in tandem with the identificator, it instantly communicates the type and or
 📁 HW.016_Gramm . . .
 ```
 
-As a [workboard node](/en/foundationals/workboard-nodes) are temporary and meant to be eventually stored or removed, Its recommended just use 3-digit counters,
+<Callout type="warning" title="Only need 3-digit counters">
+  As a [workboard node](/en/foundationals/workboard-nodes) are temporary and meant to be eventually stored or removed, **Its recommended just use 3-digit counters**,
 this allows up to 999 items per type; if exceeded, the counter may will reset.
+</Callout>
 
 #### Date for Workboards
 Although labeled as “Date”, this element works like a flexible timestamp that adapts to context.  
