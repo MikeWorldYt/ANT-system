@@ -3,6 +3,7 @@ title:  Core Concepts
 description: .
 ---
 import Callout from "/src/components/ui/Callout.astro";
+import { Steps } from '@astrojs/starlight/components';
 
 **ANT has a hierarchical structure** adapted to be immediately implemented in the conventional tree structure.  
 However, **due to it's has a decentralized modular infrastructure**, it follows a specific structural rules that ensures its proper functioning.  
@@ -37,3 +38,29 @@ The term "**Module**" refers to a grouping of [nodes](#nodes) in relation to the
 It means that, regardless of their connections, nodes should maintain a hierarchical grouping and these itself consistent within the conventional [Tree data structure](/reference/another-concepts#tree-data-structure).<br/>
 This keeping a logical, consistent and easy to navigate, tho doesn't take away their flexibility.
 
+## Lifespan
+Some nodes may have a lifespan, such as a [workboard](/en/foundationals/workboard-nodes) or a [temporal folder](/en/foundationals/support-nodes#temporal-folders).  
+That means that these nodes are useful in a period of time and should be deleted after use.
+
+Lifespan node Cycle: 
+
+<Steps>
+    1. **Creation:**  
+    Some nodes are created from templates presets for quickly join to storage.  
+    This ones must be immediately identifiable and their content inside does not always have to have a strict order.
+
+
+    2. **Active Use:**  
+    Commonly its used as a repository with a self-contained role, Although is constantly followed by the system itself aid with trackers or special marks.
+
+    3. **Delivery:**  
+    When the goal is done (e.g. finished the project), their content can become useless.
+
+    4. **Review and Archive:**  
+    Here the content is valued to know if it may be reused in the future:  
+    ● If the content is useful, it can be archived there or move another places.  
+    ● Else the content is deleted.
+    
+    5. **Death:**  
+    Once it is considered obsolete, the node is removed from the system.
+</Steps>
