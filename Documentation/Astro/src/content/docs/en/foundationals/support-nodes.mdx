@@ -35,7 +35,7 @@ Just looking like **99.Settings** is enough.
 <h5> Uttility </h5> 
 Acts as a central hub for storing configurations, presets, and other settings that are required for your programs and files.
 
-
+---
 ## 98.Review Folder
 Its should have identifier **98**.  
 This [node](/foundationals/core-concepts#nodes) (folder) contains all your files and directories that need review;
@@ -46,23 +46,23 @@ This [node](/foundationals/core-concepts#nodes) (folder) contains all your files
 <h5> Naming Convention: </h5>
 This node will inherit just their name from parent node, with prefix **98.** before the name.  
 
-```css {5}
- 📁 04.Marketing                       ←−−− Parent
-  ├── 📁 01.Foundations of Marketing
-  ├── 📁 02.Web Analytics and SEO
-  ├── 📁 . . .
-  ├── 📁 98.Marketing                  ←−−− Review Folder
-  │    ├── 📁 Online marketing Paolini course
-  │    ├── 📄 Build-a-Successful-Social-Media-Strategy.pdf
-  │    ├── 🖼 bf25a6e4ab1909bfcb25c50e3368a8.jpg
-  │    └── 🖼 . . .
+```ansi {5}
+[32m 📁[37m 04.Marketing                      [35m ←−−− Parent
+[32m  ├── 📁[37m 01.Foundations of Marketing
+[32m  ├── 📁[37m 02.Web Analytics and SEO
+[32m  ├── 📁[37m . . .
+[32m  ├── 📁[37m 98.Marketing                 [35m ←−−− Review Folder
+[32m  │    ├── 📁[37m Online marketing Paolini course
+[32m  │    ├── 📄[37m Build-a-Successful-Social-Media-Strategy.pdf
+[32m  │    ├── [37m🖼 bf25a6e4ab1909bfcb25c50e3368a8.jpg
+[32m  │    └── [37m🖼 . . .
 ```
 
 <h5> Uttility </h5> 
 ✅ Its functionality is to be like a Sandbox; This helps the user and the system alike in avoiding mess and maintaining organizational integrity.  
 ✅ By routing unclear or unclassified files to a properly marked staging area, it is become a temporary place for these without compromising rest of files.
 
-
+---
 ## 97.Templates Folder
 Its should have identifier **97**.  
 This [node](/foundationals/core-concepts#nodes) (folder) stores blueprint structures for [workboard nodes](#workboard-folders). These templates provide standardized starting points for [lifespan nodes](/foundationals/core-concepts#lifespan) (folders) that frequently created.
@@ -70,13 +70,13 @@ This [node](/foundationals/core-concepts#nodes) (folder) stores blueprint struct
 <h5> Naming Convention: </h5>
 Does not inherit parent name. Always appears as **97.Templates** with relevant subfolders:
 
-```css {2}
- 📁 02.Video-Edition                       ←−−− Parent
-  ├── 📁 97.Templates                      ←−−− Templates Folder
-  │    ├── 📁 PJ.999_(YY-MM-DD) Breadcrumb [Holder]_unnamed-project
-  │    └── 📁 PR.999_(YY-MM-DD) Breadcrumb [Holder]_new-practice
-  ├── 📁 PJ.133_(25-07-03) Video-Edition [Mr-Beast]_template-use-example
-  ├── 📁 . . .
+```ansi {2}
+[32m 📁[37m 02.Video-Edition                      [35m ←−−− Parent
+[32m  ├── 📁[37m 97.Templates                     [35m ←−−− Templates Folder
+[32m  │    ├── 📁[37m PJ.999_(YY-MM-DD) Breadcrumb [Holder]_unnamed-project
+[32m  │    └── 📁[37m PR.999_(YY-MM-DD) Breadcrumb [Holder]_new-practice
+[32m  ├── 📁[37m PJ.133_(25-07-03) Video-Edition [Mr-Beast]_template-use-example
+[32m  ├── 📁[37m . . .
 ```
 
 <h5> Utility </h5>
@@ -85,6 +85,7 @@ Serves as a **rapid deployment hub** for [workboards nodes](#workboard-folders) 
 ✅ Maintaining consistent structures for temporary projects  
 ✅ It may hold starter files that can be used for new projects  
 
+---
 ## 90.Resources Folder
 Its should have identifier **90**.  
 This [node](/foundationals/core-concepts#nodes) (folder) serves as a centralized repository for frequently accessed reference materials, reusable assets, and static support files. It houses essential resources that remain consistently valuable across multiple projects or operations.
@@ -92,17 +93,18 @@ This [node](/foundationals/core-concepts#nodes) (folder) serves as a centralized
 <h5> Naming Convention: </h5>
 This node appears as `90.Resources-of-` and continue inherit their name from parent node.
 
-```css {2}
- 📁 02.Video-Edition                       ←−−− Parent
-  ├── 📁 90.Resources-of-Video-Edition     ←−−− Resources Folder
-  │    ├── 📁 01.Templates-and-presets
-  │    ├── 📁 02.Music-and-SFX
-  │    ├── 📁 . . .
+```ansi {2}
+[32m 📁[37m 02.Video-Edition                     [35m  ←−−− Parent
+[32m  ├── 📁[37m 90.Resources-of-Video-Edition   [35m  ←−−− Resources Folder
+[32m  │    ├── 📁[37m 01.Templates-and-presets
+[32m  │    ├── 📁[37m 02.Music-and-SFX
+[32m  │    ├── 📁[37m . . .
 ```
 
 <h5> Utility </h5>
 Functions as an **always-available toolkit** for your projects, tasks or homework. It provides a place to store frequently used files, templates, and resources that are accessible from current level.
 
+---
 ## (00) Done Folder
 Its should have identifier **00**.  
 This [node](/foundationals/core-concepts#nodes) serves exclusively as the **final archive** for completed outputs. When a [workboard folder](#workboard-folders) reaches end-of-life after project/task completion, only the finalized assets are preserved here.
@@ -111,14 +113,15 @@ This [node](/foundationals/core-concepts#nodes) serves exclusively as the **fina
 Always it should appears as **00.Done** at every level where workboards exist.  
 if that you want, you may name it whatever you want but need to use the prefix **00.** before the name.
 
-```css {2}
- 📁 02.Video-Edition                       ←−−− Parent
-  ├── 📁 00.Edition-Portfolio              ←−−− Done Folder
-  │    ├── 📁 01.Templates-and-presets
-  │    ├── 📁 02.Music-and-SFX
-  │    ├── 📁 . . .
+```ansi {2}
+[32m 📁[37m 02.Video-Edition                      [35m ←−−− Parent
+[32m  ├── 📁[37m 00.Edition-Portfolio             [35m ←−−− Done Folder
+[32m  │    ├── 📁[37m 01.Templates-and-presets
+[32m  │    ├── 📁[37m 02.Music-and-SFX
+[32m  │    ├── 📁[37m . . .
 ```
 
+---
 ## Temporal Folders (~)
 Alright, thats not a identifier as such, it's just a mark.  
 This special marker (not a numbered identifier) designates **ultra-short-lived storage** for active work files. Unlike the structured [98.Review Folder](#98review-folder), `~` nodes are disposable containers for assets during active manipulation, serving as temporary holding areas that should be deleted immediately after use.
