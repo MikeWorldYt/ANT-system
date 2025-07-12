@@ -23,6 +23,10 @@ b {
 	font-weight: 500;
 }
 
+.no-underline a {
+	text-decoration: none;
+}
+
 /* Codeblock */
 
 .ec-line {
