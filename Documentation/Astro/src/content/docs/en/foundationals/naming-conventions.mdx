@@ -45,7 +45,7 @@ Each stage contains the following structure:
 | [***Tracker**](#tracker-for-workboards)       | A sequential index of `3-digit` that provides chronological order  |
 | [**Date**](#date-and-timestamps)              | A timestamp within in parentheses, the common format is `YY-MM-DD`   |
 | [**Breadcrumb**](#breadcrumbs) | Its like a `category tag`, typically aligned with the parent folder’s category |
-| [**Holder**](#holder-for-workboards)          | Its the `owner` or `client` always within in brackets  |
+| [**Holder**](#holders-and-clients)          | Its the `owner` or `client` always within in brackets  |
 | [***Name**](#name-for-workboards)             | A descriptive phrase that helps identify purpose or content |
 
 *This element is required for this naming convention
@@ -54,31 +54,6 @@ Each stage contains the following structure:
 
 
 
-
-
-
-#### Holder for Workboards
-The holder identifies who the workboard belongs (client, brand, organization, school, owner).  
-**When is used must appear within in brackets**, to ensure quick visual identification.
-
-> It provides ownership context and is especially useful when managing multiple clients or persons.
-
-```fs  title="Use example" ins="[Oxford]" ins="[Aradir]" ins="[Henry-Dav]"
-📁 HW.1 . . . ances [Oxford]_Revolving-deb . . . ← Institutions
-📁 PJ.0 . . . eplay [Aradir]_Weather-simul . . . ← Client
-📁 PR.0 . . . awing [Henry-Dav]_anatomy-po . . . ← even Yourself (Owner)
-```
-<Callout type="warning" title="Recomendation">
-  Try not use name that are too long or complex.  
-  (e.g. "College-of-William-&-Mary-Law-School" instead of "W&M-Laws")
-</Callout>
-
-> Besides if you need to keep confidentiality or privacy, You could use a pseudo-name with aid a [Client List](/en/advanced/client-list) document that could well be saved in another site.
-
-```fs title="Use example with a Client List" ins="[C-018-Ara]" ins="[C-031-Bea]"
-📁 PJ.0 . . . eplay [C-018-Ara]_Weather-simul . . .  ← Its Aradir, the client n.18
-📁 PR.0 . . . eling [C-031-Bea]_Machu-Pichu-o . . .  ← Do you could guess who is?
-```
 
 #### Name for Workboards
 This is a short, descriptive label that identifies the content or focus of the workboard,  
@@ -112,7 +87,7 @@ Each Stage countain the following structure:
 |-------------------|--------------------------------------------------------|
 | [**Date**](#date-and-timestamps)              | A timestamp within in parentheses, the common format is `YY-MM-DD`   |
 | [**Breadcrumb**](#breadcrumbs) | Its like a `category tag`, typically aligned with the parent folder’s category |
-| [**Holder**](#holder-for-workboards)          | Its the `owner` or `client` always within in brackets  |
+| [**Holder**](#holders-and-clients)          | Its the `owner` or `client` always within in brackets  |
 | [**Id**](#identificators-for-workboards)       | A short, descriptive label that identifies the content or focus of the workboard,   |
 | [**Name**](#name-for-workboards)              | A short, descriptive label that identifies the content or focus of the workboard,   |
 
@@ -197,3 +172,27 @@ A breadcrumb defines the contextual type of the workboard, usually based on the 
   </TabItem>
 </Tabs>
 </div>
+
+
+### Holders and Clients
+The holder identifies who the workboard belongs (client, brand, organization, school, owner).  
+**When is used must appear within in brackets**, to ensure quick visual identification.
+
+> It provides ownership context and is especially useful when managing multiple clients or persons.
+
+```fs  title="Use example" ins="[Oxford]" ins="[Aradir]" ins="[Henry-Dav]"
+📁 HW.1 . . . ances [Oxford]_Revolving-deb . . . ← Institutions
+📁 PJ.0 . . . eplay [Aradir]_Weather-simul . . . ← Client
+📁 PR.0 . . . awing [Henry-Dav]_anatomy-po . . . ← even Yourself (Owner)
+```
+<Callout type="warning" title="Recomendation">
+  Try not use name that are too long or complex.  
+  (e.g. "College-of-William-&-Mary-Law-School" instead of "W&M-Laws")
+</Callout>
+
+> Besides if you need to keep confidentiality or privacy, You could use a pseudo-name with aid a [Client List](/en/advanced/client-list) document that could well be saved in another site.
+
+```fs title="Use example with a Client List" ins="[C-018-Ara]" ins="[C-031-Bea]"
+📁 PJ.0 . . . eplay [C-018-Ara]_Weather-simul . . .  ← Its Aradir, the client n.18
+📁 PR.0 . . . eling [C-031-Bea]_Machu-Pichu-o . . .  ← Do you could guess who is?
+```
