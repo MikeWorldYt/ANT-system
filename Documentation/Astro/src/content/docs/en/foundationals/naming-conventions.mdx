@@ -53,24 +53,7 @@ Each stage contains the following structure:
 
 
 
-#### Tracker for Workboards
-The tracker is a sequential index that provides chronological order and simple referencing.  
-> While many systems can sort by date, a tracker provides a quick way to follow progress without relying on timestamps.  
 
-Used in tandem with the identificator, it instantly communicates the type and order of the workboard.
-
-```fs  title="Use example" ins="PJ.005" ins="PJ.006" ins="HW.015" ins="HW.016"
-📁 PJ.005_(24-03-30) Tut . . . ← for projects
-📁 PJ.006_(24-04-12) Sal . . .
-
-📁 HW.015_Gramm . . . ← for school homeworks
-📁 HW.016_Gramm . . .
-```
-
-<Callout type="warning" title="Only need 3-digit counters">
-  As a [workboard node](/en/foundationals/workboard-nodes) are temporary and meant to be eventually stored or removed, **Its recommended just use 3-digit counters**,
-this allows up to 999 items per type; if exceeded, the counter may will reset.
-</Callout>
 
 #### Date for Workboards
 Although labeled as “Date”, this element works like a flexible timestamp that adapts to context.  
@@ -183,7 +166,7 @@ Each Stage countain the following structure:
 
 ## Elements of Naming Conventions
 
-### Identificators for Workboards
+### Identificators (for Workboards)
 The identificator is a **code label** that identifies the type of workboard.  
 Some of the most common identificators are:
 - `PJ`: Project
@@ -191,6 +174,24 @@ Some of the most common identificators are:
 - `HW`: Homework
 - `TK`: Task
 
-### Identificators for Files
+### Identificators (for Files)
 ...
 
+### Tracker (for Workboards)
+The tracker is a sequential index that provides chronological order and simple referencing.  
+> While many systems can sort by date, a tracker provides a quick way to follow progress without relying on timestamps.  
+
+Used in tandem with the identificator, it instantly communicates the type and order of the workboard.
+
+```fs  title="Use example" ins="PJ.005" ins="PJ.006" ins="HW.015" ins="HW.016"
+📁 PJ.005_(24-03-30) Tut . . . ← for projects
+📁 PJ.006_(24-04-12) Sal . . .
+
+📁 HW.015_Gramm . . . ← for school homeworks
+📁 HW.016_Gramm . . .
+```
+
+<Callout type="warning" title="Only need 3-digit counters">
+  As a [workboard node](/en/foundationals/workboard-nodes) are temporary and meant to be eventually stored or removed, **Its recommended just use 3-digit counters**,
+this allows up to 999 items per type; if exceeded, the counter may will reset.
+</Callout>
