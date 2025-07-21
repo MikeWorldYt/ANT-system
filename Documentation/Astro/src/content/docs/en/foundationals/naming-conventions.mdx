@@ -1,8 +1,9 @@
 ---
 title: Naming Conventions
 ---
-import Callout from "/src/components/ui/Callout.astro";
 import { Tabs, TabItem } from '@astrojs/starlight/components';
+import Callout from "/src/components/ui/Callout.astro";
+import Toggle from '/src/components/ui/Toggle.astro';
 
 A nomenclature "**Naming Convention**" is a system for naming things in a specific way. It can be used to create a consistent and organized way to refer to things in a specific context.
 
@@ -24,7 +25,7 @@ This is a variant of Chill Naming, and its Ideal for top-level or broad categori
 ## Control Naming
 This follows a variable-based structure, where each part is defined by the user's own criteria. Although parts may share patterns or context, the structure is flexible and tailored individually to each case, making it ideal for managing projects and tasks with contextual control and clarity.
 
-### Control Naming for Folders
+### Control Naming (for Folders)
 Used by [Workboard Nodes](/foundationals/workboard-nodes), this structure was designed for quick recognition and easy filtering between projects.
 
 That is usually separated by three main Stages joined by underscores:  
@@ -50,14 +51,28 @@ Each stage contains the following structure:
 
 *This element is required for this naming convention
 
+<Toggle title="Use Example" client:visible>
+  <h5> Full Use Example: </h5>
+
+  ```ansi title="Root/200.WORK/02.Vide-Edition/"
+  📁 [32mPJ.[33m033[34m_[32m(23-03-03)[33m-Video-Tutorials-[32m[MikeWorldYt][34m_[33mhow-to-organize-documents
+  ```
+  > This one is quickly identified as an video edition project, seems a tutorial about how to organize documents that belongs to MikeWorldYt and probably deliveries on March 3rd.
+
+  <h5> Partial Use Example: </h5>
+  ```ansi title="Root/400.ACADEMIC/12.Science/"
+  📁 [32mHW.[33m024[34m_[32m(12G-U2)[33m-Physics-[34m_[32mElectromagnetism-research
+  ```
+  > This one is Science Homework, seems a research about electromagnetism, its from a Student of 12th grade in their second unit of Physics.
+
+  ```ansi title="Root/500.HOBBIES/03.Drawing/01.Courses/"
+  📁 [32mCR.[33m015[34m_[32mSketiching-for-storyboards
+  ```
+  > This one is just a Drawing Course about sketching for storyboards, seems its their 15th course.
+</Toggle>
 
 
-
-
-
-
-
-### Control Naming for Files
+### Control Naming (for Files)
 Used by **Files**, their main porpose is organize, filter and identify.  
 <Callout type="info" title="Seems complicated, but it is Copy-Pasteable">
 Although visually they usually have long file names, when a new file is added, usually just copy the name of a existing one and pasted with a couple of changes.  
@@ -93,6 +108,7 @@ Some of the most common identificators are:
 - `PJ`: Project
 - `PR`: Practice
 - `HW`: Homework
+- `CR`: Course
 - `TK`: Task
 
 ### Identificators (for Files)
