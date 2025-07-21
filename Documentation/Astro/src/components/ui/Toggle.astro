@@ -1,0 +1,71 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+
+interface Props {
+  title?: string;
+}
+
+const { title } = Astro.props;
+---
+
+<div class="toggle-box">
+    <button id="toggle-btn">
+        <div class="toggle-icon" id="toggle-icon">
+            <Icon name="down-caret" size="2rem" />
+        </div>
+        <span>{title}</span>
+    </button>
+    <div id="toggle-content">
+        <slot />
+    </div>
+</div>
+
+<script>
+    const btn = document.getElementById('toggle-btn');
+    const content = document.getElementById('toggle-content');
+    const icon = document.getElementById('toggle-icon');
+
+    if (btn && content) {
+        btn.addEventListener('click', () => {
+        const isHidden = content.hasAttribute('hidden');
+        content.toggleAttribute('hidden');
+
+        btn.style.backgroundColor = isHidden
+            ? 'rgba(136, 49, 204, 0.5)'
+            : 'rgba(136, 49, 204, 0.2)';
+        
+        icon!.style.transform = isHidden
+            ? 'rotate(0deg)'
+            : 'rotate(-90deg)';
+        });
+    }
+</script>
+
+<style>
+    .toggle-box {
+      border: 1px solid #cccccC30;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+
+    #toggle-btn {
+      background-color: rgba(136, 49, 204, 0.2);
+      width: 100%;
+      border: none;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .toggle-icon {
+      transition: transform 0.3s ease;
+    }
+
+    .toggle-content[hidden] {
+      display: none;
+    }
+
+    #toggle-content {
+      padding: 1rem;
+    }
+</style>
