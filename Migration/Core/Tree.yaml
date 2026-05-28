@@ -1,0 +1,115 @@
+100.PERSONAL:
+  type: NODE-L1
+  01.Documents:
+    type: NODE-L2
+    98.Documents:
+      type: REV-L3
+  02.Finance:
+    type: NODE-L2
+    98.Finance:
+      type: REV-L3
+  03.Health:
+    type: NODE-L2
+    98.Health:
+      type: REV-L3
+  04.Curriculum:
+    type: NODE-L2
+    98.Curriculum:
+      type: REV-L3
+  05.Memories:
+    type: NODE-L2
+    98.Memories:
+      type: REV-L3
+  90.PERSONAL:
+    type: RES-L2
+  98.PERSONAL:
+    type: REV-L2
+
+200.WORK:
+  type: NODE-L1
+  00.PORTFOLIO:
+    type: PORTF-L2
+  01.Company-Name:
+    type: NODE-L2
+    98.Company-Name:
+      type: REV-L3
+  02.Industry:
+    type: WS-L2
+    90.Industry:
+      type: RES-L3
+    97.Industry:
+      type: TPL-L3
+    98.Industry:
+      type: REV-L3
+    PJ.001_(00-00-00)Bread_project-name-example:
+      type: WKB
+      status: done
+    PJ.002_(00-00-00)Bread_project-name-example:
+      type: WKB
+      status: for-review
+  90.WORK:
+    type: RES-L2
+  98.WORK:
+    type: REV-L2
+
+300.PROJECTS:
+  type: WS-L1
+  00.PORTFOLIO:
+    type: PORTF-L2
+    00.Project:
+      type: NODE-L3
+  90.PROJECTS:
+    type: RES-L2
+  97.TEMPLATES:
+    type: TPL-L2
+  98.PROJECTS:
+    type: REV-L2
+  PJ.001_(00-00-00)Bread_project-name-example:
+    type: WKB
+    status: in-progress
+  PJ.002_(00-00-00)Bread_project-name-example:
+    type: WKB
+    status: hold
+
+400.ACADEMIC:
+  type: NODE-L1
+  00.PORTFOLIO:
+    type: PORTF-L2
+  01.Subject:
+    type: NODE-L2
+    01.Topic:
+      type: NODE-L3
+    98.Subject:
+      type: REV-L3
+  02.Subject:
+    type: NODE-L2
+    02.Topic:
+      type: NODE-L3
+    98.Subject:
+      type: REV-L3
+  90.ACADEMIC:
+    type: RES-L2
+  98.ACADEMIC:
+    type: REV-L2
+
+500.HOBBIES:
+  type: NODE-L1
+  01.Activity:
+    type: NODE-L2
+    98.Activity:
+      type: REV-L3
+  90.HOBBIES:
+    type: RES-L2
+  98.HOBBIES:
+    type: REV-L2
+
+900.Resources:
+  type: RES-L1
+
+998.Review:
+  type: CFG-L1
+
+999.Settings:
+  type: CFG-L1
+  00.Core:
+    type: CFG-L2
