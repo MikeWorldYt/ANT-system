@@ -448,7 +448,7 @@ class FolderManagerApp:
                  bg=BG, fg=TITLE, font=("Segoe UI", 11, "bold")).pack(side=tk.LEFT)
 
         # ── Toolbar icons ──────────────────────────────────────────
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        script_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
         def _load_icon(filename):
             try:
                 return tk.PhotoImage(file=os.path.join(script_dir, filename))
