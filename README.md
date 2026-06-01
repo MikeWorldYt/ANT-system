@@ -2,7 +2,9 @@
 
 **ANT** (Archive Nesting Technique) is an organizational method system for managing files and folders with consistency, clarity, and automation-friendly structure.
 
-It defines how storage units should be created, named, and maintained — so that even with large amounts of files, everything stays organized, searchable, and scalable.
+It defines how the folders should be named and set a file nomenclature, approach for maintaining organized even if there are huge number of files, the system still works stay organized, searchable, and scalable.
+
+This repository includes [ANT System Utils](#️-utilities) for made ANT adoption, reducing manual intervention to a minimum for users or automation agents.
 
 📘 **Full documentation:** https://ant-system.vercel.app/en/introduction/what-is-ant/
 
