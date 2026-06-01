@@ -236,3 +236,40 @@ This can include duplicates or variations of existing elements like `<Date>`, `<
 📁 HW.02 . . . Ark]_environmental-law-essay (03-23) ← Date as Wildcard
 ```
 
+
+<h4> <span style="background:rgba(136, 49, 204, 0.2)"> Wildcard Use Cases : </span> </h4>
+
+  Here we can see some Finantials Documents:
+  ```ansi title="Root/100.PERSONAL/05.Finantials"
+  📄 [32m(23-03-03)[33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement March-2023[34m.pdf
+  📄 [32m(23-04-03)[33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement April-2023[34m.pdf
+  📄 [32m(23-04-11)[33m-Citi-Bank-[32m[Emma-C][34m_[33mCNT[34m_[32mMortgage-contract Houston[34m.pdf ←
+  📄 [32m(23-05-03)[33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement May-2023[34m.pdf
+   . . .
+  ```
+
+  This one are using the Full Naming Convention following strict order, though here he has left a file between the bank statements
+
+  If we remove the date, we can solve it, and now is already separated
+  ```ansi title="Root/100.PERSONAL/05.Finantials"
+  📄 [33m-Citi-Bank-[32m[Emma-C][34m_[33mCNT[34m_[32mMortgage-contract Houston[34m.pdf ←
+  📄 [31m-Citi-Bank-[Emma-C]_FST_Bank-statement[34m.pdf
+  📄 [31m-Citi-Bank-[Emma-C]_FST_Bank-statement[34m.pdf
+  📄 [31m-Citi-Bank-[Emma-C]_FST_Bank-statement[34m.pdf
+   . . .
+  ```
+  Though now get another issue, We've similar name files  
+  Besides that the OS your computer will not let you, Could you identify what month each one is from?
+
+  So you should come back the date again, though not in the same order 
+
+  ```ansi title="Root/100.PERSONAL/05.Finantials"
+  📄 [33m-Citi-Bank-[32m[Emma-C][34m_[33mCNT[34m_[32mMortgage-contract Houston[34m.pdf
+  📄 [33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement (03-23) March[34m.pdf
+  📄 [33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement (04-23) April[34m.pdf
+  📄 [33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement (05-23) May[34m.pdf
+   . . .
+  ```
+  Now in the last part, conbined in the name element.
+
+  ---
