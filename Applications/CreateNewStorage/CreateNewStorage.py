@@ -46,7 +46,7 @@ CORE_API_URL        = "https://api.github.com/repos/MikeWorldYt/ANT-system/conte
 FOLDER_MANAGER_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe"
 FOLDER_MANAGER_NAME = "FolderManager.exe"
 ANT_LOGO_URL        = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/assets/ant.png"
-ANT_VERSION         = "v2.1.0"
+ANT_VERSION         = "v2.1.1"
 
 # ─────────────────────────────────────────────────────────────────
 #  COLOR THEME
@@ -93,7 +93,11 @@ def create_shortcut_windows(target_path: str, shortcut_path: str):
         f"$s.TargetPath = '{target_path}'; "
         f"$s.Save()"
     )
-    os.system(f"powershell -NoProfile -Command \"{ps_cmd}\"")
+    subprocess.run(
+        ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd],
+        creationflags=subprocess.CREATE_NO_WINDOW,
+        capture_output=True
+    )
 
 
 def create_symlink_unix(target_path: str, link_path: str):
@@ -865,8 +869,6 @@ class ANTWizard:
     # ─────────────────────────────────────────────────────────────
 
     def _show_completion(self, progress_win):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        self.logo_path = os.path.join(script_dir, "assets", "ant.png")
 
         # progress_win.destroy()
 
