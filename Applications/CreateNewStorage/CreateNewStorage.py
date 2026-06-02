@@ -46,7 +46,7 @@ CORE_API_URL        = "https://api.github.com/repos/MikeWorldYt/ANT-system/conte
 FOLDER_MANAGER_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe"
 FOLDER_MANAGER_NAME = "FolderManager.exe"
 ANT_LOGO_URL        = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/assets/ant.png"
-ANT_VERSION         = "v2.1.1"
+ANT_VERSION         = "v2.3.1"
 
 # ─────────────────────────────────────────────────────────────────
 #  COLOR THEME
