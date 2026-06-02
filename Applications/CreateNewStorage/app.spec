@@ -5,7 +5,8 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('CreateNewStorage.ico', '.')
+        ('CreateNewStorage.ico', '.'),
+        ('assets/ant.png', 'assets'),
     ],
     hookspath=[],
     hooksconfig={},

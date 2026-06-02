@@ -46,7 +46,7 @@ CORE_API_URL        = "https://api.github.com/repos/MikeWorldYt/ANT-system/conte
 FOLDER_MANAGER_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe"
 FOLDER_MANAGER_NAME = "FolderManager.exe"
 ANT_LOGO_URL        = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/assets/ant.png"
-ANT_VERSION         = "v2.0.0"
+ANT_VERSION         = "v2.1.0"
 
 # ─────────────────────────────────────────────────────────────────
 #  COLOR THEME
@@ -222,7 +222,7 @@ def download_core_files(core_dir: str, log_fn):
 class ANTWizard:
     def __init__(self, root):
         self.root = root
-        self.root.title("ANT System Setup - New Storage Wizard v.2.0.0")
+        self.root.title(f"ANT System Setup - New Storage Wizard {ANT_VERSION} ")
         self.root.geometry("750x550")
         self.root.resizable(False, False)
         self.root.configure(bg=BG)
@@ -865,6 +865,8 @@ class ANTWizard:
     # ─────────────────────────────────────────────────────────────
 
     def _show_completion(self, progress_win):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.logo_path = os.path.join(script_dir, "assets", "ant.png")
 
         # progress_win.destroy()
 
