@@ -4,6 +4,15 @@ import os, sys, re, shutil
 import yaml
 
 # ─────────────────────────────────────────────────────────────────
+#  VERSION
+# ─────────────────────────────────────────────────────────────────
+
+CURRENT_VERSION   = "v.1.2.0"
+GITHUB_RELEASE_API = "https://api.github.com/repos/MikeWorldYt/ANT-system/releases/latest"
+EXE_DOWNLOAD_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe"
+UPDATER_SCRIPT    = "FM_Updater.bat"
+
+# ─────────────────────────────────────────────────────────────────
 #  COLOR THEME
 # ─────────────────────────────────────────────────────────────────
 
@@ -217,6 +226,7 @@ def _create_shortcut_windows(link_path: str, target_path: str):
     subprocess.run(
         ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
         capture_output=True,
+        creationflags=subprocess.CREATE_NO_WINDOW,
     )
 
 
@@ -358,6 +368,161 @@ def list_subdirs(path: str) -> list[str]:
         return []
 
 
+
+# ─────────────────────────────────────────────────────────────────
+#  UPDATE CHECK
+# ─────────────────────────────────────────────────────────────────
+
+def fetch_latest_version() -> str | None:
+    """Query GitHub releases API and return tag_name, or None on failure."""
+    try:
+        import urllib.request, json
+        req = urllib.request.Request(
+            GITHUB_RELEASE_API,
+            headers={"User-Agent": "FolderManager-Updater"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+            return data.get("tag_name") 
+    except Exception:
+        return None
+
+
+def load_skipped_version(core_path: str) -> str:
+    skip_file = os.path.join(core_path, ".skip_version")
+    try:
+        with open(skip_file, "r") as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
+
+def save_skipped_version(core_path: str, version: str):
+    skip_file = os.path.join(core_path, ".skip_version")
+    try:
+        with open(skip_file, "w") as f:
+            f.write(version)
+    except Exception:
+        pass
+
+
+def launch_updater(core_path: str, exe_path: str):
+    """Launch FM_Updater.bat and exit the app."""
+    bat = os.path.join(core_path, UPDATER_SCRIPT)
+    if not os.path.isfile(bat):
+        messagebox.showerror(
+            "Updater not found",
+            f"Could not find {UPDATER_SCRIPT} in:\n{core_path}"
+        )
+        return False
+    import subprocess
+    subprocess.Popen(
+        [bat, exe_path, EXE_DOWNLOAD_URL],
+        creationflags=subprocess.CREATE_NO_WINDOW,
+        shell=True,
+    )
+    return True
+
+
+class UpdateDialog(tk.Toplevel):
+    """Modal dialog shown when a new version is available."""
+
+    def __init__(self, parent: tk.Tk, latest: str, core_path: str, exe_path: str):
+        super().__init__(parent)
+        self.parent    = parent
+        self.latest    = latest
+        self.core_path = core_path
+        self.exe_path  = exe_path
+        self.result    = None   # "update" | "skip" | "later"
+
+        self.title("Update Available")
+        self.resizable(False, False)
+        self.configure(bg=BG)
+        self.grab_set()         # modal
+
+        # Center over parent
+        self.update_idletasks()
+        pw, ph = parent.winfo_width(), parent.winfo_height()
+        px, py = parent.winfo_x(), parent.winfo_y()
+        w, h   = 360, 190
+        self.geometry(f"{w}x{h}+{px + (pw-w)//2}+{py + (ph-h)//2}")
+
+        # ── Content ──────────────────────────────────────────────
+        tk.Label(self, text="🆕  New version available",
+                 bg=BG, fg=ACCENT, font=("Segoe UI", 11, "bold"),
+                 pady=14).pack()
+
+        tk.Label(self,
+                 text=f"Current:  {CURRENT_VERSION}\nLatest:     {latest}",
+                 bg=BG, fg=TEXT, font=("Segoe UI", 10),
+                 justify=tk.LEFT).pack(padx=24, anchor="w")
+
+        tk.Label(self,
+                 text="The app will close to apply the update.",
+                 bg=BG, fg=DISABLED_TEXT, font=("Segoe UI", 8),
+                 pady=6).pack()
+
+        btn_frame = tk.Frame(self, bg=BG)
+        btn_frame.pack(fill=tk.X, padx=16, pady=(4, 14))
+
+        btn_cfg = dict(font=("Segoe UI", 9, "bold"), bd=0, relief=tk.FLAT,
+                       pady=7, cursor="hand2")
+
+        tk.Button(btn_frame, text="Update", bg=BUTTON, fg=BG,
+                  activebackground=HOVER_BTN, activeforeground=BG,
+                  command=self._on_update, **btn_cfg).pack(
+                  side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 4))
+
+        tk.Button(btn_frame, text="Skip version", bg=BORDER, fg=TEXT,
+                  activebackground=INPUT_BG, activeforeground=TEXT,
+                  command=self._on_skip, **btn_cfg).pack(
+                  side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 4))
+
+        tk.Button(btn_frame, text="Remind me later", bg=INPUT_BG, fg=DISABLED_TEXT,
+                  activebackground=BORDER, activeforeground=TEXT,
+                  command=self._on_later, **btn_cfg).pack(
+                  side=tk.LEFT, expand=True, fill=tk.X)
+
+        self.protocol("WM_DELETE_WINDOW", self._on_later)
+        self.wait_window()
+
+    def _on_update(self):
+        self.result = "update"
+        self.destroy()
+        if launch_updater(self.core_path, self.exe_path):
+            self.parent.destroy()
+
+    def _on_skip(self):
+        save_skipped_version(self.core_path, self.latest)
+        self.result = "skip"
+        self.destroy()
+
+    def _on_later(self):
+        self.result = "later"
+        self.destroy()
+
+
+def check_for_updates(parent: tk.Tk, root_path: str, exe_path: str):
+    """Run version check in background thread; show dialog on main thread if needed."""
+    import threading
+
+    core_path = os.path.join(root_path, SETTINGS_FOLDER, "00.Core")
+
+    def _worker():
+        latest = fetch_latest_version()
+        if not latest:
+            return
+        if latest == CURRENT_VERSION:
+            return
+        skipped = load_skipped_version(core_path)
+        if latest == skipped:
+            return
+        # Schedule dialog on main thread
+        parent.after(0, lambda: UpdateDialog(parent, latest, core_path, exe_path))
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
 # ─────────────────────────────────────────────────────────────────
 #  TREE NODE
 # ─────────────────────────────────────────────────────────────────
@@ -414,7 +579,7 @@ class FolderManagerApp:
         self.tk_root   = root
         self.root_path = find_root(start_path)
 
-        root.title("ANT System - Folder Manager v.1.1.2")
+        root.title(f"ANT System - Folder Manager {CURRENT_VERSION}")
         root.geometry("750x550")
         root.resizable(True, True)
         root.configure(bg=BG)
@@ -1174,5 +1339,7 @@ if __name__ == "__main__":
     root  = tk.Tk()
     icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "FolderManager.ico")
     root.iconbitmap(icon_path)
-    FolderManagerApp(root, start_path=start)
+    app = FolderManagerApp(root, start_path=start)
+    exe_path = os.path.abspath(sys.argv[0])
+    root.after(1500, lambda: check_for_updates(root, app.root_path, exe_path))
     root.mainloop()
