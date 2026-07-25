@@ -7,7 +7,7 @@ import yaml
 #  VERSION
 # ─────────────────────────────────────────────────────────────────
 
-CURRENT_VERSION   = "v.1.2.0"
+CURRENT_VERSION   = "v.1.2.1"
 GITHUB_RELEASE_API = "https://api.github.com/repos/MikeWorldYt/ANT-system/releases/latest"
 EXE_DOWNLOAD_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe"
 UPDATER_SCRIPT    = "FM_Updater.bat"
@@ -1143,27 +1143,32 @@ class FolderManagerApp:
             return
 
         swap_id, swap_name = movable[target_idx]
-        swap_abs = os.path.join(parent_dir, swap_name)
 
-        # Get editable parts (after the dot)
+        # Get editable parts (after the dot) without numeric prefix.
         node_editable = get_editable_part(node.name)
         swap_editable = get_editable_part(swap_name)
-        # New names after swap
-        node_new_name = f"{swap_id:02d}.{node_editable}"
-        swap_new_name = f"{node_id:02d}.{swap_editable}"
-        # Use a temp name to avoid collision
-        temp_abs      = os.path.join(parent_dir, "__swap_tmp__")
+        node_new_name = f"{swap_id:02d}.{node_editable}"  # node gets swap's id
+        swap_new_name = f"{node_id:02d}.{swap_editable}"  # swap gets node's id
+
+        node_abs      = os.path.join(parent_dir, node.name)
+        swap_abs      = os.path.join(parent_dir, swap_name)
         node_new_abs  = os.path.join(parent_dir, node_new_name)
         swap_new_abs  = os.path.join(parent_dir, swap_new_name)
 
+        # Collision: both would end up with the same name (e.g. 05.Ships ↔ 06.Ships)
+        collision = node_new_name == swap_name
         try:
-            os.rename(node.abs_path, temp_abs)
-            os.rename(swap_abs, node_new_abs)
-            os.rename(temp_abs, swap_new_abs)
+            if collision:
+                temp_abs = os.path.join(parent_dir, node_new_name + "_")
+                os.rename(node_abs, temp_abs)
+                os.rename(swap_abs, swap_new_abs)
+                # Leave temp with trailing _ — user can rename later
+                node_new_name = node_new_name + "_"
+                node_new_abs  = temp_abs
+            else:
+                os.rename(node_abs, node_new_abs)
+                os.rename(swap_abs, swap_new_abs)
         except OSError as e:
-            # Try to recover
-            if os.path.isdir(temp_abs):
-                os.rename(temp_abs, node.abs_path)
             self._flash(f"Move failed: {e}", error=True)
             return
 
@@ -1176,17 +1181,17 @@ class FolderManagerApp:
             swap_dict = parent_yaml.pop(swap_name, {})
             parent_yaml[node_new_name] = node_dict
             parent_yaml[swap_new_name] = swap_dict
-            def _update_linked(node_dict_inner: dict, old_editable: str, new_editable: str):
-                if old_editable == new_editable:
-                    return
-                for prefix in ("90", "98"):
-                    old_child = f"{prefix}.{old_editable}"
-                    new_child = f"{prefix}.{new_editable}"
-                    if old_child in node_dict_inner:
-                        node_dict_inner[new_child] = node_dict_inner.pop(old_child)
+            # def _update_linked(node_dict_inner: dict, old_editable: str, new_editable: str):
+            #     if old_editable == new_editable:
+            #         return
+            #     for prefix in ("90", "98"):
+            #         old_child = f"{prefix}.{old_editable}"
+            #         new_child = f"{prefix}.{new_editable}"
+            #         if old_child in node_dict_inner:
+            #             node_dict_inner[new_child] = node_dict_inner.pop(old_child)
 
-            _update_linked(node_dict, node_editable, swap_editable)
-            _update_linked(swap_dict, swap_editable, node_editable)
+            # _update_linked(node_dict, node_editable, swap_editable)
+            # _update_linked(swap_dict, swap_editable, node_editable)
 
         save_yaml(self.root_path, self.yaml_data)
         # debug: self._flash(f'Moved: "{swap_new_name}"', error=False)

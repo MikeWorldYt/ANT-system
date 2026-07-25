@@ -21,7 +21,14 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'unittest', 'email', 'html', 'http', 'xml', 'xmlrpc',
+        'pydoc', 'doctest', 'difflib', 'ftplib', 'imaplib',
+        'mailbox', 'mimetypes', 'smtplib', 'poplib', 'telnetlib',
+        'sqlite3', 'decimal', 'fractions', 'statistics',
+        'multiprocessing', 'concurrent', 'asyncio',
+        'logging', 'curses', 'readline', 'rlcompleter',
+    ],
     noarchive=False,
 )
 
@@ -37,7 +44,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
