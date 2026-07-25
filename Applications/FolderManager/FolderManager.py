@@ -7,7 +7,7 @@ import yaml
 #  VERSION
 # ─────────────────────────────────────────────────────────────────
 
-CURRENT_VERSION   = "v.1.2.0"
+CURRENT_VERSION   = "v.1.2.1"
 GITHUB_RELEASE_API = "https://api.github.com/repos/MikeWorldYt/ANT-system/releases/latest"
 EXE_DOWNLOAD_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe"
 UPDATER_SCRIPT    = "FM_Updater.bat"
