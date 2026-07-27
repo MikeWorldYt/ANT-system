@@ -1,3 +1,9 @@
 allowBuilds:
   esbuild: false
   sharp: false
+
+packages:
+  - "."
+
+onlyBuiltDependencies:
+  - sharp
