@@ -1,7 +1,7 @@
 # UTF-8
 VSVersionInfo(
     ffi=FixedFileInfo(
-        filevers=(2, 2, 0, 0),
+        filevers=(2, 3, 1, 0),
         prodvers=(1, 1, 2, 0),
         mask=0x3f,
         flags=0x0,
@@ -18,7 +18,7 @@ VSVersionInfo(
                     StringStruct('CompanyName', 'MikeWorldYt'),
                     StringStruct('Name', 'ANT System Setup'),
                     StringStruct('FileDescription', 'ANT System Setup v.2.0.0 '),
-                    StringStruct('FileVersion', '2.0.0'),
+                    StringStruct('FileVersion', '2.3.1'),
                     StringStruct('InternalName', 'CreateNewStorage'),
                     StringStruct('OriginalFilename', 'CreateNewStorage.py'),
                     StringStruct('ProductName', 'Create New Storage'),

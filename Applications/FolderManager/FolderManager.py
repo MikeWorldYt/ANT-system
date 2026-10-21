@@ -7,7 +7,6 @@ import yaml
 #  VERSION
 # ─────────────────────────────────────────────────────────────────
 
-CURRENT_VERSION   = "v.1.2.1"
 # Releases are repo-wide (Reformatter owns "latest"), so the published version.txt is the source of truth
 VERSION_URL       = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Applications/FolderManager/version.txt"
 EXE_DOWNLOAD_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe"
@@ -358,6 +357,20 @@ def list_subdirs(path: str) -> list[str]:
 #  UPDATE CHECK
 # ─────────────────────────────────────────────────────────────────
 
+def read_app_version() -> str:
+    """Version from the bundled version.txt, the same file PyInstaller stamps into the exe."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "version.txt")
+    try:
+        with open(path, encoding="utf-8") as f:
+            m = re.search(r"StringStruct\('FileVersion',\s*'([\d.]+)'\)", f.read())
+    except OSError:
+        return "dev"
+    return f"v{m.group(1)}" if m else "dev"
+
+
+CURRENT_VERSION = read_app_version()
+
+
 def parse_version(text: str) -> tuple[int, ...]:
     return tuple(int(n) for n in re.findall(r"\d+", text)[:3])
 
@@ -372,7 +385,7 @@ def fetch_latest_version() -> str | None:
     except (urllib.error.URLError, TimeoutError, OSError):
         return None
     m = re.search(r"StringStruct\('FileVersion',\s*'([\d.]+)'\)", text)
-    return f"v.{m.group(1)}" if m else None
+    return f"v{m.group(1)}" if m else None
 
 
 def load_skipped_version(core_path: str) -> str:

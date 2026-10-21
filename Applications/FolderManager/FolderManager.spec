@@ -9,7 +9,8 @@ a = Analysis(
         ('assets/down.png', 'assets'),
         ('assets/plus.png', 'assets'),
         ('assets/refresh.png', 'assets'),
-        ('FolderManager.ico', '.')
+        ('FolderManager.ico', '.'),
+        ('version.txt', '.'),
     ],
     hiddenimports=[
         'yaml', '_yaml',

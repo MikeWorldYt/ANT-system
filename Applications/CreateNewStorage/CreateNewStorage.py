@@ -36,7 +36,6 @@ TREE_YAML_NAME = "Tree.yaml"
 CORE_API_URL        = "https://api.github.com/repos/MikeWorldYt/ANT-system/contents/Migration/Core"
 FOLDER_MANAGER_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe"
 FOLDER_MANAGER_NAME = "FolderManager.exe"
-ANT_VERSION         = "v2.3.1"
 
 # ─────────────────────────────────────────────────────────────────
 #  COLOR THEME
@@ -54,6 +53,20 @@ TREE_BG  = "#1a1a1a"
 # ─────────────────────────────────────────────────────────────────
 
 IS_WINDOWS = platform.system() == "Windows"
+
+def read_app_version() -> str:
+    """Version from the bundled version.txt, the same file PyInstaller stamps into the exe."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "version.txt")
+    try:
+        with open(path, encoding="utf-8") as f:
+            m = re.search(r"StringStruct\('FileVersion',\s*'([\d.]+)'\)", f.read())
+    except OSError:
+        return "dev"
+    return f"v{m.group(1)}" if m else "dev"
+
+
+ANT_VERSION = read_app_version()
+
 
 def sanitize_name(raw: str) -> str:
     """Sanitize and format name to Pascal_Snake_Case."""
