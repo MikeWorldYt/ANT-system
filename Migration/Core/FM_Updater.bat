@@ -10,10 +10,10 @@ set "EXE_NAME=%~nx1"
 set "TMP_EXE=%~dp1FolderManager_new.exe"
 set "BAK_EXE=%~dp1FolderManager_old.exe"
 
-if "%EXE_PATH%"=="" goto end
-if "%DOWNLOAD_URL%"=="" goto end
+if "%EXE_PATH%"=="" goto keep
+if "%DOWNLOAD_URL%"=="" goto keep
 :: Only an installed exe is replaced; a source checkout (FolderManager.py) must never be overwritten
-if /i not "%~x1"==".exe" goto end
+if /i not "%~x1"==".exe" goto keep
 
 echo Waiting for FolderManager to close...
 set /a attempts=0
@@ -24,7 +24,7 @@ if errorlevel 1 goto download
 set /a attempts+=1
 if %attempts% geq 10 (
     echo Timeout waiting for the app to close. Aborting update.
-    goto end
+    goto keep
 )
 ping -n 2 127.0.0.1 >nul
 goto wait_loop
@@ -54,13 +54,18 @@ if errorlevel 1 (
 )
 del /f /q "%BAK_EXE%" >nul 2>&1
 echo Update applied successfully.
+set "UPDATED=1"
 
 :relaunch
 echo Relaunching FolderManager...
 start "" "%EXE_PATH%"
+if not defined UPDATED goto keep
 
-:end
+:: Deletes this script only after a successful update; a failed one keeps it for the next retry
 endlocal
-:: Deletes this script once it has exited
 start "" /b cmd /c "ping -n 3 127.0.0.1 >nul & del /f /q "%~f0""
+exit /b
+
+:keep
+endlocal
 exit /b
