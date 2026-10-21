@@ -59,18 +59,12 @@ if errorlevel 1 (
 )
 del /f /q "%BAK_EXE%" >nul 2>&1
 echo Update applied successfully.
-set "UPDATED=1"
 
 :relaunch
 echo Relaunching FolderManager...
 start "" "%EXE_PATH%"
-if not defined UPDATED goto keep
 
-:: Deletes this script only after a successful update; a failed one keeps it for the next retry
-endlocal
-start "" /b cmd /c "ping -n 3 127.0.0.1 >nul & del /f /q "%~f0""
-exit /b
-
+:: The script stays in 00.Core: FolderManager needs it for every future update
 :keep
 endlocal
 exit /b
