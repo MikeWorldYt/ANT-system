@@ -19,6 +19,8 @@ from .storage import (
 )
 
 POLL_MS = 50
+# A failed optional download only warns; it must never abort the storage already built
+OPTIONAL_DOWNLOAD_ERRORS = (OSError, ValueError, KeyError, TypeError, http.client.HTTPException)
 
 
 class CreationFailed(Exception):
@@ -47,14 +49,20 @@ class CreationMixin:
         events: queue.Queue = queue.Queue()
 
         def worker():
+            log = lambda msg, color=BUTTON: events.put(("log", msg, color))
+            self._created_dirs = []
             try:
-                readme_dest = self._creation_sequence(lambda msg, color=BUTTON: events.put(("log", msg, color)))
+                readme_dest = self._creation_sequence(log)
                 events.put(("done", readme_dest))
             except CreationFailed as e:
                 events.put(("failed", e.title, str(e)))
             except Exception as e:
-                events.put(("log", f"\n❌ ERROR: {e}", ERROR))
-                events.put(("failed", "Error", f"Failed to create storage:\n{e}"))
+                # Any unexpected failure still undoes the folders this run created
+                log(f"\n❌ ERROR: {e}", ERROR)
+                log("\nApplying roll-back...", ACCENT)
+                remaining = rollback_created(self._created_dirs, log)
+                leftover = ("\n\nThese folders could not be removed:\n" + "\n".join(remaining)) if remaining else ""
+                events.put(("failed", "Error", f"Failed to create storage:\n{e}" + leftover))
 
         def poll():
             while True:
@@ -140,7 +148,7 @@ class CreationMixin:
         root_path    = self.full_path
         review_index = os.path.join(root_path, "998.Review")
         core_dir     = os.path.join(root_path, "999.Settings", "00.Core")
-        created_dirs = []
+        created_dirs = self._created_dirs
 
         make_dirs_tracked(root_path, created_dirs)
         log("Wizard online\n\nGenerating root directory ...", ACCENT)
@@ -174,14 +182,14 @@ class CreationMixin:
                 ) from e
 
         log("\nGenerating an ANT Storage Template ...", ACCENT)
-        process_yaml_tree(self.parsed_tree, root_path, review_index, log)
+        process_yaml_tree(self.parsed_tree, root_path, review_index, log, created_dirs)
 
         log("\nDownloading ANT Core and utility files ...", ACCENT)
         readme_dest = os.path.join(root_path, README_NAME)
         try:
             urllib.request.urlretrieve(README_URL, readme_dest)
             log(f"✔ {readme_dest} (downloaded)")
-        except OSError as e:
+        except OPTIONAL_DOWNLOAD_ERRORS as e:
             with open(readme_dest, "w", encoding="utf-8") as f:
                 f.write(
                     f"# ANT System — Get Started\n\n"
@@ -196,12 +204,12 @@ class CreationMixin:
                 urllib.request.urlretrieve(FOLDER_MANAGER_URL, fm_dest)
                 self.folder_manager_path = fm_dest
                 log(f"✔ {fm_dest} (downloaded)")
-            except OSError as e:
+            except OPTIONAL_DOWNLOAD_ERRORS as e:
                 log(f"⚠ FolderManager download failed: {e}", ACCENT)
 
         try:
             download_core_files(core_dir, log)
-        except (OSError, ValueError) as e:
+        except OPTIONAL_DOWNLOAD_ERRORS as e:
             log(f"⚠ Core files download failed: {e}", ACCENT)
 
         log("\n" + "═" * 50, TEXT)

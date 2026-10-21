@@ -93,7 +93,8 @@ def download_tree_yaml() -> tuple:
 
 
 def process_yaml_tree(tree_dict: dict, base_path: str, review_index: str,
-                      log_fn, path_context: list = None):
+                      log_fn, created: list, path_context: list = None):
+    """Create the template folders; every folder made here is added to created for rollback."""
     if path_context is None:
         path_context = []
 
@@ -106,14 +107,14 @@ def process_yaml_tree(tree_dict: dict, base_path: str, review_index: str,
         if type_prefix == 'CFG':
             # Already created manually — recurse only
             if children:
-                process_yaml_tree(children, folder_path, review_index, log_fn, ctx_next)
+                process_yaml_tree(children, folder_path, review_index, log_fn, created, ctx_next)
 
         elif type_prefix == 'REV':
-            os.makedirs(folder_path, exist_ok=True)
+            make_dirs_tracked(folder_path, created)
             log_fn(f"✔ {folder_path}")
 
             try:
-                shortcut_name = review_shortcut_name(path_context)
+                shortcut_name = review_shortcut_name(path_context, key)
                 create_shortcut(folder_path, os.path.join(review_index, shortcut_name))
                 log_fn(f"  ⤤ shortcut created → {shortcut_name}", TEXT)
             except (OSError, ValueError) as e:
@@ -121,10 +122,10 @@ def process_yaml_tree(tree_dict: dict, base_path: str, review_index: str,
 
         else:
             # NODE, WKB, RES, PORTF, WS, etc.
-            os.makedirs(folder_path, exist_ok=True)
+            make_dirs_tracked(folder_path, created)
             log_fn(f"✔ {folder_path}")
             if children:
-                process_yaml_tree(children, folder_path, review_index, log_fn, ctx_next)
+                process_yaml_tree(children, folder_path, review_index, log_fn, created, ctx_next)
 
 
 def download_core_files(core_dir: str, log_fn):

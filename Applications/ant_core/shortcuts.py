@@ -6,8 +6,13 @@ import subprocess
 IS_WINDOWS = platform.system() == "Windows"
 
 
-def review_shortcut_name(owner_parts: list[str]) -> str:
+def review_shortcut_name(owner_parts: list[str], rev_folder: str = "") -> str:
     """998.Review shortcut name for the REV folder inside owner_parts[-1], e.g. 400.ACADEMIC/01.Math -> 401.Math."""
+    if not owner_parts:
+        # A review folder at the storage root has no owner: it is named after itself
+        if not rev_folder:
+            raise ValueError("A top-level review folder needs its own name")
+        return rev_folder
     if len(owner_parts) == 1:
         return owner_parts[0]
     if len(owner_parts) == 2:
