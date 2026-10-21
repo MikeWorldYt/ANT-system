@@ -7,7 +7,6 @@ a = Analysis(
     datas=[
         ('CreateNewStorage.ico', '.'),
         ('version.txt', '.'),
-        ('assets/ant.png', 'assets'),
     ],
     hookspath=[],
     hooksconfig={},
