@@ -22,9 +22,9 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        'unittest', 'email', 'html', 'http', 'xml', 'xmlrpc',
+        'unittest', 'html', 'xml', 'xmlrpc',
         'pydoc', 'doctest', 'difflib', 'ftplib', 'imaplib',
-        'mailbox', 'mimetypes', 'smtplib', 'poplib', 'telnetlib',
+        'mailbox', 'smtplib', 'poplib', 'telnetlib',
         'sqlite3', 'decimal', 'fractions', 'statistics',
         'multiprocessing', 'concurrent', 'asyncio',
         'logging', 'curses', 'readline', 'rlcompleter',

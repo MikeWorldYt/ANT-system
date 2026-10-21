@@ -8,7 +8,8 @@ import yaml
 # ─────────────────────────────────────────────────────────────────
 
 CURRENT_VERSION   = "v.1.2.1"
-GITHUB_RELEASE_API = "https://api.github.com/repos/MikeWorldYt/ANT-system/releases/latest"
+# Releases are repo-wide (Reformatter owns "latest"), so the published version.txt is the source of truth
+VERSION_URL       = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Applications/FolderManager/version.txt"
 EXE_DOWNLOAD_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe"
 UPDATER_SCRIPT    = "FM_Updater.bat"
 
@@ -373,19 +374,21 @@ def list_subdirs(path: str) -> list[str]:
 #  UPDATE CHECK
 # ─────────────────────────────────────────────────────────────────
 
+def parse_version(text: str) -> tuple[int, ...]:
+    return tuple(int(n) for n in re.findall(r"\d+", text)[:3])
+
+
 def fetch_latest_version() -> str | None:
-    """Query GitHub releases API and return tag_name, or None on failure."""
+    """Return the FileVersion published on main, or None when offline or unparsable."""
+    import urllib.request, urllib.error
+    req = urllib.request.Request(VERSION_URL, headers={"User-Agent": "FolderManager-Updater"})
     try:
-        import urllib.request, json
-        req = urllib.request.Request(
-            GITHUB_RELEASE_API,
-            headers={"User-Agent": "FolderManager-Updater"},
-        )
         with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read().decode())
-            return data.get("tag_name") 
-    except Exception:
+            text = resp.read().decode("utf-8", errors="replace")
+    except (urllib.error.URLError, TimeoutError, OSError):
         return None
+    m = re.search(r"StringStruct\('FileVersion',\s*'([\d.]+)'\)", text)
+    return f"v.{m.group(1)}" if m else None
 
 
 def load_skipped_version(core_path: str) -> str:
@@ -417,9 +420,8 @@ def launch_updater(core_path: str, exe_path: str):
         return False
     import subprocess
     subprocess.Popen(
-        [bat, exe_path, EXE_DOWNLOAD_URL],
+        ["cmd", "/c", bat, exe_path, EXE_DOWNLOAD_URL],
         creationflags=subprocess.CREATE_NO_WINDOW,
-        shell=True,
     )
     return True
 
@@ -512,7 +514,7 @@ def check_for_updates(parent: tk.Tk, root_path: str, exe_path: str):
         latest = fetch_latest_version()
         if not latest:
             return
-        if latest == CURRENT_VERSION:
+        if parse_version(latest) <= parse_version(CURRENT_VERSION):
             return
         skipped = load_skipped_version(core_path)
         if latest == skipped:
