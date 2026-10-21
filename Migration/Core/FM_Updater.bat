@@ -12,6 +12,8 @@ set "BAK_EXE=%~dp1FolderManager_old.exe"
 
 if "%EXE_PATH%"=="" goto end
 if "%DOWNLOAD_URL%"=="" goto end
+:: Only an installed exe is replaced; a source checkout (FolderManager.py) must never be overwritten
+if /i not "%~x1"==".exe" goto end
 
 echo Waiting for FolderManager to close...
 set /a attempts=0
