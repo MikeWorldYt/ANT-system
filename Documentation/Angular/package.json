@@ -5,6 +5,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "postbuild": "node post-build.js",
     "build:prod": "ng build --configuration=production --base-href=/angular-app/",
     "watch": "ng build --watch --configuration development",
@@ -12,8 +13,9 @@
   },
   "engines": {
     "node": ">=18.19.0",
-    "npm": ">=8.0.0"
+    "pnpm": ">=9.0.0"
   },
+  "packageManager": "pnpm@12.11.2",
   "private": true,
   "dependencies": {
     "@angular/animations": "^18.0.0",
