@@ -108,17 +108,20 @@ def rollback_created(created: list):
 
 
 def create_shortcut_windows(target_path: str, shortcut_path: str):
+    # Paths travel as env vars so quotes, $ or backticks in folder names can't break the script
     ps_cmd = (
-        f"$ws = New-Object -ComObject WScript.Shell; "
-        f"$s = $ws.CreateShortcut('{shortcut_path}'); "
-        f"$s.TargetPath = '{target_path}'; "
-        f"$s.Save()"
+        "$s = (New-Object -ComObject WScript.Shell).CreateShortcut($env:ANT_LNK_PATH); "
+        "$s.TargetPath = $env:ANT_LNK_TARGET; "
+        "$s.Save()"
     )
-    subprocess.run(
+    result = subprocess.run(
         ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd],
+        env={**os.environ, "ANT_LNK_PATH": shortcut_path, "ANT_LNK_TARGET": target_path},
         creationflags=subprocess.CREATE_NO_WINDOW,
-        capture_output=True
+        capture_output=True, text=True,
     )
+    if result.returncode != 0:
+        raise OSError(f"Shortcut not created: {shortcut_path}\n{result.stderr.strip()}")
 
 
 def create_symlink_unix(target_path: str, link_path: str):
@@ -172,12 +175,15 @@ def process_yaml_tree(tree_dict: dict, base_path: str, review_index: str,
             log_fn(f"✔ {folder_path}")
 
             shortcut_name = compute_shortcut_name(path_context, level)
-            if IS_WINDOWS:
-                create_shortcut_windows(
-                    folder_path, os.path.join(review_index, f"{shortcut_name}.lnk"))
-            else:
-                create_symlink_unix(folder_path, os.path.join(review_index, shortcut_name))
-            log_fn(f"  ⤤ shortcut created → {shortcut_name}", TEXT)
+            try:
+                if IS_WINDOWS:
+                    create_shortcut_windows(
+                        folder_path, os.path.join(review_index, f"{shortcut_name}.lnk"))
+                else:
+                    create_symlink_unix(folder_path, os.path.join(review_index, shortcut_name))
+                log_fn(f"  ⤤ shortcut created → {shortcut_name}", TEXT)
+            except OSError as e:
+                log_fn(f"  ⚠ {e}", ACCENT)
 
         else:
             # NODE, WKB, RES, PORTF, WS, etc.

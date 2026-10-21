@@ -216,25 +216,28 @@ def _shortcut_name_L3(l1_name: str, l2_name: str, l3_name: str) -> str:
 
 
 def _create_shortcut_windows(link_path: str, target_path: str):
-    """Create a Windows .lnk shortcut using PowerShell."""
+    # Paths travel as env vars so quotes, $ or backticks in folder names can't break the script
     ps = (
-        f'$ws = New-Object -ComObject WScript.Shell; '
-        f'$s = $ws.CreateShortcut("{link_path}"); '
-        f'$s.TargetPath = "{target_path}"; '
-        f'$s.Save()'
+        "$s = (New-Object -ComObject WScript.Shell).CreateShortcut($env:ANT_LNK_PATH); "
+        "$s.TargetPath = $env:ANT_LNK_TARGET; "
+        "$s.Save()"
     )
     import subprocess
-    subprocess.run(
+    result = subprocess.run(
         ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
-        capture_output=True,
+        env={**os.environ, "ANT_LNK_PATH": link_path, "ANT_LNK_TARGET": target_path},
+        capture_output=True, text=True,
         creationflags=subprocess.CREATE_NO_WINDOW,
     )
+    if result.returncode != 0:
+        raise OSError(f"Shortcut not created: {link_path}\n{result.stderr.strip()}")
 
 
-def rebuild_review_index(root_path: str, yaml_data: dict):
+def rebuild_review_index(root_path: str, yaml_data: dict) -> list[str]:
+    """Recreate the 998.Review shortcuts; return the errors of the ones that failed."""
     review_dir = os.path.join(root_path, "998.Review")
     if not os.path.isdir(review_dir):
-        return
+        return []
 
     # Remove existing shortcuts
     for f in os.listdir(review_dir):
@@ -244,6 +247,14 @@ def rebuild_review_index(root_path: str, yaml_data: dict):
                 os.remove(fpath)
             except OSError:
                 pass
+
+    failures: list[str] = []
+
+    def _link(link_name: str, target: str):
+        try:
+            _create_shortcut_windows(os.path.join(review_dir, link_name), target)
+        except OSError as e:
+            failures.append(str(e))
 
     skip_keys = {"type", "status"}
 
@@ -262,8 +273,7 @@ def rebuild_review_index(root_path: str, yaml_data: dict):
         rev_l1_abs  = os.path.join(l1_abs, rev_l1_name)
         if os.path.isdir(rev_l1_abs):
             link_name = _shortcut_name_L1(l1_name) + ".lnk"
-            _create_shortcut_windows(
-                os.path.join(review_dir, link_name), rev_l1_abs)
+            _link(link_name, rev_l1_abs)
 
         # L2 children
         for l2_name, l2_node in sorted(l1_node.items()):
@@ -280,8 +290,7 @@ def rebuild_review_index(root_path: str, yaml_data: dict):
             rev_l2_abs  = os.path.join(l2_abs, rev_l2_name)
             if os.path.isdir(rev_l2_abs):
                 link_name = _shortcut_name_L2(l1_name, l2_name) + ".lnk"
-                _create_shortcut_windows(
-                    os.path.join(review_dir, link_name), rev_l2_abs)
+                _link(link_name, rev_l2_abs)
 
             # L3 children (they ARE the REV, no 98. inside)
             for l3_name, l3_node in sorted(l2_node.items()):
@@ -297,8 +306,9 @@ def rebuild_review_index(root_path: str, yaml_data: dict):
                 rev_l3_abs  = os.path.join(l3_abs, rev_l3_name)
                 if os.path.isdir(rev_l3_abs):
                     link_name = _shortcut_name_L3(l1_name, l2_name, l3_name) + ".lnk"
-                    _create_shortcut_windows(
-                        os.path.join(review_dir, link_name), rev_l3_abs)
+                    _link(link_name, rev_l3_abs)
+
+    return failures
 
 # ─────────────────────────────────────────────────────────────────
 #  NUMERIC ID HELPERS
@@ -1305,13 +1315,15 @@ class FolderManagerApp:
         """Re-scan disk, update yaml with new dirs (no overwrites), rebuild tree."""
         self.yaml_data  = sync_yaml(self.root_path)
         self.disk_dirs  = collect_disk_dirs(self.root_path)
-        rebuild_review_index(self.root_path, self.yaml_data)
+        failures = rebuild_review_index(self.root_path, self.yaml_data)
         expansion_state = self._capture_expansion()
         self.selected_node = None
         self._set_actions_enabled(False)
         self._init_tree()
         self._restore_expansion(expansion_state)
         self._render_tree()
+        if failures:
+            self._flash(f"{len(failures)} review shortcut(s) failed: {failures[0]}", error=True)
 
     def _flash(self, message: str, error: bool):
         self.status_label.config(text=message, fg=ACCENT if error else BUTTON)
