@@ -2,14 +2,15 @@
 
 a = Analysis(
     ['FolderManager.py'],
-    pathex=[],
+    pathex=['..'],
     binaries=[],
     datas=[
         ('assets/up.png', 'assets'),
         ('assets/down.png', 'assets'),
         ('assets/plus.png', 'assets'),
         ('assets/refresh.png', 'assets'),
-        ('FolderManager.ico', '.')
+        ('FolderManager.ico', '.'),
+        ('version.txt', '.'),
     ],
     hiddenimports=[
         'yaml', '_yaml',
@@ -22,9 +23,9 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        'unittest', 'email', 'html', 'http', 'xml', 'xmlrpc',
+        'unittest', 'html', 'xml', 'xmlrpc',
         'pydoc', 'doctest', 'difflib', 'ftplib', 'imaplib',
-        'mailbox', 'mimetypes', 'smtplib', 'poplib', 'telnetlib',
+        'mailbox', 'smtplib', 'poplib', 'telnetlib',
         'sqlite3', 'decimal', 'fractions', 'statistics',
         'multiprocessing', 'concurrent', 'asyncio',
         'logging', 'curses', 'readline', 'rlcompleter',

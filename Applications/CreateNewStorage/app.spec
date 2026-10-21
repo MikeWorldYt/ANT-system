@@ -2,11 +2,11 @@
 
 a = Analysis(
     ['CreateNewStorage.py'],
-    pathex=[],
+    pathex=['..'],
     binaries=[],
     datas=[
         ('CreateNewStorage.ico', '.'),
-        ('assets/ant.png', 'assets'),
+        ('version.txt', '.'),
     ],
     hookspath=[],
     hooksconfig={},
