@@ -22,12 +22,15 @@ set /a attempts=0
 tasklist /fi "imagename eq %EXE_NAME%" 2>nul | find /i "%EXE_NAME%" >nul
 if errorlevel 1 goto download
 set /a attempts+=1
-if %attempts% geq 10 (
-    echo Timeout waiting for the app to close. Aborting update.
-    goto keep
-)
+if %attempts% geq 10 goto wait_timeout
 ping -n 2 127.0.0.1 >nul
 goto wait_loop
+
+:wait_timeout
+echo Timeout waiting for the app to close. Aborting update.
+:: The script runs hidden, so the user gets a dialog; no relaunch, to avoid a close/reopen loop
+powershell -NoProfile -NonInteractive -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('FolderManager did not close within 10 seconds, so the update was cancelled. Close every FolderManager window and try again.', 'FolderManager update', 'OK', 'Warning')" >nul 2>&1
+goto keep
 
 :download
 echo Downloading update...
