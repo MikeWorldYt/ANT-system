@@ -35,9 +35,11 @@ goto keep
 :download
 echo Downloading update...
 if exist "%TMP_EXE%" del /f /q "%TMP_EXE%" >nul 2>&1
-powershell -NoProfile -NonInteractive -Command "Invoke-WebRequest -UseBasicParsing -Uri $env:DOWNLOAD_URL -OutFile $env:TMP_EXE" >nul 2>&1
-if not exist "%TMP_EXE%" (
-    echo Download failed. Keeping the current version.
+:: Exit code 0 only when the transfer finished and the file is a Windows executable (MZ header)
+powershell -NoProfile -NonInteractive -Command "try { Invoke-WebRequest -UseBasicParsing -Uri $env:DOWNLOAD_URL -OutFile $env:TMP_EXE -ErrorAction Stop; $b = [IO.File]::ReadAllBytes($env:TMP_EXE); if ($b.Length -lt 1024 -or $b[0] -ne 0x4D -or $b[1] -ne 0x5A) { exit 1 }; exit 0 } catch { exit 1 }" >nul 2>&1
+if errorlevel 1 (
+    echo Download failed or incomplete. Keeping the current version.
+    if exist "%TMP_EXE%" del /f /q "%TMP_EXE%" >nul 2>&1
     goto relaunch
 )
 
