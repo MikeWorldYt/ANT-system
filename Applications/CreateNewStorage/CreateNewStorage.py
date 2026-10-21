@@ -12,13 +12,14 @@
 """
 
 import os
+import http.client
 import sys
 import platform
 import string
 import re, shutil
+import tempfile
 import json
 import threading
-import tempfile
 import urllib.request
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -84,6 +85,60 @@ def get_available_drives() -> list:
         if os.path.exists(drive):
             drives.append(f"{letter}:")
     return drives
+
+
+def make_dirs_tracked(path: str, created: list):
+    """makedirs that records every folder it actually creates, parents first."""
+    missing = []
+    current = os.path.abspath(path)
+    while not os.path.exists(current):
+        missing.append(current)
+        parent = os.path.dirname(current)
+        if parent == current:
+            break
+        current = parent
+    os.makedirs(path, exist_ok=True)
+    created.extend(reversed(missing))
+
+
+def rollback_created(created: list, log_fn) -> list:
+    """Remove only the folders this run created, deepest first; keep and return the ones that remain."""
+    remaining = []
+    for path in reversed(created):
+        try:
+            shutil.rmtree(path)
+        except FileNotFoundError:
+            pass  # already removed together with its parent
+        except OSError as e:
+            remaining.append(path)
+            log_fn(f"✖ {path} (Not deleted: {e})", "#ff4444")
+            continue
+        log_fn(f"◄◄ {path} (Deleted)", ACCENT)
+    created[:] = list(reversed(remaining))
+    return remaining
+
+
+def write_file_atomic(path: str, text: str):
+    """Write next to the target and swap it in, so a failure never leaves a half-written file."""
+    fd, tmp_path = tempfile.mkstemp(prefix=".ant-", suffix=".tmp", dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+def download_tree_yaml() -> tuple:
+    """Fetch and parse Tree.yaml in memory; nothing touches the disk until it is valid."""
+    req = urllib.request.Request(TREE_YAML_URL, headers={"User-Agent": "ANT-Setup-Wizard"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        raw = r.read().decode("utf-8")
+    parsed = yaml.safe_load(raw)
+    if not isinstance(parsed, dict):
+        raise ValueError("Tree.yaml is empty or not a mapping")
+    return raw, parsed
 
 
 def create_shortcut_windows(target_path: str, shortcut_path: str):
@@ -775,41 +830,41 @@ class ANTWizard:
             settings_dir = os.path.join(root_path, "999.Settings")
             core_dir     = os.path.join(settings_dir, "00.Core")
 
+            created_dirs = []
+
             # ── Phase 1: Root ─────────────────────────────────────
-            os.makedirs(root_path, exist_ok=True)
+            make_dirs_tracked(root_path, created_dirs)
             log(f"Wizard online\n\nGenerating root directory ...", ACCENT)
             log(f"✔ {root_path}")
             
             # ── Phase 2: Base CFG folders ─────────────────────────
             log(f"\nGenerating ANT Essentials ...", ACCENT)
-            os.makedirs(review_index, exist_ok=True)
+            make_dirs_tracked(review_index, created_dirs)
             log(f"✔ {review_index}")
-            os.makedirs(core_dir, exist_ok=True)
+            make_dirs_tracked(core_dir, created_dirs)
             log(f"✔ {core_dir}")
 
             # ── Phase 3: Tree.yaml ────────────────────────────────
             tree_dest = os.path.join(core_dir, TREE_YAML_NAME)
 
             if self.yaml_content:
-                with open(tree_dest, "w", encoding="utf-8") as f:
-                    f.write(self.yaml_content)
+                write_file_atomic(tree_dest, self.yaml_content)
                 log(f"✔ {tree_dest}")
             else:
                 try:
-                    urllib.request.urlretrieve(TREE_YAML_URL, tree_dest)
-                    with open(tree_dest, "r", encoding="utf-8") as f:
-                        self.yaml_content = f.read()
-                    self.parsed_tree = yaml.safe_load(self.yaml_content)
+                    self.yaml_content, self.parsed_tree = download_tree_yaml()
+                    write_file_atomic(tree_dest, self.yaml_content)
                     log(f"✔ {tree_dest} (Downloaded)")
-                except Exception as e:
+                except (OSError, ValueError, http.client.HTTPException, yaml.YAMLError) as e:
                     log(f"✖ Error downloading Core YAML: {e}", "#ff4444")
-                    shutil.rmtree(self.full_path, ignore_errors=True)
-                    log(f"\nApplying roll-back...\n◄◄ {self.full_path} (Deleted)", ACCENT)
+                    log("\nApplying roll-back...", ACCENT)
+                    remaining = rollback_created(created_dirs, log)
+                    leftover = ("\n\nThese folders could not be removed:\n" + "\n".join(remaining)) if remaining else ""
                     messagebox.showerror(
                         "Error",
                         f"Failed to download essential file 'Tree.yaml':\n{e}\n\n"
                         "This file is essential to the creation of an ANT Storage.\n"
-                        "Please check your internet connection and try again."
+                        "Please check your internet connection and try again." + leftover
                     )
                     # progress_win.destroy()
                     return
