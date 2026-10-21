@@ -3,6 +3,7 @@ import os
 import re
 import json
 import shutil
+import tempfile
 import string
 import urllib.request
 
@@ -70,9 +71,9 @@ def rollback_created(created: list, log_fn) -> list:
 
 def write_file_atomic(path: str, text: str):
     """Write next to the target and swap it in, so a failure never leaves a half-written file."""
-    tmp_path = path + ".tmp"
+    fd, tmp_path = tempfile.mkstemp(prefix=".ant-", suffix=".tmp", dir=os.path.dirname(path))
     try:
-        with open(tmp_path, "w", encoding="utf-8") as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
         os.replace(tmp_path, path)
     finally:

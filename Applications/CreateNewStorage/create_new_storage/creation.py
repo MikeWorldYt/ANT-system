@@ -1,5 +1,6 @@
 # Creates the storage on a worker thread while a progress window shows the log.
 import os
+import http.client
 import queue
 import threading
 import urllib.request
@@ -160,7 +161,7 @@ class CreationMixin:
                 self.yaml_content, self.parsed_tree = download_tree_yaml()
                 write_file_atomic(tree_dest, self.yaml_content)
                 log(f"✔ {tree_dest} (Downloaded)")
-            except (OSError, ValueError, yaml.YAMLError) as e:
+            except (OSError, ValueError, http.client.HTTPException, yaml.YAMLError) as e:
                 log(f"✖ Error downloading Core YAML: {e}", ERROR)
                 log("\nApplying roll-back...", ACCENT)
                 remaining = rollback_created(created_dirs, log)
