@@ -86,6 +86,27 @@ def get_available_drives() -> list:
     return drives
 
 
+def make_dirs_tracked(path: str, created: list):
+    """makedirs that records every folder it actually creates, parents first."""
+    missing = []
+    current = os.path.abspath(path)
+    while not os.path.exists(current):
+        missing.append(current)
+        parent = os.path.dirname(current)
+        if parent == current:
+            break
+        current = parent
+    os.makedirs(path, exist_ok=True)
+    created.extend(reversed(missing))
+
+
+def rollback_created(created: list):
+    """Remove only the folders this run created, deepest first."""
+    for path in reversed(created):
+        shutil.rmtree(path, ignore_errors=True)
+    created.clear()
+
+
 def create_shortcut_windows(target_path: str, shortcut_path: str):
     ps_cmd = (
         f"$ws = New-Object -ComObject WScript.Shell; "
@@ -775,16 +796,18 @@ class ANTWizard:
             settings_dir = os.path.join(root_path, "999.Settings")
             core_dir     = os.path.join(settings_dir, "00.Core")
 
+            created_dirs = []
+
             # ── Phase 1: Root ─────────────────────────────────────
-            os.makedirs(root_path, exist_ok=True)
+            make_dirs_tracked(root_path, created_dirs)
             log(f"Wizard online\n\nGenerating root directory ...", ACCENT)
             log(f"✔ {root_path}")
             
             # ── Phase 2: Base CFG folders ─────────────────────────
             log(f"\nGenerating ANT Essentials ...", ACCENT)
-            os.makedirs(review_index, exist_ok=True)
+            make_dirs_tracked(review_index, created_dirs)
             log(f"✔ {review_index}")
-            os.makedirs(core_dir, exist_ok=True)
+            make_dirs_tracked(core_dir, created_dirs)
             log(f"✔ {core_dir}")
 
             # ── Phase 3: Tree.yaml ────────────────────────────────
@@ -803,8 +826,10 @@ class ANTWizard:
                     log(f"✔ {tree_dest} (Downloaded)")
                 except Exception as e:
                     log(f"✖ Error downloading Core YAML: {e}", "#ff4444")
-                    shutil.rmtree(self.full_path, ignore_errors=True)
-                    log(f"\nApplying roll-back...\n◄◄ {self.full_path} (Deleted)", ACCENT)
+                    log("\nApplying roll-back...", ACCENT)
+                    for path in reversed(created_dirs):
+                        log(f"◄◄ {path} (Deleted)", ACCENT)
+                    rollback_created(created_dirs)
                     messagebox.showerror(
                         "Error",
                         f"Failed to download essential file 'Tree.yaml':\n{e}\n\n"
