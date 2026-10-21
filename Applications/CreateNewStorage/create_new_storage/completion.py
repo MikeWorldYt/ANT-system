@@ -9,7 +9,7 @@ from ant_core.shortcuts import IS_WINDOWS
 
 
 class CompletionMixin:
-    def _show_completion(self, progress_win):
+    def _show_completion(self):
 
 
         self.clear_content()
