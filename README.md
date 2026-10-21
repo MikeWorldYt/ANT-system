@@ -14,10 +14,10 @@ This repository includes [ANT System Utils](#️-utilities) for made ANT adoptio
 
 The fastest way to get started is through the included utilities.
 
-**1. Download and run NewStorageWizard**
+**1. Download and run CreateNewStorage**
 It will generate a ready-to-use ANT-compliant storage structure automatically.
 
-🔽 [Download NewStorageWizard.exe](https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/NewStorageWizard/dist/NewStorageWizard.exe)
+🔽 [Download CreateNewStorage.exe](https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/CreateNewStorage/dist/CreateNewStorage.exe)
 
 The wizard creates your root directory with the standard top-level structure:
 
@@ -61,11 +61,11 @@ Example:
 
 ## 🛠️ Utilities
 
-### 1. NewStorageWizard
+### 1. CreateNewStorage
 Creates a new ANT-compliant storage structure automatically.
 Use this to initialize any new workspace, project, or storage unit.
 
-🔽 [Download](https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/NewStorageWizard/dist/NewStorageWizard.exe) · 📁 [Source](https://github.com/MikeWorldYt/ANT-system/tree/main/Applications/NewStorageWizard)
+🔽 [Download](https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/CreateNewStorage/dist/CreateNewStorage.exe) · 📁 [Source](https://github.com/MikeWorldYt/ANT-system/tree/main/Applications/CreateNewStorage)
 
 ---
 
@@ -81,7 +81,7 @@ Use this to organize, rename, clean, and maintain your ANT folder structure on a
 Batch renaming tool that applies the ANT Naming Format to large sets of existing files.
 Includes preview mode, safety filters, and automatic skipping of system/hidden files.
 
-🔽 [Download](https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/Reformatter/dist/Reformatter.exe) · 📁 [Source](https://github.com/MikeWorldYt/ANT-system/tree/main/Applications/Reformatter)
+🔽 [Download](https://github.com/MikeWorldYt/ANT-system/releases/download/v0.2.1/reformatter.v.0.2.1.exe) · 📁 [Source](https://github.com/MikeWorldYt/ANT-system/tree/main/Applications/Reformatter)
 
 ---
 
