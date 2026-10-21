@@ -12,26 +12,17 @@
 """
 
 import os
-import sys
 import platform
 import string
 import re, shutil
 import json
 import threading
-import tempfile
 import urllib.request
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import subprocess
 
-# Auto-install PyYAML if missing
-try:
-    import yaml
-except ImportError:
-    import subprocess as _sp
-    _sp.check_call([sys.executable, "-m", "pip", "install", "pyyaml", "--quiet"],
-                   stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
-    import yaml
+import yaml
 
 # ─────────────────────────────────────────────────────────────────
 #  CONSTANTS
@@ -45,7 +36,6 @@ TREE_YAML_NAME = "Tree.yaml"
 CORE_API_URL        = "https://api.github.com/repos/MikeWorldYt/ANT-system/contents/Migration/Core"
 FOLDER_MANAGER_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe"
 FOLDER_MANAGER_NAME = "FolderManager.exe"
-ANT_LOGO_URL        = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/assets/ant.png"
 ANT_VERSION         = "v2.3.1"
 
 # ─────────────────────────────────────────────────────────────────
@@ -274,8 +264,6 @@ class ANTWizard:
         self.parsed_tree          = None   # cached parsed dict
         self.readme_path          = ""
         self.folder_manager_path  = ""
-        self.logo_path            = ""
-        self.logo_img             = None   # keep reference to avoid GC
         
         self.storage_name.trace("w", self.update_sanitized_name)
         
@@ -462,7 +450,7 @@ class ANTWizard:
                 bg="#3d2a1f", fg="#d4d4d4", justify="left"
             ).pack(anchor="w", padx=10, pady=(0, 10))
 
-            # Función para mostrar/ocultar la advertencia
+            # Show the warning only while C: is selected
             def update_warning(event=None):
                 if self.selected_drive.get().upper().startswith("C"):
                     warning_frame.pack(fill="x", pady=(30, 0), padx=10)
@@ -842,7 +830,6 @@ class ANTWizard:
                         "This file is essential to the creation of an ANT Storage.\n"
                         "Please check your internet connection and try again."
                     )
-                    # progress_win.destroy()
                     return
 
             # ── Phase 4: Build directory tree from YAML ───────────
@@ -892,7 +879,6 @@ class ANTWizard:
         except Exception as e:
             log(f"\n❌ ERROR: {str(e)}", "#ff4444")
             messagebox.showerror("Error", f"Failed to create storage:\n{str(e)}")
-            # progress_win.destroy()
 
 
     # ─────────────────────────────────────────────────────────────
@@ -901,7 +887,6 @@ class ANTWizard:
 
     def _show_completion(self, progress_win):
 
-        # progress_win.destroy()
 
         self.clear_content()
         self.update_subtitle("Setup Complete")
@@ -916,21 +901,8 @@ class ANTWizard:
         logo_col.pack(side="left", fill="y", padx=(0, 25))
         logo_col.pack_propagate(False)
 
-        if self.logo_path:
-            try:
-                img = tk.PhotoImage(file=self.logo_path)
-                # Scale down to fit ~120px
-                factor = max(1, max(img.width(), img.height()) // 120)
-                if factor > 1:
-                    img = img.subsample(factor, factor)
-                self.logo_img = img
-                tk.Label(logo_col, image=self.logo_img, bg=BG).pack(expand=True)
-            except Exception:
-                tk.Label(logo_col, text="🐜", font=("Segoe UI", 52), bg=BG, fg=BUTTON
-                         ).pack(expand=True)
-        else:
-            tk.Label(logo_col, text="🐜", font=("Segoe UI", 52), bg=BG, fg=BUTTON
-                     ).pack(expand=True)
+        tk.Label(logo_col, text="🐜", font=("Segoe UI", 52), bg=BG, fg=BUTTON
+                 ).pack(expand=True)
 
         # Right column — content
         right = tk.Frame(outer, bg=BG)

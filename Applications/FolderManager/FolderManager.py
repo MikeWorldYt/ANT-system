@@ -115,23 +115,6 @@ def is_locked_type(type_str: str) -> bool:
 #  YAML SYNC
 # ─────────────────────────────────────────────────────────────────
 
-def collect_disk_dirs(root_path: str) -> set[tuple]:
-    """Return set of rel_parts tuples for all dirs up to MAX_DEPTH."""
-    result = set()
-    def recurse(path: str, parts: tuple, depth: int):
-        if depth >= MAX_DEPTH:
-            return
-        try:
-            dirs = sorted(d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d)))
-        except PermissionError:
-            return
-        for d in dirs:
-            new_parts = parts + (d,)
-            result.add(new_parts)
-            recurse(os.path.join(path, d), new_parts, depth + 1)
-    recurse(root_path, (), 0)
-    return result
-
 def sync_yaml(root_path: str) -> dict:
     """Add new disk dirs to yaml. Does NOT remove missing ones (kept as ghosts)."""
     data = load_yaml(root_path)
@@ -187,15 +170,6 @@ def delete_yaml_key(data: dict, parent_parts: list[str], key: str):
     if isinstance(node, dict) and key in node:
         del node[key]
 
-def collect_yaml_keys(yaml_node: dict, depth: int = 0) -> list[str]:
-    """Return all non-'type'/'status' keys (child folder names)."""
-    skip = {"type", "status"}
-    result = []
-    for k, v in yaml_node.items():
-        if k not in skip and isinstance(v, dict):
-            result.append(k)
-    return result
-
 
 # ─────────────────────────────────────────────────────────────────
 #  REVIEW INDEX (shortcuts inside 998.Review)
@@ -239,16 +213,16 @@ def rebuild_review_index(root_path: str, yaml_data: dict) -> list[str]:
     if not os.path.isdir(review_dir):
         return []
 
+    failures: list[str] = []
+
     # Remove existing shortcuts
     for f in os.listdir(review_dir):
         fpath = os.path.join(review_dir, f)
         if os.path.isfile(fpath) and f.lower().endswith(".lnk"):
             try:
                 os.remove(fpath)
-            except OSError:
-                pass
-
-    failures: list[str] = []
+            except OSError as e:
+                failures.append(f"Could not remove {f}: {e}")
 
     def _link(link_name: str, target: str):
         try:
@@ -406,7 +380,7 @@ def load_skipped_version(core_path: str) -> str:
     try:
         with open(skip_file, "r") as f:
             return f.read().strip()
-    except Exception:
+    except OSError:
         return ""
 
 
@@ -415,8 +389,9 @@ def save_skipped_version(core_path: str, version: str):
     try:
         with open(skip_file, "w") as f:
             f.write(version)
-    except Exception:
-        pass
+    except OSError:
+        # Skipping is only a preference: if it can't be stored, the dialog shows again next launch
+        return
 
 
 def launch_updater(core_path: str, exe_path: str):
@@ -555,22 +530,6 @@ class TreeNode:
             return False
         return bool(list_subdirs(self.abs_path))
 
-    def load_children(self):
-        if not self._loaded:
-            if self.ghost:
-                self._loaded = True
-                return
-            self.children = [
-                TreeNode(os.path.join(self.abs_path, d), self.depth + 1, self.rel_parts + [d])
-                for d in list_subdirs(self.abs_path)
-            ]
-            self._loaded = True
-
-    def toggle(self):
-        if not self._loaded:
-            self.load_children()
-        self.expanded = not self.expanded
-
     def flat_visible(self) -> list["TreeNode"]:
         result = [self]
         if self.expanded:
@@ -597,14 +556,7 @@ class FolderManagerApp:
         root.configure(bg=BG)
         root.iconbitmap(icon_path)
 
-        try:
-            import ctypes
-            ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
-        except Exception:
-            pass
-
         self.yaml_data = sync_yaml(self.root_path)
-        self.disk_dirs = collect_disk_dirs(self.root_path)
 
         self.top_nodes: list[TreeNode] = []
         self.visible_nodes: list[TreeNode] = []
@@ -629,7 +581,8 @@ class FolderManagerApp:
         def _load_icon(filename):
             try:
                 return tk.PhotoImage(file=os.path.join(script_dir, filename))
-            except Exception:
+            except tk.TclError:
+                # Missing icon: the button falls back to its text label
                 return None
 
         self._ico_up      = _load_icon("up.png")
@@ -691,8 +644,6 @@ class FolderManagerApp:
         self.listbox.bind("<Return>", self._on_double_click)
 
     def _build_actions_panel(self, parent):
-        # tk.Frame(parent, bg=BORDER, height=1).pack(fill=tk.X, padx=12)
-
         # Name
         name_row = tk.Frame(parent, bg=INPUT_BG)
         name_row.pack(fill=tk.X, padx=12, pady=(18, 0))
@@ -1036,8 +987,9 @@ class FolderManagerApp:
                 if not os.path.exists(child_new_path):
                     try:
                         os.rename(child_old_path, child_new_path)
-                    except OSError:
-                        pass
+                    except OSError as e:
+                        self._flash(f"Could not rename {child_old}: {e}", error=True)
+                        continue
                 update_yaml_key(self.yaml_data, new_node_parts, child_old, child_new)
 
     # ─────────────────────────────────────────────────────────────
@@ -1073,7 +1025,8 @@ class FolderManagerApp:
 
         try:
             os.mkdir(new_abs)
-        except OSError:
+        except OSError as e:
+            self._flash(f"Could not create folder: {e}", error=True)
             return
 
         # Always create 98.X on disk regardless of depth
@@ -1082,8 +1035,8 @@ class FolderManagerApp:
         rev_abs      = os.path.join(new_abs, rev_name)
         try:
             os.mkdir(rev_abs)
-        except OSError:
-            pass
+        except OSError as e:
+            self._flash(f"Could not create {rev_name}: {e}", error=True)
 
         # Register in yaml
         new_type    = f"NODE-L{child_depth + 1}"
@@ -1125,7 +1078,6 @@ class FolderManagerApp:
         node_type = get_yaml_type(self.yaml_data, node.rel_parts)
 
         if not is_movable_node(node.name, node_type):
-            # debug: self._flash("Only Node folders (01-89) can be moved.", error=True)
             return
 
         node_id    = get_numeric_id(node.name)
@@ -1147,11 +1099,9 @@ class FolderManagerApp:
         idx = positions.index(node_id)
         target_idx = idx + direction
         if target_idx < 0 or target_idx >= len(movable):
-            # debug: self._flash("Cannot move further in that direction.", error=True)
             return
         # Special rule: id 01 cannot move to 00
         if direction == -1 and node_id == 1:
-            # debug: self._flash("Cannot move 01 higher.", error=True)
             return
 
         swap_id, swap_name = movable[target_idx]
@@ -1193,20 +1143,8 @@ class FolderManagerApp:
             swap_dict = parent_yaml.pop(swap_name, {})
             parent_yaml[node_new_name] = node_dict
             parent_yaml[swap_new_name] = swap_dict
-            # def _update_linked(node_dict_inner: dict, old_editable: str, new_editable: str):
-            #     if old_editable == new_editable:
-            #         return
-            #     for prefix in ("90", "98"):
-            #         old_child = f"{prefix}.{old_editable}"
-            #         new_child = f"{prefix}.{new_editable}"
-            #         if old_child in node_dict_inner:
-            #             node_dict_inner[new_child] = node_dict_inner.pop(old_child)
-
-            # _update_linked(node_dict, node_editable, swap_editable)
-            # _update_linked(swap_dict, swap_editable, node_editable)
 
         save_yaml(self.root_path, self.yaml_data)
-        # debug: self._flash(f'Moved: "{swap_new_name}"', error=False)
 
         # Update node reference — node takes swap_id, so its new name is node_new_name
         node.abs_path  = node_new_abs
@@ -1219,19 +1157,6 @@ class FolderManagerApp:
         self._init_tree()
         self._restore_expansion(expansion_state)
         self._render_tree(keep_parts=target_parts)
-
-    def _find_node_by_parts(self, rel_parts: list[str]) -> TreeNode | None:
-        """Walk top_nodes recursively to find a node by rel_parts."""
-        def walk(nodes):
-            for n in nodes:
-                if n.rel_parts == rel_parts:
-                    return n
-                if n._loaded:
-                    found = walk(n.children)
-                    if found:
-                        return found
-            return None
-        return walk(self.top_nodes)
 
     # ─────────────────────────────────────────────────────────────
     #  DELETE
@@ -1274,7 +1199,6 @@ class FolderManagerApp:
     
         self.selected_node = None
         self._set_actions_enabled(False)
-        self.disk_dirs = collect_disk_dirs(self.root_path)
         expansion_state = self._capture_expansion()
         self._init_tree()
         self._restore_expansion(expansion_state)
@@ -1314,7 +1238,6 @@ class FolderManagerApp:
     def _refresh(self):
         """Re-scan disk, update yaml with new dirs (no overwrites), rebuild tree."""
         self.yaml_data  = sync_yaml(self.root_path)
-        self.disk_dirs  = collect_disk_dirs(self.root_path)
         failures = rebuild_review_index(self.root_path, self.yaml_data)
         expansion_state = self._capture_expansion()
         self.selected_node = None
