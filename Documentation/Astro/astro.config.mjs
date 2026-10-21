@@ -59,7 +59,7 @@ export default defineConfig({
 					{
 						label: 'Reference',
 						translations: { es: 'Referencias' },
-						autogenerate: { directory: 'reference' },
+						items: [{ autogenerate: { directory: 'reference' } }],
 					},
 			],
 			customCss: [
