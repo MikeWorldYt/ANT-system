@@ -51,12 +51,20 @@ def launch_updater(core_path: str, exe_path: str):
             f"Could not find {UPDATER_SCRIPT} in:\n{core_path}"
         )
         return False
-    import subprocess
-    subprocess.Popen(
-        ["cmd", "/c", bat, exe_path, EXE_DOWNLOAD_URL],
-        creationflags=subprocess.CREATE_NO_WINDOW,
-    )
-    return True
+    # cmd /s strips only the outer quote pair, so every quoted path survives spaces
+    command = f'cmd /d /s /c ""{bat}" "{exe_path}" "{EXE_DOWNLOAD_URL}""'
+    try:
+        proc = subprocess.Popen(command, creationflags=subprocess.CREATE_NO_WINDOW)
+    except OSError as e:
+        messagebox.showerror("Update failed", f"Could not start the updater:\n{e}")
+        return False
+    try:
+        # The updater keeps running while it waits for this window to close; an early exit means it failed
+        code = proc.wait(timeout=1.5)
+    except subprocess.TimeoutExpired:
+        return True
+    messagebox.showerror("Update failed", f"The updater stopped right away (exit code {code}).\nFolderManager stays open.")
+    return False
 
 
 class UpdateDialog(tk.Toplevel):
