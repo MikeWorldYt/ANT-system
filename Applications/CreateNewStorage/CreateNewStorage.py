@@ -100,11 +100,44 @@ def make_dirs_tracked(path: str, created: list):
     created.extend(reversed(missing))
 
 
-def rollback_created(created: list):
-    """Remove only the folders this run created, deepest first."""
+def rollback_created(created: list, log_fn) -> list:
+    """Remove only the folders this run created, deepest first; keep and return the ones that remain."""
+    remaining = []
     for path in reversed(created):
-        shutil.rmtree(path, ignore_errors=True)
-    created.clear()
+        try:
+            shutil.rmtree(path)
+        except FileNotFoundError:
+            pass  # already removed together with its parent
+        except OSError as e:
+            remaining.append(path)
+            log_fn(f"✖ {path} (Not deleted: {e})", "#ff4444")
+            continue
+        log_fn(f"◄◄ {path} (Deleted)", ACCENT)
+    created[:] = list(reversed(remaining))
+    return remaining
+
+
+def write_file_atomic(path: str, text: str):
+    """Write next to the target and swap it in, so a failure never leaves a half-written file."""
+    tmp_path = path + ".tmp"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+def download_tree_yaml() -> tuple:
+    """Fetch and parse Tree.yaml in memory; nothing touches the disk until it is valid."""
+    req = urllib.request.Request(TREE_YAML_URL, headers={"User-Agent": "ANT-Setup-Wizard"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        raw = r.read().decode("utf-8")
+    parsed = yaml.safe_load(raw)
+    if not isinstance(parsed, dict):
+        raise ValueError("Tree.yaml is empty or not a mapping")
+    return raw, parsed
 
 
 def create_shortcut_windows(target_path: str, shortcut_path: str):
@@ -814,27 +847,23 @@ class ANTWizard:
             tree_dest = os.path.join(core_dir, TREE_YAML_NAME)
 
             if self.yaml_content:
-                with open(tree_dest, "w", encoding="utf-8") as f:
-                    f.write(self.yaml_content)
+                write_file_atomic(tree_dest, self.yaml_content)
                 log(f"✔ {tree_dest}")
             else:
                 try:
-                    urllib.request.urlretrieve(TREE_YAML_URL, tree_dest)
-                    with open(tree_dest, "r", encoding="utf-8") as f:
-                        self.yaml_content = f.read()
-                    self.parsed_tree = yaml.safe_load(self.yaml_content)
+                    self.yaml_content, self.parsed_tree = download_tree_yaml()
+                    write_file_atomic(tree_dest, self.yaml_content)
                     log(f"✔ {tree_dest} (Downloaded)")
-                except Exception as e:
+                except (OSError, ValueError, yaml.YAMLError) as e:
                     log(f"✖ Error downloading Core YAML: {e}", "#ff4444")
                     log("\nApplying roll-back...", ACCENT)
-                    for path in reversed(created_dirs):
-                        log(f"◄◄ {path} (Deleted)", ACCENT)
-                    rollback_created(created_dirs)
+                    remaining = rollback_created(created_dirs, log)
+                    leftover = ("\n\nThese folders could not be removed:\n" + "\n".join(remaining)) if remaining else ""
                     messagebox.showerror(
                         "Error",
                         f"Failed to download essential file 'Tree.yaml':\n{e}\n\n"
                         "This file is essential to the creation of an ANT Storage.\n"
-                        "Please check your internet connection and try again."
+                        "Please check your internet connection and try again." + leftover
                     )
                     # progress_win.destroy()
                     return
