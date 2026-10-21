@@ -1,4 +1,5 @@
 # Update check against the version published on main, and the dialog that starts FM_Updater.bat.
+import http.client
 import os
 import subprocess
 import threading
@@ -18,7 +19,7 @@ def fetch_latest_version() -> str | None:
     try:
         with urllib.request.urlopen(req, timeout=5) as resp:
             text = resp.read().decode("utf-8", errors="replace")
-    except (urllib.error.URLError, TimeoutError, OSError):
+    except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException):
         return None
     return parse_file_version(text)
 
