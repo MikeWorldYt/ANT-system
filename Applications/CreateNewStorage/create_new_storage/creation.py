@@ -11,8 +11,11 @@ import yaml
 from ant_core.theme import BG, TEXT, BUTTON, ACCENT, ERROR, TREE_BG
 from ant_core.shortcuts import IS_WINDOWS
 
-from .config import DOCS_URL, README_URL, README_NAME, TREE_YAML_URL, TREE_YAML_NAME, FOLDER_MANAGER_URL, FOLDER_MANAGER_NAME
-from .storage import make_dirs_tracked, rollback_created, process_yaml_tree, download_core_files
+from .config import DOCS_URL, README_URL, README_NAME, TREE_YAML_NAME, FOLDER_MANAGER_URL, FOLDER_MANAGER_NAME
+from .storage import (
+    make_dirs_tracked, rollback_created, write_file_atomic, download_tree_yaml,
+    process_yaml_tree, download_core_files,
+)
 
 POLL_MS = 50
 
@@ -150,27 +153,23 @@ class CreationMixin:
 
         tree_dest = os.path.join(core_dir, TREE_YAML_NAME)
         if self.yaml_content:
-            with open(tree_dest, "w", encoding="utf-8") as f:
-                f.write(self.yaml_content)
+            write_file_atomic(tree_dest, self.yaml_content)
             log(f"✔ {tree_dest}")
         else:
             try:
-                urllib.request.urlretrieve(TREE_YAML_URL, tree_dest)
-                with open(tree_dest, "r", encoding="utf-8") as f:
-                    self.yaml_content = f.read()
-                self.parsed_tree = yaml.safe_load(self.yaml_content)
+                self.yaml_content, self.parsed_tree = download_tree_yaml()
+                write_file_atomic(tree_dest, self.yaml_content)
                 log(f"✔ {tree_dest} (Downloaded)")
-            except (OSError, yaml.YAMLError) as e:
+            except (OSError, ValueError, yaml.YAMLError) as e:
                 log(f"✖ Error downloading Core YAML: {e}", ERROR)
                 log("\nApplying roll-back...", ACCENT)
-                for path in reversed(created_dirs):
-                    log(f"◄◄ {path} (Deleted)", ACCENT)
-                rollback_created(created_dirs)
+                remaining = rollback_created(created_dirs, log)
+                leftover = ("\n\nThese folders could not be removed:\n" + "\n".join(remaining)) if remaining else ""
                 raise CreationFailed(
                     "Error",
                     f"Failed to download essential file 'Tree.yaml':\n{e}\n\n"
                     "This file is essential to the creation of an ANT Storage.\n"
-                    "Please check your internet connection and try again."
+                    "Please check your internet connection and try again." + leftover
                 ) from e
 
         log("\nGenerating an ANT Storage Template ...", ACCENT)

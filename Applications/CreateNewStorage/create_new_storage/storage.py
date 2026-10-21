@@ -6,11 +6,13 @@ import shutil
 import string
 import urllib.request
 
-from ant_core.theme import TEXT, ACCENT
+import yaml
+
+from ant_core.theme import TEXT, ACCENT, ERROR
 from ant_core.tree_types import get_type_base, child_entries
 from ant_core.shortcuts import IS_WINDOWS, review_shortcut_name, create_shortcut
 
-from .config import CORE_API_URL
+from .config import CORE_API_URL, TREE_YAML_URL
 
 
 def sanitize_name(raw: str) -> str:
@@ -49,11 +51,44 @@ def make_dirs_tracked(path: str, created: list):
     created.extend(reversed(missing))
 
 
-def rollback_created(created: list):
-    """Remove only the folders this run created, deepest first."""
+def rollback_created(created: list, log_fn) -> list:
+    """Remove only the folders this run created, deepest first; keep and return the ones that remain."""
+    remaining = []
     for path in reversed(created):
-        shutil.rmtree(path, ignore_errors=True)
-    created.clear()
+        try:
+            shutil.rmtree(path)
+        except FileNotFoundError:
+            pass  # already removed together with its parent
+        except OSError as e:
+            remaining.append(path)
+            log_fn(f"✖ {path} (Not deleted: {e})", ERROR)
+            continue
+        log_fn(f"◄◄ {path} (Deleted)", ACCENT)
+    created[:] = list(reversed(remaining))
+    return remaining
+
+
+def write_file_atomic(path: str, text: str):
+    """Write next to the target and swap it in, so a failure never leaves a half-written file."""
+    tmp_path = path + ".tmp"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+def download_tree_yaml() -> tuple:
+    """Fetch and parse Tree.yaml in memory; nothing touches the disk until it is valid."""
+    req = urllib.request.Request(TREE_YAML_URL, headers={"User-Agent": "ANT-Setup-Wizard"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        raw = r.read().decode("utf-8")
+    parsed = yaml.safe_load(raw)
+    if not isinstance(parsed, dict):
+        raise ValueError("Tree.yaml is empty or not a mapping")
+    return raw, parsed
 
 
 def process_yaml_tree(tree_dict: dict, base_path: str, review_index: str,
