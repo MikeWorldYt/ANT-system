@@ -12,13 +12,14 @@
 """
 
 import os
+import http.client
 import sys
 import platform
 import string
 import re, shutil
+import tempfile
 import json
 import threading
-import tempfile
 import urllib.request
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -119,9 +120,9 @@ def rollback_created(created: list, log_fn) -> list:
 
 def write_file_atomic(path: str, text: str):
     """Write next to the target and swap it in, so a failure never leaves a half-written file."""
-    tmp_path = path + ".tmp"
+    fd, tmp_path = tempfile.mkstemp(prefix=".ant-", suffix=".tmp", dir=os.path.dirname(path))
     try:
-        with open(tmp_path, "w", encoding="utf-8") as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
         os.replace(tmp_path, path)
     finally:
@@ -854,7 +855,7 @@ class ANTWizard:
                     self.yaml_content, self.parsed_tree = download_tree_yaml()
                     write_file_atomic(tree_dest, self.yaml_content)
                     log(f"✔ {tree_dest} (Downloaded)")
-                except (OSError, ValueError, yaml.YAMLError) as e:
+                except (OSError, ValueError, http.client.HTTPException, yaml.YAMLError) as e:
                     log(f"✖ Error downloading Core YAML: {e}", "#ff4444")
                     log("\nApplying roll-back...", ACCENT)
                     remaining = rollback_created(created_dirs, log)
