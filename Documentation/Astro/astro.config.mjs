@@ -10,7 +10,11 @@ export default defineConfig({
 	},
 	integrations: [
 		starlight({
-			title: 'Docs',
+			title: 'ANT System',
+			logo: {
+				src: './src/assets/ant-logo.svg',
+				alt: 'ANT System logo',
+			},
 			defaultLocale: 'en',
 			locales: {
 				en: { label: 'English', },
