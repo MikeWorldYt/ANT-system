@@ -118,7 +118,8 @@ jobs:
             version=$(grep -oP "StringStruct\('FileVersion',\s*'\K[\d.]+" "Applications/$app/version.txt")
             mkdir -p "Applications/$app/dist"
             cp "$dir$app.exe" "Applications/$app/dist/$app.exe"
-            git add "Applications/$app/dist/$app.exe"
+            # dist/ is gitignored for local builds; release binaries are the one tracked exception
+            git add -f "Applications/$app/dist/$app.exe"
             if ! git diff --cached --quiet; then
               git commit -m "release($app): Build v$version executable"
             fi
