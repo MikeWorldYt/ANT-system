@@ -1,0 +1,17 @@
+# One dark palette for every ANT app window.
+
+BG            = "#202020"
+TEXT          = "#FFFFFF"
+TITLE         = "#00b386"
+BUTTON        = "#00b386"
+ACCENT        = "#ff8b40"
+ERROR         = "#ff4444"
+INPUT_BG      = "#2b2b2b"
+TREE_BG       = "#1a1a1a"
+HIGHLIGHT     = "#2a4a3e"
+DISABLED_TEXT = "#555555"
+BORDER        = "#333333"
+HOVER_BTN     = "#00c99a"
+DELETE_BTN    = "#c0392b"
+DELETE_HOVER  = "#e74c3c"
+GHOST_TEXT    = "#8b2020"

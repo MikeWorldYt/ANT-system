@@ -2,7 +2,7 @@
 
 a = Analysis(
     ['FolderManager.py'],
-    pathex=[],
+    pathex=['..'],
     binaries=[],
     datas=[
         ('assets/up.png', 'assets'),

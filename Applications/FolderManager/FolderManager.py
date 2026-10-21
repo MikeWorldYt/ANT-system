@@ -1,7 +1,18 @@
+import os, sys, re, shutil
 import tkinter as tk
 from tkinter import ttk, messagebox
-import os, sys, re, shutil
 import yaml
+
+# Source runs need the shared ant_core package one folder up; the frozen exe bundles it
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from ant_core.theme import (
+    BG, TEXT, TITLE, BUTTON, ACCENT, INPUT_BG, TREE_BG, HIGHLIGHT, DISABLED_TEXT,
+    BORDER, HOVER_BTN, DELETE_BTN, DELETE_HOVER, GHOST_TEXT,
+)
+from ant_core.tree_types import get_type_base, get_type_level, child_entries
+from ant_core.shortcuts import review_shortcut_name, create_shortcut
+from ant_core.version import read_app_version, parse_file_version, parse_version
 
 # ─────────────────────────────────────────────────────────────────
 #  VERSION
@@ -11,25 +22,8 @@ import yaml
 VERSION_URL       = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Applications/FolderManager/version.txt"
 EXE_DOWNLOAD_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe"
 UPDATER_SCRIPT    = "FM_Updater.bat"
-
-# ─────────────────────────────────────────────────────────────────
-#  COLOR THEME
-# ─────────────────────────────────────────────────────────────────
-
-BG            = "#202020"
-TEXT          = "#FFFFFF"
-TITLE         = "#00b386"
-BUTTON        = "#00b386"
-ACCENT        = "#ff8b40"
-INPUT_BG      = "#2b2b2b"
-TREE_BG       = "#1a1a1a"
-HIGHLIGHT     = "#2a4a3e"
-DISABLED_TEXT = "#555555"
-BORDER        = "#333333"
-HOVER_BTN     = "#00c99a"
-DELETE_BTN    = "#c0392b"
-DELETE_HOVER  = "#e74c3c"
-GHOST_TEXT    = "#8b2020"
+APP_DIR           = os.path.dirname(os.path.abspath(__file__))
+CURRENT_VERSION   = read_app_version(APP_DIR)
 
 ICON_OPEN     = "📂"
 ICON_CLOSED   = "📁"
@@ -99,13 +93,6 @@ def infer_type(name: str, depth: int) -> str:
             return folder_type
     return f"NODE-L{depth + 1}"
 
-def get_type_base(type_str: str) -> str:
-    return type_str.split("-")[0] if type_str else ""
-
-def get_type_level(type_str: str) -> str:
-    parts = type_str.split("-")
-    return parts[1] if len(parts) > 1 else ""
-
 def is_locked_type(type_str: str) -> bool:
     return get_type_base(type_str) in LOCKED_TYPES
 
@@ -174,38 +161,6 @@ def delete_yaml_key(data: dict, parent_parts: list[str], key: str):
 #  REVIEW INDEX (shortcuts inside 998.Review)
 # ─────────────────────────────────────────────────────────────────
 
-def _shortcut_name_L1(l1_name: str) -> str:
-    """e.g. "100.PERSONAL" """
-    return l1_name
-
-def _shortcut_name_L2(l1_name: str, l2_name: str) -> str:
-    """e.g. "100.PERSONAL" + "04.Curriculum" → "104.Curriculum" """
-    return l1_name[0] + l2_name
-
-def _shortcut_name_L3(l1_name: str, l2_name: str, l3_name: str) -> str:
-    """e.g. "400.ACADEMIC" + "01.Math" + "02.Algebra" → "401.02.Algebra" """
-    l2_id = l2_name.split(".")[0]          # "01"
-    return l1_name[0] + l2_id + "." + l3_name
-
-
-def _create_shortcut_windows(link_path: str, target_path: str):
-    # Paths travel as env vars so quotes, $ or backticks in folder names can't break the script
-    ps = (
-        "$s = (New-Object -ComObject WScript.Shell).CreateShortcut($env:ANT_LNK_PATH); "
-        "$s.TargetPath = $env:ANT_LNK_TARGET; "
-        "$s.Save()"
-    )
-    import subprocess
-    result = subprocess.run(
-        ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
-        env={**os.environ, "ANT_LNK_PATH": link_path, "ANT_LNK_TARGET": target_path},
-        capture_output=True, text=True,
-        creationflags=subprocess.CREATE_NO_WINDOW,
-    )
-    if result.returncode != 0:
-        raise OSError(f"Shortcut not created: {link_path}\n{result.stderr.strip()}")
-
-
 def rebuild_review_index(root_path: str, yaml_data: dict) -> list[str]:
     """Recreate the 998.Review shortcuts; return the errors of the ones that failed."""
     review_dir = os.path.join(root_path, "998.Review")
@@ -214,7 +169,6 @@ def rebuild_review_index(root_path: str, yaml_data: dict) -> list[str]:
 
     failures: list[str] = []
 
-    # Remove existing shortcuts
     for f in os.listdir(review_dir):
         fpath = os.path.join(review_dir, f)
         if os.path.isfile(fpath) and f.lower().endswith(".lnk"):
@@ -223,64 +177,22 @@ def rebuild_review_index(root_path: str, yaml_data: dict) -> list[str]:
             except OSError as e:
                 failures.append(f"Could not remove {f}: {e}")
 
-    def _link(link_name: str, target: str):
-        try:
-            _create_shortcut_windows(os.path.join(review_dir, link_name), target)
-        except OSError as e:
-            failures.append(str(e))
-
-    skip_keys = {"type", "status"}
-
-    # Walk yaml up to MAX_DEPTH
-    for l1_name, l1_node in sorted(yaml_data.items()):
-        if not isinstance(l1_node, dict):
-            continue
-        l1_type = l1_node.get("type", "")
-        if get_type_base(l1_type) in LOCKED_TYPES:
-            continue
-        l1_abs = os.path.join(root_path, l1_name)
-
-        # L1 REV → shortcut named l1_name targeting l1/98.editable
-        l1_editable = get_editable_part(l1_name)
-        rev_l1_name = f"98.{l1_editable}"
-        rev_l1_abs  = os.path.join(l1_abs, rev_l1_name)
-        if os.path.isdir(rev_l1_abs):
-            link_name = _shortcut_name_L1(l1_name) + ".lnk"
-            _link(link_name, rev_l1_abs)
-
-        # L2 children
-        for l2_name, l2_node in sorted(l1_node.items()):
-            if l2_name in skip_keys or not isinstance(l2_node, dict):
+    def walk(node: dict, parts: list[str], abs_dir: str):
+        for name, child in sorted(child_entries(node).items()):
+            if is_locked_type(child.get("type", "")):
                 continue
-            l2_type = l2_node.get("type", "")
-            if get_type_base(l2_type) in LOCKED_TYPES:
-                continue
-            l2_abs = os.path.join(l1_abs, l2_name)
+            child_parts = parts + [name]
+            child_abs   = os.path.join(abs_dir, name)
+            rev_abs     = os.path.join(child_abs, f"98.{get_editable_part(name)}")
+            if os.path.isdir(rev_abs):
+                try:
+                    create_shortcut(rev_abs, os.path.join(review_dir, review_shortcut_name(child_parts)))
+                except OSError as e:
+                    failures.append(str(e))
+            if len(child_parts) < MAX_DEPTH:
+                walk(child, child_parts, child_abs)
 
-            # L2 REV → shortcut named L1[0]+l2_name targeting l2/98.editable
-            l2_editable = get_editable_part(l2_name)
-            rev_l2_name = f"98.{l2_editable}"
-            rev_l2_abs  = os.path.join(l2_abs, rev_l2_name)
-            if os.path.isdir(rev_l2_abs):
-                link_name = _shortcut_name_L2(l1_name, l2_name) + ".lnk"
-                _link(link_name, rev_l2_abs)
-
-            # L3 children (they ARE the REV, no 98. inside)
-            for l3_name, l3_node in sorted(l2_node.items()):
-                if l3_name in skip_keys or not isinstance(l3_node, dict):
-                    continue
-                l3_type = l3_node.get("type", "")
-                if get_type_base(l3_type) in LOCKED_TYPES:
-                    continue
-                l3_abs = os.path.join(l2_abs, l3_name)
-
-                # L3 REV → shortcut named L1[0]+L2id+"."+l3_name targeting l3 folder
-                rev_l3_name = f"98.{get_editable_part(l3_name)}"
-                rev_l3_abs  = os.path.join(l3_abs, rev_l3_name)
-                if os.path.isdir(rev_l3_abs):
-                    link_name = _shortcut_name_L3(l1_name, l2_name, l3_name) + ".lnk"
-                    _link(link_name, rev_l3_abs)
-
+    walk(yaml_data, [], root_path)
     return failures
 
 # ─────────────────────────────────────────────────────────────────
@@ -357,24 +269,6 @@ def list_subdirs(path: str) -> list[str]:
 #  UPDATE CHECK
 # ─────────────────────────────────────────────────────────────────
 
-def read_app_version() -> str:
-    """Version from the bundled version.txt, the same file PyInstaller stamps into the exe."""
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "version.txt")
-    try:
-        with open(path, encoding="utf-8") as f:
-            m = re.search(r"StringStruct\('FileVersion',\s*'([\d.]+)'\)", f.read())
-    except OSError:
-        return "dev"
-    return f"v{m.group(1)}" if m else "dev"
-
-
-CURRENT_VERSION = read_app_version()
-
-
-def parse_version(text: str) -> tuple[int, ...]:
-    return tuple(int(n) for n in re.findall(r"\d+", text)[:3])
-
-
 def fetch_latest_version() -> str | None:
     """Return the FileVersion published on main, or None when offline or unparsable."""
     import urllib.request, urllib.error
@@ -384,8 +278,7 @@ def fetch_latest_version() -> str | None:
             text = resp.read().decode("utf-8", errors="replace")
     except (urllib.error.URLError, TimeoutError, OSError):
         return None
-    m = re.search(r"StringStruct\('FileVersion',\s*'([\d.]+)'\)", text)
-    return f"v{m.group(1)}" if m else None
+    return parse_file_version(text)
 
 
 def load_skipped_version(core_path: str) -> str:
@@ -752,8 +645,7 @@ class FolderManagerApp:
 
         # Yaml keys at this level
         yaml_node = get_yaml_node(self.yaml_data, rel_parts) or {}
-        yaml_keys = [k for k, v in yaml_node.items()
-                     if k not in ("type", "status") and isinstance(v, dict)]
+        yaml_keys = list(child_entries(yaml_node))
 
         all_names = sorted(set(disk_dirs) | set(yaml_keys))
         nodes = []

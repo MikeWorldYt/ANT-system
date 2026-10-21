@@ -2,7 +2,7 @@
 
 a = Analysis(
     ['CreateNewStorage.py'],
-    pathex=[],
+    pathex=['..'],
     binaries=[],
     datas=[
         ('CreateNewStorage.ico', '.'),

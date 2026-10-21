@@ -21,13 +21,24 @@ import urllib.request
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import subprocess
+import sys
 
 import yaml
+
+# Source runs need the shared ant_core package one folder up; the frozen exe bundles it
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from ant_core.theme import BG, TEXT, BUTTON, ACCENT, ERROR, INPUT_BG, TREE_BG
+from ant_core.tree_types import get_type_base, child_entries
+from ant_core.shortcuts import IS_WINDOWS, review_shortcut_name, create_shortcut
+from ant_core.version import read_app_version
 
 # ─────────────────────────────────────────────────────────────────
 #  CONSTANTS
 # ─────────────────────────────────────────────────────────────────
 
+APP_DIR        = os.path.dirname(os.path.abspath(__file__))
+ANT_VERSION    = read_app_version(APP_DIR)
 DOCS_URL       = "https://ant-system.vercel.app/en/start-here/migrating-plan"
 README_URL     = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Migration/01.Get_Started.md"
 README_NAME    = "01.Get_Started.md"
@@ -38,35 +49,8 @@ FOLDER_MANAGER_URL  = "https://github.com/MikeWorldYt/ANT-system/raw/main/Applic
 FOLDER_MANAGER_NAME = "FolderManager.exe"
 
 # ─────────────────────────────────────────────────────────────────
-#  COLOR THEME
-# ─────────────────────────────────────────────────────────────────
-
-BG       = "#202020"
-TEXT     = "#FFFFFF"
-BUTTON   = "#00b386"
-ACCENT   = "#ff8b40"
-INPUT_BG = "#2b2b2b"
-TREE_BG  = "#1a1a1a"
-
-# ─────────────────────────────────────────────────────────────────
 #  HELPERS
 # ─────────────────────────────────────────────────────────────────
-
-IS_WINDOWS = platform.system() == "Windows"
-
-def read_app_version() -> str:
-    """Version from the bundled version.txt, the same file PyInstaller stamps into the exe."""
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "version.txt")
-    try:
-        with open(path, encoding="utf-8") as f:
-            m = re.search(r"StringStruct\('FileVersion',\s*'([\d.]+)'\)", f.read())
-    except OSError:
-        return "dev"
-    return f"v{m.group(1)}" if m else "dev"
-
-
-ANT_VERSION = read_app_version()
-
 
 def sanitize_name(raw: str) -> str:
     """Sanitize and format name to Pascal_Snake_Case."""
@@ -110,63 +94,16 @@ def rollback_created(created: list):
     created.clear()
 
 
-def create_shortcut_windows(target_path: str, shortcut_path: str):
-    # Paths travel as env vars so quotes, $ or backticks in folder names can't break the script
-    ps_cmd = (
-        "$s = (New-Object -ComObject WScript.Shell).CreateShortcut($env:ANT_LNK_PATH); "
-        "$s.TargetPath = $env:ANT_LNK_TARGET; "
-        "$s.Save()"
-    )
-    result = subprocess.run(
-        ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd],
-        env={**os.environ, "ANT_LNK_PATH": shortcut_path, "ANT_LNK_TARGET": target_path},
-        creationflags=subprocess.CREATE_NO_WINDOW,
-        capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        raise OSError(f"Shortcut not created: {shortcut_path}\n{result.stderr.strip()}")
-
-
-def create_symlink_unix(target_path: str, link_path: str):
-    """Create a symbolic link on Unix systems."""
-    if not os.path.exists(link_path):
-        os.symlink(target_path, link_path)
-
-
-def open_folder(path: str):
-    """Open folder in file explorer."""
-    if IS_WINDOWS:
-        os.startfile(path)
-    elif platform.system() == "Darwin":  # macOS
-        subprocess.run(["open", path])
-    else:  # Linux
-        subprocess.run(["xdg-open", path])
-
-
-def compute_shortcut_name(path_context: list, level: int) -> str:
-    if level == 2 and path_context:
-        return path_context[0]
-    if level == 3 and len(path_context) >= 2:
-        return path_context[0][0] + path_context[1]
-    return "unknown-shortcut"
-
-
 def process_yaml_tree(tree_dict: dict, base_path: str, review_index: str,
                       log_fn, path_context: list = None):
     if path_context is None:
         path_context = []
 
-    for key, value in tree_dict.items():
-        if key in ('type', 'status') or not isinstance(value, dict):
-            continue
-
-        folder_type = value.get('type', '')
-        type_prefix = folder_type.split('-')[0] if '-' in folder_type else folder_type
-        level       = int(folder_type.split('-L')[-1]) if '-L' in folder_type else 1
+    for key, value in child_entries(tree_dict).items():
+        type_prefix = get_type_base(value.get('type', ''))
         folder_path = os.path.join(base_path, key)
         ctx_next    = path_context + [key]
-        children    = {k: v for k, v in value.items()
-                       if k not in ('type', 'status') and isinstance(v, dict)}
+        children    = child_entries(value)
 
         if type_prefix == 'CFG':
             # Already created manually — recurse only
@@ -177,15 +114,11 @@ def process_yaml_tree(tree_dict: dict, base_path: str, review_index: str,
             os.makedirs(folder_path, exist_ok=True)
             log_fn(f"✔ {folder_path}")
 
-            shortcut_name = compute_shortcut_name(path_context, level)
             try:
-                if IS_WINDOWS:
-                    create_shortcut_windows(
-                        folder_path, os.path.join(review_index, f"{shortcut_name}.lnk"))
-                else:
-                    create_symlink_unix(folder_path, os.path.join(review_index, shortcut_name))
+                shortcut_name = review_shortcut_name(path_context)
+                create_shortcut(folder_path, os.path.join(review_index, shortcut_name))
                 log_fn(f"  ⤤ shortcut created → {shortcut_name}", TEXT)
-            except OSError as e:
+            except (OSError, ValueError) as e:
                 log_fn(f"  ⚠ {e}", ACCENT)
 
         else:
@@ -208,15 +141,9 @@ def build_tree_widget(tree_dict: dict, parent_node, treeview: ttk.Treeview,
         'WS':    '📂',
     }
 
-    for key, value in tree_dict.items():
-        if key in ('type', 'status') or not isinstance(value, dict):
-            continue
-
-        folder_type = value.get('type', '')
-        type_prefix = folder_type.split('-')[0] if '-' in folder_type else folder_type
-        icon        = ICONS.get(type_prefix, '📁')
-        children    = {k: v for k, v in value.items()
-                       if k not in ('type', 'status') and isinstance(v, dict)}
+    for key, value in child_entries(tree_dict).items():
+        icon        = ICONS.get(get_type_base(value.get('type', '')), '📁')
+        children    = child_entries(value)
         auto_open   = depth == 0 and bool(children)
 
         node = treeview.insert(parent_node, "end",
@@ -783,9 +710,9 @@ class ANTWizard:
         # Fixed multi-color log: each color maps to a stable tag
         log_text.tag_config("ok",     foreground=BUTTON)
         log_text.tag_config("accent", foreground=ACCENT)
-        log_text.tag_config("err",    foreground="#ff4444")
+        log_text.tag_config("err",    foreground=ERROR)
         log_text.tag_config("plain",  foreground=TEXT)
-        _TAG = {BUTTON: "ok", ACCENT: "accent", "#ff4444": "err", TEXT: "plain"}
+        _TAG = {BUTTON: "ok", ACCENT: "accent", ERROR: "err", TEXT: "plain"}
         
         def log(msg, color=BUTTON):
             log_text.config(state="normal")
@@ -832,7 +759,7 @@ class ANTWizard:
                     self.parsed_tree = yaml.safe_load(self.yaml_content)
                     log(f"✔ {tree_dest} (Downloaded)")
                 except Exception as e:
-                    log(f"✖ Error downloading Core YAML: {e}", "#ff4444")
+                    log(f"✖ Error downloading Core YAML: {e}", ERROR)
                     log("\nApplying roll-back...", ACCENT)
                     for path in reversed(created_dirs):
                         log(f"◄◄ {path} (Deleted)", ACCENT)
@@ -890,7 +817,7 @@ class ANTWizard:
             self.root.after(100, lambda: self._show_completion(progress_win))
             
         except Exception as e:
-            log(f"\n❌ ERROR: {str(e)}", "#ff4444")
+            log(f"\n❌ ERROR: {str(e)}", ERROR)
             messagebox.showerror("Error", f"Failed to create storage:\n{str(e)}")
 
 
