@@ -7,7 +7,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::config::{CORE_FOLDER, MAX_DEPTH, SETTINGS_FOLDER};
 use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, validate_component};
+use crate::fs_safe::{io_err, validate_component, StorageLock};
 use crate::tree_node::{build_children, build_tree, TreeNode, TreeSnapshot};
 use crate::yaml_store::{self, yaml_path};
 
@@ -59,9 +59,15 @@ where
 
 pub fn snapshot(root: &Path) -> R<TreeSnapshot> {
     let mut data = yaml_store::load(root)?;
-    let changed = yaml_store::sync(root, &mut data)?;
+    let mut changed = yaml_store::sync(root, &mut data)?;
     if changed {
-        yaml_store::save(root, &data)?;
+        // Reloading under the file lock keeps this save from overwriting another process's edit.
+        let _lock = StorageLock::acquire(root)?;
+        data = yaml_store::load(root)?;
+        changed = yaml_store::sync(root, &mut data)?;
+        if changed {
+            yaml_store::save(root, &data)?;
+        }
     }
     let mut tree = build_tree(root, &data, changed)?;
     fill_children(root, &data, &mut tree.nodes)?;

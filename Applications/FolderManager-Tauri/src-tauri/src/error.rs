@@ -23,4 +23,37 @@ pub enum FmError {
     Internal { message: String },
 }
 
+// Readable text for causes nested inside RolledBack, Inconsistent and warnings.
+impl std::fmt::Display for FmError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::StorageNotFound { start } => write!(f, "No ANT storage found from {start}"),
+            Self::YamlParse { message, .. } => write!(f, "Tree.yaml could not be read: {message}"),
+            Self::InvalidName { name, reason } => write!(f, "Invalid name \"{name}\": {reason}"),
+            Self::InvalidPath { rel_parts, reason } => {
+                write!(f, "Invalid path \"{}\": {reason}", rel_parts.join("/"))
+            }
+            Self::NotFound { rel_parts } => write!(f, "{} was not found", rel_parts.join("/")),
+            Self::Stale { rel_parts } => write!(f, "{} changed on disk; refresh", rel_parts.join("/")),
+            Self::AlreadyExists { name } => write!(f, "{name} already exists"),
+            Self::Locked { rel_parts, node_type } => {
+                write!(f, "{} is a locked {node_type} folder", rel_parts.join("/"))
+            }
+            Self::Reserved { rel_parts } => write!(f, "{} is reserved", rel_parts.join("/")),
+            Self::GhostNotAllowed { op } => write!(f, "Cannot {op} a folder that is missing on disk"),
+            Self::DepthLimit => write!(f, "The maximum depth is reached"),
+            Self::NotMovable => write!(f, "The folder cannot move that way"),
+            Self::NeedsConfirmation { files, dirs } => {
+                write!(f, "The folder holds {files} files and {dirs} folders")
+            }
+            Self::Io { op, path, message, .. } => write!(f, "{op} {path}: {message}"),
+            Self::RolledBack { op, cause } => write!(f, "{op} was undone: {cause}"),
+            Self::Inconsistent { op, cause, rollback_errors } => {
+                write!(f, "{op} failed ({cause}) and was not fully undone: {}", rollback_errors.join("; "))
+            }
+            Self::Internal { message } => write!(f, "{message}"),
+        }
+    }
+}
+
 pub type R<T> = Result<T, FmError>;

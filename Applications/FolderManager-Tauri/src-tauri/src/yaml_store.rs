@@ -39,8 +39,13 @@ pub fn save(root: &Path, data: &Mapping) -> R<()> {
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir).map_err(|e| io_err("create folder", dir, &e))?;
     }
-    let text = serde_yaml::to_string(&Value::Mapping(sort_mapping(data)))
-        .map_err(|e| FmError::Internal { message: e.to_string() })?;
+    let sorted = sort_mapping(data);
+    let mut text = String::new();
+    if sorted.is_empty() {
+        text.push_str("{}\n");
+    } else {
+        emit_mapping(&mut text, &sorted, 0)?;
+    }
     write_atomic(&path, text.as_bytes())
 }
 
@@ -88,8 +93,12 @@ pub fn get_type(data: &Mapping, rel: &[String]) -> String {
         .to_string()
 }
 
+// Only child entries (mappings) move or go, so a node's own type or status can never be touched.
 pub fn rename_key(data: &mut Mapping, parent: &[String], old: &str, new: &str) -> bool {
     let Some(node) = get_node_mut(data, parent) else { return false };
+    if META_KEYS.contains(&new) || !matches!(node.get(old), Some(Value::Mapping(_))) {
+        return false;
+    }
     match node.remove(old) {
         Some(entry) => {
             node.insert(Value::String(new.to_string()), entry);
@@ -100,7 +109,8 @@ pub fn rename_key(data: &mut Mapping, parent: &[String], old: &str, new: &str) -
 }
 
 pub fn delete_key(data: &mut Mapping, parent: &[String], key: &str) -> bool {
-    get_node_mut(data, parent).is_some_and(|node| node.remove(key).is_some())
+    let Some(node) = get_node_mut(data, parent) else { return false };
+    matches!(node.get(key), Some(Value::Mapping(_))) && node.remove(key).is_some()
 }
 
 fn sync_level(dir: &Path, node: &mut Mapping, depth: usize) -> R<bool> {
@@ -170,6 +180,77 @@ fn sort_value(v: &Value) -> Value {
     }
 }
 
+// Block mappings are written here so keys can be quoted for PyYAML; other values reuse serde_yaml's text.
+fn emit_mapping(out: &mut String, m: &Mapping, indent: usize) -> R<()> {
+    let pad = " ".repeat(indent);
+    for (k, v) in m {
+        let key = inline_scalar(k)?;
+        match v {
+            Value::Mapping(child) if !child.is_empty() => {
+                out.push_str(&format!("{pad}{key}:\n"));
+                emit_mapping(out, child, indent + 2)?;
+            }
+            Value::Sequence(items) if !items.is_empty() => emit_block(out, &pad, &key, v)?,
+            Value::Tagged(_) => emit_block(out, &pad, &key, v)?,
+            Value::String(s) if s.contains('\n') => emit_block(out, &pad, &key, v)?,
+            _ => out.push_str(&format!("{pad}{key}: {}\n", inline_scalar(v)?)),
+        }
+    }
+    Ok(())
+}
+
+// serde_yaml writes `k:` first for a one-entry mapping, so its remaining lines are reused under our key.
+fn emit_block(out: &mut String, pad: &str, key: &str, v: &Value) -> R<()> {
+    let mut wrapper = Mapping::new();
+    wrapper.insert(Value::String("k".to_string()), v.clone());
+    let text = yaml_text(&Value::Mapping(wrapper))?;
+    let rest = text.strip_prefix("k:").ok_or_else(|| internal("unexpected YAML output"))?;
+    for (i, line) in rest.lines().enumerate() {
+        match (i, line.is_empty()) {
+            (0, _) => out.push_str(&format!("{pad}{key}:{line}\n")),
+            (_, true) => out.push('\n'),
+            _ => out.push_str(&format!("{pad}{line}\n")),
+        }
+    }
+    Ok(())
+}
+
+fn inline_scalar(v: &Value) -> R<String> {
+    if let Value::String(s) = v {
+        if !s.contains('\n') && yaml11_ambiguous(s) {
+            return Ok(format!("'{}'", s.replace('\'', "''")));
+        }
+    }
+    let text = yaml_text(v)?;
+    let line = text.strip_suffix('\n').unwrap_or(&text);
+    if line.contains('\n') {
+        return Err(internal("a key or value does not fit on one line"));
+    }
+    Ok(line.to_string())
+}
+
+fn yaml_text(v: &Value) -> R<String> {
+    serde_yaml::to_string(v).map_err(|e| internal(&e.to_string()))
+}
+
+fn internal(message: &str) -> FmError {
+    FmError::Internal { message: message.to_string() }
+}
+
+// PyYAML (YAML 1.1) reads these plain scalars as bools, nulls, numbers or dates, unlike serde_yaml.
+fn yaml11_ambiguous(s: &str) -> bool {
+    const WORDS: &[&str] = &["y", "n", "yes", "no", "on", "off", "true", "false", "null", "~", "<<", "="];
+    if s.is_empty() || WORDS.iter().any(|w| w.eq_ignore_ascii_case(s)) {
+        return true;
+    }
+    let unsigned = s.strip_prefix(['+', '-']).unwrap_or(s);
+    let radix = ["0x", "0X", "0b", "0B", "0o", "0O"].iter().any(|p| unsigned.starts_with(p));
+    let numeric_start = s.starts_with(|c: char| c.is_ascii_digit() || "+-.".contains(c));
+    numeric_start
+        && (radix && unsigned[2..].chars().all(|c| c.is_ascii_hexdigit() || c == '_')
+            || s.chars().all(|c| c.is_ascii_digit() || "_+-.:eE".contains(c)))
+}
+
 #[cfg(test)]
 pub(crate) mod test_support {
     use std::path::{Path, PathBuf};
@@ -235,7 +316,25 @@ mod tests {
         let loaded = load(dir.path()).unwrap();
         assert_eq!(get_type(&loaded, &rel(&["zeta", "a"])), "Y");
         assert_eq!(get_type(&loaded, &rel(&["alpha"])), "REV");
-        assert!(!yaml_path(dir.path()).with_file_name(".Tree.yaml.tmp").exists());
+        let left: Vec<_> = fs::read_dir(yaml_path(dir.path()).parent().unwrap()).unwrap().collect();
+        assert_eq!(left.len(), 1);
+    }
+
+    #[test]
+    fn save_quotes_yaml11_tokens_so_pyyaml_reads_strings() {
+        let dir = TempDir::new("quote");
+        let data = parse(
+            "'yes': {type: NODE-L1}\n'Y': {type: X}\n'on': {type: X}\n'OFF': {type: X}\n'1_000': {type: X}\n\
+             '2024-01-15': {type: X}\n'0x1F': {type: X}\n'01.10': {type: X}\n01.Math:\n  type: NODE-L1\n  status: 'no'\n\
+             note: |\n  line one\n  line two\nlist: [a, 'off']\nempty: {}\n",
+        );
+        save(dir.path(), &data).unwrap();
+        let text = fs::read_to_string(yaml_path(dir.path())).unwrap();
+        for quoted in ["'yes':", "'Y':", "'on':", "'OFF':", "'1_000':", "'2024-01-15':", "'0x1F':", "'01.10':", "status: 'no'"] {
+            assert!(text.contains(quoted), "{quoted} missing in:\n{text}");
+        }
+        assert!(text.contains("\n01.Math:\n") && text.contains("empty: {}\n"), "{text}");
+        assert_eq!(load(dir.path()).unwrap(), data);
     }
 
     #[test]
@@ -318,5 +417,16 @@ mod tests {
         assert!(!rename_key(&mut data, &rel(&["missing"]), "a", "d"));
         assert!(delete_key(&mut data, &rel(&["p"]), "b"));
         assert!(!delete_key(&mut data, &rel(&["p"]), "b"));
+    }
+
+    #[test]
+    fn rename_and_delete_key_never_touch_meta_values() {
+        let mut data = parse("p:\n  type: NODE-L1\n  status: done\n  a: {type: X}\n");
+        assert!(!delete_key(&mut data, &rel(&["p"]), "type"));
+        assert!(!rename_key(&mut data, &rel(&["p"]), "status", "x"));
+        assert!(!rename_key(&mut data, &rel(&["p"]), "a", "type"));
+        assert_eq!(get_type(&data, &rel(&["p"])), "NODE-L1");
+        assert_eq!(get_type(&data, &rel(&["p", "a"])), "X");
+        assert!(get_node(&data, &rel(&["p"])).unwrap().get("status").is_some());
     }
 }

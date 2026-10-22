@@ -1,11 +1,18 @@
 // Guards every disk change: name validation, paths kept inside the storage, atomic writes and an undo journal.
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
+use crate::config::{CORE_FOLDER, SETTINGS_FOLDER, TRASH_DIR};
 use crate::error::{FmError, R};
 
 const FORBIDDEN: &[char] = &['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
-const MAX_NAME_BYTES: usize = 255;
+// NTFS limits a name to 255 UTF-16 code units, not bytes.
+pub(crate) const MAX_NAME_UNITS: usize = 255;
+const LOCK_FILE: &str = ".FolderManager.lock";
+const STALE_LOCK: Duration = Duration::from_secs(120);
+static TMP_COUNTER: AtomicUsize = AtomicUsize::new(0);
 const RESERVED_DEVICES: &[&str] = &[
     "CON", "PRN", "AUX", "NUL",
     "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
@@ -36,8 +43,8 @@ pub fn validate_component(name: &str) -> R<()> {
     if RESERVED_DEVICES.iter().any(|d| d.eq_ignore_ascii_case(stem)) {
         return Err(reject("reserved Windows device name"));
     }
-    if name.len() > MAX_NAME_BYTES {
-        return Err(reject("longer than 255 bytes"));
+    if name.encode_utf16().count() > MAX_NAME_UNITS {
+        return Err(reject("longer than 255 characters"));
     }
     Ok(())
 }
@@ -54,7 +61,9 @@ pub fn io_err(op: &str, path: &std::path::Path, e: &std::io::Error) -> FmError {
 pub fn write_atomic(path: &std::path::Path, bytes: &[u8]) -> R<()> {
     use std::io::Write;
     let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let tmp = path.with_file_name(format!(".{name}.tmp"));
+    // A per-process, per-call name keeps two writers from sharing one temp file.
+    let n = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let tmp = path.with_file_name(format!(".{name}.{}-{n}.tmp", std::process::id()));
     let written = (|| {
         let mut file = std::fs::File::create(&tmp)?;
         file.write_all(bytes)?;
@@ -76,14 +85,18 @@ pub fn resolve(root: &Path, rel: &[String]) -> R<PathBuf> {
             FmError::InvalidName { name, reason } => invalid(format!("{name}: {reason}")),
             other => other,
         })?;
+        // The staging folder holds deleted folders and is never a node, whatever its case.
+        if part.eq_ignore_ascii_case(TRASH_DIR) {
+            return Err(invalid(format!("{part}: reserved folder")));
+        }
     }
     let canonical_root = fs::canonicalize(root).map_err(|e| io_err("resolve storage", root, &e))?;
     let mut existing = root.to_path_buf();
     for part in rel {
         let next = existing.join(part);
         match fs::symlink_metadata(&next) {
-            Ok(meta) if is_link(&meta) => {
-                return Err(invalid(format!("{part} is a link or reparse point")));
+            Ok(meta) if redirects(&next, &meta)? => {
+                return Err(invalid(format!("{part} is a link or junction")));
             }
             Ok(_) => existing = next,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => break,
@@ -115,16 +128,69 @@ pub(crate) fn is_link(meta: &fs::Metadata) -> bool {
     }
 }
 
+// Cloud placeholders (OneDrive) are reparse points that stay in place; links and junctions lead elsewhere.
+pub(crate) fn redirects(path: &Path, meta: &fs::Metadata) -> R<bool> {
+    if !is_link(meta) {
+        return Ok(false);
+    }
+    if meta.file_type().is_symlink() {
+        return Ok(true);
+    }
+    let (Some(parent), Some(name)) = (path.parent(), path.file_name()) else { return Ok(true) };
+    let real = fs::canonicalize(path).map_err(|e| io_err("resolve path", path, &e))?;
+    let parent = fs::canonicalize(parent).map_err(|e| io_err("resolve path", parent, &e))?;
+    Ok(!same_name(&real.to_string_lossy(), &parent.join(name).to_string_lossy()))
+}
+
 // Windows compares names case-insensitively, so this decides what counts as the same folder.
 pub(crate) fn same_name(a: &str, b: &str) -> bool {
     a.to_lowercase() == b.to_lowercase()
 }
 
 pub(crate) fn error_text(e: &FmError) -> String {
-    match e {
-        FmError::Io { op, path, message, .. } => format!("{op} {path}: {message}"),
-        other => format!("{other:?}"),
+    e.to_string()
+}
+
+// Serialises mutations across processes, which the in-process Mutex cannot see.
+pub struct StorageLock {
+    path: PathBuf,
+}
+
+impl StorageLock {
+    pub fn acquire(root: &Path) -> R<Self> {
+        let dir = root.join(SETTINGS_FOLDER).join(CORE_FOLDER);
+        fs::create_dir_all(&dir).map_err(|e| io_err("create folder", &dir, &e))?;
+        let path = dir.join(LOCK_FILE);
+        let mut file = match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+            Ok(file) => file,
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => return Err(busy_error(&path)),
+            Err(e) => return Err(io_err("lock storage", &path, &e)),
+        };
+        let lock = Self { path };
+        std::io::Write::write_all(&mut file, std::process::id().to_string().as_bytes())
+            .map_err(|e| io_err("lock storage", &lock.path, &e))?;
+        Ok(lock)
     }
+}
+
+impl Drop for StorageLock {
+    fn drop(&mut self) {
+        // A lock file left behind is reported as stale by the next mutation, which tells the user what to do.
+        let _ = fs::remove_file(&self.path);
+    }
+}
+
+// An old lock may belong to a crashed run or to a slow one, so it is reported and never removed here.
+fn busy_error(path: &Path) -> FmError {
+    let age = fs::metadata(path).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok());
+    let message = match age {
+        Some(age) if age >= STALE_LOCK => format!(
+            "the storage has been locked for {} minutes; if no other Folder Manager is open, delete this file and retry",
+            age.as_secs() / 60
+        ),
+        _ => "another Folder Manager is changing this storage; retry in a moment".to_string(),
+    };
+    FmError::Io { op: "lock storage".to_string(), path: path.display().to_string(), message, os_code: None }
 }
 
 enum Step {
@@ -213,10 +279,12 @@ pub(crate) fn run_powershell(
     script: &str,
     env: &[(&str, &std::ffi::OsStr)],
     stdin: Option<String>,
+    timeout: Duration,
 ) -> Result<String, String> {
-    use std::io::Write;
+    use std::io::{Read, Write};
     use std::os::windows::process::CommandExt;
     use std::process::{Command, Stdio};
+    use std::time::Instant;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
     // An absolute path keeps a powershell.exe planted next to the app or on PATH from running.
@@ -237,7 +305,33 @@ pub(crate) fn run_powershell(
         (Some(text), Some(mut pipe)) => Some(std::thread::spawn(move || pipe.write_all(text.as_bytes()))),
         _ => None,
     };
-    let output = child.wait_with_output().map_err(|e| format!("PowerShell did not finish: {e}"))?;
+    type Reader = std::thread::JoinHandle<std::io::Result<Vec<u8>>>;
+    fn drain<P: Read + Send + 'static>(pipe: Option<P>) -> Option<Reader> {
+        pipe.map(|mut p| {
+            std::thread::spawn(move || {
+                let mut bytes = Vec::new();
+                p.read_to_end(&mut bytes).map(|_| bytes)
+            })
+        })
+    }
+    let out_reader = drain(child.stdout.take());
+    let err_reader = drain(child.stderr.take());
+    // A shell dialog nobody answers would otherwise block this thread forever.
+    let deadline = Instant::now() + timeout;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if Instant::now() >= deadline => {
+                let stopped = child.kill().and_then(|_| child.wait());
+                return Err(match stopped {
+                    Ok(_) => format!("PowerShell did not finish within {} s and was stopped", timeout.as_secs()),
+                    Err(e) => format!("PowerShell did not finish within {} s and could not be stopped: {e}", timeout.as_secs()),
+                });
+            }
+            Ok(None) => std::thread::sleep(Duration::from_millis(50)),
+            Err(e) => return Err(format!("PowerShell did not finish: {e}")),
+        }
+    };
     if let Some(handle) = writer {
         match handle.join() {
             Ok(Ok(())) => {}
@@ -245,16 +339,21 @@ pub(crate) fn run_powershell(
             Err(_) => return Err("PowerShell input writer panicked".to_string()),
         }
     }
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if output.status.success() {
+    let collect = |reader: Option<Reader>| match reader {
+        Some(handle) => match handle.join() {
+            Ok(Ok(bytes)) => Ok(String::from_utf8_lossy(&bytes).trim().to_string()),
+            Ok(Err(e)) => Err(format!("Could not read PowerShell output: {e}")),
+            Err(_) => Err("PowerShell output reader panicked".to_string()),
+        },
+        None => Ok(String::new()),
+    };
+    let stdout = collect(out_reader)?;
+    let stderr = collect(err_reader)?;
+    if status.success() {
         return Ok(stdout);
     }
-    let detail = if stdout.is_empty() {
-        String::from_utf8_lossy(&output.stderr).trim().to_string()
-    } else {
-        stdout
-    };
-    Err(format!("PowerShell failed ({}): {detail}", output.status))
+    let detail = if stdout.is_empty() { stderr } else { stdout };
+    Err(format!("PowerShell failed ({status}): {detail}"))
 }
 
 #[cfg(test)]
@@ -392,8 +491,110 @@ mod tests {
     }
 
     #[test]
-    fn rejects_names_longer_than_255_bytes() {
+    fn name_limit_counts_utf16_units() {
         assert!(validate_component(&"a".repeat(256)).is_err());
-        assert!(validate_component(&"é".repeat(128)).is_err());
+        assert!(validate_component(&"é".repeat(255)).is_ok());
+        assert!(validate_component(&"\u{1F600}".repeat(127)).is_ok());
+        assert!(validate_component(&"\u{1F600}".repeat(128)).is_err());
+    }
+
+    #[test]
+    fn resolve_refuses_the_trash_folder_in_any_case_and_position() {
+        let dir = TempDir::new("resolve-trash");
+        dir.mkdir(".ant-trash/x");
+        for bad in [&[".ant-trash"][..], &[".ANT-Trash", "x"], &["01.A", ".ant-trash"]] {
+            let err = resolve(dir.path(), &rel(bad)).unwrap_err();
+            assert!(matches!(err, FmError::InvalidPath { .. }), "{bad:?} gave {err:?}");
+        }
+    }
+
+    #[test]
+    fn plain_folders_do_not_redirect() {
+        let dir = TempDir::new("redirect-plain");
+        dir.mkdir("a");
+        let meta = fs::symlink_metadata(dir.path().join("a")).unwrap();
+        assert!(!redirects(&dir.path().join("a"), &meta).unwrap());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn junctions_redirect() {
+        let dir = TempDir::new("redirect-junction");
+        let outside = TempDir::new("redirect-outside");
+        let link = dir.path().join("j");
+        let made = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(&link)
+            .arg(outside.path())
+            .output()
+            .is_ok_and(|o| o.status.success());
+        if !made {
+            eprintln!("skipped: could not create a junction");
+            return;
+        }
+        let meta = fs::symlink_metadata(&link).unwrap();
+        assert!(redirects(&link, &meta).unwrap());
+        fs::remove_dir(&link).unwrap();
+    }
+
+    #[test]
+    fn write_atomic_uses_a_unique_temp_name_and_leaves_nothing_behind() {
+        let dir = TempDir::new("atomic");
+        let target = dir.path().join("Tree.yaml");
+        fs::create_dir(dir.path().join(".Tree.yaml.tmp")).unwrap();
+        write_atomic(&target, b"one").unwrap();
+        write_atomic(&target, b"two").unwrap();
+        assert_eq!(fs::read_to_string(&target).unwrap(), "two");
+        let mut left: Vec<String> = fs::read_dir(dir.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        left.sort();
+        assert_eq!(left, [".Tree.yaml.tmp", "Tree.yaml"]);
+    }
+
+    #[test]
+    fn storage_lock_is_exclusive_and_released_on_drop() {
+        let dir = TempDir::new("lock");
+        let held = StorageLock::acquire(dir.path()).unwrap();
+        let busy = StorageLock::acquire(dir.path()).err().unwrap();
+        assert!(matches!(&busy, FmError::Io { message, .. } if message.contains("another Folder Manager")), "{busy:?}");
+        drop(held);
+        drop(StorageLock::acquire(dir.path()).unwrap());
+        assert!(!dir.path().join(SETTINGS_FOLDER).join(CORE_FOLDER).join(LOCK_FILE).exists());
+    }
+
+    #[test]
+    fn stale_storage_lock_is_reported_and_kept() {
+        let dir = TempDir::new("lock-stale");
+        let path = dir.path().join(SETTINGS_FOLDER).join(CORE_FOLDER).join(LOCK_FILE);
+        dir.mkdir("999.Settings/00.Core");
+        let file = fs::File::create(&path).unwrap();
+        file.set_modified(std::time::SystemTime::now() - Duration::from_secs(600)).unwrap();
+        drop(file);
+        let err = StorageLock::acquire(dir.path()).err().unwrap();
+        assert!(matches!(&err, FmError::Io { message, .. } if message.contains("delete this file")), "{err:?}");
+        assert!(path.is_file());
+    }
+
+    #[test]
+    fn rolled_back_cause_is_readable_text() {
+        let dir = TempDir::new("journal-cause");
+        dir.mkdir("a");
+        let mut journal = Journal::new();
+        journal.rename(&dir.path().join("a"), &dir.path().join("b")).unwrap();
+        let err = journal.abort("move", FmError::NotFound { rel_parts: rel(&["x", "y"]) });
+        assert!(matches!(&err, FmError::RolledBack { cause, .. } if cause == "x/y was not found"), "{err:?}");
+        assert!(dir.path().join("a").is_dir());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    #[ignore = "starts PowerShell"]
+    fn run_powershell_stops_a_child_that_outlives_the_timeout() {
+        let started = std::time::Instant::now();
+        let err = run_powershell("Start-Sleep -Seconds 60", &[], None, Duration::from_secs(2)).unwrap_err();
+        assert!(err.contains("did not finish within 2 s"), "{err}");
+        assert!(started.elapsed() < Duration::from_secs(20));
     }
 }

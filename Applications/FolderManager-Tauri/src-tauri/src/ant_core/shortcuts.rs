@@ -43,7 +43,8 @@ fn platform_create(pairs: &[(PathBuf, PathBuf)]) -> Vec<String> {
     if sent.is_empty() {
         return failures;
     }
-    match crate::fs_safe::run_powershell(SHORTCUT_SCRIPT, &[], Some(input)) {
+    let timeout = std::time::Duration::from_secs(120);
+    match crate::fs_safe::run_powershell(SHORTCUT_SCRIPT, &[], Some(input), timeout) {
         Ok(stdout) => {
             for line in stdout.lines().filter(|l| !l.trim().is_empty()) {
                 let (index, message) = line.split_once('\t').unwrap_or(("", line));

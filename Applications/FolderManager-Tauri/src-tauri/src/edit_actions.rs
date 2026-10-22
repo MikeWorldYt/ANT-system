@@ -8,7 +8,9 @@ use serde_yaml::{Mapping, Value};
 use crate::ant_core::tree_types::{child_entries, type_base, type_level, META_KEYS};
 use crate::config::{EditableType, WkbStatus, LINKED_PREFIXES, MAX_DEPTH, TRASH_DIR};
 use crate::error::{FmError, R};
-use crate::fs_safe::{error_text, io_err, join_rel, resolve, same_name, validate_component, Journal};
+use crate::fs_safe::{
+    error_text, io_err, join_rel, resolve, same_name, validate_component, Journal, StorageLock,
+};
 use crate::names::{
     build_new_name, editable_part, list_subdirs, next_available_id, sanitize_train_case,
     sanitize_upper,
@@ -31,6 +33,7 @@ pub(crate) struct Target {
 }
 
 pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutation> {
+    let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced(root)?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
@@ -50,7 +53,10 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
     validate_component(&new_name)?;
     let new_rel = child_rel(parent, &new_name);
     if new_name == *old_name {
-        return finish(root, &data, false, Some(new_rel), Vec::new());
+        if synced {
+            yaml_store::save(root, &data)?;
+        }
+        return Ok(finish(root, &data, synced, Some(new_rel), Vec::new()));
     }
     let parent_abs = join_rel(root, parent);
     ensure_free(&parent_abs, get_node(&data, parent), &new_name, &[old_name.as_str()])?;
@@ -66,7 +72,7 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
         }
     }
     persist(root, &data, journal, "rename")?;
-    finish(root, &data, synced, Some(new_rel), warnings)
+    Ok(finish(root, &data, synced, Some(new_rel), warnings))
 }
 
 pub fn set_node_type(
@@ -75,6 +81,7 @@ pub fn set_node_type(
     base: EditableType,
     status: Option<WkbStatus>,
 ) -> R<Mutation> {
+    let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced(root)?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
@@ -100,10 +107,11 @@ pub fn set_node_type(
         }
     }
     yaml_store::save(root, &data)?;
-    finish(root, &data, synced, Some(rel.to_vec()), Vec::new())
+    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new()))
 }
 
 pub fn add_child(root: &Path, parent: &[String]) -> R<Mutation> {
+    let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced(root)?;
     let target = locate(root, &data, parent)?;
     guard_frozen(parent, &target.node_type)?;
@@ -150,7 +158,7 @@ pub fn add_child(root: &Path, parent: &[String]) -> R<Mutation> {
         }
     }
     persist(root, &data, journal, "add child")?;
-    finish(root, &data, synced, Some(child_rel(parent, &new_name)), warnings)
+    Ok(finish(root, &data, synced, Some(child_rel(parent, &new_name)), warnings))
 }
 
 // Linked folders follow best-effort: a clash or failure becomes a warning and its yaml key stays.
@@ -217,12 +225,21 @@ pub(crate) fn child_rel(parent: &[String], name: &str) -> Vec<String> {
 }
 
 pub(crate) fn locate(root: &Path, data: &Mapping, rel: &[String]) -> R<Target> {
-    let (name, _) = split(rel)?;
+    split(rel)?;
+    // A folder named like a meta key would make its parent's type or status look like a node.
+    if let Some(meta) = rel.iter().find(|p| META_KEYS.contains(&p.as_str())) {
+        return Err(FmError::InvalidName { name: meta.clone(), reason: "reserved name".to_string() });
+    }
     let abs = resolve(root, rel)?;
-    let on_disk = match abs.parent() {
-        Some(parent) => has_exact_dir(parent, name)?,
-        None => false,
-    };
+    let mut on_disk = true;
+    let mut dir = root.to_path_buf();
+    for part in rel {
+        if !has_exact_dir(&dir, part)? {
+            on_disk = false;
+            break;
+        }
+        dir.push(part);
+    }
     if !on_disk && get_node(data, rel).is_none() {
         return Err(FmError::NotFound { rel_parts: rel.to_vec() });
     }
@@ -291,14 +308,29 @@ pub(crate) fn persist(root: &Path, data: &Mapping, journal: Journal, op: &str) -
     }
 }
 
+// Runs after the yaml is committed, so it never fails: the change is already on disk.
 pub(crate) fn finish(
     root: &Path,
     data: &Mapping,
     yaml_changed: bool,
     select: Option<Vec<String>>,
     warnings: Vec<String>,
-) -> R<Mutation> {
-    Ok(Mutation { tree: build_tree(root, data, yaml_changed)?, select, warnings })
+) -> Mutation {
+    after_commit(root, build_tree(root, data, yaml_changed), select, warnings)
+}
+
+// An empty tree with yamlChanged set tells the UI to refresh instead of showing a stale tree.
+fn after_commit(
+    root: &Path,
+    tree: R<TreeSnapshot>,
+    select: Option<Vec<String>>,
+    mut warnings: Vec<String>,
+) -> Mutation {
+    let tree = tree.unwrap_or_else(|e| {
+        warnings.push(format!("The change was saved but the tree could not be reloaded; refresh. {e}"));
+        TreeSnapshot { root: root.to_string_lossy().into_owned(), nodes: Vec::new(), yaml_changed: true }
+    });
+    Mutation { tree, select, warnings }
 }
 
 #[cfg(test)]
@@ -342,9 +374,12 @@ pub(crate) mod test_support {
         get_type(&yaml(dir), &rel(parts))
     }
 
-    // A directory where the temp file goes makes the atomic save fail after the disk changes.
-    pub fn break_yaml_save(dir: &Path) {
-        fs::create_dir(yaml_path(dir).with_file_name(".Tree.yaml.tmp")).unwrap();
+    // Holding Tree.yaml open without delete sharing makes the atomic replace fail after the disk changes.
+    #[cfg(windows)]
+    pub fn break_yaml_save(dir: &Path) -> fs::File {
+        use std::os::windows::fs::OpenOptionsExt;
+        const FILE_SHARE_READ_WRITE: u32 = 0x1 | 0x2;
+        fs::OpenOptions::new().read(true).share_mode(FILE_SHARE_READ_WRITE).open(yaml_path(dir)).unwrap()
     }
 }
 
@@ -454,10 +489,11 @@ mod tests {
         assert_eq!(yaml_type(dir.path(), &[p[0], p[1], "90.Physics"]), "RES");
     }
 
+    #[cfg(windows)]
     #[test]
     fn rename_rolls_back_disk_and_cascade_when_yaml_save_fails() {
         let dir = academic("rename-rollback");
-        break_yaml_save(dir.path());
+        let _held = break_yaml_save(dir.path());
         let before = fs::read_to_string(crate::yaml_store::yaml_path(dir.path())).unwrap();
         let err = rename_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), "Physics").unwrap_err();
         assert!(matches!(err, FmError::RolledBack { .. }), "{err:?}");
@@ -526,12 +562,68 @@ mod tests {
         assert!(matches!(add_child(dir.path(), &[]), Err(FmError::InvalidPath { .. })));
     }
 
+    #[cfg(windows)]
     #[test]
     fn add_child_removes_created_folders_when_yaml_save_fails() {
         let dir = academic("add-rollback");
-        break_yaml_save(dir.path());
+        let _held = break_yaml_save(dir.path());
         let err = add_child(dir.path(), &rel(&["100.ACADEMIC"])).unwrap_err();
         assert!(matches!(err, FmError::RolledBack { .. }), "{err:?}");
         assert_eq!(names(&dir.path().join("100.ACADEMIC")), ["01.Math", "02.Bio"]);
+    }
+
+    #[test]
+    fn meta_key_folders_are_refused_and_the_parent_type_survives() {
+        let dir = academic("meta-key");
+        dir.mkdir("100.ACADEMIC/type");
+        dir.mkdir("100.ACADEMIC/01.Math/status");
+        let refused = |r: R<Mutation>| matches!(r, Err(FmError::InvalidName { .. }));
+        assert!(refused(rename_node(dir.path(), &rel(&["100.ACADEMIC", "type"]), "X")));
+        assert!(refused(set_node_type(dir.path(), &rel(&["100.ACADEMIC", "type"]), EditableType::Wkb, None)));
+        assert!(refused(add_child(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "status"]))));
+        assert!(dir.path().join("100.ACADEMIC/type").is_dir());
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC"]), "NODE-L1");
+        let math = get_node(&yaml(dir.path()), &rel(&["100.ACADEMIC", "01.Math"])).unwrap().clone();
+        assert_eq!(math.get("status").and_then(Value::as_str), Some("done"));
+    }
+
+    #[test]
+    fn locate_needs_every_component_with_its_exact_case() {
+        let dir = academic("locate-case");
+        let data: Mapping = serde_yaml::from_str("100.academic:\n  02.Bio: {type: NODE-L2}\n").unwrap();
+        let target = locate(dir.path(), &data, &rel(&["100.academic", "02.Bio"])).unwrap();
+        assert!(target.ghost);
+        assert!(!locate(dir.path(), &data, &rel(&["100.ACADEMIC", "02.Bio"])).unwrap().ghost);
+    }
+
+    #[test]
+    fn noop_rename_reports_and_saves_the_sync() {
+        let dir = academic("rename-noop");
+        dir.mkdir("100.ACADEMIC/05.Fresh");
+        let m = rename_node(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), "bio").unwrap();
+        assert!(m.tree.yaml_changed);
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "05.Fresh"]), "NODE-L2");
+    }
+
+    #[test]
+    fn mutations_refuse_while_another_process_holds_the_lock() {
+        let dir = academic("locked-storage");
+        let held = StorageLock::acquire(dir.path()).unwrap();
+        let err = rename_node(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), "Chem").unwrap_err();
+        assert!(matches!(err, FmError::Io { ref op, .. } if op == "lock storage"), "{err:?}");
+        assert!(dir.path().join("100.ACADEMIC/02.Bio").is_dir());
+        drop(held);
+        rename_node(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), "Chem").unwrap();
+    }
+
+    #[test]
+    fn a_tree_failure_after_commit_is_a_warning_not_an_error() {
+        let dir = academic("after-commit");
+        let failed = Err(FmError::Internal { message: "boom".to_string() });
+        let m = after_commit(dir.path(), failed, Some(rel(&["x"])), vec!["w".to_string()]);
+        assert!(m.tree.nodes.is_empty() && m.tree.yaml_changed);
+        assert_eq!(m.select, Some(rel(&["x"])));
+        assert_eq!(m.warnings.len(), 2);
+        assert!(m.warnings[1].contains("refresh") && m.warnings[1].contains("boom"), "{:?}", m.warnings);
     }
 }

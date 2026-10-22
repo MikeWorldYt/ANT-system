@@ -11,7 +11,10 @@ use crate::edit_actions::{
     Target,
 };
 use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, is_link, join_rel, same_name, validate_component, Journal};
+use crate::fs_safe::{
+    io_err, join_rel, redirects, same_name, validate_component, Journal, StorageLock,
+    MAX_NAME_UNITS,
+};
 use crate::names::{editable_part, is_movable_node, list_subdirs, numeric_id};
 use crate::tree_node::is_reserved;
 use crate::yaml_store::{self, delete_key, get_node, get_node_mut, get_type, is_locked_type};
@@ -31,7 +34,15 @@ pub struct DeletePreview {
     pub dirs: usize,
 }
 
+// A folder already staged in .ant-trash and dropped from Tree.yaml; recycling it needs no storage lock.
+pub struct PendingRecycle {
+    root: PathBuf,
+    staged: PathBuf,
+    name: String,
+}
+
 pub fn move_node(root: &Path, rel: &[String], dir: MoveDirection) -> R<Mutation> {
+    let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced(root)?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
@@ -93,7 +104,7 @@ pub fn move_node(root: &Path, rel: &[String], dir: MoveDirection) -> R<Mutation>
     } else {
         Vec::new()
     };
-    finish(root, &data, synced, Some(child_rel(parent, &node_final)), warnings)
+    Ok(finish(root, &data, synced, Some(child_rel(parent, &node_final)), warnings))
 }
 
 pub fn inspect_delete(root: &Path, rel: &[String]) -> R<DeletePreview> {
@@ -107,22 +118,14 @@ pub fn inspect_delete(root: &Path, rel: &[String]) -> R<DeletePreview> {
     Ok(DeletePreview { ghost: false, files, dirs })
 }
 
+// The caller runs `recycle_staged` on the returned pending folder after releasing the storage lock.
 pub fn delete_node(
     root: &Path,
     rel: &[String],
     expect_ghost: bool,
     confirm_non_empty: bool,
-) -> R<Mutation> {
-    delete_node_with(root, rel, expect_ghost, confirm_non_empty, send_to_recycle_bin)
-}
-
-pub(crate) fn delete_node_with(
-    root: &Path,
-    rel: &[String],
-    expect_ghost: bool,
-    confirm_non_empty: bool,
-    recycle: impl FnOnce(&Path) -> Result<(), String>,
-) -> R<Mutation> {
+) -> R<(Mutation, Option<PendingRecycle>)> {
+    let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced(root)?;
     let target = locate(root, &data, rel)?;
     if target.ghost != expect_ghost {
@@ -131,9 +134,11 @@ pub(crate) fn delete_node_with(
     guard_delete(rel, &target)?;
     let (name, parent) = split(rel)?;
     if target.ghost {
-        delete_key(&mut data, parent, name);
+        if !delete_key(&mut data, parent, name) {
+            return Err(FmError::NotFound { rel_parts: rel.to_vec() });
+        }
         yaml_store::save(root, &data)?;
-        return finish(root, &data, synced, None, Vec::new());
+        return Ok((finish(root, &data, synced, None, Vec::new()), None));
     }
     let (files, dirs) = count_contents(&target.abs)?;
     if files + dirs > 0 && !confirm_non_empty {
@@ -144,16 +149,48 @@ pub(crate) fn delete_node_with(
     let staged = stage_in_trash(root, &mut journal, &target.abs, name)?;
     delete_key(&mut data, parent, name);
     persist(root, &data, journal, "delete")?;
+    let pending = PendingRecycle { root: root.to_path_buf(), staged, name: name.clone() };
+    Ok((finish(root, &data, synced, None, Vec::new()), Some(pending)))
+}
 
-    let mut warnings = Vec::new();
-    match recycle(&staged) {
-        Ok(()) => remove_trash_if_empty(root, &mut warnings),
-        Err(e) => warnings.push(format!(
-            "{name} was moved to {} but not to the Recycle Bin: {e}",
-            staged.display()
-        )),
+// Returns warnings for the Mutation; on any doubt the staged copy stays in .ant-trash.
+pub fn recycle_staged(pending: PendingRecycle) -> Vec<String> {
+    recycle_staged_with(pending, send_to_recycle_bin)
+}
+
+pub(crate) fn recycle_staged_with(
+    pending: PendingRecycle,
+    recycle: impl FnOnce(&Path) -> Result<(), String>,
+) -> Vec<String> {
+    let PendingRecycle { root, staged, name } = pending;
+    let kept = |why: &str| {
+        vec![format!("{name} left the tree but was not sent to the Recycle Bin; it is kept in {}: {why}", staged.display())]
+    };
+    if let Err(why) = check_staged(&root, &staged) {
+        return kept(&why);
     }
-    finish(root, &data, synced, None, warnings)
+    match recycle(&staged) {
+        Err(why) => kept(&why),
+        Ok(()) if fs::symlink_metadata(&staged).is_ok() => kept("the folder is still there"),
+        Ok(()) => {
+            let mut warnings = Vec::new();
+            remove_trash_if_empty(&root, &mut warnings);
+            warnings
+        }
+    }
+}
+
+// The folder sat unlocked since staging, so it must still be a plain folder directly inside .ant-trash.
+fn check_staged(root: &Path, staged: &Path) -> Result<(), String> {
+    if staged.parent() != Some(root.join(TRASH_DIR).as_path()) {
+        return Err("it is not inside the staging folder".to_string());
+    }
+    let meta = fs::symlink_metadata(staged).map_err(|e| e.to_string())?;
+    match redirects(staged, &meta) {
+        Ok(false) if meta.is_dir() => Ok(()),
+        Ok(_) => Err("it is no longer a plain folder".to_string()),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 // A locked ghost is only a stale record, so it may go; a locked real folder may not.
@@ -167,7 +204,7 @@ fn guard_delete(rel: &[String], target: &Target) -> R<()> {
     Ok(())
 }
 
-// Links are counted but never followed, so the preview cannot wander outside the folder.
+// Links and junctions are counted but never followed; cloud placeholders are real folders and are entered.
 fn count_contents(dir: &Path) -> R<(usize, usize)> {
     let (mut files, mut dirs) = (0, 0);
     let mut pending = vec![dir.to_path_buf()];
@@ -178,7 +215,7 @@ fn count_contents(dir: &Path) -> R<(usize, usize)> {
             let meta = fs::symlink_metadata(&path).map_err(|e| io_err("inspect path", &path, &e))?;
             if meta.is_dir() {
                 dirs += 1;
-                if !is_link(&meta) {
+                if !redirects(&path, &meta)? {
                     pending.push(path);
                 }
             } else {
@@ -194,7 +231,7 @@ fn stage_in_trash(root: &Path, journal: &mut Journal, abs: &Path, name: &str) ->
     match fs::symlink_metadata(&trash) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => journal.mkdir(&trash)?,
         Err(e) => return Err(io_err("inspect path", &trash, &e)),
-        Ok(meta) if !meta.is_dir() || is_link(&meta) => {
+        Ok(meta) if !meta.is_dir() || redirects(&trash, &meta)? => {
             return Err(FmError::InvalidPath {
                 rel_parts: vec![TRASH_DIR.to_string()],
                 reason: "not a plain folder".to_string(),
@@ -202,10 +239,10 @@ fn stage_in_trash(root: &Path, journal: &mut Journal, abs: &Path, name: &str) ->
         }
         Ok(_) => {}
     }
-    let stamp = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
+    let millis = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
+    let stamp = base36(millis);
     let free = (0..100)
-        .map(|n| if n == 0 { format!("{stamp}-{name}") } else { format!("{stamp}-{n}-{name}") })
-        .map(|file| trash.join(file))
+        .map(|n| trash.join(trash_name(&stamp, n, name)))
         .find(|p| fs::symlink_metadata(p).is_err());
     let Some(staged) = free else {
         let cause = FmError::AlreadyExists { name: format!("{TRASH_DIR}/{stamp}-{name}") };
@@ -215,6 +252,36 @@ fn stage_in_trash(root: &Path, journal: &mut Journal, abs: &Path, name: &str) ->
         return Err(std::mem::take(journal).abort("delete", e));
     }
     Ok(staged)
+}
+
+fn base36(mut n: u128) -> String {
+    const DIGITS: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+    let mut out = Vec::new();
+    loop {
+        out.push(DIGITS[(n % 36) as usize]);
+        n /= 36;
+        if n == 0 {
+            break;
+        }
+    }
+    out.reverse();
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+// The prefix makes the name longer, so a name already at the limit is cut to stay a valid folder name.
+fn trash_name(stamp: &str, n: usize, name: &str) -> String {
+    let prefix = if n == 0 { format!("{stamp}-") } else { format!("{stamp}-{n}-") };
+    let room = MAX_NAME_UNITS.saturating_sub(prefix.len());
+    let mut kept = String::new();
+    let mut units = 0;
+    for c in name.chars() {
+        units += c.len_utf16();
+        if units > room {
+            break;
+        }
+        kept.push(c);
+    }
+    format!("{prefix}{}", kept.trim_end_matches(['.', ' ']))
 }
 
 fn remove_trash_if_empty(root: &Path, warnings: &mut Vec<String>) {
@@ -231,6 +298,39 @@ fn remove_trash_if_empty(root: &Path, warnings: &mut Vec<String>) {
     }
 }
 
+// SHFileOperationW reports failed or cancelled recycles; flags 0x4454 (ALLOWUNDO|NOCONFIRMATION|WANTNUKEWARNING|NOERRORUI|SILENT) leave only the permanent-delete warning.
+#[cfg(windows)]
+const RECYCLE_TYPE: &str = r#"
+using System;
+using System.Runtime.InteropServices;
+public static class AntRecycleBin {
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct SHFILEOPSTRUCTW {
+        public IntPtr hwnd;
+        public uint wFunc;
+        public string pFrom;
+        public string pTo;
+        public ushort fFlags;
+        [MarshalAs(UnmanagedType.Bool)] public bool fAnyOperationsAborted;
+        public IntPtr hNameMappings;
+        public string lpszProgressTitle;
+    }
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SHFileOperationW(ref SHFILEOPSTRUCTW op);
+    public static string Send(string path) {
+        if (IntPtr.Size != 8) { return "only 64-bit PowerShell is supported"; }
+        SHFILEOPSTRUCTW op = new SHFILEOPSTRUCTW();
+        op.wFunc = 3;
+        op.pFrom = path + "\0";
+        op.fFlags = 0x4454;
+        int code = SHFileOperationW(ref op);
+        if (code != 0) { return "SHFileOperation failed with code 0x" + code.ToString("X"); }
+        if (op.fAnyOperationsAborted) { return "the operation was cancelled"; }
+        return "";
+    }
+}
+"#;
+
 // Removable and network drives have no Recycle Bin, where Windows would delete without asking.
 #[cfg(windows)]
 const RECYCLE_SCRIPT: &str = "$ErrorActionPreference = 'Stop'; \
@@ -238,18 +338,21 @@ const RECYCLE_SCRIPT: &str = "$ErrorActionPreference = 'Stop'; \
     try { \
         $path = $env:ANT_RECYCLE_PATH; \
         if ([IO.DriveInfo]::new([IO.Path]::GetPathRoot($path)).DriveType -ne 'Fixed') { throw 'This drive has no Recycle Bin' }; \
-        Add-Type -AssemblyName Microsoft.VisualBasic; \
-        [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($path, \
-            [Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs, \
-            [Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin); \
+        if (-not (Test-Path -LiteralPath $path -PathType Container)) { throw ('The folder is missing: ' + $path) }; \
+        Add-Type -TypeDefinition $env:ANT_RECYCLE_TYPE; \
+        $failure = [AntRecycleBin]::Send($path); \
+        if ($failure) { throw $failure }; \
         if (Test-Path -LiteralPath $path) { throw 'The folder is still there' }; \
         exit 0 \
     } catch { $out.WriteLine($_.Exception.Message); $out.Flush(); exit 1 }";
 
 #[cfg(windows)]
+const RECYCLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
+
+#[cfg(windows)]
 fn send_to_recycle_bin(path: &Path) -> Result<(), String> {
-    crate::fs_safe::run_powershell(RECYCLE_SCRIPT, &[("ANT_RECYCLE_PATH", path.as_os_str())], None)
-        .map(|_| ())
+    let env = [("ANT_RECYCLE_PATH", path.as_os_str()), ("ANT_RECYCLE_TYPE", std::ffi::OsStr::new(RECYCLE_TYPE))];
+    crate::fs_safe::run_powershell(RECYCLE_SCRIPT, &env, None, RECYCLE_TIMEOUT).map(|_| ())
 }
 
 #[cfg(not(windows))]
@@ -276,6 +379,21 @@ mod tests {
     fn ok_recycle(path: &Path) -> Result<(), String> {
         assert!(path.parent().unwrap().ends_with(TRASH_DIR), "{}", path.display());
         fs::remove_dir_all(path).map_err(|e| e.to_string())
+    }
+
+    // What the command layer does: delete under the lock, then recycle after releasing it.
+    fn delete_with(
+        root: &Path,
+        rel: &[String],
+        expect_ghost: bool,
+        confirm: bool,
+        recycle: impl FnOnce(&Path) -> Result<(), String>,
+    ) -> R<Mutation> {
+        let (mut m, pending) = delete_node(root, rel, expect_ghost, confirm)?;
+        if let Some(pending) = pending {
+            m.warnings.extend(recycle_staged_with(pending, recycle));
+        }
+        Ok(m)
     }
 
     #[test]
@@ -319,10 +437,11 @@ mod tests {
         assert_eq!(yaml_type(dir.path(), &["100.WORK", "05.ships"]), "NODE-L2");
     }
 
+    #[cfg(windows)]
     #[test]
     fn move_rolls_back_when_yaml_save_fails() {
         let dir = work("move-yaml");
-        break_yaml_save(dir.path());
+        let _held = break_yaml_save(dir.path());
         let err = move_node(dir.path(), &rel(&["100.WORK", "01.A"]), MoveDirection::Down).unwrap_err();
         assert!(matches!(err, FmError::RolledBack { .. }), "{err:?}");
         assert_eq!(names(&dir.path().join("100.WORK")), ["01.A", "02.B", "03.C", "04.Wkb", "98.Rev"]);
@@ -353,12 +472,12 @@ mod tests {
     fn delete_ghost_only_touches_yaml_and_checks_expectation() {
         let dir = work("delete-ghost");
         let ghost = rel(&["100.WORK", "05.Ghost"]);
-        let stale = delete_node_with(dir.path(), &ghost, false, false, ok_recycle);
+        let stale = delete_with(dir.path(), &ghost, false, false, ok_recycle);
         assert!(matches!(stale, Err(FmError::Stale { .. })));
-        let real = delete_node_with(dir.path(), &rel(&["100.WORK", "02.B"]), true, false, ok_recycle);
+        let real = delete_with(dir.path(), &rel(&["100.WORK", "02.B"]), true, false, ok_recycle);
         assert!(matches!(real, Err(FmError::Stale { .. })));
         assert_eq!(inspect_delete(dir.path(), &ghost).unwrap(), DeletePreview { ghost: true, files: 0, dirs: 0 });
-        let m = delete_node_with(dir.path(), &ghost, true, false, |_| panic!("no disk delete")).unwrap();
+        let m = delete_with(dir.path(), &ghost, true, false, |_| panic!("no disk delete")).unwrap();
         assert!(m.select.is_none());
         assert!(get_node(&yaml(dir.path()), &ghost).is_none());
         assert!(dir.path().join("100.WORK/02.B").is_dir());
@@ -369,7 +488,7 @@ mod tests {
         let dir = work("delete-empty");
         let p = rel(&["100.WORK", "02.B"]);
         assert_eq!(inspect_delete(dir.path(), &p).unwrap(), DeletePreview { ghost: false, files: 0, dirs: 0 });
-        let m = delete_node_with(dir.path(), &p, false, false, ok_recycle).unwrap();
+        let m = delete_with(dir.path(), &p, false, false, ok_recycle).unwrap();
         assert!(m.warnings.is_empty(), "{:?}", m.warnings);
         assert!(!dir.path().join("100.WORK/02.B").exists());
         assert!(!dir.path().join(TRASH_DIR).exists());
@@ -382,11 +501,11 @@ mod tests {
         fs::write(dir.path().join("100.WORK/01.A/01.Keep/notes.txt"), "keep me").unwrap();
         let p = rel(&["100.WORK", "01.A"]);
         assert_eq!(inspect_delete(dir.path(), &p).unwrap(), DeletePreview { ghost: false, files: 1, dirs: 1 });
-        let refused = delete_node_with(dir.path(), &p, false, false, ok_recycle);
+        let refused = delete_with(dir.path(), &p, false, false, ok_recycle);
         assert!(matches!(refused, Err(FmError::NeedsConfirmation { files: 1, dirs: 1 })));
         assert!(dir.path().join("100.WORK/01.A/01.Keep/notes.txt").is_file());
 
-        let m = delete_node_with(dir.path(), &p, false, true, |_| Err("bin unavailable".to_string())).unwrap();
+        let m = delete_with(dir.path(), &p, false, true, |_| Err("bin unavailable".to_string())).unwrap();
         assert_eq!(m.warnings.len(), 1, "{:?}", m.warnings);
         let staged = names(&dir.path().join(TRASH_DIR));
         assert_eq!(staged.len(), 1);
@@ -396,12 +515,13 @@ mod tests {
         assert!(get_node(&yaml(dir.path()), &p).is_none());
     }
 
+    #[cfg(windows)]
     #[test]
     fn delete_puts_the_folder_back_when_yaml_save_fails() {
         let dir = work("delete-rollback");
-        break_yaml_save(dir.path());
+        let _held = break_yaml_save(dir.path());
         let p = rel(&["100.WORK", "02.B"]);
-        let err = delete_node_with(dir.path(), &p, false, false, |_| panic!("not staged")).unwrap_err();
+        let err = delete_with(dir.path(), &p, false, false, |_| panic!("not staged")).unwrap_err();
         assert!(matches!(err, FmError::RolledBack { .. }), "{err:?}");
         assert!(dir.path().join("100.WORK/02.B").is_dir());
         assert!(!dir.path().join(TRASH_DIR).exists());
@@ -411,13 +531,113 @@ mod tests {
     fn delete_refuses_reserved_and_locked_folders_but_not_locked_ghosts() {
         let dir = storage("delete-refuse", &["100.WORK/98.Rev", "998.Review"], "100.WORK:\n  97.Gone: {type: TPL}\n");
         for reserved in ["999.Settings", "998.Review"] {
-            let err = delete_node_with(dir.path(), &rel(&[reserved]), false, true, ok_recycle);
+            let err = delete_with(dir.path(), &rel(&[reserved]), false, true, ok_recycle);
             assert!(matches!(err, Err(FmError::Reserved { .. })), "{reserved}");
         }
-        let locked = delete_node_with(dir.path(), &rel(&["100.WORK", "98.Rev"]), false, true, ok_recycle);
+        let locked = delete_with(dir.path(), &rel(&["100.WORK", "98.Rev"]), false, true, ok_recycle);
         assert!(matches!(locked, Err(FmError::Locked { .. })));
-        delete_node_with(dir.path(), &rel(&["100.WORK", "97.Gone"]), true, false, ok_recycle).unwrap();
+        delete_with(dir.path(), &rel(&["100.WORK", "97.Gone"]), true, false, ok_recycle).unwrap();
         assert!(dir.path().join("100.WORK/98.Rev").is_dir() && dir.path().join("999.Settings").is_dir());
+    }
+
+    #[test]
+    fn delete_refuses_reserved_names_in_any_case() {
+        let dir = storage("delete-reserved-case", &["100.WORK"], "998.review: {type: REV}\n999.SETTINGS: {type: CFG}\n");
+        for name in ["998.review", "999.SETTINGS"] {
+            let err = delete_with(dir.path(), &rel(&[name]), true, false, ok_recycle);
+            assert!(matches!(err, Err(FmError::Reserved { .. })), "{name}: {err:?}");
+        }
+        assert!(get_node(&yaml(dir.path()), &rel(&["998.review"])).is_some());
+    }
+
+    #[test]
+    fn recycle_runs_without_the_storage_lock_after_the_yaml_commit() {
+        let dir = work("recycle-unlocked");
+        let p = rel(&["100.WORK", "02.B"]);
+        let m = delete_with(dir.path(), &p, false, false, |staged| {
+            assert!(get_node(&yaml(dir.path()), &rel(&["100.WORK", "02.B"])).is_none());
+            drop(StorageLock::acquire(dir.path()).map_err(|e| e.to_string())?);
+            ok_recycle(staged)
+        })
+        .unwrap();
+        assert!(m.warnings.is_empty(), "{:?}", m.warnings);
+    }
+
+    #[test]
+    fn recycle_that_leaves_the_folder_in_place_keeps_it_with_a_warning() {
+        let dir = work("recycle-noop");
+        let m = delete_with(dir.path(), &rel(&["100.WORK", "02.B"]), false, false, |_| Ok(())).unwrap();
+        assert_eq!(m.warnings.len(), 1, "{:?}", m.warnings);
+        assert!(m.warnings[0].contains("still there"), "{:?}", m.warnings);
+        assert_eq!(names(&dir.path().join(TRASH_DIR)).len(), 1);
+    }
+
+    #[test]
+    fn recycle_refuses_a_path_outside_the_staging_folder() {
+        let dir = work("recycle-outside");
+        let staged = dir.path().join("100.WORK/02.B");
+        let pending = PendingRecycle { root: dir.path().to_path_buf(), staged, name: "02.B".to_string() };
+        let warnings = recycle_staged_with(pending, |_| panic!("must not recycle"));
+        assert_eq!(warnings.len(), 1);
+        assert!(dir.path().join("100.WORK/02.B").is_dir());
+    }
+
+    #[test]
+    fn trash_records_cannot_be_deleted_as_ghosts_and_meta_folders_are_refused() {
+        let dir = storage("delete-trash", &["100.WORK/type", ".ant-trash/old"], "100.WORK: {type: NODE-L1}\n.ant-trash: {type: NODE-L1}\n");
+        let trash = delete_with(dir.path(), &rel(&[".ant-trash"]), true, false, ok_recycle);
+        assert!(matches!(trash, Err(FmError::InvalidPath { .. })), "{trash:?}");
+        let meta = delete_with(dir.path(), &rel(&["100.WORK", "type"]), false, true, ok_recycle);
+        assert!(matches!(meta, Err(FmError::InvalidName { .. })), "{meta:?}");
+        assert!(dir.path().join("100.WORK/type").is_dir() && dir.path().join(".ant-trash/old").is_dir());
+        assert_eq!(yaml_type(dir.path(), &["100.WORK"]), "NODE-L1");
+    }
+
+    #[test]
+    fn delete_through_a_wrong_case_parent_only_drops_the_ghost_record() {
+        let dir = work("delete-case");
+        let mut data = yaml(dir.path());
+        data.insert("100.work".into(), serde_yaml::from_str("02.B: {type: NODE-L2}").unwrap());
+        crate::yaml_store::save(dir.path(), &data).unwrap();
+        let p = rel(&["100.work", "02.B"]);
+        assert!(matches!(delete_with(dir.path(), &p, false, true, ok_recycle), Err(FmError::Stale { .. })));
+        delete_with(dir.path(), &p, true, false, |_| panic!("no disk delete")).unwrap();
+        assert!(dir.path().join("100.WORK/02.B").is_dir());
+        assert_eq!(yaml_type(dir.path(), &["100.WORK", "02.B"]), "NODE-L2");
+    }
+
+    #[test]
+    fn trash_names_are_short_and_fit_the_name_limit() {
+        assert_eq!(base36(0), "0");
+        assert_eq!(base36(36 * 36 + 1), "101");
+        assert_eq!(trash_name("abc", 0, "01.A"), "abc-01.A");
+        assert_eq!(trash_name("abc", 2, "01.A"), "abc-2-01.A");
+        let long = format!("01.{}", "\u{e9}".repeat(252));
+        let staged = trash_name("abc", 0, &long);
+        assert_eq!(staged.encode_utf16().count(), MAX_NAME_UNITS);
+        assert!(validate_component(&staged).is_ok());
+        assert_eq!(trash_name("abc", 0, &format!("{}. x", "a".repeat(249))), format!("abc-{}", "a".repeat(249)));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn count_contents_does_not_follow_junctions() {
+        let dir = work("count-junction");
+        let outside = crate::yaml_store::test_support::TempDir::new("count-outside");
+        fs::write(outside.path().join("secret.txt"), "x").unwrap();
+        let link = dir.path().join("100.WORK/02.B/j");
+        let made = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(&link)
+            .arg(outside.path())
+            .output()
+            .is_ok_and(|o| o.status.success());
+        if !made {
+            eprintln!("skipped: could not create a junction");
+            return;
+        }
+        assert_eq!(count_contents(&dir.path().join("100.WORK/02.B")).unwrap(), (0, 1));
+        fs::remove_dir(&link).unwrap();
     }
 
     #[cfg(windows)]
@@ -434,8 +654,10 @@ mod tests {
     #[ignore = "sends a temp folder to the real Recycle Bin through PowerShell"]
     fn delete_sends_the_staged_folder_to_the_recycle_bin() {
         let dir = work("delete-real");
-        let m = delete_node(dir.path(), &rel(&["100.WORK", "02.B"]), false, false).unwrap();
+        let (m, pending) = delete_node(dir.path(), &rel(&["100.WORK", "02.B"]), false, false).unwrap();
         assert!(m.warnings.is_empty(), "{:?}", m.warnings);
+        let warnings = recycle_staged(pending.unwrap());
+        assert!(warnings.is_empty(), "{warnings:?}");
         assert!(!dir.path().join(TRASH_DIR).exists());
     }
 }

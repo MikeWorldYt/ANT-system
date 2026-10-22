@@ -84,7 +84,7 @@ pub fn list_subdirs(dir: &Path) -> R<Vec<String>> {
     for entry in entries {
         let entry = entry.map_err(|e| io_err("list folder", dir, &e))?;
         let name = entry.file_name().to_string_lossy().into_owned();
-        if name != TRASH_DIR && entry.path().is_dir() {
+        if !name.eq_ignore_ascii_case(TRASH_DIR) && entry.path().is_dir() {
             names.push(name);
         }
     }

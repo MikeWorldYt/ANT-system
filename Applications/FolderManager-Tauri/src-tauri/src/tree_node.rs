@@ -5,9 +5,9 @@ use std::path::Path;
 use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{child_entries, type_base, type_level};
+use crate::ant_core::tree_types::{child_entries, type_base, type_level, META_KEYS};
 use crate::config::{
-    LINKED_PREFIXES, MAX_DEPTH, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus,
+    LINKED_PREFIXES, MAX_DEPTH, REVIEW_FOLDER, SETTINGS_FOLDER, TRASH_DIR, TypeBase, WkbStatus,
 };
 use crate::error::R;
 use crate::names::{is_movable_node, list_subdirs, numeric_id};
@@ -89,8 +89,13 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
     let yaml: Vec<&str> = get_node(data, parent)
         .map(|m| child_entries(m).map(|(k, _)| k).collect())
         .unwrap_or_default();
-    let names: BTreeSet<&str> =
-        disk.iter().map(String::as_str).chain(yaml.iter().copied()).collect();
+    // A disk folder named like a meta key has no yaml entry of its own, and the trash is never a node.
+    let names: BTreeSet<&str> = disk
+        .iter()
+        .map(String::as_str)
+        .filter(|d| !META_KEYS.contains(d))
+        .chain(yaml.iter().copied().filter(|k| !k.eq_ignore_ascii_case(TRASH_DIR)))
+        .collect();
 
     Ok(names
         .into_iter()
@@ -182,8 +187,10 @@ fn is_movable(node: &TreeNode) -> bool {
     !node.ghost && !node.locked && !node.reserved && is_movable_node(&node.name, raw)
 }
 
+// Windows folder names ignore case, so "999.settings" is the same reserved folder.
 pub(crate) fn is_reserved(rel_parts: &[String]) -> bool {
-    matches!(rel_parts, [name] if name == SETTINGS_FOLDER || name == REVIEW_FOLDER)
+    matches!(rel_parts, [name]
+        if name.eq_ignore_ascii_case(SETTINGS_FOLDER) || name.eq_ignore_ascii_case(REVIEW_FOLDER))
 }
 
 fn parse_type(raw: &str) -> NodeType {
@@ -338,6 +345,28 @@ mod tests {
         dir.mkdir("01.Alpha/999.Settings");
         let kids = build_children(dir.path(), &nested, &rel(&["01.Alpha"])).unwrap();
         assert!(!find(&kids, "999.Settings").reserved);
+    }
+
+    #[test]
+    fn reserved_check_ignores_ascii_case() {
+        for name in ["999.SETTINGS", "999.settings", "998.REVIEW", "998.review"] {
+            assert!(is_reserved(&rel(&[name])), "{name}");
+        }
+        assert!(!is_reserved(&rel(&["01.A", "998.review"])));
+    }
+
+    #[test]
+    fn meta_key_folders_and_trash_records_are_hidden() {
+        let (dir, mut data) = fixture();
+        dir.mkdir("01.Alpha/type");
+        dir.mkdir("01.Alpha/status");
+        dir.mkdir(".ant-trash/123-02.Old");
+        data.insert(".ant-trash".into(), serde_yaml::from_str("type: NODE-L1").unwrap());
+        data.insert(".ANT-TRASH".into(), serde_yaml::from_str("type: NODE-L1").unwrap());
+        let tree = build_tree(dir.path(), &data, false).unwrap();
+        assert!(!names(&tree.nodes).iter().any(|n| n.eq_ignore_ascii_case(".ant-trash")));
+        let kids = build_children(dir.path(), &data, &rel(&["01.Alpha"])).unwrap();
+        assert_eq!(names(&kids), ["01.Sub", "02.Ghost", "03.GhostRev"]);
     }
 
     #[test]
