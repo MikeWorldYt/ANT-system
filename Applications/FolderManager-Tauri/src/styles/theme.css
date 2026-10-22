@@ -41,8 +41,12 @@ body {
   overflow-x: auto; white-space: nowrap; scrollbar-width: none; background: var(--input-bg);
   border: 1px solid var(--border); border-radius: 8px;
 }
+.breadcrumb.editing { padding: 0; }
+.path-input { flex: 1; min-width: 0; padding: 5px 12px; border: 0; background: transparent; color: var(--text); font: inherit; outline: none; }
+.breadcrumb:has(.path-input:focus) { border-color: var(--button); }
+.path-input[aria-invalid="true"] { color: var(--delete-hover); }
 .crumb { color: var(--text); }
-.crumb-root { color: var(--disabled-text); }
+.crumb-root { color: var(--title); }
 .crumb-sep { color: var(--disabled-text); }
 .crumb-btn { border: 0; background: transparent; padding: 0 2px; font: inherit; cursor: pointer; border-radius: 3px; }
 .crumb-btn:hover { background: var(--field-bg); }
