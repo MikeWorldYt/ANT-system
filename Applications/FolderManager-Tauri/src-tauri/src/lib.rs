@@ -2,9 +2,12 @@
 mod ant_core;
 mod commands;
 mod config;
+mod edit_actions;
 mod error;
 mod fs_safe;
+mod move_delete;
 mod names;
+mod review_index;
 mod tree_node;
 mod yaml_store;
 

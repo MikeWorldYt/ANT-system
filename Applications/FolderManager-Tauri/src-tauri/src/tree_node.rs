@@ -182,7 +182,7 @@ fn is_movable(node: &TreeNode) -> bool {
     !node.ghost && !node.locked && !node.reserved && is_movable_node(&node.name, raw)
 }
 
-fn is_reserved(rel_parts: &[String]) -> bool {
+pub(crate) fn is_reserved(rel_parts: &[String]) -> bool {
     matches!(rel_parts, [name] if name == SETTINGS_FOLDER || name == REVIEW_FOLDER)
 }
 
