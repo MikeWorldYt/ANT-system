@@ -1,11 +1,10 @@
 // List view: indented expandable rows with keyboard navigation.
-import { el } from "./dom";
+import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
+import { badge, el } from "./dom";
 import { toggleExpand } from "./ops";
 import { keyOf, select, state, visibleRows } from "./state";
 import type { TreeNode } from "./types";
 import type { ViewMode } from "./view-mode";
-
-const badge = (cls: string, text: string) => el("span", { class: `badge ${cls}` }, text);
 
 export function createListView(): ViewMode {
   const tree = el("div", { class: "tree", role: "tree", tabindex: "0", "aria-label": "Storage folders" });
@@ -39,6 +38,7 @@ export function createListView(): ViewMode {
     });
     row.addEventListener("click", () => select(n.relParts));
     row.addEventListener("dblclick", () => void toggleExpand(n));
+    row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, tree));
     return row;
   }
 
@@ -46,6 +46,11 @@ export function createListView(): ViewMode {
     const i = indexOfSelected();
     const n = rows[i];
     const open = n !== undefined && state.expanded.has(keyOf(n.relParts));
+    if (isMenuKey(ev)) {
+      if (n) nodeMenuFromKey(tree, n, tree.querySelector(`#row-${i}`));
+      ev.preventDefault();
+      return;
+    }
     switch (ev.key) {
       case "ArrowDown":
         pick(i + 1);

@@ -66,14 +66,8 @@ export function refresh(): Promise<void> {
   });
 }
 
-export async function toggleExpand(node: TreeNode): Promise<void> {
+export async function expand(node: TreeNode): Promise<void> {
   const key = keyOf(node.relParts);
-  if (!node.hasChildren) return;
-  if (state.expanded.has(key)) {
-    state.expanded.delete(key);
-    notify();
-    return;
-  }
   state.expanded.add(key);
   notify();
   try {
@@ -83,6 +77,17 @@ export async function toggleExpand(node: TreeNode): Promise<void> {
     setStatus("error", api.describeError(e));
   }
   notify();
+}
+
+export async function toggleExpand(node: TreeNode): Promise<void> {
+  const key = keyOf(node.relParts);
+  if (!node.hasChildren) return;
+  if (state.expanded.has(key)) {
+    state.expanded.delete(key);
+    notify();
+    return;
+  }
+  await expand(node);
 }
 
 export const addChild = (node: TreeNode) =>

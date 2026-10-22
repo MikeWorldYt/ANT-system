@@ -4,7 +4,7 @@ import { apply, editablePart, remove } from "./ops";
 import { selectedNode, state } from "./state";
 import type { TreeNode, WkbStatus } from "./types";
 
-const TYPES: [string, string][] = [["NODE", "Node"], ["WKB", "Workboard"], ["PORTF", "Portfolio"]];
+export const TYPES: [string, string][] = [["NODE", "Node"], ["WKB", "Workboard"], ["PORTF", "Portfolio"]];
 const STATUSES: [WkbStatus, string][] = [
   ["in-progress", "In progress"],
   ["for-review", "For review"],

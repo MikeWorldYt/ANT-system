@@ -1,6 +1,8 @@
 // Entry point: assembles the shell and wires store, events and views.
 import "./styles/theme.css";
 import { createActionsPanel } from "./actions-panel";
+import { createColumnsView } from "./columns-view";
+import { installContextMenu } from "./context-menu";
 import { el } from "./dom";
 import { onReviewIndex, onWindowFocus } from "./events";
 import { init, refresh } from "./ops";
@@ -8,22 +10,29 @@ import { createStatusLine, clearStatus, setStatus } from "./status";
 import { subscribe } from "./state";
 import { createToolbar } from "./toolbar";
 import { createListView } from "./tree-view";
-import type { ViewMode } from "./view-mode";
+import { createViewSwitcher } from "./view-switch";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
 
-const toolbar = createToolbar();
-const panel = createActionsPanel();
-const view: ViewMode = createListView();
 const host = el("section", { class: "tree-host", "aria-label": "Folder tree" });
+const views = createViewSwitcher(host, [createListView(), createColumnsView()]);
+const toolbar = createToolbar({
+  modes: views.modes,
+  active: () => views.current().id,
+  onSelect: (id) => {
+    views.switchTo(id);
+    toolbar.render();
+  },
+});
+const panel = createActionsPanel();
 const main = el("main", { class: "app-main" }, host, panel.element);
 app.append(toolbar.element, main, createStatusLine());
-view.mount(host);
+installContextMenu(host, () => views.current().focus());
 
 subscribe(() => {
   toolbar.render();
-  view.render();
+  views.current().render();
   panel.render();
 });
 
@@ -42,4 +51,4 @@ void onReviewIndex((e) => {
 });
 void onWindowFocus(() => void refresh());
 
-void init().then(() => view.focus());
+void init().then(() => views.current().focus());

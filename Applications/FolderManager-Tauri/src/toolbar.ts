@@ -10,7 +10,13 @@ function iconButton(label: string, glyph: string, onClick: () => void): HTMLButt
   return b;
 }
 
-export function createToolbar(): { element: HTMLElement; render(): void } {
+export interface ViewToggle {
+  modes: { id: string; label: string }[];
+  active(): string;
+  onSelect(id: string): void;
+}
+
+export function createToolbar(views: ViewToggle): { element: HTMLElement; render(): void } {
   const title = el("h1", {}, "Storage root name: ");
   const rootName = el("span", { class: "root-name" });
   title.append(rootName);
@@ -24,7 +30,13 @@ export function createToolbar(): { element: HTMLElement; render(): void } {
   const up = iconButton("Move up", "▲", act((n) => void move(n, "up")));
   const reload = iconButton("Refresh", "↺", () => void refresh());
   const bar = el("div", { class: "toolbar", role: "toolbar", "aria-label": "Tree actions" }, add, down, up, reload);
-  const element = el("header", { class: "app-header" }, title, bar);
+  const toggles = views.modes.map((m) => {
+    const b = el("button", { type: "button", class: "seg-btn" }, m.label);
+    b.addEventListener("click", () => views.onSelect(m.id));
+    return [m.id, b] as const;
+  });
+  const toggle = el("div", { class: "view-toggle", role: "group", "aria-label": "View mode" }, ...toggles.map(([, b]) => b));
+  const element = el("header", { class: "app-header" }, title, el("div", { class: "header-tools" }, toggle, bar));
 
   return {
     element,
@@ -36,6 +48,7 @@ export function createToolbar(): { element: HTMLElement; render(): void } {
       down.disabled = !(a?.moveDown && idle);
       up.disabled = !(a?.moveUp && idle);
       reload.disabled = !idle;
+      for (const [id, b] of toggles) b.setAttribute("aria-pressed", String(id === views.active()));
     },
   };
 }

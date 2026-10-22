@@ -9,3 +9,5 @@ export function el<K extends keyof HTMLElementTagNameMap>(
   node.append(...kids);
   return node;
 }
+
+export const badge = (cls: string, text: string) => el("span", { class: `badge ${cls}` }, text);

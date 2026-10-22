@@ -97,3 +97,46 @@ dialog.confirm {
 dialog.confirm::backdrop { background: rgb(0 0 0 / 0.6); }
 dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
 .dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+.header-tools { display: flex; align-items: center; gap: 12px; }
+.view-toggle { display: flex; }
+.seg-btn {
+  padding: 6px 12px; border: 1px solid var(--border); background: var(--input-bg);
+  color: var(--text); font: inherit; cursor: pointer;
+}
+.seg-btn + .seg-btn { border-left: 0; }
+.seg-btn:hover { background: var(--field-bg); }
+.seg-btn[aria-pressed="true"] { background: var(--button); color: var(--bg); font-weight: bold; }
+
+.columns { display: flex; height: 100%; overflow-x: auto; overflow-y: hidden; }
+.column { flex: none; width: 220px; height: 100%; overflow-y: auto; border-right: 1px solid var(--border); }
+.column.loading { padding: 6px 8px; color: var(--disabled-text); }
+.col-item { display: flex; align-items: center; gap: 6px; padding: 3px 8px; cursor: default; user-select: none; }
+.col-item:focus-visible { outline-offset: -2px; }
+.col-item .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-item:hover { background: var(--input-bg); }
+.col-item.on-path { background: var(--input-bg); }
+.col-item.selected { background: var(--highlight); }
+.col-item.ghost { opacity: 0.7; }
+.col-item.ghost .name { color: var(--ghost-text); font-style: italic; }
+.col-item.locked .name { color: var(--disabled-text); }
+.col-item.locked .badge.flag { color: var(--disabled-text); border-color: var(--disabled-text); }
+.chevron { color: var(--accent); }
+
+.ctx-menu {
+  position: fixed; top: 0; left: 0; z-index: 1000; min-width: 190px; max-height: calc(100vh - 8px);
+  overflow-y: auto; padding: 4px 0; background: var(--input-bg); border: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.5);
+}
+.ctx-item {
+  display: block; position: relative; width: 100%; padding: 6px 14px; border: 0; background: transparent;
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.ctx-item:focus-visible { outline-offset: -2px; }
+.ctx-item:hover, .ctx-item:focus-visible { background: var(--highlight); }
+.ctx-item.danger { color: var(--delete-hover); }
+.ctx-item[aria-disabled="true"] { color: var(--disabled-text); cursor: default; background: transparent; }
+.ctx-group .ctx-item { padding-left: 30px; }
+.ctx-item[aria-checked="true"]::before { content: "✓"; position: absolute; left: 12px; color: var(--accent); }
+.ctx-label { padding: 6px 14px 2px; font-size: 8pt; color: var(--title); }
+.ctx-sep { height: 1px; margin: 4px 0; background: var(--border); }
