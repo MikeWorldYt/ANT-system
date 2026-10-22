@@ -36,6 +36,8 @@ export const moveNode = (relParts: string[], direction: MoveDirection) =>
 export const inspectDelete = (relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
 export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonEmpty: boolean) =>
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });
+export const getSkippedVersion = () => call<string>("get_skipped_version");
+export const skipVersion = (version: string) => call<void>("skip_version", { version });
 
 const path = (parts: string[]) => parts.join("/") || "root";
 

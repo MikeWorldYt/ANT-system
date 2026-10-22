@@ -34,6 +34,12 @@ pub fn run() {
             commands::load_tree,
             commands::list_children,
             commands::refresh,
+            commands::rename_node,
+            commands::set_node_type,
+            commands::add_child,
+            commands::move_node,
+            commands::inspect_delete,
+            commands::delete_node,
             commands::get_skipped_version,
             commands::skip_version,
         ])
