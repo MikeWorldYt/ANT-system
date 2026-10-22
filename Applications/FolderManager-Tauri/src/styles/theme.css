@@ -1,0 +1,99 @@
+:root {
+  --bg: #202020;
+  --text: #ffffff;
+  --title: #00b386;
+  --button: #00b386;
+  --accent: #ff8b40;
+  --input-bg: #2b2b2b;
+  --tree-bg: #1a1a1a;
+  --highlight: #2a4a3e;
+  --disabled-text: #555555;
+  --border: #333333;
+  --hover-btn: #00c99a;
+  --delete-btn: #c0392b;
+  --delete-hover: #e74c3c;
+  --ghost-text: #8b2020;
+  --field-bg: #3a3a3a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app { height: 100%; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 10pt "Segoe UI", system-ui, sans-serif;
+}
+
+#app { display: flex; flex-direction: column; }
+
+:focus-visible { outline: 2px solid var(--button); outline-offset: 2px; }
+
+.app-header { display: flex; align-items: center; justify-content: space-between; padding: 12px; gap: 12px; }
+.app-header h1 { margin: 0; font-size: 11pt; color: var(--title); }
+.root-name { color: var(--text); }
+.toolbar { display: flex; gap: 6px; }
+
+.icon-btn {
+  width: 32px; height: 32px; border: 0; border-radius: 4px;
+  background: var(--input-bg); color: var(--accent); font-size: 14pt; cursor: pointer;
+}
+.icon-btn:hover:not(:disabled) { background: var(--field-bg); }
+.icon-btn:disabled { color: var(--disabled-text); cursor: default; }
+
+.app-main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 0 12px 12px; }
+.tree-host { flex: 1; min-width: 0; background: var(--tree-bg); overflow: auto; }
+
+.tree { min-height: 100%; outline-offset: -2px; }
+.row {
+  display: flex; align-items: center; gap: 6px; cursor: default; user-select: none;
+  padding: 3px 8px 3px calc(8px + var(--depth, 0) * 18px);
+}
+.row:hover { background: var(--input-bg); }
+.row.selected { background: var(--highlight); }
+.row.ghost .name { color: var(--ghost-text); font-style: italic; }
+.row.locked .name { color: var(--disabled-text); }
+.caret { width: 14px; text-align: center; color: var(--accent); }
+.badge { font-size: 8pt; padding: 0 6px; border-radius: 8px; border: 1px solid var(--border); color: var(--disabled-text); }
+.badge.status { color: var(--title); border-color: var(--title); }
+.badge.flag { color: var(--ghost-text); border-color: var(--ghost-text); }
+.row.locked .badge.flag { color: var(--disabled-text); border-color: var(--disabled-text); }
+
+.actions { width: 220px; flex: none; background: var(--input-bg); padding: 12px; }
+.actions h2 { margin: 0 0 12px; font-size: 11pt; color: var(--title); }
+.actions-form { display: flex; flex-direction: column; gap: 10px; }
+.field { display: flex; align-items: center; gap: 6px; }
+.field label { width: 52px; flex: none; }
+.field[hidden] { display: none; }
+
+input, select {
+  flex: 1; min-width: 0; padding: 6px; border: 1px solid var(--border); border-radius: 0;
+  background: var(--field-bg); color: var(--text); font: inherit;
+}
+input:disabled, select:disabled { background: var(--input-bg); color: var(--disabled-text); }
+
+.btn {
+  padding: 8px; border: 0; border-radius: 0; font: inherit; font-weight: bold; cursor: pointer;
+  background: var(--field-bg); color: var(--text);
+}
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn-primary { background: var(--button); color: var(--bg); }
+.btn-primary:hover:not(:disabled) { background: var(--hover-btn); }
+.btn-danger { background: var(--delete-btn); color: var(--text); }
+.btn-danger:hover:not(:disabled) { background: var(--delete-hover); }
+.actions-form .btn-primary { margin-top: 4px; }
+
+.status-line { min-height: 28px; padding: 6px 12px; font-size: 9pt; color: var(--disabled-text); border-top: 1px solid var(--border); }
+.status-line[data-level="info"] { color: var(--text); }
+.status-line[data-level="warning"] { color: var(--accent); }
+.status-line[data-level="error"] { color: var(--delete-hover); }
+
+dialog.confirm {
+  max-width: 380px; padding: 16px; border: 1px solid var(--border);
+  background: var(--input-bg); color: var(--text);
+}
+dialog.confirm::backdrop { background: rgb(0 0 0 / 0.6); }
+dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
+.dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
