@@ -34,6 +34,19 @@ body {
 .app-header { display: flex; align-items: center; justify-content: space-between; padding: 12px; gap: 12px; }
 .app-header h1 { margin: 0; font-size: 11pt; color: var(--title); }
 .root-name { color: var(--text); }
+.nav-bar { display: flex; align-items: center; gap: 6px; padding: 0 12px 10px; }
+.nav-bar .icon-btn { width: 30px; height: 30px; background: transparent; }
+.breadcrumb {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 5px 12px;
+  overflow-x: auto; white-space: nowrap; scrollbar-width: none; background: var(--input-bg);
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.crumb { color: var(--text); }
+.crumb-root { color: var(--disabled-text); }
+.crumb-sep { color: var(--disabled-text); }
+.crumb-btn { border: 0; background: transparent; padding: 0 2px; font: inherit; cursor: pointer; border-radius: 3px; }
+.crumb-btn:hover { background: var(--field-bg); }
+.crumb-btn.current { font-weight: 600; }
 .toolbar { display: flex; gap: 6px; }
 
 .icon-btn {

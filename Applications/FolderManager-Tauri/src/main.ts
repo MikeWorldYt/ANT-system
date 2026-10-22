@@ -4,6 +4,7 @@ import { createActionsPanel } from "./actions-panel";
 import { createColumnsView } from "./columns-view";
 import { installContextMenu } from "./context-menu";
 import { el } from "./dom";
+import { createNavigator } from "./navigator";
 import { onReviewIndex, onWindowFocus } from "./events";
 import { init, refresh } from "./ops";
 import { createStatusLine, clearStatus, setStatus } from "./status";
@@ -25,13 +26,15 @@ const toolbar = createToolbar({
     toolbar.render();
   },
 });
+const navigator = createNavigator();
 const panel = createActionsPanel();
 const main = el("main", { class: "app-main" }, host, panel.element);
-app.append(toolbar.element, main, createStatusLine());
+app.append(toolbar.element, navigator.element, main, createStatusLine());
 installContextMenu(host, () => views.current().focus());
 
 subscribe(() => {
   toolbar.render();
+  navigator.render();
   views.current().render();
   panel.render();
 });
