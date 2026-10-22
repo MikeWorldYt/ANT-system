@@ -1,5 +1,10 @@
 // Folder-name rules: numeric slot ids, editable name parts and sanitizing of user input.
+use std::path::{Path, PathBuf};
+
 use crate::ant_core::tree_types::type_base;
+use crate::config::{SETTINGS_FOLDER, TRASH_DIR};
+use crate::error::R;
+use crate::fs_safe::io_err;
 
 const FIRST_SLOT: u32 = 1;
 const LAST_SLOT: u32 = 89;
@@ -54,6 +59,37 @@ pub fn build_new_name(original: &str, new_editable: &str) -> String {
         Some((prefix, _)) => format!("{prefix}.{new_editable}"),
         None => new_editable.to_string(),
     }
+}
+
+pub fn find_root(start: &Path) -> Option<PathBuf> {
+    let abs = std::path::absolute(start).unwrap_or_else(|_| start.to_path_buf());
+    if abs.file_name().is_some_and(|n| n == SETTINGS_FOLDER) {
+        return abs.parent().map(Path::to_path_buf);
+    }
+    let parent = abs.parent();
+    std::iter::once(Some(abs.as_path()))
+        .chain(std::iter::once(parent))
+        .flatten()
+        .find(|p| p.join(SETTINGS_FOLDER).is_dir())
+        .map(Path::to_path_buf)
+}
+
+pub fn list_subdirs(dir: &Path) -> R<Vec<String>> {
+    let entries = match std::fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => return Ok(Vec::new()),
+        Err(e) => return Err(io_err("list folder", dir, &e)),
+    };
+    let mut names = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|e| io_err("list folder", dir, &e))?;
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if name != TRASH_DIR && entry.path().is_dir() {
+            names.push(name);
+        }
+    }
+    names.sort();
+    Ok(names)
 }
 
 // Forbidden characters are dropped before separators collapse, as the Python regexes do.

@@ -39,6 +39,33 @@ pub fn validate_component(name: &str) -> R<()> {
     Ok(())
 }
 
+pub fn io_err(op: &str, path: &std::path::Path, e: &std::io::Error) -> FmError {
+    FmError::Io {
+        op: op.to_string(),
+        path: path.display().to_string(),
+        message: e.to_string(),
+        os_code: e.raw_os_error(),
+    }
+}
+
+pub fn write_atomic(path: &std::path::Path, bytes: &[u8]) -> R<()> {
+    use std::io::Write;
+    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let tmp = path.with_file_name(format!(".{name}.tmp"));
+    let written = (|| {
+        let mut file = std::fs::File::create(&tmp)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        std::fs::rename(&tmp, path)
+    })();
+    if let Err(e) = written {
+        // The write error is what gets reported; a leftover tmp file is only clutter.
+        let _ = std::fs::remove_file(&tmp);
+        return Err(io_err("write file", path, &e));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

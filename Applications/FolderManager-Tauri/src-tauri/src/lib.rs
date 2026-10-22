@@ -4,6 +4,8 @@ mod config;
 mod error;
 mod fs_safe;
 mod names;
+mod tree_node;
+mod yaml_store;
 
 pub fn run() {
     tauri::Builder::default()
