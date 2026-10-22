@@ -55,11 +55,13 @@ body {
 .row.selected { background: var(--highlight); }
 .row.ghost .name { color: var(--ghost-text); font-style: italic; }
 .row.locked .name { color: var(--disabled-text); }
+.icon { flex: none; }
+.details { margin: 14px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: 9pt; }
+.details dt { color: var(--disabled-text); }
+.details dd { margin: 0 0 6px; word-break: break-word; }
 .caret { width: 14px; text-align: center; color: var(--accent); }
 .badge { font-size: 8pt; padding: 0 6px; border-radius: 8px; border: 1px solid var(--border); color: var(--disabled-text); }
 .badge.status { color: var(--title); border-color: var(--title); }
-.badge.flag { color: var(--ghost-text); border-color: var(--ghost-text); }
-.row.locked .badge.flag { color: var(--disabled-text); border-color: var(--disabled-text); }
 
 .actions { width: 220px; flex: none; background: var(--input-bg); padding: 12px; }
 .actions h2 { margin: 0 0 12px; font-size: 11pt; color: var(--title); }
@@ -120,7 +122,6 @@ dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
 .col-item.ghost { opacity: 0.7; }
 .col-item.ghost .name { color: var(--ghost-text); font-style: italic; }
 .col-item.locked .name { color: var(--disabled-text); }
-.col-item.locked .badge.flag { color: var(--disabled-text); border-color: var(--disabled-text); }
 .chevron { color: var(--accent); }
 
 .ctx-menu {

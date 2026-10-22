@@ -32,6 +32,7 @@ export interface TreeNode {
   locked: boolean;
   reserved: boolean;
   hasChildren: boolean;
+  isGit: boolean;
   children: TreeNode[] | null;
   absPath: string;
   actions: NodeActions;

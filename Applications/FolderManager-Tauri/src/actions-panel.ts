@@ -1,5 +1,6 @@
 // Actions panel: edit name, type and status of the selected node; every control follows node.actions.
 import { el } from "./dom";
+import { nodeDetails } from "./node-info";
 import { apply, editablePart, remove } from "./ops";
 import { selectedNode, state } from "./state";
 import type { TreeNode, WkbStatus } from "./types";
@@ -31,7 +32,8 @@ export function createActionsPanel(): { element: HTMLElement; render(): void } {
   fill(status, STATUSES);
 
   const form = el("form", { class: "actions-form" }, field("Name", "f-name", name), field("Type", "f-type", type), statusRow, applyBtn, deleteBtn);
-  const element = el("aside", { class: "actions", "aria-labelledby": "actions-title" }, el("h2", { id: "actions-title" }, "Actions"), form);
+  const details = el("dl", { class: "details" });
+  const element = el("aside", { class: "actions", "aria-labelledby": "actions-title" }, el("h2", { id: "actions-title" }, "Actions"), form, details);
 
   let shown = "";
   const current = (): TreeNode | null => selectedNode();
@@ -68,6 +70,7 @@ export function createActionsPanel(): { element: HTMLElement; render(): void } {
         shown = signature;
         populate(n);
       }
+      details.replaceChildren(...(n ? nodeDetails(n) : []).flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)]));
       const a = n?.actions;
       const idle = !state.busy;
       statusRow.hidden = type.value !== "WKB";

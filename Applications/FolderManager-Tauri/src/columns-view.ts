@@ -1,6 +1,8 @@
 // Columns view: one column per depth of the selected path, children of the selection in the next one.
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { badge, el } from "./dom";
+import { folderIcon } from "./icons";
+import { nodeSummary } from "./node-info";
 import { expand } from "./ops";
 import { keyOf, select, selectedNode, state } from "./state";
 import type { TreeNode } from "./types";
@@ -35,16 +37,14 @@ export function createColumnsView(): ViewMode {
 
   function buildItem(n: TreeNode, onPath: boolean, tabbable: boolean): HTMLElement {
     const selected = keyOf(n.relParts) === state.selectedKey;
-    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, el("span", { class: "name" }, n.name));
+    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, folderIcon(n), el("span", { class: "name" }, n.name));
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
     else if (onPath) item.classList.add("on-path");
     if (n.ghost) item.classList.add("ghost");
     if (n.locked) item.classList.add("locked");
-    if (n.nodeType) item.append(badge("type", n.nodeType.raw));
     if (n.status) item.append(badge("status", n.status));
-    if (n.ghost) item.append(badge("flag", "missing"));
-    if (n.locked) item.append(badge("flag", "locked"));
+    item.title = nodeSummary(n);
     if (n.hasChildren) item.append(el("span", { class: "chevron", "aria-hidden": "true" }, "▸"));
     item.addEventListener("click", () => select(n.relParts));
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));

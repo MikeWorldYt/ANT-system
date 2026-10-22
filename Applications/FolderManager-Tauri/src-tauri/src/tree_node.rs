@@ -47,6 +47,7 @@ pub struct TreeNode {
     pub locked: bool,
     pub reserved: bool,
     pub has_children: bool,
+    pub is_git: bool,
     pub children: Option<Vec<TreeNode>>,
     pub abs_path: String,
     pub actions: NodeActions,
@@ -114,6 +115,9 @@ fn is_linked_folder(name: &str) -> bool {
         .any(|p| name.strip_prefix(p).is_some_and(|rest| rest.starts_with('.')))
 }
 
+// Any of these inside a folder means it holds a git project.
+const GIT_MARKERS: [&str; 3] = [".git", ".github", ".gitignore"];
+
 fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<TreeNode> {
     let mut rel_parts = parent.to_vec();
     rel_parts.push(entry.name.clone());
@@ -132,6 +136,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
     let reserved = is_reserved(&rel_parts);
     let has_children = !ghost && !level_entries(root, data, &rel_parts)?.is_empty();
     let abs_path = rel_parts.iter().fold(root.to_path_buf(), |p, part| p.join(part));
+    let is_git = !ghost && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
     Ok(TreeNode {
         actions: compute_actions(depth, ghost, raw_type, reserved),
@@ -146,6 +151,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
         locked,
         reserved,
         has_children,
+        is_git,
         children: None,
         abs_path: abs_path.to_string_lossy().into_owned(),
     })

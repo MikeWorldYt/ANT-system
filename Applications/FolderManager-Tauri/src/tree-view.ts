@@ -1,6 +1,8 @@
 // List view: indented expandable rows with keyboard navigation.
+import { nodeSummary } from "./node-info";
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { badge, el } from "./dom";
+import { folderIcon } from "./icons";
 import { toggleExpand } from "./ops";
 import { keyOf, select, state, visibleRows } from "./state";
 import type { TreeNode } from "./types";
@@ -20,17 +22,15 @@ export function createListView(): ViewMode {
     const key = keyOf(n.relParts);
     const expanded = state.expanded.has(key);
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, n.hasChildren ? (expanded ? "▾" : "▸") : "");
-    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, caret, el("span", { class: "name" }, n.name));
+    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, caret, folderIcon(n), el("span", { class: "name" }, n.name));
     row.style.setProperty("--depth", String(n.depth));
     row.setAttribute("aria-selected", String(key === state.selectedKey));
     if (n.hasChildren) row.setAttribute("aria-expanded", String(expanded));
     if (key === state.selectedKey) row.classList.add("selected");
     if (n.ghost) row.classList.add("ghost");
     if (n.locked) row.classList.add("locked");
-    if (n.nodeType) row.append(badge("type", n.nodeType.raw));
     if (n.status) row.append(badge("status", n.status));
-    if (n.ghost) row.append(badge("flag", "missing"));
-    if (n.locked) row.append(badge("flag", "locked"));
+    row.title = nodeSummary(n);
     caret.addEventListener("click", (ev) => {
       ev.stopPropagation();
       select(n.relParts);
