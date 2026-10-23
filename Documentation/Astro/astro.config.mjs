@@ -57,6 +57,13 @@ export default defineConfig({
 						]
 					},
 					{
+						label: 'Tools',
+						translations: { es: 'Herramientas' },
+						items: [
+							{ label: 'Folder Manager', slug: 'tools/folder-manager', translations: { es: 'Folder Manager' } },
+						],
+					},
+					{
 						label: 'Reference',
 						translations: { es: 'Referencias' },
 						items: [{ autogenerate: { directory: 'reference' } }],
