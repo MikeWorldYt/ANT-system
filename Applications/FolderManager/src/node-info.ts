@@ -9,6 +9,13 @@ export const STATUSES: [WkbStatus, string][] = [
   ["done", "Done"],
 ];
 
+export const UNKNOWN = "unknown";
+const OWNER_KEYS = ["owner", "holder", "client"];
+
+export const isWorkboard = (n: TreeNode) => n.nodeType?.base === "WKB";
+export const ownerOf = (n: TreeNode): string | null =>
+  n.info?.fields.find((f) => OWNER_KEYS.includes(f.key.toLowerCase()))?.value ?? null;
+
 export function nodeFlags(n: TreeNode): string[] {
   const flags: string[] = [];
   if (n.ghost) flags.push("missing on disk");
@@ -22,13 +29,15 @@ export const nodeSummary = (n: TreeNode): string => [n.nodeType?.raw, ...nodeFla
 
 export function nodeDetails(n: TreeNode): [string, string][] {
   const rows: [string, string][] = [["Type", n.nodeType?.raw ?? "—"]];
-  if (n.status) rows.push(["Status", STATUSES.find(([v]) => v === n.status)?.[1] ?? n.status]);
+  const wkb = isWorkboard(n);
+  if (wkb) rows.push(["Status", STATUSES.find(([v]) => v === n.status)?.[1] ?? UNKNOWN]);
+  if (wkb) rows.push(["Owner", ownerOf(n) ?? UNKNOWN]);
   const flags = nodeFlags(n);
   if (flags.length > 0) rows.push(["Flags", flags.join(", ")]);
   if (n.info?.error) rows.push(["Info", n.info.error]);
   for (const f of n.info?.fields ?? []) {
-    // A recognised status already has its own row.
-    if (f.key.toLowerCase() === "status" && n.status) continue;
+    // Status and owner of a workboard already have their own rows.
+    if (wkb && (f.key.toLowerCase() === "status" || OWNER_KEYS.includes(f.key.toLowerCase()))) continue;
     rows.push([f.key.charAt(0).toUpperCase() + f.key.slice(1), f.value]);
   }
   return rows;

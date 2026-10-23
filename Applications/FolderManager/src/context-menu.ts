@@ -1,7 +1,7 @@
 // Context menu shared by every view; item enablement comes only from node.actions.
 import { el } from "./dom";
 import { STATUSES, TYPES } from "./node-info";
-import { remove, setType } from "./ops";
+import { remove, setDetails, setType } from "./ops";
 import { select, startEdit } from "./state";
 import { setStatus } from "./status";
 import type { TreeNode } from "./types";
@@ -74,11 +74,10 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     b.setAttribute("aria-checked", String(node.nodeType?.base === base));
     return b;
   });
-  const statusFromInfo = node.info?.fields.some((f) => f.key.toLowerCase() === "status") ?? false;
   const statuses = node.nodeType?.base === "WKB" ? STATUSES.map(([value, label]) => {
-    const b = menuItem(label, "menuitemradio", a.changeType && !statusFromInfo, () => {
+    const b = menuItem(label, "menuitemradio", a.changeType && !node.ghost, () => {
       close();
-      void setType(node, "WKB", value);
+      void setDetails(node, value, null);
     });
     b.setAttribute("aria-checked", String(node.status === value));
     return b;

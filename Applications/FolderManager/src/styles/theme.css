@@ -41,6 +41,7 @@ body {
   display: flex; align-items: center; gap: 4px; min-height: 32px; padding: 2px 8px; background: var(--input-bg);
   border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
 }
+.search-field .gui-icon { flex: none; width: 16px; height: 16px; color: var(--disabled-text); }
 .search-field:focus-within { border-color: var(--button); }
 .search-input { flex: 1; min-width: 60px; padding: 3px 4px; font: inherit; color: var(--text); background: transparent; border: 0; outline: none; }
 .search-chip {
@@ -112,7 +113,16 @@ body {
 .badge.status { color: var(--title); border-color: var(--title); }
 
 .details-panel { width: 220px; flex: none; background: var(--input-bg); padding: 12px; }
-.details-panel h2 { margin: 0 0 12px; font-size: 11pt; color: var(--title); }
+.details-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.details-panel h2 { margin: 0; font-size: 11pt; color: var(--title); }
+.details-head .icon-btn { width: 26px; height: 26px; background: transparent; }
+.details-head .icon-btn[hidden] { display: none; }
+.details-input {
+  box-sizing: border-box; width: 100%; padding: 2px 4px; font: inherit; color: var(--text); background: var(--field-bg);
+  border: 1px solid var(--border); border-radius: 3px; outline: none;
+}
+.details-input:focus { border-color: var(--button); }
+.details-actions { display: flex; gap: 6px; margin-top: 4px; }
 .name.editing { display: flex; align-items: center; flex: 1; min-width: 0; }
 .name-fixed { color: var(--disabled-text); white-space: pre; }
 .name-input {

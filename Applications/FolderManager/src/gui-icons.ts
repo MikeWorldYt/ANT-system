@@ -6,13 +6,15 @@ import chevronRight from "./assets/gui/chevron-right.svg?raw";
 import forward from "./assets/gui/forward.svg?raw";
 import infoPanel from "./assets/gui/info-panel.svg?raw";
 import layout from "./assets/gui/layout.svg?raw";
+import pencil from "./assets/gui/pencil.svg?raw";
 import moveDown from "./assets/gui/move-down.svg?raw";
 import moveUp from "./assets/gui/move-up.svg?raw";
 import refresh from "./assets/gui/refresh.svg?raw";
+import search from "./assets/gui/search.svg?raw";
 import separator from "./assets/gui/separator.svg?raw";
 import up from "./assets/gui/up.svg?raw";
 
-const SOURCES = { add, back, chevronDown, chevronRight, forward, infoPanel, layout, moveDown, moveUp, refresh, separator, up };
+const SOURCES = { add, back, chevronDown, chevronRight, forward, infoPanel, layout, moveDown, moveUp, pencil, refresh, search, separator, up };
 
 export type GuiIcon = keyof typeof SOURCES;
 

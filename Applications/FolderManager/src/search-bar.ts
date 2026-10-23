@@ -1,6 +1,7 @@
 // Search box of the navigation bar: filter chips, completions for `key:` and a results list.
 import { describeError, searchNodes, suggestSearch, type Suggestion } from "./api";
 import { el } from "./dom";
+import { guiIcon } from "./gui-icons";
 import { findNode, reveal } from "./state";
 import { setStatus } from "./status";
 
@@ -36,7 +37,7 @@ export function createSearchBar(): HTMLElement {
     spellcheck: "false",
     autocomplete: "off",
   });
-  const field = el("div", { class: "search-field" }, input);
+  const field = el("div", { class: "search-field" }, input, guiIcon("search"));
   const list = el("ul", { class: "search-results", id: "search-results", role: "listbox", "aria-label": "Search results" });
   list.hidden = true;
   const element = el("div", { class: "search-box" }, field, list);

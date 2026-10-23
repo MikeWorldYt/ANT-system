@@ -252,6 +252,11 @@ pub async fn set_node_type(
 }
 
 #[tauri::command]
+pub async fn set_node_details(app: AppHandle, rel_parts: Vec<String>, status: Option<WkbStatus>, owner: Option<String>) -> R<Mutation> {
+    run_locked(app, move |root| edit_actions::set_details(root, &rel_parts, status, owner.as_deref())).await
+}
+
+#[tauri::command]
 pub async fn add_child(app: AppHandle, parent_rel_parts: Vec<String>) -> R<Mutation> {
     let emitter = app.clone();
     run_locked(app, move |root| {

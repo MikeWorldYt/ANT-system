@@ -48,6 +48,7 @@ pub fn run() {
             commands::delete_node,
             commands::get_skipped_version,
             commands::skip_version,
+            commands::set_node_details,
             commands::check_update,
             commands::start_update,
             commands::search_nodes,

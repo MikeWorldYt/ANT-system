@@ -228,7 +228,7 @@ fn parse_type(raw: &str) -> NodeType {
     NodeType { raw: raw.to_string(), base, level }
 }
 
-fn parse_status(raw: &str) -> Option<WkbStatus> {
+pub(crate) fn parse_status(raw: &str) -> Option<WkbStatus> {
     match raw.trim().to_lowercase().replace(['_', ' '], "-").as_str() {
         "in-progress" => Some(WkbStatus::InProgress),
         "for-review" => Some(WkbStatus::ForReview),

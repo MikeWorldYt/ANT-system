@@ -108,6 +108,9 @@ export const setType = (node: TreeNode, base: string, status: WkbStatus) =>
     await applyMutation(await api.setNodeType(node.relParts, base as EditableType, base === "WKB" ? status : null), node.relParts);
   });
 
+export const setDetails = (node: TreeNode, status: WkbStatus | null, owner: string | null) =>
+  run(async () => applyMutation(await api.setNodeDetails(node.relParts, status, owner), node.relParts));
+
 export const remove = (node: TreeNode) =>
   run(async () => {
     const preview = await api.inspectDelete(node.relParts);

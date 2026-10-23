@@ -351,7 +351,7 @@ fn db_err(op: &str, path: &Path, e: &rusqlite::Error) -> FmError {
 }
 
 // A failed attrib only leaves the folder visible, so it is reported on stderr and the save goes on.
-fn hide(dir: &Path) {
+pub(crate) fn hide(dir: &Path) {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     let hidden = std::process::Command::new("attrib").arg("+h").arg(dir).creation_flags(CREATE_NO_WINDOW).status();
