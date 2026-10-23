@@ -6,18 +6,17 @@ import { applySettings, hydrate, keyOf, notify, pruneSelection, setBusy, setTree
 import { isFmError } from "./types";
 import type { EditableType, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "./types";
 
-const EDITABLE: readonly string[] = ["NODE", "WKB", "PORTF"];
-
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
   setTree(snapshot ?? (await api.refresh()));
   await hydrate();
   pruneSelection();
 }
 
-async function run(fn: () => Promise<void>): Promise<void> {
+async function run(fn: () => Promise<void>): Promise<boolean> {
   setBusy(true);
   try {
     await fn();
+    return true;
   } catch (e) {
     setStatus("error", api.describeError(e));
     if (isFmError(e) && (e.kind === "stale" || e.kind === "notFound")) {
@@ -27,6 +26,7 @@ async function run(fn: () => Promise<void>): Promise<void> {
         setStatus("error", api.describeError(reloadError));
       }
     }
+    return false;
   } finally {
     setBusy(false);
   }
@@ -38,12 +38,14 @@ async function applyMutation(m: Mutation, fallback: string[] | null = null): Pro
     for (let i = 1; i < target.length; i++) state.expanded.add(keyOf(target.slice(0, i)));
     state.selectedKey = keyOf(target);
   }
-  await reload(m.tree);
+  // The backend may flag a yaml change and leave the node list empty; the tree then has to be read again.
+  if (m.tree.nodes.length === 0 && m.tree.yamlChanged) await reload();
+  else await reload(m.tree);
   if (m.warnings.length > 0) setStatus("warning", m.warnings.join(". "));
   else clearStatus();
 }
 
-export function init(): Promise<void> {
+export function init(): Promise<boolean> {
   return run(async () => {
     try {
       applySettings(await api.getSettings());
@@ -61,8 +63,8 @@ export const changeSetting = (key: keyof Settings, value: boolean) =>
     notify();
   });
 
-export function refresh(): Promise<void> {
-  if (state.busy) return Promise.resolve();
+export function refresh(): Promise<boolean> {
+  if (state.busy) return Promise.resolve(false);
   return run(async () => {
     await reload();
     clearStatus();
@@ -106,14 +108,12 @@ export const renameTo = (node: TreeNode, editable: string) =>
     await applyMutation(await api.renameNode(node.relParts, text));
   });
 
-export const setType = (node: TreeNode, base: string, status: WkbStatus) =>
+export const setType = (node: TreeNode, base: EditableType, status: WkbStatus) =>
   run(async () => {
     const changed =
-      node.actions.changeType &&
-      EDITABLE.includes(base) &&
-      (base !== node.nodeType?.base || (base === "WKB" && status !== node.status));
+      node.actions.changeType && (base !== node.nodeType?.base || (base === "WKB" && status !== node.status));
     if (!changed) return;
-    await applyMutation(await api.setNodeType(node.relParts, base as EditableType, base === "WKB" ? status : null), node.relParts);
+    await applyMutation(await api.setNodeType(node.relParts, base, base === "WKB" ? status : null), node.relParts);
   });
 
 export const setDetails = (node: TreeNode, status: WkbStatus | null, owner: string | null) =>

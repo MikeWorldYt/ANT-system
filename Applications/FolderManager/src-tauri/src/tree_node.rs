@@ -7,7 +7,7 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, type_base, type_level, META_KEYS};
 use crate::config::{
-    LINKED_PREFIXES, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
+    LINKED_PREFIXES, MAX_DEPTH, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::error::R;
 use crate::info::{field_of, read_info, NodeInfo};
@@ -32,6 +32,8 @@ pub struct NodeActions {
     pub move_down: bool,
     pub delete: bool,
     pub copy_path: bool,
+    pub favorite: bool,
+    pub edit_details: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -87,6 +89,17 @@ pub fn build_children(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<T
     }
     mark_moves(&mut nodes);
     Ok(nodes)
+}
+
+pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<()> {
+    for node in nodes {
+        if node.has_children && node.depth + 1 < MAX_DEPTH {
+            let mut kids = build_children(root, data, &node.rel_parts)?;
+            fill_children(root, data, &mut kids)?;
+            node.children = Some(kids);
+        }
+    }
+    Ok(())
 }
 
 fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>> {
@@ -157,9 +170,11 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
     let has_children = !ghost && !level_entries(root, data, &rel_parts)?.is_empty();
     let is_git = !ghost && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
+    let info_broken = info.as_ref().is_some_and(|i| i.error.is_some());
+
     let (fixed_prefix, editable_name) = name_parts(&entry.name, is_wkb);
     Ok(TreeNode {
-        actions: compute_actions(depth, ghost, raw_type, reserved),
+        actions: compute_actions(depth, ghost, raw_type, reserved, info_broken),
         name: entry.name,
         rel_parts,
         depth,
@@ -182,18 +197,23 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
 }
 
 // The only place that decides what a node allows; move flags are filled in by `mark_moves`.
-fn compute_actions(depth: usize, ghost: bool, raw_type: &str, reserved: bool) -> NodeActions {
+fn compute_actions(depth: usize, ghost: bool, raw_type: &str, reserved: bool, info_broken: bool) -> NodeActions {
     let locked = is_locked_type(raw_type);
     let frozen = locked || reserved;
+    // The yaml stops at MAX_DEPTH, so deeper folders have no entry to retype or to add a sibling under.
+    let in_tree = depth < MAX_DEPTH;
     NodeActions {
         rename: !ghost && !frozen,
-        change_type: !frozen,
+        change_type: !frozen && in_tree,
         // Level 1 has its own creation rules, so a new folder is only offered next to a level 2 or deeper one.
-        add_next: depth >= 1 && !reserved,
+        add_next: depth >= 1 && !reserved && in_tree,
         move_up: false,
         move_down: false,
         delete: !reserved && (ghost || !locked),
         copy_path: !ghost,
+        // A broken info.json is never overwritten, so neither edit can be saved into it.
+        favorite: !reserved && !ghost && !info_broken,
+        edit_details: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
     }
 }
 
@@ -457,11 +477,69 @@ mod tests {
     }
 
     #[test]
+    fn folders_below_the_yaml_depth_cannot_be_retyped_or_extended() {
+        let dir = TempDir::new("too-deep");
+        dir.mkdir("01.A/01.B/01.C/01.D/01.E");
+        let data: Mapping = serde_yaml::from_str(
+            "01.A:
+  type: NODE-L1
+  01.B:
+    type: NODE-L2
+    01.C:
+      type: NODE-L3
+",
+        )
+        .unwrap();
+        let l3 = build_children(dir.path(), &data, &rel(&["01.A", "01.B"])).unwrap();
+        assert!(l3[0].actions.change_type && l3[0].actions.add_next);
+        let l4 = build_children(dir.path(), &data, &rel(&["01.A", "01.B", "01.C"])).unwrap();
+        let a = &l4[0].actions;
+        assert_eq!(l4[0].depth, MAX_DEPTH);
+        assert!(!a.change_type && !a.add_next && a.rename && a.copy_path);
+        assert!(l4[0].has_children);
+    }
+
+    #[test]
+    fn fill_children_stops_at_the_last_tree_level() {
+        let (dir, data) = fixture();
+        dir.mkdir("01.Alpha/01.Sub/01.Deep/01.Deeper");
+        let mut tree = build_tree(dir.path(), &data, false).unwrap();
+        fill_children(dir.path(), &data, &mut tree.nodes).unwrap();
+        let alpha = find(&tree.nodes, "01.Alpha");
+        let sub = find(alpha.children.as_ref().unwrap(), "01.Sub");
+        let deep = find(sub.children.as_ref().unwrap(), "01.Deep");
+        assert!(deep.has_children && deep.children.is_none());
+        assert!(find(&tree.nodes, "02.Beta").children.is_none());
+    }
+
+    #[test]
+    fn favorite_and_details_follow_what_their_commands_accept() {
+        let (dir, data) = fixture();
+        dir.mkdir("03.Gamma/.ant");
+        std::fs::write(dir.path().join("03.Gamma/.ant/info.json"), "{oops").unwrap();
+        let tree = build_tree(dir.path(), &data, false).unwrap();
+        let acts = |n: &str| {
+            let a = &find(&tree.nodes, n).actions;
+            (a.favorite, a.edit_details)
+        };
+        assert_eq!(acts("04.Wkb"), (true, true));
+        assert_eq!(acts("02.Beta"), (true, false));
+        assert_eq!(acts("03.Gamma"), (false, false));
+        assert_eq!(acts("99.Gone"), (false, false));
+        assert_eq!(acts("999.Settings"), (false, false));
+        dir.mkdir("04.Wkb/.ant");
+        std::fs::write(dir.path().join("04.Wkb/.ant/info.json"), "[1]").unwrap();
+        let tree = build_tree(dir.path(), &data, false).unwrap();
+        let a = &find(&tree.nodes, "04.Wkb").actions;
+        assert!(!a.favorite && !a.edit_details);
+    }
+
+    #[test]
     fn snapshot_serialises_in_camel_case() {
         let (dir, data) = fixture();
         let tree = build_tree(dir.path(), &data, false).unwrap();
         let text = serde_yaml::to_string(&tree).unwrap();
-        for key in ["yamlChanged", "relParts", "inYaml", "hasChildren", "absPath", "changeType", "copyPath"] {
+        for key in ["yamlChanged", "relParts", "inYaml", "hasChildren", "absPath", "changeType", "copyPath", "editDetails"] {
             assert!(text.contains(key), "{key}");
         }
     }

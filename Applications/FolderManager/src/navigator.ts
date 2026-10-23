@@ -1,8 +1,8 @@
 // Navigation bar: back/forward/up over selection history plus a breadcrumb of the selected path.
-import { listChildren } from "./api";
+import { describeError, listChildren } from "./api";
 import { el } from "./dom";
 import { guiIcon, type GuiIcon } from "./gui-icons";
-import { findNode, notify, reveal, select, selectedNode, state } from "./state";
+import { findNode, reveal, select, selectedNode, state } from "./state";
 import { clearStatus, setStatus } from "./status";
 import type { TreeNode } from "./types";
 
@@ -28,7 +28,10 @@ async function resolveTyped(text: string): Promise<string[] | null | undefined> 
 
 function navButton(label: string, icon: GuiIcon, onClick: () => void): HTMLButtonElement {
   const b = el("button", { type: "button", class: "icon-btn", "aria-label": label, title: label }, guiIcon(icon));
-  b.addEventListener("click", onClick);
+  // aria-disabled keeps the button focusable, so the click is ignored here instead.
+  b.addEventListener("click", () => {
+    if (b.getAttribute("aria-disabled") !== "true") onClick();
+  });
   return b;
 }
 
@@ -48,14 +51,20 @@ export function createNavigator(): { element: HTMLElement; render(): void } {
     const key = history[index];
     if (key === undefined) return;
     const parts = key.split("/");
-    if (!findNode(parts)) {
-      history.splice(index, 1);
-      if (index <= at) at -= 1;
-      notify();
+    const previous = at;
+    at = index;
+    try {
+      await reveal(parts);
+    } catch (e) {
+      at = previous;
+      setStatus("error", describeError(e));
       return;
     }
-    at = index;
-    await reveal(parts);
+    if (findNode(parts)) return;
+    history.splice(index, 1);
+    at = previous >= index ? previous - 1 : previous;
+    // reveal selected the missing folder, so the selection goes back to the entry now current.
+    select(history[at]?.split("/") ?? null);
   }
 
   let editing = false;
@@ -68,7 +77,7 @@ export function createNavigator(): { element: HTMLElement; render(): void } {
   const back = navButton("Back", "back", () => void go(at - 1));
   const forward = navButton("Forward", "forward", () => void go(at + 1));
   const up = navButton("Up one level", "up", () => select(parentOf()));
-  const path = el("nav", { class: "breadcrumb", "aria-label": "Current location" });
+  const path = el("nav", { class: "breadcrumb", "aria-label": "Current location", title: "Double-click or press Ctrl+L to type a path" });
   const element = el("div", { class: "nav-bar" }, back, forward, up, path);
 
   function stopEditing(): void {
@@ -150,7 +159,7 @@ export function createNavigator(): { element: HTMLElement; render(): void } {
     parts.forEach((p, i) => {
       const leaf = i === parts.length - 1;
       const b = el("button", { type: "button", class: leaf ? "crumb crumb-btn current" : "crumb crumb-btn" }, p);
-      if (leaf) b.setAttribute("aria-current", "page");
+      if (leaf) b.setAttribute("aria-current", "location");
       b.addEventListener("click", () => select(parts.slice(0, i + 1)));
       out.push(b);
       if (!leaf) out.push(sep());
@@ -160,9 +169,9 @@ export function createNavigator(): { element: HTMLElement; render(): void } {
 
   function render(): void {
     record();
-    back.disabled = at <= 0;
-    forward.disabled = at >= history.length - 1;
-    up.disabled = state.selectedKey === null || selectedNode() === null;
+    back.setAttribute("aria-disabled", String(at <= 0));
+    forward.setAttribute("aria-disabled", String(at >= history.length - 1));
+    up.setAttribute("aria-disabled", String(state.selectedKey === null || selectedNode() === null));
     if (editing) return;
     path.replaceChildren(...crumbs());
     path.scrollLeft = path.scrollWidth;

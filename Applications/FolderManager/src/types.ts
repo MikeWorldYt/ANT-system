@@ -24,6 +24,8 @@ export interface NodeActions {
   moveDown: boolean;
   delete: boolean;
   copyPath: boolean;
+  favorite: boolean;
+  editDetails: boolean;
 }
 
 export interface TreeNode {

@@ -3,20 +3,26 @@ use std::path::Path;
 
 use serde_yaml::Mapping;
 
-use crate::config::MAX_DEPTH;
 use crate::db::{Doc, Store};
 use crate::error::R;
 use crate::search::canonical_key;
-use crate::tree_node::build_children;
+use crate::tree_node::{build_children, fill_children, TreeNode};
 
 pub fn rebuild(root: &Path, data: &Mapping) -> R<()> {
+    let mut nodes = build_children(root, data, &[])?;
+    fill_children(root, data, &mut nodes)?;
+    rebuild_from_nodes(root, &nodes)
+}
+
+// Takes a tree built with fill_children, which reaches the same depth the search covers.
+pub fn rebuild_from_nodes(root: &Path, nodes: &[TreeNode]) -> R<()> {
     let mut docs = Vec::new();
-    collect(root, data, &[], &mut docs)?;
+    collect(nodes, &mut docs);
     Store::open_or_create(root)?.replace_fields(&docs)
 }
 
-fn collect(root: &Path, data: &Mapping, parent: &[String], docs: &mut Vec<Doc>) -> R<()> {
-    for node in build_children(root, data, parent)? {
+fn collect(nodes: &[TreeNode], docs: &mut Vec<Doc>) {
+    for node in nodes {
         if node.reserved {
             continue;
         }
@@ -32,11 +38,10 @@ fn collect(root: &Path, data: &Mapping, parent: &[String], docs: &mut Vec<Doc>) 
             fields.push((canonical_key(&field.key), field.value.clone()));
         }
         docs.push(Doc { path: node.rel_parts.join("/"), fields });
-        if node.has_children && node.depth + 1 < MAX_DEPTH {
-            collect(root, data, &node.rel_parts, docs)?;
+        if let Some(kids) = &node.children {
+            collect(kids, docs);
         }
     }
-    Ok(())
 }
 
 #[cfg(test)]

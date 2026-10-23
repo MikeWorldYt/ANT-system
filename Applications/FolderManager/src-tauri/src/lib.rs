@@ -47,7 +47,6 @@ pub fn run() {
             commands::move_node,
             commands::inspect_delete,
             commands::delete_node,
-            commands::get_skipped_version,
             commands::skip_version,
             commands::set_node_details,
             commands::set_favorite,

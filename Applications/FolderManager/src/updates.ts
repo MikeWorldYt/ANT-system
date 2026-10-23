@@ -5,7 +5,7 @@ import { setStatus } from "./status";
 
 export async function checkForUpdates(announceCurrent = false): Promise<void> {
   try {
-    const info = await checkUpdate();
+    const info = await checkUpdate(announceCurrent);
     if (!info) {
       if (announceCurrent) setStatus("info", "You have the latest version");
       return;

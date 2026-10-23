@@ -23,6 +23,8 @@ const DELAY_MS = 200;
 const TOKEN = /(?:^|\s)([A-Za-z]+):(\S*)$/;
 
 // Picked values are sent whole (`=`), and quoted so spaces survive the tokenizer.
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 const chipQuery = (c: Chip) => (c.key === "in" ? `in:"/${c.value}"` : `${c.key}:"=${c.value}"`);
 
 export function createSearchBar(): HTMLElement {
@@ -34,13 +36,18 @@ export function createSearchBar(): HTMLElement {
     role: "combobox",
     "aria-expanded": "false",
     "aria-controls": "search-results",
+    "aria-haspopup": "listbox",
+    "aria-autocomplete": "list",
     spellcheck: "false",
     autocomplete: "off",
   });
   const field = el("div", { class: "search-field" }, input, guiIcon("search"));
   const list = el("ul", { class: "search-results", id: "search-results", role: "listbox", "aria-label": "Search results" });
   list.hidden = true;
-  const element = el("div", { class: "search-box" }, field, list);
+  const live = el("div", { role: "status", "aria-live": "polite" });
+  // Screen-reader-only: the visible messages sit in the list, outside the option set.
+  Object.assign(live.style, { position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" });
+  const element = el("div", { class: "search-box" }, field, list, live);
 
   const chips: Chip[] = [];
   let hits: string[][] = [];
@@ -67,12 +74,15 @@ export function createSearchBar(): HTMLElement {
     list.hidden = true;
     input.setAttribute("aria-expanded", "false");
     input.removeAttribute("aria-activedescendant");
+    live.textContent = "";
   }
 
   function mark(): void {
-    list.querySelectorAll("li[role=option]").forEach((li, i) => li.setAttribute("aria-selected", String(i === active)));
-    const current = list.children[active];
+    const options = list.querySelectorAll("li[role=option]");
+    options.forEach((li, i) => li.setAttribute("aria-selected", String(i === active)));
+    const current = options[active];
     if (current) input.setAttribute("aria-activedescendant", current.id);
+    else input.removeAttribute("aria-activedescendant");
     current?.scrollIntoView({ block: "nearest" });
   }
 
@@ -82,9 +92,10 @@ export function createSearchBar(): HTMLElement {
       li.addEventListener("click", item.pick);
       return li;
     });
-    if (rows.length === 0) rows.push(el("li", { class: "search-empty" }, "No matches"));
-    rows.push(...extra.map((text) => el("li", { class: "search-empty" }, text)));
+    const notes = items.length === 0 ? ["No matches", ...extra] : extra;
+    rows.push(...notes.map((text) => el("li", { class: "search-empty", role: "presentation" }, text)));
     list.replaceChildren(...rows);
+    live.textContent = items.length === 0 ? "No matches" : plural(items.length, "result");
     list.hidden = false;
     input.setAttribute("aria-expanded", "true");
     active = 0;
@@ -145,7 +156,12 @@ export function createSearchBar(): HTMLElement {
     const parts = hits[i];
     if (!parts) return;
     close();
-    await reveal(parts);
+    try {
+      await reveal(parts);
+    } catch (e) {
+      setStatus("error", describeError(e));
+      return;
+    }
     if (!findNode(parts)) setStatus("warning", "That folder is no longer there. Refresh and search again");
   }
 

@@ -18,7 +18,7 @@ use crate::names::{
     compose_name, editable_part, name_parts, list_subdirs, next_available_id, sanitize_train_case,
     sanitize_upper,
 };
-use crate::tree_node::{build_tree, is_reserved, TreeSnapshot};
+use crate::tree_node::{build_tree, fill_children, is_reserved, TreeSnapshot};
 use crate::tree_store::{self, get_node, get_node_mut, get_type, is_locked_type, rename_key};
 
 #[derive(Debug, Serialize)]
@@ -426,7 +426,11 @@ pub(crate) fn finish(
     select: Option<Vec<String>>,
     warnings: Vec<String>,
 ) -> Mutation {
-    after_commit(root, build_tree(root, data, yaml_changed), select, warnings)
+    let tree = build_tree(root, data, yaml_changed).and_then(|mut tree| {
+        fill_children(root, data, &mut tree.nodes)?;
+        Ok(tree)
+    });
+    after_commit(root, tree, select, warnings)
 }
 
 // An empty tree with yamlChanged set tells the UI to refresh instead of showing a stale tree.
@@ -531,6 +535,19 @@ mod tests {
         let data = yaml(dir.path());
         assert!(get_node(&data, &rel(&["100.ACADEMIC", "01.Math"])).is_none());
         assert!(get_node(&data, &rel(&p)).unwrap().get("status").is_none());
+    }
+
+    #[test]
+    fn a_mutation_returns_every_level_the_snapshot_shows() {
+        let dir = academic("finish-depth");
+        let m = rename_node(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), "Chem").unwrap();
+        let kids = |nodes: &[crate::tree_node::TreeNode], name: &str| {
+            nodes.iter().find(|n| n.name == name).and_then(|n| n.children.clone()).unwrap_or_default()
+        };
+        let academic = kids(&m.tree.nodes, "100.ACADEMIC");
+        let math = kids(&academic, "01.Math");
+        assert!(math.iter().any(|n| n.name == "01.Algebra"), "{math:?}");
+        assert!(academic.iter().any(|n| n.name == "02.Chem"));
     }
 
     #[test]

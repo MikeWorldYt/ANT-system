@@ -31,9 +31,10 @@ export async function openSettings(): Promise<void> {
   const about = el("div", { class: "settings-rows" });
 
   const close = el("button", { type: "submit", class: "btn btn-primary", value: "close" }, "Close");
-  const update = el("button", { type: "submit", class: "btn", value: "update" }, "Check for updates");
+  const update = el("button", { type: "button", class: "btn" }, "Check for updates");
   const issues = el("button", { type: "button", class: "btn" }, "Report on GitHub");
   const mail = el("button", { type: "button", class: "btn", title: MAIL }, "Email us");
+  update.addEventListener("click", () => void checkForUpdates(true));
   issues.addEventListener("click", () => void openOrReport("issues"));
   mail.addEventListener("click", () => void openOrReport("mail"));
 
@@ -47,13 +48,10 @@ export async function openSettings(): Promise<void> {
     el("div", { class: "dialog-buttons" }, close),
   );
   const dialog = el("dialog", { class: "confirm settings", "aria-labelledby": "settings-title" }, form);
-  dialog.addEventListener("close", () => {
-    dialog.remove();
-    if (dialog.returnValue === "update") void checkForUpdates(true);
-  });
+  dialog.addEventListener("close", () => dialog.remove());
   document.body.append(dialog);
   dialog.showModal();
-  close.focus();
+  pin.focus();
 
   try {
     const info = await getStorage();

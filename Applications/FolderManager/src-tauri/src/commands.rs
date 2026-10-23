@@ -12,7 +12,7 @@ use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, validate_component, StorageLock};
 use crate::move_delete::{self, DeletePreview, MoveDirection, PendingRecycle};
 use crate::review_index;
-use crate::tree_node::{build_children, build_tree, TreeNode, TreeSnapshot};
+use crate::tree_node::{build_children, build_tree, fill_children, TreeNode, TreeSnapshot};
 use crate::db::{Store, Suggestion};
 use crate::footprint;
 use crate::search::{canonical_key, parse_query};
@@ -100,19 +100,8 @@ pub fn snapshot(root: &Path) -> R<TreeSnapshot> {
     }
     let mut tree = build_tree(root, &data, changed)?;
     fill_children(root, &data, &mut tree.nodes)?;
-    search_index::rebuild(root, &data)?;
+    search_index::rebuild_from_nodes(root, &tree.nodes)?;
     Ok(tree)
-}
-
-fn fill_children(root: &Path, data: &serde_yaml::Mapping, nodes: &mut [TreeNode]) -> R<()> {
-    for node in nodes {
-        if node.has_children && node.depth + 1 < MAX_DEPTH {
-            let mut kids = build_children(root, data, &node.rel_parts)?;
-            fill_children(root, data, &mut kids)?;
-            node.children = Some(kids);
-        }
-    }
-    Ok(())
 }
 
 fn review_emitter(app: &AppHandle) -> impl Fn(&ReviewIndexEvent) -> Result<(), String> + '_ {
@@ -146,7 +135,17 @@ fn with_index(
 ) -> R<Mutation> {
     let mut m = result?;
     m.warnings.extend(reindex(root, emit, rebuild).into_iter().map(|f| format!("Review index: {f}")));
-    let indexed = tree_store::load(root).and_then(|data| search_index::rebuild(root, &data));
+    with_search_index(root, Ok(m))
+}
+
+fn with_search_index(root: &Path, result: R<Mutation>) -> R<Mutation> {
+    let mut m = result?;
+    // An empty tree may be after_commit's fallback, so the yaml is indexed instead of wiping the index.
+    let indexed = if m.tree.nodes.is_empty() {
+        tree_store::load(root).and_then(|data| search_index::rebuild(root, &data))
+    } else {
+        search_index::rebuild_from_nodes(root, &m.tree.nodes)
+    };
     if let Err(e) = indexed {
         m.warnings.push(format!("Search index: {e}"));
     }
@@ -253,17 +252,23 @@ pub async fn set_node_type(
     type_base: EditableType,
     status: Option<WkbStatus>,
 ) -> R<Mutation> {
-    run_locked(app, move |root| edit_actions::set_node_type(root, &rel_parts, type_base, status)).await
+    run_locked(app, move |root| {
+        with_search_index(root, edit_actions::set_node_type(root, &rel_parts, type_base, status))
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn set_favorite(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
-    run_locked(app, move |root| edit_actions::set_favorite(root, &rel_parts, on)).await
+    run_locked(app, move |root| with_search_index(root, edit_actions::set_favorite(root, &rel_parts, on))).await
 }
 
 #[tauri::command]
 pub async fn set_node_details(app: AppHandle, rel_parts: Vec<String>, status: Option<WkbStatus>, owner: Option<String>) -> R<Mutation> {
-    run_locked(app, move |root| edit_actions::set_details(root, &rel_parts, status, owner.as_deref())).await
+    run_locked(app, move |root| {
+        with_search_index(root, edit_actions::set_details(root, &rel_parts, status, owner.as_deref()))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -317,9 +322,12 @@ fn read_skipped(root: &Path) -> R<String> {
     }
 }
 
-#[tauri::command]
-pub async fn get_skipped_version(app: AppHandle) -> R<String> {
-    run_locked(app, |root| read_skipped(root)).await
+// A manual check offers the newest version again even after it was skipped.
+fn skipped_for(root: &Path, manual: bool) -> R<String> {
+    if manual {
+        return Ok(String::new());
+    }
+    read_skipped(root)
 }
 
 #[derive(Serialize)]
@@ -330,12 +338,12 @@ pub struct UpdateInfo {
 
 // The download runs outside the storage lock so a slow network never blocks the tree.
 #[tauri::command]
-pub async fn check_update(app: AppHandle) -> R<Option<UpdateInfo>> {
+pub async fn check_update(app: AppHandle, manual: bool) -> R<Option<UpdateInfo>> {
     let latest = tauri::async_runtime::spawn_blocking(updater::latest_version)
         .await
         .map_err(|e| FmError::Internal { message: e.to_string() })?;
     let Some(latest) = latest.filter(|v| updater::is_newer(v, updater::CURRENT_VERSION)) else { return Ok(None) };
-    let skipped = run_locked(app, |root| read_skipped(root)).await?;
+    let skipped = run_locked(app, move |root| skipped_for(root, manual)).await?;
     Ok((latest != skipped).then(|| UpdateInfo { current: updater::CURRENT_VERSION.to_string(), latest }))
 }
 
@@ -537,6 +545,26 @@ mod tests {
         assert_eq!(probe.events.borrow()[1].failures, ["stub"]);
         assert!(get_node(&probe.seen_yaml.borrow()[0], &rel(&["100.WORK", "05.Fresh"])).is_some());
         assert!(get_node(&yaml(dir.path()), &rel(&["100.WORK", "05.Fresh"])).is_some());
+    }
+
+    #[test]
+    fn details_and_type_edits_reach_the_search_index() {
+        let dir = work("cmd-search");
+        let p = rel(&["100.WORK", "01.A"]);
+        let search = |q: &str| Store::open_or_create(dir.path()).unwrap().search(&parse_query(q)).unwrap();
+        with_search_index(dir.path(), edit_actions::set_node_type(dir.path(), &p, EditableType::Wkb, None)).unwrap();
+        assert_eq!(search("type:WKB-L2"), [p.clone()]);
+        let m = with_search_index(dir.path(), edit_actions::set_details(dir.path(), &p, None, Some("Zed"))).unwrap();
+        assert!(m.warnings.is_empty(), "{:?}", m.warnings);
+        assert_eq!(search("client:Zed"), [p]);
+    }
+
+    #[test]
+    fn a_manual_update_check_ignores_the_skipped_version() {
+        let dir = work("cmd-skip");
+        std::fs::write(skip_path(dir.path()), " 9.9.9 \n").unwrap();
+        assert_eq!(skipped_for(dir.path(), false).unwrap(), "9.9.9");
+        assert_eq!(skipped_for(dir.path(), true).unwrap(), "");
     }
 
     #[test]

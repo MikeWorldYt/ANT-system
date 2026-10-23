@@ -54,9 +54,8 @@ export interface UpdateInfo {
   current: string;
   latest: string;
 }
-export const checkUpdate = () => call<UpdateInfo | null>("check_update");
+export const checkUpdate = (manual: boolean) => call<UpdateInfo | null>("check_update", { manual });
 export const startUpdate = () => call<void>("start_update");
-export const getSkippedVersion = () => call<string>("get_skipped_version");
 export const skipVersion = (version: string) => call<void>("skip_version", { version });
 
 const path = (parts: string[]) => parts.join("/") || "root";

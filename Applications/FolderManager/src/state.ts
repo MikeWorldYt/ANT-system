@@ -26,12 +26,19 @@ export interface ColumnSort {
 }
 
 const SORTS_PREF = "fm.sorts";
+const SORT_BYS: readonly SortBy[] = ["name", "type", "status"];
 const DEFAULT_SORT: ColumnSort = { by: "name", dir: "asc" };
 
 function readSorts(): Record<string, ColumnSort> {
   try {
     const parsed: unknown = JSON.parse(readPref(SORTS_PREF) ?? "{}");
-    return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, ColumnSort>) : {};
+    if (typeof parsed !== "object" || parsed === null) return {};
+    const sorts: Record<string, ColumnSort> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      const { by, dir } = (value ?? {}) as Partial<ColumnSort>;
+      if (SORT_BYS.includes(by as SortBy) && (dir === "asc" || dir === "desc")) sorts[key] = { by: by as SortBy, dir };
+    }
+    return sorts;
   } catch (e) {
     console.warn("Saved column order is unreadable", e);
     return {};

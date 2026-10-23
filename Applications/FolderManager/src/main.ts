@@ -1,5 +1,6 @@
 // Entry point: assembles the shell and wires store, events and views.
 import "./styles/theme.css";
+import { describeError } from "./api";
 import { createColumnsView } from "./columns-view";
 import { installContextMenu } from "./context-menu";
 import { createDetailsPanel } from "./details-panel";
@@ -19,7 +20,7 @@ import { createViewSwitcher } from "./view-switch";
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
 
-const host = el("section", { class: "tree-host", "aria-label": "Folder tree" });
+const host = el("section", { class: "tree-host", "aria-label": "Storage" });
 const views = createViewSwitcher(host, [createTreeView(), createColumnsView()]);
 const PANEL_PREF = "fm.details";
 let detailsVisible = readPref(PANEL_PREF) !== "hidden";
@@ -57,20 +58,22 @@ subscribe(() => {
   panel.render();
 });
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 let indexing = false;
-void onReviewIndex((e) => {
+onReviewIndex((e) => {
   if (e.phase === "started") {
     indexing = true;
     setStatus("info", "Rebuilding review index");
   } else if (e.failures.length > 0) {
     indexing = false;
-    setStatus("warning", `Review index: ${e.failures.length} shortcuts failed (${e.failures[0]})`);
+    setStatus("warning", `Review index: ${plural(e.failures.length, "shortcut")} failed (${e.failures[0]})`);
   } else if (indexing) {
     indexing = false;
     clearStatus();
   }
-});
-void onWindowFocus(() => void refresh());
+}).catch((e) => setStatus("warning", `Review index updates unavailable: ${describeError(e)}`));
+onWindowFocus(() => void refresh()).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
 
 void init().then(() => {
   views.current().focus();
