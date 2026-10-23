@@ -6,6 +6,7 @@ import type {
   EditableType,
   FmError,
   MoveDirection,
+  NewKind,
   Mutation,
   StorageInfo,
   TreeNode,
@@ -32,7 +33,7 @@ export const setNodeType = (relParts: string[], typeBase: EditableType, status: 
   call<Mutation>("set_node_type", { relParts, typeBase, status });
 export const setNodeDetails = (relParts: string[], status: WkbStatus | null, owner: string | null) =>
   call<Mutation>("set_node_details", { relParts, status, owner });
-export const addChild = (parentRelParts: string[]) => call<Mutation>("add_child", { parentRelParts });
+export const addNode = (relParts: string[], kind: NewKind) => call<Mutation>("add_node", { relParts, kind });
 export const moveNode = (relParts: string[], direction: MoveDirection) =>
   call<Mutation>("move_node", { relParts, direction });
 export const inspectDelete = (relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });

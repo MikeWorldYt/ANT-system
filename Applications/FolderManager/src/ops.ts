@@ -4,7 +4,7 @@ import { confirmDialog } from "./dialogs";
 import { setStatus, clearStatus } from "./status";
 import { hydrate, keyOf, notify, pruneSelection, setBusy, setTree, state } from "./state";
 import { isFmError } from "./types";
-import type { EditableType, MoveDirection, Mutation, TreeNode, TreeSnapshot, WkbStatus } from "./types";
+import type { EditableType, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "./types";
 
 const EDITABLE: readonly string[] = ["NODE", "WKB", "PORTF"];
 
@@ -81,12 +81,8 @@ export async function toggleExpand(node: TreeNode): Promise<void> {
   await expand(node);
 }
 
-export const addChild = (node: TreeNode) =>
-  run(async () => {
-    state.expanded.add(keyOf(node.relParts));
-    node.children = null;
-    await applyMutation(await api.addChild(node.relParts));
-  });
+export const addNext = (node: TreeNode, kind: NewKind) =>
+  run(async () => applyMutation(await api.addNode(node.relParts, kind)));
 
 export const move = (node: TreeNode, dir: MoveDirection) =>
   run(async () => applyMutation(await api.moveNode(node.relParts, dir), node.relParts));

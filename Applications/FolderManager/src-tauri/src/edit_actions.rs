@@ -6,7 +6,9 @@ use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, type_base, type_level, META_KEYS};
-use crate::config::{EditableType, WkbStatus, is_hidden_dir, LINKED_PREFIXES, MAX_DEPTH};
+use crate::config::{EditableType, NewKind, WkbStatus, is_hidden_dir, DATA_DIR, LINKED_PREFIXES, MAX_DEPTH};
+use crate::db::hide;
+use crate::footprint;
 use crate::error::{FmError, R};
 use crate::info::{field_of, read_info, write_info, OWNER_KEYS};
 use crate::fs_safe::{
@@ -142,7 +144,15 @@ pub fn set_details(root: &Path, rel: &[String], status: Option<WkbStatus>, owner
     Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new()))
 }
 
-pub fn add_child(root: &Path, parent: &[String]) -> R<Mutation> {
+// Level 1 has its own creation rules, so the new folder always goes next to a level 2 or deeper one.
+pub fn add_next(root: &Path, rel: &[String], kind: NewKind) -> R<Mutation> {
+    match rel.split_last() {
+        Some((_, parent)) if !parent.is_empty() => add_child(root, parent, kind),
+        _ => Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "level 1 folders are not created from the tree".to_string() }),
+    }
+}
+
+pub fn add_child(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced(root)?;
     let target = locate(root, &data, parent)?;
@@ -159,7 +169,12 @@ pub fn add_child(root: &Path, parent: &[String]) -> R<Mutation> {
     // Ghost ids count as taken so a new node never inherits a missing folder's record.
     let mut taken = list_subdirs(&target.abs)?;
     taken.extend(child_entries(parent_yaml).map(|(k, _)| k.to_string()));
-    let new_name = format!("{:02}.New-Node", next_available_id(&taken));
+    let workboard = kind == NewKind::Workboard;
+    let new_name = if workboard {
+        format!("PJ.{:03}_New-Workboard", next_tracker(&data))
+    } else {
+        format!("{:02}.New-Node", next_available_id(&taken))
+    };
     ensure_free(&target.abs, Some(parent_yaml), &new_name, &[])?;
 
     let new_abs = target.abs.join(&new_name);
@@ -167,12 +182,13 @@ pub fn add_child(root: &Path, parent: &[String]) -> R<Mutation> {
     journal.mkdir(&new_abs)?;
     let level = child_depth + 1;
     let mut entry = Mapping::new();
-    entry.insert("type".into(), format!("NODE-L{level}").into());
+    entry.insert("type".into(), format!("{}-L{level}", if workboard { "WKB" } else { "NODE" }).into());
     let mut warnings = Vec::new();
     let rev_name = format!("98.{}", editable_part(&new_name));
-    match journal.mkdir(&new_abs.join(&rev_name)) {
+    // A workboard keeps its review shortcuts out of its own folder.
+    match if workboard { Ok(()) } else { journal.mkdir(&new_abs.join(&rev_name)) } {
         // The deepest level keeps its 98 folder on disk only, as Tree.yaml stops at MAX_DEPTH.
-        Ok(()) if level < MAX_DEPTH => {
+        Ok(()) if level < MAX_DEPTH && !workboard => {
             let mut rev = Mapping::new();
             rev.insert("type".into(), format!("REV-L{level}").into());
             entry.insert(rev_name.into(), rev.into());
@@ -190,7 +206,45 @@ pub fn add_child(root: &Path, parent: &[String]) -> R<Mutation> {
         }
     }
     persist(root, &data, journal, "add child")?;
+    // The folder exists now, so a failure here is only reported.
+    if let Err(e) = mark_folder(&new_abs, workboard) {
+        warnings.push(format!("Could not set up {DATA_DIR}: {}", error_text(&e)));
+    }
+    match footprint::apply(root, &mut data) {
+        Ok(true) => {
+            if let Err(e) = yaml_store::save(root, &data) {
+                warnings.push(format!("Could not save moved folders: {}", error_text(&e)));
+            }
+        }
+        Ok(false) => {}
+        Err(e) => warnings.push(format!("Could not assign folder ids: {}", error_text(&e))),
+    }
     Ok(finish(root, &data, synced, Some(child_rel(parent, &new_name)), warnings))
+}
+
+// Next free 3-digit tracker after every PJ workboard in the tree, missing folders included.
+fn next_tracker(data: &Mapping) -> u32 {
+    fn highest(node: &Mapping) -> u32 {
+        child_entries(node)
+            .map(|(name, child)| {
+                let own = name.strip_prefix("PJ.").and_then(|r| r.get(..3)).and_then(|d| d.parse().ok()).unwrap_or(0);
+                own.max(highest(child))
+            })
+            .max()
+            .unwrap_or(0)
+    }
+    highest(data) + 1
+}
+
+// Every created folder gets a .ant folder, which is what lets its id follow it around; workboards also start their info.json.
+fn mark_folder(folder: &Path, workboard: bool) -> R<()> {
+    if workboard {
+        return write_info(folder, &[(&["status"], "status", "in-progress"), (&OWNER_KEYS, "owner", "unknown")]);
+    }
+    let dir = folder.join(DATA_DIR);
+    fs::create_dir(&dir).map_err(|e| io_err("create info folder", &dir, &e))?;
+    hide(&dir);
+    Ok(())
 }
 
 // Linked folders follow best-effort: a clash or failure becomes a warning and its yaml key stays.
@@ -582,13 +636,13 @@ mod tests {
     #[test]
     fn add_child_takes_lowest_free_id_and_creates_review_folder() {
         let dir = academic("add");
-        let m = add_child(dir.path(), &rel(&["100.ACADEMIC"])).unwrap();
+        let m = add_child(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node).unwrap();
         assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "04.New-Node"])));
         assert!(dir.path().join("100.ACADEMIC/04.New-Node/98.New-Node").is_dir());
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "04.New-Node"]), "NODE-L2");
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "04.New-Node", "98.New-Node"]), "REV-L2");
 
-        let deep = add_child(dir.path(), &rel(&["100.ACADEMIC", "01.Math"])).unwrap();
+        let deep = add_child(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), NewKind::Node).unwrap();
         let p = ["100.ACADEMIC", "01.Math", "02.New-Node"];
         assert_eq!(deep.select, Some(rel(&p)));
         assert!(dir.path().join("100.ACADEMIC/01.Math/02.New-Node/98.New-Node").is_dir());
@@ -597,16 +651,43 @@ mod tests {
     }
 
     #[test]
+    fn add_next_goes_beside_a_level_two_folder_and_marks_it_with_a_dot_ant() {
+        let dir = academic("add-next");
+        let m = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Node).unwrap();
+        assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "04.New-Node"])));
+        assert!(m.warnings.is_empty(), "{:?}", m.warnings);
+        let id = std::fs::read_to_string(dir.path().join("100.ACADEMIC/04.New-Node/.ant/dragpath.json")).unwrap();
+        assert!(id.contains("\"id\""), "{id}");
+        assert!(matches!(add_next(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node), Err(FmError::InvalidPath { .. })));
+    }
+
+    #[test]
+    fn a_new_workboard_takes_the_next_tracker_and_starts_its_info_json() {
+        let dir = academic("add-wkb");
+        let p = rel(&["100.ACADEMIC", "01.Math"]);
+        let first = add_next(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "01.Algebra"]), NewKind::Workboard).unwrap();
+        assert_eq!(first.select, Some(child_rel(&p, "PJ.001_New-Workboard")));
+        let second = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
+        assert_eq!(second.select, Some(rel(&["100.ACADEMIC", "PJ.002_New-Workboard"])));
+        let wkb = dir.path().join("100.ACADEMIC/01.Math/PJ.001_New-Workboard");
+        assert_eq!(names(&wkb), [".ant"], "no 98 folder inside a workboard");
+        let info = std::fs::read_to_string(wkb.join(".ant/info.json")).unwrap();
+        assert!(info.contains("\"status\": \"in-progress\"") && info.contains("\"owner\": \"unknown\""), "{info}");
+        assert!(wkb.join(".ant/dragpath.json").is_file());
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "PJ.001_New-Workboard"]), "WKB-L3");
+    }
+
+    #[test]
     fn add_child_refuses_depth_ghost_locked_and_reserved_parents() {
         let dir = academic("add-refuse");
-        let too_deep = add_child(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "01.Algebra"]));
+        let too_deep = add_child(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "01.Algebra"]), NewKind::Node);
         assert!(matches!(too_deep, Err(FmError::DepthLimit)));
-        let ghost = add_child(dir.path(), &rel(&["100.ACADEMIC", "03.Ghost"]));
+        let ghost = add_child(dir.path(), &rel(&["100.ACADEMIC", "03.Ghost"]), NewKind::Node);
         assert!(matches!(ghost, Err(FmError::GhostNotAllowed { .. })));
-        let locked = add_child(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "98.Math"]));
+        let locked = add_child(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "98.Math"]), NewKind::Node);
         assert!(matches!(locked, Err(FmError::Locked { .. })));
-        assert!(matches!(add_child(dir.path(), &rel(&["999.Settings"])), Err(FmError::Reserved { .. })));
-        assert!(matches!(add_child(dir.path(), &[]), Err(FmError::InvalidPath { .. })));
+        assert!(matches!(add_child(dir.path(), &rel(&["999.Settings"]), NewKind::Node), Err(FmError::Reserved { .. })));
+        assert!(matches!(add_child(dir.path(), &[], NewKind::Node), Err(FmError::InvalidPath { .. })));
     }
 
     #[cfg(windows)]
@@ -614,7 +695,7 @@ mod tests {
     fn add_child_removes_created_folders_when_yaml_save_fails() {
         let dir = academic("add-rollback");
         let _held = break_yaml_save(dir.path());
-        let err = add_child(dir.path(), &rel(&["100.ACADEMIC"])).unwrap_err();
+        let err = add_child(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node).unwrap_err();
         assert!(matches!(err, FmError::RolledBack { .. }), "{err:?}");
         assert_eq!(names(&dir.path().join("100.ACADEMIC")), ["01.Math", "02.Bio"]);
     }
@@ -627,7 +708,7 @@ mod tests {
         let refused = |r: R<Mutation>| matches!(r, Err(FmError::InvalidName { .. }));
         assert!(refused(rename_node(dir.path(), &rel(&["100.ACADEMIC", "type"]), "X")));
         assert!(refused(set_node_type(dir.path(), &rel(&["100.ACADEMIC", "type"]), EditableType::Wkb, None)));
-        assert!(refused(add_child(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "status"]))));
+        assert!(refused(add_child(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "status"]), NewKind::Node)));
         assert!(dir.path().join("100.ACADEMIC/type").is_dir());
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC"]), "NODE-L1");
         let math = get_node(&yaml(dir.path()), &rel(&["100.ACADEMIC", "01.Math"])).unwrap().clone();

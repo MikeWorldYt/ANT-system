@@ -7,7 +7,7 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, type_base, type_level, META_KEYS};
 use crate::config::{
-    LINKED_PREFIXES, MAX_DEPTH, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
+    LINKED_PREFIXES, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::error::R;
 use crate::info::{read_info, NodeInfo};
@@ -27,7 +27,7 @@ pub struct NodeType {
 pub struct NodeActions {
     pub rename: bool,
     pub change_type: bool,
-    pub add_child: bool,
+    pub add_next: bool,
     pub move_up: bool,
     pub move_down: bool,
     pub delete: bool,
@@ -178,7 +178,8 @@ fn compute_actions(depth: usize, ghost: bool, raw_type: &str, reserved: bool) ->
     NodeActions {
         rename: !ghost && !frozen,
         change_type: !frozen,
-        add_child: !ghost && !frozen && depth + 1 < MAX_DEPTH,
+        // Level 1 has its own creation rules, so a new folder is only offered next to a level 2 or deeper one.
+        add_next: depth >= 1 && !reserved,
         move_up: false,
         move_down: false,
         delete: !reserved && (ghost || !locked),
@@ -325,7 +326,7 @@ mod tests {
         let ghost_rev = find(&kids, "03.GhostRev");
         assert!(ghost_rev.locked && ghost_rev.ghost);
         let a = &ghost_rev.actions;
-        assert!(a.delete && !a.rename && !a.change_type && !a.add_child && !a.copy_path);
+        assert!(a.delete && !a.rename && !a.change_type && !a.copy_path);
         assert!(!a.move_up && !a.move_down);
     }
 
@@ -334,7 +335,7 @@ mod tests {
         let (dir, data) = fixture();
         let tree = build_tree(dir.path(), &data, false).unwrap();
         let a = &find(&tree.nodes, "99.Gone").actions;
-        assert!(!a.rename && a.change_type && a.delete && !a.add_child && !a.copy_path);
+        assert!(!a.rename && a.change_type && a.delete && !a.add_next && !a.copy_path);
         assert!(!a.move_up && !a.move_down);
     }
 
@@ -358,7 +359,7 @@ mod tests {
             let node = find(&tree.nodes, name);
             assert!(node.reserved, "{name}");
             let a = &node.actions;
-            assert!(!a.rename && !a.change_type && !a.add_child, "{name}");
+            assert!(!a.rename && !a.change_type && !a.add_next, "{name}");
             assert!(!a.move_up && !a.move_down && !a.delete && a.copy_path, "{name}");
         }
         let nested: Mapping = serde_yaml::from_str("01.Alpha:\n  999.Settings:\n    type: NODE-L2\n").unwrap();
@@ -404,20 +405,25 @@ mod tests {
     }
 
     #[test]
-    fn add_child_stops_at_max_depth() {
+    fn a_new_folder_is_only_offered_next_to_level_two_or_deeper() {
         let dir = TempDir::new("depth");
         dir.mkdir("01.A/01.B/01.C");
         let data: Mapping = serde_yaml::from_str(
-            "01.A:\n  type: NODE-L1\n  01.B:\n    type: NODE-L2\n    01.C:\n      type: NODE-L3\n",
+            "01.A:
+  type: NODE-L1
+  01.B:
+    type: NODE-L2
+    01.C:
+      type: NODE-L3
+",
         )
         .unwrap();
         let top = build_children(dir.path(), &data, &[]).unwrap();
-        assert!(top[0].actions.add_child);
+        assert!(!top[0].actions.add_next);
         let l2 = build_children(dir.path(), &data, &rel(&["01.A"])).unwrap();
-        assert!(l2[0].actions.add_child);
+        assert!(l2[0].actions.add_next);
         let l3 = build_children(dir.path(), &data, &rel(&["01.A", "01.B"])).unwrap();
-        assert_eq!(l3[0].depth, 2);
-        assert!(!l3[0].actions.add_child);
+        assert!(l3[0].actions.add_next);
     }
 
     #[test]

@@ -42,7 +42,7 @@ pub fn run() {
             commands::refresh,
             commands::rename_node,
             commands::set_node_type,
-            commands::add_child,
+            commands::add_node,
             commands::move_node,
             commands::inspect_delete,
             commands::delete_node,

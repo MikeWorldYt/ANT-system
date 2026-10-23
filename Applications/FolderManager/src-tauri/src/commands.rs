@@ -6,7 +6,7 @@ use serde::Serialize;
 use serde_yaml::Mapping;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::config::{EditableType, WkbStatus, CORE_FOLDER, MAX_DEPTH, SETTINGS_FOLDER};
+use crate::config::{EditableType, NewKind, WkbStatus, CORE_FOLDER, MAX_DEPTH, SETTINGS_FOLDER};
 use crate::edit_actions::{self, Mutation};
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, validate_component, StorageLock};
@@ -257,10 +257,10 @@ pub async fn set_node_details(app: AppHandle, rel_parts: Vec<String>, status: Op
 }
 
 #[tauri::command]
-pub async fn add_child(app: AppHandle, parent_rel_parts: Vec<String>) -> R<Mutation> {
+pub async fn add_node(app: AppHandle, rel_parts: Vec<String>, kind: NewKind) -> R<Mutation> {
     let emitter = app.clone();
     run_locked(app, move |root| {
-        let result = edit_actions::add_child(root, &parent_rel_parts);
+        let result = edit_actions::add_next(root, &rel_parts, kind);
         with_index(root, result, &review_emitter(&emitter), review_index::rebuild)
     })
     .await
@@ -441,7 +441,7 @@ mod tests {
         let emit = probe.emit();
         let moved = move_delete::move_node(dir.path(), &rel(&["100.WORK", "01.A"]), MoveDirection::Down);
         with_index(dir.path(), moved, &emit, probe.rebuild(&[])).unwrap();
-        let added = edit_actions::add_child(dir.path(), &rel(&["100.WORK"]));
+        let added = edit_actions::add_child(dir.path(), &rel(&["100.WORK"]), NewKind::Node);
         let m = with_index(dir.path(), added, &emit, probe.rebuild(&[])).unwrap();
         assert!(m.warnings.is_empty());
         assert_eq!(probe.phases(), ["started", "done", "started", "done"]);
@@ -507,7 +507,7 @@ mod tests {
     fn commands_release_both_locks_and_fail_without_a_storage() {
         let dir = work("cmd-locks");
         let storage = Storage::resolve(dir.path().to_path_buf());
-        locked(&storage, |root| edit_actions::add_child(root, &rel(&["100.WORK"]))).unwrap();
+        locked(&storage, |root| edit_actions::add_child(root, &rel(&["100.WORK"]), NewKind::Node)).unwrap();
         locked(&storage, |root| edit_actions::rename_node(root, &rel(&["100.WORK", "02.B"]), "Bee")).unwrap();
         assert!(storage.lock.try_lock().is_ok());
         assert!(StorageLock::acquire(dir.path()).is_ok());
