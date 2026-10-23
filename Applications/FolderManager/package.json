@@ -1,5 +1,5 @@
 {
-  "name": "folder-manager-tauri",
+  "name": "folder-manager",
   "private": true,
   "version": "2.0.1-beta",
   "type": "module",
