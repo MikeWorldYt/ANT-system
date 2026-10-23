@@ -13,6 +13,7 @@ import { createStatusLine, clearStatus, setStatus } from "./status";
 import { subscribe } from "./state";
 import { createToolbar } from "./toolbar";
 import { createTreeView } from "./tree-view";
+import { checkForUpdates } from "./updates";
 import { createViewSwitcher } from "./view-switch";
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -71,4 +72,7 @@ void onReviewIndex((e) => {
 });
 void onWindowFocus(() => void refresh());
 
-void init().then(() => views.current().focus());
+void init().then(() => {
+  views.current().focus();
+  void checkForUpdates();
+});

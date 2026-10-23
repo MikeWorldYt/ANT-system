@@ -119,6 +119,7 @@ body {
   flex: 1; min-width: 0; padding: 0 4px; font: inherit; color: var(--text); background: var(--field-bg);
   border: 1px solid var(--button); border-radius: 3px; outline: none;
 }
+.dialog-text { white-space: pre-line; }
 .btn {
   padding: 8px; border: 0; border-radius: 0; font: inherit; font-weight: bold; cursor: pointer;
   background: var(--field-bg); color: var(--text);

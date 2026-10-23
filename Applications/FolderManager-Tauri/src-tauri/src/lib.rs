@@ -14,6 +14,7 @@ mod review_index;
 mod search;
 mod search_index;
 mod tree_node;
+mod updater;
 mod yaml_store;
 
 pub fn run() {
@@ -47,6 +48,8 @@ pub fn run() {
             commands::delete_node,
             commands::get_skipped_version,
             commands::skip_version,
+            commands::check_update,
+            commands::start_update,
             commands::search_nodes,
             commands::suggest_search,
         ])

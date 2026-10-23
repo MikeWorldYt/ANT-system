@@ -17,6 +17,7 @@ use crate::db::{Store, Suggestion};
 use crate::footprint;
 use crate::search::{canonical_key, parse_query};
 use crate::search_index;
+use crate::updater;
 use crate::yaml_store::{self, yaml_path};
 
 const SKIP_FILE: &str = ".skip_version";
@@ -292,17 +293,42 @@ pub async fn delete_node(
     .map_err(|e| FmError::Internal { message: e.to_string() })?
 }
 
+fn read_skipped(root: &Path) -> R<String> {
+    let path = skip_path(root);
+    match std::fs::read_to_string(&path) {
+        Ok(text) => Ok(text.trim().to_string()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
+        Err(e) => Err(io_err("read skipped version", &path, &e)),
+    }
+}
+
 #[tauri::command]
 pub async fn get_skipped_version(app: AppHandle) -> R<String> {
-    run_locked(app, |root| {
-        let path = skip_path(root);
-        match std::fs::read_to_string(&path) {
-            Ok(text) => Ok(text.trim().to_string()),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
-            Err(e) => Err(io_err("read skipped version", &path, &e)),
-        }
-    })
-    .await
+    run_locked(app, |root| read_skipped(root)).await
+}
+
+#[derive(Serialize)]
+pub struct UpdateInfo {
+    current: String,
+    latest: String,
+}
+
+// The download runs outside the storage lock so a slow network never blocks the tree.
+#[tauri::command]
+pub async fn check_update(app: AppHandle) -> R<Option<UpdateInfo>> {
+    let latest = tauri::async_runtime::spawn_blocking(updater::latest_version)
+        .await
+        .map_err(|e| FmError::Internal { message: e.to_string() })?;
+    let Some(latest) = latest.filter(|v| updater::is_newer(v, updater::CURRENT_VERSION)) else { return Ok(None) };
+    let skipped = run_locked(app, |root| read_skipped(root)).await?;
+    Ok((latest != skipped).then(|| UpdateInfo { current: updater::CURRENT_VERSION.to_string(), latest }))
+}
+
+#[tauri::command]
+pub async fn start_update(app: AppHandle) -> R<()> {
+    run_locked(app.clone(), |root| updater::launch_updater(root)).await?;
+    app.exit(0);
+    Ok(())
 }
 
 #[tauri::command]

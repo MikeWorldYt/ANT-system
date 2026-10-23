@@ -43,6 +43,12 @@ export interface Suggestion {
   hint: string;
 }
 export const suggestSearch = (key: string, prefix: string) => call<Suggestion[]>("suggest_search", { key, prefix });
+export interface UpdateInfo {
+  current: string;
+  latest: string;
+}
+export const checkUpdate = () => call<UpdateInfo | null>("check_update");
+export const startUpdate = () => call<void>("start_update");
 export const getSkippedVersion = () => call<string>("get_skipped_version");
 export const skipVersion = (version: string) => call<void>("skip_version", { version });
 
