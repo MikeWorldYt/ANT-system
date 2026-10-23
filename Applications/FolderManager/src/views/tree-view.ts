@@ -1,13 +1,13 @@
 // Tree view: indented expandable rows with keyboard navigation.
-import { nodeSummary } from "./node-info";
+import { nodeSummary } from "../store/node-info";
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
-import { badge, el } from "./dom";
-import { guiIcon } from "./gui-icons";
-import { folderIcon } from "./icons";
+import { badge, el } from "../ui/dom";
+import { guiIcon } from "../ui/gui-icons";
+import { folderIcon } from "../ui/icons";
 import { nameCell } from "./name-cell";
-import { toggleExpand } from "./ops";
-import { keyOf, select, startEdit, state, visibleRows } from "./state";
-import type { TreeNode } from "./types";
+import { toggleExpand } from "../actions/ops";
+import { keyOf, select, startEdit, state, visibleRows } from "../store/state";
+import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
 export function createTreeView(): ViewMode {

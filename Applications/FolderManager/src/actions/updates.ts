@@ -1,7 +1,7 @@
 // Offers a newer published version, at launch or on demand; failures only reach the status line.
-import { checkUpdate, describeError, skipVersion, startUpdate } from "./api";
-import { choiceDialog } from "./dialogs";
-import { setStatus } from "./status";
+import { checkUpdate, describeError, skipVersion, startUpdate } from "../ipc/api";
+import { choiceDialog } from "../ui/dialogs";
+import { setStatus } from "../ui/status";
 
 export async function checkForUpdates(announceCurrent = false): Promise<void> {
   try {

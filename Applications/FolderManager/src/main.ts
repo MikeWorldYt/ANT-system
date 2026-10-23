@@ -1,21 +1,21 @@
 // Entry point: assembles the shell and wires store, events and views.
 import "./styles/theme.css";
-import { describeError } from "./api";
-import { createColumnsView } from "./columns-view";
-import { installContextMenu } from "./context-menu";
-import { createDetailsPanel } from "./details-panel";
-import { el } from "./dom";
-import { createNavigator } from "./navigator";
-import { createSearchBar } from "./search-bar";
-import { onReviewIndex, onWindowFocus } from "./events";
-import { init, refresh } from "./ops";
-import { readPref, savePref } from "./prefs";
-import { createStatusLine, clearStatus, setStatus } from "./status";
-import { subscribe } from "./state";
-import { createToolbar } from "./toolbar";
-import { createTreeView } from "./tree-view";
-import { checkForUpdates } from "./updates";
-import { createViewSwitcher } from "./view-switch";
+import { describeError } from "./ipc/api";
+import { createColumnsView } from "./views/columns-view";
+import { installContextMenu } from "./views/context-menu";
+import { createDetailsPanel } from "./shell/details-panel";
+import { el } from "./ui/dom";
+import { createNavigator } from "./shell/navigator";
+import { createSearchBar } from "./shell/search-bar";
+import { onReviewIndex, onWindowFocus } from "./ipc/events";
+import { init, refresh } from "./actions/ops";
+import { readPref, savePref } from "./store/prefs";
+import { createStatusLine, clearStatus, setStatus } from "./ui/status";
+import { subscribe } from "./store/state";
+import { createToolbar } from "./shell/toolbar";
+import { createTreeView } from "./views/tree-view";
+import { checkForUpdates } from "./actions/updates";
+import { createViewSwitcher } from "./views/view-switch";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");

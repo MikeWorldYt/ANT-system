@@ -1,8 +1,8 @@
 // Single in-memory store for the tree snapshot, selection and expansion.
-import { listChildren } from "./api";
+import { listChildren } from "../ipc/api";
 import { favoritesFirst } from "./node-info";
 import { readPref, savePref } from "./prefs";
-import type { TreeNode, TreeSnapshot } from "./types";
+import type { TreeNode, TreeSnapshot } from "../ipc/types";
 
 interface State {
   tree: TreeSnapshot | null;

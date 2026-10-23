@@ -1,10 +1,10 @@
 // Settings window: list preferences kept in ant.db, app info, update check and ways to report a bug.
-import { describeError, getStorage, openLink } from "./api";
-import { el } from "./dom";
-import { changeSetting } from "./ops";
-import { state } from "./state";
-import { setStatus } from "./status";
-import { checkForUpdates } from "./updates";
+import { describeError, getStorage, openLink } from "../ipc/api";
+import { el } from "../ui/dom";
+import { changeSetting } from "../actions/ops";
+import { state } from "../store/state";
+import { setStatus } from "../ui/status";
+import { checkForUpdates } from "../actions/updates";
 
 const MAIL = "info@mikeworld.dev";
 

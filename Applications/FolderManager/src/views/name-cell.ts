@@ -1,9 +1,9 @@
 // Name column of a row: plain text, or the in-place editor when this node is being renamed.
-import { el } from "./dom";
-import { guiIcon } from "./gui-icons";
-import { renameTo } from "./ops";
-import { keyOf, state, stopEdit } from "./state";
-import type { TreeNode } from "./types";
+import { el } from "../ui/dom";
+import { guiIcon } from "../ui/gui-icons";
+import { renameTo } from "../actions/ops";
+import { keyOf, state, stopEdit } from "../store/state";
+import type { TreeNode } from "../ipc/types";
 
 const favoriteMark = () => el("span", { class: "fav-mark", title: "Favorite" }, guiIcon("starred"));
 

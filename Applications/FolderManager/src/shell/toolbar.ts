@@ -1,11 +1,11 @@
 // Header with the storage root name and the tree toolbar.
-import { el } from "./dom";
-import { guiIcon, type GuiIcon } from "./gui-icons";
-import { attachMenu } from "./anchored-menu";
+import { el } from "../ui/dom";
+import { guiIcon, type GuiIcon } from "../ui/gui-icons";
+import { attachMenu } from "../ui/anchored-menu";
 import { openSettings } from "./settings-dialog";
-import { addNext, move, refresh } from "./ops";
-import { activeColumnKey, selectedNode, setColumnSort, sortOf, state, type SortBy } from "./state";
-import type { TreeNode } from "./types";
+import { addNext, move, refresh } from "../actions/ops";
+import { activeColumnKey, selectedNode, setColumnSort, sortOf, state, type SortBy } from "../store/state";
+import type { TreeNode } from "../ipc/types";
 
 function iconButton(label: string, icon: GuiIcon, onClick?: () => void): HTMLButtonElement {
   const b = el("button", { type: "button", class: "icon-btn", "aria-label": label, title: label }, guiIcon(icon));

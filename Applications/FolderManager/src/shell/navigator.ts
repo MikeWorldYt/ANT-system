@@ -1,10 +1,10 @@
 // Navigation bar: back/forward/up over selection history plus a breadcrumb of the selected path.
-import { describeError, listChildren } from "./api";
-import { el } from "./dom";
-import { guiIcon, type GuiIcon } from "./gui-icons";
-import { findNode, reveal, select, selectedNode, state } from "./state";
-import { clearStatus, setStatus } from "./status";
-import type { TreeNode } from "./types";
+import { describeError, listChildren } from "../ipc/api";
+import { el } from "../ui/dom";
+import { guiIcon, type GuiIcon } from "../ui/gui-icons";
+import { findNode, reveal, select, selectedNode, state } from "../store/state";
+import { clearStatus, setStatus } from "../ui/status";
+import type { TreeNode } from "../ipc/types";
 
 const splitPath = (text: string): string[] => text.trim().replace(/^"+|"+$/g, "").split(/[\\/]/).filter(Boolean);
 

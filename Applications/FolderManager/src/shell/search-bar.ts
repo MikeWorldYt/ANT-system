@@ -1,9 +1,9 @@
 // Search box of the navigation bar: filter chips, completions for `key:` and a results list.
-import { describeError, searchNodes, suggestSearch, type Suggestion } from "./api";
-import { el } from "./dom";
-import { guiIcon } from "./gui-icons";
-import { findNode, reveal } from "./state";
-import { setStatus } from "./status";
+import { describeError, searchNodes, suggestSearch, type Suggestion } from "../ipc/api";
+import { el } from "../ui/dom";
+import { guiIcon } from "../ui/gui-icons";
+import { findNode, reveal } from "../store/state";
+import { setStatus } from "../ui/status";
 
 interface Chip {
   key: string;

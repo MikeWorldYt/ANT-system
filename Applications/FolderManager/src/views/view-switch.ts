@@ -1,5 +1,5 @@
 // Owns which ViewMode is mounted in the tree host and remembers the choice between launches.
-import { readPref, savePref } from "./prefs";
+import { readPref, savePref } from "../store/prefs";
 import type { ViewMode } from "./view-mode";
 
 const STORAGE_KEY = "fm.view";

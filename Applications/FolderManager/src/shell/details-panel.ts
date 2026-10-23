@@ -1,10 +1,10 @@
 // Details of the selected node; its name, and the status and owner of a workboard, are edited here.
-import { el } from "./dom";
-import { guiIcon } from "./gui-icons";
-import { isWorkboard, nodeDetails, ownerOf, STATUSES, UNKNOWN } from "./node-info";
-import { renameTo, setDetails } from "./ops";
-import { keyOf, selectedNode } from "./state";
-import type { TreeNode, WkbStatus } from "./types";
+import { el } from "../ui/dom";
+import { guiIcon } from "../ui/gui-icons";
+import { isWorkboard, nodeDetails, ownerOf, STATUSES, UNKNOWN } from "../store/node-info";
+import { renameTo, setDetails } from "../actions/ops";
+import { keyOf, selectedNode } from "../store/state";
+import type { TreeNode, WkbStatus } from "../ipc/types";
 
 // Status and owner live in info.json, so a broken file blocks them but not the rename.
 const canEditFields = (n: TreeNode) => isWorkboard(n) && !n.ghost && n.actions.changeType && !n.info?.error;

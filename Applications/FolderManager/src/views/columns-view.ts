@@ -1,13 +1,13 @@
 // Columns view: one column per depth of the selected path, children of the selection in the next one.
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
-import { badge, el } from "./dom";
-import { guiIcon } from "./gui-icons";
-import { folderIcon } from "./icons";
+import { badge, el } from "../ui/dom";
+import { guiIcon } from "../ui/gui-icons";
+import { folderIcon } from "../ui/icons";
 import { nameCell } from "./name-cell";
-import { nodeSummary, sortedForColumns } from "./node-info";
-import { expand } from "./ops";
-import { keyOf, select, selectedNode, sortOf, startEdit, state } from "./state";
-import type { TreeNode } from "./types";
+import { nodeSummary, sortedForColumns } from "../store/node-info";
+import { expand } from "../actions/ops";
+import { keyOf, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
 interface Column {

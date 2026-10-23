@@ -1,10 +1,10 @@
 // User operations: call the backend, replace the snapshot, report errors in the status line.
-import * as api from "./api";
-import { confirmDialog } from "./dialogs";
-import { setStatus, clearStatus } from "./status";
-import { applySettings, hydrate, keyOf, notify, pruneSelection, setBusy, setTree, state, type Settings } from "./state";
-import { isFmError } from "./types";
-import type { EditableType, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "./types";
+import * as api from "../ipc/api";
+import { confirmDialog } from "../ui/dialogs";
+import { setStatus, clearStatus } from "../ui/status";
+import { applySettings, hydrate, keyOf, notify, pruneSelection, setBusy, setTree, state, type Settings } from "../store/state";
+import { isFmError } from "../ipc/types";
+import type { EditableType, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
   setTree(snapshot ?? (await api.refresh()));

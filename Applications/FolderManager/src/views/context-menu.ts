@@ -1,11 +1,11 @@
 // Context menu shared by every view; item enablement comes only from node.actions.
-import { el } from "./dom";
-import { guiIcon } from "./gui-icons";
-import { STATUSES, TYPES } from "./node-info";
-import { remove, setDetails, setFavorite, setType } from "./ops";
-import { select, startEdit } from "./state";
-import { setStatus } from "./status";
-import type { TreeNode } from "./types";
+import { el } from "../ui/dom";
+import { guiIcon } from "../ui/gui-icons";
+import { STATUSES, TYPES } from "../store/node-info";
+import { remove, setDetails, setFavorite, setType } from "../actions/ops";
+import { select, startEdit } from "../store/state";
+import { setStatus } from "../ui/status";
+import type { TreeNode } from "../ipc/types";
 
 interface MenuRequest {
   node: TreeNode;

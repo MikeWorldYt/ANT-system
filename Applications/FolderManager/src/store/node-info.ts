@@ -1,6 +1,6 @@
 // Type and flag text for a node, shown in the details block and as row tooltips.
 import type { ColumnSort, SortBy } from "./state";
-import type { EditableType, TreeNode, WkbStatus } from "./types";
+import type { EditableType, TreeNode, WkbStatus } from "../ipc/types";
 
 export const TYPES: [EditableType, string][] = [["NODE", "Node"], ["WKB", "Workboard"], ["PORTF", "Portfolio"]];
 export const STATUSES: [WkbStatus, string][] = [
