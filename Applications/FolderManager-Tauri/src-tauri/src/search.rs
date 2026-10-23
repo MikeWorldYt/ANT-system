@@ -1,5 +1,11 @@
 // Search query syntax: `in:200.WORK client:Mike status: in-progress plain words`.
-const ALIASES: [(&str, &str); 1] = [("client", "holder")];
+// The project owner can be searched by any of these names.
+const ALIASES: [(&str, &str); 2] = [("client", "owner"), ("holder", "owner")];
+
+pub fn canonical_key(key: &str) -> String {
+    let key = key.to_lowercase();
+    ALIASES.iter().find(|(alias, _)| *alias == key).map_or(key, |(_, real)| (*real).to_string())
+}
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Query {
@@ -20,12 +26,10 @@ pub fn parse_query(input: &str) -> Query {
                 if value.is_empty() {
                     continue;
                 }
-                let key = key.to_lowercase();
-                if key == "in" {
+                if key.eq_ignore_ascii_case("in") {
                     query.scope = Some(value);
                 } else {
-                    let key = ALIASES.iter().find(|(alias, _)| *alias == key).map_or(key, |(_, real)| (*real).to_string());
-                    query.filters.push((key, value));
+                    query.filters.push((canonical_key(key), value));
                 }
             }
             _ => query.text.push(unquote(&token)),
@@ -74,7 +78,7 @@ mod tests {
     fn scope_and_aliased_filter() {
         let q = parse_query("in:200.WORK client:Mike");
         assert_eq!(q.scope.as_deref(), Some("200.WORK"));
-        assert_eq!(q.filters, [pair("holder", "Mike")]);
+        assert_eq!(q.filters, [pair("owner", "Mike")]);
         assert!(q.text.is_empty());
     }
 
@@ -86,7 +90,7 @@ mod tests {
     #[test]
     fn quoted_values_and_plain_words() {
         let q = parse_query(r#"client:"Mike W" fabi "two words""#);
-        assert_eq!(q.filters, [pair("holder", "Mike W")]);
+        assert_eq!(q.filters, [pair("owner", "Mike W")]);
         assert_eq!(q.text, ["fabi", "two words"]);
     }
 

@@ -6,6 +6,7 @@ use serde_yaml::Mapping;
 use crate::config::MAX_DEPTH;
 use crate::db::{Doc, Store};
 use crate::error::R;
+use crate::search::canonical_key;
 use crate::tree_node::build_children;
 
 pub fn rebuild(root: &Path, data: &Mapping) -> R<()> {
@@ -28,7 +29,7 @@ fn collect(root: &Path, data: &Mapping, parent: &[String], docs: &mut Vec<Doc>) 
         }
         // info.json comes last so its keys win over the yaml ones of the same name.
         for field in node.info.iter().flat_map(|i| &i.fields) {
-            fields.push((field.key.to_lowercase(), field.value.clone()));
+            fields.push((canonical_key(&field.key), field.value.clone()));
         }
         docs.push(Doc { path: node.rel_parts.join("/"), fields });
         if node.has_children && node.depth + 1 < MAX_DEPTH {
@@ -51,7 +52,7 @@ mod tests {
         dir.mkdir("200.WORK/PJ.001_Fabi-web/.ant");
         dir.mkdir("200.WORK/PJ.002_Other");
         dir.mkdir("300.HOME/PJ.003_Mine/.ant");
-        fs::write(dir.path().join("200.WORK/PJ.001_Fabi-web/.ant/info.json"), r#"{"holder": "Mike", "status": "hold"}"#).unwrap();
+        fs::write(dir.path().join("200.WORK/PJ.001_Fabi-web/.ant/info.json"), r#"{"owner": "Mike", "status": "hold"}"#).unwrap();
         fs::write(dir.path().join("300.HOME/PJ.003_Mine/.ant/info.json"), r#"{"holder": "Ana"}"#).unwrap();
         dir
     }
