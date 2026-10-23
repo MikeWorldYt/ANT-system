@@ -1,6 +1,7 @@
 // Reorder nodes by swapping their numeric ids, and delete folders (via .ant-trash and the Recycle Bin) or ghost records.
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
@@ -39,6 +40,56 @@ pub struct PendingRecycle {
     root: PathBuf,
     staged: PathBuf,
     name: String,
+}
+
+// Staged folders still on their way to the Recycle Bin; anything else in .ant-trash was restored or kept.
+static IN_FLIGHT: Mutex<Vec<PathBuf>> = Mutex::new(Vec::new());
+
+struct InFlight(PathBuf);
+
+impl Drop for InFlight {
+    fn drop(&mut self) {
+        IN_FLIGHT.lock().unwrap_or_else(|p| p.into_inner()).retain(|p| *p != self.0);
+    }
+}
+
+// The Recycle Bin restores a staged folder into .ant-trash, where it is hidden, so refresh moves it to the storage root under its own name.
+pub fn recover_trashed(root: &Path) -> R<Vec<String>> {
+    let trash = root.join(TRASH_DIR);
+    let entries = match fs::read_dir(&trash) {
+        Ok(entries) => entries,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(io_err("list folder", &trash, &e)),
+    };
+    let mut recovered = Vec::new();
+    for entry in entries {
+        let path = entry.map_err(|e| io_err("list folder", &trash, &e))?.path();
+        let meta = fs::symlink_metadata(&path).map_err(|e| io_err("inspect path", &path, &e))?;
+        let in_flight = IN_FLIGHT.lock().unwrap_or_else(|p| p.into_inner()).contains(&path);
+        if in_flight || !meta.is_dir() || redirects(&path, &meta)? {
+            continue;
+        }
+        let Some(original) = path.file_name().and_then(|n| n.to_str()).and_then(original_name) else { continue };
+        let taken = list_subdirs(root)?;
+        let free = (0..100)
+            .map(|n| if n == 0 { original.to_string() } else { format!("{original}_{n}") })
+            .find(|c| !taken.iter().any(|t| same_name(t, c)) && validate_component(c).is_ok());
+        let Some(target) = free else { continue };
+        fs::rename(&path, root.join(&target)).map_err(|e| io_err("restore folder", &path, &e))?;
+        recovered.push(target);
+    }
+    remove_trash_if_empty(root, &mut Vec::new());
+    Ok(recovered)
+}
+
+// Inverse of `trash_name`: drops "<stamp>-" and the optional "<n>-" counter.
+fn original_name(staged: &str) -> Option<&str> {
+    let (stamp, rest) = staged.split_once('-')?;
+    if stamp.is_empty() || !stamp.bytes().all(|b| b.is_ascii_digit() || b.is_ascii_lowercase()) {
+        return None;
+    }
+    let after_counter = rest.split_once('-').filter(|(n, _)| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()));
+    Some(after_counter.map_or(rest, |(_, name)| name)).filter(|n| !n.is_empty())
 }
 
 pub fn move_node(root: &Path, rel: &[String], dir: MoveDirection) -> R<Mutation> {
@@ -149,6 +200,7 @@ pub fn delete_node(
     let staged = stage_in_trash(root, &mut journal, &target.abs, name)?;
     delete_key(&mut data, parent, name);
     persist(root, &data, journal, "delete")?;
+    IN_FLIGHT.lock().unwrap_or_else(|p| p.into_inner()).push(staged.clone());
     let pending = PendingRecycle { root: root.to_path_buf(), staged, name: name.clone() };
     Ok((finish(root, &data, synced, None, Vec::new()), Some(pending)))
 }
@@ -163,7 +215,8 @@ pub(crate) fn recycle_staged_with(
     recycle: impl FnOnce(&Path) -> Result<(), String>,
 ) -> Vec<String> {
     let PendingRecycle { root, staged, name } = pending;
-    let kept = |why: &str| {
+    let _in_flight = InFlight(staged.clone());
+    let kept =|why: &str| {
         vec![format!("{name} left the tree but was not sent to the Recycle Bin; it is kept in {}: {why}", staged.display())]
     };
     if let Err(why) = check_staged(&root, &staged) {
@@ -604,6 +657,33 @@ mod tests {
         delete_with(dir.path(), &p, true, false, |_| panic!("no disk delete")).unwrap();
         assert!(dir.path().join("100.WORK/02.B").is_dir());
         assert_eq!(yaml_type(dir.path(), &["100.WORK", "02.B"]), "NODE-L2");
+    }
+
+    #[test]
+    fn original_name_inverts_trash_name() {
+        for (name, n) in [("01.A", 0), ("01.A", 3), ("02.Plan-b", 0)] {
+            assert_eq!(original_name(&trash_name("lz4k9", n, name)), Some(name));
+        }
+        assert_eq!(original_name("nodash"), None);
+        assert_eq!(original_name("Bad!-01.A"), None);
+    }
+
+    #[test]
+    fn restored_folders_come_back_to_the_root_but_in_flight_ones_stay() {
+        let dir = work("recover");
+        let p = rel(&["100.WORK", "02.B"]);
+        fs::write(dir.path().join("100.WORK/02.B/n.txt"), "x").unwrap();
+        let (_, pending) = delete_node(dir.path(), &p, false, true).unwrap();
+        assert!(recover_trashed(dir.path()).unwrap().is_empty());
+        assert_eq!(names(&dir.path().join(TRASH_DIR)).len(), 1);
+        // Simulates the Recycle Bin restoring the folder under its staged name.
+        let staged = names(&dir.path().join(TRASH_DIR)).remove(0);
+        drop(recycle_staged_with(pending.unwrap(), |_| Ok(())));
+        fs::create_dir(dir.path().join("02.B")).unwrap();
+        assert_eq!(recover_trashed(dir.path()).unwrap(), ["02.B_1"]);
+        assert!(staged.ends_with("-02.B"));
+        assert_eq!(fs::read_to_string(dir.path().join("02.B_1/n.txt")).unwrap(), "x");
+        assert!(!dir.path().join(TRASH_DIR).exists());
     }
 
     #[test]

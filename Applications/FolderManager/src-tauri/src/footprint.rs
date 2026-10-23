@@ -48,8 +48,20 @@ pub fn scan(root: &Path) -> R<Scan> {
     Ok(Scan { live, known })
 }
 
-// Writes missing ids and returns true when a moved folder's yaml entry was carried to its new place.
-pub fn apply(root: &Path, data: &mut Mapping) -> R<bool> {
+// What apply decided: whether the yaml changed and the id -> path map to persist once that change is saved.
+pub struct Applied {
+    pub changed: bool,
+    remembered: HashMap<String, String>,
+}
+
+impl Applied {
+    pub fn commit(&self, root: &Path) -> R<()> {
+        Store::open_or_create(root)?.replace_footprints(&self.remembered)
+    }
+}
+
+// Writes missing ids and carries moved folders' yaml entries to their new place; persisting the map is left to commit.
+pub fn plan(root: &Path, data: &mut Mapping) -> R<Applied> {
     let Scan { live, known } = scan(root)?;
     let mut taken: HashSet<String> = known.keys().cloned().chain(live.iter().filter_map(|l| l.id.clone())).collect();
     let mut by_id: HashMap<String, Vec<Vec<String>>> = HashMap::new();
@@ -66,7 +78,7 @@ pub fn apply(root: &Path, data: &mut Mapping) -> R<bool> {
         by_id.entry(id).or_default().push(l.rel);
     }
 
-    let mut changed = false;
+    let mut moves: Vec<(Vec<String>, Vec<String>)> = Vec::new();
     let mut remembered = HashMap::new();
     for (id, paths) in by_id {
         let current = match paths.as_slice() {
@@ -75,7 +87,9 @@ pub fn apply(root: &Path, data: &mut Mapping) -> R<bool> {
                 // A folder moved outside the app is found again by its id instead of showing as a ghost plus a new folder.
                 if let Some(old) = known.get(&id).filter(|old| **old != only.join("/")) {
                     let old_rel: Vec<String> = old.split('/').map(str::to_string).collect();
-                    changed |= !folder_of(root, &old_rel).is_dir() && migrate(data, &old_rel, only);
+                    if !still_listed(root, &old_rel) {
+                        moves.push((old_rel, only.clone()));
+                    }
                 }
                 only.join("/")
             }
@@ -84,8 +98,39 @@ pub fn apply(root: &Path, data: &mut Mapping) -> R<bool> {
         };
         remembered.insert(id, current);
     }
-    Store::open_or_create(root)?.replace_footprints(&remembered)?;
-    Ok(changed)
+
+    // Shallowest first, so a renamed parent carries its subtree before the children are re-keyed inside it.
+    moves.sort_by_key(|(old, _)| old.len());
+    let mut done: Vec<(Vec<String>, Vec<String>)> = Vec::new();
+    let mut changed = false;
+    for (old, new) in moves {
+        let mut from = old;
+        for (done_old, done_new) in &done {
+            if from.starts_with(done_old) {
+                from.splice(..done_old.len(), done_new.iter().cloned());
+                break;
+            }
+        }
+        if from != new && migrate(data, &from, &new) {
+            changed = true;
+        }
+        done.push((from, new));
+    }
+    Ok(Applied { changed, remembered })
+}
+
+#[cfg(test)]
+pub fn apply(root: &Path, data: &mut Mapping) -> R<bool> {
+    let applied = plan(root, data)?;
+    applied.commit(root)?;
+    Ok(applied.changed)
+}
+
+// Compares the real directory listing, because on Windows a case-only rename still resolves under the old name.
+fn still_listed(root: &Path, rel: &[String]) -> bool {
+    let Some((name, parent)) = rel.split_last() else { return false };
+    let dir = folder_of(root, parent);
+    dir.is_dir() && list_subdirs(&dir).is_ok_and(|names| names.contains(name))
 }
 
 fn walk(rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>) -> R<()> {
@@ -238,5 +283,45 @@ mod tests {
         sync(dir.path(), &mut data).unwrap();
         assert!(!apply(dir.path(), &mut data).unwrap());
         assert!(get_node(&data, &rel(&["100.A", "PJ.001"])).is_some() && get_node(&data, &rel(&["100.A", "PJ.002"])).is_some());
+    }
+
+    #[test]
+    fn a_case_only_rename_migrates_the_entry() {
+        let (dir, mut data) = storage();
+        apply(dir.path(), &mut data).unwrap();
+        fs::rename(dir.path().join("100.A/PJ.001"), dir.path().join("100.A/pj.001")).unwrap();
+        sync(dir.path(), &mut data).unwrap();
+        assert!(apply(dir.path(), &mut data).unwrap());
+        let moved = get_node(&data, &rel(&["100.A", "pj.001"])).unwrap();
+        assert_eq!(moved.get("status").and_then(Value::as_str), Some("hold"));
+    }
+
+    #[test]
+    fn a_renamed_parent_and_child_keep_the_child_entry() {
+        let dir = TempDir::new("footprint-subtree");
+        dir.mkdir("100.A/.ant");
+        dir.mkdir("100.A/PJ.001/.ant");
+        let mut data: Mapping = serde_yaml::from_str("100.A:
+  type: NODE-L1
+  PJ.001: {type: WKB-L2, status: hold}
+").unwrap();
+        sync(dir.path(), &mut data).unwrap();
+        apply(dir.path(), &mut data).unwrap();
+        fs::rename(dir.path().join("100.A"), dir.path().join("200.B")).unwrap();
+        fs::rename(dir.path().join("200.B/PJ.001"), dir.path().join("200.B/PJ.002")).unwrap();
+        sync(dir.path(), &mut data).unwrap();
+        assert!(apply(dir.path(), &mut data).unwrap());
+        let child = get_node(&data, &rel(&["200.B", "PJ.002"])).unwrap();
+        assert_eq!(child.get("status").and_then(Value::as_str), Some("hold"));
+        assert!(get_node(&data, &rel(&["100.A"])).is_none());
+    }
+
+    #[test]
+    fn plan_does_not_touch_the_db_until_commit() {
+        let (dir, mut data) = storage();
+        let applied = plan(dir.path(), &mut data).unwrap();
+        assert!(!scan(dir.path()).unwrap().is_clean());
+        applied.commit(dir.path()).unwrap();
+        assert!(scan(dir.path()).unwrap().is_clean());
     }
 }

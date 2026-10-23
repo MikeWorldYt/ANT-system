@@ -210,13 +210,15 @@ pub fn add_child(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     if let Err(e) = mark_folder(&new_abs, workboard) {
         warnings.push(format!("Could not set up {DATA_DIR}: {}", error_text(&e)));
     }
-    match footprint::apply(root, &mut data) {
-        Ok(true) => {
-            if let Err(e) = tree_store::save(root, &data) {
-                warnings.push(format!("Could not save moved folders: {}", error_text(&e)));
+    match footprint::plan(root, &mut data) {
+        Ok(applied) => {
+            // The db keeps the old paths if this save fails, so the next run migrates again.
+            let saved = if applied.changed { tree_store::save(root, &data) } else { Ok(()) };
+            match saved.and_then(|()| applied.commit(root)) {
+                Ok(()) => {}
+                Err(e) => warnings.push(format!("Could not save moved folders: {}", error_text(&e))),
             }
         }
-        Ok(false) => {}
         Err(e) => warnings.push(format!("Could not assign folder ids: {}", error_text(&e))),
     }
     Ok(finish(root, &data, synced, Some(child_rel(parent, &new_name)), warnings))
