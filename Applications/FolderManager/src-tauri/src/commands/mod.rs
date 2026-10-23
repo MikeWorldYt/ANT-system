@@ -1,0 +1,86 @@
+// Tauri command layer: runs the pure core under the storage lock off the UI thread.
+mod edit;
+mod search;
+pub mod settings;
+#[cfg(test)]
+mod tests;
+mod tree;
+mod update;
+
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, Manager};
+
+use crate::config::MAX_DEPTH;
+use crate::error::{FmError, R};
+use crate::index::ReviewIndexEvent;
+use crate::updater;
+
+pub use edit::*;
+pub use search::*;
+pub use tree::*;
+pub use update::*;
+
+const REVIEW_EVENT: &str = "fm://review-index";
+
+pub struct Storage {
+    pub start: PathBuf,
+    pub root: Option<PathBuf>,
+    pub lock: Mutex<()>,
+}
+
+impl Storage {
+    pub fn resolve(start: PathBuf) -> Self {
+        let root = crate::ant_core::names::find_root(&start);
+        Self { start, root, lock: Mutex::new(()) }
+    }
+
+    pub fn root(&self) -> R<&Path> {
+        self.root
+            .as_deref()
+            .ok_or_else(|| FmError::StorageNotFound { start: self.start.display().to_string() })
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageInfo {
+    root: String,
+    app_version: String,
+    max_depth: usize,
+}
+
+pub fn locked<T>(storage: &Storage, f: impl FnOnce(&Path) -> R<T>) -> R<T> {
+    let root = storage.root()?;
+    let _guard = storage.lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    f(root)
+}
+
+// The closure runs with the storage lock held and receives the resolved root.
+pub async fn run_locked<T, F>(app: AppHandle, f: F) -> R<T>
+where
+    T: Send + 'static,
+    F: FnOnce(&Path) -> R<T> + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(move || locked(&app.state::<Storage>(), f))
+    .await
+    .map_err(|e| FmError::Internal { message: e.to_string() })?
+}
+
+fn review_emitter(app: &AppHandle) -> impl Fn(&ReviewIndexEvent) -> Result<(), String> + '_ {
+    move |event| app.emit(REVIEW_EVENT, event).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_storage(app: AppHandle) -> R<StorageInfo> {
+    run_locked(app, |root| {
+        Ok(StorageInfo {
+            root: root.to_string_lossy().into_owned(),
+            app_version: updater::CURRENT_VERSION.to_string(),
+            max_depth: MAX_DEPTH,
+        })
+    })
+    .await
+}
