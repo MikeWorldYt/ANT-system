@@ -13,6 +13,9 @@ use crate::fs_safe::{io_err, validate_component, StorageLock};
 use crate::move_delete::{self, DeletePreview, MoveDirection, PendingRecycle};
 use crate::review_index;
 use crate::tree_node::{build_children, build_tree, TreeNode, TreeSnapshot};
+use crate::db::Store;
+use crate::search::parse_query;
+use crate::search_index;
 use crate::yaml_store::{self, yaml_path};
 
 const SKIP_FILE: &str = ".skip_version";
@@ -85,6 +88,7 @@ pub fn snapshot(root: &Path) -> R<TreeSnapshot> {
     }
     let mut tree = build_tree(root, &data, changed)?;
     fill_children(root, &data, &mut tree.nodes)?;
+    search_index::rebuild(root, &data)?;
     Ok(tree)
 }
 
@@ -130,6 +134,10 @@ fn with_index(
 ) -> R<Mutation> {
     let mut m = result?;
     m.warnings.extend(reindex(root, emit, rebuild).into_iter().map(|f| format!("Review index: {f}")));
+    let indexed = yaml_store::load(root).and_then(|data| search_index::rebuild(root, &data));
+    if let Err(e) = indexed {
+        m.warnings.push(format!("Search index: {e}"));
+    }
     Ok(m)
 }
 
@@ -194,6 +202,15 @@ pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<Tree
         let mut kids = build_children(root, &data, &rel_parts)?;
         fill_children(root, &data, &mut kids)?;
         Ok(kids)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn search_nodes(app: AppHandle, query: String) -> R<Vec<Vec<String>>> {
+    run_locked(app, move |root| {
+        let store = Store::open_or_create(root)?;
+        store.search(&parse_query(&query))
     })
     .await
 }

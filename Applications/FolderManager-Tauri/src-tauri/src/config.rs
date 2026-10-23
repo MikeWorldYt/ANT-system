@@ -12,6 +12,9 @@ pub const CORE_FOLDER: &str = "00.Core";
 pub const YAML_FILENAME: &str = "Tree.yaml";
 pub const REVIEW_FOLDER: &str = "998.Review";
 pub const TRASH_DIR: &str = ".ant-trash";
+pub const DATA_DIR: &str = ".ant";
+pub const DB_FILENAME: &str = "ant.db";
+pub const INFO_FILENAME: &str = "info.json";
 pub const MAX_DEPTH: usize = 3;
 
 pub const LOCKED_TYPES: &[&str] = &["REV", "RES", "TPL", "CFG"];
@@ -47,4 +50,9 @@ pub enum WkbStatus {
     ForReview,
     Hold,
     Done,
+}
+
+// Storage-root folders the app owns; they are never nodes, whatever their case.
+pub fn is_hidden_dir(name: &str) -> bool {
+    [TRASH_DIR, DATA_DIR].iter().any(|d| name.eq_ignore_ascii_case(d))
 }

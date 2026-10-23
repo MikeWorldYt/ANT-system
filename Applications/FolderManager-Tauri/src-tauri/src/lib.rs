@@ -2,12 +2,16 @@
 mod ant_core;
 mod commands;
 mod config;
+mod db;
 mod edit_actions;
 mod error;
 mod fs_safe;
+mod info;
 mod move_delete;
 mod names;
 mod review_index;
+mod search;
+mod search_index;
 mod tree_node;
 mod yaml_store;
 
@@ -42,6 +46,7 @@ pub fn run() {
             commands::delete_node,
             commands::get_skipped_version,
             commands::skip_version,
+            commands::search_nodes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Folder Manager");

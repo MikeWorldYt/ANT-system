@@ -6,13 +6,13 @@ use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, type_base, type_level, META_KEYS};
-use crate::config::{EditableType, WkbStatus, LINKED_PREFIXES, MAX_DEPTH, TRASH_DIR};
+use crate::config::{EditableType, WkbStatus, is_hidden_dir, LINKED_PREFIXES, MAX_DEPTH};
 use crate::error::{FmError, R};
 use crate::fs_safe::{
     error_text, io_err, join_rel, resolve, same_name, validate_component, Journal, StorageLock,
 };
 use crate::names::{
-    build_new_name, editable_part, list_subdirs, next_available_id, sanitize_train_case,
+    compose_name, editable_part, name_parts, list_subdirs, next_available_id, sanitize_train_case,
     sanitize_upper,
 };
 use crate::tree_node::{build_tree, is_reserved, TreeSnapshot};
@@ -41,15 +41,17 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
         return Err(FmError::GhostNotAllowed { op: "rename".to_string() });
     }
     let (old_name, parent) = split(rel)?;
+    let workboard = type_base(&target.node_type) == "WKB";
     let editable =
         if parent.is_empty() { sanitize_upper(new_editable) } else { sanitize_train_case(new_editable) };
-    if editable.is_empty() {
+    if editable.is_empty() && !workboard {
         return Err(FmError::InvalidName {
             name: new_editable.to_string(),
             reason: "name cannot be empty".to_string(),
         });
     }
-    let new_name = build_new_name(old_name, &editable);
+    let (fixed, _) = name_parts(old_name, workboard);
+    let new_name = compose_name(&fixed, &editable, workboard);
     validate_component(&new_name)?;
     let new_rel = child_rel(parent, &new_name);
     if new_name == *old_name {
@@ -280,7 +282,7 @@ pub(crate) fn ensure_free(
     ignore: &[&str],
 ) -> R<()> {
     // A folder named like a meta key would overwrite its parent's type or status in the yaml.
-    if META_KEYS.iter().chain([&TRASH_DIR]).any(|k| same_name(k, name)) {
+    if META_KEYS.iter().any(|k| same_name(k, name)) || is_hidden_dir(name) {
         return Err(FmError::InvalidName { name: name.to_string(), reason: "reserved name".to_string() });
     }
     let clashes = |other: &str| same_name(other, name) && !ignore.contains(&other);
@@ -625,5 +627,21 @@ mod tests {
         assert_eq!(m.select, Some(rel(&["x"])));
         assert_eq!(m.warnings.len(), 2);
         assert!(m.warnings[1].contains("refresh") && m.warnings[1].contains("boom"), "{:?}", m.warnings);
+    }
+
+    #[test]
+    fn workboard_rename_edits_only_the_name_after_the_tracker() {
+        let dir = storage("wkb-rename", &["100.A/PJ.001"], "100.A:
+  type: NODE-L1
+  PJ.001:
+    type: WKB-L2
+");
+        let rel_wkb = rel(&["100.A", "PJ.001"]);
+        let renamed = rename_node(dir.path(), &rel_wkb, "Fabi-web").unwrap();
+        assert_eq!(renamed.select, Some(rel(&["100.A", "PJ.001_Fabi-web"])));
+        assert_eq!(names(&dir.path().join("100.A")), ["PJ.001_Fabi-web"]);
+        let cleared = rename_node(dir.path(), &rel(&["100.A", "PJ.001_Fabi-web"]), "").unwrap();
+        assert_eq!(cleared.select, Some(rel_wkb));
+        assert_eq!(names(&dir.path().join("100.A")), ["PJ.001"]);
     }
 }

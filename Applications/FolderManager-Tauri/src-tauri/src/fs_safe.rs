@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
-use crate::config::{CORE_FOLDER, SETTINGS_FOLDER, TRASH_DIR};
+use crate::config::{is_hidden_dir, CORE_FOLDER, SETTINGS_FOLDER};
 use crate::error::{FmError, R};
 
 const FORBIDDEN: &[char] = &['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
@@ -86,7 +86,7 @@ pub fn resolve(root: &Path, rel: &[String]) -> R<PathBuf> {
             other => other,
         })?;
         // The staging folder holds deleted folders and is never a node, whatever its case.
-        if part.eq_ignore_ascii_case(TRASH_DIR) {
+        if is_hidden_dir(part) {
             return Err(invalid(format!("{part}: reserved folder")));
         }
     }

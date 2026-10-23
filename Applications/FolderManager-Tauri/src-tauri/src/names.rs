@@ -2,7 +2,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::ant_core::tree_types::type_base;
-use crate::config::{SETTINGS_FOLDER, TRASH_DIR};
+use crate::config::{is_hidden_dir, SETTINGS_FOLDER};
 use crate::error::R;
 use crate::fs_safe::io_err;
 
@@ -54,11 +54,22 @@ pub fn editable_part(name: &str) -> &str {
     }
 }
 
-pub fn build_new_name(original: &str, new_editable: &str) -> String {
-    match original.split_once('.') {
-        Some((prefix, _)) => format!("{prefix}.{new_editable}"),
-        None => new_editable.to_string(),
+// Splits a name into the part the user cannot edit and the rest: "03." + "Toki", "PJ.001_" + "Name".
+pub fn name_parts(name: &str, workboard: bool) -> (String, String) {
+    let (sep, whole_is_fixed) = if workboard { ('_', true) } else { ('.', false) };
+    match name.split_once(sep) {
+        Some((fixed, rest)) => (format!("{fixed}{sep}"), rest.to_string()),
+        None if whole_is_fixed => (format!("{name}{sep}"), String::new()),
+        None => (String::new(), name.to_string()),
     }
+}
+
+// A workboard without a name goes back to its bare tracker, "PJ.001".
+pub fn compose_name(fixed: &str, editable: &str, workboard: bool) -> String {
+    if workboard && editable.is_empty() {
+        return fixed.trim_end_matches('_').to_string();
+    }
+    format!("{fixed}{editable}")
 }
 
 pub fn find_root(start: &Path) -> Option<PathBuf> {
@@ -84,7 +95,7 @@ pub fn list_subdirs(dir: &Path) -> R<Vec<String>> {
     for entry in entries {
         let entry = entry.map_err(|e| io_err("list folder", dir, &e))?;
         let name = entry.file_name().to_string_lossy().into_owned();
-        if !name.eq_ignore_ascii_case(TRASH_DIR) && entry.path().is_dir() {
+        if !is_hidden_dir(&name) && entry.path().is_dir() {
             names.push(name);
         }
     }
@@ -170,11 +181,21 @@ mod tests {
     }
 
     #[test]
+    fn workboard_names_keep_the_tracker_and_edit_only_the_name() {
+        assert_eq!(name_parts("PJ.001_Fabi-web", true), ("PJ.001_".to_string(), "Fabi-web".to_string()));
+        assert_eq!(name_parts("PJ.001", true), ("PJ.001_".to_string(), String::new()));
+        assert_eq!(name_parts("PJ.145_(25-11-14) Plans_DOC", true).1, "(25-11-14) Plans_DOC");
+        assert_eq!(compose_name("PJ.001_", "Name", true), "PJ.001_Name");
+        assert_eq!(compose_name("PJ.001_", "", true), "PJ.001");
+    }
+
+    #[test]
     fn editable_part_and_build_new_name_keep_prefix() {
         assert_eq!(editable_part("01.Math"), "Math");
         assert_eq!(editable_part("Math"), "Math");
         assert_eq!(editable_part("01."), "");
-        assert_eq!(build_new_name("01.Math", "Physics"), "01.Physics");
-        assert_eq!(build_new_name("Math", "Physics"), "Physics");
+        assert_eq!(name_parts("01.Math", false), ("01.".to_string(), "Math".to_string()));
+        assert_eq!(name_parts("Math", false), (String::new(), "Math".to_string()));
+        assert_eq!(compose_name("01.", "Physics", false), "01.Physics");
     }
 }

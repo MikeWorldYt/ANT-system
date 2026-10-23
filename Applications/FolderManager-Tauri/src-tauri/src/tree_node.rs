@@ -7,10 +7,11 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, type_base, type_level, META_KEYS};
 use crate::config::{
-    LINKED_PREFIXES, MAX_DEPTH, REVIEW_FOLDER, SETTINGS_FOLDER, TRASH_DIR, TypeBase, WkbStatus,
+    LINKED_PREFIXES, MAX_DEPTH, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::error::R;
-use crate::names::{is_movable_node, list_subdirs, numeric_id};
+use crate::info::{read_info, NodeInfo};
+use crate::names::{name_parts, is_movable_node, list_subdirs, numeric_id};
 use crate::yaml_store::{get_node, is_locked_type};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -48,6 +49,9 @@ pub struct TreeNode {
     pub reserved: bool,
     pub has_children: bool,
     pub is_git: bool,
+    pub fixed_prefix: String,
+    pub editable_name: String,
+    pub info: Option<NodeInfo>,
     pub children: Option<Vec<TreeNode>>,
     pub abs_path: String,
     pub actions: NodeActions,
@@ -95,7 +99,7 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
         .iter()
         .map(String::as_str)
         .filter(|d| !META_KEYS.contains(d))
-        .chain(yaml.iter().copied().filter(|k| !k.eq_ignore_ascii_case(TRASH_DIR)))
+        .chain(yaml.iter().copied().filter(|k| !is_hidden_dir(k)))
         .collect();
 
     Ok(names
@@ -138,6 +142,8 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
     let abs_path = rel_parts.iter().fold(root.to_path_buf(), |p, part| p.join(part));
     let is_git = !ghost && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
+    let (fixed_prefix, editable_name) = name_parts(&entry.name, is_wkb);
+    let info = if ghost { None } else { read_info(&abs_path) };
     Ok(TreeNode {
         actions: compute_actions(depth, ghost, raw_type, reserved),
         name: entry.name,
@@ -152,6 +158,9 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
         reserved,
         has_children,
         is_git,
+        fixed_prefix,
+        editable_name,
+        info,
         children: None,
         abs_path: abs_path.to_string_lossy().into_owned(),
     })

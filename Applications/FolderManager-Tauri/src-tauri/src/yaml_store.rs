@@ -6,9 +6,10 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{type_base, META_KEYS};
 use crate::config::{
-    CORE_FOLDER, LOCKED_TYPES, MAX_DEPTH, SETTINGS_FOLDER, SPECIAL_TYPES, WKB_IDENTIFIERS,
+    is_hidden_dir, CORE_FOLDER, LOCKED_TYPES, MAX_DEPTH, SETTINGS_FOLDER, SPECIAL_TYPES, WKB_IDENTIFIERS,
     YAML_FILENAME,
 };
+use crate::db::{self, Store};
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, write_atomic};
 use crate::names::list_subdirs;
@@ -17,20 +18,22 @@ pub fn yaml_path(root: &Path) -> PathBuf {
     root.join(SETTINGS_FOLDER).join(CORE_FOLDER).join(YAML_FILENAME)
 }
 
+// The db is the primary copy; Tree.yaml is re-imported only when something else changed it since our last write.
 pub fn load(root: &Path) -> R<Mapping> {
-    let path = yaml_path(root);
-    let text = match fs::read_to_string(&path) {
-        Ok(text) => text,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Mapping::new()),
-        Err(e) => return Err(io_err("read Tree.yaml", &path, &e)),
+    let yaml = read_yaml(root)?;
+    let Some(mut store) = Store::open_existing(root)? else {
+        let Some(text) = yaml else { return Ok(Mapping::new()) };
+        let data = parse(&text)?;
+        Store::open_or_create(root)?.replace(&data, &db::hash(&text), || Ok(()), || Ok(()))?;
+        return Ok(data);
     };
-    let value: Value = serde_yaml::from_str(text.trim_start_matches('\u{feff}')).map_err(|e| {
-        FmError::YamlParse { message: e.to_string(), line: e.location().map(|l| l.line()) }
-    })?;
-    match value {
-        Value::Null => Ok(Mapping::new()),
-        Value::Mapping(m) => normalize_mapping(m),
-        _ => Err(parse_error("top level must be a mapping")),
+    match yaml {
+        Some(text) if store.yaml_hash()?.as_deref() != Some(db::hash(&text).as_str()) => {
+            let data = parse(&text)?;
+            store.replace(&data, &db::hash(&text), || Ok(()), || Ok(()))?;
+            Ok(data)
+        }
+        _ => store.read(),
     }
 }
 
@@ -46,7 +49,39 @@ pub fn save(root: &Path, data: &Mapping) -> R<()> {
     } else {
         emit_mapping(&mut text, &sorted, 0)?;
     }
-    write_atomic(&path, text.as_bytes())
+    let previous = match fs::read(&path) {
+        Ok(bytes) => Some(bytes),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(e) => return Err(io_err("read Tree.yaml", &path, &e)),
+    };
+    let restore = || match &previous {
+        Some(bytes) => write_atomic(&path, bytes),
+        None => fs::remove_file(&path).map_err(|e| io_err("remove Tree.yaml", &path, &e)),
+    };
+    Store::open_or_create(root)?.replace(&sorted, &db::hash(&text), || write_atomic(&path, text.as_bytes()), restore)
+}
+
+fn read_yaml(root: &Path) -> R<Option<String>> {
+    let path = yaml_path(root);
+    match fs::read_to_string(&path) {
+        Ok(text) => Ok(Some(text)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(io_err("read Tree.yaml", &path, &e)),
+    }
+}
+
+fn parse(text: &str) -> R<Mapping> {
+    let value: Value = serde_yaml::from_str(text.trim_start_matches('\u{feff}')).map_err(|e| {
+        FmError::YamlParse { message: e.to_string(), line: e.location().map(|l| l.line()) }
+    })?;
+    let mut data = match value {
+        Value::Null => Mapping::new(),
+        Value::Mapping(m) => normalize_mapping(m)?,
+        _ => return Err(parse_error("top level must be a mapping")),
+    };
+    // Older tools list every folder, including the ones the app owns.
+    data.retain(|k, _| !k.as_str().is_some_and(is_hidden_dir));
+    Ok(data)
 }
 
 pub fn infer_type(name: &str, depth: usize) -> String {
@@ -428,5 +463,67 @@ mod tests {
         assert_eq!(get_type(&data, &rel(&["p"])), "NODE-L1");
         assert_eq!(get_type(&data, &rel(&["p", "a"])), "X");
         assert!(get_node(&data, &rel(&["p"])).unwrap().get("status").is_some());
+    }
+
+    const RICH: &str = "version: 3\nzeta:\n  type: NODE-L1\n  status: done\n  note: hello\n  a: {type: Y}\n  b: {}\nalpha:\n  type: REV\n";
+
+    #[test]
+    fn save_creates_a_hidden_db_and_the_yaml_mirror() {
+        use std::os::windows::fs::MetadataExt;
+        let dir = TempDir::new("db-created");
+        save(dir.path(), &parse(RICH)).unwrap();
+        let data_dir = dir.path().join(".ant");
+        assert!(data_dir.join("ant.db").is_file() && yaml_path(dir.path()).is_file());
+        assert_ne!(fs::metadata(&data_dir).unwrap().file_attributes() & 0x2, 0, ".ant is not hidden");
+    }
+
+    #[test]
+    fn db_round_trips_extra_keys_and_root_entries() {
+        let dir = TempDir::new("db-roundtrip");
+        let data = parse(RICH);
+        save(dir.path(), &data).unwrap();
+        assert_eq!(load(dir.path()).unwrap(), data);
+    }
+
+    #[test]
+    fn an_external_yaml_edit_replaces_the_db_copy() {
+        let dir = TempDir::new("db-external");
+        save(dir.path(), &parse("one: {type: NODE-L1}\n")).unwrap();
+        fs::write(yaml_path(dir.path()), "two: {type: NODE-L1}\n").unwrap();
+        let loaded = load(dir.path()).unwrap();
+        assert!(loaded.contains_key("two") && !loaded.contains_key("one"));
+        assert_eq!(load(dir.path()).unwrap(), loaded);
+    }
+
+    #[test]
+    fn a_missing_yaml_is_served_from_the_db_and_rewritten_on_save() {
+        let dir = TempDir::new("db-yaml-gone");
+        let data = parse(RICH);
+        save(dir.path(), &data).unwrap();
+        fs::remove_file(yaml_path(dir.path())).unwrap();
+        assert_eq!(load(dir.path()).unwrap(), data);
+        save(dir.path(), &data).unwrap();
+        assert!(yaml_path(dir.path()).is_file());
+    }
+
+    #[test]
+    fn first_load_imports_the_yaml_and_drops_app_folders() {
+        let dir = TempDir::new("db-import");
+        dir.mkdir("999.Settings/00.Core");
+        fs::write(yaml_path(dir.path()), "01.A: {type: NODE-L1}\n.ant: {type: NODE-L1}\n.ANT-TRASH: {type: NODE-L1}\n").unwrap();
+        let loaded = load(dir.path()).unwrap();
+        assert_eq!(loaded.len(), 1);
+        assert!(dir.path().join(".ant/ant.db").is_file());
+    }
+
+    #[test]
+    fn a_failed_yaml_write_leaves_the_db_unchanged() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let dir = TempDir::new("db-failed-write");
+        let before = parse("one: {type: NODE-L1}\n");
+        save(dir.path(), &before).unwrap();
+        let _held = fs::OpenOptions::new().read(true).share_mode(0x1 | 0x2).open(yaml_path(dir.path())).unwrap();
+        assert!(save(dir.path(), &parse("two: {type: NODE-L1}\n")).is_err());
+        assert_eq!(load(dir.path()).unwrap(), before);
     }
 }
