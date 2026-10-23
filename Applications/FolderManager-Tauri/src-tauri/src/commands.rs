@@ -13,9 +13,9 @@ use crate::fs_safe::{io_err, validate_component, StorageLock};
 use crate::move_delete::{self, DeletePreview, MoveDirection, PendingRecycle};
 use crate::review_index;
 use crate::tree_node::{build_children, build_tree, TreeNode, TreeSnapshot};
-use crate::db::Store;
+use crate::db::{Store, Suggestion};
 use crate::footprint;
-use crate::search::parse_query;
+use crate::search::{canonical_key, parse_query};
 use crate::search_index;
 use crate::yaml_store::{self, yaml_path};
 
@@ -216,6 +216,16 @@ pub async fn search_nodes(app: AppHandle, query: String) -> R<Vec<Vec<String>>> 
     run_locked(app, move |root| {
         let store = Store::open_or_create(root)?;
         store.search(&parse_query(&query))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn suggest_search(app: AppHandle, key: String, prefix: String) -> R<Vec<Suggestion>> {
+    run_locked(app, move |root| {
+        let store = Store::open_or_create(root)?;
+        let key = if key.eq_ignore_ascii_case("in") { "in".to_string() } else { canonical_key(&key) };
+        store.suggest(&key, &prefix)
     })
     .await
 }

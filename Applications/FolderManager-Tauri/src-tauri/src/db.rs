@@ -55,6 +55,13 @@ pub struct Store {
     path: PathBuf,
 }
 
+#[derive(Debug, serde::Serialize)]
+pub struct Suggestion {
+    pub value: String,
+    pub label: String,
+    pub hint: String,
+}
+
 // One node as the search sees it: its path and every field a query can filter on.
 pub struct Doc {
     pub path: String,
@@ -181,8 +188,10 @@ impl Store {
         let mut sql = String::from("SELECT path FROM node_fields WHERE key = 'name'");
         let mut args: Vec<String> = Vec::new();
         if let Some(scope) = &query.scope {
+            // A leading slash marks a scope picked from the suggestions: that exact path and what is under it.
+            let exact = scope.starts_with('/');
             let scope = like_escape(scope.trim_matches('/'));
-            if scope.contains('/') {
+            if exact || scope.contains('/') {
                 sql.push_str(" AND (path LIKE ? ESCAPE '\\' OR path LIKE ? ESCAPE '\\')");
                 args.push(scope.clone());
                 args.push(format!("{scope}/%"));
@@ -199,7 +208,11 @@ impl Store {
         for (key, value) in &query.filters {
             sql.push_str(" AND EXISTS (SELECT 1 FROM node_fields f WHERE f.path = node_fields.path AND f.key = ? AND f.value LIKE ? ESCAPE '\\')");
             args.push(key.clone());
-            args.push(format!("%{}%", like_escape(value)));
+            // "=value" is a picked value and must match whole; plain text matches anywhere inside.
+            args.push(match value.strip_prefix('=') {
+                Some(whole) => like_escape(whole),
+                None => format!("%{}%", like_escape(value)),
+            });
         }
         for word in &query.text {
             sql.push_str(" AND value LIKE ? ESCAPE '\\'");
@@ -210,6 +223,35 @@ impl Store {
         let mut stmt = self.conn.prepare(&sql).map_err(fail)?;
         let rows = stmt.query_map(rusqlite::params_from_iter(args.iter()), |r| r.get::<_, String>(0)).map_err(fail)?;
         rows.map(|r| r.map(|p| p.split('/').map(str::to_string).collect()).map_err(fail)).collect()
+    }
+
+    // Completions for `key:` while typing; `in` completes folders, any other key completes its known values.
+    pub fn suggest(&self, key: &str, prefix: &str) -> R<Vec<Suggestion>> {
+        let fail = |e: rusqlite::Error| db_err("search ant.db", &self.path, &e);
+        let like = like_escape(prefix);
+        if key == "in" {
+            let mut stmt = self
+                .conn
+                .prepare(
+                    "SELECT path, value FROM node_fields WHERE key = 'name' \
+                     AND (value LIKE ?1 || '%' ESCAPE '\\' OR value LIKE '%.' || ?1 || '%' ESCAPE '\\') ORDER BY path LIMIT 8",
+                )
+                .map_err(fail)?;
+            let rows = stmt.query_map([&like], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))).map_err(fail)?;
+            return rows
+                .map(|r| {
+                    let (path, name) = r.map_err(fail)?;
+                    let hint = path.rsplit_once('/').map(|(parent, _)| parent.replace('/', " › ")).unwrap_or_default();
+                    Ok(Suggestion { value: path, label: name, hint })
+                })
+                .collect();
+        }
+        let mut stmt = self
+            .conn
+            .prepare("SELECT DISTINCT value FROM node_fields WHERE key = ?1 AND value LIKE ?2 || '%' ESCAPE '\\' ORDER BY value LIMIT 8")
+            .map_err(fail)?;
+        let rows = stmt.query_map([key, like.as_str()], |r| r.get::<_, String>(0)).map_err(fail)?;
+        rows.map(|r| r.map(|v| Suggestion { value: v.clone(), label: v, hint: String::new() }).map_err(fail)).collect()
     }
 
     fn read_tree(&self) -> rusqlite::Result<Mapping> {

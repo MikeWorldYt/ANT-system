@@ -81,6 +81,24 @@ mod tests {
         assert!(run(&dir, "in:HOME client:mike").is_empty());
         assert_eq!(run(&dir, "in:ho client:ana"), ["300.HOME/PJ.003_Mine"]);
         assert_eq!(run(&dir, "in:20 client:mike"), ["200.WORK/PJ.001_Fabi-web"]);
+        assert_eq!(run(&dir, "in:/200.WORK status:=hold"), ["200.WORK/PJ.001_Fabi-web"]);
+        assert!(run(&dir, "status:=hol").is_empty());
+        assert_eq!(run(&dir, "in:/200.WORK/PJ.002_Other"), ["200.WORK/PJ.002_Other"]);
+        assert!(run(&dir, "in:/300 client:mike").is_empty());
+    }
+
+    #[test]
+    fn suggestions_complete_folders_and_values() {
+        let dir = storage();
+        let data: Mapping = serde_yaml::from_str(YAML).unwrap();
+        rebuild(dir.path(), &data).unwrap();
+        let store = Store::open_or_create(dir.path()).unwrap();
+        let folders = store.suggest("in", "wo").unwrap();
+        assert_eq!(folders.first().map(|s| (s.value.as_str(), s.label.as_str())), Some(("200.WORK", "200.WORK")));
+        let nested = store.suggest("in", "PJ.002").unwrap();
+        assert_eq!(nested.first().map(|s| (s.value.as_str(), s.hint.as_str())), Some(("200.WORK/PJ.002_Other", "200.WORK")));
+        let owners: Vec<String> = store.suggest("owner", "").unwrap().into_iter().map(|s| s.value).collect();
+        assert_eq!(owners, ["Ana", "Mike"]);
     }
 
     #[test]

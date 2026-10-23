@@ -48,6 +48,7 @@ pub fn run() {
             commands::get_skipped_version,
             commands::skip_version,
             commands::search_nodes,
+            commands::suggest_search,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Folder Manager");

@@ -37,6 +37,12 @@ export const inspectDelete = (relParts: string[]) => call<DeletePreview>("inspec
 export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonEmpty: boolean) =>
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
+export interface Suggestion {
+  value: string;
+  label: string;
+  hint: string;
+}
+export const suggestSearch = (key: string, prefix: string) => call<Suggestion[]>("suggest_search", { key, prefix });
 export const getSkippedVersion = () => call<string>("get_skipped_version");
 export const skipVersion = (version: string) => call<void>("skip_version", { version });
 
