@@ -7,7 +7,7 @@ import { createPathInput, rootName } from "./path-input";
 import { findNode, reveal, select, selectedNode, state } from "../store/state";
 import { setStatus } from "../ui/status";
 
-export function createNavigator(): { element: HTMLElement; render(): void } {
+export function createNavigator(): { element: HTMLElement; render(): void; editPath(): void } {
   const history: string[] = [];
   let at = -1;
 
@@ -54,11 +54,6 @@ export function createNavigator(): { element: HTMLElement; render(): void } {
 
   path.addEventListener("dblclick", pathInput.start);
   document.addEventListener("keydown", (ev) => {
-    if (ev.ctrlKey && !ev.altKey && !ev.shiftKey && !ev.metaKey && ev.key.toLowerCase() === "l") {
-      ev.preventDefault();
-      pathInput.start();
-      return;
-    }
     if (pathInput.editing() || !ev.altKey || ev.ctrlKey || ev.shiftKey || ev.metaKey) return;
     if (ev.key === "ArrowLeft") void go(at - 1);
     else if (ev.key === "ArrowRight") void go(at + 1);
@@ -96,5 +91,5 @@ export function createNavigator(): { element: HTMLElement; render(): void } {
     path.scrollLeft = path.scrollWidth;
   }
 
-  return { element, render };
+  return { element, render, editPath: pathInput.start };
 }

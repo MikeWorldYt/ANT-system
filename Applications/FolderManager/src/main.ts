@@ -9,6 +9,7 @@ import { createNavigator } from "./shell/navigator";
 import { createSearchBar } from "./shell/search-bar";
 import { onReviewIndex, onWindowFocus } from "./ipc/events";
 import { init, refresh } from "./actions/ops";
+import { installShortcuts } from "./actions/shortcuts";
 import { readPref, savePref } from "./store/prefs";
 import { createStatusLine, clearStatus, setStatus } from "./ui/status";
 import { subscribe } from "./store/state";
@@ -44,12 +45,22 @@ const toolbar = createToolbar(
   },
 );
 const navigator = createNavigator();
-navigator.element.append(createSearchBar());
+const search = createSearchBar();
+navigator.element.append(search.element);
 const panel = createDetailsPanel();
 panel.element.hidden = !detailsVisible;
 const main = el("main", { class: "app-main" }, host, panel.element);
 app.append(toolbar.element, navigator.element, main, createStatusLine());
 installContextMenu(host, () => views.current().focus());
+installShortcuts({
+  focusSearch: search.focus,
+  editPath: navigator.editPath,
+  // The views already open on Enter, so the shortcut hands the key to whichever one is showing.
+  openSelected: () => {
+    views.current().focus();
+    document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+  },
+});
 
 subscribe(() => {
   toolbar.render();

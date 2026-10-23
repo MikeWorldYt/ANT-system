@@ -16,7 +16,7 @@ const LIMIT = 50;
 const DELAY_MS = 200;
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-export function createSearchBar(): HTMLElement {
+export function createSearchBar(): { element: HTMLElement; focus(): void } {
   const input = el("input", {
     class: "search-input",
     type: "text",
@@ -181,13 +181,12 @@ export function createSearchBar(): HTMLElement {
   // Mousedown on a hit would blur the input first and close the list before the click lands.
   list.addEventListener("mousedown", (ev) => ev.preventDefault());
   input.addEventListener("blur", close);
-  document.addEventListener("keydown", (ev) => {
-    if (ev.ctrlKey && !ev.altKey && !ev.shiftKey && !ev.metaKey && ev.key.toLowerCase() === "f") {
-      ev.preventDefault();
+
+  return {
+    element,
+    focus() {
       input.focus();
       input.select();
-    }
-  });
-
-  return element;
+    },
+  };
 }
