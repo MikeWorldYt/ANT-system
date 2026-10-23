@@ -5,9 +5,9 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{type_base, META_KEYS};
 use crate::config::{LOCKED_TYPES, MAX_DEPTH, SPECIAL_TYPES, WKB_IDENTIFIERS};
-use crate::db::Store;
+use crate::storage::db::Store;
 use crate::error::R;
-use crate::names::list_subdirs;
+use crate::ant_core::names::list_subdirs;
 
 pub fn load(root: &Path) -> R<Mapping> {
     match Store::open_existing(root)? {
@@ -123,42 +123,8 @@ fn sort_value(v: &Value) -> Value {
 }
 
 #[cfg(test)]
-pub(crate) mod test_support {
-    use std::path::{Path, PathBuf};
-    use std::sync::atomic::{AtomicUsize, Ordering};
-
-    static COUNTER: AtomicUsize = AtomicUsize::new(0);
-
-    pub struct TempDir(PathBuf);
-
-    impl TempDir {
-        pub fn new(tag: &str) -> Self {
-            let n = COUNTER.fetch_add(1, Ordering::SeqCst);
-            let path = std::env::temp_dir().join(format!("fm-{tag}-{}-{n}", std::process::id()));
-            let _ = std::fs::remove_dir_all(&path);
-            std::fs::create_dir_all(&path).unwrap();
-            TempDir(path)
-        }
-
-        pub fn path(&self) -> &Path {
-            &self.0
-        }
-
-        pub fn mkdir(&self, rel: &str) {
-            std::fs::create_dir_all(self.0.join(rel)).unwrap();
-        }
-    }
-
-    impl Drop for TempDir {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.0);
-        }
-    }
-}
-
-#[cfg(test)]
 mod tests {
-    use super::test_support::TempDir;
+    use crate::test_support::TempDir;
     use super::*;
 
     fn parse(s: &str) -> Mapping {
@@ -281,7 +247,7 @@ mod tests {
         let dir = TempDir::new("db-failed-write");
         let before = parse("one: {type: NODE-L1}\n");
         save(dir.path(), &before).unwrap();
-        let _held = std::fs::OpenOptions::new().read(true).share_mode(0x1).open(crate::db::db_path(dir.path())).unwrap();
+        let _held = std::fs::OpenOptions::new().read(true).share_mode(0x1).open(crate::storage::db::db_path(dir.path())).unwrap();
         assert!(save(dir.path(), &parse("two: {type: NODE-L1}\n")).is_err());
         assert_eq!(load(dir.path()).unwrap(), before);
     }

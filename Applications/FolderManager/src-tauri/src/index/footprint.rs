@@ -10,12 +10,12 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::META_KEYS;
 use crate::config::{DATA_DIR, FOOTPRINT_FILENAME, MAX_DEPTH};
-use crate::db::Store;
+use crate::storage::db::Store;
 use crate::error::R;
 use crate::fs_safe::{join_rel, write_atomic};
-use crate::names::list_subdirs;
-use crate::tree_node::is_reserved;
-use crate::tree_store::{delete_key, get_node, get_node_mut};
+use crate::ant_core::names::list_subdirs;
+use crate::tree::tree_node::is_reserved;
+use crate::tree::tree_store::{delete_key, get_node, get_node_mut};
 
 const ALPHABET: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const ID_LEN: usize = 15;
@@ -210,8 +210,8 @@ fn random_word(salt: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tree_store::test_support::TempDir;
-    use crate::tree_store::sync;
+    use crate::test_support::TempDir;
+    use crate::tree::tree_store::sync;
 
     fn rel(parts: &[&str]) -> Vec<String> {
         parts.iter().map(|s| s.to_string()).collect()

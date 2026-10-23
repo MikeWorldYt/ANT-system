@@ -8,8 +8,8 @@ use crate::ant_core::shortcuts::{create_shortcuts, review_shortcut_name};
 use crate::ant_core::tree_types::child_entries;
 use crate::config::{MAX_DEPTH, REVIEW_FOLDER};
 use crate::fs_safe::is_link;
-use crate::names::editable_part;
-use crate::tree_store::is_locked_type;
+use crate::ant_core::names::editable_part;
+use crate::tree::tree_store::is_locked_type;
 
 pub fn rebuild(root: &Path, data: &Mapping) -> Vec<String> {
     rebuild_with(root, data, create_shortcuts)
@@ -92,7 +92,7 @@ fn walk(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::edit_actions::test_support::{storage, yaml};
+    use crate::test_support::{storage, yaml};
 
     #[test]
     fn rebuild_clears_only_top_level_lnk_files_and_lists_review_folders() {

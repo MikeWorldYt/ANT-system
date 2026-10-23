@@ -6,7 +6,7 @@ use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
 use crate::config::{DATA_DIR, INFO_FILENAME};
-use crate::db::hide;
+use crate::storage::db::hide;
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, write_atomic};
 
@@ -146,7 +146,7 @@ fn json_string(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tree_store::test_support::TempDir;
+    use crate::test_support::TempDir;
 
     fn text(s: &str) -> Option<Value> {
         Some(Value::String(s.to_string()))

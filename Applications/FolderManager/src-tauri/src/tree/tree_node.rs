@@ -11,9 +11,9 @@ use crate::config::{
 };
 use crate::error::R;
 use crate::fs_safe::join_rel;
-use crate::info::{field_of, read_info, NodeInfo};
-use crate::names::{name_parts, is_movable_node, list_subdirs, numeric_id};
-use crate::tree_store::{get_node, is_locked_type};
+use crate::storage::info::{field_of, read_info, NodeInfo};
+use crate::ant_core::names::{name_parts, is_movable_node, list_subdirs, numeric_id};
+use crate::tree::tree_store::{get_node, is_locked_type};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -246,34 +246,19 @@ pub(crate) fn is_reserved(rel_parts: &[String]) -> bool {
 }
 
 fn parse_type(raw: &str) -> NodeType {
-    let base = match type_base(raw) {
-        "NODE" => TypeBase::Node,
-        "WKB" => TypeBase::Wkb,
-        "PORTF" => TypeBase::Portf,
-        "REV" => TypeBase::Rev,
-        "RES" => TypeBase::Res,
-        "TPL" => TypeBase::Tpl,
-        "CFG" => TypeBase::Cfg,
-        _ => TypeBase::Unknown,
-    };
+    let base = TypeBase::from_str(type_base(raw)).unwrap_or(TypeBase::Unknown);
     let level = type_level(raw).and_then(|l| l.strip_prefix('L')).and_then(|n| n.parse().ok());
     NodeType { raw: raw.to_string(), base, level }
 }
 
 pub(crate) fn parse_status(raw: &str) -> Option<WkbStatus> {
-    match raw.trim().to_lowercase().replace(['_', ' '], "-").as_str() {
-        "in-progress" => Some(WkbStatus::InProgress),
-        "for-review" => Some(WkbStatus::ForReview),
-        "hold" => Some(WkbStatus::Hold),
-        "done" => Some(WkbStatus::Done),
-        _ => None,
-    }
+    WkbStatus::from_str(&raw.trim().to_lowercase().replace(['_', ' '], "-"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tree_store::test_support::TempDir;
+    use crate::test_support::TempDir;
 
     fn rel(parts: &[&str]) -> Vec<String> {
         parts.iter().map(|s| s.to_string()).collect()
@@ -395,7 +380,7 @@ mod tests {
         let (dir, data) = fixture();
         dir.mkdir("01.Alpha/98.Real");
         let mut data = data;
-        let alpha = crate::tree_store::get_node_mut(&mut data, &rel(&["01.Alpha"])).unwrap();
+        let alpha = crate::tree::tree_store::get_node_mut(&mut data, &rel(&["01.Alpha"])).unwrap();
         alpha.insert("98.Real".into(), serde_yaml::from_str("type: REV-L2").unwrap());
         let kids = build_children(dir.path(), &data, &rel(&["01.Alpha"])).unwrap();
         let a = &find(&kids, "98.Real").actions;

@@ -53,7 +53,7 @@ mod tests {
     use std::fs;
 
     use super::*;
-    use crate::tree_store::test_support::TempDir;
+    use crate::test_support::TempDir;
 
     #[test]
     fn write_atomic_uses_a_unique_temp_name_and_leaves_nothing_behind() {

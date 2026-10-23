@@ -117,7 +117,7 @@ pub(crate) fn same_name(a: &str, b: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tree_store::test_support::TempDir;
+    use crate::test_support::TempDir;
 
     fn rel(parts: &[&str]) -> Vec<String> {
         parts.iter().map(|s| s.to_string()).collect()

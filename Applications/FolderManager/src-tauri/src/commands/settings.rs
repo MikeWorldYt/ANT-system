@@ -7,7 +7,7 @@ use serde::Deserialize;
 use tauri::AppHandle;
 
 use crate::commands::run_locked;
-use crate::db::Store;
+use crate::storage::db::Store;
 use crate::error::{FmError, R};
 use crate::fs_safe::CREATE_NO_WINDOW;
 use crate::updater::CURRENT_VERSION;

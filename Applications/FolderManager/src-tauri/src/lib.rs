@@ -2,21 +2,17 @@
 mod ant_core;
 mod commands;
 mod config;
-mod db;
-mod edit_actions;
 mod error;
-mod footprint;
 mod fs_safe;
-mod info;
-mod move_delete;
-mod names;
-mod review_index;
-mod search;
-mod settings;
-mod search_index;
-mod tree_node;
+mod index;
+mod mutations;
+mod storage;
+#[cfg(test)]
+mod test_support;
+mod tree;
 mod updater;
-mod tree_store;
+
+use commands::settings;
 
 pub fn run() {
     let start = std::env::args_os()

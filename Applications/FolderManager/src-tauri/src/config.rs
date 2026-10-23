@@ -35,6 +35,27 @@ pub enum TypeBase {
     Unknown,
 }
 
+impl TypeBase {
+    const ALL: [Self; 8] = [Self::Node, Self::Wkb, Self::Portf, Self::Rev, Self::Res, Self::Tpl, Self::Cfg, Self::Unknown];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Node => "NODE",
+            Self::Wkb => "WKB",
+            Self::Portf => "PORTF",
+            Self::Rev => "REV",
+            Self::Res => "RES",
+            Self::Tpl => "TPL",
+            Self::Cfg => "CFG",
+            Self::Unknown => "UNKNOWN",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|t| t.as_str() == s)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum NewKind {
@@ -50,6 +71,16 @@ pub enum EditableType {
     Portf,
 }
 
+impl EditableType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Node => "NODE",
+            Self::Wkb => "WKB",
+            Self::Portf => "PORTF",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum WkbStatus {
@@ -59,7 +90,50 @@ pub enum WkbStatus {
     Done,
 }
 
+impl WkbStatus {
+    const ALL: [Self; 4] = [Self::InProgress, Self::ForReview, Self::Hold, Self::Done];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::InProgress => "in-progress",
+            Self::ForReview => "for-review",
+            Self::Hold => "hold",
+            Self::Done => "done",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|t| t.as_str() == s)
+    }
+}
+
 // Storage-root folders the app owns; they are never nodes, whatever their case.
 pub fn is_hidden_dir(name: &str) -> bool {
     [TRASH_DIR, DATA_DIR].iter().any(|d| name.eq_ignore_ascii_case(d))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn serde_name(value: impl Serialize) -> String {
+        serde_yaml::to_string(&value).unwrap().trim().to_string()
+    }
+
+    #[test]
+    fn string_forms_match_the_serde_names() {
+        for t in TypeBase::ALL {
+            assert_eq!(t.as_str(), serde_name(t));
+            assert_eq!(TypeBase::from_str(t.as_str()), Some(t));
+        }
+        for s in WkbStatus::ALL {
+            assert_eq!(s.as_str(), serde_name(s));
+            assert_eq!(WkbStatus::from_str(s.as_str()), Some(s));
+        }
+        for e in [EditableType::Node, EditableType::Wkb, EditableType::Portf] {
+            assert_eq!(e.as_str(), serde_name(e));
+        }
+        assert_eq!(TypeBase::from_str("node"), None);
+        assert_eq!(WkbStatus::from_str("in_progress"), None);
+    }
 }

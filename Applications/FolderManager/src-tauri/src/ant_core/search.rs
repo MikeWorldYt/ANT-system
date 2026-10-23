@@ -1,10 +1,10 @@
 // Search query syntax: `in:200.WORK client:Mike status: in-progress plain words`.
-// The project owner can be searched by any of these names.
-const ALIASES: [(&str, &str); 2] = [("client", "owner"), ("holder", "owner")];
+use crate::storage::info::OWNER_KEYS;
 
+// The project owner can be searched by any of these names.
 pub fn canonical_key(key: &str) -> String {
     let key = key.to_lowercase();
-    ALIASES.iter().find(|(alias, _)| *alias == key).map_or(key, |(_, real)| (*real).to_string())
+    if OWNER_KEYS.contains(&key.as_str()) { OWNER_KEYS[0].to_string() } else { key }
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]

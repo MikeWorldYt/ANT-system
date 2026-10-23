@@ -55,7 +55,7 @@ fn busy_error(path: &Path) -> FmError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tree_store::test_support::TempDir;
+    use crate::test_support::TempDir;
 
     #[test]
     fn storage_lock_is_exclusive_and_released_on_drop() {
