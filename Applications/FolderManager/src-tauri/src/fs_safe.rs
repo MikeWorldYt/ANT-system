@@ -65,7 +65,7 @@ pub fn write_atomic(path: &std::path::Path, bytes: &[u8]) -> R<()> {
     let n = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
     let tmp = path.with_file_name(format!(".{name}.{}-{n}.tmp", std::process::id()));
     let written = (|| {
-        let mut file = std::fs::File::create(&tmp)?;
+        let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(&tmp)?;
         file.write_all(bytes)?;
         file.sync_all()?;
         std::fs::rename(&tmp, path)
@@ -359,7 +359,7 @@ pub(crate) fn run_powershell(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::yaml_store::test_support::TempDir;
+    use crate::tree_store::test_support::TempDir;
 
     fn rel(parts: &[&str]) -> Vec<String> {
         parts.iter().map(|s| s.to_string()).collect()

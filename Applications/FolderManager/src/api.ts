@@ -62,8 +62,6 @@ export function describeError(e: unknown): string {
   switch (e.kind) {
     case "storageNotFound":
       return `No ANT storage found from ${e.start}`;
-    case "yamlParse":
-      return `Storage index is invalid${e.line ? ` at line ${e.line}` : ""}: ${e.message}`;
     case "invalidName":
       return `Invalid name "${e.name}": ${e.reason}`;
     case "invalidPath":

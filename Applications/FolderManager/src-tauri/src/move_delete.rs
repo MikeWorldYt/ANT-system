@@ -17,7 +17,7 @@ use crate::fs_safe::{
 };
 use crate::names::{editable_part, is_movable_node, list_subdirs, numeric_id};
 use crate::tree_node::is_reserved;
-use crate::yaml_store::{self, delete_key, get_node, get_node_mut, get_type, is_locked_type};
+use crate::tree_store::{self, delete_key, get_node, get_node_mut, get_type, is_locked_type};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -34,7 +34,7 @@ pub struct DeletePreview {
     pub dirs: usize,
 }
 
-// A folder already staged in .ant-trash and dropped from Tree.yaml; recycling it needs no storage lock.
+// A folder already staged in .ant-trash and dropped from the tree; recycling it needs no storage lock.
 pub struct PendingRecycle {
     root: PathBuf,
     staged: PathBuf,
@@ -137,7 +137,7 @@ pub fn delete_node(
         if !delete_key(&mut data, parent, name) {
             return Err(FmError::NotFound { rel_parts: rel.to_vec() });
         }
-        yaml_store::save(root, &data)?;
+        tree_store::save(root, &data)?;
         return Ok((finish(root, &data, synced, None, Vec::new()), None));
     }
     let (files, dirs) = count_contents(&target.abs)?;
@@ -364,7 +364,7 @@ fn send_to_recycle_bin(_path: &Path) -> Result<(), String> {
 mod tests {
     use super::*;
     use crate::edit_actions::test_support::*;
-    use crate::yaml_store::get_node;
+    use crate::tree_store::get_node;
 
     const NODES: &str = "100.WORK:\n  type: NODE-L1\n  01.A:\n    type: NODE-L2\n    01.Keep: {type: NODE-L3}\n  \
         02.B:\n    type: NODE-L2\n  03.C:\n    type: NODE-L2\n  04.Wkb:\n    type: WKB\n  \
@@ -372,7 +372,7 @@ mod tests {
     const NODE_DIRS: &[&str] =
         &["100.WORK/01.A/01.Keep", "100.WORK/02.B", "100.WORK/03.C", "100.WORK/04.Wkb", "100.WORK/98.Rev"];
 
-    fn work(tag: &str) -> crate::yaml_store::test_support::TempDir {
+    fn work(tag: &str) -> crate::tree_store::test_support::TempDir {
         storage(tag, NODE_DIRS, NODES)
     }
 
@@ -441,7 +441,7 @@ mod tests {
     #[test]
     fn move_rolls_back_when_yaml_save_fails() {
         let dir = work("move-yaml");
-        let _held = break_yaml_save(dir.path());
+        let _held = break_tree_save(dir.path());
         let err = move_node(dir.path(), &rel(&["100.WORK", "01.A"]), MoveDirection::Down).unwrap_err();
         assert!(matches!(err, FmError::RolledBack { .. }), "{err:?}");
         assert_eq!(names(&dir.path().join("100.WORK")), ["01.A", "02.B", "03.C", "04.Wkb", "98.Rev"]);
@@ -519,7 +519,7 @@ mod tests {
     #[test]
     fn delete_puts_the_folder_back_when_yaml_save_fails() {
         let dir = work("delete-rollback");
-        let _held = break_yaml_save(dir.path());
+        let _held = break_tree_save(dir.path());
         let p = rel(&["100.WORK", "02.B"]);
         let err = delete_with(dir.path(), &p, false, false, |_| panic!("not staged")).unwrap_err();
         assert!(matches!(err, FmError::RolledBack { .. }), "{err:?}");
@@ -598,7 +598,7 @@ mod tests {
         let dir = work("delete-case");
         let mut data = yaml(dir.path());
         data.insert("100.work".into(), serde_yaml::from_str("02.B: {type: NODE-L2}").unwrap());
-        crate::yaml_store::save(dir.path(), &data).unwrap();
+        crate::tree_store::save(dir.path(), &data).unwrap();
         let p = rel(&["100.work", "02.B"]);
         assert!(matches!(delete_with(dir.path(), &p, false, true, ok_recycle), Err(FmError::Stale { .. })));
         delete_with(dir.path(), &p, true, false, |_| panic!("no disk delete")).unwrap();
@@ -623,7 +623,7 @@ mod tests {
     #[test]
     fn count_contents_does_not_follow_junctions() {
         let dir = work("count-junction");
-        let outside = crate::yaml_store::test_support::TempDir::new("count-outside");
+        let outside = crate::tree_store::test_support::TempDir::new("count-outside");
         fs::write(outside.path().join("secret.txt"), "x").unwrap();
         let link = dir.path().join("100.WORK/02.B/j");
         let made = std::process::Command::new("cmd")

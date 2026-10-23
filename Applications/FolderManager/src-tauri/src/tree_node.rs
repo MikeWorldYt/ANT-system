@@ -1,4 +1,4 @@
-// Tree rows sent to the UI: disk folders merged with Tree.yaml keys, plus the per-node action rules.
+// Tree rows sent to the UI: disk folders merged with tree entries, plus the per-node action rules.
 use std::collections::BTreeSet;
 use std::path::Path;
 
@@ -12,7 +12,7 @@ use crate::config::{
 use crate::error::R;
 use crate::info::{read_info, NodeInfo};
 use crate::names::{name_parts, is_movable_node, list_subdirs, numeric_id};
-use crate::yaml_store::{get_node, is_locked_type};
+use crate::tree_store::{get_node, is_locked_type};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -242,7 +242,7 @@ pub(crate) fn parse_status(raw: &str) -> Option<WkbStatus> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::yaml_store::test_support::TempDir;
+    use crate::tree_store::test_support::TempDir;
 
     fn rel(parts: &[&str]) -> Vec<String> {
         parts.iter().map(|s| s.to_string()).collect()
@@ -344,7 +344,7 @@ mod tests {
         let (dir, data) = fixture();
         dir.mkdir("01.Alpha/98.Real");
         let mut data = data;
-        let alpha = crate::yaml_store::get_node_mut(&mut data, &rel(&["01.Alpha"])).unwrap();
+        let alpha = crate::tree_store::get_node_mut(&mut data, &rel(&["01.Alpha"])).unwrap();
         alpha.insert("98.Real".into(), serde_yaml::from_str("type: REV-L2").unwrap());
         let kids = build_children(dir.path(), &data, &rel(&["01.Alpha"])).unwrap();
         let a = &find(&kids, "98.Real").actions;

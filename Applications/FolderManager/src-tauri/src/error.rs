@@ -5,7 +5,6 @@ use serde::Serialize;
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum FmError {
     StorageNotFound { start: String },
-    YamlParse { message: String, line: Option<usize> },
     InvalidName { name: String, reason: String },
     InvalidPath { rel_parts: Vec<String>, reason: String },
     NotFound { rel_parts: Vec<String> },
@@ -28,7 +27,6 @@ impl std::fmt::Display for FmError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::StorageNotFound { start } => write!(f, "No ANT storage found from {start}"),
-            Self::YamlParse { message, .. } => write!(f, "Tree.yaml could not be read: {message}"),
             Self::InvalidName { name, reason } => write!(f, "Invalid name \"{name}\": {reason}"),
             Self::InvalidPath { rel_parts, reason } => {
                 write!(f, "Invalid path \"{}\": {reason}", rel_parts.join("/"))

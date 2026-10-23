@@ -1,4 +1,4 @@
-// Rename, retype and add nodes, keeping disk folders, linked 90./98. folders and Tree.yaml in step.
+// Rename, retype and add nodes, keeping disk folders, linked 90./98. folders and the tree in step.
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -19,7 +19,7 @@ use crate::names::{
     sanitize_upper,
 };
 use crate::tree_node::{build_tree, is_reserved, TreeSnapshot};
-use crate::yaml_store::{self, get_node, get_node_mut, get_type, is_locked_type, rename_key};
+use crate::tree_store::{self, get_node, get_node_mut, get_type, is_locked_type, rename_key};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,7 +59,7 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
     let new_rel = child_rel(parent, &new_name);
     if new_name == *old_name {
         if synced {
-            yaml_store::save(root, &data)?;
+            tree_store::save(root, &data)?;
         }
         return Ok(finish(root, &data, synced, Some(new_rel), Vec::new()));
     }
@@ -111,7 +111,7 @@ pub fn set_node_type(
             node.remove("status");
         }
     }
-    yaml_store::save(root, &data)?;
+    tree_store::save(root, &data)?;
     Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new()))
 }
 
@@ -140,7 +140,7 @@ pub fn set_details(root: &Path, rel: &[String], status: Option<WkbStatus>, owner
         _ => kept(&OWNER_KEYS).unwrap_or_else(|| "unknown".to_string()),
     };
     write_info(&target.abs, &[(&["status"], "status", &status), (&OWNER_KEYS, "owner", &owner)])?;
-    yaml_store::save(root, &data)?;
+    tree_store::save(root, &data)?;
     Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new()))
 }
 
@@ -187,7 +187,7 @@ pub fn add_child(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     let rev_name = format!("98.{}", editable_part(&new_name));
     // A workboard keeps its review shortcuts out of its own folder.
     match if workboard { Ok(()) } else { journal.mkdir(&new_abs.join(&rev_name)) } {
-        // The deepest level keeps its 98 folder on disk only, as Tree.yaml stops at MAX_DEPTH.
+        // The deepest level keeps its 98 folder on disk only, as the tree stops at MAX_DEPTH.
         Ok(()) if level < MAX_DEPTH && !workboard => {
             let mut rev = Mapping::new();
             rev.insert("type".into(), format!("REV-L{level}").into());
@@ -212,7 +212,7 @@ pub fn add_child(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     }
     match footprint::apply(root, &mut data) {
         Ok(true) => {
-            if let Err(e) = yaml_store::save(root, &data) {
+            if let Err(e) = tree_store::save(root, &data) {
                 warnings.push(format!("Could not save moved folders: {}", error_text(&e)));
             }
         }
@@ -292,8 +292,8 @@ fn status_text(status: WkbStatus) -> &'static str {
 
 // Folders added on disk since the last refresh get their yaml entry before any check runs.
 pub(crate) fn load_synced(root: &Path) -> R<(Mapping, bool)> {
-    let mut data = yaml_store::load(root)?;
-    let changed = yaml_store::sync(root, &mut data)?;
+    let mut data = tree_store::load(root)?;
+    let changed = tree_store::sync(root, &mut data)?;
     Ok((data, changed))
 }
 
@@ -385,7 +385,7 @@ pub(crate) fn ensure_free(
 }
 
 pub(crate) fn persist(root: &Path, data: &Mapping, journal: Journal, op: &str) -> R<()> {
-    match yaml_store::save(root, data) {
+    match tree_store::save(root, data) {
         Ok(()) => {
             journal.commit();
             Ok(())
@@ -426,8 +426,8 @@ pub(crate) mod test_support {
 
     use serde_yaml::Mapping;
 
-    use crate::yaml_store::test_support::TempDir;
-    use crate::yaml_store::{get_type, load, yaml_path};
+    use crate::tree_store::test_support::TempDir;
+    use crate::tree_store::{get_type, load, save};
 
     pub fn rel(parts: &[&str]) -> Vec<String> {
         parts.iter().map(|s| s.to_string()).collect()
@@ -439,7 +439,7 @@ pub(crate) mod test_support {
         for d in dirs {
             dir.mkdir(d);
         }
-        fs::write(yaml_path(dir.path()), yaml).unwrap();
+        save(dir.path(), &serde_yaml::from_str::<Mapping>(yaml).unwrap()).unwrap();
         dir
     }
 
@@ -460,12 +460,12 @@ pub(crate) mod test_support {
         get_type(&yaml(dir), &rel(parts))
     }
 
-    // Holding Tree.yaml open without delete sharing makes the atomic replace fail after the disk changes.
+    // Holding ant.db open for read only keeps loads working but makes the save fail after the disk changes.
     #[cfg(windows)]
-    pub fn break_yaml_save(dir: &Path) -> fs::File {
+    pub fn break_tree_save(dir: &Path) -> fs::File {
         use std::os::windows::fs::OpenOptionsExt;
-        const FILE_SHARE_READ_WRITE: u32 = 0x1 | 0x2;
-        fs::OpenOptions::new().read(true).share_mode(FILE_SHARE_READ_WRITE).open(yaml_path(dir)).unwrap()
+        const FILE_SHARE_READ: u32 = 0x1;
+        fs::OpenOptions::new().read(true).share_mode(FILE_SHARE_READ).open(crate::db::db_path(dir)).unwrap()
     }
 }
 
@@ -473,8 +473,8 @@ pub(crate) mod test_support {
 mod tests {
     use super::test_support::*;
     use super::*;
-    use crate::yaml_store::get_node;
-    use crate::yaml_store::test_support::TempDir;
+    use crate::tree_store::get_node;
+    use crate::tree_store::test_support::TempDir;
 
     const ACADEMIC: &str = "100.ACADEMIC:\n  type: NODE-L1\n  01.Math:\n    type: NODE-L2\n    status: done\n    \
         98.Math: {type: REV-L2}\n    90.Math: {type: RES}\n    01.Algebra: {type: NODE-L3}\n  \
@@ -579,14 +579,14 @@ mod tests {
     #[test]
     fn rename_rolls_back_disk_and_cascade_when_yaml_save_fails() {
         let dir = academic("rename-rollback");
-        let _held = break_yaml_save(dir.path());
-        let before = fs::read_to_string(crate::yaml_store::yaml_path(dir.path())).unwrap();
+        let _held = break_tree_save(dir.path());
+        let before = yaml(dir.path());
         let err = rename_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), "Physics").unwrap_err();
         assert!(matches!(err, FmError::RolledBack { .. }), "{err:?}");
         let node = dir.path().join("100.ACADEMIC/01.Math");
         assert_eq!(names(&node), ["01.Algebra", "90.Math", "98.Math"]);
         assert!(!dir.path().join("100.ACADEMIC/01.Physics").exists());
-        assert_eq!(fs::read_to_string(crate::yaml_store::yaml_path(dir.path())).unwrap(), before);
+        assert_eq!(yaml(dir.path()), before);
     }
 
     #[test]
@@ -694,7 +694,7 @@ mod tests {
     #[test]
     fn add_child_removes_created_folders_when_yaml_save_fails() {
         let dir = academic("add-rollback");
-        let _held = break_yaml_save(dir.path());
+        let _held = break_tree_save(dir.path());
         let err = add_child(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node).unwrap_err();
         assert!(matches!(err, FmError::RolledBack { .. }), "{err:?}");
         assert_eq!(names(&dir.path().join("100.ACADEMIC")), ["01.Math", "02.Bio"]);

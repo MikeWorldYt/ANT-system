@@ -1,4 +1,4 @@
-// Rebuilds the 998.Review shortcuts from Tree.yaml; the command layer runs it after rename, move and delete.
+// Rebuilds the 998.Review shortcuts from the tree; the command layer runs it after rename, move and delete.
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -9,7 +9,7 @@ use crate::ant_core::tree_types::child_entries;
 use crate::config::{MAX_DEPTH, REVIEW_FOLDER};
 use crate::fs_safe::{error_text, is_link};
 use crate::names::editable_part;
-use crate::yaml_store::is_locked_type;
+use crate::tree_store::is_locked_type;
 
 pub fn rebuild(root: &Path, data: &Mapping) -> Vec<String> {
     rebuild_with(root, data, create_shortcuts)

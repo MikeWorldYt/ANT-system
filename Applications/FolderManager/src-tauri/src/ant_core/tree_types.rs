@@ -1,4 +1,4 @@
-// Reads node types stored in Tree.yaml ("NODE-L2", "REV-L3", "CFG") and the entries that name child folders.
+// Reads node types stored in the tree ("NODE-L2", "REV-L3", "CFG") and the entries that name child folders.
 use serde_yaml::Mapping;
 
 pub const META_KEYS: [&str; 2] = ["type", "status"];

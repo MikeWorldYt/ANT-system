@@ -15,7 +15,7 @@ use crate::error::R;
 use crate::fs_safe::write_atomic;
 use crate::names::list_subdirs;
 use crate::tree_node::is_reserved;
-use crate::yaml_store::{delete_key, get_node, get_node_mut};
+use crate::tree_store::{delete_key, get_node, get_node_mut};
 
 const ALPHABET: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const ID_LEN: usize = 15;
@@ -169,8 +169,8 @@ fn random_word(salt: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::yaml_store::test_support::TempDir;
-    use crate::yaml_store::sync;
+    use crate::tree_store::test_support::TempDir;
+    use crate::tree_store::sync;
 
     fn rel(parts: &[&str]) -> Vec<String> {
         parts.iter().map(|s| s.to_string()).collect()

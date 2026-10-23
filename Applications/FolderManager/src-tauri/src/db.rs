@@ -1,4 +1,4 @@
-// SQLite copy of the tree under <root>/.ant; Tree.yaml stays as its mirror for tools that do not know the db.
+// SQLite store of the tree and its search fields under <root>/.ant; the only copy of the tree.
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -13,7 +13,6 @@ use crate::fs_safe::io_err;
 use crate::search::Query;
 
 const SCHEMA_VERSION: i64 = 1;
-const YAML_HASH: &str = "yaml_hash";
 const ROOT_EXTRA: &str = "root_extra";
 const FIELDS_HASH: &str = "fields_hash";
 
@@ -102,43 +101,23 @@ impl Store {
         if version > SCHEMA_VERSION {
             return Err(FmError::Internal { message: "ant.db was written by a newer version of the app".to_string() });
         }
-        conn.execute_batch(SCHEMA).map_err(fail)?;
-        conn.pragma_update(None, "user_version", SCHEMA_VERSION).map_err(fail)?;
+        if version < SCHEMA_VERSION {
+            conn.execute_batch(SCHEMA).map_err(fail)?;
+            conn.pragma_update(None, "user_version", SCHEMA_VERSION).map_err(fail)?;
+        }
         Ok(Store { conn, path })
-    }
-
-    pub fn yaml_hash(&self) -> R<Option<String>> {
-        let found = self.conn.query_row("SELECT value FROM meta WHERE key = ?1", [YAML_HASH], |r| r.get(0));
-        found.optional().map_err(|e| db_err("read ant.db", &self.path, &e))
     }
 
     pub fn read(&self) -> R<Mapping> {
         self.read_tree().map_err(|e| db_err("read ant.db", &self.path, &e))
     }
 
-    // `publish` writes the mirror while the transaction is open; `undo` restores it if the commit then fails.
-    pub fn replace(
-        &mut self,
-        data: &Mapping,
-        yaml_hash: &str,
-        publish: impl FnOnce() -> R<()>,
-        undo: impl FnOnce() -> R<()>,
-    ) -> R<()> {
+    pub fn replace(&mut self, data: &Mapping) -> R<()> {
         let path = self.path.clone();
         let fail = |e: rusqlite::Error| db_err("write ant.db", &path, &e);
         let tx = self.conn.transaction().map_err(fail)?;
-        write_tree(&tx, data, yaml_hash).map_err(fail)?;
-        publish()?;
-        if let Err(e) = tx.commit() {
-            let cause = db_err("write ant.db", &path, &e);
-            return Err(match undo() {
-                Ok(()) => cause,
-                Err(restore) => FmError::Internal {
-                    message: format!("{cause}; the Tree.yaml copy could not be restored: {restore}"),
-                },
-            });
-        }
-        Ok(())
+        write_tree(&tx, data).map_err(fail)?;
+        tx.commit().map_err(fail)
     }
 
     pub fn footprints(&self) -> R<HashMap<String, String>> {
@@ -256,7 +235,7 @@ impl Store {
 
     fn read_tree(&self) -> rusqlite::Result<Mapping> {
         let mut by_parent: HashMap<i64, Vec<Row>> = HashMap::new();
-        let mut stmt = self.conn.prepare("SELECT id, parent_id, name, type, status, extra FROM nodes")?;
+        let mut stmt = self.conn.prepare("SELECT id, parent_id, name, type, status, extra FROM nodes ORDER BY id")?;
         let rows = stmt.query_map([], |r| {
             let row = Row { id: r.get(0)?, name: r.get(2)?, kind: r.get(3)?, status: r.get(4)?, extra: r.get(5)? };
             Ok((r.get::<_, i64>(1)?, row))
@@ -296,7 +275,7 @@ fn merge_extra(node: &mut Mapping, extra: Option<&str>) {
     }
 }
 
-fn write_tree(tx: &Transaction, data: &Mapping, yaml_hash: &str) -> rusqlite::Result<()> {
+fn write_tree(tx: &Transaction, data: &Mapping) -> rusqlite::Result<()> {
     tx.execute("DELETE FROM nodes", [])?;
     let root_extra: Mapping = data.iter().filter(|(k, v)| !is_child(k, v)).map(|(k, v)| (k.clone(), v.clone())).collect();
     if root_extra.is_empty() {
@@ -304,7 +283,6 @@ fn write_tree(tx: &Transaction, data: &Mapping, yaml_hash: &str) -> rusqlite::Re
     } else {
         tx.execute("INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)", params![ROOT_EXTRA, to_text(&root_extra)])?;
     }
-    tx.execute("INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)", params![YAML_HASH, yaml_hash])?;
     let mut insert = tx.prepare(
         "INSERT INTO nodes (id, parent_id, name, depth, type, status, extra) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
     )?;

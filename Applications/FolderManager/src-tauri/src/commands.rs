@@ -18,7 +18,7 @@ use crate::footprint;
 use crate::search::{canonical_key, parse_query};
 use crate::search_index;
 use crate::updater;
-use crate::yaml_store::{self, yaml_path};
+use crate::tree_store;
 
 const SKIP_FILE: &str = ".skip_version";
 const REVIEW_EVENT: &str = "fm://review-index";
@@ -46,7 +46,6 @@ impl Storage {
 #[serde(rename_all = "camelCase")]
 pub struct StorageInfo {
     root: String,
-    yaml_path: String,
     app_version: String,
     max_depth: usize,
 }
@@ -77,19 +76,19 @@ where
 }
 
 pub fn snapshot(root: &Path) -> R<TreeSnapshot> {
-    let mut data = yaml_store::load(root)?;
-    let mut changed = yaml_store::sync(root, &mut data)?;
+    let mut data = tree_store::load(root)?;
+    let mut changed = tree_store::sync(root, &mut data)?;
     if changed || !footprint::scan(root)?.is_clean() {
         // Reloading under the file lock keeps this save from overwriting another process's edit.
         let _lock = StorageLock::acquire(root)?;
-        data = yaml_store::load(root)?;
-        changed = yaml_store::sync(root, &mut data)?;
+        data = tree_store::load(root)?;
+        changed = tree_store::sync(root, &mut data)?;
         if footprint::apply(root, &mut data)? {
-            yaml_store::sync(root, &mut data)?;
+            tree_store::sync(root, &mut data)?;
             changed = true;
         }
         if changed {
-            yaml_store::save(root, &data)?;
+            tree_store::save(root, &data)?;
         }
     }
     let mut tree = build_tree(root, &data, changed)?;
@@ -122,7 +121,7 @@ fn reindex(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec
         }
     };
     send("started", Vec::new());
-    let failures = match yaml_store::load(root) {
+    let failures = match tree_store::load(root) {
         Ok(data) => rebuild(root, &data),
         Err(e) => vec![e.to_string()],
     };
@@ -140,7 +139,7 @@ fn with_index(
 ) -> R<Mutation> {
     let mut m = result?;
     m.warnings.extend(reindex(root, emit, rebuild).into_iter().map(|f| format!("Review index: {f}")));
-    let indexed = yaml_store::load(root).and_then(|data| search_index::rebuild(root, &data));
+    let indexed = tree_store::load(root).and_then(|data| search_index::rebuild(root, &data));
     if let Err(e) = indexed {
         m.warnings.push(format!("Search index: {e}"));
     }
@@ -181,7 +180,6 @@ pub async fn get_storage(app: AppHandle) -> R<StorageInfo> {
     run_locked(app, |root| {
         Ok(StorageInfo {
             root: root.to_string_lossy().into_owned(),
-            yaml_path: yaml_path(root).to_string_lossy().into_owned(),
             app_version: env!("CARGO_PKG_VERSION").to_string(),
             max_depth: MAX_DEPTH,
         })
@@ -204,7 +202,7 @@ pub async fn refresh(app: AppHandle) -> R<TreeSnapshot> {
 pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<TreeNode>> {
     run_locked(app, move |root| {
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
-        let data = yaml_store::load(root)?;
+        let data = tree_store::load(root)?;
         let mut kids = build_children(root, &data, &rel_parts)?;
         fill_children(root, &data, &mut kids)?;
         Ok(kids)
@@ -353,8 +351,8 @@ mod tests {
     use crate::config::TRASH_DIR;
     use crate::edit_actions::test_support::{rel, storage, yaml};
     use crate::move_delete::recycle_staged_with;
-    use crate::yaml_store::get_node;
-    use crate::yaml_store::test_support::TempDir;
+    use crate::tree_store::get_node;
+    use crate::tree_store::test_support::TempDir;
 
     const TREE: &str = "100.WORK:\n  type: NODE-L1\n  01.A: {type: NODE-L2}\n  02.B: {type: NODE-L2}\n  03.Ghost: {type: NODE-L2}\n";
 
@@ -450,7 +448,7 @@ mod tests {
     }
 
     #[test]
-    fn a_failed_event_and_an_unreadable_yaml_become_warnings() {
+    fn a_failed_event_and_an_unreadable_db_become_warnings() {
         let dir = work("cmd-emit-fail");
         let boom = |_: &ReviewIndexEvent| Err::<(), _>("window closed".to_string());
         let m = edit_actions::set_node_type(dir.path(), &rel(&["100.WORK", "02.B"]), EditableType::Portf, None);
@@ -458,7 +456,7 @@ mod tests {
         assert_eq!(m.warnings.len(), 2, "{:?}", m.warnings);
         assert!(m.warnings[0].contains("window closed"));
 
-        std::fs::write(yaml_path(dir.path()), "100.WORK: [unclosed").unwrap();
+        std::fs::write(crate::db::db_path(dir.path()), "not a database, just text that sqlite cannot open").unwrap();
         let probe = Probe::new();
         let emit = probe.emit();
         let failures = reindex(dir.path(), &emit, |_, _| panic!("no yaml, no rebuild"));

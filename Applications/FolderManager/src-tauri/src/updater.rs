@@ -53,7 +53,7 @@ pub fn launch_updater(root: &Path) -> R<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::yaml_store::test_support::TempDir;
+    use crate::tree_store::test_support::TempDir;
 
     #[test]
     fn newer_compares_numbers_and_ignores_the_prefix_and_beta_tag() {

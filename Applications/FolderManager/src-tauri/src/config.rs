@@ -1,4 +1,4 @@
-// Fixed folder names, Tree.yaml layout rules and update endpoints shared by the core modules.
+// Fixed folder names, tree layout rules and update endpoints shared by the core modules.
 use serde::{Deserialize, Serialize};
 
 pub const VERSION_URL: &str =
@@ -9,7 +9,6 @@ pub const UPDATER_SCRIPT: &str = "FM_Updater.bat";
 
 pub const SETTINGS_FOLDER: &str = "999.Settings";
 pub const CORE_FOLDER: &str = "00.Core";
-pub const YAML_FILENAME: &str = "Tree.yaml";
 pub const REVIEW_FOLDER: &str = "998.Review";
 pub const TRASH_DIR: &str = ".ant-trash";
 pub const DATA_DIR: &str = ".ant";

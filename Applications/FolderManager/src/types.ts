@@ -55,7 +55,6 @@ export interface TreeSnapshot {
 
 export interface StorageInfo {
   root: string;
-  yamlPath: string;
   appVersion: string;
   maxDepth: number;
 }
@@ -79,7 +78,6 @@ export interface ReviewIndexEvent {
 
 export type FmError =
   | { kind: "storageNotFound"; start: string }
-  | { kind: "yamlParse"; message: string; line: number | null }
   | { kind: "invalidName"; name: string; reason: string }
   | { kind: "invalidPath"; relParts: string[]; reason: string }
   | { kind: "notFound"; relParts: string[] }

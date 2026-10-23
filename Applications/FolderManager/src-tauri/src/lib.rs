@@ -15,7 +15,7 @@ mod search;
 mod search_index;
 mod tree_node;
 mod updater;
-mod yaml_store;
+mod tree_store;
 
 pub fn run() {
     let start = std::env::args_os()

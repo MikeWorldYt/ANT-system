@@ -136,7 +136,7 @@ fn json_string(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::yaml_store::test_support::TempDir;
+    use crate::tree_store::test_support::TempDir;
 
     fn with_info(tag: &str, text: &str) -> TempDir {
         let dir = TempDir::new(tag);
