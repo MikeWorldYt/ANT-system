@@ -10,6 +10,11 @@ export interface NodeType {
   level: number | null;
 }
 
+export interface NodeInfo {
+  fields: { key: string; value: string }[];
+  error: string | null;
+}
+
 export interface NodeActions {
   rename: boolean;
   changeType: boolean;
@@ -33,6 +38,9 @@ export interface TreeNode {
   reserved: boolean;
   hasChildren: boolean;
   isGit: boolean;
+  fixedPrefix: string;
+  editableName: string;
+  info: NodeInfo | null;
   children: TreeNode[] | null;
   absPath: string;
   actions: NodeActions;

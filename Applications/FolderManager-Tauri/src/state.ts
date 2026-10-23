@@ -7,9 +7,10 @@ interface State {
   selectedKey: string | null;
   expanded: Set<string>;
   busy: boolean;
+  editing: { key: string; draft: string; focused: boolean } | null;
 }
 
-export const state: State = { tree: null, selectedKey: null, expanded: new Set(), busy: false };
+export const state: State = { tree: null, selectedKey: null, expanded: new Set(), busy: false, editing: null };
 
 const listeners = new Set<() => void>();
 
@@ -56,6 +57,18 @@ export function select(parts: string[] | null): void {
   notify();
 }
 
+export function startEdit(parts: string[]): void {
+  const node = findNode(parts);
+  if (!node?.actions.rename || state.busy) return;
+  state.editing = { key: keyOf(parts), draft: node.editableName, focused: false };
+  select(parts);
+}
+
+export function stopEdit(): void {
+  state.editing = null;
+  notify();
+}
+
 export function setBusy(busy: boolean): void {
   state.busy = busy;
   notify();
@@ -66,6 +79,7 @@ export function setTree(tree: TreeSnapshot): void {
 }
 
 export function pruneSelection(): void {
+  if (state.editing && !findNode(state.editing.key.split("/"))) state.editing = null;
   if (state.selectedKey !== null && !selectedNode()) state.selectedKey = null;
 }
 

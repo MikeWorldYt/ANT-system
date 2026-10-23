@@ -58,6 +58,11 @@ body {
   background: var(--input-bg); color: var(--accent); font-size: 14pt; cursor: pointer;
 }
 .icon-btn:hover:not(:disabled) { background: var(--field-bg); }
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.gui-icon { width: 1em; height: 1em; display: block; }
+.icon-btn .gui-icon { width: 18px; height: 18px; }
+.caret .gui-icon, .chevron .gui-icon, .crumb-sep .gui-icon { width: 12px; height: 12px; }
+.caret, .chevron, .crumb-sep { display: inline-flex; align-items: center; justify-content: center; }
 .icon-btn:disabled { color: var(--disabled-text); cursor: default; }
 
 .app-main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 0 12px 12px; }
@@ -80,19 +85,14 @@ body {
 .badge { font-size: 8pt; padding: 0 6px; border-radius: 8px; border: 1px solid var(--border); color: var(--disabled-text); }
 .badge.status { color: var(--title); border-color: var(--title); }
 
-.actions { width: 220px; flex: none; background: var(--input-bg); padding: 12px; }
-.actions h2 { margin: 0 0 12px; font-size: 11pt; color: var(--title); }
-.actions-form { display: flex; flex-direction: column; gap: 10px; }
-.field { display: flex; align-items: center; gap: 6px; }
-.field label { width: 52px; flex: none; }
-.field[hidden] { display: none; }
-
-input, select {
-  flex: 1; min-width: 0; padding: 6px; border: 1px solid var(--border); border-radius: 0;
-  background: var(--field-bg); color: var(--text); font: inherit;
+.details-panel { width: 220px; flex: none; background: var(--input-bg); padding: 12px; }
+.details-panel h2 { margin: 0 0 12px; font-size: 11pt; color: var(--title); }
+.name.editing { display: flex; align-items: center; flex: 1; min-width: 0; }
+.name-fixed { color: var(--disabled-text); white-space: pre; }
+.name-input {
+  flex: 1; min-width: 0; padding: 0 4px; font: inherit; color: var(--text); background: var(--field-bg);
+  border: 1px solid var(--button); border-radius: 3px; outline: none;
 }
-input:disabled, select:disabled { background: var(--input-bg); color: var(--disabled-text); }
-
 .btn {
   padding: 8px; border: 0; border-radius: 0; font: inherit; font-weight: bold; cursor: pointer;
   background: var(--field-bg); color: var(--text);
@@ -102,7 +102,6 @@ input:disabled, select:disabled { background: var(--input-bg); color: var(--disa
 .btn-primary:hover:not(:disabled) { background: var(--hover-btn); }
 .btn-danger { background: var(--delete-btn); color: var(--text); }
 .btn-danger:hover:not(:disabled) { background: var(--delete-hover); }
-.actions-form .btn-primary { margin-top: 4px; }
 
 .status-line { min-height: 28px; padding: 6px 12px; font-size: 9pt; color: var(--disabled-text); border-top: 1px solid var(--border); }
 .status-line[data-level="info"] { color: var(--text); }
@@ -117,15 +116,15 @@ dialog.confirm::backdrop { background: rgb(0 0 0 / 0.6); }
 dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
 .dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
-.header-tools { display: flex; align-items: center; gap: 12px; }
-.view-toggle { display: flex; }
-.seg-btn {
-  padding: 6px 12px; border: 1px solid var(--border); background: var(--input-bg);
-  color: var(--text); font: inherit; cursor: pointer;
+.view-picker {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: 4px;
+  background: var(--input-bg); color: var(--text); font: inherit; cursor: pointer;
 }
-.seg-btn + .seg-btn { border-left: 0; }
-.seg-btn:hover { background: var(--field-bg); }
-.seg-btn[aria-pressed="true"] { background: var(--button); color: var(--bg); font-weight: bold; }
+.view-picker:hover { background: var(--field-bg); }
+.view-picker .gui-icon { width: 16px; height: 16px; }
+.view-picker .gui-icon:last-child { width: 12px; height: 12px; }
+.icon-btn[aria-pressed="true"] { background: var(--highlight); }
+.header-tools { display: flex; align-items: center; gap: 12px; }
 
 .columns { display: flex; height: 100%; overflow-x: auto; overflow-y: hidden; }
 .column { flex: none; width: 220px; height: 100%; overflow-y: auto; border-right: 1px solid var(--border); }

@@ -1,6 +1,7 @@
 // Navigation bar: back/forward/up over selection history plus a breadcrumb of the selected path.
 import { listChildren } from "./api";
 import { el } from "./dom";
+import { guiIcon, type GuiIcon } from "./gui-icons";
 import { findNode, hydrate, keyOf, notify, select, selectedNode, state } from "./state";
 import { clearStatus, setStatus } from "./status";
 import type { TreeNode } from "./types";
@@ -25,8 +26,8 @@ async function resolveTyped(text: string): Promise<string[] | null | undefined> 
   return found;
 }
 
-function navButton(label: string, glyph: string, onClick: () => void): HTMLButtonElement {
-  const b = el("button", { type: "button", class: "icon-btn", "aria-label": label, title: label }, glyph);
+function navButton(label: string, icon: GuiIcon, onClick: () => void): HTMLButtonElement {
+  const b = el("button", { type: "button", class: "icon-btn", "aria-label": label, title: label }, guiIcon(icon));
   b.addEventListener("click", onClick);
   return b;
 }
@@ -70,9 +71,9 @@ export function createNavigator(): { element: HTMLElement; render(): void } {
     return parts.length > 1 ? parts.slice(0, -1) : null;
   };
 
-  const back = navButton("Back", "←", () => void go(at - 1));
-  const forward = navButton("Forward", "→", () => void go(at + 1));
-  const up = navButton("Up one level", "↑", () => select(parentOf()));
+  const back = navButton("Back", "back", () => void go(at - 1));
+  const forward = navButton("Forward", "forward", () => void go(at + 1));
+  const up = navButton("Up one level", "up", () => select(parentOf()));
   const path = el("nav", { class: "breadcrumb", "aria-label": "Current location" });
   const element = el("div", { class: "nav-bar" }, back, forward, up, path);
 
@@ -145,7 +146,7 @@ export function createNavigator(): { element: HTMLElement; render(): void } {
 
   function crumbs(): (Node | string)[] {
     const out: (Node | string)[] = [];
-    const sep = () => el("span", { class: "crumb-sep", "aria-hidden": "true" }, "›");
+    const sep = () => el("span", { class: "crumb-sep", "aria-hidden": "true" }, guiIcon("separator"));
     const rootName = splitPath(state.tree?.root ?? "").pop() ?? "";
     const parts = state.selectedKey?.split("/") ?? [];
     const rootBtn = el("button", { type: "button", class: "crumb crumb-btn crumb-root", title: state.tree?.root ?? "" }, rootName);

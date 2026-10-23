@@ -1,14 +1,16 @@
-// List view: indented expandable rows with keyboard navigation.
+// Tree view: indented expandable rows with keyboard navigation.
 import { nodeSummary } from "./node-info";
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { badge, el } from "./dom";
+import { guiIcon } from "./gui-icons";
 import { folderIcon } from "./icons";
+import { nameCell } from "./name-cell";
 import { toggleExpand } from "./ops";
-import { keyOf, select, state, visibleRows } from "./state";
+import { keyOf, select, startEdit, state, visibleRows } from "./state";
 import type { TreeNode } from "./types";
 import type { ViewMode } from "./view-mode";
 
-export function createListView(): ViewMode {
+export function createTreeView(): ViewMode {
   const tree = el("div", { class: "tree", role: "tree", tabindex: "0", "aria-label": "Storage folders" });
   let rows: TreeNode[] = [];
 
@@ -21,8 +23,8 @@ export function createListView(): ViewMode {
   function buildRow(n: TreeNode, i: number): HTMLElement {
     const key = keyOf(n.relParts);
     const expanded = state.expanded.has(key);
-    const caret = el("span", { class: "caret", "aria-hidden": "true" }, n.hasChildren ? (expanded ? "▾" : "▸") : "");
-    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, caret, folderIcon(n), el("span", { class: "name" }, n.name));
+    const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(n.hasChildren ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
+    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, caret, folderIcon(n), nameCell(n));
     row.style.setProperty("--depth", String(n.depth));
     row.setAttribute("aria-selected", String(key === state.selectedKey));
     if (n.hasChildren) row.setAttribute("aria-expanded", String(expanded));
@@ -37,7 +39,7 @@ export function createListView(): ViewMode {
       void toggleExpand(n);
     });
     row.addEventListener("click", () => select(n.relParts));
-    row.addEventListener("dblclick", () => void toggleExpand(n));
+    row.addEventListener("dblclick", () => startEdit(n.relParts));
     row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, tree));
     return row;
   }
@@ -75,6 +77,9 @@ export function createListView(): ViewMode {
       case "Enter":
         if (n) void toggleExpand(n);
         break;
+      case "F2":
+        if (n) startEdit(n.relParts);
+        break;
       default:
         return;
     }
@@ -82,8 +87,8 @@ export function createListView(): ViewMode {
   }
 
   return {
-    id: "list",
-    label: "List",
+    id: "tree",
+    label: "Tree",
     mount(host) {
       tree.addEventListener("keydown", onKey);
       host.append(tree);

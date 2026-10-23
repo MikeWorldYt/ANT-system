@@ -6,16 +6,7 @@ import { hydrate, keyOf, notify, pruneSelection, setBusy, setTree, state } from 
 import { isFmError } from "./types";
 import type { EditableType, MoveDirection, Mutation, TreeNode, TreeSnapshot, WkbStatus } from "./types";
 
-export interface Edit {
-  editable: string;
-  type: string;
-  status: WkbStatus;
-}
-
 const EDITABLE: readonly string[] = ["NODE", "WKB", "PORTF"];
-
-// The first dot separates the numeric id from the editable part.
-export const editablePart = (name: string) => (name.includes(".") ? name.slice(name.indexOf(".") + 1) : name);
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
   setTree(snapshot ?? (await api.refresh()));
@@ -100,24 +91,21 @@ export const addChild = (node: TreeNode) =>
 export const move = (node: TreeNode, dir: MoveDirection) =>
   run(async () => applyMutation(await api.moveNode(node.relParts, dir), node.relParts));
 
-export const apply = (node: TreeNode, edit: Edit) =>
+export const renameTo = (node: TreeNode, editable: string) =>
   run(async () => {
-    const renamed = node.actions.rename && edit.editable.trim() !== editablePart(node.name);
-    const base = node.nodeType?.base;
-    const typeChanged =
+    const text = editable.trim();
+    if (text === node.editableName) return;
+    await applyMutation(await api.renameNode(node.relParts, text));
+  });
+
+export const setType = (node: TreeNode, base: string, status: WkbStatus) =>
+  run(async () => {
+    const changed =
       node.actions.changeType &&
-      EDITABLE.includes(edit.type) &&
-      (edit.type !== base || (edit.type === "WKB" && edit.status !== node.status));
-    let parts = node.relParts;
-    if (renamed) {
-      const m = await api.renameNode(parts, edit.editable.trim());
-      parts = m.select ?? parts;
-      if (!typeChanged) return applyMutation(m);
-    }
-    if (typeChanged) {
-      const status = edit.type === "WKB" ? edit.status : null;
-      await applyMutation(await api.setNodeType(parts, edit.type as EditableType, status), parts);
-    }
+      EDITABLE.includes(base) &&
+      (base !== node.nodeType?.base || (base === "WKB" && status !== node.status));
+    if (!changed) return;
+    await applyMutation(await api.setNodeType(node.relParts, base as EditableType, base === "WKB" ? status : null), node.relParts);
   });
 
 export const remove = (node: TreeNode) =>

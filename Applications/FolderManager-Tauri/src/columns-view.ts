@@ -1,10 +1,12 @@
 // Columns view: one column per depth of the selected path, children of the selection in the next one.
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { badge, el } from "./dom";
+import { guiIcon } from "./gui-icons";
 import { folderIcon } from "./icons";
+import { nameCell } from "./name-cell";
 import { nodeSummary } from "./node-info";
 import { expand } from "./ops";
-import { keyOf, select, selectedNode, state } from "./state";
+import { keyOf, select, selectedNode, startEdit, state } from "./state";
 import type { TreeNode } from "./types";
 import type { ViewMode } from "./view-mode";
 
@@ -37,7 +39,7 @@ export function createColumnsView(): ViewMode {
 
   function buildItem(n: TreeNode, onPath: boolean, tabbable: boolean): HTMLElement {
     const selected = keyOf(n.relParts) === state.selectedKey;
-    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, folderIcon(n), el("span", { class: "name" }, n.name));
+    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, folderIcon(n), nameCell(n));
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
     else if (onPath) item.classList.add("on-path");
@@ -45,8 +47,9 @@ export function createColumnsView(): ViewMode {
     if (n.locked) item.classList.add("locked");
     if (n.status) item.append(badge("status", n.status));
     item.title = nodeSummary(n);
-    if (n.hasChildren) item.append(el("span", { class: "chevron", "aria-hidden": "true" }, "▸"));
+    if (n.hasChildren) item.append(el("span", { class: "chevron", "aria-hidden": "true" }, guiIcon("chevronRight")));
     item.addEventListener("click", () => select(n.relParts));
+    item.addEventListener("dblclick", () => startEdit(n.relParts));
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
     return item;
   }
@@ -98,6 +101,9 @@ export function createColumnsView(): ViewMode {
         break;
       case "ArrowLeft":
         if (n && n.relParts.length > 1) select(n.relParts.slice(0, -1));
+        break;
+      case "F2":
+        if (n) startEdit(n.relParts);
         break;
       case "Enter":
       case " ":

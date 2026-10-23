@@ -1,8 +1,8 @@
 // Context menu shared by every view; item enablement comes only from node.actions.
-import { TYPES } from "./actions-panel";
 import { el } from "./dom";
-import { apply, editablePart, remove } from "./ops";
-import { select } from "./state";
+import { STATUSES, TYPES } from "./node-info";
+import { remove, setType } from "./ops";
+import { select, startEdit } from "./state";
 import { setStatus } from "./status";
 import type { TreeNode } from "./types";
 
@@ -58,29 +58,30 @@ async function copyPath(node: TreeNode): Promise<void> {
   }
 }
 
-function focusNameField(node: TreeNode): void {
-  select(node.relParts);
-  const input = document.querySelector<HTMLInputElement>("#f-name");
-  input?.focus();
-  input?.select();
-}
-
 function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
   dismissOpen?.();
   const a = node.actions;
 
   const rename = menuItem("Rename", "menuitem", a.rename, () => {
     close(false);
-    focusNameField(node);
+    startEdit(node.relParts);
   });
   const types = TYPES.map(([base, label]) => {
     const b = menuItem(label, "menuitemradio", a.changeType, () => {
       close();
-      void apply(node, { editable: editablePart(node.name), type: base, status: node.status ?? "in-progress" });
+      void setType(node, base, node.status ?? "in-progress");
     });
     b.setAttribute("aria-checked", String(node.nodeType?.base === base));
     return b;
   });
+  const statuses = node.nodeType?.base === "WKB" ? STATUSES.map(([value, label]) => {
+    const b = menuItem(label, "menuitemradio", a.changeType, () => {
+      close();
+      void setType(node, "WKB", value);
+    });
+    b.setAttribute("aria-checked", String(node.status === value));
+    return b;
+  }) : [];
   const copy = menuItem("Copy path", "menuitem", a.copyPath, () => {
     close();
     void copyPath(node);
@@ -90,7 +91,7 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     void remove(node);
   }, "ctx-item danger");
 
-  const items = [rename, ...types, copy, del];
+  const items = [rename, ...types, ...statuses, copy, del];
   const group = el(
     "div",
     { class: "ctx-group", role: "group", "aria-label": "Change node type" },
@@ -102,6 +103,7 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` },
     rename,
     group,
+    ...(statuses.length > 0 ? [el("div", { class: "ctx-group", role: "group", "aria-label": "Workboard status" }, el("div", { class: "ctx-label", "aria-hidden": "true" }, "Workboard status"), ...statuses)] : []),
     copy,
     el("div", { class: "ctx-sep", role: "separator" }),
     del,
