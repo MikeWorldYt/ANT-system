@@ -5,6 +5,7 @@ mod config;
 mod db;
 mod edit_actions;
 mod error;
+mod footprint;
 mod fs_safe;
 mod info;
 mod move_delete;

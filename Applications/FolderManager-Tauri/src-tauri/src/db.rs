@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS node_fields (
     value TEXT NOT NULL,
     PRIMARY KEY (path, key)
 ) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS footprints (id TEXT PRIMARY KEY, path TEXT NOT NULL) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS node_fields_key_value ON node_fields (key, value COLLATE NOCASE);
 ";
 
@@ -131,6 +132,24 @@ impl Store {
             });
         }
         Ok(())
+    }
+
+    pub fn footprints(&self) -> R<HashMap<String, String>> {
+        let fail = |e: rusqlite::Error| db_err("read ant.db", &self.path, &e);
+        let mut stmt = self.conn.prepare("SELECT id, path FROM footprints").map_err(fail)?;
+        let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))).map_err(fail)?;
+        rows.map(|r| r.map_err(fail)).collect()
+    }
+
+    pub fn replace_footprints(&mut self, footprints: &HashMap<String, String>) -> R<()> {
+        let path = self.path.clone();
+        let fail = |e: rusqlite::Error| db_err("write ant.db", &path, &e);
+        let tx = self.conn.transaction().map_err(fail)?;
+        tx.execute("DELETE FROM footprints", []).map_err(fail)?;
+        for (id, folder) in footprints {
+            tx.execute("INSERT INTO footprints (id, path) VALUES (?1, ?2)", params![id, folder]).map_err(fail)?;
+        }
+        tx.commit().map_err(fail)
     }
 
     // Skips the write when nothing changed, so a window-focus refresh costs one read of the info files.

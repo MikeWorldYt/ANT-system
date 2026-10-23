@@ -14,6 +14,7 @@ use crate::move_delete::{self, DeletePreview, MoveDirection, PendingRecycle};
 use crate::review_index;
 use crate::tree_node::{build_children, build_tree, TreeNode, TreeSnapshot};
 use crate::db::Store;
+use crate::footprint;
 use crate::search::parse_query;
 use crate::search_index;
 use crate::yaml_store::{self, yaml_path};
@@ -77,11 +78,15 @@ where
 pub fn snapshot(root: &Path) -> R<TreeSnapshot> {
     let mut data = yaml_store::load(root)?;
     let mut changed = yaml_store::sync(root, &mut data)?;
-    if changed {
+    if changed || !footprint::scan(root)?.is_clean() {
         // Reloading under the file lock keeps this save from overwriting another process's edit.
         let _lock = StorageLock::acquire(root)?;
         data = yaml_store::load(root)?;
         changed = yaml_store::sync(root, &mut data)?;
+        if footprint::apply(root, &mut data)? {
+            yaml_store::sync(root, &mut data)?;
+            changed = true;
+        }
         if changed {
             yaml_store::save(root, &data)?;
         }

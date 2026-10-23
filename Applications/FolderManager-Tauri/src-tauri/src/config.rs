@@ -15,6 +15,7 @@ pub const TRASH_DIR: &str = ".ant-trash";
 pub const DATA_DIR: &str = ".ant";
 pub const DB_FILENAME: &str = "ant.db";
 pub const INFO_FILENAME: &str = "info.json";
+pub const FOOTPRINT_FILENAME: &str = "dragpath.json";
 pub const MAX_DEPTH: usize = 3;
 
 pub const LOCKED_TYPES: &[&str] = &["REV", "RES", "TPL", "CFG"];
