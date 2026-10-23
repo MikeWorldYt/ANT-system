@@ -1,16 +1,5 @@
-# Local planning and agent config
-/spec
-.claude/
-
-# Dependencies and lockfiles of other package managers
-node_modules/
-package-lock.json
-yarn.lock
-pnpm-debug.log*
-
-# System files
-desktop.ini
-.DS_Store
-Thumbs.db
-.angular
+node_modules
+web-dist
 /dist
+src-tauri/target
+src-tauri/gen
