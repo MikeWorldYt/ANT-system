@@ -1,5 +1,6 @@
 // Single in-memory store for the tree snapshot, selection and expansion.
 import { listChildren } from "./api";
+import { favoritesFirst } from "./node-info";
 import { readPref, savePref } from "./prefs";
 import type { TreeNode, TreeSnapshot } from "./types";
 
@@ -11,6 +12,11 @@ interface State {
   editing: { key: string; draft: string; focused: boolean } | null;
   // Order of each column, keyed by its parent's path ("" for the first one); the tree view has its own.
   sorts: Record<string, ColumnSort>;
+  settings: Settings;
+}
+
+export interface Settings {
+  pinFavorites: boolean;
 }
 
 export type SortBy = "name" | "type" | "status";
@@ -39,6 +45,7 @@ export const state: State = {
   busy: false,
   editing: null,
   sorts: readSorts(),
+  settings: { pinFavorites: true },
 };
 
 const listeners = new Set<() => void>();
@@ -72,13 +79,17 @@ export function selectedNode(): TreeNode | null {
 export function visibleRows(): TreeNode[] {
   const rows: TreeNode[] = [];
   const walk = (nodes: TreeNode[]) => {
-    for (const n of nodes) {
+    for (const n of favoritesFirst(nodes, state.settings.pinFavorites)) {
       rows.push(n);
       if (state.expanded.has(keyOf(n.relParts)) && n.children) walk(n.children);
     }
   };
   walk(state.tree?.nodes ?? []);
   return rows;
+}
+
+export function applySettings(saved: Record<string, string>): void {
+  state.settings.pinFavorites = saved.pinFavorites !== "false";
 }
 
 export const sortOf = (columnKey: string): ColumnSort => state.sorts[columnKey] ?? DEFAULT_SORT;

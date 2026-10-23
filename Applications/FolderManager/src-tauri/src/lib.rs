@@ -12,6 +12,7 @@ mod move_delete;
 mod names;
 mod review_index;
 mod search;
+mod settings;
 mod search_index;
 mod tree_node;
 mod updater;
@@ -50,6 +51,9 @@ pub fn run() {
             commands::skip_version,
             commands::set_node_details,
             commands::set_favorite,
+            settings::get_settings,
+            settings::set_setting,
+            settings::open_link,
             commands::check_update,
             commands::start_update,
             commands::search_nodes,

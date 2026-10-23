@@ -2,7 +2,7 @@
 import * as api from "./api";
 import { confirmDialog } from "./dialogs";
 import { setStatus, clearStatus } from "./status";
-import { hydrate, keyOf, notify, pruneSelection, setBusy, setTree, state } from "./state";
+import { applySettings, hydrate, keyOf, notify, pruneSelection, setBusy, setTree, state, type Settings } from "./state";
 import { isFmError } from "./types";
 import type { EditableType, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "./types";
 
@@ -45,9 +45,21 @@ async function applyMutation(m: Mutation, fallback: string[] | null = null): Pro
 
 export function init(): Promise<void> {
   return run(async () => {
+    try {
+      applySettings(await api.getSettings());
+    } catch (e) {
+      setStatus("warning", `Settings: ${api.describeError(e)}`);
+    }
     await reload(await api.loadTree());
   });
 }
+
+export const changeSetting = (key: keyof Settings, value: boolean) =>
+  run(async () => {
+    await api.setSetting(key, String(value));
+    state.settings[key] = value;
+    notify();
+  });
 
 export function refresh(): Promise<void> {
   if (state.busy) return Promise.resolve();

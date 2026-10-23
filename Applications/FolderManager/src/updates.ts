@@ -1,12 +1,15 @@
-// Offers a newer published version once at launch; failures only reach the status line.
+// Offers a newer published version, at launch or on demand; failures only reach the status line.
 import { checkUpdate, describeError, skipVersion, startUpdate } from "./api";
 import { choiceDialog } from "./dialogs";
 import { setStatus } from "./status";
 
-export async function checkForUpdates(): Promise<void> {
+export async function checkForUpdates(announceCurrent = false): Promise<void> {
   try {
     const info = await checkUpdate();
-    if (!info) return;
+    if (!info) {
+      if (announceCurrent) setStatus("info", "You have the latest version");
+      return;
+    }
     const choice = await choiceDialog("New version available", `Current: ${info.current}\nLatest: ${info.latest}\nThe app will close to apply the update.`, [
       ["later", "Remind me later"],
       ["skip", "Skip version"],

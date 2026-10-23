@@ -22,13 +22,20 @@ const sortValue: Record<SortBy, (n: TreeNode) => string | number> = {
   status: (n) => STATUSES.findIndex(([v]) => v === n.status) + 1 || STATUSES.length + 1,
 };
 
+// Favorites go above the rest of their list when pinned; the tail folders still close it.
+export function favoritesFirst(nodes: TreeNode[], pin: boolean): TreeNode[] {
+  if (!pin) return nodes;
+  const body = nodes.filter((n) => !isTail(n.name));
+  return [...body.filter((n) => n.favorite), ...body.filter((n) => !n.favorite), ...nodes.filter((n) => isTail(n.name))];
+}
+
 // Ties keep the incoming name order, and the tail folders close the list in either direction.
-export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort): TreeNode[] {
+export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort, pin: boolean): TreeNode[] {
   const head = nodes.filter((n) => !isTail(n.name));
   const key = sortValue[by];
   const ordered = [...head].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
   if (dir === "desc") ordered.reverse();
-  return [...ordered, ...nodes.filter((n) => isTail(n.name))];
+  return favoritesFirst([...ordered, ...nodes.filter((n) => isTail(n.name))], pin);
 }
 
 export const UNKNOWN = "unknown";
@@ -50,7 +57,7 @@ export function nodeFlags(n: TreeNode): string[] {
 export const nodeSummary = (n: TreeNode): string => [n.nodeType?.raw, ...nodeFlags(n)].filter(Boolean).join(" · ");
 
 export function nodeDetails(n: TreeNode): [string, string][] {
-  const rows: [string, string][] = [["Type", n.nodeType?.raw ?? "—"]];
+  const rows: [string, string][] = [["Name", n.name], ["Type", n.nodeType?.raw ?? "—"]];
   const wkb = isWorkboard(n);
   if (wkb) rows.push(["Status", STATUSES.find(([v]) => v === n.status)?.[1] ?? UNKNOWN]);
   if (wkb) rows.push(["Owner", ownerOf(n) ?? UNKNOWN]);

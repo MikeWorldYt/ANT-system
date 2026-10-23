@@ -2,6 +2,7 @@
 import { el } from "./dom";
 import { guiIcon, type GuiIcon } from "./gui-icons";
 import { attachMenu } from "./anchored-menu";
+import { openSettings } from "./settings-dialog";
 import { addNext, move, refresh } from "./ops";
 import { activeColumnKey, selectedNode, setColumnSort, sortOf, state, type SortBy } from "./state";
 import type { TreeNode } from "./types";
@@ -26,7 +27,8 @@ export interface PanelToggle {
 export function createToolbar(views: ViewPicker, panel: PanelToggle): { element: HTMLElement; render(): void } {
   const title = el("h1", {}, "Storage root name: ");
   const rootName = el("span", { class: "root-name" });
-  title.append(rootName);
+  const settingsBtn = iconButton("Settings", "settings", () => void openSettings());
+  title.append(rootName, settingsBtn);
 
   const withSelected = (fn: (n: TreeNode) => void) => {
     const n = selectedNode();

@@ -135,6 +135,8 @@ body {
   border: 1px solid var(--border); border-radius: 3px; outline: none;
 }
 .details-input:focus { border-color: var(--button); }
+.details-name { display: flex; align-items: center; }
+.details-name .details-input { flex: 1; min-width: 0; width: auto; }
 .details-actions { display: flex; gap: 6px; margin-top: 4px; }
 .name.editing { display: flex; align-items: center; flex: 1; min-width: 0; }
 .name-fixed { color: var(--disabled-text); white-space: pre; }
@@ -143,6 +145,17 @@ body {
   border: 1px solid var(--button); border-radius: 3px; outline: none;
 }
 .dialog-text { white-space: pre-line; }
+.app-header h1 { display: flex; align-items: center; gap: 8px; }
+.app-header h1 .icon-btn { width: 26px; height: 26px; background: transparent; }
+dialog.settings { width: min(460px, calc(100vw - 32px)); }
+.settings-section { margin-top: 14px; }
+.settings-section h3 { margin: 0 0 6px; font-size: 9pt; color: var(--title); }
+.settings-check { display: flex; align-items: center; gap: 8px; }
+.settings-rows { display: grid; gap: 2px; }
+.settings-row { display: flex; gap: 12px; font-size: 9pt; word-break: break-all; }
+.settings-label { flex: none; width: 60px; color: var(--disabled-text); }
+.settings-hint { margin: 0 0 8px; font-size: 9pt; color: var(--disabled-text); }
+.settings-actions { display: flex; gap: 8px; margin-top: 8px; }
 .btn {
   padding: 8px; border: 0; border-radius: 0; font: inherit; font-weight: bold; cursor: pointer;
   background: var(--field-bg); color: var(--text);

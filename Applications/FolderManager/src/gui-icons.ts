@@ -11,11 +11,12 @@ import moveDown from "./assets/gui/move-down.svg?raw";
 import moveUp from "./assets/gui/move-up.svg?raw";
 import refresh from "./assets/gui/refresh.svg?raw";
 import search from "./assets/gui/search.svg?raw";
+import settings from "./assets/gui/settings.svg?raw";
 import separator from "./assets/gui/separator.svg?raw";
 import starred from "./assets/gui/starred.svg?raw";
 import up from "./assets/gui/up.svg?raw";
 
-const SOURCES = { add, back, chevronDown, chevronRight, forward, infoPanel, layout, moveDown, moveUp, pencil, refresh, search, separator, starred, up };
+const SOURCES = { add, back, chevronDown, chevronRight, forward, infoPanel, layout, moveDown, moveUp, pencil, refresh, search, separator, settings, starred, up };
 
 export type GuiIcon = keyof typeof SOURCES;
 
