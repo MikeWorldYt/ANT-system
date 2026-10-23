@@ -4,7 +4,8 @@ import { badge, el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
 import { nameCell } from "./name-cell";
-import { nodeSummary, sortedForColumns } from "../store/node-info";
+import { nodeSummary, statusLabel } from "../store/node-info";
+import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
 import { keyOf, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import type { TreeNode } from "../ipc/types";
@@ -45,8 +46,12 @@ export function createColumnsView(): ViewMode {
     if (selected) item.classList.add("selected");
     else if (onPath) item.classList.add("on-path");
     if (n.ghost) item.classList.add("ghost");
-    if (n.locked) item.classList.add("locked");
-    if (n.status) item.append(badge(`status st-${n.status}`, n.status));
+    if (n.locked) {
+      item.classList.add("locked");
+      item.setAttribute("aria-disabled", "true");
+    }
+    if (n.ghost) item.setAttribute("aria-label", `${n.name} (missing on disk)`);
+    if (n.status) item.append(badge(`status st-${n.status}`, statusLabel(n.status)));
     item.title = nodeSummary(n);
     if (n.hasChildren) item.append(el("span", { class: "chevron", "aria-hidden": "true" }, guiIcon("chevronRight")));
     item.addEventListener("click", () => select(n.relParts));
@@ -55,9 +60,9 @@ export function createColumnsView(): ViewMode {
     return item;
   }
 
-  function buildColumn(col: Column, index: number, path: string[]): HTMLElement {
+  function buildColumn(col: Column, index: number, path: string[], parent: string): HTMLElement {
     if (col.loading) return el("div", { class: "column loading", "aria-busy": "true" }, "Loading…");
-    const column = el("div", { class: "column", role: "listbox", "aria-label": `Level ${index + 1}` });
+    const column = el("div", { class: "column", role: "listbox", "aria-label": `Contents of ${parent}` });
     const first = col.nodes[0];
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
     column.append(...col.nodes.map((n) => buildItem(n, n.name === path[index] && index < path.length - 1, keyOf(n.relParts) === tabbableKey)));
@@ -136,7 +141,7 @@ export function createColumnsView(): ViewMode {
     render() {
       const hadFocus = root.contains(document.activeElement);
       const path = state.selectedKey?.split("/") ?? [];
-      root.replaceChildren(...buildColumns().map((c, i) => buildColumn(c, i, path)));
+      root.replaceChildren(...buildColumns().map((c, i) => buildColumn(c, i, path, path[i - 1] ?? "storage")));
       root.querySelectorAll(".col-item.on-path, .col-item.selected").forEach((e) => e.scrollIntoView({ block: "nearest", inline: "nearest" }));
       root.lastElementChild?.scrollIntoView({ block: "nearest", inline: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });

@@ -4,12 +4,7 @@ import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { findNode, reveal } from "../store/state";
 import { setStatus } from "../ui/status";
-
-interface Chip {
-  key: string;
-  value: string;
-  label: string;
-}
+import { chipQuery, renderChips, splitToken, type Chip } from "./search-chips";
 
 interface Item {
   label: string;
@@ -19,13 +14,7 @@ interface Item {
 
 const LIMIT = 50;
 const DELAY_MS = 200;
-// The last word of the input when it reads `key:partial`.
-const TOKEN = /(?:^|\s)([A-Za-z]+):(\S*)$/;
-
-// Picked values are sent whole (`=`), and quoted so spaces survive the tokenizer.
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-
-const chipQuery = (c: Chip) => (c.key === "in" ? `in:"/${c.value}"` : `${c.key}:"=${c.value}"`);
 
 export function createSearchBar(): HTMLElement {
   const input = el("input", {
@@ -33,6 +22,7 @@ export function createSearchBar(): HTMLElement {
     type: "text",
     placeholder: "Search",
     "aria-label": "Search folders",
+    title: "Filter with in:folder and status:name, then pick a suggestion to make a chip. Ctrl+F focuses the search.",
     role: "combobox",
     "aria-expanded": "false",
     "aria-controls": "search-results",
@@ -57,18 +47,7 @@ export function createSearchBar(): HTMLElement {
   let latest = 0;
   let timer: number | undefined;
 
-  function renderChips(): void {
-    field.querySelectorAll(".search-chip").forEach((c) => c.remove());
-    chips.forEach((chip, i) => {
-      const remove = el("button", { type: "button", class: "chip-x", "aria-label": `Remove ${chip.key}: ${chip.label}`, tabindex: "-1" }, "×");
-      remove.addEventListener("click", () => {
-        chips.splice(i, 1);
-        renderChips();
-        void run();
-      });
-      field.insertBefore(el("span", { class: "search-chip" }, el("span", { class: "chip-key" }, `${chip.key}:`), el("span", { class: "chip-value" }, chip.label), remove), input);
-    });
-  }
+  const redraw = () => renderChips(field, input, chips, () => void run());
 
   function close(): void {
     list.hidden = true;
@@ -102,16 +81,11 @@ export function createSearchBar(): HTMLElement {
     mark();
   }
 
-  function splitToken(value: string): { before: string; key: string; partial: string } | null {
-    const m = TOKEN.exec(value);
-    return m ? { before: value.slice(0, m.index), key: (m[1] ?? "").toLowerCase(), partial: m[2] ?? "" } : null;
-  }
-
   function pickSuggestion(key: string, before: string, s: Suggestion): void {
     chips.push({ key, value: s.value, label: s.label });
     input.value = before;
     lastSuggest = null;
-    renderChips();
+    redraw();
     input.focus();
     void run();
   }
@@ -195,7 +169,7 @@ export function createSearchBar(): HTMLElement {
       close();
     } else if (ev.key === "Backspace" && input.value === "" && chips.length > 0) {
       chips.pop();
-      renderChips();
+      redraw();
       void run();
     } else return;
     ev.preventDefault();

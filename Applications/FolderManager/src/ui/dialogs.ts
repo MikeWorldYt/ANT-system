@@ -1,6 +1,7 @@
 // Modal confirm built on <dialog> for the native focus trap and Escape handling.
 import { el } from "./dom";
 
+// The first choice is the safest one and gets focus; Escape resolves to "later".
 export function choiceDialog(title: string, message: string, choices: [value: string, label: string][]): Promise<string> {
   return new Promise((resolve) => {
     const buttons = el("div", { class: "dialog-buttons" }, ...choices.map(([value, label], i) => el("button", { type: "submit", class: i === choices.length - 1 ? "btn btn-primary" : "btn", value }, label)));
@@ -8,7 +9,7 @@ export function choiceDialog(title: string, message: string, choices: [value: st
     const dialog = el("dialog", { class: "confirm", "aria-labelledby": "choice-title" }, form);
 
     dialog.addEventListener("close", () => {
-      resolve(dialog.returnValue);
+      resolve(dialog.returnValue === "" ? "later" : dialog.returnValue);
       dialog.remove();
     });
     document.body.append(dialog);

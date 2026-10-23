@@ -27,7 +27,9 @@ async function openOrReport(link: "issues" | "mail"): Promise<void> {
 export async function openSettings(): Promise<void> {
   const pin = el("input", { type: "checkbox", id: "setting-pin" });
   pin.checked = state.settings.pinFavorites;
-  pin.addEventListener("change", () => void changeSetting("pinFavorites", pin.checked));
+  pin.addEventListener("change", async () => {
+    if (!(await changeSetting("pinFavorites", pin.checked))) pin.checked = state.settings.pinFavorites;
+  });
   const about = el("div", { class: "settings-rows" });
 
   const close = el("button", { type: "submit", class: "btn btn-primary", value: "close" }, "Close");

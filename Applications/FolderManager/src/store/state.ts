@@ -1,6 +1,6 @@
 // Single in-memory store for the tree snapshot, selection and expansion.
 import { listChildren } from "../ipc/api";
-import { favoritesFirst } from "./node-info";
+import { favoritesFirst, SORT_BYS, type ColumnSort, type SortBy } from "./sort";
 import { readPref, savePref } from "./prefs";
 import type { TreeNode, TreeSnapshot } from "../ipc/types";
 
@@ -19,14 +19,9 @@ export interface Settings {
   pinFavorites: boolean;
 }
 
-export type SortBy = "name" | "type" | "status";
-export interface ColumnSort {
-  by: SortBy;
-  dir: "asc" | "desc";
-}
+export type { ColumnSort, SortBy };
 
 const SORTS_PREF = "fm.sorts";
-const SORT_BYS: readonly SortBy[] = ["name", "type", "status"];
 const DEFAULT_SORT: ColumnSort = { by: "name", dir: "asc" };
 
 function readSorts(): Record<string, ColumnSort> {

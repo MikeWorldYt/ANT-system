@@ -8,7 +8,7 @@ import type { TreeNode, WkbStatus } from "../ipc/types";
 
 // Status and owner live in info.json, so a broken file blocks them but not the rename.
 const canEditFields = (n: TreeNode) => isWorkboard(n) && !n.ghost && n.actions.changeType && !n.info?.error;
-const canEdit = (n: TreeNode) => n.actions.rename || canEditFields(n);
+const canEdit = (n: TreeNode) => n.actions.editDetails;
 const termId = (label: string) => `details-term-${label.toLowerCase()}`;
 const fieldId = (label: string) => `details-field-${label.toLowerCase()}`;
 const labelled = (label: string) => ({ id: fieldId(label), "aria-labelledby": termId(label) });
@@ -17,7 +17,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
   const list = el("dl", { class: "details" });
   const edit = el("button", { type: "button", class: "icon-btn", "aria-label": "Edit details", title: "Edit details" }, guiIcon("pencil"));
   const head = el("div", { class: "details-head" }, el("h2", { id: "details-title" }, "Details"), edit);
-  const empty = el("p", { class: "settings-hint" }, "Select a folder to see its details.");
+  const empty = el("p", { class: "details-empty" }, "Select a folder to see its details.");
   const element = el("aside", { class: "details-panel", "aria-labelledby": "details-title" }, head, list, empty);
   let editing: string | null = null;
   // Built once per editing key, so store notifications do not discard what was typed.
@@ -71,7 +71,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
       stop();
       if (!current) return;
       const fieldsChanged = (status?.value && status.value !== current.status) || (owner && owner.value.trim() !== (ownerOf(current) ?? ""));
-      if (fieldsChanged) await setDetails(current, (status?.value || null) as WkbStatus | null, owner?.value ?? null);
+      if (fieldsChanged && !(await setDetails(current, (status?.value || null) as WkbStatus | null, owner?.value ?? null))) return;
       // A details save re-selects the node, so the rename works on its fresh copy.
       const fresh = selectedNode();
       if (name && fresh && name.value.trim() !== fresh.editableName) await renameTo(fresh, name.value);

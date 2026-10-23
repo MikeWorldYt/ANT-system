@@ -1,5 +1,5 @@
 // Tree view: indented expandable rows with keyboard navigation.
-import { nodeSummary } from "../store/node-info";
+import { nodeSummary, statusLabel } from "../store/node-info";
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { badge, el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
@@ -30,8 +30,12 @@ export function createTreeView(): ViewMode {
     if (n.hasChildren) row.setAttribute("aria-expanded", String(expanded));
     if (key === state.selectedKey) row.classList.add("selected");
     if (n.ghost) row.classList.add("ghost");
-    if (n.locked) row.classList.add("locked");
-    if (n.status) row.append(badge(`status st-${n.status}`, n.status));
+    if (n.locked) {
+      row.classList.add("locked");
+      row.setAttribute("aria-disabled", "true");
+    }
+    if (n.ghost) row.setAttribute("aria-label", `${n.name} (missing on disk)`);
+    if (n.status) row.append(badge(`status st-${n.status}`, statusLabel(n.status)));
     row.title = nodeSummary(n);
     caret.addEventListener("click", (ev) => {
       ev.stopPropagation();
