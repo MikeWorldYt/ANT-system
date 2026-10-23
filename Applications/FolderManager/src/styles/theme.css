@@ -82,7 +82,7 @@ body {
 .crumb-btn { border: 0; background: transparent; padding: 0 2px; font: inherit; cursor: pointer; border-radius: 3px; }
 .crumb-btn:hover { background: var(--field-bg); }
 .crumb-btn.current { font-weight: 600; }
-.toolbar { display: flex; gap: 6px; }
+.toolbar { display: flex; align-items: center; gap: 6px; }
 
 .icon-btn {
   width: 32px; height: 32px; border: 0; border-radius: 4px;
@@ -94,6 +94,7 @@ body {
 .icon-btn .gui-icon { width: 18px; height: 18px; }
 .caret .gui-icon, .chevron .gui-icon, .crumb-sep .gui-icon { width: 12px; height: 12px; }
 .caret, .chevron, .crumb-sep { display: inline-flex; align-items: center; justify-content: center; }
+.icon-btn[hidden], .view-picker[hidden] { display: none; }
 .icon-btn:disabled { color: var(--disabled-text); cursor: default; }
 
 .app-main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 0 12px 12px; }

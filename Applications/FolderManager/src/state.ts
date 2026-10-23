@@ -1,5 +1,6 @@
 // Single in-memory store for the tree snapshot, selection and expansion.
 import { listChildren } from "./api";
+import { readPref, savePref } from "./prefs";
 import type { TreeNode, TreeSnapshot } from "./types";
 
 interface State {
@@ -8,9 +9,37 @@ interface State {
   expanded: Set<string>;
   busy: boolean;
   editing: { key: string; draft: string; focused: boolean } | null;
+  // Order of each column, keyed by its parent's path ("" for the first one); the tree view has its own.
+  sorts: Record<string, ColumnSort>;
 }
 
-export const state: State = { tree: null, selectedKey: null, expanded: new Set(), busy: false, editing: null };
+export type SortBy = "name" | "type" | "status";
+export interface ColumnSort {
+  by: SortBy;
+  dir: "asc" | "desc";
+}
+
+const SORTS_PREF = "fm.sorts";
+const DEFAULT_SORT: ColumnSort = { by: "name", dir: "asc" };
+
+function readSorts(): Record<string, ColumnSort> {
+  try {
+    const parsed: unknown = JSON.parse(readPref(SORTS_PREF) ?? "{}");
+    return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, ColumnSort>) : {};
+  } catch (e) {
+    console.warn("Saved column order is unreadable", e);
+    return {};
+  }
+}
+
+export const state: State = {
+  tree: null,
+  selectedKey: null,
+  expanded: new Set(),
+  busy: false,
+  editing: null,
+  sorts: readSorts(),
+};
 
 const listeners = new Set<() => void>();
 
@@ -50,6 +79,17 @@ export function visibleRows(): TreeNode[] {
   };
   walk(state.tree?.nodes ?? []);
   return rows;
+}
+
+export const sortOf = (columnKey: string): ColumnSort => state.sorts[columnKey] ?? DEFAULT_SORT;
+
+// The column the selection stands in, or the first one when nothing is selected.
+export const activeColumnKey = (): string => state.selectedKey?.split("/").slice(0, -1).join("/") ?? "";
+
+export function setColumnSort(columnKey: string, patch: Partial<ColumnSort>): void {
+  state.sorts[columnKey] = { ...sortOf(columnKey), ...patch };
+  savePref(SORTS_PREF, JSON.stringify(state.sorts));
+  notify();
 }
 
 export function select(parts: string[] | null): void {

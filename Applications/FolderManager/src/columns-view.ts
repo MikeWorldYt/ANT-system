@@ -4,9 +4,9 @@ import { badge, el } from "./dom";
 import { guiIcon } from "./gui-icons";
 import { folderIcon } from "./icons";
 import { nameCell } from "./name-cell";
-import { nodeSummary } from "./node-info";
+import { nodeSummary, sortedForColumns } from "./node-info";
 import { expand } from "./ops";
-import { keyOf, select, selectedNode, startEdit, state } from "./state";
+import { keyOf, select, selectedNode, sortOf, startEdit, state } from "./state";
 import type { TreeNode } from "./types";
 import type { ViewMode } from "./view-mode";
 
@@ -20,7 +20,8 @@ function buildColumns(): Column[] {
   const path = state.selectedKey?.split("/") ?? [];
   let nodes: TreeNode[] = state.tree?.nodes ?? [];
   for (let depth = 0; ; depth++) {
-    cols.push({ nodes, loading: false });
+    const shown = sortedForColumns(nodes, sortOf(path.slice(0, depth).join("/")));
+    cols.push({ nodes: shown, loading: false });
     const open = nodes.find((n) => n.name === path[depth]);
     if (!open || !open.hasChildren) break;
     if (open.children === null) {
@@ -65,7 +66,7 @@ export function createColumnsView(): ViewMode {
 
   async function enterChildren(n: TreeNode): Promise<void> {
     if (n.children === null) await expand(n);
-    const first = n.children?.[0];
+    const first = sortedForColumns(n.children ?? [], sortOf(keyOf(n.relParts)))[0];
     if (first) select(first.relParts);
   }
 

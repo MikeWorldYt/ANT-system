@@ -5,6 +5,8 @@ export interface MenuChoice {
   label: string;
   // Present for radio-style menus, where exactly one choice is checked.
   checked?: boolean;
+  // Draws a separator above this choice.
+  divider?: boolean;
   run(): void;
 }
 
@@ -12,7 +14,8 @@ export function attachMenu(anchor: HTMLElement, label: string, choices: () => Me
   let closeMenu: (() => void) | null = null;
 
   function open(): void {
-    const items = choices().map((c) => {
+    const list = choices();
+    const items = list.map((c) => {
       const radio = c.checked !== undefined;
       const b = el("button", { type: "button", role: radio ? "menuitemradio" : "menuitem", tabindex: "-1", class: "ctx-item" }, c.label);
       if (radio) b.setAttribute("aria-checked", String(c.checked));
@@ -22,7 +25,7 @@ export function attachMenu(anchor: HTMLElement, label: string, choices: () => Me
       });
       return b;
     });
-    const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": label }, el("div", { class: "ctx-group", role: "group" }, ...items));
+    const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": label }, el("div", { class: "ctx-group", role: "group" }, ...items.flatMap((b, i) => (list[i]?.divider ? [el("div", { class: "ctx-sep", role: "separator" }), b] : [b]))));
     const outside = (ev: Event) => {
       if (!menu.contains(ev.target as Node) && !anchor.contains(ev.target as Node)) close();
     };
