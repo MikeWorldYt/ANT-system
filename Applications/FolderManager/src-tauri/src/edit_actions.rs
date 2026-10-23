@@ -12,7 +12,7 @@ use crate::footprint;
 use crate::error::{FmError, R};
 use crate::info::{field_of, read_info, write_info, OWNER_KEYS};
 use crate::fs_safe::{
-    error_text, io_err, join_rel, resolve, same_name, validate_component, Journal, StorageLock,
+    io_err, join_rel, resolve, same_name, validate_component, Journal, StorageLock,
 };
 use crate::names::{
     compose_name, editable_part, name_parts, list_subdirs, next_available_id, sanitize_train_case,
@@ -194,7 +194,7 @@ pub fn add_child(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
             entry.insert(rev_name.into(), rev.into());
         }
         Ok(()) => {}
-        Err(e) => warnings.push(format!("Could not create {rev_name}: {}", error_text(&e))),
+        Err(e) => warnings.push(format!("Could not create {rev_name}: {e}")),
     }
     match get_node_mut(&mut data, parent) {
         Some(node) => {
@@ -208,7 +208,7 @@ pub fn add_child(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     persist(root, &data, journal, "add child")?;
     // The folder exists now, so a failure here is only reported.
     if let Err(e) = mark_folder(&new_abs, workboard) {
-        warnings.push(format!("Could not set up {DATA_DIR}: {}", error_text(&e)));
+        warnings.push(format!("Could not set up {DATA_DIR}: {e}"));
     }
     register_ids(root, &mut data, &mut warnings);
     Ok(finish(root, &data, synced, Some(child_rel(parent, &new_name)), warnings))
@@ -221,10 +221,10 @@ fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) {
             // The db keeps the old paths if this save fails, so the next run migrates again.
             let saved = if applied.changed { tree_store::save(root, data) } else { Ok(()) };
             if let Err(e) = saved.and_then(|()| applied.commit(root)) {
-                warnings.push(format!("Could not save moved folders: {}", error_text(&e)));
+                warnings.push(format!("Could not save moved folders: {e}"));
             }
         }
-        Err(e) => warnings.push(format!("Could not assign folder ids: {}", error_text(&e))),
+        Err(e) => warnings.push(format!("Could not assign folder ids: {e}")),
     }
 }
 
@@ -286,7 +286,7 @@ fn cascade_linked(
     }
     let existing = match list_subdirs(node_abs) {
         Ok(names) => names,
-        Err(e) => return vec![format!("Linked folders not renamed: {}", error_text(&e))],
+        Err(e) => return vec![format!("Linked folders not renamed: {e}")],
     };
     let mut warnings = Vec::new();
     for prefix in LINKED_PREFIXES {
@@ -299,7 +299,7 @@ fn cascade_linked(
             Ok(()) => {
                 rename_key(data, node_rel, child_old, &child_new);
             }
-            Err(e) => warnings.push(format!("Could not rename {child_old}: {}", error_text(&e))),
+            Err(e) => warnings.push(format!("Could not rename {child_old}: {e}")),
         }
     }
     warnings

@@ -10,6 +10,7 @@ use crate::config::{
     LINKED_PREFIXES, MAX_DEPTH, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::error::R;
+use crate::fs_safe::join_rel;
 use crate::info::{field_of, read_info, NodeInfo};
 use crate::names::{name_parts, is_movable_node, list_subdirs, numeric_id};
 use crate::tree_store::{get_node, is_locked_type};
@@ -103,7 +104,7 @@ pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<(
 }
 
 fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>> {
-    let disk_dir = parent.iter().fold(root.to_path_buf(), |p, part| p.join(part));
+    let disk_dir = join_rel(root, parent);
     let disk = if disk_dir.is_dir() { list_subdirs(&disk_dir)? } else { Vec::new() };
     let yaml: Vec<&str> = get_node(data, parent)
         .map(|m| child_entries(m).map(|(k, _)| k).collect())
@@ -152,7 +153,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
 
     let yaml_entry = get_node(data, &rel_parts);
     let raw_type = yaml_entry.and_then(|m| m.get("type")).and_then(Value::as_str).unwrap_or("");
-    let abs_path = rel_parts.iter().fold(root.to_path_buf(), |p, part| p.join(part));
+    let abs_path = join_rel(root, &rel_parts);
     let info = if ghost { None } else { read_info(&abs_path) };
     // A status in the folder's own info.json is the one shown; the yaml one is the fallback.
     let status_raw = info

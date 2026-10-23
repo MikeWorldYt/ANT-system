@@ -9,9 +9,9 @@ use tauri::AppHandle;
 use crate::commands::run_locked;
 use crate::db::Store;
 use crate::error::{FmError, R};
+use crate::fs_safe::CREATE_NO_WINDOW;
 use crate::updater::CURRENT_VERSION;
 
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 const ISSUES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/issues/new";
 const MAIL_ADDRESS: &str = "info@mikeworld.dev";
 // Every setting is an on/off switch for now; a new key is added here before the UI can write it.

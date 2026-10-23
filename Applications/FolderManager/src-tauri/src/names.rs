@@ -4,11 +4,10 @@ use std::path::{Path, PathBuf};
 use crate::ant_core::tree_types::type_base;
 use crate::config::{is_hidden_dir, SETTINGS_FOLDER};
 use crate::error::R;
-use crate::fs_safe::io_err;
+use crate::fs_safe::{io_err, FORBIDDEN};
 
 const FIRST_SLOT: u32 = 1;
 const LAST_SLOT: u32 = 89;
-const FORBIDDEN: &[char] = &['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
 
 pub fn numeric_id(name: &str) -> Option<u32> {
     let digits_len = name.bytes().take_while(|b| b.is_ascii_digit()).count();

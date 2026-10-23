@@ -7,11 +7,10 @@ use std::time::{Duration, Instant};
 use crate::ant_core::version::{parse_file_version, parse_version};
 use crate::config::{CORE_FOLDER, EXE_DOWNLOAD_URL, SETTINGS_FOLDER, UPDATER_SCRIPT, VERSION_URL};
 use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, run_powershell};
+use crate::fs_safe::{io_err, run_powershell, CREATE_NO_WINDOW};
 
 pub const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 // Same grace period the Python app used: an updater that dies sooner than this has failed.
 const EARLY_EXIT: Duration = Duration::from_millis(1500);
 

@@ -7,7 +7,7 @@ use serde_yaml::{Mapping, Value};
 use crate::ant_core::shortcuts::{create_shortcuts, review_shortcut_name};
 use crate::ant_core::tree_types::child_entries;
 use crate::config::{MAX_DEPTH, REVIEW_FOLDER};
-use crate::fs_safe::{error_text, is_link};
+use crate::fs_safe::is_link;
 use crate::names::editable_part;
 use crate::tree_store::is_locked_type;
 
@@ -80,7 +80,7 @@ fn walk(
         if rev_abs.is_dir() {
             match review_shortcut_name(&child_parts, "") {
                 Ok(link) => pairs.push((rev_abs, review_dir.join(link))),
-                Err(e) => failures.push(error_text(&e)),
+                Err(e) => failures.push(e.to_string()),
             }
         }
         if child_parts.len() < MAX_DEPTH {

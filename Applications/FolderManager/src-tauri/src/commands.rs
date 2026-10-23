@@ -186,7 +186,7 @@ pub async fn get_storage(app: AppHandle) -> R<StorageInfo> {
     run_locked(app, |root| {
         Ok(StorageInfo {
             root: root.to_string_lossy().into_owned(),
-            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            app_version: updater::CURRENT_VERSION.to_string(),
             max_depth: MAX_DEPTH,
         })
     })

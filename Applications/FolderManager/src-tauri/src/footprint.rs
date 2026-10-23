@@ -3,7 +3,7 @@ use std::collections::hash_map::RandomState;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::hash::{BuildHasher, Hasher};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_yaml::{Mapping, Value};
@@ -12,7 +12,7 @@ use crate::ant_core::tree_types::META_KEYS;
 use crate::config::{DATA_DIR, FOOTPRINT_FILENAME, MAX_DEPTH};
 use crate::db::Store;
 use crate::error::R;
-use crate::fs_safe::write_atomic;
+use crate::fs_safe::{join_rel, write_atomic};
 use crate::names::list_subdirs;
 use crate::tree_node::is_reserved;
 use crate::tree_store::{delete_key, get_node, get_node_mut};
@@ -70,7 +70,7 @@ pub fn plan(root: &Path, data: &mut Mapping) -> R<Applied> {
             Some(id) => id,
             None => {
                 let id = new_id(&taken);
-                write_id(&folder_of(root, &l.rel), &id)?;
+                write_id(&join_rel(root, &l.rel), &id)?;
                 taken.insert(id.clone());
                 id
             }
@@ -129,7 +129,7 @@ pub fn apply(root: &Path, data: &mut Mapping) -> R<bool> {
 // Compares the real directory listing, because on Windows a case-only rename still resolves under the old name.
 fn still_listed(root: &Path, rel: &[String]) -> bool {
     let Some((name, parent)) = rel.split_last() else { return false };
-    let dir = folder_of(root, parent);
+    let dir = join_rel(root, parent);
     dir.is_dir() && list_subdirs(&dir).is_ok_and(|names| names.contains(name))
 }
 
@@ -150,10 +150,6 @@ fn walk(rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>) -> R<()> {
         rel.pop();
     }
     Ok(())
-}
-
-fn folder_of(root: &Path, rel: &[String]) -> PathBuf {
-    rel.iter().fold(root.to_path_buf(), |p, part| p.join(part))
 }
 
 // An unreadable or malformed file counts as no id, so a new one replaces it.
