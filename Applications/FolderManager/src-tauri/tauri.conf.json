@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Folder Manager",
+  "version": "2.0.1-beta",
+  "identifier": "com.mikeworldyt.foldermanager",
+  "build": {
+    "beforeDevCommand": "pnpm.cmd run dev",
+    "beforeBuildCommand": "pnpm.cmd run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../web-dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "ANT System - Folder Manager",
+        "width": 1000,
+        "height": 640,
+        "theme": "Dark"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://raw.githubusercontent.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"]
+  }
+}

@@ -1,5 +1,6 @@
 # Builds the Windows executables of the ANT apps whenever their version.txt changes on main,
 # commits them to Applications/<App>/dist and publishes a per-app GitHub Release.
+# An app with src-tauri/ is built with Tauri and pnpm; any other app is built with PyInstaller.
 name: Build apps
 
 on:
@@ -67,17 +68,48 @@ jobs:
         app: ${{ fromJson(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+      - name: Detect app kind
+        id: kind
+        shell: pwsh
+        run: |
+          $tauri = Test-Path "Applications/${{ matrix.app }}/src-tauri/tauri.conf.json"
+          "tauri=$($tauri.ToString().ToLower())" >> $env:GITHUB_OUTPUT
       - uses: actions/setup-python@v5
+        if: steps.kind.outputs.tauri == 'false'
         with:
           python-version: "3.13"
       - name: Install build tools
+        if: steps.kind.outputs.tauri == 'false'
         run: python -m pip install --upgrade pip pyinstaller pyyaml
       - name: Build
+        if: steps.kind.outputs.tauri == 'false'
         working-directory: Applications/${{ matrix.app }}
         shell: pwsh
         run: |
           $spec = Get-ChildItem *.spec | Select-Object -First 1
           python -m PyInstaller $spec.Name --noconfirm --clean --distpath build-dist --workpath build-work
+      - uses: pnpm/action-setup@v4
+        if: steps.kind.outputs.tauri == 'true'
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        if: steps.kind.outputs.tauri == 'true'
+        with:
+          node-version: 24
+      - name: Build (Tauri)
+        if: steps.kind.outputs.tauri == 'true'
+        working-directory: Applications/${{ matrix.app }}
+        shell: pwsh
+        run: |
+          # version.txt feeds the updater and tauri.conf.json feeds the executable, so they must agree
+          $expected = (Select-String -Path version.txt -Pattern "StringStruct\('FileVersion',\s*'([\d.]+)'\)").Matches[0].Groups[1].Value
+          $conf = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if (-not $conf.StartsWith($expected)) { throw "tauri.conf.json version '$conf' does not match version.txt '$expected'" }
+          rustup toolchain install stable --profile minimal
+          pnpm install --frozen-lockfile
+          pnpm tauri build --no-bundle -- --locked
+          New-Item -ItemType Directory -Force build-dist | Out-Null
+          Copy-Item src-tauri/target/release/folder-manager.exe "build-dist/${{ matrix.app }}.exe"
       - name: Check version
         id: version
         working-directory: Applications/${{ matrix.app }}
@@ -89,7 +121,9 @@ jobs:
           $size = (Get-Item $exe).Length
           if ($size -lt 1MB) { throw "$exe is only $size bytes" }
           $actual = (Get-Item $exe).VersionInfo.FileVersion
-          if ($actual -ne $expected) { throw "exe FileVersion '$actual' does not match version.txt '$expected'" }
+          # A Tauri executable may carry a pre-release tag after the numbers (2.0.1-beta)
+          $sameVersion = if ("${{ steps.kind.outputs.tauri }}" -eq "true") { $actual.StartsWith($expected) } else { $actual -eq $expected }
+          if (-not $sameVersion) { throw "exe FileVersion '$actual' does not match version.txt '$expected'" }
           "version=$expected" >> $env:GITHUB_OUTPUT
           "Built ${{ matrix.app }} $expected ($size bytes)"
       - uses: actions/upload-artifact@v4
