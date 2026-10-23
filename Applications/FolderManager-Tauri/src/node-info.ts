@@ -26,6 +26,10 @@ export function nodeDetails(n: TreeNode): [string, string][] {
   const flags = nodeFlags(n);
   if (flags.length > 0) rows.push(["Flags", flags.join(", ")]);
   if (n.info?.error) rows.push(["Info", n.info.error]);
-  for (const f of n.info?.fields ?? []) rows.push([f.key.charAt(0).toUpperCase() + f.key.slice(1), f.value]);
+  for (const f of n.info?.fields ?? []) {
+    // A recognised status already has its own row.
+    if (f.key.toLowerCase() === "status" && n.status) continue;
+    rows.push([f.key.charAt(0).toUpperCase() + f.key.slice(1), f.value]);
+  }
   return rows;
 }

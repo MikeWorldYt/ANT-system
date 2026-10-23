@@ -74,8 +74,9 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     b.setAttribute("aria-checked", String(node.nodeType?.base === base));
     return b;
   });
+  const statusFromInfo = node.info?.fields.some((f) => f.key.toLowerCase() === "status") ?? false;
   const statuses = node.nodeType?.base === "WKB" ? STATUSES.map(([value, label]) => {
-    const b = menuItem(label, "menuitemradio", a.changeType, () => {
+    const b = menuItem(label, "menuitemradio", a.changeType && !statusFromInfo, () => {
       close();
       void setType(node, "WKB", value);
     });

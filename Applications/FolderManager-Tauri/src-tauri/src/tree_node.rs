@@ -130,8 +130,15 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
 
     let yaml_entry = get_node(data, &rel_parts);
     let raw_type = yaml_entry.and_then(|m| m.get("type")).and_then(Value::as_str).unwrap_or("");
-    let status_raw =
-        yaml_entry.and_then(|m| m.get("status")).and_then(Value::as_str).map(str::to_string);
+    let abs_path = rel_parts.iter().fold(root.to_path_buf(), |p, part| p.join(part));
+    let info = if ghost { None } else { read_info(&abs_path) };
+    // A status in the folder's own info.json is the one shown; the yaml one is the fallback.
+    let status_raw = info
+        .iter()
+        .flat_map(|i| &i.fields)
+        .find(|f| f.key.eq_ignore_ascii_case("status"))
+        .map(|f| f.value.clone())
+        .or_else(|| yaml_entry.and_then(|m| m.get("status")).and_then(Value::as_str).map(str::to_string));
     let node_type = (!raw_type.is_empty()).then(|| parse_type(raw_type));
     let is_wkb = node_type.as_ref().is_some_and(|t| t.base == TypeBase::Wkb);
     let status = status_raw.as_deref().filter(|_| is_wkb).and_then(parse_status);
@@ -139,11 +146,9 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
     let locked = is_locked_type(raw_type);
     let reserved = is_reserved(&rel_parts);
     let has_children = !ghost && !level_entries(root, data, &rel_parts)?.is_empty();
-    let abs_path = rel_parts.iter().fold(root.to_path_buf(), |p, part| p.join(part));
     let is_git = !ghost && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
     let (fixed_prefix, editable_name) = name_parts(&entry.name, is_wkb);
-    let info = if ghost { None } else { read_info(&abs_path) };
     Ok(TreeNode {
         actions: compute_actions(depth, ghost, raw_type, reserved),
         name: entry.name,
