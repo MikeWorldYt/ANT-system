@@ -36,6 +36,23 @@ body {
 .root-name { color: var(--text); }
 .nav-bar { display: flex; align-items: center; gap: 6px; padding: 0 12px 10px; }
 .nav-bar .icon-btn { width: 30px; height: 30px; background: transparent; }
+.search-box { position: relative; width: 220px; flex: none; }
+.search-input {
+  width: 100%; padding: 5px 12px; font: inherit; color: var(--text); background: var(--input-bg);
+  border: 1px solid var(--border); border-radius: 8px; outline: none;
+}
+.search-input:focus { border-color: var(--button); }
+.search-results {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 900; width: 420px; max-height: 320px; overflow-y: auto;
+  margin: 0; padding: 4px 0; list-style: none; background: var(--input-bg); border: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.5);
+}
+.search-results[hidden] { display: none; }
+.search-hit { display: flex; align-items: baseline; gap: 8px; padding: 4px 12px; cursor: default; }
+.search-hit[aria-selected="true"], .search-hit:hover { background: var(--highlight); }
+.hit-name { white-space: nowrap; }
+.hit-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--disabled-text); font-size: 9pt; }
+.search-empty { padding: 4px 12px; color: var(--disabled-text); }
 .breadcrumb {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 5px 12px;
   overflow-x: auto; white-space: nowrap; scrollbar-width: none; background: var(--input-bg);

@@ -5,6 +5,7 @@ import { installContextMenu } from "./context-menu";
 import { createDetailsPanel } from "./details-panel";
 import { el } from "./dom";
 import { createNavigator } from "./navigator";
+import { createSearchBar } from "./search-bar";
 import { onReviewIndex, onWindowFocus } from "./events";
 import { init, refresh } from "./ops";
 import { readPref, savePref } from "./prefs";
@@ -41,6 +42,7 @@ const toolbar = createToolbar(
   },
 );
 const navigator = createNavigator();
+navigator.element.append(createSearchBar());
 const panel = createDetailsPanel();
 panel.element.hidden = !detailsVisible;
 const main = el("main", { class: "app-main" }, host, panel.element);

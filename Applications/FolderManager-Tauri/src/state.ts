@@ -69,6 +69,13 @@ export function stopEdit(): void {
   notify();
 }
 
+// Expands every ancestor, loads what is missing and selects the folder.
+export async function reveal(parts: string[]): Promise<void> {
+  for (let i = 1; i < parts.length; i++) state.expanded.add(keyOf(parts.slice(0, i)));
+  await hydrate();
+  select(parts.length > 0 ? parts : null);
+}
+
 export function setBusy(busy: boolean): void {
   state.busy = busy;
   notify();

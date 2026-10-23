@@ -2,7 +2,7 @@
 import { listChildren } from "./api";
 import { el } from "./dom";
 import { guiIcon, type GuiIcon } from "./gui-icons";
-import { findNode, hydrate, keyOf, notify, select, selectedNode, state } from "./state";
+import { findNode, notify, reveal, select, selectedNode, state } from "./state";
 import { clearStatus, setStatus } from "./status";
 import type { TreeNode } from "./types";
 
@@ -56,12 +56,6 @@ export function createNavigator(): { element: HTMLElement; render(): void } {
     }
     at = index;
     await reveal(parts);
-  }
-
-  async function reveal(parts: string[]): Promise<void> {
-    for (let i = 1; i < parts.length; i++) state.expanded.add(keyOf(parts.slice(0, i)));
-    await hydrate();
-    select(parts.length > 0 ? parts : null);
   }
 
   let editing = false;
