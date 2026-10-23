@@ -182,9 +182,19 @@ impl Store {
         let mut args: Vec<String> = Vec::new();
         if let Some(scope) = &query.scope {
             let scope = like_escape(scope.trim_matches('/'));
-            sql.push_str(" AND (path LIKE ? ESCAPE '\\' OR path LIKE ? ESCAPE '\\')");
-            args.push(scope.clone());
-            args.push(format!("{scope}/%"));
+            if scope.contains('/') {
+                sql.push_str(" AND (path LIKE ? ESCAPE '\\' OR path LIKE ? ESCAPE '\\')");
+                args.push(scope.clone());
+                args.push(format!("{scope}/%"));
+            } else {
+                // A bare scope starts a folder name, with or without its number: "200.WORK", "WORK", "wo" or "acade".
+                sql.push_str(
+                    " AND EXISTS (SELECT 1 FROM node_fields s WHERE s.key = 'name' AND (s.value LIKE ? ESCAPE '\\' OR s.value LIKE ? ESCAPE '\\')\
+                     AND (node_fields.path = s.path OR substr(node_fields.path, 1, length(s.path) + 1) = s.path || '/'))",
+                );
+                args.push(format!("{scope}%"));
+                args.push(format!("%.{scope}%"));
+            }
         }
         for (key, value) in &query.filters {
             sql.push_str(" AND EXISTS (SELECT 1 FROM node_fields f WHERE f.path = node_fields.path AND f.key = ? AND f.value LIKE ? ESCAPE '\\')");

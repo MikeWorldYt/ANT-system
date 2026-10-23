@@ -43,7 +43,7 @@ body {
 }
 .search-input:focus { border-color: var(--button); }
 .search-results {
-  position: absolute; right: 0; top: calc(100% + 4px); z-index: 900; width: 420px; max-height: 320px; overflow-y: auto;
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 900; width: max-content; min-width: 100%; max-width: 420px; max-height: 320px; overflow-y: auto;
   margin: 0; padding: 4px 0; list-style: none; background: var(--input-bg); border: 1px solid var(--border);
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.5);
 }

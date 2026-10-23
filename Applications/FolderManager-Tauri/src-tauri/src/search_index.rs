@@ -75,6 +75,12 @@ mod tests {
         assert_eq!(run(&dir, "in:200.WORK status: in-progress"), ["200.WORK/PJ.002_Other"]);
         assert_eq!(run(&dir, "in:200.WORK status:hold"), ["200.WORK/PJ.001_Fabi-web"]);
         assert_eq!(run(&dir, "other"), ["200.WORK/PJ.002_Other"]);
+        assert_eq!(run(&dir, "in:work client:mike"), ["200.WORK/PJ.001_Fabi-web"]);
+        assert_eq!(run(&dir, "in:WORK other"), ["200.WORK/PJ.002_Other"]);
+        assert_eq!(run(&dir, "in:200.WORK/PJ.002_Other"), ["200.WORK/PJ.002_Other"]);
+        assert!(run(&dir, "in:HOME client:mike").is_empty());
+        assert_eq!(run(&dir, "in:ho client:ana"), ["300.HOME/PJ.003_Mine"]);
+        assert_eq!(run(&dir, "in:20 client:mike"), ["200.WORK/PJ.001_Fabi-web"]);
     }
 
     #[test]
