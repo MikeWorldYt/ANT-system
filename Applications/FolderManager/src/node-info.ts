@@ -3,9 +3,9 @@ import type { TreeNode, WkbStatus } from "./types";
 
 export const TYPES: [string, string][] = [["NODE", "Node"], ["WKB", "Workboard"], ["PORTF", "Portfolio"]];
 export const STATUSES: [WkbStatus, string][] = [
+  ["hold", "Hold"],
   ["in-progress", "In progress"],
   ["for-review", "For review"],
-  ["hold", "Hold"],
   ["done", "Done"],
 ];
 

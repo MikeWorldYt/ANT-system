@@ -1,7 +1,8 @@
 // Context menu shared by every view; item enablement comes only from node.actions.
 import { el } from "./dom";
+import { guiIcon } from "./gui-icons";
 import { STATUSES, TYPES } from "./node-info";
-import { remove, setDetails, setType } from "./ops";
+import { remove, setDetails, setFavorite, setType } from "./ops";
 import { select, startEdit } from "./state";
 import { setStatus } from "./status";
 import type { TreeNode } from "./types";
@@ -58,6 +59,53 @@ async function copyPath(node: TreeNode): Promise<void> {
   }
 }
 
+interface Submenu {
+  element: HTMLElement;
+  trigger: HTMLButtonElement;
+  choices: HTMLButtonElement[];
+  open(): void;
+  close(): void;
+  onKey(ev: KeyboardEvent): void;
+}
+
+// A trigger row that opens its choices in a flyout beside it, so long option lists stay out of the main menu.
+function submenu(label: string, choices: HTMLButtonElement[], enabled: boolean): Submenu {
+  const trigger = menuItem(label, "menuitem", enabled, () => open(), "ctx-item ctx-sub-trigger");
+  trigger.setAttribute("aria-haspopup", "menu");
+  trigger.setAttribute("aria-expanded", "false");
+  trigger.append(guiIcon("chevronRight"));
+  const flyout = el("div", { class: "ctx-menu ctx-flyout", role: "menu", "aria-label": label }, ...choices);
+  flyout.hidden = true;
+  const element = el("div", { class: "ctx-sub" }, trigger, flyout);
+
+  function open(): void {
+    if (!enabled) return;
+    flyout.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+    const t = trigger.getBoundingClientRect();
+    const { width, height } = flyout.getBoundingClientRect();
+    const fitsRight = t.right + width + EDGE <= window.innerWidth;
+    flyout.style.left = `${fitsRight ? t.right : Math.max(EDGE, t.left - width)}px`;
+    flyout.style.top = `${Math.max(EDGE, Math.min(t.top - 4, window.innerHeight - height - EDGE))}px`;
+  }
+  function close(): void {
+    flyout.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  }
+  function onKey(ev: KeyboardEvent): void {
+    const i = choices.indexOf(document.activeElement as HTMLButtonElement);
+    if (ev.key === "ArrowDown") choices[(i + 1) % choices.length]?.focus();
+    else if (ev.key === "ArrowUp") choices[(i - 1 + choices.length) % choices.length]?.focus();
+    else if (ev.key === "ArrowLeft" || ev.key === "Escape") {
+      close();
+      trigger.focus();
+    } else return;
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+  return { element, trigger, choices, open, close, onKey };
+}
+
 function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
   dismissOpen?.();
   const a = node.actions;
@@ -66,7 +114,11 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     close(false);
     startEdit(node.relParts);
   });
-  const types = TYPES.map(([base, label]) => {
+  const favorite = menuItem(node.favorite ? "Remove from favorites" : "Add to favorites", "menuitem", !node.ghost && !node.reserved, () => {
+    close();
+    void setFavorite(node, !node.favorite);
+  });
+  const typeChoices = TYPES.map(([base, label]) => {
     const b = menuItem(label, "menuitemradio", a.changeType, () => {
       close();
       void setType(node, base, node.status ?? "in-progress");
@@ -74,14 +126,17 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     b.setAttribute("aria-checked", String(node.nodeType?.base === base));
     return b;
   });
-  const statuses = node.nodeType?.base === "WKB" ? STATUSES.map(([value, label]) => {
+  const statusChoices = STATUSES.map(([value, label]) => {
     const b = menuItem(label, "menuitemradio", a.changeType && !node.ghost, () => {
       close();
       void setDetails(node, value, null);
     });
     b.setAttribute("aria-checked", String(node.status === value));
+    b.classList.add(`st-${value}`);
     return b;
-  }) : [];
+  });
+  const subs: Submenu[] = [submenu("Change type", typeChoices, a.changeType)];
+  if (node.nodeType?.base === "WKB") subs.push(submenu("Status", statusChoices, a.changeType && !node.ghost));
   const copy = menuItem("Copy path", "menuitem", a.copyPath, () => {
     close();
     void copyPath(node);
@@ -91,21 +146,18 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     void remove(node);
   }, "ctx-item danger");
 
-  const items = [rename, ...types, ...statuses, copy, del];
-  const group = el(
-    "div",
-    { class: "ctx-group", role: "group", "aria-label": "Change node type" },
-    el("div", { class: "ctx-label", "aria-hidden": "true" }, "Change node type"),
-    ...types,
-  );
+  const items = [rename, favorite, ...subs.map((s) => s.trigger), copy, del];
+  const closeSubs = () => subs.forEach((s) => s.close());
+  items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
+  subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));
   const menu = el(
     "div",
     { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` },
     rename,
-    group,
-    ...(statuses.length > 0 ? [el("div", { class: "ctx-group", role: "group", "aria-label": "Workboard status" }, el("div", { class: "ctx-label", "aria-hidden": "true" }, "Workboard status"), ...statuses)] : []),
-    copy,
+    favorite,
+    ...subs.map((s) => s.element),
     el("div", { class: "ctx-sep", role: "separator" }),
+    copy,
     del,
   );
 
@@ -124,7 +176,20 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
 
   const move = (to: number) => items[(to + items.length) % items.length]?.focus();
   menu.addEventListener("keydown", (ev) => {
+    const inside = subs.find((s) => s.element.contains(document.activeElement) && document.activeElement !== s.trigger);
+    if (inside) {
+      inside.onKey(ev);
+      return;
+    }
     const i = items.indexOf(document.activeElement as HTMLButtonElement);
+    const current = subs.find((s) => s.trigger === document.activeElement);
+    if (current && (ev.key === "ArrowRight" || ev.key === "Enter" || ev.key === " ")) {
+      current.open();
+      (current.choices.find((c) => c.getAttribute("aria-checked") === "true") ?? current.choices[0])?.focus();
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
     switch (ev.key) {
       case "ArrowDown":
         move(i + 1);

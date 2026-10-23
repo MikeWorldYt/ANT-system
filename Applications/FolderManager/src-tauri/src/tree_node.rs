@@ -10,7 +10,7 @@ use crate::config::{
     LINKED_PREFIXES, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::error::R;
-use crate::info::{read_info, NodeInfo};
+use crate::info::{field_of, read_info, NodeInfo};
 use crate::names::{name_parts, is_movable_node, list_subdirs, numeric_id};
 use crate::tree_store::{get_node, is_locked_type};
 
@@ -51,6 +51,7 @@ pub struct TreeNode {
     pub is_git: bool,
     pub fixed_prefix: String,
     pub editable_name: String,
+    pub favorite: bool,
     pub info: Option<NodeInfo>,
     pub children: Option<Vec<TreeNode>>,
     pub abs_path: String,
@@ -102,7 +103,7 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
         .chain(yaml.iter().copied().filter(|k| !is_hidden_dir(k)))
         .collect();
 
-    Ok(names
+    let mut entries: Vec<Entry> = names
         .into_iter()
         .map(|name| Entry {
             name: name.to_string(),
@@ -110,7 +111,15 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
             in_yaml: yaml.contains(&name),
         })
         .filter(|e| !(e.on_disk && !e.in_yaml && is_linked_folder(&e.name)))
-        .collect())
+        .collect();
+    // The sort is stable, so each group keeps its name order.
+    entries.sort_by_key(|e| is_tail(&e.name));
+    Ok(entries)
+}
+
+// The 90-99 folders and the 998/999 ones always close a list, after workboards and unnumbered folders too.
+fn is_tail(name: &str) -> bool {
+    numeric_id(name).is_some_and(|n| (90..=99).contains(&n) || n == 998 || n == 999)
 }
 
 fn is_linked_folder(name: &str) -> bool {
@@ -165,6 +174,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
         is_git,
         fixed_prefix,
         editable_name,
+        favorite: info.as_ref().and_then(|i| field_of(i, &["favorite"])).is_some_and(|v| v.eq_ignore_ascii_case("true")),
         info,
         children: None,
         abs_path: abs_path.to_string_lossy().into_owned(),
@@ -292,6 +302,26 @@ mod tests {
         assert!(!alpha.ghost && alpha.has_children && alpha.depth == 0);
         let nt = alpha.node_type.as_ref().unwrap();
         assert_eq!((nt.base, nt.level), (TypeBase::Node, Some(1)));
+    }
+
+    #[test]
+    fn the_90s_and_the_last_roots_close_the_list_after_workboards() {
+        let dir = TempDir::new("tail");
+        for d in ["01.A", "98.Review", "90.Resources", "PJ.001_Wb", "Loose"] {
+            dir.mkdir(&format!("01.Top/{d}"));
+        }
+        let data: Mapping = serde_yaml::from_str(
+            "01.Top:
+  type: NODE-L1
+  01.A: {type: NODE-L2}
+  98.Review: {type: REV-L1}
+  90.Resources: {type: RES}
+  PJ.001_Wb: {type: WKB-L2}
+",
+        )
+        .unwrap();
+        let kids = build_children(dir.path(), &data, &rel(&["01.Top"])).unwrap();
+        assert_eq!(names(&kids), ["01.A", "Loose", "PJ.001_Wb", "90.Resources", "98.Review"]);
     }
 
     #[test]

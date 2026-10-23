@@ -31,7 +31,7 @@ pub fn run() {
         .setup(move |app| {
             use tauri::Manager;
             if let (Some(name), Some(window)) = (&title, app.get_webview_window("main")) {
-                window.set_title(&format!("ANT System - Folder Manager - {name}"))?;
+                window.set_title(&format!("ANT System Manager v.{} ({name})", updater::CURRENT_VERSION))?;
             }
             Ok(())
         })
@@ -49,6 +49,7 @@ pub fn run() {
             commands::get_skipped_version,
             commands::skip_version,
             commands::set_node_details,
+            commands::set_favorite,
             commands::check_update,
             commands::start_update,
             commands::search_nodes,

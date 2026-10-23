@@ -31,7 +31,7 @@ export function createTreeView(): ViewMode {
     if (key === state.selectedKey) row.classList.add("selected");
     if (n.ghost) row.classList.add("ghost");
     if (n.locked) row.classList.add("locked");
-    if (n.status) row.append(badge("status", n.status));
+    if (n.status) row.append(badge(`status st-${n.status}`, n.status));
     row.title = nodeSummary(n);
     caret.addEventListener("click", (ev) => {
       ev.stopPropagation();

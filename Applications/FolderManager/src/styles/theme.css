@@ -2,6 +2,10 @@
   --bg: #202020;
   --text: #ffffff;
   --title: #00b386;
+  --st-progress: #e6c34a;
+  --st-hold: #7fb7e6;
+  --st-review: #f0903c;
+  --st-done: var(--title);
   --button: #00b386;
   --accent: #ff8b40;
   --input-bg: #2b2b2b;
@@ -111,6 +115,14 @@ body {
 .caret { width: 14px; text-align: center; color: var(--accent); }
 .badge { font-size: 8pt; padding: 0 6px; border-radius: 8px; border: 1px solid var(--border); color: var(--disabled-text); }
 .badge.status { color: var(--title); border-color: var(--title); }
+.st-in-progress { --st: var(--st-progress); }
+.st-hold { --st: var(--st-hold); }
+.st-for-review { --st: var(--st-review); }
+.st-done { --st: var(--st-done); }
+.badge.status[class*="st-"] { color: var(--st); border-color: var(--st); }
+.ctx-item[class*="st-"], .details dd[class*="st-"], select.details-input[class*="st-"] { color: var(--st); }
+.fav-mark { display: inline-flex; vertical-align: middle; margin-left: 6px; color: var(--st-progress); }
+.fav-mark .gui-icon { width: 12px; height: 12px; }
 
 .details-panel { width: 220px; flex: none; background: var(--input-bg); padding: 12px; }
 .details-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -190,7 +202,10 @@ dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
 .ctx-item:hover, .ctx-item:focus-visible { background: var(--highlight); }
 .ctx-item.danger { color: var(--delete-hover); }
 .ctx-item[aria-disabled="true"] { color: var(--disabled-text); cursor: default; background: transparent; }
-.ctx-group .ctx-item { padding-left: 30px; }
+.ctx-group .ctx-item, .ctx-flyout .ctx-item { padding-left: 30px; }
+.ctx-flyout[hidden] { display: none; }
+.ctx-sub-trigger { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.ctx-sub-trigger .gui-icon { width: 12px; height: 12px; color: var(--disabled-text); }
 .ctx-item[aria-checked="true"]::before { content: "✓"; position: absolute; left: 12px; color: var(--accent); }
 .ctx-label { padding: 6px 14px 2px; font-size: 8pt; color: var(--title); }
 .ctx-sep { height: 1px; margin: 4px 0; background: var(--border); }

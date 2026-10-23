@@ -23,11 +23,16 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
   function controls(n: TreeNode): Record<string, Node> {
     const status = el("select", { class: "details-input", "aria-label": "Status" });
     if (!n.status) status.append(el("option", { value: "", disabled: "", selected: "" }, UNKNOWN));
+    const tint = () => {
+      status.className = `details-input${status.value ? ` st-${status.value}` : ""}`;
+    };
+    status.addEventListener("change", tint);
     for (const [value, label] of STATUSES) {
       const option = el("option", { value }, label);
       option.selected = value === n.status;
       status.append(option);
     }
+    tint();
     const owner = el("input", { class: "details-input", type: "text", "aria-label": "Owner", placeholder: UNKNOWN, spellcheck: "false", autocomplete: "off" });
     owner.value = ownerOf(n) ?? "";
     const save = el("button", { type: "button", class: "btn btn-primary" }, "Save");
@@ -52,7 +57,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     if (!n || (editing !== null && (editing !== keyOf(n.relParts) || !canEdit(n)))) editing = null;
     edit.hidden = !n || !canEdit(n);
     const inputs = n && editing !== null ? controls(n) : {};
-    const rows = (n ? nodeDetails(n) : []).flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, inputs[k] ?? v)]);
+    const rows = (n ? nodeDetails(n) : []).flatMap(([k, v]) => [el("dt", {}, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? v)]);
     if (inputs[""]) rows.push(el("dd", {}, inputs[""]));
     list.replaceChildren(...rows);
   }

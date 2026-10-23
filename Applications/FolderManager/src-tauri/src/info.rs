@@ -74,8 +74,8 @@ pub fn field_of<'a>(info: &'a NodeInfo, keys: &[&str]) -> Option<&'a str> {
     info.fields.iter().find(|f| keys.iter().any(|k| f.key.eq_ignore_ascii_case(k))).map(|f| f.value.as_str())
 }
 
-// Sets keys in the folder's info.json, keeping every other entry; a broken file is never overwritten.
-pub fn write_info(folder: &Path, updates: &[(&[&str], &str, &str)]) -> R<()> {
+// Sets keys in the folder's info.json (None removes them), keeping every other entry; a broken file is never overwritten.
+pub fn write_info(folder: &Path, updates: &[(&[&str], &str, Option<Value>)]) -> R<()> {
     let dir = folder.join(DATA_DIR);
     let path = dir.join(INFO_FILENAME);
     let mut entries = match fs::read_to_string(&path) {
@@ -83,6 +83,7 @@ pub fn write_info(folder: &Path, updates: &[(&[&str], &str, &str)]) -> R<()> {
             Ok(Value::Mapping(entries)) => entries,
             _ => return Err(FmError::Internal { message: format!("{INFO_FILENAME} is not valid; fix it before editing") }),
         },
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound && updates.iter().all(|u| u.2.is_none()) => return Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Mapping::new(),
         Err(e) => return Err(io_err("read info", &path, &e)),
     };
@@ -91,7 +92,16 @@ pub fn write_info(folder: &Path, updates: &[(&[&str], &str, &str)]) -> R<()> {
             .keys()
             .find_map(|k| k.as_str().filter(|k| aliases.iter().any(|a| a.eq_ignore_ascii_case(k))))
             .map(str::to_string);
-        entries.insert(existing.unwrap_or_else(|| default_key.to_string()).into(), Value::String(value.to_string()));
+        match value {
+            Some(v) => {
+                entries.insert(existing.unwrap_or_else(|| default_key.to_string()).into(), v.clone());
+            }
+            None => {
+                if let Some(key) = existing {
+                    entries.remove(key.as_str());
+                }
+            }
+        }
     }
     if !dir.is_dir() {
         fs::create_dir(&dir).map_err(|e| io_err("create info folder", &dir, &e))?;
@@ -138,6 +148,21 @@ mod tests {
     use super::*;
     use crate::tree_store::test_support::TempDir;
 
+    fn text(s: &str) -> Option<Value> {
+        Some(Value::String(s.to_string()))
+    }
+
+    #[test]
+    fn a_none_value_removes_the_key_and_never_creates_the_file() {
+        let dir = with_info("info-remove", r#"{"favorite": true, "owner": "Mike"}"#);
+        write_info(dir.path(), &[(&["favorite"], "favorite", None)]).unwrap();
+        let info = read_info(dir.path()).unwrap();
+        assert_eq!(info.fields.len(), 1);
+        let bare = TempDir::new("info-remove-bare");
+        write_info(bare.path(), &[(&["favorite"], "favorite", None)]).unwrap();
+        assert!(!bare.path().join(".ant").exists());
+    }
+
     fn with_info(tag: &str, text: &str) -> TempDir {
         let dir = TempDir::new(tag);
         dir.mkdir(".ant");
@@ -169,7 +194,7 @@ mod tests {
     #[test]
     fn writing_keeps_other_entries_and_updates_an_alias_in_place() {
         let dir = with_info("info-write", r#"{"holder": "Mike", "hours": 3, "note": "say \"hi\""}"#);
-        write_info(dir.path(), &[(&OWNER_KEYS, "owner", "Ana"), (&["status"], "status", "hold")]).unwrap();
+        write_info(dir.path(), &[(&OWNER_KEYS, "owner", text("Ana")), (&["status"], "status", text("hold"))]).unwrap();
         let info = read_info(dir.path()).unwrap();
         let pairs: Vec<(&str, &str)> = info.fields.iter().map(|f| (f.key.as_str(), f.value.as_str())).collect();
         assert_eq!(pairs, [("holder", "Ana"), ("hours", "3"), ("note", "say \"hi\""), ("status", "hold")]);
@@ -178,10 +203,10 @@ mod tests {
     #[test]
     fn writing_creates_the_hidden_folder_and_refuses_a_broken_file() {
         let dir = TempDir::new("info-create");
-        write_info(dir.path(), &[(&["status"], "status", "unknown")]).unwrap();
+        write_info(dir.path(), &[(&["status"], "status", text("unknown"))]).unwrap();
         assert_eq!(read_info(dir.path()).unwrap().fields.len(), 1);
         fs::write(dir.path().join(".ant/info.json"), "{oops").unwrap();
-        assert!(write_info(dir.path(), &[(&["status"], "status", "hold")]).is_err());
+        assert!(write_info(dir.path(), &[(&["status"], "status", text("hold"))]).is_err());
     }
 
     #[test]

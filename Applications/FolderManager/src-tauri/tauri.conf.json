@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "ANT System - Folder Manager",
+        "title": "ANT System Manager",
         "width": 1000,
         "height": 640,
         "theme": "Dark"

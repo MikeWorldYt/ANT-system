@@ -107,6 +107,9 @@ export const setType = (node: TreeNode, base: string, status: WkbStatus) =>
 export const setDetails = (node: TreeNode, status: WkbStatus | null, owner: string | null) =>
   run(async () => applyMutation(await api.setNodeDetails(node.relParts, status, owner), node.relParts));
 
+export const setFavorite = (node: TreeNode, on: boolean) =>
+  run(async () => applyMutation(await api.setFavorite(node.relParts, on), node.relParts));
+
 export const remove = (node: TreeNode) =>
   run(async () => {
     const preview = await api.inspectDelete(node.relParts);

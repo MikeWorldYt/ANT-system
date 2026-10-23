@@ -139,7 +139,7 @@ pub fn set_details(root: &Path, rel: &[String], status: Option<WkbStatus>, owner
         Some(o) if !o.is_empty() => o.chars().filter(|c| !c.is_control()).take(100).collect(),
         _ => kept(&OWNER_KEYS).unwrap_or_else(|| "unknown".to_string()),
     };
-    write_info(&target.abs, &[(&["status"], "status", &status), (&OWNER_KEYS, "owner", &owner)])?;
+    write_info(&target.abs, &[(&["status"], "status", Some(status.into())), (&OWNER_KEYS, "owner", Some(owner.into()))])?;
     tree_store::save(root, &data)?;
     Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new()))
 }
@@ -210,18 +210,40 @@ pub fn add_child(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     if let Err(e) = mark_folder(&new_abs, workboard) {
         warnings.push(format!("Could not set up {DATA_DIR}: {}", error_text(&e)));
     }
-    match footprint::plan(root, &mut data) {
+    register_ids(root, &mut data, &mut warnings);
+    Ok(finish(root, &data, synced, Some(child_rel(parent, &new_name)), warnings))
+}
+
+// Folders that just got a .ant folder receive their id now instead of at the next refresh.
+fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) {
+    match footprint::plan(root, data) {
         Ok(applied) => {
             // The db keeps the old paths if this save fails, so the next run migrates again.
-            let saved = if applied.changed { tree_store::save(root, &data) } else { Ok(()) };
-            match saved.and_then(|()| applied.commit(root)) {
-                Ok(()) => {}
-                Err(e) => warnings.push(format!("Could not save moved folders: {}", error_text(&e))),
+            let saved = if applied.changed { tree_store::save(root, data) } else { Ok(()) };
+            if let Err(e) = saved.and_then(|()| applied.commit(root)) {
+                warnings.push(format!("Could not save moved folders: {}", error_text(&e)));
             }
         }
         Err(e) => warnings.push(format!("Could not assign folder ids: {}", error_text(&e))),
     }
-    Ok(finish(root, &data, synced, Some(child_rel(parent, &new_name)), warnings))
+}
+
+// A favorite is a flag in the folder's own info.json, so it travels with the folder and is searchable.
+pub fn set_favorite(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
+    let _lock = StorageLock::acquire(root)?;
+    let (mut data, synced) = load_synced(root)?;
+    let target = locate(root, &data, rel)?;
+    if is_reserved(rel) {
+        return Err(FmError::Reserved { rel_parts: rel.to_vec() });
+    }
+    if target.ghost {
+        return Err(FmError::GhostNotAllowed { op: "favorite".to_string() });
+    }
+    write_info(&target.abs, &[(&["favorite"], "favorite", on.then_some(Value::Bool(true)))])?;
+    let mut warnings = Vec::new();
+    register_ids(root, &mut data, &mut warnings);
+    tree_store::save(root, &data)?;
+    Ok(finish(root, &data, synced, Some(rel.to_vec()), warnings))
 }
 
 // Next free 3-digit tracker after every PJ workboard in the tree, missing folders included.
@@ -241,7 +263,7 @@ fn next_tracker(data: &Mapping) -> u32 {
 // Every created folder gets a .ant folder, which is what lets its id follow it around; workboards also start their info.json.
 fn mark_folder(folder: &Path, workboard: bool) -> R<()> {
     if workboard {
-        return write_info(folder, &[(&["status"], "status", "in-progress"), (&OWNER_KEYS, "owner", "unknown")]);
+        return write_info(folder, &[(&["status"], "status", Some("in-progress".into())), (&OWNER_KEYS, "owner", Some("unknown".into()))]);
     }
     let dir = folder.join(DATA_DIR);
     fs::create_dir(&dir).map_err(|e| io_err("create info folder", &dir, &e))?;
@@ -661,6 +683,18 @@ mod tests {
         let id = std::fs::read_to_string(dir.path().join("100.ACADEMIC/04.New-Node/.ant/dragpath.json")).unwrap();
         assert!(id.contains("\"id\""), "{id}");
         assert!(matches!(add_next(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node), Err(FmError::InvalidPath { .. })));
+    }
+
+    #[test]
+    fn favorite_is_a_flag_in_info_json_that_can_be_removed_again() {
+        let dir = academic("favorite");
+        let p = rel(&["100.ACADEMIC", "02.Bio"]);
+        set_favorite(dir.path(), &p, true).unwrap();
+        let file = dir.path().join("100.ACADEMIC/02.Bio/.ant/info.json");
+        assert!(std::fs::read_to_string(&file).unwrap().contains("\"favorite\": true"));
+        set_favorite(dir.path(), &p, false).unwrap();
+        assert!(!std::fs::read_to_string(&file).unwrap().contains("favorite"));
+        assert!(matches!(set_favorite(dir.path(), &rel(&["100.ACADEMIC", "03.Ghost"]), true), Err(FmError::GhostNotAllowed { .. })));
     }
 
     #[test]

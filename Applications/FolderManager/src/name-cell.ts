@@ -1,13 +1,16 @@
 // Name column of a row: plain text, or the in-place editor when this node is being renamed.
 import { el } from "./dom";
+import { guiIcon } from "./gui-icons";
 import { renameTo } from "./ops";
 import { keyOf, state, stopEdit } from "./state";
 import type { TreeNode } from "./types";
 
+const favoriteMark = () => el("span", { class: "fav-mark", title: "Favorite" }, guiIcon("starred"));
+
 export function nameCell(n: TreeNode): HTMLElement {
   const key = keyOf(n.relParts);
   const edit = state.editing;
-  if (!edit || edit.key !== key) return el("span", { class: "name" }, n.name);
+  if (!edit || edit.key !== key) return el("span", { class: "name" }, n.name, ...(n.favorite ? [favoriteMark()] : []));
 
   const input = el("input", { class: "name-input", type: "text", spellcheck: "false", autocomplete: "off", "aria-label": `Rename ${n.name}` });
   input.value = edit.draft;

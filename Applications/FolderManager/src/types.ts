@@ -41,6 +41,7 @@ export interface TreeNode {
   isGit: boolean;
   fixedPrefix: string;
   editableName: string;
+  favorite: boolean;
   info: NodeInfo | null;
   children: TreeNode[] | null;
   absPath: string;

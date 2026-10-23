@@ -197,7 +197,7 @@ impl Store {
             sql.push_str(" AND value LIKE ? ESCAPE '\\'");
             args.push(format!("%{}%", like_escape(word)));
         }
-        sql.push_str(" ORDER BY path");
+        sql.push_str(" ORDER BY NOT EXISTS (SELECT 1 FROM node_fields f WHERE f.path = node_fields.path AND f.key = 'favorite' AND lower(f.value) = 'true'), path");
         let fail = |e: rusqlite::Error| db_err("search ant.db", &self.path, &e);
         let mut stmt = self.conn.prepare(&sql).map_err(fail)?;
         let rows = stmt.query_map(rusqlite::params_from_iter(args.iter()), |r| r.get::<_, String>(0)).map_err(fail)?;

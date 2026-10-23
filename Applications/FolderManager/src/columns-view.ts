@@ -45,7 +45,7 @@ export function createColumnsView(): ViewMode {
     else if (onPath) item.classList.add("on-path");
     if (n.ghost) item.classList.add("ghost");
     if (n.locked) item.classList.add("locked");
-    if (n.status) item.append(badge("status", n.status));
+    if (n.status) item.append(badge(`status st-${n.status}`, n.status));
     item.title = nodeSummary(n);
     if (n.hasChildren) item.append(el("span", { class: "chevron", "aria-hidden": "true" }, guiIcon("chevronRight")));
     item.addEventListener("click", () => select(n.relParts));
