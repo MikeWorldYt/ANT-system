@@ -223,6 +223,7 @@ mod tests {
 
     const RICH: &str = "version: 3\nzeta:\n  type: NODE-L1\n  status: done\n  note: hello\n  a: {type: Y}\n  b: {}\nalpha:\n  type: REV\n";
 
+    #[cfg(windows)]
     #[test]
     fn save_creates_a_hidden_db() {
         use std::os::windows::fs::MetadataExt;
@@ -241,6 +242,7 @@ mod tests {
         assert_eq!(load(dir.path()).unwrap(), data);
     }
 
+    #[cfg(windows)]
     #[test]
     fn a_failed_db_write_leaves_the_tree_unchanged() {
         use std::os::windows::fs::OpenOptionsExt;
