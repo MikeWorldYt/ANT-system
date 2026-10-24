@@ -1,6 +1,6 @@
 // Rebuilds the 998.Review shortcuts from the tree; the command layer runs it after rename, move and delete.
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use serde_yaml::{Mapping, Value};
 
@@ -27,14 +27,14 @@ pub(crate) fn rebuild_with(
         Ok(meta) if is_link(&meta) => return vec![format!("{REVIEW_FOLDER} is a link; index not rebuilt")],
         _ => return Vec::new(),
     }
-    let mut failures = remove_old_links(&review_dir);
+    let mut failures = remove_old_links(root, &review_dir);
     let mut pairs = Vec::new();
     walk(data, &[], root, &review_dir, &mut pairs, &mut failures);
     failures.extend(create(&pairs));
     failures
 }
 
-fn remove_old_links(review_dir: &Path) -> Vec<String> {
+fn remove_old_links(#[cfg_attr(windows, allow(unused_variables))] root: &Path, review_dir: &Path) -> Vec<String> {
     let entries = match fs::read_dir(review_dir) {
         Ok(entries) => entries,
         Err(e) => return vec![format!("Could not list {}: {e}", review_dir.display())],
@@ -49,14 +49,51 @@ fn remove_old_links(review_dir: &Path) -> Vec<String> {
             }
         };
         let name = entry.file_name().to_string_lossy().into_owned();
-        let regular_file = entry.file_type().is_ok_and(|t| t.is_file());
-        if regular_file && name.to_lowercase().ends_with(".lnk") {
+        #[cfg(windows)]
+        let stale = entry.file_type().is_ok_and(|t| t.is_file()) && name.to_lowercase().ends_with(".lnk");
+        // Only symlinks into the storage are ours; dangling ones still resolve lexically.
+        #[cfg(not(windows))]
+        let stale = match entry.file_type() {
+            Ok(t) if t.is_symlink() => match fs::read_link(entry.path()) {
+                Ok(target) => targets_storage(root, review_dir, &target),
+                Err(e) => {
+                    failures.push(format!("Could not read link {name}: {e}"));
+                    false
+                }
+            },
+            _ => false,
+        };
+        if stale {
             if let Err(e) = fs::remove_file(entry.path()) {
                 failures.push(format!("Could not remove {name}: {e}"));
             }
         }
     }
     failures
+}
+
+// A link into 998.Review itself may be the user's own, so only targets elsewhere in the storage count.
+#[cfg_attr(windows, allow(dead_code))]
+fn targets_storage(root: &Path, review_dir: &Path, target: &Path) -> bool {
+    let resolved = normalize(&review_dir.join(target));
+    let root = normalize(root);
+    resolved != root && resolved.starts_with(&root) && !resolved.starts_with(normalize(review_dir))
+}
+
+fn normalize(path: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for part in path.components() {
+        match part {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if matches!(out.components().next_back(), Some(Component::Normal(_))) {
+                    out.pop();
+                }
+            }
+            other => out.push(other),
+        }
+    }
+    out
 }
 
 fn walk(
@@ -94,6 +131,7 @@ mod tests {
     use super::*;
     use crate::test_support::{storage, yaml};
 
+    #[cfg(windows)]
     #[test]
     fn rebuild_clears_only_top_level_lnk_files_and_lists_review_folders() {
         let dir = storage(
@@ -136,6 +174,43 @@ mod tests {
             (a.join("01.Math/PJ.Thesis/98.Thesis"), review.join("101.PJ.Thesis")),
         ];
         assert_eq!(seen, expected);
+    }
+
+    #[test]
+    fn targets_storage_accepts_only_links_into_the_storage() {
+        let root = Path::new("/st");
+        let review = root.join("998.Review");
+        assert!(targets_storage(root, &review, Path::new("/st/100.A/98.A")));
+        assert!(targets_storage(root, &review, Path::new("../100.A/01.B/98.B")));
+        assert!(targets_storage(root, &review, Path::new("/st/./gone/../100.A/98.A")));
+        assert!(!targets_storage(root, &review, Path::new("/home/user/notes")));
+        assert!(!targets_storage(root, &review, Path::new("../../st2/98.A")));
+        assert!(!targets_storage(root, &review, Path::new("../../../../st/../etc")));
+        assert!(!targets_storage(root, &review, Path::new("..")));
+        assert!(!targets_storage(root, &review, Path::new("notes.txt")));
+        assert!(!targets_storage(root, &review, Path::new("/st/998.Review/x")));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rebuild_removes_only_symlinks_into_the_storage() {
+        use std::os::unix::fs::symlink;
+        let dir = storage("review-unix", &["998.Review", "100.A/98.A"], "100.A: {type: NODE-L1}
+");
+        let review = dir.path().join("998.Review");
+        symlink(dir.path().join("100.A/98.A"), review.join("100.A")).unwrap();
+        symlink(dir.path().join("100.A/gone"), review.join("dangling")).unwrap();
+        symlink("/tmp", review.join("elsewhere")).unwrap();
+        fs::write(review.join("notes.txt"), "").unwrap();
+
+        let failures = rebuild_with(dir.path(), &yaml(dir.path()), |_| Vec::new());
+        assert!(failures.is_empty(), "{failures:?}");
+        let mut left: Vec<String> = fs::read_dir(&review)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        left.sort();
+        assert_eq!(left, ["elsewhere", "notes.txt"]);
     }
 
     #[test]
