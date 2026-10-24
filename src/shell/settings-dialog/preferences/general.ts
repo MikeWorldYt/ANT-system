@@ -1,6 +1,6 @@
 // General preferences: how lists behave, what the app opens on and when it asks before deleting.
 import { changeSetting } from "../../../actions/ops";
-import { state, type OnLaunch } from "../../../store/state";
+import { state, type OnLaunch, type StartView } from "../../../store/state";
 import { selectControl, switchControl, type SettingsPage } from "../page";
 
 export const generalPage: SettingsPage = {
@@ -32,6 +32,22 @@ export const generalPage: SettingsPage = {
           ],
           state.settings.onLaunch,
           (value) => void changeSetting("onLaunch", value),
+        ),
+    },
+    {
+      section: "Startup",
+      title: "View",
+      description: "The view ANT opens with.",
+      control: () =>
+        selectControl<StartView>(
+          "View",
+          [
+            ["continue", "Continue where I left off"],
+            ["tree", "Tree"],
+            ["columns", "Columns"],
+          ],
+          state.settings.startView,
+          (value) => void changeSetting("startView", value),
         ),
     },
     {

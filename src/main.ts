@@ -91,6 +91,10 @@ onReviewIndex((e) => {
 onWindowFocus(() => void refresh()).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
 
 void init().then(() => {
+  if (state.settings.startView !== "continue") {
+    views.switchTo(state.settings.startView);
+    toolbar.render();
+  }
   views.current().focus();
   if (state.settings.autoUpdate) void checkForUpdates();
 });

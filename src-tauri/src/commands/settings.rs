@@ -16,6 +16,7 @@ const MAIL_ADDRESS: &str = "info@mikeworld.dev";
 // A new key is added here before the UI can write it: on/off switches, the launch choice and the shortcut overrides.
 const BOOLEAN_SETTINGS: [&str; 4] = ["pinFavorites", "hideDone", "confirmDelete", "autoUpdate"];
 const ON_LAUNCH_VALUES: [&str; 2] = ["continue", "root"];
+const START_VIEW_VALUES: [&str; 3] = ["continue", "tree", "columns"];
 const SHORTCUT_ACTIONS: [&str; 5] = ["focusSearch", "editPath", "newWorkboard", "openSettings", "goUp"];
 // Keys the folder views own, so a shortcut can never take them: (code, mod, alt).
 const FIXED_KEYS: [(&str, bool, bool); 3] = [("Delete", false, false), ("Enter", false, false), ("KeyN", true, false)];
@@ -63,6 +64,7 @@ fn shortcuts_valid(value: &str) -> bool {
 fn check(key: &str, value: &str) -> R<()> {
     let valid = match key {
         "onLaunch" => ON_LAUNCH_VALUES.contains(&value),
+        "startView" => START_VIEW_VALUES.contains(&value),
         "shortcuts" => shortcuts_valid(value),
         _ => BOOLEAN_SETTINGS.contains(&key) && matches!(value, "true" | "false"),
     };
@@ -129,6 +131,8 @@ mod tests {
     fn the_launch_choice_and_shortcut_overrides_are_validated() {
         assert!(check("onLaunch", "root").is_ok());
         assert!(check("onLaunch", "home").is_err());
+        assert!(check("startView", "columns").is_ok());
+        assert!(check("startView", "list").is_err());
         assert!(check("shortcuts", "{}").is_ok());
         assert!(check("shortcuts", r#"{"goUp": {"code": "ArrowUp", "mod": false, "alt": true}}"#).is_ok());
         assert!(check("shortcuts", r#"{"goUp": {"code": "ArrowUp"}}"#).is_err());

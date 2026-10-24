@@ -22,6 +22,7 @@ export interface KeyCombo {
 }
 
 export type OnLaunch = "continue" | "root";
+export type StartView = "continue" | "tree" | "columns";
 
 export interface Settings {
   pinFavorites: boolean;
@@ -29,6 +30,7 @@ export interface Settings {
   confirmDelete: boolean;
   autoUpdate: boolean;
   onLaunch: OnLaunch;
+  startView: StartView;
   // Only the shortcuts the user changed; the rest keep their defaults.
   shortcuts: Record<string, KeyCombo>;
 }
@@ -61,7 +63,7 @@ export const state: State = {
   busy: false,
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, onLaunch: "continue", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, onLaunch: "continue", startView: "continue", shortcuts: {} },
 };
 
 const listeners = new Set<() => void>();
@@ -131,6 +133,7 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.confirmDelete = saved.confirmDelete !== "false";
   state.settings.autoUpdate = saved.autoUpdate !== "false";
   state.settings.onLaunch = saved.onLaunch === "root" ? "root" : "continue";
+  state.settings.startView = saved.startView === "tree" || saved.startView === "columns" ? saved.startView : "continue";
   state.settings.shortcuts = readShortcuts(saved.shortcuts);
 }
 
