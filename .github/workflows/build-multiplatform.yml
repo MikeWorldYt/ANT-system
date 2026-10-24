@@ -9,10 +9,6 @@ on:
 permissions:
   contents: read
 
-# Opts JavaScript actions into Node 24 until they publish Node 24 builds
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   build:
     name: build-${{ matrix.label }}
@@ -29,16 +25,16 @@ jobs:
         shell: bash
         working-directory: .
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Linux dependencies
         if: matrix.label == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential curl wget file libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: pnpm
@@ -52,7 +48,7 @@ jobs:
       - name: Test
         continue-on-error: true
         run: cargo test --manifest-path src-tauri/Cargo.toml --locked
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: FolderManager-${{ matrix.label }}
           path: src-tauri/target/release/${{ matrix.bin }}
