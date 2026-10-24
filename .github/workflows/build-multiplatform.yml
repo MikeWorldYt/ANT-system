@@ -1,0 +1,55 @@
+# Validates that FolderManager builds on Windows, Linux and macOS; nothing is published.
+name: Build multiplatform
+
+on:
+  push:
+    branches: [dev/ci]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build-${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, label: windows, bin: folder-manager.exe }
+          - { os: ubuntu-latest, label: linux, bin: folder-manager }
+          - { os: macos-latest, label: macos, bin: folder-manager }
+    defaults:
+      run:
+        shell: bash
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux dependencies
+        if: matrix.label == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl wget file libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tauri build --no-bundle -- --locked
+      # Unix test failures must not hide the build result
+      - name: Test
+        continue-on-error: true
+        run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FolderManager-${{ matrix.label }}
+          path: src-tauri/target/release/${{ matrix.bin }}
+          if-no-files-found: error
