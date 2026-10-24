@@ -4,8 +4,8 @@
   "version": "2.1.4",
   "identifier": "com.mikeworldyt.foldermanager",
   "build": {
-    "beforeDevCommand": "pnpm.cmd run dev",
-    "beforeBuildCommand": "pnpm.cmd run build",
+    "beforeDevCommand": "pnpm run dev",
+    "beforeBuildCommand": "pnpm run build",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../web-dist"
   },
