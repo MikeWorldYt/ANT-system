@@ -127,9 +127,16 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
         })
         .filter(|e| !(e.on_disk && !e.in_yaml && is_linked_folder(&e.name)))
         .collect();
-    // The sort is stable, so each group keeps its name order.
-    entries.sort_by_key(|e| is_tail(&e.name));
+    entries.sort_by_cached_key(|e| (is_tail(&e.name), natural_key(&e.name)));
     Ok(entries)
+}
+
+// Compares the first run of digits as a number, so PJ.999 comes before PJ.1000.
+fn natural_key(name: &str) -> (String, u64, String) {
+    let start = name.find(|c: char| c.is_ascii_digit()).unwrap_or(name.len());
+    let digits = name[start..].bytes().take_while(u8::is_ascii_digit).count();
+    let number = name[start..start + digits].parse().unwrap_or(0);
+    (name[..start].to_string(), number, name[start + digits..].to_string())
 }
 
 // The 90-99 folders and the 998/999 ones always close a list, after workboards and unnumbered folders too.
@@ -294,6 +301,13 @@ mod tests {
 
     fn find<'a>(nodes: &'a [TreeNode], name: &str) -> &'a TreeNode {
         nodes.iter().find(|n| n.name == name).unwrap()
+    }
+
+    #[test]
+    fn workboard_numbers_sort_as_numbers() {
+        let mut names = vec!["PJ.1000_B", "PJ.999_A", "PJ.021_C", "PJ.001_D"];
+        names.sort_by_cached_key(|n| natural_key(n));
+        assert_eq!(names, ["PJ.001_D", "PJ.021_C", "PJ.999_A", "PJ.1000_B"]);
     }
 
     #[test]
