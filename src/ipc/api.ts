@@ -35,7 +35,7 @@ export const openNode = (relParts: string[]) => call<void>("open_node", { relPar
 export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("set_favorite", { relParts, on });
 export const getSettings = () => call<Record<string, string>>("get_settings");
 export const setSetting = (key: string, value: string) => call<void>("set_setting", { key, value });
-export const openLink = (link: "issues" | "mail") => call<void>("open_link", { link });
+export const openLink = (link: "issues" | "mail" | "changelog") => call<void>("open_link", { link });
 export const setNodeDetails = (relParts: string[], status: WkbStatus | null, owner: string | null) =>
   call<Mutation>("set_node_details", { relParts, status, owner });
 export const addNode = (relParts: string[], kind: NewKind) => call<Mutation>("add_node", { relParts, kind });

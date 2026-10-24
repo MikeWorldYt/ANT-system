@@ -15,9 +15,22 @@ interface State {
   settings: Settings;
 }
 
+export interface KeyCombo {
+  code: string;
+  mod: boolean;
+  alt: boolean;
+}
+
+export type OnLaunch = "continue" | "root";
+
 export interface Settings {
   pinFavorites: boolean;
   hideDone: boolean;
+  confirmDelete: boolean;
+  autoUpdate: boolean;
+  onLaunch: OnLaunch;
+  // Only the shortcuts the user changed; the rest keep their defaults.
+  shortcuts: Record<string, KeyCombo>;
 }
 
 export type { ColumnSort, SortBy };
@@ -48,7 +61,7 @@ export const state: State = {
   busy: false,
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false },
+  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, onLaunch: "continue", shortcuts: {} },
 };
 
 const listeners = new Set<() => void>();
@@ -99,9 +112,46 @@ export function visibleRows(): TreeNode[] {
   return rows;
 }
 
+export const serializeSetting = (value: Settings[keyof Settings]): string =>
+  typeof value === "object" ? JSON.stringify(value) : String(value);
+
+function readShortcuts(raw: string | undefined): Record<string, KeyCombo> {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, KeyCombo>;
+  } catch (e) {
+    console.warn("Saved shortcuts are unreadable", e);
+    return {};
+  }
+}
+
 export function applySettings(saved: Record<string, string>): void {
   state.settings.pinFavorites = saved.pinFavorites !== "false";
   state.settings.hideDone = saved.hideDone === "true";
+  state.settings.confirmDelete = saved.confirmDelete !== "false";
+  state.settings.autoUpdate = saved.autoUpdate !== "false";
+  state.settings.onLaunch = saved.onLaunch === "root" ? "root" : "continue";
+  state.settings.shortcuts = readShortcuts(saved.shortcuts);
+}
+
+const LAST_PREF = "fm.last";
+
+export function rememberSelection(): void {
+  if (!state.tree) return;
+  savePref(LAST_PREF, JSON.stringify({ root: state.tree.root, key: state.selectedKey }));
+}
+
+// The folder that was selected when the app closed, if it belongs to the Storage now open.
+export function lastSelection(): string[] | null {
+  const raw = readPref(LAST_PREF);
+  if (!raw || !state.tree) return null;
+  try {
+    const saved = JSON.parse(raw) as { root?: string; key?: string | null };
+    return saved.root === state.tree.root && saved.key ? saved.key.split("/") : null;
+  } catch (e) {
+    console.warn("Saved selection is unreadable", e);
+    return null;
+  }
 }
 
 export const sortOf = (columnKey: string): ColumnSort => state.sorts[columnKey] ?? DEFAULT_SORT;

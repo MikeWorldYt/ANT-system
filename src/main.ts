@@ -12,8 +12,9 @@ import { init, refresh } from "./actions/ops";
 import { installShortcuts } from "./actions/shortcuts";
 import { readPref, savePref } from "./store/prefs";
 import { createStatusLine, clearStatus, setStatus } from "./ui/status";
-import { subscribe } from "./store/state";
+import { rememberSelection, state, subscribe } from "./store/state";
 import { createToolbar } from "./shell/toolbar";
+import { openSettings } from "./shell/settings-dialog";
 import { createTreeView } from "./views/tree-view";
 import { checkForUpdates } from "./actions/updates";
 import { createViewSwitcher } from "./views/view-switch";
@@ -55,6 +56,8 @@ installContextMenu(host, () => views.current().focus());
 installShortcuts({
   focusSearch: search.focus,
   editPath: navigator.editPath,
+  openSettings: () => void openSettings(),
+  goUp: navigator.goUp,
   // The views already open on Enter, so the shortcut hands the key to whichever one is showing.
   openSelected: () => {
     views.current().focus();
@@ -67,6 +70,7 @@ subscribe(() => {
   navigator.render();
   views.current().render();
   panel.render();
+  rememberSelection();
 });
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -88,5 +92,5 @@ onWindowFocus(() => void refresh()).catch((e) => setStatus("warning", `Refresh o
 
 void init().then(() => {
   views.current().focus();
-  void checkForUpdates();
+  if (state.settings.autoUpdate) void checkForUpdates();
 });

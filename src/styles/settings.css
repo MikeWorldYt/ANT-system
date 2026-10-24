@@ -1,0 +1,60 @@
+dialog.settings-window {
+  width: min(920px, calc(100vw - 32px)); max-width: none; height: min(600px, calc(100vh - 40px)); min-height: 420px;
+  padding: 0; overflow: hidden; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+dialog.settings-window[open] { display: grid; grid-template-columns: 230px 1fr; }
+dialog.settings-window::backdrop { background: rgb(0 0 0 / 0.6); }
+
+.sw-side { display: flex; flex-direction: column; gap: 2px; padding: 14px 10px; overflow-y: auto; background: var(--tree-bg); border-right: 1px solid var(--border); }
+.sw-search { position: relative; margin-bottom: 10px; }
+.sw-search .gui-icon { position: absolute; left: 9px; top: 50%; width: 15px; height: 15px; transform: translateY(-50%); color: var(--muted); }
+.sw-search-input { width: 100%; padding: 7px 10px 7px 32px; font: inherit; color: var(--text); background: var(--field-bg); border: 1px solid transparent; border-radius: 6px; }
+.sw-search-input::placeholder { color: var(--muted); }
+.sw-group { padding: 12px 10px 4px; font-size: 9pt; font-weight: 600; color: var(--title); }
+.sw-nav {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; font: inherit; text-align: left;
+  color: var(--muted); background: none; border: 0; border-radius: 6px; cursor: pointer;
+}
+.sw-nav:hover { color: var(--text); background: var(--field-bg); }
+.sw-nav[aria-current="page"] { color: var(--text); background: var(--highlight); }
+.sw-nav .gui-icon { width: 16px; height: 16px; flex: none; }
+.sw-nav.dim { opacity: 0.35; }
+
+.sw-main { display: flex; flex-direction: column; min-width: 0; }
+.sw-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px 12px; border-bottom: 1px solid var(--border); }
+.sw-head h2 { margin: 0; font-size: 14pt; color: var(--title); }
+.sw-body { flex: 1; padding: 6px 24px 24px; overflow-y: auto; }
+.sw-body h3 { margin: 22px 0 2px; font-size: 9.5pt; font-weight: 600; color: var(--title); }
+.sw-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.sw-row:last-child { border-bottom: 0; }
+.sw-text { min-width: 0; }
+.sw-title { font-weight: 500; }
+.sw-desc { max-width: 52ch; margin-top: 1px; font-size: 9pt; color: var(--muted); overflow-wrap: anywhere; }
+.sw-actions { display: flex; flex: none; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.sw-keys { display: flex; align-items: center; gap: 4px; color: var(--muted); }
+.sw-keys kbd { padding: 1px 6px; font: 9pt "Cascadia Mono", Consolas, monospace; color: var(--text); background: var(--field-bg); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; }
+.sw-value { font-weight: 500; }
+.sw-path {
+  max-width: 260px; padding: 5px 9px; overflow: hidden; font-size: 9pt; color: var(--muted); text-align: left; text-overflow: ellipsis; white-space: nowrap;
+  direction: rtl; background: var(--field-bg); border-radius: 5px;
+}
+.sw-outline { background: none; box-shadow: inset 0 0 0 2px var(--button); }
+.sw-select { padding: 6px 10px; font: inherit; color: var(--text); background: var(--field-bg); border: 0; border-radius: 6px; }
+.sw-switch { position: relative; flex: none; width: 38px; height: 22px; background: #4a4a4a; border: 0; border-radius: 99px; cursor: pointer; transition: background 0.15s; }
+.sw-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform 0.15s; }
+.sw-switch[aria-checked="true"] { background: var(--button); }
+.sw-switch[aria-checked="true"]::after { transform: translateX(16px); }
+.sw-empty { padding: 40px 0; color: var(--muted); text-align: center; }
+.sw-search-input:focus-visible, .sw-nav:focus-visible, .sw-switch:focus-visible, .sw-select:focus-visible { outline: 2px solid var(--button); outline-offset: 2px; }
+
+@media (max-width: 680px) {
+  dialog.settings-window[open] { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .sw-side { flex-direction: row; align-items: center; padding: 8px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+  .sw-group { display: none; }
+  .sw-search { min-width: 150px; margin: 0; }
+  .sw-nav { width: auto; white-space: nowrap; }
+  .sw-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .sw-actions { justify-content: flex-start; }
+  .sw-path { max-width: 100%; }
+}

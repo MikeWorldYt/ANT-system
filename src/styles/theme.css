@@ -151,16 +151,6 @@ body {
 .dialog-text { white-space: pre-line; }
 .header-title { display: flex; align-items: center; gap: 8px; }
 .header-title .icon-btn { width: 26px; height: 26px; background: transparent; }
-dialog.settings { width: min(460px, calc(100vw - 32px)); max-width: min(460px, calc(100vw - 32px)); }
-.settings-section { margin-top: 14px; }
-.settings-section h3 { margin: 0 0 6px; font-size: 9pt; color: var(--title); }
-.settings-check { display: flex; align-items: center; gap: 8px; }
-.settings-check input { accent-color: var(--button); }
-.settings-rows { display: grid; gap: 2px; }
-.settings-row { display: flex; gap: 12px; font-size: 9pt; word-break: break-all; }
-.settings-label { flex: none; width: 60px; color: var(--muted); }
-.settings-hint { margin: 0 0 8px; font-size: 9pt; color: var(--muted); }
-.settings-actions { display: flex; gap: 8px; margin-top: 8px; }
 .btn {
   padding: 8px; border: 0; border-radius: var(--radius-sm); font: inherit; font-weight: bold; cursor: pointer;
   background: var(--field-bg); color: var(--text);
@@ -250,5 +240,5 @@ dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
   .search-results { max-width: calc(100vw - 24px); }
   .view-label { display: none; }
   .details-panel { position: fixed; inset: 0 0 0 auto; width: min(280px, 90vw); z-index: 800; box-shadow: var(--shadow-pop); }
-  .dialog-buttons, .settings-actions { flex-wrap: wrap; }
+  .dialog-buttons { flex-wrap: wrap; }
 }
