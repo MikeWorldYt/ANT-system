@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+# Opts JavaScript actions into Node 24 until they publish Node 24 builds
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   build:
     name: build-${{ matrix.label }}
