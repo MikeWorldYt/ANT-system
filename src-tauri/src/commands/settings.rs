@@ -1,6 +1,5 @@
 // User preferences kept in ant.db, and the links the settings window opens in the default browser or mail app.
 use std::collections::HashMap;
-use std::os::windows::process::CommandExt;
 use std::process::Command;
 
 use serde::Deserialize;
@@ -9,7 +8,6 @@ use tauri::AppHandle;
 use crate::commands::run_locked;
 use crate::storage::db::Store;
 use crate::error::{FmError, R};
-use crate::fs_safe::CREATE_NO_WINDOW;
 use crate::updater::CURRENT_VERSION;
 
 const ISSUES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/issues/new";
@@ -54,12 +52,28 @@ pub async fn set_setting(app: AppHandle, key: String, value: String) -> R<()> {
     run_locked(app, move |root| Store::open_or_create(root)?.set_setting(&key, &value)).await
 }
 
+#[cfg(windows)]
+fn launcher() -> Command {
+    use std::os::windows::process::CommandExt;
+    let mut cmd = Command::new("rundll32");
+    cmd.arg("url.dll,FileProtocolHandler").creation_flags(crate::fs_safe::CREATE_NO_WINDOW);
+    cmd
+}
+
+#[cfg(target_os = "macos")]
+fn launcher() -> Command {
+    Command::new("open")
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn launcher() -> Command {
+    Command::new("xdg-open")
+}
+
 #[tauri::command]
 pub fn open_link(link: Link) -> R<()> {
-    Command::new("rundll32")
-        .arg("url.dll,FileProtocolHandler")
+    launcher()
         .arg(link_target(link, CURRENT_VERSION))
-        .creation_flags(CREATE_NO_WINDOW)
         .spawn()
         .map(|_| ())
         .map_err(|e| FmError::Internal { message: format!("Could not open the link: {e}") })

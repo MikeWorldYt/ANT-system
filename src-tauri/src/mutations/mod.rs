@@ -6,6 +6,8 @@ mod recycle;
 mod rename;
 mod reorder;
 mod retype;
+#[cfg(not(windows))]
+mod unix_trash;
 
 use std::fs;
 use std::path::{Path, PathBuf};
