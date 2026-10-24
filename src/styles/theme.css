@@ -125,7 +125,7 @@ body {
 .status-mark { display: inline-flex; flex: none; color: var(--st); }
 .status-mark .gui-icon { width: 16px; height: 16px; }
 .ctx-item[class*="st-"], .details dd[class*="st-"], select.details-input[class*="st-"] { color: var(--st); }
-.fav-mark { display: inline-flex; vertical-align: middle; margin-left: 6px; color: var(--st-progress); }
+.fav-mark { display: inline-flex; flex: none; color: var(--st-progress); }
 .fav-mark .gui-icon { width: 12px; height: 12px; }
 
 .details-panel { width: var(--panel-w); flex: none; background: var(--input-bg); padding: 12px; }
@@ -140,6 +140,8 @@ body {
 .details-name { display: flex; align-items: center; }
 .details-name .details-input { flex: 1; min-width: 0; width: auto; }
 .details-actions { display: flex; gap: 6px; margin-top: 4px; }
+.name { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .name.editing { display: flex; align-items: center; flex: 1; min-width: 0; }
 .name-fixed { color: var(--muted); white-space: pre; }
 .name-input {
@@ -200,7 +202,7 @@ dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
 .column.loading { padding: 6px 8px; color: var(--muted); }
 .col-item { padding: 3px 8px; }
 .col-item:focus-visible { outline-offset: -2px; }
-.col-item .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-item .name { flex: 1; }
 .col-item:hover { background: var(--input-bg); }
 .col-item.on-path { background: var(--input-bg); }
 .col-item.selected { background: var(--highlight); }
