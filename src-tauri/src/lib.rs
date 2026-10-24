@@ -8,7 +8,9 @@ mod error;
 mod fs_safe;
 mod index;
 mod mutations;
+mod scheduler;
 mod storage;
+mod sync;
 #[cfg(test)]
 mod test_support;
 mod tree;
@@ -20,20 +22,23 @@ pub fn run() {
     if std::env::args_os().nth(1).is_some_and(|a| a == "--backup") {
         std::process::exit(backup::run_headless(std::env::args_os().nth(2)));
     }
+    if std::env::args_os().nth(1).is_some_and(|a| a == "--sync") {
+        std::process::exit(sync::run_headless(std::env::args_os().nth(2)));
+    }
     let start = std::env::args_os()
         .nth(1)
         .map(std::path::PathBuf::from)
         .or_else(|| std::env::current_dir().ok())
         .unwrap_or_default();
     let storage = commands::Storage::resolve(start);
-    let title = storage.root.as_ref().and_then(|r| r.file_name()).map(|n| n.to_string_lossy().into_owned());
+    let title = storage.root().ok().and_then(|r| r.file_name().map(|n| n.to_string_lossy().into_owned()));
 
     tauri::Builder::default()
         .manage(storage)
         .setup(move |app| {
             use tauri::Manager;
             if let (Some(name), Some(window)) = (&title, app.get_webview_window("main")) {
-                window.set_title(&format!("ANT System Manager v.{} ({name})", updater::CURRENT_VERSION))?;
+                window.set_title(&commands::window_title(name))?;
             }
             Ok(())
         })
@@ -70,6 +75,10 @@ pub fn run() {
             commands::list_backups,
             commands::restore_backup,
             commands::backup_schedule,
+            commands::rename_storage,
+            commands::revert_storage_rename,
+            commands::storage_rename_status,
+            commands::sync_schedule,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Folder Manager");

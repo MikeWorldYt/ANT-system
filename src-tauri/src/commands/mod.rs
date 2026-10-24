@@ -5,13 +5,14 @@ mod edit;
 mod open;
 mod search;
 pub mod settings;
+mod storage;
 #[cfg(test)]
 mod tests;
 mod tree;
 mod update;
 
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Mutex, RwLock};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
@@ -26,6 +27,7 @@ pub use debug::*;
 pub use edit::*;
 pub use open::*;
 pub use search::*;
+pub use storage::*;
 pub use tree::*;
 pub use update::*;
 
@@ -33,20 +35,26 @@ const REVIEW_EVENT: &str = "fm://review-index";
 
 pub struct Storage {
     pub start: PathBuf,
-    pub root: Option<PathBuf>,
+    pub root: RwLock<Option<PathBuf>>,
     pub lock: Mutex<()>,
 }
 
 impl Storage {
     pub fn resolve(start: PathBuf) -> Self {
         let root = crate::ant_core::names::find_root(&start);
-        Self { start, root, lock: Mutex::new(()) }
+        Self { start, root: RwLock::new(root), lock: Mutex::new(()) }
     }
 
-    pub fn root(&self) -> R<&Path> {
+    pub fn root(&self) -> R<PathBuf> {
         self.root
-            .as_deref()
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
             .ok_or_else(|| FmError::StorageNotFound { start: self.start.display().to_string() })
+    }
+
+    pub fn set_root(&self, root: PathBuf) {
+        *self.root.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(root);
     }
 }
 
@@ -59,9 +67,9 @@ pub struct StorageInfo {
 }
 
 pub fn locked<T>(storage: &Storage, f: impl FnOnce(&Path) -> R<T>) -> R<T> {
-    let root = storage.root()?;
     let _guard = storage.lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-    f(root)
+    let root = storage.root()?;
+    f(&root)
 }
 
 // The closure runs with the storage lock held and receives the resolved root.

@@ -40,6 +40,15 @@ export interface BackupEntry {
   name: string;
   path: string;
 }
+export interface RenameStatus {
+  old: string;
+  new: string;
+  revertible: boolean;
+}
+export const renameStorage = (newName: string, stamp: string) => call<string>("rename_storage", { newName, stamp });
+export const revertStorageRename = (stamp: string) => call<string>("revert_storage_rename", { stamp });
+export const storageRenameStatus = () => call<RenameStatus | null>("storage_rename_status");
+export const syncSchedule = (on: boolean) => call<void>("sync_schedule", { on });
 export const backupNow = (stamp: string) => call<string>("backup_now", { stamp });
 export const backupIfDue = (stamp: string) => call<string | null>("backup_if_due", { stamp });
 export const listBackups = () => call<BackupEntry[]>("list_backups");

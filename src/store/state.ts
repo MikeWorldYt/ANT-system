@@ -32,6 +32,7 @@ export interface Settings {
   autoUpdate: boolean;
   debugLogging: boolean;
   backupAuto: boolean;
+  watchExternal: boolean;
   backupFrequency: BackupFrequency;
   // Empty means the default folder inside the Storage.
   backupFolder: string;
@@ -69,7 +70,7 @@ export const state: State = {
   busy: false,
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
 };
 
 const listeners = new Set<() => void>();
@@ -140,6 +141,7 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.autoUpdate = saved.autoUpdate !== "false";
   state.settings.debugLogging = saved.debugLogging === "true";
   state.settings.backupAuto = saved.backupAuto === "true";
+  state.settings.watchExternal = saved.watchExternal === "true";
   state.settings.backupFrequency = saved.backupFrequency === "week" || saved.backupFrequency === "month" ? saved.backupFrequency : "day";
   state.settings.backupFolder = saved.backupFolder ?? "";
   state.settings.onLaunch = saved.onLaunch === "root" ? "root" : "continue";

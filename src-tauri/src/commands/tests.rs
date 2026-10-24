@@ -172,7 +172,7 @@ fn commands_release_both_locks_and_fail_without_a_storage() {
     locked(&storage, |root| mutations::rename_node(root, &rel(&["100.WORK", "02.B"]), "Bee")).unwrap();
     assert!(storage.lock.try_lock().is_ok());
     assert!(StorageLock::acquire(dir.path()).is_ok());
-    let none = Storage { start: PathBuf::from("nowhere"), root: None, lock: Mutex::new(()) };
+    let none = Storage { start: PathBuf::from("nowhere"), root: RwLock::new(None), lock: Mutex::new(()) };
     assert!(matches!(locked(&none, |_| Ok(())), Err(FmError::StorageNotFound { .. })));
 }
 

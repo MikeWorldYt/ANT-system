@@ -9,10 +9,11 @@ import { renderRow, type PageContext, type SettingRow, type SettingsPage } from 
 import { generalPage } from "./preferences/general";
 import { shortcutsPage } from "./preferences/shortcuts";
 import { backupPage } from "./data/backup";
+import { storagePage } from "./data/storage";
 import { advancedPage } from "./system/advanced";
 import { aboutPage } from "./system/about";
 
-const PAGES: SettingsPage[] = [generalPage, shortcutsPage, backupPage, advancedPage, aboutPage];
+const PAGES: SettingsPage[] = [generalPage, shortcutsPage, storagePage, backupPage, advancedPage, aboutPage];
 
 function sections(rows: SettingRow[]): HTMLElement[] {
   const out: HTMLElement[] = [];
@@ -38,7 +39,19 @@ export async function openSettings(): Promise<void> {
   const body = el("div", { class: "sw-body" });
   const search = el("input", { type: "search", class: "sw-search-input", placeholder: "Search settings", "aria-label": "Search settings" });
   const nav = new Map<string, HTMLButtonElement>();
-  const ctx: PageContext = { storage, refresh: () => show(currentId) };
+  const ctx: PageContext = {
+    storage,
+    refresh: () => {
+      // A rename changes the path every page shows, so the info is read again.
+      void getStorage().then(
+        (info) => {
+          ctx.storage = info;
+          show(currentId);
+        },
+        (e) => setStatus("warning", `Storage info: ${describeError(e)}`),
+      );
+    },
+  };
 
   const side = el("aside", { class: "sw-side" }, el("div", { class: "sw-search" }, guiIcon("search"), search));
   let group = "";

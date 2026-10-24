@@ -15,7 +15,8 @@ const RELEASES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/t
 const DOCS_URL: &str = "https://ant.mikeworld.dev";
 const MAIL_ADDRESS: &str = "info@mikeworld.dev";
 // A new key is added here before the UI can write it: on/off switches, the launch choice and the shortcut overrides.
-const BOOLEAN_SETTINGS: [&str; 6] = ["pinFavorites", "hideDone", "confirmDelete", "autoUpdate", "debugLogging", "backupAuto"];
+const BOOLEAN_SETTINGS: [&str; 7] =
+    ["pinFavorites", "hideDone", "confirmDelete", "autoUpdate", "debugLogging", "backupAuto", "watchExternal"];
 const ON_LAUNCH_VALUES: [&str; 2] = ["continue", "root"];
 const START_VIEW_VALUES: [&str; 3] = ["continue", "tree", "columns"];
 const BACKUP_FREQUENCIES: [&str; 3] = ["day", "week", "month"];
@@ -174,6 +175,8 @@ mod tests {
         let abs = if cfg!(windows) { "C:\\Backups\\ANT" } else { "/backups/ant" };
         assert!(check("backupAuto", "true").is_ok());
         assert!(check("backupAuto", "1").is_err());
+        assert!(check("watchExternal", "false").is_ok());
+        assert!(check("watchExternal", "yes").is_err());
         assert!(check("backupFrequency", "month").is_ok());
         assert!(check("backupFrequency", "hour").is_err());
         assert!(check("backupFolder", "").is_ok());

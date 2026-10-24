@@ -2,8 +2,10 @@
 use std::path::Path;
 
 use crate::error::{FmError, R};
+use crate::scheduler::{self, Task};
 
 const TASK_NAME: &str = "ANT System Manager Backup";
+const TASK: Task = Task { name: TASK_NAME, flag: "--backup", start: "12:00", what: "backup" };
 const DAY: u64 = 86_400;
 
 pub fn period_secs(frequency: &str) -> Option<u64> {
@@ -24,54 +26,20 @@ pub fn is_due(auto: bool, frequency: &str, last: Option<u64>, now: u64) -> bool 
     }
 }
 
-pub fn schtasks_args(on: bool, frequency: &str, exe: &Path, root: &Path) -> R<Vec<String>> {
+fn schedule(on: bool, frequency: &str) -> R<Option<&'static str>> {
     if !on {
-        return Ok(["/Delete", "/F", "/TN", TASK_NAME].map(String::from).to_vec());
+        return Ok(None);
     }
-    let schedule = match frequency {
-        "day" => "DAILY",
-        "week" => "WEEKLY",
-        "month" => "MONTHLY",
-        _ => return Err(FmError::Internal { message: format!("Unknown backup frequency {frequency}") }),
-    };
-    let run = format!("\"{}\" --backup \"{}\"", exe.display(), root.display());
-    Ok(["/Create", "/F", "/SC", schedule, "/TN", TASK_NAME, "/TR", &run, "/ST", "12:00"].map(String::from).to_vec())
+    match frequency {
+        "day" => Ok(Some("DAILY")),
+        "week" => Ok(Some("WEEKLY")),
+        "month" => Ok(Some("MONTHLY")),
+        _ => Err(FmError::Internal { message: format!("Unknown backup frequency {frequency}") }),
+    }
 }
 
-#[cfg(windows)]
-fn schtasks(args: &[String]) -> R<std::process::Output> {
-    use std::os::windows::process::CommandExt;
-    // An absolute path keeps a schtasks.exe planted next to the app or on PATH from running.
-    let exe = std::env::var_os("SystemRoot")
-        .map(|r| std::path::PathBuf::from(r).join(r"System32\schtasks.exe"))
-        .unwrap_or_else(|| "schtasks.exe".into());
-    std::process::Command::new(exe)
-        .args(args)
-        .creation_flags(crate::fs_safe::CREATE_NO_WINDOW)
-        .output()
-        .map_err(|e| FmError::Internal { message: format!("Could not start schtasks: {e}") })
-}
-
-#[cfg(windows)]
 pub fn apply(on: bool, frequency: &str, root: &Path) -> R<()> {
-    let exe = std::env::current_exe().map_err(|e| FmError::Internal { message: format!("Could not find the app: {e}") })?;
-    let args = schtasks_args(on, frequency, &exe, root)?;
-    // Querying first makes a missing task a success without parsing localized error text.
-    if !on && !schtasks(&["/Query".into(), "/TN".into(), TASK_NAME.into()])?.status.success() {
-        return Ok(());
-    }
-    let out = schtasks(&args)?;
-    if out.status.success() {
-        return Ok(());
-    }
-    let detail = String::from_utf8_lossy(&out.stderr).trim().to_string();
-    Err(FmError::Internal { message: format!("Could not update the scheduled backup: {detail}") })
-}
-
-#[cfg(not(windows))]
-pub fn apply(on: bool, frequency: &str, root: &Path) -> R<()> {
-    schtasks_args(on, frequency, Path::new(""), root)?;
-    Err(FmError::Internal { message: "Scheduled backups are only available on Windows for now".to_string() })
+    scheduler::apply(&TASK, schedule(on, frequency)?, root)
 }
 
 #[cfg(test)]
@@ -88,6 +56,10 @@ mod tests {
         assert!(!is_due(true, "week", Some(0), 6 * DAY));
         assert!(is_due(true, "month", Some(0), 30 * DAY));
         assert!(!is_due(true, "day", Some(5000), 10));
+    }
+
+    fn schtasks_args(on: bool, frequency: &str, exe: &Path, root: &Path) -> R<Vec<String>> {
+        Ok(scheduler::args(&TASK, schedule(on, frequency)?, exe, root))
     }
 
     #[test]
