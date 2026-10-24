@@ -3,7 +3,7 @@ name: Build multiplatform
 
 on:
   push:
-    branches: [dev/ci]
+    branches: [dev/folder-manager]
   workflow_dispatch:
 
 permissions:
