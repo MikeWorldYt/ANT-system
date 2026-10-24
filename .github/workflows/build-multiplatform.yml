@@ -48,8 +48,13 @@ jobs:
       - name: Test
         continue-on-error: true
         run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - name: Read version
+        id: version
+        run: |
+          version=$(sed -nE "s/.*StringStruct\('FileVersion', *'([0-9.]+)'\).*/\1/p" version.txt)
+          echo "value=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v6
         with:
-          name: FolderManager-${{ matrix.label }}
+          name: FolderManager-${{ matrix.label }}-v.${{ steps.version.outputs.value }}
           path: src-tauri/target/release/${{ matrix.bin }}
           if-no-files-found: error
