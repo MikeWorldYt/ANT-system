@@ -94,7 +94,7 @@ pub fn build_children(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<T
 
 pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<()> {
     for node in nodes {
-        if node.has_children && node.depth + 1 < MAX_DEPTH {
+        if node.has_children {
             let mut kids = build_children(root, data, &node.rel_parts)?;
             fill_children(root, data, &mut kids)?;
             node.children = Some(kids);
@@ -168,7 +168,8 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
 
     let locked = is_locked_type(raw_type);
     let reserved = is_reserved(&rel_parts);
-    let has_children = !ghost && !level_entries(root, data, &rel_parts)?.is_empty();
+    // Folders on the last tree level show no children, so the views offer nothing to open below them.
+    let has_children = !ghost && depth + 1 < MAX_DEPTH && !level_entries(root, data, &rel_parts)?.is_empty();
     let is_git = !ghost && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
     let info_broken = info.as_ref().is_some_and(|i| i.error.is_some());
@@ -482,7 +483,7 @@ mod tests {
         let a = &l4[0].actions;
         assert_eq!(l4[0].depth, MAX_DEPTH);
         assert!(!a.change_type && !a.add_next && a.rename && a.copy_path);
-        assert!(l4[0].has_children);
+        assert!(!l4[0].has_children);
     }
 
     #[test]
@@ -494,7 +495,7 @@ mod tests {
         let alpha = find(&tree.nodes, "01.Alpha");
         let sub = find(alpha.children.as_ref().unwrap(), "01.Sub");
         let deep = find(sub.children.as_ref().unwrap(), "01.Deep");
-        assert!(deep.has_children && deep.children.is_none());
+        assert!(!deep.has_children && deep.children.is_none());
         assert!(find(&tree.nodes, "02.Beta").children.is_none());
     }
 

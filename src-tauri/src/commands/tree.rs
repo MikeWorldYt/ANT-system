@@ -5,6 +5,7 @@ use serde_yaml::Mapping;
 use tauri::AppHandle;
 
 use super::{review_emitter, run_locked};
+use crate::config::MAX_DEPTH;
 use crate::error::R;
 use crate::fs_safe::validate_component;
 use crate::index::{reindex, review_index, Emit};
@@ -33,6 +34,9 @@ pub async fn refresh(app: AppHandle) -> R<TreeSnapshot> {
 pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<TreeNode>> {
     run_locked(app, move |root| {
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
+        if rel_parts.len() >= MAX_DEPTH {
+            return Ok(Vec::new());
+        }
         let data = tree_store::load(root)?;
         let mut kids = build_children(root, &data, &rel_parts)?;
         fill_children(root, &data, &mut kids)?;
