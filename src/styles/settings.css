@@ -40,6 +40,7 @@ dialog.settings-window::backdrop { background: rgb(0 0 0 / 0.6); }
   direction: rtl; background: var(--field-bg); border-radius: 5px;
 }
 .sw-outline { background: none; box-shadow: inset 0 0 0 2px var(--button); }
+.sw-danger { color: var(--delete-hover); }
 .sw-select { padding: 6px 10px; font: inherit; color: var(--text); background: var(--field-bg); border: 0; border-radius: 6px; }
 .sw-switch { position: relative; flex: none; width: 38px; height: 22px; background: #4a4a4a; border: 0; border-radius: 99px; cursor: pointer; transition: background 0.15s; }
 .sw-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform 0.15s; }

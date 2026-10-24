@@ -29,6 +29,13 @@ impl Store {
             .map_err(|e| db_err("write ant.db", &self.path, &e))
     }
 
+    pub fn reset_settings(&mut self) -> R<()> {
+        self.conn
+            .execute("DELETE FROM meta WHERE key LIKE 'setting.%'", [])
+            .map(|_| ())
+            .map_err(|e| db_err("write ant.db", &self.path, &e))
+    }
+
     pub fn replace_footprints(&mut self, footprints: &HashMap<String, String>) -> R<()> {
         let path = self.path.clone();
         let fail = |e: rusqlite::Error| db_err("write ant.db", &path, &e);

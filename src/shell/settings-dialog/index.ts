@@ -8,9 +8,10 @@ import { setStatus } from "../../ui/status";
 import { renderRow, type PageContext, type SettingRow, type SettingsPage } from "./page";
 import { generalPage } from "./preferences/general";
 import { shortcutsPage } from "./preferences/shortcuts";
+import { advancedPage } from "./system/advanced";
 import { aboutPage } from "./system/about";
 
-const PAGES: SettingsPage[] = [generalPage, shortcutsPage, aboutPage];
+const PAGES: SettingsPage[] = [generalPage, shortcutsPage, advancedPage, aboutPage];
 
 function sections(rows: SettingRow[]): HTMLElement[] {
   const out: HTMLElement[] = [];

@@ -35,7 +35,13 @@ export const openNode = (relParts: string[]) => call<void>("open_node", { relPar
 export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("set_favorite", { relParts, on });
 export const getSettings = () => call<Record<string, string>>("get_settings");
 export const setSetting = (key: string, value: string) => call<void>("set_setting", { key, value });
-export const openLink = (link: "issues" | "mail" | "changelog") => call<void>("open_link", { link });
+export const openLink = (link: "issues" | "mail" | "changelog" | "docs") => call<void>("open_link", { link });
+export const resetSettings = () => call<void>("reset_settings");
+export const startDebugLog = (stamp: string) => call<string>("start_debug_log", { stamp });
+export const stopDebugLog = () => call<void>("stop_debug_log");
+export const logDebug = (level: "info" | "warning" | "error", message: string) => call<void>("log_debug", { level, message });
+export const openLogsFolder = () => call<void>("open_logs_folder");
+export const openDevtools = () => call<void>("open_devtools");
 export const setNodeDetails = (relParts: string[], status: WkbStatus | null, owner: string | null) =>
   call<Mutation>("set_node_details", { relParts, status, owner });
 export const addNode = (relParts: string[], kind: NewKind) => call<Mutation>("add_node", { relParts, kind });

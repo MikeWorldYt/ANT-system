@@ -2,6 +2,7 @@
 mod ant_core;
 mod commands;
 mod config;
+mod debug_log;
 mod error;
 mod fs_safe;
 mod index;
@@ -54,6 +55,12 @@ pub fn run() {
             commands::start_update,
             commands::search_nodes,
             commands::suggest_search,
+            commands::start_debug_log,
+            commands::stop_debug_log,
+            commands::log_debug,
+            commands::open_logs_folder,
+            commands::open_devtools,
+            settings::reset_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Folder Manager");

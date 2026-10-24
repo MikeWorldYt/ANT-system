@@ -56,8 +56,8 @@ export function selectControl<T extends string>(label: string, options: [value: 
   return select;
 }
 
-export function buttonControl(label: string, onClick: () => void, outline = false): HTMLButtonElement {
-  const button = el("button", { type: "button", class: outline ? "btn sw-outline" : "btn" }, label);
+export function buttonControl(label: string, onClick: () => void, variant: "plain" | "outline" | "danger" = "plain"): HTMLButtonElement {
+  const button = el("button", { type: "button", class: variant === "plain" ? "btn" : `btn sw-${variant}` }, label);
   button.addEventListener("click", onClick);
   return button;
 }

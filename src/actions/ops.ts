@@ -67,6 +67,15 @@ export const changeSetting = <K extends keyof Settings>(key: K, value: Settings[
     notify();
   });
 
+export const resetPreferences = () =>
+  run(async () => {
+    const wasLogging = state.settings.debugLogging;
+    await api.resetSettings();
+    applySettings({});
+    if (wasLogging) await api.stopDebugLog();
+    notify();
+  });
+
 export function refresh(): Promise<boolean> {
   if (state.busy) return Promise.resolve(false);
   return run(async () => {

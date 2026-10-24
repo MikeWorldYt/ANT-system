@@ -1,4 +1,5 @@
 // Tauri command layer: runs the pure core under the storage lock off the UI thread.
+mod debug;
 mod edit;
 mod open;
 mod search;
@@ -19,6 +20,7 @@ use crate::error::{FmError, R};
 use crate::index::ReviewIndexEvent;
 use crate::updater;
 
+pub use debug::*;
 pub use edit::*;
 pub use open::*;
 pub use search::*;
@@ -66,9 +68,16 @@ where
     T: Send + 'static,
     F: FnOnce(&Path) -> R<T> + Send + 'static,
 {
-    tauri::async_runtime::spawn_blocking(move || locked(&app.state::<Storage>(), f))
+    let result = tauri::async_runtime::spawn_blocking(move || locked(&app.state::<Storage>(), f))
     .await
-    .map_err(|e| FmError::Internal { message: e.to_string() })?
+    .map_err(|e| FmError::Internal { message: e.to_string() })?;
+    if let Err(err) = &result {
+        // The command's own error matters more to the caller than a failed log write.
+        if let Err(log) = crate::debug_log::line("error", &err.to_string()) {
+            eprintln!("{log}");
+        }
+    }
+    result
 }
 
 fn review_emitter(app: &AppHandle) -> impl Fn(&ReviewIndexEvent) -> Result<(), String> + '_ {

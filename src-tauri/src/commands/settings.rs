@@ -12,9 +12,10 @@ use crate::updater::CURRENT_VERSION;
 
 const ISSUES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/issues/new";
 const RELEASES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/tag";
+const DOCS_URL: &str = "https://ant.mikeworld.dev";
 const MAIL_ADDRESS: &str = "info@mikeworld.dev";
 // A new key is added here before the UI can write it: on/off switches, the launch choice and the shortcut overrides.
-const BOOLEAN_SETTINGS: [&str; 4] = ["pinFavorites", "hideDone", "confirmDelete", "autoUpdate"];
+const BOOLEAN_SETTINGS: [&str; 5] = ["pinFavorites", "hideDone", "confirmDelete", "autoUpdate", "debugLogging"];
 const ON_LAUNCH_VALUES: [&str; 2] = ["continue", "root"];
 const START_VIEW_VALUES: [&str; 3] = ["continue", "tree", "columns"];
 const SHORTCUT_ACTIONS: [&str; 6] = ["focusSearch", "editPath", "newNode", "newWorkboard", "openSettings", "goUp"];
@@ -36,6 +37,7 @@ pub enum Link {
     Issues,
     Mail,
     Changelog,
+    Docs,
 }
 
 // Only fixed addresses are ever opened, so nothing typed by a user reaches the command line.
@@ -44,6 +46,7 @@ fn link_target(link: Link, version: &str) -> String {
         Link::Issues => format!("{ISSUES_URL}?title=&body=Version%3A%20{version}%0A%0A"),
         Link::Mail => format!("mailto:{MAIL_ADDRESS}?subject=ANT%20System%20Manager%20{version}"),
         Link::Changelog => format!("{RELEASES_URL}/folder-manager-v{version}"),
+        Link::Docs => DOCS_URL.to_string(),
     }
 }
 
@@ -89,6 +92,15 @@ pub async fn set_setting(app: AppHandle, key: String, value: String) -> R<()> {
     run_locked(app, move |root| Store::open_or_create(root)?.set_setting(&key, &value)).await
 }
 
+#[tauri::command]
+pub async fn reset_settings(app: AppHandle) -> R<()> {
+    run_locked(app, |root| match Store::open_existing(root)? {
+        Some(mut store) => store.reset_settings(),
+        None => Ok(()),
+    })
+    .await
+}
+
 #[cfg(windows)]
 fn launcher() -> Command {
     use std::os::windows::process::CommandExt;
@@ -125,6 +137,7 @@ mod tests {
         assert!(check("pinFavorites", "true").is_ok());
         assert!(check("pinFavorites", "yes").is_err());
         assert!(check("other", "true").is_err());
+        assert!(check("debugLogging", "false").is_ok());
     }
 
     #[test]
@@ -143,10 +156,21 @@ mod tests {
     }
 
     #[test]
+    fn resetting_drops_only_the_settings() {
+        let dir = crate::test_support::TempDir::new("reset-settings");
+        let mut store = Store::open_or_create(dir.path()).unwrap();
+        store.set_setting("hideDone", "true").unwrap();
+        store.reset_settings().unwrap();
+        assert!(store.settings().unwrap().is_empty());
+        assert!(Store::open_existing(dir.path()).unwrap().is_some());
+    }
+
+    #[test]
     fn links_carry_the_version_and_fixed_addresses() {
         assert!(link_target(Link::Issues, "2.0.1").starts_with("https://github.com/MikeWorldYt/ANT-system/issues/new?"));
         assert!(link_target(Link::Issues, "2.0.1").contains("Version%3A%202.0.1"));
         assert!(link_target(Link::Mail, "2.0.1").starts_with("mailto:info@mikeworld.dev?"));
         assert!(link_target(Link::Changelog, "2.1.5").ends_with("/releases/tag/folder-manager-v2.1.5"));
+        assert_eq!(link_target(Link::Docs, "2.1.5"), "https://ant.mikeworld.dev");
     }
 }

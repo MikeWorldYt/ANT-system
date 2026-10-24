@@ -10,7 +10,7 @@ use crate::fs_safe::{join_rel, validate_component};
 
 // Each system has its own launcher for its default file manager.
 #[cfg(windows)]
-fn launcher(dir: &Path) -> Command {
+pub(super) fn launcher(dir: &Path) -> Command {
     use std::os::windows::process::CommandExt;
     let mut cmd = Command::new("explorer");
     // Explorer falls back to Documents when the path mixes forward slashes.
@@ -19,14 +19,14 @@ fn launcher(dir: &Path) -> Command {
 }
 
 #[cfg(target_os = "macos")]
-fn launcher(dir: &Path) -> Command {
+pub(super) fn launcher(dir: &Path) -> Command {
     let mut cmd = Command::new("open");
     cmd.arg(dir);
     cmd
 }
 
 #[cfg(all(unix, not(target_os = "macos")))]
-fn launcher(dir: &Path) -> Command {
+pub(super) fn launcher(dir: &Path) -> Command {
     let mut cmd = Command::new("xdg-open");
     cmd.arg(dir);
     cmd

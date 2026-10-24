@@ -14,7 +14,7 @@ const UPDATE_TEXT: Record<UpdateOutcome, string> = {
   failed: "The update check failed.",
 };
 
-async function openOrReport(link: "issues" | "mail" | "changelog"): Promise<void> {
+async function openOrReport(link: "issues" | "mail" | "changelog" | "docs"): Promise<void> {
   try {
     await openLink(link);
   } catch (e) {
@@ -35,12 +35,13 @@ export const aboutPage: SettingsPage = {
       title: "Updates",
       description: "Look for a newer version.",
       control: (row: RowHandle) =>
-        buttonControl("Check for updates", () => void checkForUpdates(true).then((outcome) => row.describe(UPDATE_TEXT[outcome])), true),
+        buttonControl("Check for updates", () => void checkForUpdates(true).then((outcome) => row.describe(UPDATE_TEXT[outcome])), "outline"),
     },
     {
       title: "Check for updates automatically",
       control: () => switchControl("Check for updates automatically", state.settings.autoUpdate, (on) => changeSetting("autoUpdate", on)),
     },
+    { title: "Documentation", description: "Guides and reference for ANT.", control: () => buttonControl("Open documentation", () => void openOrReport("docs")) },
     { title: "What’s new in this version", control: () => buttonControl("View changelog", () => void openOrReport("changelog")) },
     {
       section: "Report a bug",

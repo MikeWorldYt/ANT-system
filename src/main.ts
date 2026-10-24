@@ -17,6 +17,7 @@ import { createToolbar } from "./shell/toolbar";
 import { openSettings } from "./shell/settings-dialog";
 import { createTreeView } from "./views/tree-view";
 import { checkForUpdates } from "./actions/updates";
+import { installDebugLog, startDebugLog } from "./actions/debug-log";
 import { createViewSwitcher } from "./views/view-switch";
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -90,7 +91,10 @@ onReviewIndex((e) => {
 }).catch((e) => setStatus("warning", `Review index updates unavailable: ${describeError(e)}`));
 onWindowFocus(() => void refresh()).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
 
+installDebugLog();
+
 void init().then(() => {
+  if (state.settings.debugLogging) void startDebugLog();
   if (state.settings.startView !== "continue") {
     views.switchTo(state.settings.startView);
     toolbar.render();
