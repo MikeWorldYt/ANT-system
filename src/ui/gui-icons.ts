@@ -10,6 +10,7 @@ import pageAbout from "../assets/gui/page-about.svg?raw";
 import pageAppearance from "../assets/gui/page-appearance.svg?raw";
 import pageAdvanced from "../assets/gui/page-advanced.svg?raw";
 import pageBackup from "../assets/gui/page-backup.svg?raw";
+import pageExtensions from "../assets/gui/page-extensions.svg?raw";
 import pageGeneral from "../assets/gui/page-general.svg?raw";
 import pageStorage from "../assets/gui/page-storage.svg?raw";
 import pageShortcuts from "../assets/gui/page-shortcuts.svg?raw";
@@ -27,7 +28,7 @@ import statusProgress from "../assets/gui/status-progress.svg?raw";
 import statusReview from "../assets/gui/status-review.svg?raw";
 import up from "../assets/gui/up.svg?raw";
 
-const SOURCES = { add, back, chevronDown, chevronRight, forward, infoPanel, layout, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageGeneral, pageStorage, pageShortcuts, pencil, refresh, search, separator, settings, starred, statusDone, statusHold, statusProgress, statusReview, up };
+const SOURCES = { add, back, chevronDown, chevronRight, forward, infoPanel, layout, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, refresh, search, separator, settings, starred, statusDone, statusHold, statusProgress, statusReview, up };
 
 export type GuiIcon = keyof typeof SOURCES;
 

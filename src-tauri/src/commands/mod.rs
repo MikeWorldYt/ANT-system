@@ -2,6 +2,7 @@
 mod backup;
 mod debug;
 mod edit;
+mod extensions;
 mod open;
 mod search;
 pub mod settings;
@@ -25,6 +26,7 @@ use crate::updater;
 pub use backup::*;
 pub use debug::*;
 pub use edit::*;
+pub use extensions::*;
 pub use open::*;
 pub use search::*;
 pub use storage::*;

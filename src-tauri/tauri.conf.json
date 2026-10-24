@@ -19,7 +19,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://raw.githubusercontent.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://raw.githubusercontent.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src extsandbox: http://extsandbox.localhost"
     }
   },
   "bundle": {

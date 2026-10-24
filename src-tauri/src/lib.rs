@@ -5,6 +5,7 @@ mod commands;
 mod config;
 mod debug_log;
 mod error;
+mod extensions;
 mod fs_safe;
 mod index;
 mod mutations;
@@ -35,6 +36,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(storage)
+        .register_uri_scheme_protocol(extensions::sandbox_page::SCHEME, |_ctx, _request| extensions::sandbox_page::response())
         .setup(move |app| {
             use tauri::Manager;
             if let (Some(name), Some(window)) = (&title, app.get_webview_window("main")) {
@@ -79,6 +81,14 @@ pub fn run() {
             commands::revert_storage_rename,
             commands::storage_rename_status,
             commands::sync_schedule,
+            commands::list_extensions,
+            commands::set_extension_enabled,
+            commands::read_extension_entry,
+            commands::remove_extension,
+            commands::list_registry,
+            commands::install_registry_extension,
+            commands::inspect_extension_repo,
+            commands::install_inspected_extension,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Folder Manager");

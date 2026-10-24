@@ -232,6 +232,10 @@ dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
 .ctx-sep { height: 1px; margin: 4px 0; background: var(--border); }
 
 .details-empty { margin: 0; color: var(--muted); }
+.ext-area { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 9pt; }
+.ext-area summary { cursor: pointer; color: var(--title); font-weight: 600; }
+.ext-panel h3 { margin: 10px 0 4px; font-size: 9pt; color: var(--muted); }
+.ext-frame { display: block; width: 100%; height: 220px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); }
 .sr-only {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
   clip-path: inset(50%); white-space: nowrap; border: 0;

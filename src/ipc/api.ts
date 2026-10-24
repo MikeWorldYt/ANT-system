@@ -82,6 +82,47 @@ export interface UpdateInfo {
 export const checkUpdate = (manual: boolean) => call<UpdateInfo | null>("check_update", { manual });
 export const startUpdate = () => call<void>("start_update");
 export const skipVersion = (version: string) => call<void>("skip_version", { version });
+export type ExtensionPermission = "tree:read" | "menu:context" | "panel:own";
+export interface ExtensionInfo {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  permissions: string[];
+  trust: "validated" | "unvalidated";
+  enabled: boolean;
+  status: "ok" | "rejected";
+  reason: string | null;
+}
+export interface RegistryEntry {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  permissions: string[];
+  installed: boolean;
+}
+export interface ExtensionPreview {
+  token: string;
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  permissions: string[];
+  size: number;
+  alreadyInstalled: boolean;
+}
+export const listExtensions = () => call<ExtensionInfo[]>("list_extensions");
+export const setExtensionEnabled = (id: string, enabled: boolean) => call<void>("set_extension_enabled", { id, enabled });
+export const readExtensionEntry = (id: string) => call<string>("read_extension_entry", { id });
+export const removeExtension = (id: string) => call<void>("remove_extension", { id });
+export const listRegistry = () => call<RegistryEntry[]>("list_registry");
+export const installRegistryExtension = (id: string) => call<ExtensionInfo>("install_registry_extension", { id });
+export const inspectExtensionRepo = (url: string) => call<ExtensionPreview>("inspect_extension_repo", { url });
+export const installInspectedExtension = (token: string) => call<ExtensionInfo>("install_inspected_extension", { token });
 
 const path = (parts: string[]) => parts.join("/") || "root";
 

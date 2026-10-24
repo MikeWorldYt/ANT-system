@@ -7,6 +7,7 @@ import { STATUSES, TYPES } from "../store/node-info";
 import { remove, setDetails, setFavorite, setType } from "../actions/ops";
 import { select, startEdit } from "../store/state";
 import { setStatus } from "../ui/status";
+import { menuItems, runMenuItem } from "../extensions/host";
 import { autoDismiss, focusInitial, menuItem, place, rove, separator, submenu, type Submenu } from "../ui/menu";
 import type { TreeNode } from "../ipc/types";
 
@@ -101,11 +102,18 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     void remove(node);
   }, "ctx-item danger");
 
-  const items = [open, rename, favorite, ...subs.map((s) => s.trigger), copy, del];
+  const extras = menuItems().map((m) =>
+    menuItem(m.label, "menuitem", true, () => {
+      close();
+      runMenuItem(m.extId, m.id, node);
+    }),
+  );
+
+  const items = [open, rename, favorite, ...subs.map((s) => s.trigger), copy, del, ...extras];
   const closeSubs = () => subs.filter((s) => !s.element.contains(document.activeElement)).forEach((s) => s.close());
   items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
   subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));
-  const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` }, open, rename, favorite, ...subs.map((s) => s.element), separator(), copy, del);
+  const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` }, open, rename, favorite, ...subs.map((s) => s.element), separator(), copy, del, ...(extras.length > 0 ? [separator(), ...extras] : []));
   menu.addEventListener("mouseleave", closeSubs);
 
   function close(restore = true): void {
