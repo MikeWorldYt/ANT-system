@@ -11,7 +11,7 @@ import { actions, buttonControl, pathControl, switchControl, valueControl, type 
 const WARNING =
   "Renaming the Storage folder changes its path. A program that is reading it can stop the rename until you close it, and will break once the path changes. A log is saved so you can revert it.";
 
-const folderName = (root: string | undefined) => root?.split(/[\/]/).filter(Boolean).pop() ?? "Unknown";
+const folderName = (root: string | undefined) => root?.split(/[\\/]/).filter(Boolean).pop() ?? "Unknown";
 
 async function toggleWatch(on: boolean): Promise<boolean> {
   if (!(await changeSetting("watchExternal", on))) return false;
@@ -71,7 +71,10 @@ function renameControl(root: string | undefined, row: RowHandle, done: () => voi
     },
     (e) => row.describe(describeError(e)),
   );
-  return actions(valueControl(name), buttonControl("Rename", () => void rename(name, row, done)), undo);
+  const chip = valueControl(name);
+  chip.classList.add("sw-name");
+  chip.title = name;
+  return actions(chip, buttonControl("Rename", () => void rename(name, row, done)), undo);
 }
 
 export const storagePage: SettingsPage = {

@@ -26,15 +26,16 @@ dialog.settings-window::backdrop { background: rgb(0 0 0 / 0.6); }
 .sw-head h2 { margin: 0; font-size: 14pt; color: var(--title); }
 .sw-body { flex: 1; padding: 6px 24px 24px; overflow-y: auto; }
 .sw-body h3 { margin: 22px 0 2px; font-size: 9.5pt; font-weight: 600; color: var(--title); }
-.sw-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.sw-row { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; padding: 12px 0; border-bottom: 1px solid var(--border); }
 .sw-row:last-child { border-bottom: 0; }
-.sw-text { min-width: 0; }
+.sw-text { flex: 1 1 200px; min-width: 0; }
 .sw-title { font-weight: 500; }
 .sw-desc { max-width: 52ch; margin-top: 1px; font-size: 9pt; color: var(--muted); overflow-wrap: anywhere; }
-.sw-actions { display: flex; flex: none; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.sw-actions { display: flex; flex: 0 1 auto; max-width: 100%; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
 .sw-keys { display: flex; align-items: center; gap: 4px; color: var(--muted); }
 .sw-keys kbd { padding: 1px 6px; font: 9pt "Cascadia Mono", Consolas, monospace; color: var(--text); background: var(--field-bg); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; }
 .sw-value { font-weight: 500; }
+.sw-name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sw-path {
   max-width: 260px; padding: 5px 9px; overflow: hidden; font-size: 9pt; color: var(--muted); text-align: left; text-overflow: ellipsis; white-space: nowrap;
   direction: rtl; background: var(--field-bg); border-radius: 5px;

@@ -10,7 +10,7 @@ async function runIfDue(): Promise<void> {
   if (!state.settings.backupAuto) return;
   try {
     const saved = await backupIfDue(localStamp());
-    if (saved) setStatus("info", `Backup saved: ${saved.split(/[\/]/).pop()}`);
+    if (saved) setStatus("info", `Backup saved: ${saved.split(/[\\/]/).pop()}`);
   } catch (e) {
     setStatus("warning", `Backup: ${describeError(e)}`);
   }
