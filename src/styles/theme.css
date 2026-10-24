@@ -175,6 +175,7 @@ dialog.confirm {
 }
 dialog.confirm::backdrop { background: rgb(0 0 0 / 0.6); }
 dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
+.dialog-input { width: 100%; padding: 8px; font: inherit; color: var(--text); background: var(--field-bg); border: 1px solid transparent; border-radius: var(--radius-sm); }
 .dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
 .view-picker {

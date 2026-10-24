@@ -35,3 +35,39 @@ export function confirmDialog(title: string, message: string, confirmLabel: stri
     cancel.focus();
   });
 }
+
+// Resolves to the typed text, or null when cancelled.
+export function promptDialog(title: string, label: string, initial: string, confirmLabel: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const input = el("input", { type: "text", class: "dialog-input", "aria-label": label, value: initial });
+    const cancel = el("button", { type: "submit", class: "btn", value: "cancel", formnovalidate: "" }, "Cancel");
+    const ok = el("button", { type: "submit", class: "btn btn-primary", value: "ok" }, confirmLabel);
+    const form = el("form", { method: "dialog" }, el("h2", { id: "prompt-title" }, title), el("p", {}, label), input, el("div", { class: "dialog-buttons" }, cancel, ok));
+    const dialog = el("dialog", { class: "confirm", "aria-labelledby": "prompt-title" }, form);
+    dialog.addEventListener("close", () => {
+      resolve(dialog.returnValue === "ok" ? input.value.trim() : null);
+      dialog.remove();
+    });
+    document.body.append(dialog);
+    dialog.showModal();
+    input.select();
+  });
+}
+
+// Resolves to the chosen value, or null when cancelled.
+export function selectDialog(title: string, message: string, options: [value: string, label: string][], confirmLabel: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const select = el("select", { class: "dialog-input", "aria-label": title }, ...options.map(([value, label]) => el("option", { value }, label)));
+    const cancel = el("button", { type: "submit", class: "btn", value: "cancel" }, "Cancel");
+    const ok = el("button", { type: "submit", class: "btn btn-danger", value: "ok" }, confirmLabel);
+    const form = el("form", { method: "dialog" }, el("h2", { id: "select-title" }, title), el("p", { class: "dialog-text" }, message), select, el("div", { class: "dialog-buttons" }, cancel, ok));
+    const dialog = el("dialog", { class: "confirm", "aria-labelledby": "select-title" }, form);
+    dialog.addEventListener("close", () => {
+      resolve(dialog.returnValue === "ok" ? select.value : null);
+      dialog.remove();
+    });
+    document.body.append(dialog);
+    dialog.showModal();
+    select.focus();
+  });
+}

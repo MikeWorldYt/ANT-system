@@ -76,6 +76,14 @@ export const resetPreferences = () =>
     notify();
   });
 
+export const restoreBackupNamed = (name: string, stamp: string) =>
+  run(async () => {
+    await api.restoreBackup(name, stamp);
+    applySettings(await api.getSettings());
+    await reload();
+    clearStatus();
+  });
+
 export function refresh(): Promise<boolean> {
   if (state.busy) return Promise.resolve(false);
   return run(async () => {

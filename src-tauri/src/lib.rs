@@ -1,5 +1,6 @@
 // Library root so the app builds as both a desktop binary and a Tauri library.
 mod ant_core;
+mod backup;
 mod commands;
 mod config;
 mod debug_log;
@@ -16,6 +17,9 @@ mod updater;
 use commands::settings;
 
 pub fn run() {
+    if std::env::args_os().nth(1).is_some_and(|a| a == "--backup") {
+        std::process::exit(backup::run_headless(std::env::args_os().nth(2)));
+    }
     let start = std::env::args_os()
         .nth(1)
         .map(std::path::PathBuf::from)
@@ -61,6 +65,11 @@ pub fn run() {
             commands::open_logs_folder,
             commands::open_devtools,
             settings::reset_settings,
+            commands::backup_now,
+            commands::backup_if_due,
+            commands::list_backups,
+            commands::restore_backup,
+            commands::backup_schedule,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Folder Manager");

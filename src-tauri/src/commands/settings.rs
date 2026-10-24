@@ -15,9 +15,11 @@ const RELEASES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/t
 const DOCS_URL: &str = "https://ant.mikeworld.dev";
 const MAIL_ADDRESS: &str = "info@mikeworld.dev";
 // A new key is added here before the UI can write it: on/off switches, the launch choice and the shortcut overrides.
-const BOOLEAN_SETTINGS: [&str; 5] = ["pinFavorites", "hideDone", "confirmDelete", "autoUpdate", "debugLogging"];
+const BOOLEAN_SETTINGS: [&str; 6] = ["pinFavorites", "hideDone", "confirmDelete", "autoUpdate", "debugLogging", "backupAuto"];
 const ON_LAUNCH_VALUES: [&str; 2] = ["continue", "root"];
 const START_VIEW_VALUES: [&str; 3] = ["continue", "tree", "columns"];
+const BACKUP_FREQUENCIES: [&str; 3] = ["day", "week", "month"];
+const MAX_BACKUP_FOLDER_CHARS: usize = 400;
 const SHORTCUT_ACTIONS: [&str; 6] = ["focusSearch", "editPath", "newNode", "newWorkboard", "openSettings", "goUp"];
 // Keys the folder views own, so a shortcut can never take them: (code, mod, alt).
 const FIXED_KEYS: [(&str, bool, bool); 2] = [("Delete", false, false), ("Enter", false, false)];
@@ -64,11 +66,23 @@ fn shortcuts_valid(value: &str) -> bool {
     })
 }
 
+// Empty means the default folder inside the storage.
+pub(crate) fn valid_backup_folder(value: &str) -> bool {
+    let path = std::path::Path::new(value);
+    value.is_empty()
+        || (value.chars().count() <= MAX_BACKUP_FOLDER_CHARS
+            && !value.chars().any(char::is_control)
+            && path.is_absolute()
+            && !path.components().any(|c| c == std::path::Component::ParentDir))
+}
+
 fn check(key: &str, value: &str) -> R<()> {
     let valid = match key {
         "onLaunch" => ON_LAUNCH_VALUES.contains(&value),
         "startView" => START_VIEW_VALUES.contains(&value),
         "shortcuts" => shortcuts_valid(value),
+        "backupFrequency" => BACKUP_FREQUENCIES.contains(&value),
+        "backupFolder" => valid_backup_folder(value),
         _ => BOOLEAN_SETTINGS.contains(&key) && matches!(value, "true" | "false"),
     };
     if !valid {
@@ -153,6 +167,22 @@ mod tests {
         assert!(check("shortcuts", r#"{"goUp": {"code": "Delete"}}"#).is_err());
         let twice = r#"{"goUp": {"code": "KeyJ", "mod": true}, "editPath": {"code": "KeyJ", "mod": true}}"#;
         assert!(check("shortcuts", twice).is_err());
+    }
+
+    #[test]
+    fn backup_settings_are_validated() {
+        let abs = if cfg!(windows) { "C:\\Backups\\ANT" } else { "/backups/ant" };
+        assert!(check("backupAuto", "true").is_ok());
+        assert!(check("backupAuto", "1").is_err());
+        assert!(check("backupFrequency", "month").is_ok());
+        assert!(check("backupFrequency", "hour").is_err());
+        assert!(check("backupFolder", "").is_ok());
+        assert!(check("backupFolder", abs).is_ok());
+        assert!(check("backupFolder", "relative/dir").is_err());
+        assert!(check("backupFolder", &format!("{abs}/../x")).is_err());
+        assert!(check("backupFolder", &format!("{abs}\nx")).is_err());
+        assert!(check("backupFolder", &format!("{abs}/{}", "a".repeat(400))).is_err());
+        assert!(check("backupLast", "123").is_err());
     }
 
     #[test]

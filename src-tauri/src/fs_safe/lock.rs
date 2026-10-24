@@ -7,7 +7,7 @@ use super::io_err;
 use crate::config::{CORE_FOLDER, SETTINGS_FOLDER};
 use crate::error::{FmError, R};
 
-const LOCK_FILE: &str = ".FolderManager.lock";
+pub(crate) const LOCK_FILE: &str = ".FolderManager.lock";
 const STALE_LOCK: Duration = Duration::from_secs(120);
 
 // Serialises mutations across processes, which the in-process Mutex cannot see.

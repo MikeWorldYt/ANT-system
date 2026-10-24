@@ -36,6 +36,15 @@ export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("
 export const getSettings = () => call<Record<string, string>>("get_settings");
 export const setSetting = (key: string, value: string) => call<void>("set_setting", { key, value });
 export const openLink = (link: "issues" | "mail" | "changelog" | "docs") => call<void>("open_link", { link });
+export interface BackupEntry {
+  name: string;
+  path: string;
+}
+export const backupNow = (stamp: string) => call<string>("backup_now", { stamp });
+export const backupIfDue = (stamp: string) => call<string | null>("backup_if_due", { stamp });
+export const listBackups = () => call<BackupEntry[]>("list_backups");
+export const restoreBackup = (name: string, stamp: string) => call<void>("restore_backup", { name, stamp });
+export const backupSchedule = (on: boolean) => call<void>("backup_schedule", { on });
 export const resetSettings = () => call<void>("reset_settings");
 export const startDebugLog = (stamp: string) => call<string>("start_debug_log", { stamp });
 export const stopDebugLog = () => call<void>("stop_debug_log");

@@ -22,6 +22,7 @@ export interface KeyCombo {
 }
 
 export type OnLaunch = "continue" | "root";
+export type BackupFrequency = "day" | "week" | "month";
 export type StartView = "continue" | "tree" | "columns";
 
 export interface Settings {
@@ -30,6 +31,10 @@ export interface Settings {
   confirmDelete: boolean;
   autoUpdate: boolean;
   debugLogging: boolean;
+  backupAuto: boolean;
+  backupFrequency: BackupFrequency;
+  // Empty means the default folder inside the Storage.
+  backupFolder: string;
   onLaunch: OnLaunch;
   startView: StartView;
   // Only the shortcuts the user changed; the rest keep their defaults.
@@ -64,7 +69,7 @@ export const state: State = {
   busy: false,
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, debugLogging: false, onLaunch: "continue", startView: "continue", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
 };
 
 const listeners = new Set<() => void>();
@@ -134,6 +139,9 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.confirmDelete = saved.confirmDelete !== "false";
   state.settings.autoUpdate = saved.autoUpdate !== "false";
   state.settings.debugLogging = saved.debugLogging === "true";
+  state.settings.backupAuto = saved.backupAuto === "true";
+  state.settings.backupFrequency = saved.backupFrequency === "week" || saved.backupFrequency === "month" ? saved.backupFrequency : "day";
+  state.settings.backupFolder = saved.backupFolder ?? "";
   state.settings.onLaunch = saved.onLaunch === "root" ? "root" : "continue";
   state.settings.startView = saved.startView === "tree" || saved.startView === "columns" ? saved.startView : "continue";
   state.settings.shortcuts = readShortcuts(saved.shortcuts);

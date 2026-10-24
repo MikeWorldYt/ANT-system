@@ -17,6 +17,7 @@ import { createToolbar } from "./shell/toolbar";
 import { openSettings } from "./shell/settings-dialog";
 import { createTreeView } from "./views/tree-view";
 import { checkForUpdates } from "./actions/updates";
+import { startBackups } from "./actions/backups";
 import { installDebugLog, startDebugLog } from "./actions/debug-log";
 import { createViewSwitcher } from "./views/view-switch";
 
@@ -95,6 +96,7 @@ installDebugLog();
 
 void init().then(() => {
   if (state.settings.debugLogging) void startDebugLog();
+  startBackups();
   if (state.settings.startView !== "continue") {
     views.switchTo(state.settings.startView);
     toolbar.render();

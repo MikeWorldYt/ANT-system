@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::error::{FmError, R};
 
 pub(crate) use journal::Journal;
-pub(crate) use lock::StorageLock;
+pub(crate) use lock::{StorageLock, LOCK_FILE};
 #[cfg(windows)]
 pub(crate) use powershell::{run_powershell, CREATE_NO_WINDOW};
 pub(crate) use validate::{
