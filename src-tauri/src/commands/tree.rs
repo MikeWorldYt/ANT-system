@@ -8,13 +8,17 @@ use super::{review_emitter, run_locked};
 use crate::config::MAX_DEPTH;
 use crate::error::R;
 use crate::fs_safe::validate_component;
-use crate::index::{reindex, review_index, Emit};
+use crate::index::{reindex, review_folders, review_index, Emit};
 use crate::tree::snapshot;
 use crate::tree::tree_node::{build_children, fill_children, TreeNode, TreeSnapshot};
 use crate::tree::tree_store;
 
 pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>) -> R<TreeSnapshot> {
-    let tree = snapshot(root)?;
+    let mut tree = snapshot(root)?;
+    if review_folders::restore(root)? {
+        tree = snapshot(root)?;
+        tree.yaml_changed = true;
+    }
     reindex(root, emit, rebuild);
     Ok(tree)
 }
