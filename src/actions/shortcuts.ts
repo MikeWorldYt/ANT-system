@@ -20,6 +20,7 @@ interface Binding extends KeyCombo {
 export const EDITABLE_SHORTCUTS: { id: string; label: string; combo: KeyCombo }[] = [
   { id: "focusSearch", label: "Search in Storage", combo: { code: "KeyF", mod: true, alt: false } },
   { id: "editPath", label: "Edit path", combo: { code: "KeyL", mod: true, alt: false } },
+  { id: "newNode", label: "New node", combo: { code: "KeyN", mod: true, alt: false } },
   { id: "newWorkboard", label: "New Workboard", combo: { code: "KeyN", mod: true, alt: true } },
   { id: "openSettings", label: "Open Settings", combo: { code: "Comma", mod: true, alt: false } },
   { id: "goUp", label: "Go up one level", combo: { code: "ArrowUp", mod: false, alt: true } },
@@ -27,7 +28,6 @@ export const EDITABLE_SHORTCUTS: { id: string; label: string; combo: KeyCombo }[
 
 // The folder views own these keys, so the settings page never offers them.
 const FIXED_SHORTCUTS: KeyCombo[] = [
-  { code: "KeyN", mod: true, alt: false },
   { code: "Delete", mod: false, alt: false },
   { code: "Enter", mod: false, alt: false },
 ];
@@ -57,11 +57,11 @@ function bindings(go: ShortcutTargets): Binding[] {
   };
   const runs: Record<string, () => void> = {
     ...go,
+    newNode: withSelected((n) => n.actions.addNext && void addNext(n, "node")),
     newWorkboard: withSelected((n) => n.actions.addNext && void addNext(n, "workboard")),
   };
   return [
     ...EDITABLE_SHORTCUTS.map((s) => ({ ...comboOf(s.id), plain: false, run: runs[s.id]! })),
-    { code: "KeyN", mod: true, alt: false, plain: false, run: withSelected((n) => n.actions.addNext && void addNext(n, "node")) },
     { code: "Delete", mod: false, alt: false, plain: true, run: withSelected((n) => n.actions.delete && void remove(n)) },
     { code: "Enter", mod: false, alt: false, plain: true, run: go.openSelected },
   ];

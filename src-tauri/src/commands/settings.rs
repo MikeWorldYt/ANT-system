@@ -17,9 +17,9 @@ const MAIL_ADDRESS: &str = "info@mikeworld.dev";
 const BOOLEAN_SETTINGS: [&str; 4] = ["pinFavorites", "hideDone", "confirmDelete", "autoUpdate"];
 const ON_LAUNCH_VALUES: [&str; 2] = ["continue", "root"];
 const START_VIEW_VALUES: [&str; 3] = ["continue", "tree", "columns"];
-const SHORTCUT_ACTIONS: [&str; 5] = ["focusSearch", "editPath", "newWorkboard", "openSettings", "goUp"];
+const SHORTCUT_ACTIONS: [&str; 6] = ["focusSearch", "editPath", "newNode", "newWorkboard", "openSettings", "goUp"];
 // Keys the folder views own, so a shortcut can never take them: (code, mod, alt).
-const FIXED_KEYS: [(&str, bool, bool); 3] = [("Delete", false, false), ("Enter", false, false), ("KeyN", true, false)];
+const FIXED_KEYS: [(&str, bool, bool); 2] = [("Delete", false, false), ("Enter", false, false)];
 
 #[derive(Deserialize)]
 struct Combo {
@@ -137,7 +137,7 @@ mod tests {
         assert!(check("shortcuts", r#"{"goUp": {"code": "ArrowUp", "mod": false, "alt": true}}"#).is_ok());
         assert!(check("shortcuts", r#"{"goUp": {"code": "ArrowUp"}}"#).is_err());
         assert!(check("shortcuts", r#"{"nope": {"code": "KeyJ", "mod": true}}"#).is_err());
-        assert!(check("shortcuts", r#"{"goUp": {"code": "KeyN", "mod": true}}"#).is_err());
+        assert!(check("shortcuts", r#"{"goUp": {"code": "Delete"}}"#).is_err());
         let twice = r#"{"goUp": {"code": "KeyJ", "mod": true}, "editPath": {"code": "KeyJ", "mod": true}}"#;
         assert!(check("shortcuts", twice).is_err());
     }
