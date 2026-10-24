@@ -4,7 +4,7 @@ import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
-import { nameCell } from "./name-cell";
+import { favoriteMark, nameCell } from "./name-cell";
 import { nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
@@ -42,7 +42,7 @@ export function createColumnsView(): ViewMode {
 
   function buildItem(n: TreeNode, onPath: boolean, tabbable: boolean): HTMLElement {
     const selected = keyOf(n.relParts) === state.selectedKey;
-    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, folderIcon(n), nameCell(n));
+    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, folderIcon(n), nameCell(n, Boolean(n.status)));
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
     else if (onPath) item.classList.add("on-path");
@@ -52,7 +52,9 @@ export function createColumnsView(): ViewMode {
       item.setAttribute("aria-disabled", "true");
     }
     if (n.ghost) item.setAttribute("aria-label", `${n.name} (missing on disk)`);
+    // Without a status the star takes the icon's place at the end of the row.
     if (n.status) item.append(statusMark(n.status));
+    else if (n.favorite) item.append(favoriteMark());
     item.title = nodeSummary(n);
     if (n.hasChildren) item.append(el("span", { class: "chevron", "aria-hidden": "true" }, guiIcon("chevronRight")));
     item.addEventListener("click", () => select(n.relParts));
