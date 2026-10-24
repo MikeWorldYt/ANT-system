@@ -30,6 +30,11 @@ export async function openSettings(): Promise<void> {
   pin.addEventListener("change", async () => {
     if (!(await changeSetting("pinFavorites", pin.checked))) pin.checked = state.settings.pinFavorites;
   });
+  const hideDone = el("input", { type: "checkbox", id: "setting-hide-done" });
+  hideDone.checked = state.settings.hideDone;
+  hideDone.addEventListener("change", async () => {
+    if (!(await changeSetting("hideDone", hideDone.checked))) hideDone.checked = state.settings.hideDone;
+  });
   const about = el("div", { class: "settings-rows" });
 
   const close = el("button", { type: "submit", class: "btn btn-primary", value: "close" }, "Close");
@@ -44,7 +49,11 @@ export async function openSettings(): Promise<void> {
     "form",
     { method: "dialog" },
     el("h2", { id: "settings-title" }, "Settings"),
-    section("Lists", el("label", { class: "settings-check", for: "setting-pin" }, pin, "Pin favorites to the top of each list")),
+    section(
+      "Preference",
+      el("label", { class: "settings-check", for: "setting-pin" }, pin, "Pin favorites to the top of each list"),
+      el("label", { class: "settings-check", for: "setting-hide-done" }, hideDone, "Hide Workboards with status done"),
+    ),
     section("About", about, el("div", { class: "settings-actions" }, update)),
     section("Report a bug", el("p", { class: "settings-hint" }, `On GitHub, or by mail to ${MAIL}. The app version is added for you.`), el("div", { class: "settings-actions" }, issues, mail)),
     el("div", { class: "dialog-buttons" }, close),

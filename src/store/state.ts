@@ -17,6 +17,7 @@ interface State {
 
 export interface Settings {
   pinFavorites: boolean;
+  hideDone: boolean;
 }
 
 export type { ColumnSort, SortBy };
@@ -47,7 +48,7 @@ export const state: State = {
   busy: false,
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true },
+  settings: { pinFavorites: true, hideDone: false },
 };
 
 const listeners = new Set<() => void>();
@@ -78,10 +79,13 @@ export function selectedNode(): TreeNode | null {
   return state.selectedKey === null ? null : findNode(state.selectedKey.split("/"));
 }
 
+export const listed = (nodes: TreeNode[]): TreeNode[] =>
+  state.settings.hideDone ? nodes.filter((n) => n.status !== "done") : nodes;
+
 export function visibleRows(): TreeNode[] {
   const rows: TreeNode[] = [];
   const walk = (nodes: TreeNode[]) => {
-    for (const n of favoritesFirst(nodes, state.settings.pinFavorites)) {
+    for (const n of favoritesFirst(listed(nodes), state.settings.pinFavorites)) {
       rows.push(n);
       if (state.expanded.has(keyOf(n.relParts)) && n.children) walk(n.children);
     }
@@ -92,6 +96,7 @@ export function visibleRows(): TreeNode[] {
 
 export function applySettings(saved: Record<string, string>): void {
   state.settings.pinFavorites = saved.pinFavorites !== "false";
+  state.settings.hideDone = saved.hideDone === "true";
 }
 
 export const sortOf = (columnKey: string): ColumnSort => state.sorts[columnKey] ?? DEFAULT_SORT;

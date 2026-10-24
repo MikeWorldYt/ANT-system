@@ -15,7 +15,7 @@ use crate::updater::CURRENT_VERSION;
 const ISSUES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/issues/new";
 const MAIL_ADDRESS: &str = "info@mikeworld.dev";
 // Every setting is an on/off switch for now; a new key is added here before the UI can write it.
-const BOOLEAN_SETTINGS: [&str; 1] = ["pinFavorites"];
+const BOOLEAN_SETTINGS: [&str; 2] = ["pinFavorites", "hideDone"];
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "camelCase")]

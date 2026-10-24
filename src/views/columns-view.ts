@@ -8,7 +8,7 @@ import { favoriteMark, nameCell } from "./name-cell";
 import { nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
-import { keyOf, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -22,7 +22,7 @@ function buildColumns(): Column[] {
   const path = state.selectedKey?.split("/") ?? [];
   let nodes: TreeNode[] = state.tree?.nodes ?? [];
   for (let depth = 0; ; depth++) {
-    const shown = sortedForColumns(nodes, sortOf(path.slice(0, depth).join("/")), state.settings.pinFavorites);
+    const shown = sortedForColumns(listed(nodes), sortOf(path.slice(0, depth).join("/")), state.settings.pinFavorites);
     cols.push({ nodes: shown, loading: false });
     const open = nodes.find((n) => n.name === path[depth]);
     if (!open || !open.hasChildren) break;
@@ -74,7 +74,7 @@ export function createColumnsView(): ViewMode {
 
   async function enterChildren(n: TreeNode): Promise<void> {
     if (n.children === null) await expand(n);
-    const first = sortedForColumns(n.children ?? [], sortOf(keyOf(n.relParts)), state.settings.pinFavorites)[0];
+    const first = sortedForColumns(listed(n.children ?? []), sortOf(keyOf(n.relParts)), state.settings.pinFavorites)[0];
     if (first) select(first.relParts);
   }
 
