@@ -31,6 +31,7 @@ export const renameNode = (relParts: string[], newEditable: string) =>
   call<Mutation>("rename_node", { relParts, newEditable });
 export const setNodeType = (relParts: string[], typeBase: EditableType, status: WkbStatus | null) =>
   call<Mutation>("set_node_type", { relParts, typeBase, status });
+export const openNode = (relParts: string[]) => call<void>("open_node", { relParts });
 export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("set_favorite", { relParts, on });
 export const getSettings = () => call<Record<string, string>>("get_settings");
 export const setSetting = (key: string, value: string) => call<void>("set_setting", { key, value });

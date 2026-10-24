@@ -1,4 +1,5 @@
 // Context menu shared by every view; item enablement comes only from node.actions.
+import { describeError, openNode } from "../ipc/api";
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { statusIcon } from "../ui/status-mark";
@@ -51,10 +52,22 @@ async function copyPath(node: TreeNode): Promise<void> {
   }
 }
 
+async function openFolder(node: TreeNode): Promise<void> {
+  try {
+    await openNode(node.relParts);
+  } catch (e) {
+    setStatus("warning", describeError(e));
+  }
+}
+
 function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
   dismissOpen?.();
   const a = node.actions;
 
+  const open = menuItem("Open", "menuitem", a.open, () => {
+    close();
+    void openFolder(node);
+  });
   const rename = menuItem("Rename", "menuitem", a.rename, () => {
     close(false);
     startEdit(node.relParts);
@@ -88,11 +101,11 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     void remove(node);
   }, "ctx-item danger");
 
-  const items = [rename, favorite, ...subs.map((s) => s.trigger), copy, del];
+  const items = [open, rename, favorite, ...subs.map((s) => s.trigger), copy, del];
   const closeSubs = () => subs.filter((s) => !s.element.contains(document.activeElement)).forEach((s) => s.close());
   items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
   subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));
-  const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` }, rename, favorite, ...subs.map((s) => s.element), separator(), copy, del);
+  const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` }, open, rename, favorite, ...subs.map((s) => s.element), separator(), copy, del);
   menu.addEventListener("mouseleave", closeSubs);
 
   function close(restore = true): void {

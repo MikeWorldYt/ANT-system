@@ -1,5 +1,6 @@
 // Tauri command layer: runs the pure core under the storage lock off the UI thread.
 mod edit;
+mod open;
 mod search;
 pub mod settings;
 #[cfg(test)]
@@ -19,6 +20,7 @@ use crate::index::ReviewIndexEvent;
 use crate::updater;
 
 pub use edit::*;
+pub use open::*;
 pub use search::*;
 pub use tree::*;
 pub use update::*;

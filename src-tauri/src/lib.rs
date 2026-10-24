@@ -36,6 +36,7 @@ pub fn run() {
             commands::get_storage,
             commands::load_tree,
             commands::list_children,
+            commands::open_node,
             commands::refresh,
             commands::rename_node,
             commands::set_node_type,

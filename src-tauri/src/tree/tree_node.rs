@@ -33,6 +33,7 @@ pub struct NodeActions {
     pub move_down: bool,
     pub delete: bool,
     pub copy_path: bool,
+    pub open: bool,
     pub favorite: bool,
     pub edit_details: bool,
 }
@@ -213,6 +214,7 @@ fn compute_actions(depth: usize, ghost: bool, raw_type: &str, reserved: bool, in
         move_down: false,
         delete: !reserved && (ghost || !locked),
         copy_path: !ghost,
+        open: !ghost,
         // A broken info.json is never overwritten, so neither edit can be saved into it.
         favorite: !reserved && !ghost && !info_broken,
         edit_details: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
