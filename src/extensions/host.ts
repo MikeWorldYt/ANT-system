@@ -3,6 +3,7 @@ import { describeError, listExtensions, readExtensionEntry, type ExtensionInfo }
 import type { TreeNode } from "../ipc/types";
 import { state } from "../store/state";
 import { setStatus } from "../ui/status";
+import { clearProviders, provide, receive } from "./details";
 import { addSection, type PanelSection } from "./panel";
 import { MAX_MENU_ITEMS, NEEDS, parseIncoming, parseMenuItem, summarize, type Op } from "./protocol";
 import { createSandbox } from "./sandbox";
@@ -27,7 +28,7 @@ function warn(ext: Running, text: string): void {
 
 const post = (ext: Running, msg: Record<string, unknown>) => ext.frame.contentWindow?.postMessage({ ant: 1, ...msg }, "*");
 
-function handle(ext: Running, op: Op, args: unknown): unknown {
+function handle(ext: Running, op: Exclude<Op, "details.reply">, args: unknown): unknown {
   switch (op) {
     case "tree.get":
       return summarize(state.tree?.nodes ?? []);
@@ -38,6 +39,9 @@ function handle(ext: Running, op: Op, args: unknown): unknown {
       ext.menu.set(item.id, item.label);
       return null;
     }
+    case "details.provide":
+      provide(ext.info.id, { name: ext.info.name, send: (msg) => post(ext, msg), warn: (text) => warn(ext, text) });
+      return null;
     case "panel.show":
     case "panel.hide":
       ext.panel.show(op === "panel.show");
@@ -51,10 +55,13 @@ function onMessage(ev: MessageEvent): void {
   const msg = parseIncoming(ev.data);
   if (typeof msg === "string") return warn(ext, msg);
   if (msg.kind === "error") return warn(ext, msg.message);
-  const needed = NEEDS[msg.op];
-  if (!ext.info.permissions.includes(needed)) return post(ext, { kind: "reply", id: msg.id, error: `Missing permission: ${needed}` });
+  const op = msg.op;
+  const allowed = ext.info.permissions.includes(NEEDS[op]);
+  // A details reply answers a host request, so it never gets a reply of its own.
+  if (op === "details.reply") return allowed ? receive(ext.info.id, msg.id, msg.args) : warn(ext, `Missing permission: ${NEEDS[op]}`);
+  if (!allowed) return post(ext, { kind: "reply", id: msg.id, error: `Missing permission: ${NEEDS[op]}` });
   try {
-    post(ext, { kind: "reply", id: msg.id, value: handle(ext, msg.op, msg.args) });
+    post(ext, { kind: "reply", id: msg.id, value: handle(ext, op, msg.args) });
   } catch (e) {
     post(ext, { kind: "reply", id: msg.id, error: e instanceof Error ? e.message : String(e) });
   }
@@ -69,6 +76,7 @@ function launch(info: ExtensionInfo, code: string): void {
 function stopAll(): void {
   running.forEach((ext) => ext.panel.destroy());
   running.clear();
+  clearProviders();
 }
 
 async function load(): Promise<void> {

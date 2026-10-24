@@ -5,6 +5,7 @@ import { statusLabeled } from "../ui/status-mark";
 import { isWorkboard, nodeDetails, ownerOf, STATUSES, UNKNOWN } from "../store/node-info";
 import { renameTo, setDetails } from "../actions/ops";
 import { extensionArea } from "../extensions/panel";
+import { detailFields, onDetailsChange, runDetailsAction } from "../extensions/details";
 import { keyOf, selectedNode } from "../store/state";
 import type { TreeNode, WkbStatus } from "../ipc/types";
 
@@ -101,6 +102,19 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     const inputs = form?.inputs ?? {};
     const rows = (n ? nodeDetails(n) : []).flatMap(([k, v]) => [el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))]);
     if (inputs[""]) rows.push(el("dd", {}, inputs[""]));
+    for (const ext of detailFields(n)) {
+      for (const f of ext.fields) {
+        rows.push(el("dt", {}, f.label, el("span", { class: "ext-source" }, ` ← ${ext.name}`)));
+        const value = el("dd", {}, f.value);
+        if (f.action && n) {
+          const { id } = f.action;
+          const button = el("button", { type: "button", class: "btn ext-action" }, f.action.label);
+          button.addEventListener("click", () => runDetailsAction(ext.extId, id, n));
+          value.append(button);
+        }
+        rows.push(value);
+      }
+    }
     // Moving a field into the fresh rows blurs it, so focus goes back to it.
     const focused = document.activeElement;
     list.replaceChildren(...rows);
@@ -114,5 +128,6 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     render();
   });
 
+  onDetailsChange(render);
   return { element, render };
 }

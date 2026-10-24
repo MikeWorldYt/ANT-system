@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use crate::fs_safe::{is_link, validate_component};
 
-pub const PERMISSIONS: [&str; 3] = ["tree:read", "menu:context", "panel:own"];
+pub const PERMISSIONS: [&str; 4] = ["tree:read", "menu:context", "panel:own", "details:field"];
 pub const MAX_MAIN_BYTES: u64 = 1024 * 1024;
 pub const MAX_JSON_BYTES: u64 = 64 * 1024;
 const MANIFEST_FILE: &str = "manifest.json";

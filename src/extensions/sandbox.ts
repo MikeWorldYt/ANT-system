@@ -9,7 +9,8 @@ const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-i
 // Runs before the extension code and is the only bridge it gets to the host.
 const BOOTSTRAP = `(() => {
   const pending = new Map();
-  const listeners = [];
+  const listeners = { menu: [], "details-action": [] };
+  let provider = null;
   let seq = 0;
   const send = (msg) => parent.postMessage(Object.assign({ ant: 1 }, msg), "*");
   const report = (e) => send({ kind: "error", message: String((e && e.message) || e) });
@@ -27,10 +28,15 @@ const BOOTSTRAP = `(() => {
       pending.delete(m.id);
       if (m.error) p.reject(new Error(m.error));
       else p.resolve(m.value);
-    } else if (m.kind === "menu") {
-      for (const fn of listeners) {
+    } else if (m.kind === "menu" || m.kind === "details-action") {
+      for (const fn of listeners[m.kind]) {
         try { fn({ id: m.id, relParts: m.relParts }); } catch (e) { report(e); }
       }
+    } else if (m.kind === "details-request") {
+      const reply = (args) => send({ kind: "call", op: "details.reply", id: m.id, args });
+      Promise.resolve()
+        .then(() => (provider ? provider(m.node) : []))
+        .then((fields) => reply({ fields }), (e) => reply({ error: String((e && e.message) || e) }));
     }
   });
   addEventListener("error", (ev) => report(ev.error || ev.message));
@@ -39,9 +45,16 @@ const BOOTSTRAP = `(() => {
     tree: Object.freeze({ get: () => call("tree.get") }),
     menu: Object.freeze({ add: (item) => call("menu.add", item) }),
     panel: Object.freeze({ show: () => call("panel.show"), hide: () => call("panel.hide") }),
+    details: Object.freeze({
+      provide: (fn) => {
+        if (typeof fn !== "function") return Promise.reject(new Error("details.provide expects a function"));
+        provider = fn;
+        return call("details.provide");
+      },
+    }),
     on: (name, fn) => {
-      if (name !== "menu" || typeof fn !== "function") throw new Error("Unknown event: " + String(name));
-      listeners.push(fn);
+      if (!Object.hasOwn(listeners, name) || typeof fn !== "function") throw new Error("Unknown event: " + String(name));
+      listeners[name].push(fn);
     },
   });
   Object.defineProperty(window, "ant", { value: ant });

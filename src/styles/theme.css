@@ -232,6 +232,8 @@ dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
 .ctx-sep { height: 1px; margin: 4px 0; background: var(--border); }
 
 .details-empty { margin: 0; color: var(--muted); }
+.ext-source { color: var(--muted); }
+.ext-action { display: block; margin-top: 4px; padding: 3px 10px; font-size: 9pt; }
 .ext-area { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 9pt; }
 .ext-area summary { cursor: pointer; color: var(--title); font-weight: 600; }
 .ext-panel h3 { margin: 10px 0 4px; font-size: 9pt; color: var(--muted); }
