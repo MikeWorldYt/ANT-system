@@ -14,9 +14,13 @@ import search from "../assets/gui/search.svg?raw";
 import settings from "../assets/gui/settings.svg?raw";
 import separator from "../assets/gui/separator.svg?raw";
 import starred from "../assets/gui/starred.svg?raw";
+import statusDone from "../assets/gui/status-done.svg?raw";
+import statusHold from "../assets/gui/status-hold.svg?raw";
+import statusProgress from "../assets/gui/status-progress.svg?raw";
+import statusReview from "../assets/gui/status-review.svg?raw";
 import up from "../assets/gui/up.svg?raw";
 
-const SOURCES = { add, back, chevronDown, chevronRight, forward, infoPanel, layout, moveDown, moveUp, pencil, refresh, search, separator, settings, starred, up };
+const SOURCES = { add, back, chevronDown, chevronRight, forward, infoPanel, layout, moveDown, moveUp, pencil, refresh, search, separator, settings, starred, statusDone, statusHold, statusProgress, statusReview, up };
 
 export type GuiIcon = keyof typeof SOURCES;
 

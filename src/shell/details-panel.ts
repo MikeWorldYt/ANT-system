@@ -1,6 +1,7 @@
 // Details of the selected node; its name, and the status and owner of a workboard, are edited here.
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
+import { statusLabeled } from "../ui/status-mark";
 import { isWorkboard, nodeDetails, ownerOf, STATUSES, UNKNOWN } from "../store/node-info";
 import { renameTo, setDetails } from "../actions/ops";
 import { keyOf, selectedNode } from "../store/state";
@@ -97,7 +98,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     if (editing === null) form = null;
     else if (n && form?.key !== editing) form = { key: editing, inputs: controls(n) };
     const inputs = form?.inputs ?? {};
-    const rows = (n ? nodeDetails(n) : []).flatMap(([k, v]) => [el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? v)]);
+    const rows = (n ? nodeDetails(n) : []).flatMap(([k, v]) => [el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))]);
     if (inputs[""]) rows.push(el("dd", {}, inputs[""]));
     // Moving a field into the fresh rows blurs it, so focus goes back to it.
     const focused = document.activeElement;

@@ -1,5 +1,7 @@
 // Context menu shared by every view; item enablement comes only from node.actions.
 import { el } from "../ui/dom";
+import { guiIcon } from "../ui/gui-icons";
+import { statusIcon } from "../ui/status-mark";
 import { STATUSES, TYPES } from "../store/node-info";
 import { remove, setDetails, setFavorite, setType } from "../actions/ops";
 import { select, startEdit } from "../store/state";
@@ -67,12 +69,14 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
       void setType(node, base, node.status ?? "in-progress");
     }, "ctx-item", node.nodeType?.base === base),
   );
-  const statusChoices = STATUSES.map(([value, label]) =>
-    menuItem(label, "menuitemradio", a.editDetails, () => {
+  const statusChoices = STATUSES.map(([value, label]) => {
+    const item = menuItem(label, "menuitemradio", a.editDetails, () => {
       close();
       void setDetails(node, value, null);
-    }, `ctx-item st-${value}`, node.status === value),
-  );
+    }, `ctx-item ctx-status st-${value}`, node.status === value);
+    item.replaceChildren(guiIcon(statusIcon(value)), label);
+    return item;
+  });
   const subs: Submenu[] = [submenu("Change type", typeChoices, a.changeType)];
   if (node.nodeType?.base === "WKB") subs.push(submenu("Status", statusChoices, a.editDetails));
   const copy = menuItem("Copy path", "menuitem", a.copyPath, () => {

@@ -118,13 +118,12 @@ body {
 .details dt { color: var(--muted); }
 .details dd { margin: 0 0 6px; word-break: break-word; }
 .caret { width: 14px; text-align: center; color: var(--accent); }
-.badge { font-size: 8pt; padding: 0 6px; border-radius: var(--radius-md); border: 1px solid var(--border); color: var(--muted); }
-.badge.status { color: var(--title); border-color: var(--title); }
 .st-in-progress { --st: var(--st-progress); }
 .st-hold { --st: var(--st-hold); }
 .st-for-review { --st: var(--st-review); }
 .st-done { --st: var(--st-done); }
-.badge.status[class*="st-"] { color: var(--st); border-color: var(--st); }
+.status-mark { display: inline-flex; flex: none; color: var(--st); }
+.status-mark .gui-icon { width: 16px; height: 16px; }
 .ctx-item[class*="st-"], .details dd[class*="st-"], select.details-input[class*="st-"] { color: var(--st); }
 .fav-mark { display: inline-flex; vertical-align: middle; margin-left: 6px; color: var(--st-progress); }
 .fav-mark .gui-icon { width: 12px; height: 12px; }
@@ -229,6 +228,12 @@ dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
 .ctx-sub-trigger[aria-expanded="true"] { background: var(--highlight); }
 .ctx-sub-trigger .gui-icon { width: 12px; height: 12px; color: var(--disabled-text); }
 .ctx-item[aria-checked="true"]::before { content: "✓"; position: absolute; left: 12px; color: var(--accent); }
+.ctx-item.ctx-status { display: flex; align-items: center; gap: 8px; padding-left: 10px; }
+.ctx-status .gui-icon { width: 16px; height: 16px; flex: none; }
+.ctx-status[aria-checked="true"]::before { content: none; }
+.ctx-status[aria-checked="true"] { background: var(--highlight); box-shadow: inset 3px 0 0 var(--st); font-weight: 600; }
+.status-labeled { display: inline-flex; align-items: center; gap: 6px; }
+.status-labeled .gui-icon { width: 16px; height: 16px; flex: none; }
 .ctx-sep { height: 1px; margin: 4px 0; background: var(--border); }
 
 .details-empty { margin: 0; color: var(--muted); }

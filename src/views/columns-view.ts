@@ -1,10 +1,11 @@
 // Columns view: one column per depth of the selected path, children of the selection in the next one.
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
-import { badge, el } from "../ui/dom";
+import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
+import { statusMark } from "../ui/status-mark";
 import { nameCell } from "./name-cell";
-import { nodeSummary, statusLabel } from "../store/node-info";
+import { nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
 import { keyOf, select, selectedNode, sortOf, startEdit, state } from "../store/state";
@@ -51,7 +52,7 @@ export function createColumnsView(): ViewMode {
       item.setAttribute("aria-disabled", "true");
     }
     if (n.ghost) item.setAttribute("aria-label", `${n.name} (missing on disk)`);
-    if (n.status) item.append(badge(`status st-${n.status}`, statusLabel(n.status)));
+    if (n.status) item.append(statusMark(n.status));
     item.title = nodeSummary(n);
     if (n.hasChildren) item.append(el("span", { class: "chevron", "aria-hidden": "true" }, guiIcon("chevronRight")));
     item.addEventListener("click", () => select(n.relParts));
