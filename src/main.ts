@@ -1,5 +1,6 @@
 // Entry point: assembles the shell and wires store, events and views.
 import "./styles/theme.css";
+import "./styles/themes.css";
 import { describeError } from "./ipc/api";
 import { createColumnsView } from "./views/columns-view";
 import { installContextMenu } from "./views/context-menu";
@@ -19,6 +20,7 @@ import { createTreeView } from "./views/tree-view";
 import { checkForUpdates } from "./actions/updates";
 import { startBackups } from "./actions/backups";
 import { installDebugLog, startDebugLog } from "./actions/debug-log";
+import { applyAppearance } from "./ui/appearance";
 import { createViewSwitcher } from "./views/view-switch";
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -73,6 +75,7 @@ subscribe(() => {
   views.current().render();
   panel.render();
   rememberSelection();
+  applyAppearance();
 });
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;

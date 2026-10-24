@@ -7,13 +7,14 @@ import { guiIcon } from "../../ui/gui-icons";
 import { setStatus } from "../../ui/status";
 import { renderRow, type PageContext, type SettingRow, type SettingsPage } from "./page";
 import { generalPage } from "./preferences/general";
+import { appearancePage } from "./preferences/appearance";
 import { shortcutsPage } from "./preferences/shortcuts";
 import { backupPage } from "./data/backup";
 import { storagePage } from "./data/storage";
 import { advancedPage } from "./system/advanced";
 import { aboutPage } from "./system/about";
 
-const PAGES: SettingsPage[] = [generalPage, shortcutsPage, storagePage, backupPage, advancedPage, aboutPage];
+const PAGES: SettingsPage[] = [generalPage, appearancePage, shortcutsPage, storagePage, backupPage, advancedPage, aboutPage];
 
 function sections(rows: SettingRow[]): HTMLElement[] {
   const out: HTMLElement[] = [];

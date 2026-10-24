@@ -5,12 +5,12 @@
   --st-progress: #e6c34a;
   --st-hold: #7fb7e6;
   --st-review: #f0903c;
-  --st-done: var(--title);
+  --st-done: #00b386;
   --button: #00b386;
   --accent: #ff8b40;
   --input-bg: #2b2b2b;
   --tree-bg: #1a1a1a;
-  --highlight: #2a4a3e;
+  --highlight: color-mix(in srgb, var(--button) 25%, var(--bg));
   --disabled-text: #555555;
   --muted: #999999;
   --panel-w: 220px;
@@ -18,7 +18,9 @@
   --radius-md: 8px;
   --shadow-pop: 0 4px 14px rgb(0 0 0 / 0.5);
   --border: #333333;
-  --hover-btn: #00c99a;
+  --hover-btn: color-mix(in srgb, var(--button) 80%, #fff);
+  --on-accent: #202020;
+  --switch-off: #4a4a4a;
   --delete-btn: #c0392b;
   --delete-hover: #ff6b5b;
   --ghost-text: #d77a7a;
@@ -157,7 +159,7 @@ body {
 }
 .btn:hover:not(:disabled) { background: var(--highlight); }
 .btn:disabled { opacity: 0.4; cursor: default; }
-.btn-primary { background: var(--button); color: var(--bg); }
+.btn-primary { background: var(--button); color: var(--on-accent); }
 .btn-primary:hover:not(:disabled) { background: var(--hover-btn); }
 .btn-danger { background: var(--delete-btn); color: var(--text); }
 .btn-danger:hover:not(:disabled) { background: var(--delete-hover); }

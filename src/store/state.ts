@@ -23,6 +23,9 @@ export interface KeyCombo {
 
 export type OnLaunch = "continue" | "root";
 export type BackupFrequency = "day" | "week" | "month";
+export type Theme = "system" | "light" | "dark";
+export type AccentId = "green" | "blue" | "purple" | "coral" | "gold";
+export type TextSize = "small" | "medium" | "large";
 export type StartView = "continue" | "tree" | "columns";
 
 export interface Settings {
@@ -33,6 +36,9 @@ export interface Settings {
   debugLogging: boolean;
   backupAuto: boolean;
   watchExternal: boolean;
+  theme: Theme;
+  accent: AccentId;
+  textSize: TextSize;
   backupFrequency: BackupFrequency;
   // Empty means the default folder inside the Storage.
   backupFolder: string;
@@ -70,7 +76,7 @@ export const state: State = {
   busy: false,
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
 };
 
 const listeners = new Set<() => void>();
@@ -142,6 +148,9 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.debugLogging = saved.debugLogging === "true";
   state.settings.backupAuto = saved.backupAuto === "true";
   state.settings.watchExternal = saved.watchExternal === "true";
+  state.settings.theme = saved.theme === "light" || saved.theme === "system" ? saved.theme : "dark";
+  state.settings.accent = ["blue", "purple", "coral", "gold"].includes(saved.accent ?? "") ? (saved.accent as AccentId) : "green";
+  state.settings.textSize = saved.textSize === "medium" || saved.textSize === "large" ? saved.textSize : "small";
   state.settings.backupFrequency = saved.backupFrequency === "week" || saved.backupFrequency === "month" ? saved.backupFrequency : "day";
   state.settings.backupFolder = saved.backupFolder ?? "";
   state.settings.onLaunch = saved.onLaunch === "root" ? "root" : "continue";

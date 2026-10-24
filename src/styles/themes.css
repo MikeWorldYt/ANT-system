@@ -1,0 +1,42 @@
+/* Light palette; the dark one is the default in theme.css. System follows the OS through the media query. */
+:root[data-theme="light"] {
+  --bg: #f4f5f5;
+  --text: #1d2020;
+  --tree-bg: #ffffff;
+  --input-bg: #ffffff;
+  --field-bg: #e6e8e8;
+  --border: #d4d7d7;
+  --muted: #667070;
+  --disabled-text: #a0a6a6;
+  --ghost-text: #b04a4a;
+  --accent: #e07a2b;
+  --delete-hover: #d6453a;
+  --switch-off: #b9bebe;
+  --st-progress: #b8921c;
+  --st-hold: #3f86c4;
+  --st-review: #d46f1c;
+  --shadow-pop: 0 4px 14px rgb(0 0 0 / 0.18);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    --bg: #f4f5f5;
+    --text: #1d2020;
+    --tree-bg: #ffffff;
+    --input-bg: #ffffff;
+    --field-bg: #e6e8e8;
+    --border: #d4d7d7;
+    --muted: #667070;
+    --disabled-text: #a0a6a6;
+    --ghost-text: #b04a4a;
+    --accent: #e07a2b;
+    --delete-hover: #d6453a;
+    --switch-off: #b9bebe;
+    --st-progress: #b8921c;
+    --st-hold: #3f86c4;
+    --st-review: #d46f1c;
+    --shadow-pop: 0 4px 14px rgb(0 0 0 / 0.18);
+    color-scheme: light;
+  }
+}
