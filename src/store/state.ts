@@ -80,7 +80,12 @@ export function selectedNode(): TreeNode | null {
 }
 
 export const listed = (nodes: TreeNode[]): TreeNode[] =>
-  state.settings.hideDone ? nodes.filter((n) => n.status !== "done") : nodes;
+  state.settings.hideDone ? nodes.filter((n) => n.status !== "done" || inSelectedPath(n)) : nodes;
+
+const inSelectedPath = (n: TreeNode): boolean => {
+  const key = keyOf(n.relParts);
+  return state.selectedKey === key || (state.selectedKey?.startsWith(`${key}/`) ?? false);
+};
 
 export function visibleRows(): TreeNode[] {
   const rows: TreeNode[] = [];
