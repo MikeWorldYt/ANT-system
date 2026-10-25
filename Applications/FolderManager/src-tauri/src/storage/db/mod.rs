@@ -10,7 +10,7 @@ use rusqlite::Connection;
 
 use crate::config::{DATA_DIR, DB_FILENAME};
 use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, CREATE_NO_WINDOW};
+use crate::fs_safe::io_err;
 
 pub(crate) use query::{Doc, Suggestion};
 
@@ -93,12 +93,17 @@ fn db_err(op: &str, path: &Path, e: &rusqlite::Error) -> FmError {
 }
 
 // A failed attrib only leaves the folder visible, so it is reported on stderr and the save goes on.
+#[cfg(windows)]
 pub(crate) fn hide(dir: &Path) {
     use std::os::windows::process::CommandExt;
-    let hidden = std::process::Command::new("attrib").arg("+h").arg(dir).creation_flags(CREATE_NO_WINDOW).status();
+    let hidden = std::process::Command::new("attrib").arg("+h").arg(dir).creation_flags(crate::fs_safe::CREATE_NO_WINDOW).status();
     match hidden {
         Ok(status) if status.success() => {}
         Ok(status) => eprintln!("Could not hide {}: attrib exited with {status}", dir.display()),
         Err(e) => eprintln!("Could not hide {}: {e}", dir.display()),
     }
 }
+
+// A dot-folder is already hidden on Unix.
+#[cfg(not(windows))]
+pub(crate) fn hide(_dir: &Path) {}

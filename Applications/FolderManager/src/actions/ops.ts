@@ -2,7 +2,8 @@
 import * as api from "../ipc/api";
 import { confirmDialog } from "../ui/dialogs";
 import { setStatus, clearStatus } from "../ui/status";
-import { applySettings, hydrate, keyOf, notify, pruneSelection, setBusy, setTree, state, type Settings } from "../store/state";
+import { checkStorage } from "./startup-check";
+import { applySettings, findNode, hydrate, keyOf, lastSelection, notify, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, state, type Settings } from "../store/state";
 import { isFmError } from "../ipc/types";
 import type { EditableType, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
@@ -47,20 +48,42 @@ async function applyMutation(m: Mutation, fallback: string[] | null = null): Pro
 
 export function init(): Promise<boolean> {
   return run(async () => {
+    if (!(await checkStorage())) return;
     try {
       applySettings(await api.getSettings());
     } catch (e) {
       setStatus("warning", `Settings: ${api.describeError(e)}`);
     }
     await reload(await api.loadTree());
+    const last = state.settings.onLaunch === "continue" ? lastSelection() : null;
+    if (!last) return;
+    await reveal(last);
+    if (!findNode(last)) select(null);
   });
 }
 
-export const changeSetting = (key: keyof Settings, value: boolean) =>
+export const changeSetting = <K extends keyof Settings>(key: K, value: Settings[K]) =>
   run(async () => {
-    await api.setSetting(key, String(value));
+    await api.setSetting(key, serializeSetting(value));
     state.settings[key] = value;
     notify();
+  });
+
+export const resetPreferences = () =>
+  run(async () => {
+    const wasLogging = state.settings.debugLogging;
+    await api.resetSettings();
+    applySettings({});
+    if (wasLogging) await api.stopDebugLog();
+    notify();
+  });
+
+export const restoreBackupNamed = (name: string, stamp: string) =>
+  run(async () => {
+    await api.restoreBackup(name, stamp);
+    applySettings(await api.getSettings());
+    await reload();
+    clearStatus();
   });
 
 export function refresh(): Promise<boolean> {
@@ -126,13 +149,9 @@ export const remove = (node: TreeNode) =>
   run(async () => {
     const preview = await api.inspectDelete(node.relParts);
     const nonEmpty = preview.files + preview.dirs > 0;
-    if (nonEmpty) {
-      const ok = await confirmDialog(
-        "Delete folder",
-        `"${node.name}" contains ${preview.files} files and ${preview.dirs} folders. They go to the Recycle Bin`,
-        "Delete",
-      );
-      if (!ok) return;
+    if (state.settings.confirmDelete && !preview.ghost) {
+      const what = nonEmpty ? `contains ${preview.files} files and ${preview.dirs} folders. They go` : "goes";
+      if (!(await confirmDialog("Delete folder", `"${node.name}" ${what} to the Recycle Bin`, "Delete"))) return;
     }
     const m = await api.deleteNode(node.relParts, preview.ghost, nonEmpty);
     const parent = node.relParts.slice(0, -1);

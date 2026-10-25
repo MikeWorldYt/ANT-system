@@ -15,8 +15,37 @@ interface State {
   settings: Settings;
 }
 
+export interface KeyCombo {
+  code: string;
+  mod: boolean;
+  alt: boolean;
+}
+
+export type OnLaunch = "continue" | "root";
+export type BackupFrequency = "day" | "week" | "month";
+export type Theme = "system" | "light" | "dark";
+export type AccentId = "green" | "blue" | "purple" | "coral" | "gold";
+export type TextSize = "small" | "medium" | "large";
+export type StartView = "continue" | "tree" | "columns";
+
 export interface Settings {
   pinFavorites: boolean;
+  hideDone: boolean;
+  confirmDelete: boolean;
+  autoUpdate: boolean;
+  debugLogging: boolean;
+  backupAuto: boolean;
+  watchExternal: boolean;
+  theme: Theme;
+  accent: AccentId;
+  textSize: TextSize;
+  backupFrequency: BackupFrequency;
+  // Empty means the default folder inside the Storage.
+  backupFolder: string;
+  onLaunch: OnLaunch;
+  startView: StartView;
+  // Only the shortcuts the user changed; the rest keep their defaults.
+  shortcuts: Record<string, KeyCombo>;
 }
 
 export type { ColumnSort, SortBy };
@@ -47,7 +76,7 @@ export const state: State = {
   busy: false,
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true },
+  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
 };
 
 const listeners = new Set<() => void>();
@@ -78,10 +107,18 @@ export function selectedNode(): TreeNode | null {
   return state.selectedKey === null ? null : findNode(state.selectedKey.split("/"));
 }
 
+export const listed = (nodes: TreeNode[]): TreeNode[] =>
+  state.settings.hideDone ? nodes.filter((n) => n.status !== "done" || inSelectedPath(n)) : nodes;
+
+const inSelectedPath = (n: TreeNode): boolean => {
+  const key = keyOf(n.relParts);
+  return state.selectedKey === key || (state.selectedKey?.startsWith(`${key}/`) ?? false);
+};
+
 export function visibleRows(): TreeNode[] {
   const rows: TreeNode[] = [];
   const walk = (nodes: TreeNode[]) => {
-    for (const n of favoritesFirst(nodes, state.settings.pinFavorites)) {
+    for (const n of favoritesFirst(listed(nodes), state.settings.pinFavorites)) {
       rows.push(n);
       if (state.expanded.has(keyOf(n.relParts)) && n.children) walk(n.children);
     }
@@ -90,8 +127,55 @@ export function visibleRows(): TreeNode[] {
   return rows;
 }
 
+export const serializeSetting = (value: Settings[keyof Settings]): string =>
+  typeof value === "object" ? JSON.stringify(value) : String(value);
+
+function readShortcuts(raw: string | undefined): Record<string, KeyCombo> {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, KeyCombo>;
+  } catch (e) {
+    console.warn("Saved shortcuts are unreadable", e);
+    return {};
+  }
+}
+
 export function applySettings(saved: Record<string, string>): void {
   state.settings.pinFavorites = saved.pinFavorites !== "false";
+  state.settings.hideDone = saved.hideDone === "true";
+  state.settings.confirmDelete = saved.confirmDelete !== "false";
+  state.settings.autoUpdate = saved.autoUpdate !== "false";
+  state.settings.debugLogging = saved.debugLogging === "true";
+  state.settings.backupAuto = saved.backupAuto === "true";
+  state.settings.watchExternal = saved.watchExternal === "true";
+  state.settings.theme = saved.theme === "light" || saved.theme === "system" ? saved.theme : "dark";
+  state.settings.accent = ["blue", "purple", "coral", "gold"].includes(saved.accent ?? "") ? (saved.accent as AccentId) : "green";
+  state.settings.textSize = saved.textSize === "medium" || saved.textSize === "large" ? saved.textSize : "small";
+  state.settings.backupFrequency = saved.backupFrequency === "week" || saved.backupFrequency === "month" ? saved.backupFrequency : "day";
+  state.settings.backupFolder = saved.backupFolder ?? "";
+  state.settings.onLaunch = saved.onLaunch === "root" ? "root" : "continue";
+  state.settings.startView = saved.startView === "tree" || saved.startView === "columns" ? saved.startView : "continue";
+  state.settings.shortcuts = readShortcuts(saved.shortcuts);
+}
+
+const LAST_PREF = "fm.last";
+
+export function rememberSelection(): void {
+  if (!state.tree) return;
+  savePref(LAST_PREF, JSON.stringify({ root: state.tree.root, key: state.selectedKey }));
+}
+
+// The folder that was selected when the app closed, if it belongs to the Storage now open.
+export function lastSelection(): string[] | null {
+  const raw = readPref(LAST_PREF);
+  if (!raw || !state.tree) return null;
+  try {
+    const saved = JSON.parse(raw) as { root?: string; key?: string | null };
+    return saved.root === state.tree.root && saved.key ? saved.key.split("/") : null;
+  } catch (e) {
+    console.warn("Saved selection is unreadable", e);
+    return null;
+  }
 }
 
 export const sortOf = (columnKey: string): ColumnSort => state.sorts[columnKey] ?? DEFAULT_SORT;

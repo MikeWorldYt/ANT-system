@@ -1,5 +1,6 @@
 // Side tables next to the tree: user settings and the folder-id footprints.
 use std::collections::HashMap;
+use std::path::Path;
 
 use rusqlite::params;
 
@@ -25,6 +26,19 @@ impl Store {
     pub fn set_setting(&mut self, key: &str, value: &str) -> R<()> {
         self.conn
             .execute("INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)", params![format!("setting.{key}"), value])
+            .map(|_| ())
+            .map_err(|e| db_err("write ant.db", &self.path, &e))
+    }
+
+    // VACUUM INTO writes a consistent copy even while the app keeps writing; the path is a quoted SQL literal.
+    pub fn vacuum_into(&self, dest: &Path) -> R<()> {
+        let target = dest.to_string_lossy().replace('\'', "''");
+        self.conn.execute_batch(&format!("VACUUM INTO '{target}'")).map_err(|e| db_err("back up ant.db", &self.path, &e))
+    }
+
+    pub fn reset_settings(&mut self) -> R<()> {
+        self.conn
+            .execute("DELETE FROM meta WHERE key LIKE 'setting.%'", [])
             .map(|_| ())
             .map_err(|e| db_err("write ant.db", &self.path, &e))
     }

@@ -33,6 +33,7 @@ pub struct NodeActions {
     pub move_down: bool,
     pub delete: bool,
     pub copy_path: bool,
+    pub open: bool,
     pub favorite: bool,
     pub edit_details: bool,
 }
@@ -94,7 +95,7 @@ pub fn build_children(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<T
 
 pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<()> {
     for node in nodes {
-        if node.has_children && node.depth + 1 < MAX_DEPTH {
+        if node.has_children {
             let mut kids = build_children(root, data, &node.rel_parts)?;
             fill_children(root, data, &mut kids)?;
             node.children = Some(kids);
@@ -126,9 +127,16 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
         })
         .filter(|e| !(e.on_disk && !e.in_yaml && is_linked_folder(&e.name)))
         .collect();
-    // The sort is stable, so each group keeps its name order.
-    entries.sort_by_key(|e| is_tail(&e.name));
+    entries.sort_by_cached_key(|e| (is_tail(&e.name), natural_key(&e.name)));
     Ok(entries)
+}
+
+// Compares the first run of digits as a number, so PJ.999 comes before PJ.1000.
+fn natural_key(name: &str) -> (String, u64, String) {
+    let start = name.find(|c: char| c.is_ascii_digit()).unwrap_or(name.len());
+    let digits = name[start..].bytes().take_while(u8::is_ascii_digit).count();
+    let number = name[start..start + digits].parse().unwrap_or(0);
+    (name[..start].to_string(), number, name[start + digits..].to_string())
 }
 
 // The 90-99 folders and the 998/999 ones always close a list, after workboards and unnumbered folders too.
@@ -168,7 +176,8 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
 
     let locked = is_locked_type(raw_type);
     let reserved = is_reserved(&rel_parts);
-    let has_children = !ghost && !level_entries(root, data, &rel_parts)?.is_empty();
+    // Folders on the last tree level show no children, so the views offer nothing to open below them.
+    let has_children = !ghost && depth + 1 < MAX_DEPTH && !level_entries(root, data, &rel_parts)?.is_empty();
     let is_git = !ghost && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
     let info_broken = info.as_ref().is_some_and(|i| i.error.is_some());
@@ -212,6 +221,7 @@ fn compute_actions(depth: usize, ghost: bool, raw_type: &str, reserved: bool, in
         move_down: false,
         delete: !reserved && (ghost || !locked),
         copy_path: !ghost,
+        open: !ghost,
         // A broken info.json is never overwritten, so neither edit can be saved into it.
         favorite: !reserved && !ghost && !info_broken,
         edit_details: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
@@ -291,6 +301,13 @@ mod tests {
 
     fn find<'a>(nodes: &'a [TreeNode], name: &str) -> &'a TreeNode {
         nodes.iter().find(|n| n.name == name).unwrap()
+    }
+
+    #[test]
+    fn workboard_numbers_sort_as_numbers() {
+        let mut names = vec!["PJ.1000_B", "PJ.999_A", "PJ.021_C", "PJ.001_D"];
+        names.sort_by_cached_key(|n| natural_key(n));
+        assert_eq!(names, ["PJ.001_D", "PJ.021_C", "PJ.999_A", "PJ.1000_B"]);
     }
 
     #[test]
@@ -482,7 +499,7 @@ mod tests {
         let a = &l4[0].actions;
         assert_eq!(l4[0].depth, MAX_DEPTH);
         assert!(!a.change_type && !a.add_next && a.rename && a.copy_path);
-        assert!(l4[0].has_children);
+        assert!(!l4[0].has_children);
     }
 
     #[test]
@@ -494,7 +511,7 @@ mod tests {
         let alpha = find(&tree.nodes, "01.Alpha");
         let sub = find(alpha.children.as_ref().unwrap(), "01.Sub");
         let deep = find(sub.children.as_ref().unwrap(), "01.Deep");
-        assert!(deep.has_children && deep.children.is_none());
+        assert!(!deep.has_children && deep.children.is_none());
         assert!(find(&tree.nodes, "02.Beta").children.is_none());
     }
 

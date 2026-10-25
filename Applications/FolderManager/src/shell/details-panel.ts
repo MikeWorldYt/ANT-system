@@ -1,8 +1,11 @@
 // Details of the selected node; its name, and the status and owner of a workboard, are edited here.
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
+import { statusLabeled } from "../ui/status-mark";
 import { isWorkboard, nodeDetails, ownerOf, STATUSES, UNKNOWN } from "../store/node-info";
 import { renameTo, setDetails } from "../actions/ops";
+import { extensionArea } from "../extensions/panel";
+import { detailFields, onDetailsChange, runDetailsAction } from "../extensions/details";
 import { keyOf, selectedNode } from "../store/state";
 import type { TreeNode, WkbStatus } from "../ipc/types";
 
@@ -18,7 +21,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
   const edit = el("button", { type: "button", class: "icon-btn", "aria-label": "Edit details", title: "Edit details" }, guiIcon("pencil"));
   const head = el("div", { class: "details-head" }, el("h2", { id: "details-title" }, "Details"), edit);
   const empty = el("p", { class: "details-empty" }, "Select a folder to see its details.");
-  const element = el("aside", { class: "details-panel", "aria-labelledby": "details-title" }, head, list, empty);
+  const element = el("aside", { class: "details-panel", "aria-labelledby": "details-title" }, head, list, empty, extensionArea());
   let editing: string | null = null;
   // Built once per editing key, so store notifications do not discard what was typed.
   let form: { key: string; inputs: Record<string, Node> } | null = null;
@@ -97,8 +100,21 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     if (editing === null) form = null;
     else if (n && form?.key !== editing) form = { key: editing, inputs: controls(n) };
     const inputs = form?.inputs ?? {};
-    const rows = (n ? nodeDetails(n) : []).flatMap(([k, v]) => [el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? v)]);
+    const rows = (n ? nodeDetails(n) : []).flatMap(([k, v]) => [el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))]);
     if (inputs[""]) rows.push(el("dd", {}, inputs[""]));
+    for (const ext of detailFields(n)) {
+      for (const f of ext.fields) {
+        rows.push(el("dt", {}, f.label, el("span", { class: "ext-source" },)));
+        const value = el("dd", {}, f.value);
+        if (f.action && n) {
+          const { id } = f.action;
+          const button = el("button", { type: "button", class: "btn ext-action" }, f.action.label);
+          button.addEventListener("click", () => runDetailsAction(ext.extId, id, n));
+          value.append(button);
+        }
+        rows.push(value);
+      }
+    }
     // Moving a field into the fresh rows blurs it, so focus goes back to it.
     const focused = document.activeElement;
     list.replaceChildren(...rows);
@@ -112,5 +128,6 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     render();
   });
 
+  onDetailsChange(render);
   return { element, render };
 }

@@ -1,5 +1,6 @@
 // Entry point: assembles the shell and wires store, events and views.
 import "./styles/theme.css";
+import "./styles/themes.css";
 import { describeError } from "./ipc/api";
 import { createColumnsView } from "./views/columns-view";
 import { installContextMenu } from "./views/context-menu";
@@ -12,10 +13,15 @@ import { init, refresh } from "./actions/ops";
 import { installShortcuts } from "./actions/shortcuts";
 import { readPref, savePref } from "./store/prefs";
 import { createStatusLine, clearStatus, setStatus } from "./ui/status";
-import { subscribe } from "./store/state";
+import { rememberSelection, state, subscribe } from "./store/state";
 import { createToolbar } from "./shell/toolbar";
+import { openSettings } from "./shell/settings-dialog";
 import { createTreeView } from "./views/tree-view";
 import { checkForUpdates } from "./actions/updates";
+import { startBackups } from "./actions/backups";
+import { startExtensions } from "./extensions/host";
+import { installDebugLog, startDebugLog } from "./actions/debug-log";
+import { applyAppearance } from "./ui/appearance";
 import { createViewSwitcher } from "./views/view-switch";
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -55,6 +61,8 @@ installContextMenu(host, () => views.current().focus());
 installShortcuts({
   focusSearch: search.focus,
   editPath: navigator.editPath,
+  openSettings: () => void openSettings(),
+  goUp: navigator.goUp,
   // The views already open on Enter, so the shortcut hands the key to whichever one is showing.
   openSelected: () => {
     views.current().focus();
@@ -67,6 +75,8 @@ subscribe(() => {
   navigator.render();
   views.current().render();
   panel.render();
+  rememberSelection();
+  applyAppearance();
 });
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -86,7 +96,16 @@ onReviewIndex((e) => {
 }).catch((e) => setStatus("warning", `Review index updates unavailable: ${describeError(e)}`));
 onWindowFocus(() => void refresh()).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
 
+installDebugLog();
+
 void init().then(() => {
+  if (state.settings.debugLogging) void startDebugLog();
+  startBackups();
+  startExtensions();
+  if (state.settings.startView !== "continue") {
+    views.switchTo(state.settings.startView);
+    toolbar.render();
+  }
   views.current().focus();
-  void checkForUpdates();
+  if (state.settings.autoUpdate) void checkForUpdates();
 });
