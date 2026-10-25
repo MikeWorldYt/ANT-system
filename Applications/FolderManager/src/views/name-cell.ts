@@ -5,12 +5,12 @@ import { renameTo } from "../actions/ops";
 import { keyOf, state, stopEdit } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 
-const favoriteMark = () => el("span", { class: "fav-mark", title: "Favorite" }, guiIcon("starred"));
+export const favoriteMark = () => el("span", { class: "fav-mark", title: "Favorite" }, guiIcon("starred"));
 
-export function nameCell(n: TreeNode): HTMLElement {
+export function nameCell(n: TreeNode, inlineStar = true): HTMLElement {
   const key = keyOf(n.relParts);
   const edit = state.editing;
-  if (!edit || edit.key !== key) return el("span", { class: "name" }, n.name, ...(n.favorite ? [favoriteMark()] : []));
+  if (!edit || edit.key !== key) return el("span", { class: "name" }, el("span", { class: "name-text" }, n.name), ...(n.favorite && inlineStar ? [favoriteMark()] : []));
 
   const input = el("input", { class: "name-input", type: "text", spellcheck: "false", autocomplete: "off", "aria-label": `Rename ${n.name}` });
   input.value = edit.draft;

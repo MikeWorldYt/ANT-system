@@ -84,12 +84,12 @@ pub fn add_child(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     Ok(finish(root, &data, synced, Some(child_rel(parent, &new_name)), warnings))
 }
 
-// Next free 3-digit tracker after every PJ workboard in the tree, missing folders included.
+// Next free tracker (3 digits, more once they run out) after every PJ workboard in the tree, missing folders included.
 fn next_tracker(data: &Mapping) -> u32 {
     fn highest(node: &Mapping) -> u32 {
         child_entries(node)
             .map(|(name, child)| {
-                let own = name.strip_prefix("PJ.").and_then(|r| r.get(..3)).and_then(|d| d.parse().ok()).unwrap_or(0);
+                let own = name.strip_prefix("PJ.").map(|r| r.split(|c: char| !c.is_ascii_digit()).next().unwrap_or("")).and_then(|d| d.parse().ok()).unwrap_or(0);
                 own.max(highest(child))
             })
             .max()
@@ -156,6 +156,20 @@ mod tests {
         assert!(info.contains("\"status\": \"in-progress\"") && info.contains("\"owner\": \"unknown\""), "{info}");
         assert!(wkb.join(".ant/dragpath.json").is_file());
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "PJ.001_New-Workboard"]), "WKB-L3");
+    }
+
+    #[test]
+    fn trackers_keep_counting_past_three_digits() {
+        let dir = academic("add-wkb-1000");
+        let data = serde_yaml::from_str("PJ.999_Full: {type: WKB-L1}
+PJ.1000_Next: {type: WKB-L1}
+").unwrap();
+        assert_eq!(next_tracker(&data), 1001);
+        std::fs::create_dir(dir.path().join("100.ACADEMIC/PJ.999_Full")).unwrap();
+        let m = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
+        assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "PJ.1000_New-Workboard"])));
+        let again = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
+        assert_eq!(again.select, Some(rel(&["100.ACADEMIC", "PJ.1001_New-Workboard"])));
     }
 
     #[test]

@@ -7,8 +7,10 @@ use super::io_err;
 use crate::config::{CORE_FOLDER, SETTINGS_FOLDER};
 use crate::error::{FmError, R};
 
-const LOCK_FILE: &str = ".FolderManager.lock";
+pub(crate) const LOCK_FILE: &str = ".FolderManager.lock";
 const STALE_LOCK: Duration = Duration::from_secs(120);
+const LOCK_WAIT: Duration = Duration::from_secs(3);
+const LOCK_POLL: Duration = Duration::from_millis(50);
 
 // Serialises mutations across processes, which the in-process Mutex cannot see.
 pub struct StorageLock {
@@ -17,17 +19,34 @@ pub struct StorageLock {
 
 impl StorageLock {
     pub fn acquire(root: &Path) -> R<Self> {
+        Self::acquire_within(root, LOCK_WAIT)
+    }
+
+    // A lock held for a few milliseconds by another instance is waited out; an old one is reported at once.
+    pub fn acquire_within(root: &Path, wait: Duration) -> R<Self> {
+        let started = std::time::Instant::now();
+        loop {
+            match Self::try_acquire(root) {
+                Ok(lock) => return Ok(lock),
+                Err(Attempt::Failed(e)) => return Err(e),
+                Err(Attempt::Held(path)) if started.elapsed() >= wait || lock_age(&path) >= Some(STALE_LOCK) => return Err(busy_error(&path)),
+                Err(Attempt::Held(_)) => std::thread::sleep(LOCK_POLL),
+            }
+        }
+    }
+
+    fn try_acquire(root: &Path) -> Result<Self, Attempt> {
         let dir = root.join(SETTINGS_FOLDER).join(CORE_FOLDER);
-        fs::create_dir_all(&dir).map_err(|e| io_err("create folder", &dir, &e))?;
+        fs::create_dir_all(&dir).map_err(|e| Attempt::Failed(io_err("create folder", &dir, &e)))?;
         let path = dir.join(LOCK_FILE);
         let mut file = match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
             Ok(file) => file,
-            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => return Err(busy_error(&path)),
-            Err(e) => return Err(io_err("lock storage", &path, &e)),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => return Err(Attempt::Held(path)),
+            Err(e) => return Err(Attempt::Failed(io_err("lock storage", &path, &e))),
         };
         let lock = Self { path };
         std::io::Write::write_all(&mut file, std::process::id().to_string().as_bytes())
-            .map_err(|e| io_err("lock storage", &lock.path, &e))?;
+            .map_err(|e| Attempt::Failed(io_err("lock storage", &lock.path, &e)))?;
         Ok(lock)
     }
 }
@@ -39,10 +58,18 @@ impl Drop for StorageLock {
     }
 }
 
+enum Attempt {
+    Held(PathBuf),
+    Failed(FmError),
+}
+
+fn lock_age(path: &Path) -> Option<Duration> {
+    fs::metadata(path).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok())
+}
+
 // An old lock may belong to a crashed run or to a slow one, so it is reported and never removed here.
 fn busy_error(path: &Path) -> FmError {
-    let age = fs::metadata(path).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok());
-    let message = match age {
+    let message = match lock_age(path) {
         Some(age) if age >= STALE_LOCK => format!(
             "the storage has been locked for {} minutes; if no other Folder Manager is open, delete this file and retry",
             age.as_secs() / 60
@@ -61,11 +88,25 @@ mod tests {
     fn storage_lock_is_exclusive_and_released_on_drop() {
         let dir = TempDir::new("lock");
         let held = StorageLock::acquire(dir.path()).unwrap();
-        let busy = StorageLock::acquire(dir.path()).err().unwrap();
+        let busy = StorageLock::acquire_within(dir.path(), Duration::ZERO).err().unwrap();
         assert!(matches!(&busy, FmError::Io { message, .. } if message.contains("another Folder Manager")), "{busy:?}");
         drop(held);
         drop(StorageLock::acquire(dir.path()).unwrap());
         assert!(!dir.path().join(SETTINGS_FOLDER).join(CORE_FOLDER).join(LOCK_FILE).exists());
+    }
+
+    #[test]
+    fn a_short_lock_is_waited_out() {
+        let dir = TempDir::new("lock-wait");
+        let held = StorageLock::acquire(dir.path()).unwrap();
+        let releaser = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(200));
+            drop(held);
+        });
+        let started = std::time::Instant::now();
+        drop(StorageLock::acquire_within(dir.path(), Duration::from_secs(5)).unwrap());
+        assert!(started.elapsed() >= Duration::from_millis(100));
+        releaser.join().unwrap();
     }
 
     #[test]

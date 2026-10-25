@@ -178,8 +178,8 @@ fn send_to_recycle_bin(path: &Path) -> Result<(), String> {
 }
 
 #[cfg(not(windows))]
-fn send_to_recycle_bin(_path: &Path) -> Result<(), String> {
-    Err("the Recycle Bin is only available on Windows".to_string())
+fn send_to_recycle_bin(path: &Path) -> Result<(), String> {
+    super::unix_trash::send(path)
 }
 
 #[cfg(test)]

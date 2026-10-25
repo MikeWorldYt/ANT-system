@@ -1,24 +1,41 @@
 // Update check against the version published on main, and the hand-off to FM_Updater.bat.
+#[cfg(windows)]
 use std::os::windows::process::CommandExt;
 use std::path::Path;
+#[cfg(windows)]
 use std::process::Command;
+#[cfg(windows)]
 use std::time::{Duration, Instant};
 
 use crate::ant_core::version::{parse_file_version, parse_version};
-use crate::config::{CORE_FOLDER, EXE_DOWNLOAD_URL, SETTINGS_FOLDER, UPDATER_SCRIPT, VERSION_URL};
+use crate::config::VERSION_URL;
+#[cfg(windows)]
+use crate::config::{CORE_FOLDER, EXE_DOWNLOAD_URL, SETTINGS_FOLDER, UPDATER_SCRIPT};
 use crate::error::{FmError, R};
+#[cfg(windows)]
 use crate::fs_safe::{io_err, run_powershell, CREATE_NO_WINDOW};
 
 pub const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // Same grace period the Python app used: an updater that dies sooner than this has failed.
+#[cfg(windows)]
 const EARLY_EXIT: Duration = Duration::from_millis(1500);
 
 // Offline or unparsable means no update, as in the Python app.
+#[cfg(windows)]
 pub fn latest_version() -> Option<String> {
     let script = "(Invoke-WebRequest -UseBasicParsing -Uri $env:FM_URL -TimeoutSec 5 -Headers @{'User-Agent'='FolderManager-Updater'}).Content";
     let text = run_powershell(script, &[("FM_URL", VERSION_URL.as_ref())], None, Duration::from_secs(10)).ok()?;
     parse_file_version(&text)
+}
+
+#[cfg(not(windows))]
+pub fn latest_version() -> Option<String> {
+    let out = std::process::Command::new("curl")
+        .args(["-fsSL", "--max-time", "10", "-A", "FolderManager-Updater", VERSION_URL])
+        .output()
+        .ok()?;
+    out.status.success().then(|| parse_file_version(&String::from_utf8_lossy(&out.stdout)))?
 }
 
 pub fn is_newer(latest: &str, current: &str) -> bool {
@@ -26,6 +43,7 @@ pub fn is_newer(latest: &str, current: &str) -> bool {
 }
 
 // Starts FM_Updater.bat, which waits for this app to close before it swaps the executable.
+#[cfg(windows)]
 pub fn launch_updater(root: &Path) -> R<()> {
     let core = root.join(SETTINGS_FOLDER).join(CORE_FOLDER);
     let bat = core.join(UPDATER_SCRIPT);
@@ -49,9 +67,15 @@ pub fn launch_updater(root: &Path) -> R<()> {
     Ok(())
 }
 
+#[cfg(not(windows))]
+pub fn launch_updater(_root: &Path) -> R<()> {
+    Err(FmError::Internal { message: "Automatic update is only available on Windows".to_string() })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(windows)]
     use crate::test_support::TempDir;
 
     #[test]
@@ -62,6 +86,7 @@ mod tests {
         assert!(!is_newer("v1.3.0", "2.0.1-beta"));
     }
 
+    #[cfg(windows)]
     #[test]
     fn a_storage_without_the_updater_script_is_reported() {
         let dir = TempDir::new("updater-missing");
@@ -69,6 +94,7 @@ mod tests {
         assert!(err.to_string().contains(UPDATER_SCRIPT), "{err}");
     }
 
+    #[cfg(windows)]
     #[test]
     fn an_updater_that_exits_at_once_is_reported_as_failed() {
         let dir = TempDir::new("updater-fails");

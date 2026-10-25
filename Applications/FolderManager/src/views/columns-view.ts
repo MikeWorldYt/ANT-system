@@ -1,13 +1,14 @@
 // Columns view: one column per depth of the selected path, children of the selection in the next one.
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
-import { badge, el } from "../ui/dom";
+import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
-import { nameCell } from "./name-cell";
-import { nodeSummary, statusLabel } from "../store/node-info";
+import { statusMark } from "../ui/status-mark";
+import { favoriteMark, nameCell } from "./name-cell";
+import { nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
-import { keyOf, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -21,7 +22,7 @@ function buildColumns(): Column[] {
   const path = state.selectedKey?.split("/") ?? [];
   let nodes: TreeNode[] = state.tree?.nodes ?? [];
   for (let depth = 0; ; depth++) {
-    const shown = sortedForColumns(nodes, sortOf(path.slice(0, depth).join("/")), state.settings.pinFavorites);
+    const shown = sortedForColumns(listed(nodes), sortOf(path.slice(0, depth).join("/")), state.settings.pinFavorites);
     cols.push({ nodes: shown, loading: false });
     const open = nodes.find((n) => n.name === path[depth]);
     if (!open || !open.hasChildren) break;
@@ -41,7 +42,7 @@ export function createColumnsView(): ViewMode {
 
   function buildItem(n: TreeNode, onPath: boolean, tabbable: boolean): HTMLElement {
     const selected = keyOf(n.relParts) === state.selectedKey;
-    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, folderIcon(n), nameCell(n));
+    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, folderIcon(n), nameCell(n, false));
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
     else if (onPath) item.classList.add("on-path");
@@ -51,7 +52,9 @@ export function createColumnsView(): ViewMode {
       item.setAttribute("aria-disabled", "true");
     }
     if (n.ghost) item.setAttribute("aria-label", `${n.name} (missing on disk)`);
-    if (n.status) item.append(badge(`status st-${n.status}`, statusLabel(n.status)));
+    // Without a status the star takes the icon's place at the end of the row.
+    if (n.favorite) item.append(favoriteMark());
+    if (n.status) item.append(statusMark(n.status));
     item.title = nodeSummary(n);
     if (n.hasChildren) item.append(el("span", { class: "chevron", "aria-hidden": "true" }, guiIcon("chevronRight")));
     item.addEventListener("click", () => select(n.relParts));
@@ -71,7 +74,7 @@ export function createColumnsView(): ViewMode {
 
   async function enterChildren(n: TreeNode): Promise<void> {
     if (n.children === null) await expand(n);
-    const first = sortedForColumns(n.children ?? [], sortOf(keyOf(n.relParts)), state.settings.pinFavorites)[0];
+    const first = sortedForColumns(listed(n.children ?? []), sortOf(keyOf(n.relParts)), state.settings.pinFavorites)[0];
     if (first) select(first.relParts);
   }
 

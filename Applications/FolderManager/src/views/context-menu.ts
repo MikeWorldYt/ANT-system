@@ -1,9 +1,13 @@
 // Context menu shared by every view; item enablement comes only from node.actions.
+import { describeError, openNode } from "../ipc/api";
 import { el } from "../ui/dom";
+import { guiIcon } from "../ui/gui-icons";
+import { statusIcon } from "../ui/status-mark";
 import { STATUSES, TYPES } from "../store/node-info";
 import { remove, setDetails, setFavorite, setType } from "../actions/ops";
 import { select, startEdit } from "../store/state";
 import { setStatus } from "../ui/status";
+import { menuItems, runMenuItem } from "../extensions/host";
 import { autoDismiss, focusInitial, menuItem, place, rove, separator, submenu, type Submenu } from "../ui/menu";
 import type { TreeNode } from "../ipc/types";
 
@@ -49,10 +53,22 @@ async function copyPath(node: TreeNode): Promise<void> {
   }
 }
 
+async function openFolder(node: TreeNode): Promise<void> {
+  try {
+    await openNode(node.relParts);
+  } catch (e) {
+    setStatus("warning", describeError(e));
+  }
+}
+
 function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
   dismissOpen?.();
   const a = node.actions;
 
+  const open = menuItem("Open", "menuitem", a.open, () => {
+    close();
+    void openFolder(node);
+  });
   const rename = menuItem("Rename", "menuitem", a.rename, () => {
     close(false);
     startEdit(node.relParts);
@@ -67,12 +83,14 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
       void setType(node, base, node.status ?? "in-progress");
     }, "ctx-item", node.nodeType?.base === base),
   );
-  const statusChoices = STATUSES.map(([value, label]) =>
-    menuItem(label, "menuitemradio", a.editDetails, () => {
+  const statusChoices = STATUSES.map(([value, label]) => {
+    const item = menuItem(label, "menuitemradio", a.editDetails, () => {
       close();
       void setDetails(node, value, null);
-    }, `ctx-item st-${value}`, node.status === value),
-  );
+    }, `ctx-item ctx-status st-${value}`, node.status === value);
+    item.replaceChildren(guiIcon(statusIcon(value)), label);
+    return item;
+  });
   const subs: Submenu[] = [submenu("Change type", typeChoices, a.changeType)];
   if (node.nodeType?.base === "WKB") subs.push(submenu("Status", statusChoices, a.editDetails));
   const copy = menuItem("Copy path", "menuitem", a.copyPath, () => {
@@ -84,11 +102,18 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     void remove(node);
   }, "ctx-item danger");
 
-  const items = [rename, favorite, ...subs.map((s) => s.trigger), copy, del];
+  const extras = menuItems().map((m) =>
+    menuItem(m.label, "menuitem", true, () => {
+      close();
+      runMenuItem(m.extId, m.id, node);
+    }),
+  );
+
+  const items = [open, rename, favorite, ...subs.map((s) => s.trigger), copy, del, ...extras];
   const closeSubs = () => subs.filter((s) => !s.element.contains(document.activeElement)).forEach((s) => s.close());
   items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
   subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));
-  const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` }, rename, favorite, ...subs.map((s) => s.element), separator(), copy, del);
+  const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` }, open, rename, favorite, ...subs.map((s) => s.element), separator(), copy, del, ...(extras.length > 0 ? [separator(), ...extras] : []));
   menu.addEventListener("mouseleave", closeSubs);
 
   function close(restore = true): void {

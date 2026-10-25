@@ -7,7 +7,7 @@ import { createPathInput, rootName } from "./path-input";
 import { findNode, reveal, select, selectedNode, state } from "../store/state";
 import { setStatus } from "../ui/status";
 
-export function createNavigator(): { element: HTMLElement; render(): void; editPath(): void } {
+export function createNavigator(): { element: HTMLElement; render(): void; editPath(): void; goUp(): void } {
   const history: string[] = [];
   let at = -1;
 
@@ -57,7 +57,6 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
     if (pathInput.editing() || !ev.altKey || ev.ctrlKey || ev.shiftKey || ev.metaKey) return;
     if (ev.key === "ArrowLeft") void go(at - 1);
     else if (ev.key === "ArrowRight") void go(at + 1);
-    else if (ev.key === "ArrowUp") select(parentOf());
     else return;
     ev.preventDefault();
   });
@@ -91,5 +90,5 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
     path.scrollLeft = path.scrollWidth;
   }
 
-  return { element, render, editPath: pathInput.start };
+  return { element, render, editPath: pathInput.start, goUp: () => select(parentOf()) };
 }
