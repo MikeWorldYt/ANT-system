@@ -2,6 +2,7 @@
 import * as api from "../ipc/api";
 import { confirmDialog } from "../ui/dialogs";
 import { setStatus, clearStatus } from "../ui/status";
+import { checkStorage } from "./startup-check";
 import { applySettings, findNode, hydrate, keyOf, lastSelection, notify, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, state, type Settings } from "../store/state";
 import { isFmError } from "../ipc/types";
 import type { EditableType, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
@@ -47,6 +48,7 @@ async function applyMutation(m: Mutation, fallback: string[] | null = null): Pro
 
 export function init(): Promise<boolean> {
   return run(async () => {
+    if (!(await checkStorage())) return;
     try {
       applySettings(await api.getSettings());
     } catch (e) {

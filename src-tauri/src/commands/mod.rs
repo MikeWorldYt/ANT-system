@@ -3,6 +3,7 @@ mod backup;
 mod debug;
 mod edit;
 mod extensions;
+mod health;
 mod open;
 mod search;
 pub mod settings;
@@ -27,6 +28,7 @@ pub use backup::*;
 pub use debug::*;
 pub use edit::*;
 pub use extensions::*;
+pub use health::*;
 pub use open::*;
 pub use search::*;
 pub use storage::*;
@@ -36,7 +38,7 @@ pub use update::*;
 const REVIEW_EVENT: &str = "fm://review-index";
 
 pub struct Storage {
-    pub start: PathBuf,
+    pub start: RwLock<PathBuf>,
     pub root: RwLock<Option<PathBuf>>,
     pub lock: Mutex<()>,
 }
@@ -44,7 +46,7 @@ pub struct Storage {
 impl Storage {
     pub fn resolve(start: PathBuf) -> Self {
         let root = crate::ant_core::names::find_root(&start);
-        Self { start, root: RwLock::new(root), lock: Mutex::new(()) }
+        Self { start: RwLock::new(start), root: RwLock::new(root), lock: Mutex::new(()) }
     }
 
     pub fn root(&self) -> R<PathBuf> {
@@ -52,7 +54,20 @@ impl Storage {
             .read()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clone()
-            .ok_or_else(|| FmError::StorageNotFound { start: self.start.display().to_string() })
+            .ok_or_else(|| FmError::StorageNotFound { start: self.start().display().to_string() })
+    }
+
+    pub fn start(&self) -> PathBuf {
+        self.start.read().unwrap_or_else(|poisoned| poisoned.into_inner()).clone()
+    }
+
+    pub fn set_start(&self, start: PathBuf) {
+        *self.start.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = start;
+    }
+
+    pub fn reset(&self, start: PathBuf) {
+        *self.root.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = crate::ant_core::names::find_root(&start);
+        self.set_start(start);
     }
 
     pub fn set_root(&self, root: PathBuf) {

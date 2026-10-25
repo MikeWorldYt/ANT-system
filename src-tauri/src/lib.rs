@@ -27,21 +27,24 @@ pub fn run() {
     if std::env::args_os().nth(1).is_some_and(|a| a == "--sync") {
         std::process::exit(sync::run_headless(std::env::args_os().nth(2)));
     }
-    let start = std::env::args_os()
-        .nth(1)
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::current_dir().ok())
-        .unwrap_or_default();
-    let storage = commands::Storage::resolve(start);
-    let title = storage.root().ok().and_then(|r| r.file_name().map(|n| n.to_string_lossy().into_owned()));
+    let arg = std::env::args_os().nth(1).map(std::path::PathBuf::from);
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let storage = commands::Storage::resolve(cwd.clone());
 
     tauri::Builder::default()
         .manage(storage)
         .register_uri_scheme_protocol(extensions::sandbox_page::SCHEME, |_ctx, _request| extensions::sandbox_page::response())
         .setup(move |app| {
             use tauri::Manager;
-            if let (Some(name), Some(window)) = (&title, app.get_webview_window("main")) {
-                window.set_title(&commands::window_title(name))?;
+            let remembered = storage::pointer::app_file(app.handle()).ok().and_then(|f| storage::pointer::read(&f));
+            let exe_dir = std::env::current_exe().ok().and_then(|e| e.parent().map(std::path::Path::to_path_buf));
+            let state = app.state::<commands::Storage>();
+            state.reset(storage::location::launch_start(arg, remembered, cwd, exe_dir));
+            if let Ok(root) = state.root() {
+                storage::pointer::remember(app.handle(), &root);
+                if let Some(window) = app.get_webview_window("main") {
+                    window.set_title(&commands::window_title(&storage::rename::folder_name(&root)))?;
+                }
             }
             if let Some(window) = app.get_webview_window("main") {
                 window_state::restore(&window);
@@ -89,6 +92,10 @@ pub fn run() {
             commands::backup_schedule,
             commands::rename_storage,
             commands::revert_storage_rename,
+            commands::storage_health,
+            commands::use_latest_backup,
+            commands::prepare_scan,
+            commands::change_storage_path,
             commands::storage_rename_status,
             commands::sync_schedule,
             commands::list_extensions,

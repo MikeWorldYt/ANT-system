@@ -40,6 +40,14 @@ export interface BackupEntry {
   name: string;
   path: string;
 }
+export type StorageHealth =
+  | { state: "ok"; path: string }
+  | { state: "noDatabase"; path: string; backup: { name: string; label: string } | null }
+  | { state: "notFound"; path: string };
+export const storageHealth = () => call<StorageHealth>("storage_health");
+export const useLatestBackup = (stamp: string) => call<void>("use_latest_backup", { stamp });
+export const prepareScan = (stamp: string) => call<void>("prepare_scan", { stamp });
+export const changeStoragePath = (path: string) => call<string>("change_storage_path", { path });
 export interface RenameStatus {
   old: string;
   new: string;

@@ -6,6 +6,7 @@ use tauri::{AppHandle, Manager, WebviewWindow};
 use super::{run_locked, Storage};
 use crate::error::{FmError, R};
 use crate::storage::rename::{self, RenameStatus};
+use crate::storage::{location, pointer};
 use crate::{sync, updater};
 
 pub fn window_title(name: &str) -> String {
@@ -42,10 +43,33 @@ where
     let new_root = tauri::async_runtime::spawn_blocking(move || rename_flow(&app.state::<Storage>(), &stamp, target))
         .await
         .map_err(|e| FmError::Internal { message: e.to_string() })??;
-    if let Err(e) = window.set_title(&window_title(&rename::folder_name(&new_root))) {
+    Ok(adopt(&window, &new_root))
+}
+
+fn adopt(window: &WebviewWindow, root: &Path) -> String {
+    if let Err(e) = window.set_title(&window_title(&rename::folder_name(root))) {
         eprintln!("Could not update the window title: {e}");
     }
-    Ok(new_root.to_string_lossy().into_owned())
+    pointer::remember(window.app_handle(), root);
+    root.to_string_lossy().into_owned()
+}
+
+pub fn change_flow(storage: &Storage, text: &str) -> R<PathBuf> {
+    let path = location::clean_path(text)?;
+    let root = location::storage_root(&path)?;
+    let _guard = storage.lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    storage.set_root(root.clone());
+    storage.set_start(path);
+    Ok(root)
+}
+
+#[tauri::command]
+pub async fn change_storage_path(window: WebviewWindow, path: String) -> R<String> {
+    let app = window.app_handle().clone();
+    let root = tauri::async_runtime::spawn_blocking(move || change_flow(&app.state::<Storage>(), &path))
+        .await
+        .map_err(|e| FmError::Internal { message: e.to_string() })??;
+    Ok(adopt(&window, &root))
 }
 
 #[tauri::command]

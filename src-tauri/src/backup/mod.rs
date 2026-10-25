@@ -1,5 +1,6 @@
 // Zip backups of the ANT data (ant.db, the .ant files and 999.Settings), never of the user's own files.
 mod archive;
+mod latest;
 pub mod schedule;
 mod stage;
 mod stamp;
@@ -20,6 +21,9 @@ use crate::debug_log::valid_stamp;
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, is_link, StorageLock};
 use crate::storage::db::Store;
+use crate::storage::recovery::{db_state, set_aside, DbState};
+
+pub use latest::{newest_default, restore_latest, LatestBackup};
 
 const BACKUP_DIR: &str = "03.Backup";
 const SUFFIX: &str = "_ANT-fm-backup";
@@ -39,10 +43,14 @@ pub fn settings(root: &Path) -> R<HashMap<String, String>> {
     Store::open_existing(root)?.map_or_else(|| Ok(HashMap::new()), |store| store.settings())
 }
 
+fn default_dir(root: &Path) -> PathBuf {
+    root.join(SETTINGS_FOLDER).join(BACKUP_DIR)
+}
+
 // The setting is checked again because ant.db can be edited outside the app.
 fn backup_dir(root: &Path, settings: &HashMap<String, String>) -> R<PathBuf> {
     match settings.get("backupFolder").map(String::as_str) {
-        None | Some("") => Ok(root.join(SETTINGS_FOLDER).join(BACKUP_DIR)),
+        None | Some("") => Ok(default_dir(root)),
         Some(folder) if valid_backup_folder(folder) => Ok(PathBuf::from(folder)),
         Some(folder) => Err(fail(format!("Invalid backup folder {folder}"))),
     }
@@ -110,13 +118,16 @@ pub fn if_due(root: &Path, stamp: &str) -> R<Option<PathBuf>> {
 }
 
 pub fn list(root: &Path) -> R<Vec<BackupEntry>> {
-    let dir = backup_dir(root, &settings(root)?)?;
+    entries(&backup_dir(root, &settings(root)?)?)
+}
+
+fn entries(dir: &Path) -> R<Vec<BackupEntry>> {
     if !dir.is_dir() {
         return Ok(Vec::new());
     }
     let mut out = Vec::new();
-    for entry in fs::read_dir(&dir).map_err(|e| io_err("read folder", &dir, &e))? {
-        let entry = entry.map_err(|e| io_err("read folder", &dir, &e))?;
+    for entry in fs::read_dir(dir).map_err(|e| io_err("read folder", dir, &e))? {
+        let entry = entry.map_err(|e| io_err("read folder", dir, &e))?;
         let name = entry.file_name().to_string_lossy().into_owned();
         let file = fs::symlink_metadata(entry.path()).is_ok_and(|m| m.is_file() && !is_link(&m));
         if file && valid_name(&name) {
@@ -141,15 +152,25 @@ pub fn restore(root: &Path, name: &str, stamp: &str) -> R<()> {
     if !valid_stamp(stamp) {
         return Err(fail(format!("Invalid backup stamp {stamp}")));
     }
-    let dir = backup_dir(root, &settings(root)?)?;
-    let zip = backup_zip(&dir, name)?;
+    restore_from(root, &backup_dir(root, &settings(root)?)?, name, stamp)
+}
+
+// Without a readable ant.db there is nothing worth a safety backup, and an unreadable one is kept aside instead.
+fn restore_from(root: &Path, dir: &Path, name: &str, stamp: &str) -> R<()> {
+    let zip = backup_zip(dir, name)?;
     let staging = dir.join(format!(".{stamp}_restore"));
     staged(&staging, || {
         archive::expand(&zip, &staging)?;
         if !stage::has_db(&staging) {
             return Err(fail(format!("{name} holds no ant.db")));
         }
-        create(root, stamp)?;
+        match db_state(root) {
+            DbState::Healthy => {
+                create(root, stamp)?;
+            }
+            DbState::Unreadable => set_aside(root, stamp)?,
+            DbState::Missing => {}
+        }
         let _lock = StorageLock::acquire(root)?;
         stage::apply(root, &staging)?;
         // The restored ant.db predates the safety backup, so its last-backup time is renewed.
