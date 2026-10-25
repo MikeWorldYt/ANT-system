@@ -50,7 +50,7 @@ pub fn parse_log(text: &str) -> Option<(String, String)> {
 
 fn is_log_name(name: &str) -> bool {
     let Some((stamp, rest)) = name.split_once(SUFFIX) else { return false };
-    valid_stamp(stamp) && rest.ends_with(".md")
+    valid_stamp(stamp) && rest.ends_with(".log")
 }
 
 fn newest_log(dir: &Path) -> Option<PathBuf> {
@@ -65,11 +65,11 @@ fn newest_log(dir: &Path) -> Option<PathBuf> {
 }
 
 fn free_log(dir: &Path, stamp: &str) -> PathBuf {
-    let first = dir.join(format!("{stamp}{SUFFIX}.md"));
+    let first = dir.join(format!("{stamp}{SUFFIX}.log"));
     if !first.exists() {
         return first;
     }
-    (2..).map(|n| dir.join(format!("{stamp}{SUFFIX}_{n}.md"))).find(|p| !p.exists()).unwrap_or(first)
+    (2..).map(|n| dir.join(format!("{stamp}{SUFFIX}_{n}.log"))).find(|p| !p.exists()).unwrap_or(first)
 }
 
 pub fn write_log(root: &Path, stamp: &str, old: &str, new: &str) -> R<PathBuf> {

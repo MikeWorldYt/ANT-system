@@ -13,7 +13,7 @@ fn staged_copy(tag: &str) -> (TempDir, TempDir) {
     dir.mkdir("100.ACADEMIC/01.Math/98.Math/.ant");
     dir.mkdir("999.Settings/03.Backup/old/.ant");
     fs::write(dir.path().join("100.ACADEMIC/01.Math/.ant/info.json"), "math").unwrap();
-    fs::write(dir.path().join("100.ACADEMIC/01.Math/.ant/debug/log.md"), "x").unwrap();
+    fs::write(dir.path().join("100.ACADEMIC/01.Math/.ant/debug/log.log"), "x").unwrap();
     fs::write(dir.path().join("100.ACADEMIC/01.Math/98.Math/.ant/info.json"), "rev").unwrap();
     fs::write(dir.path().join("999.Settings/03.Backup/old/.ant/info.json"), "old").unwrap();
     fs::write(dir.path().join("999.Settings/00.Core/config.yaml"), "core").unwrap();

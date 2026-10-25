@@ -31,11 +31,11 @@ fn the_newest_log_wins_and_a_clash_gets_a_suffix() {
     let dir = TempDir::new("rename-logs");
     let root = storage_in(&dir, "B");
     let first = write_log(&root, "26-10-24-09-05", "A", "B").unwrap();
-    assert!(first.ends_with(format!("{STAMP}{SUFFIX}.md")));
+    assert!(first.ends_with(format!("{STAMP}{SUFFIX}.log")));
     let second = write_log(&root, STAMP, "X", "B").unwrap();
-    assert!(second.ends_with(format!("{STAMP}{SUFFIX}_2.md")));
+    assert!(second.ends_with(format!("{STAMP}{SUFFIX}_2.log")));
     write_log(&root, "26-10-23-09-05", "Y", "B").unwrap();
-    fs::write(logs_dir(&root).join("26-10-24-09-05_ANT-fm.md"), "").unwrap();
+    fs::write(logs_dir(&root).join("26-10-24-09-05_ANT-fm.log"), "").unwrap();
     assert_eq!(newest_log(&logs_dir(&root)), Some(second));
     assert_eq!(status(&root).map(|s| s.old), Some("X".to_string()));
 }

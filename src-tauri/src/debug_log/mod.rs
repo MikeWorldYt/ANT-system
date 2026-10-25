@@ -36,11 +36,11 @@ pub fn valid_stamp(stamp: &str) -> bool {
 }
 
 fn free_path(dir: &Path, stamp: &str) -> PathBuf {
-    let first = dir.join(format!("{stamp}_ANT-fm.md"));
+    let first = dir.join(format!("{stamp}_ANT-fm.log"));
     if !first.exists() {
         return first;
     }
-    (2..).map(|n| dir.join(format!("{stamp}_ANT-fm_{n}.md"))).find(|p| !p.exists()).unwrap_or(first)
+    (2..).map(|n| dir.join(format!("{stamp}_ANT-fm_{n}.log"))).find(|p| !p.exists()).unwrap_or(first)
 }
 
 fn entry(seconds: f64, level: &str, message: &str) -> String {
@@ -120,12 +120,12 @@ mod tests {
     fn an_existing_log_name_gets_a_numeric_suffix() {
         let dir = TempDir::new("debug-name");
         let first = free_path(dir.path(), "26-10-24-09-05");
-        assert!(first.ends_with("26-10-24-09-05_ANT-fm.md"));
+        assert!(first.ends_with("26-10-24-09-05_ANT-fm.log"));
         fs::write(&first, "").unwrap();
         let second = free_path(dir.path(), "26-10-24-09-05");
-        assert!(second.ends_with("26-10-24-09-05_ANT-fm_2.md"));
+        assert!(second.ends_with("26-10-24-09-05_ANT-fm_2.log"));
         fs::write(&second, "").unwrap();
-        assert!(free_path(dir.path(), "26-10-24-09-05").ends_with("26-10-24-09-05_ANT-fm_3.md"));
+        assert!(free_path(dir.path(), "26-10-24-09-05").ends_with("26-10-24-09-05_ANT-fm_3.log"));
     }
 
     #[test]
