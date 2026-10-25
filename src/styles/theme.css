@@ -166,7 +166,7 @@ body {
 
 .status-line { min-height: 28px; padding: 6px 12px; font-size: 9pt; color: var(--muted); border-top: 1px solid var(--border); }
 .status-line[data-level="info"] { color: var(--text); }
-.status-line[data-level="warning"] { color: var(--accent); }
+.status-line[data-level="warning"] { color: var(--st-review); }
 .status-line[data-level="error"] { color: var(--delete-hover); }
 .status-line[data-level="warning"]::before { content: "Warning: "; }
 .status-line[data-level="error"]::before { content: "Error: "; }

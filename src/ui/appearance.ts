@@ -19,5 +19,6 @@ export function applyAppearance(): void {
   root.dataset.theme = theme;
   root.style.setProperty("--title", color);
   root.style.setProperty("--button", color);
+  root.style.setProperty("--accent", color);
   root.style.zoom = TEXT_ZOOM[textSize];
 }
