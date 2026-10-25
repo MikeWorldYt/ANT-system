@@ -16,6 +16,7 @@ mod sync;
 mod test_support;
 mod tree;
 mod updater;
+mod window_state;
 
 use commands::settings;
 
@@ -41,6 +42,15 @@ pub fn run() {
             use tauri::Manager;
             if let (Some(name), Some(window)) = (&title, app.get_webview_window("main")) {
                 window.set_title(&commands::window_title(name))?;
+            }
+            if let Some(window) = app.get_webview_window("main") {
+                window_state::restore(&window);
+                let saved = window.clone();
+                window.on_window_event(move |event| {
+                    if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
+                        window_state::save(&saved);
+                    }
+                });
             }
             Ok(())
         })
