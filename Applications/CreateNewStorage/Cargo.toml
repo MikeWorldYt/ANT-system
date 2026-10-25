@@ -1,0 +1,22 @@
+[package]
+name = "create-new-storage"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "create_new_storage"
+path = "src/lib.rs"
+
+[[bin]]
+name = "create-new-storage"
+path = "src/main.rs"
+
+[dependencies]
+serde_yaml = "0.9"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+panic = "abort"
+codegen-units = 1
