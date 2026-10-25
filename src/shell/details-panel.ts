@@ -104,7 +104,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     if (inputs[""]) rows.push(el("dd", {}, inputs[""]));
     for (const ext of detailFields(n)) {
       for (const f of ext.fields) {
-        rows.push(el("dt", {}, f.label, el("span", { class: "ext-source" }, ` ← ${ext.name}`)));
+        rows.push(el("dt", {}, f.label, el("span", { class: "ext-source" },)));
         const value = el("dd", {}, f.value);
         if (f.action && n) {
           const { id } = f.action;
