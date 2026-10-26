@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "create-new-storage"
-version = "0.1.0"
+version = "3.0.0"
 dependencies = [
  "serde_yaml",
 ]
