@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use serde_yaml::Mapping;
 
 use crate::config::{CORE_DIR, REVIEW_DIR, SETTINGS_DIR, TREE_YAML_NAME, TREE_YAML_URL};
+use crate::info::write_info;
 use crate::fs_ops::{make_dirs_tracked, rollback_created, write_file_atomic};
 use crate::plan::parse_tree;
 use crate::shortcuts::{create_shortcuts, review_shortcut_name};
@@ -99,6 +100,7 @@ fn make_tree(
         if kind != "CFG" {
             make_dirs_tracked(&folder, created)?;
             progress(Level::Ok, &format!("✔ {}", folder.display()));
+            write_info(&folder, child, created, progress)?;
         }
         if kind == "REV" {
             match review_shortcut_name(context, name) {

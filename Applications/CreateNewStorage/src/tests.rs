@@ -43,3 +43,14 @@ fn existing_root_needs_permission_and_bad_tree_touches_nothing() {
     assert!(create(&opts(root.clone(), "- not a mapping\n", false), &mut |_, _| {}).is_err());
     assert!(!root.exists());
 }
+
+#[test]
+fn entries_with_fields_get_an_info_file() {
+    let tmp = TempDir::new("info-tree");
+    let root = tmp.path().join("Store");
+    let tree = "300.PROJECTS:\n  type: WS-L1\n  PJ.001_A:\n    owner: Ren\n    type: WKB\n    status: done\n    created: 2025-05-16\n";
+    create(&opts(root.clone(), tree, false), &mut |_, _| {}).unwrap();
+    let info = std::fs::read_to_string(root.join("300.PROJECTS/PJ.001_A/.ant/info.json")).unwrap();
+    assert!(info.contains("\"created\": \"25-05-16\"") && info.contains("\"owner\": \"Ren\""));
+    assert!(!root.join("300.PROJECTS/.ant").exists());
+}

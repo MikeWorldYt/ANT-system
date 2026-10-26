@@ -4,6 +4,7 @@ mod create;
 mod downloads;
 mod fetch;
 mod fs_ops;
+mod info;
 mod name;
 mod plan;
 #[cfg(windows)]
