@@ -1,6 +1,7 @@
-# Builds the Windows executables of the ANT apps whenever their version.txt changes on main,
+# Builds the Windows executables of the ANT apps whenever their version changes on main,
 # commits them to Applications/<App>/dist and publishes a per-app GitHub Release.
-# An app with src-tauri/ is built with Tauri and pnpm; any other app is built with PyInstaller.
+# An app with src-tauri/ is built with Tauri and pnpm, one with only a Cargo.toml with cargo
+# (its version lives there), and any other app with PyInstaller (its version lives in version.txt).
 name: Build apps
 
 on:
@@ -8,6 +9,7 @@ on:
     branches: [main]
     paths:
       - "Applications/*/version.txt"
+      - "Applications/CreateNewStorage/Cargo.toml"
   pull_request:
     paths:
       - "Applications/**"
@@ -48,7 +50,7 @@ jobs:
           case "$EVENT" in
             workflow_dispatch) apps=$(echo "$INPUT_APPS" | tr ',' ' ') ;;
             pull_request) apps=$(git diff --name-only "$BASE_SHA" HEAD -- Applications | cut -d/ -f2 | sort -u) ;;
-            push) apps=$(git diff --name-only "$BEFORE" HEAD -- 'Applications/*/version.txt' | cut -d/ -f2 | sort -u) ;;
+            push) apps=$(git diff --name-only "$BEFORE" HEAD -- 'Applications/*/version.txt' Applications/CreateNewStorage/Cargo.toml | cut -d/ -f2 | sort -u) ;;
           esac
           # ant_core is shared, so a change there rebuilds every app
           if echo "$apps" | grep -qx ant_core; then apps="$all"; fi
@@ -73,16 +75,19 @@ jobs:
         shell: pwsh
         run: |
           $tauri = Test-Path "Applications/${{ matrix.app }}/src-tauri/tauri.conf.json"
+          $rust = (-not $tauri) -and (Test-Path "Applications/${{ matrix.app }}/Cargo.toml")
           "tauri=$($tauri.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          "rust=$($rust.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          "python=$((-not $tauri -and -not $rust).ToString().ToLower())" >> $env:GITHUB_OUTPUT
       - uses: actions/setup-python@v5
-        if: steps.kind.outputs.tauri == 'false'
+        if: steps.kind.outputs.python == 'true'
         with:
           python-version: "3.13"
       - name: Install build tools
-        if: steps.kind.outputs.tauri == 'false'
+        if: steps.kind.outputs.python == 'true'
         run: python -m pip install --upgrade pip pyinstaller pyyaml
       - name: Build
-        if: steps.kind.outputs.tauri == 'false'
+        if: steps.kind.outputs.python == 'true'
         working-directory: Applications/${{ matrix.app }}
         shell: pwsh
         run: |
@@ -110,19 +115,34 @@ jobs:
           pnpm tauri build --no-bundle -- --locked
           New-Item -ItemType Directory -Force build-dist | Out-Null
           Copy-Item src-tauri/target/release/folder-manager.exe "build-dist/${{ matrix.app }}.exe"
+      - name: Build (Rust)
+        if: steps.kind.outputs.rust == 'true'
+        working-directory: Applications/${{ matrix.app }}
+        shell: pwsh
+        run: |
+          rustup toolchain install stable --profile minimal
+          cargo test --locked
+          cargo build --release --locked
+          New-Item -ItemType Directory -Force build-dist | Out-Null
+          Copy-Item target/release/create-new-storage.exe "build-dist/${{ matrix.app }}.exe"
       - name: Check version
         id: version
         working-directory: Applications/${{ matrix.app }}
         shell: pwsh
         run: |
-          $expected = (Select-String -Path version.txt -Pattern "StringStruct\('FileVersion',\s*'([\d.]+)'\)").Matches[0].Groups[1].Value
+          $expected = if ("${{ steps.kind.outputs.rust }}" -eq "true") {
+            (Select-String -Path Cargo.toml -Pattern '^version = "([\d.]+)"').Matches[0].Groups[1].Value
+          } else {
+            (Select-String -Path version.txt -Pattern "StringStruct\('FileVersion',\s*'([\d.]+)'\)").Matches[0].Groups[1].Value
+          }
           $exe = "build-dist/${{ matrix.app }}.exe"
           if (-not (Test-Path $exe)) { throw "$exe was not built" }
           $size = (Get-Item $exe).Length
-          if ($size -lt 1MB) { throw "$exe is only $size bytes" }
+          $minSize = if ("${{ steps.kind.outputs.rust }}" -eq "true") { 100KB } else { 1MB }
+          if ($size -lt $minSize) { throw "$exe is only $size bytes" }
           $actual = (Get-Item $exe).VersionInfo.FileVersion
-          # A Tauri executable may carry a pre-release tag after the numbers (2.0.1-beta)
-          $sameVersion = if ("${{ steps.kind.outputs.tauri }}" -eq "true") { $actual.StartsWith($expected) } else { $actual -eq $expected }
+          # A Tauri executable may carry a pre-release tag after the numbers (2.0.1-beta); a Rust one carries none
+          $sameVersion = if ("${{ steps.kind.outputs.rust }}" -eq "true") { $true } elseif ("${{ steps.kind.outputs.tauri }}" -eq "true") { $actual.StartsWith($expected) } else { $actual -eq $expected }
           if (-not $sameVersion) { throw "exe FileVersion '$actual' does not match version.txt '$expected'" }
           "version=$expected" >> $env:GITHUB_OUTPUT
           "Built ${{ matrix.app }} $expected ($size bytes)"
@@ -149,7 +169,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for dir in built/*/; do
             app=$(basename "$dir")
-            version=$(grep -oP "StringStruct\('FileVersion',\s*'\K[\d.]+" "Applications/$app/version.txt")
+            if [ -f "Applications/$app/version.txt" ]; then
+              version=$(grep -oP "StringStruct\('FileVersion',\s*'\K[\d.]+" "Applications/$app/version.txt")
+            else
+              version=$(grep -m1 -oP '^version = "\K[\d.]+' "Applications/$app/Cargo.toml")
+            fi
             mkdir -p "Applications/$app/dist"
             cp "$dir$app.exe" "Applications/$app/dist/$app.exe"
             # dist/ is gitignored for local builds; release binaries are the one tracked exception
@@ -166,7 +190,11 @@ jobs:
         run: |
           for dir in built/*/; do
             app=$(basename "$dir")
-            version=$(grep -oP "StringStruct\('FileVersion',\s*'\K[\d.]+" "Applications/$app/version.txt")
+            if [ -f "Applications/$app/version.txt" ]; then
+              version=$(grep -oP "StringStruct\('FileVersion',\s*'\K[\d.]+" "Applications/$app/version.txt")
+            else
+              version=$(grep -m1 -oP '^version = "\K[\d.]+' "Applications/$app/Cargo.toml")
+            fi
             slug=$(echo "$app" | sed -E 's/([a-z])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')
             tag="$slug-v$version"
             if gh release view "$tag" >/dev/null 2>&1; then
