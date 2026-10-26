@@ -34,6 +34,7 @@ jobs:
     outputs:
       matrix: ${{ steps.pick.outputs.matrix }}
       any: ${{ steps.pick.outputs.any }}
+      native: ${{ steps.pick.outputs.native }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,6 +59,9 @@ jobs:
           json=$(printf '%s\n' $picked | jq -R . | jq -sc 'map(select(length > 0))')
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
           [ "$json" = "[]" ] && echo "any=false" >> "$GITHUB_OUTPUT" || echo "any=true" >> "$GITHUB_OUTPUT"
+          # Python apps only run on Windows; the Rust and Tauri ones also get Linux and macOS builds
+          native=$(for a in $picked; do { [ -f "Applications/$a/Cargo.toml" ] || [ -f "Applications/$a/src-tauri/tauri.conf.json" ]; } && echo "$a"; done | jq -R . | jq -sc 'map(select(length > 0))')
+          echo "native=$native" >> "$GITHUB_OUTPUT"
           echo "Apps: $json"
 
   build:
@@ -152,16 +156,80 @@ jobs:
           path: Applications/${{ matrix.app }}/build-dist/${{ matrix.app }}.exe
           if-no-files-found: error
 
+  build-unix:
+    needs: plan
+    if: needs.plan.outputs.native != '[]'
+    name: ${{ matrix.app }}-${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.plan.outputs.native) }}
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - { os: ubuntu-latest, label: linux }
+          - { os: macos-latest, label: macos }
+    defaults:
+      run:
+        shell: bash
+        working-directory: Applications/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect app kind
+        id: kind
+        run: |
+          if [ -f src-tauri/tauri.conf.json ]; then echo "tauri=true" >> "$GITHUB_OUTPUT"; else echo "tauri=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Install Linux dependencies
+        if: matrix.label == 'linux' && steps.kind.outputs.tauri == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl wget file libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev
+      - uses: pnpm/action-setup@v4
+        if: steps.kind.outputs.tauri == 'true'
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        if: steps.kind.outputs.tauri == 'true'
+        with:
+          node-version: 24
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build (Tauri)
+        if: steps.kind.outputs.tauri == 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm tauri build --no-bundle -- --locked
+          echo "BIN=src-tauri/target/release/folder-manager" >> "$GITHUB_ENV"
+      - name: Build (Rust)
+        if: steps.kind.outputs.tauri == 'false'
+        run: |
+          cargo test --locked
+          cargo build --release --locked
+          echo "BIN=target/release/create-new-storage" >> "$GITHUB_ENV"
+      # tar keeps the executable bit, which an artifact upload would drop
+      - name: Pack
+        run: tar -czf "${{ matrix.app }}-${{ matrix.label }}.tar.gz" -C "$(dirname "$BIN")" "$(basename "$BIN")"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unix-${{ matrix.app }}-${{ matrix.label }}
+          path: Applications/${{ matrix.app }}/${{ matrix.app }}-${{ matrix.label }}.tar.gz
+          if-no-files-found: error
+
   publish:
-    needs: [plan, build]
+    needs: [plan, build, build-unix]
     # Pull requests only prove the build works; main gets the commit and the releases
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.build-unix.result != 'failure' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: built
+          pattern: "!unix-*"
+      - uses: actions/download-artifact@v4
+        with:
+          path: built-unix
+          pattern: unix-*
+          merge-multiple: true
       - name: Commit executables to main
         shell: bash
         run: |
@@ -201,5 +269,9 @@ jobs:
               gh release upload "$tag" "$dir$app.exe" --clobber
             else
               gh release create "$tag" "$dir$app.exe" --title "$app v$version" --notes "Built from $GITHUB_SHA." --latest=false
+            fi
+            # Linux and macOS builds belong to the release created above
+            if compgen -G "built-unix/$app-*.tar.gz" >/dev/null; then
+              gh release upload "$tag" built-unix/$app-*.tar.gz --clobber
             fi
           done
