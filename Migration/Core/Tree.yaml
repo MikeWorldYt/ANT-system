@@ -41,12 +41,21 @@
       type: TPL-L3
     98.Industry:
       type: REV-L3
-    PJ.001_(00-00-00)Bread_project-name-example:
+    PJ.001_project-name-example:
+      owner: John Doe
       type: WKB
       status: done
-    PJ.002_(00-00-00)Bread_project-name-example:
+      created: 2003-01-03
+    PJ.002_Cangrebot:
+      owner: John Doe
       type: WKB
       status: for-review
+      created: 2003-02-12
+    PJ.003_ANT:
+      owner: Mike Diaz
+      type: WKB
+      status: in-progress
+      created: 2024-06-01
   90.WORK:
     type: RES-L2
   98.WORK:
@@ -64,12 +73,16 @@
     type: TPL-L2
   98.PROJECTS:
     type: REV-L2
-  PJ.001_(00-00-00)Bread_project-name-example:
+  PJ.001_project-name-example:
+    owner: John Doe
+    type: WKB
+    status: done
+    created: 1960-05-22
+  PJ.002_Miyabi:
+    owner: Ren
     type: WKB
     status: in-progress
-  PJ.002_(00-00-00)Bread_project-name-example:
-    type: WKB
-    status: hold
+    created: 2025-05-16
 
 400.ACADEMIC:
   type: NODE-L1
