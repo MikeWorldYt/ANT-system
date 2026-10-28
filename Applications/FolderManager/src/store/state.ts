@@ -31,6 +31,7 @@ export type StartView = "continue" | "tree" | "columns";
 export interface Settings {
   pinFavorites: boolean;
   hideDone: boolean;
+  hideDirectoryIdentifiers: boolean;
   confirmDelete: boolean;
   autoUpdate: boolean;
   debugLogging: boolean;
@@ -76,7 +77,7 @@ export const state: State = {
   busy: false,
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
 };
 
 const listeners = new Set<() => void>();
@@ -143,6 +144,7 @@ function readShortcuts(raw: string | undefined): Record<string, KeyCombo> {
 export function applySettings(saved: Record<string, string>): void {
   state.settings.pinFavorites = saved.pinFavorites !== "false";
   state.settings.hideDone = saved.hideDone === "true";
+  state.settings.hideDirectoryIdentifiers = saved.hideDirectoryIdentifiers === "true";
   state.settings.confirmDelete = saved.confirmDelete !== "false";
   state.settings.autoUpdate = saved.autoUpdate !== "false";
   state.settings.debugLogging = saved.debugLogging === "true";
