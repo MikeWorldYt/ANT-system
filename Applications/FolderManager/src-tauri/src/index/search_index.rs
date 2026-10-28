@@ -21,6 +21,28 @@ pub fn rebuild_from_nodes(root: &Path, nodes: &[TreeNode]) -> R<()> {
     Store::open_or_create(root)?.replace_fields(&docs)
 }
 
+// Rewrites only the given subtrees; a path no longer in the tree is just dropped.
+pub fn update_paths(root: &Path, nodes: &[TreeNode], paths: &[Vec<String>]) -> R<()> {
+    let mut docs = Vec::new();
+    for rel in paths {
+        if let Some(node) = find(nodes, rel) {
+            collect(std::slice::from_ref(node), &mut docs);
+        }
+    }
+    let prefixes: Vec<String> = paths.iter().map(|p| p.join("/")).collect();
+    Store::open_or_create(root)?.update_paths(&prefixes, &docs)
+}
+
+fn find<'a>(nodes: &'a [TreeNode], rel: &[String]) -> Option<&'a TreeNode> {
+    let (mut level, mut found) = (nodes, None);
+    for depth in 1..=rel.len() {
+        let node = level.iter().find(|n| n.rel_parts[..] == rel[..depth])?;
+        level = node.children.as_deref().unwrap_or(&[]);
+        found = Some(node);
+    }
+    found
+}
+
 fn collect(nodes: &[TreeNode], docs: &mut Vec<Doc>) {
     for node in nodes {
         if node.reserved {

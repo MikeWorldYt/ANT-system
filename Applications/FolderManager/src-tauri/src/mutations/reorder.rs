@@ -70,7 +70,7 @@ pub fn move_node(root: &Path, rel: &[String], dir: MoveDirection) -> R<Mutation>
             siblings.insert(node_final.clone().into(), entry);
         }
         if let Some(entry) = swap_entry {
-            siblings.insert(swap_new.into(), entry);
+            siblings.insert(swap_new.clone().into(), entry);
         }
     }
     persist(root, &data, journal, "move")?;
@@ -79,7 +79,9 @@ pub fn move_node(root: &Path, rel: &[String], dir: MoveDirection) -> R<Mutation>
     } else {
         Vec::new()
     };
-    Ok(finish(root, &data, synced, Some(child_rel(parent, &node_final)), warnings))
+    let node_rel = child_rel(parent, &node_final);
+    let touched = vec![rel.to_vec(), child_rel(parent, &swap_name), node_rel.clone(), child_rel(parent, &swap_new)];
+    Ok(finish(root, &data, synced, Some(node_rel), warnings).touching(touched))
 }
 
 #[cfg(test)]

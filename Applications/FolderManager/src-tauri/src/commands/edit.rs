@@ -24,6 +24,13 @@ pub(super) fn with_index(
 
 pub(super) fn with_search_index(root: &Path, result: R<Mutation>) -> R<Mutation> {
     let mut m = result?;
+    // A synced yaml may have changed paths the mutation never touched, so only an unsynced tree updates in place.
+    if !m.touched.is_empty() && !m.tree.yaml_changed {
+        match search_index::update_paths(root, &m.tree.nodes, &m.touched) {
+            Ok(()) => return Ok(m),
+            Err(e) => m.warnings.push(format!("Search index: the quick update failed, so it was rebuilt in full. {e}")),
+        }
+    }
     // An empty tree may be after_commit's fallback, so the yaml is indexed instead of wiping the index.
     let indexed = if m.tree.nodes.is_empty() {
         tree_store::load(root).and_then(|data| search_index::rebuild(root, &data))

@@ -45,6 +45,39 @@ impl Store {
         tx.commit().map_err(fail)
     }
 
+    // Drops each prefix path with everything under it, then writes the docs, in one transaction.
+    pub fn update_paths(&mut self, prefixes: &[String], docs: &[Doc]) -> R<()> {
+        let path = self.path.clone();
+        let fail = |e: rusqlite::Error| db_err("write ant.db", &path, &e);
+        let tx = self.conn.transaction().map_err(fail)?;
+        {
+            // "p/" up to "p0" is exactly what lies under p, as '0' sorts right after '/', so the primary key serves it.
+            let mut drop = tx
+                .prepare("DELETE FROM node_fields WHERE path = ?1 OR (path >= ?1 || '/' AND path < ?1 || '0')")
+                .map_err(fail)?;
+            for prefix in prefixes {
+                drop.execute([prefix]).map_err(fail)?;
+            }
+            let mut insert = tx.prepare("INSERT OR REPLACE INTO node_fields (path, key, value) VALUES (?1, ?2, ?3)").map_err(fail)?;
+            for doc in docs {
+                for (key, value) in &doc.fields {
+                    insert.execute(params![doc.path, key, value]).map_err(fail)?;
+                }
+            }
+        }
+        // The stored digest no longer describes the rows, so the next full rebuild must not skip its write.
+        tx.execute("DELETE FROM meta WHERE key = ?1", [FIELDS_HASH]).map_err(fail)?;
+        tx.commit().map_err(fail)
+    }
+
+    #[cfg(test)]
+    pub fn field_rows(&self) -> R<Vec<(String, String, String)>> {
+        let fail = |e: rusqlite::Error| db_err("search ant.db", &self.path, &e);
+        let mut stmt = self.conn.prepare("SELECT path, key, value FROM node_fields ORDER BY path, key").map_err(fail)?;
+        let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).map_err(fail)?;
+        rows.map(|r| r.map_err(fail)).collect()
+    }
+
     // Filters are substring matches, case-insensitive for ASCII; the scope is a path prefix.
     pub fn search(&self, query: &Query) -> R<Vec<Vec<String>>> {
         let mut sql = String::from("SELECT path FROM node_fields WHERE key = 'name'");

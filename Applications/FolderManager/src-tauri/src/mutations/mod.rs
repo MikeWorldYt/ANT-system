@@ -41,6 +41,16 @@ pub struct Mutation {
     pub tree: TreeSnapshot,
     pub select: Option<Vec<String>>,
     pub warnings: Vec<String>,
+    // Subtrees whose search docs changed, before and after; empty means unknown and forces a full rebuild.
+    #[serde(skip)]
+    pub touched: Vec<Vec<String>>,
+}
+
+impl Mutation {
+    pub(crate) fn touching(mut self, paths: Vec<Vec<String>>) -> Self {
+        self.touched = paths;
+        self
+    }
 }
 
 pub(crate) struct Target {
@@ -192,7 +202,7 @@ fn after_commit(
         warnings.push(format!("The change was saved but the tree could not be reloaded; refresh. {e}"));
         TreeSnapshot { root: root.to_string_lossy().into_owned(), nodes: Vec::new(), yaml_changed: true }
     });
-    Mutation { tree, select, warnings }
+    Mutation { tree, select, warnings, touched: Vec::new() }
 }
 
 #[cfg(test)]

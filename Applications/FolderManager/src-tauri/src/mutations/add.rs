@@ -98,7 +98,8 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
         warnings.push(format!("Could not set up {DATA_DIR}: {e}"));
     }
     register_ids(root, &mut data, &mut warnings);
-    Ok(finish(root, &data, synced, Some(child_rel(parent, &new_name)), warnings))
+    let new_rel = child_rel(parent, &new_name);
+    Ok(finish(root, &data, synced, Some(new_rel.clone()), warnings).touching(vec![new_rel]))
 }
 
 // Next free tracker (3 digits, more once they run out) after every PJ workboard in the tree, missing folders included.
@@ -214,7 +215,15 @@ PJ.1000_Next: {type: WKB-L1}
         let locked = add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "98.Math"]), NewKind::Node);
         assert!(matches!(locked, Err(FmError::Locked { .. })));
         assert!(matches!(add_node(dir.path(), &rel(&["999.Settings"]), NewKind::Node), Err(FmError::Reserved { .. })));
-        assert!(matches!(add_node(dir.path(), &[], NewKind::Node), Err(FmError::InvalidPath { .. })));
+    }
+
+    #[test]
+    fn add_node_at_root_creates_a_main_category() {
+        let dir = academic("add-root");
+        let m = add_node(dir.path(), &[], NewKind::Node).unwrap();
+        let created = m.select.expect("the new category is selected");
+        assert_eq!(created.len(), 1);
+        assert!(dir.path().join(&created[0]).is_dir());
     }
 
     #[cfg(windows)]

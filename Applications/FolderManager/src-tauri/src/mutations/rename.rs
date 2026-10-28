@@ -37,7 +37,7 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
         if synced {
             tree_store::save(root, &data)?;
         }
-        return Ok(finish(root, &data, synced, Some(new_rel), Vec::new()));
+        return Ok(finish(root, &data, synced, Some(new_rel.clone()), Vec::new()).touching(vec![new_rel]));
     }
     let parent_abs = join_rel(root, parent);
     ensure_free(&parent_abs, get_node(&data, parent), &new_name, &[old_name.as_str()])?;
@@ -53,7 +53,7 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
         }
     }
     persist(root, &data, journal, "rename")?;
-    Ok(finish(root, &data, synced, Some(new_rel), warnings))
+    Ok(finish(root, &data, synced, Some(new_rel.clone()), warnings).touching(vec![rel.to_vec(), new_rel]))
 }
 
 // Linked folders follow best-effort: a clash or failure becomes a warning and its yaml key stays.

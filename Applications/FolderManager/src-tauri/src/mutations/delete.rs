@@ -52,7 +52,7 @@ pub fn delete_node(
             return Err(FmError::NotFound { rel_parts: rel.to_vec() });
         }
         tree_store::save(root, &data)?;
-        return Ok((finish(root, &data, synced, None, Vec::new()), None));
+        return Ok((finish(root, &data, synced, None, Vec::new()).touching(vec![rel.to_vec()]), None));
     }
     let (files, dirs) = count_contents(&target.abs)?;
     if files + dirs > 0 && !confirm_non_empty {
@@ -65,7 +65,7 @@ pub fn delete_node(
     persist(root, &data, journal, "delete")?;
     IN_FLIGHT.lock().unwrap_or_else(|p| p.into_inner()).push(staged.clone());
     let pending = PendingRecycle { root: root.to_path_buf(), staged, name: name.clone() };
-    Ok((finish(root, &data, synced, None, Vec::new()), Some(pending)))
+    Ok((finish(root, &data, synced, None, Vec::new()).touching(vec![rel.to_vec()]), Some(pending)))
 }
 
 // A locked ghost is only a stale record, so it may go; a locked real folder may not.

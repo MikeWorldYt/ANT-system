@@ -11,10 +11,10 @@ use crate::ant_core::search::parse_query;
 use crate::config::{EditableType, NewKind, WkbStatus, TRASH_DIR};
 use crate::mutations::{self, recycle_staged_with, MoveDirection, Mutation};
 use crate::fs_safe::StorageLock;
-use crate::index::reindex;
+use crate::index::{reindex, search_index};
 use crate::storage::db::Store;
-use crate::test_support::{rel, storage, yaml};
-use crate::tree::tree_store::get_node;
+use crate::test_support::{academic, rel, storage, yaml};
+use crate::tree::tree_store::{self, get_node};
 use crate::test_support::TempDir;
 
 const TREE: &str = "100.WORK:\n  type: NODE-L1\n  01.A: {type: NODE-L2}\n  02.B: {type: NODE-L2}\n  03.Ghost: {type: NODE-L2}\n";
@@ -200,6 +200,83 @@ fn details_and_type_edits_reach_the_search_index() {
     let m = with_search_index(dir.path(), mutations::set_details(dir.path(), &p, None, Some("Zed"))).unwrap();
     assert!(m.warnings.is_empty(), "{:?}", m.warnings);
     assert_eq!(search("client:Zed"), [p]);
+}
+
+// Startup state: a synced, saved yaml and a full index, so the next mutation updates the index in place.
+fn indexed(tag: &str) -> TempDir {
+    let dir = academic(tag);
+    dir.mkdir("100.ACADEMIC/01.Math/.ant");
+    std::fs::write(dir.path().join("100.ACADEMIC/01.Math/.ant/info.json"), r#"{"owner": "Mike"}"#).unwrap();
+    let mut data = yaml(dir.path());
+    tree_store::sync(dir.path(), &mut data).unwrap();
+    tree_store::save(dir.path(), &data).unwrap();
+    search_index::rebuild(dir.path(), &data).unwrap();
+    dir
+}
+
+fn index_state(dir: &TempDir) -> (Vec<(String, String, String)>, Vec<Vec<Vec<String>>>) {
+    let store = Store::open_or_create(dir.path()).unwrap();
+    let queries = ["", "type:NODE", "status:done", "client:Mike", "in:100.ACADEMIC new", "physics"];
+    (store.field_rows().unwrap(), queries.iter().map(|q| store.search(&parse_query(q)).unwrap()).collect())
+}
+
+fn assert_matches_full_rebuild(dir: &TempDir, m: &Mutation) {
+    assert!(m.warnings.is_empty() && !m.tree.yaml_changed, "{:?}", m.warnings);
+    let incremental = index_state(dir);
+    search_index::rebuild(dir.path(), &yaml(dir.path())).unwrap();
+    assert_eq!(incremental, index_state(dir));
+}
+
+#[test]
+fn adds_update_the_search_index_like_a_full_rebuild() {
+    let dir = indexed("cmd-inc-add");
+    let probe = Probe::new();
+    let emit = probe.emit();
+    for parent in [&["100.ACADEMIC"][..], &["100.ACADEMIC", "01.Math"]] {
+        let added = mutations::add_node(dir.path(), &rel(parent), NewKind::Node);
+        let m = with_index(dir.path(), added, &emit, probe.rebuild(&[])).unwrap();
+        assert_eq!(m.touched, [m.select.clone().unwrap()]);
+        assert_matches_full_rebuild(&dir, &m);
+    }
+}
+
+#[test]
+fn deletes_update_the_search_index_like_a_full_rebuild() {
+    let dir = indexed("cmd-inc-delete");
+    let storage = Storage::resolve(dir.path().to_path_buf());
+    let probe = Probe::new();
+    let m = delete(&storage, &probe, &["100.ACADEMIC", "01.Math"], false, ok_recycle).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
+    let ghost = delete(&storage, &probe, &["100.ACADEMIC", "03.Ghost"], true, |_| panic!("no disk delete")).unwrap();
+    assert_matches_full_rebuild(&dir, &ghost);
+}
+
+#[test]
+fn renames_and_moves_update_the_search_index_like_a_full_rebuild() {
+    let dir = indexed("cmd-inc-move");
+    let probe = Probe::new();
+    let emit = probe.emit();
+    let renamed = mutations::rename_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), "Physics");
+    let m = with_index(dir.path(), renamed, &emit, probe.rebuild(&[])).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
+    let moved = mutations::move_node(dir.path(), &rel(&["100.ACADEMIC", "01.Physics"]), MoveDirection::Down);
+    let m = with_index(dir.path(), moved, &emit, probe.rebuild(&[])).unwrap();
+    assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "02.Physics"])));
+    assert_matches_full_rebuild(&dir, &m);
+}
+
+#[test]
+fn a_failed_quick_update_falls_back_to_a_full_rebuild_and_says_so() {
+    let dir = indexed("cmd-inc-fallback");
+    // Only the quick update deletes the digest row; the full rebuild replaces it, which fires no delete trigger.
+    let conn = rusqlite::Connection::open(crate::storage::db::db_path(dir.path())).unwrap();
+    conn.execute_batch("CREATE TRIGGER fail_quick BEFORE DELETE ON meta BEGIN SELECT RAISE(ABORT, 'boom'); END;").unwrap();
+    drop(conn);
+    let m = with_search_index(dir.path(), mutations::add_node(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node)).unwrap();
+    assert_eq!(m.warnings.len(), 1, "{:?}", m.warnings);
+    assert!(m.warnings[0].contains("rebuilt in full") && m.warnings[0].contains("boom"), "{:?}", m.warnings);
+    let search = Store::open_or_create(dir.path()).unwrap().search(&parse_query("in:/100.ACADEMIC/04.New-Node")).unwrap();
+    assert_eq!(search, [rel(&["100.ACADEMIC", "04.New-Node"]), rel(&["100.ACADEMIC", "04.New-Node", "98.New-Node"])]);
 }
 
 #[test]
