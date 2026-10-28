@@ -36,7 +36,7 @@ pub(super) fn rule<'a>(rel: &[String], node: &'a Mapping) -> Rule<'a> {
 }
 
 pub(super) fn is_skipped_file(name: &str) -> bool {
-    name.starts_with('.') || SYSTEM_FILES.iter().any(|s| name.eq_ignore_ascii_case(s))
+    name.starts_with('.') || is_exempt(name) || SYSTEM_FILES.iter().any(|s| name.eq_ignore_ascii_case(s))
 }
 
 pub(super) fn is_exempt(name: &str) -> bool {
