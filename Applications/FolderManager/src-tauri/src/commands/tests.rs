@@ -57,6 +57,11 @@ fn ok_recycle(staged: &Path) -> Result<(), String> {
     std::fs::remove_dir_all(staged).map_err(|e| e.to_string())
 }
 
+// These fixtures have no 998.Review, so the probe's full rebuild handles every review update.
+fn no_quick(_: &[(PathBuf, PathBuf)]) -> Vec<String> {
+    panic!("no 998.Review, so no quick update")
+}
+
 fn delete(
     storage: &Storage,
     probe: &Probe,
@@ -65,7 +70,7 @@ fn delete(
     recycle: impl FnOnce(&Path) -> Result<(), String>,
 ) -> R<Mutation> {
     let emit = probe.emit();
-    delete_flow(storage, &rel(parts), (ghost, true), &emit, probe.rebuild(&[]), |p| recycle_staged_with(p, recycle))
+    delete_flow(storage, &rel(parts), (ghost, true), &emit, no_quick, probe.rebuild(&[]), |p| recycle_staged_with(p, recycle))
 }
 
 #[test]
@@ -74,7 +79,7 @@ fn rename_rebuilds_with_the_new_yaml_and_merges_failures_into_warnings() {
     let probe = Probe::new();
     let result = mutations::rename_node(dir.path(), &rel(&["100.WORK", "01.A"]), "Alpha");
     let emit = probe.emit();
-    let m = with_index(dir.path(), result, &emit, probe.rebuild(&["no powershell"])).unwrap();
+    let m = with_index(dir.path(), result, &emit, no_quick, probe.rebuild(&["no powershell"])).unwrap();
     assert_eq!(m.warnings, ["Review index: no powershell"]);
     assert_eq!(m.select, Some(rel(&["100.WORK", "01.Alpha"])));
     assert_eq!(probe.phases(), ["started", "done"]);
@@ -90,7 +95,7 @@ fn a_refused_mutation_neither_rebuilds_nor_emits() {
     let probe = Probe::new();
     let result = mutations::rename_node(dir.path(), &rel(&["100.WORK", "03.Ghost"]), "X");
     let emit = probe.emit();
-    let err = with_index(dir.path(), result, &emit, probe.rebuild(&[])).unwrap_err();
+    let err = with_index(dir.path(), result, &emit, no_quick, probe.rebuild(&[])).unwrap_err();
     assert!(matches!(err, FmError::GhostNotAllowed { .. }));
     assert!(probe.events.borrow().is_empty() && probe.seen_yaml.borrow().is_empty());
 }
@@ -101,9 +106,9 @@ fn move_and_add_node_rebuild_too() {
     let probe = Probe::new();
     let emit = probe.emit();
     let moved = mutations::move_node(dir.path(), &rel(&["100.WORK", "01.A"]), MoveDirection::Down);
-    with_index(dir.path(), moved, &emit, probe.rebuild(&[])).unwrap();
+    with_index(dir.path(), moved, &emit, no_quick, probe.rebuild(&[])).unwrap();
     let added = mutations::add_node(dir.path(), &rel(&["100.WORK"]), NewKind::Node);
-    let m = with_index(dir.path(), added, &emit, probe.rebuild(&[])).unwrap();
+    let m = with_index(dir.path(), added, &emit, no_quick, probe.rebuild(&[])).unwrap();
     assert!(m.warnings.is_empty());
     assert_eq!(probe.phases(), ["started", "done", "started", "done"]);
     let seen = probe.seen_yaml.borrow();
@@ -115,7 +120,7 @@ fn a_failed_event_and_an_unreadable_db_become_warnings() {
     let dir = work("cmd-emit-fail");
     let boom = |_: &ReviewIndexEvent| Err::<(), _>("window closed".to_string());
     let m = mutations::set_node_type(dir.path(), &rel(&["100.WORK", "02.B"]), EditableType::Portf, None);
-    let m = with_index(dir.path(), m, &boom, |_, _| Vec::new()).unwrap();
+    let m = with_index(dir.path(), m, &boom, no_quick, |_, _| Vec::new()).unwrap();
     assert_eq!(m.warnings.len(), 2, "{:?}", m.warnings);
     assert!(m.warnings[0].contains("window closed"));
 
@@ -134,7 +139,7 @@ fn delete_rebuilds_before_the_recycle_and_releases_the_lock_for_it() {
     let probe = Probe::new();
     let emit = probe.emit();
     let rel_b = rel(&["100.WORK", "02.B"]);
-    let flow = delete_flow(&storage, &rel_b, (false, false), &emit, probe.rebuild(&["stub"]), |p| {
+    let flow = delete_flow(&storage, &rel_b, (false, false), &emit, no_quick, probe.rebuild(&["stub"]), |p| {
         assert_eq!(probe.phases(), ["started", "done"]);
         assert!(storage.lock.try_lock().is_ok(), "mutex still held during recycle");
         assert!(StorageLock::acquire(dir.path()).is_ok(), "lock file still held during recycle");
@@ -234,7 +239,7 @@ fn adds_update_the_search_index_like_a_full_rebuild() {
     let emit = probe.emit();
     for parent in [&["100.ACADEMIC"][..], &["100.ACADEMIC", "01.Math"]] {
         let added = mutations::add_node(dir.path(), &rel(parent), NewKind::Node);
-        let m = with_index(dir.path(), added, &emit, probe.rebuild(&[])).unwrap();
+        let m = with_index(dir.path(), added, &emit, no_quick, probe.rebuild(&[])).unwrap();
         assert_eq!(m.touched, [m.select.clone().unwrap()]);
         assert_matches_full_rebuild(&dir, &m);
     }
@@ -257,10 +262,10 @@ fn renames_and_moves_update_the_search_index_like_a_full_rebuild() {
     let probe = Probe::new();
     let emit = probe.emit();
     let renamed = mutations::rename_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), "Physics");
-    let m = with_index(dir.path(), renamed, &emit, probe.rebuild(&[])).unwrap();
+    let m = with_index(dir.path(), renamed, &emit, no_quick, probe.rebuild(&[])).unwrap();
     assert_matches_full_rebuild(&dir, &m);
     let moved = mutations::move_node(dir.path(), &rel(&["100.ACADEMIC", "01.Physics"]), MoveDirection::Down);
-    let m = with_index(dir.path(), moved, &emit, probe.rebuild(&[])).unwrap();
+    let m = with_index(dir.path(), moved, &emit, no_quick, probe.rebuild(&[])).unwrap();
     assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "02.Physics"])));
     assert_matches_full_rebuild(&dir, &m);
 }

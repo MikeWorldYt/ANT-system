@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use super::{child_rel, ensure_free, finish, guard_frozen, load_synced, locate, persist, split, Mutation};
+use super::{child_rel, ensure_free, finish, guard_frozen, load_synced, locate, persist, split, subtrees, Mutation};
 use crate::ant_core::names::{compose_name, editable_part, list_subdirs, name_parts, sanitize_train_case, sanitize_upper};
 use crate::ant_core::tree_types::type_base;
 use crate::config::LINKED_PREFIXES;
@@ -33,11 +33,13 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
     let new_name = compose_name(&fixed, &editable, workboard);
     validate_component(&new_name)?;
     let new_rel = child_rel(parent, &new_name);
+    let before = subtrees(&data, &[rel.to_vec()]);
     if new_name == *old_name {
         if synced {
             tree_store::save(root, &data)?;
         }
-        return Ok(finish(root, &data, synced, Some(new_rel.clone()), Vec::new()).touching(vec![new_rel]));
+        let m = finish(root, &data, synced, Some(new_rel.clone()), Vec::new()).touching(vec![new_rel]);
+        return Ok(m.replacing(before));
     }
     let parent_abs = join_rel(root, parent);
     ensure_free(&parent_abs, get_node(&data, parent), &new_name, &[old_name.as_str()])?;
@@ -53,7 +55,8 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
         }
     }
     persist(root, &data, journal, "rename")?;
-    Ok(finish(root, &data, synced, Some(new_rel.clone()), warnings).touching(vec![rel.to_vec(), new_rel]))
+    let m = finish(root, &data, synced, Some(new_rel.clone()), warnings).touching(vec![rel.to_vec(), new_rel]);
+    Ok(m.replacing(before))
 }
 
 // Linked folders follow best-effort: a clash or failure becomes a warning and its yaml key stays.

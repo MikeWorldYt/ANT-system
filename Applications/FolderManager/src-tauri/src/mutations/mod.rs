@@ -44,6 +44,9 @@ pub struct Mutation {
     // Subtrees whose search docs changed, before and after; empty means unknown and forces a full rebuild.
     #[serde(skip)]
     pub touched: Vec<Vec<String>>,
+    // Pre-mutation yaml of the touched paths that existed, so data derived from removed paths can be found.
+    #[serde(skip)]
+    pub before: Vec<(Vec<String>, Mapping)>,
 }
 
 impl Mutation {
@@ -51,6 +54,16 @@ impl Mutation {
         self.touched = paths;
         self
     }
+
+    pub(crate) fn replacing(mut self, before: Vec<(Vec<String>, Mapping)>) -> Self {
+        self.before = before;
+        self
+    }
+}
+
+// Clones only the given subtrees, so a mutation never keeps a copy of the whole old yaml.
+pub(crate) fn subtrees(data: &Mapping, paths: &[Vec<String>]) -> Vec<(Vec<String>, Mapping)> {
+    paths.iter().filter_map(|p| get_node(data, p).map(|node| (p.clone(), node.clone()))).collect()
 }
 
 pub(crate) struct Target {
@@ -202,7 +215,7 @@ fn after_commit(
         warnings.push(format!("The change was saved but the tree could not be reloaded; refresh. {e}"));
         TreeSnapshot { root: root.to_string_lossy().into_owned(), nodes: Vec::new(), yaml_changed: true }
     });
-    Mutation { tree, select, warnings, touched: Vec::new() }
+    Mutation { tree, select, warnings, touched: Vec::new(), before: Vec::new() }
 }
 
 #[cfg(test)]

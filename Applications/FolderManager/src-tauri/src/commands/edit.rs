@@ -1,24 +1,32 @@
 // Edit commands: each mutation runs under the storage lock, then refreshes the indexes it changed.
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde_yaml::Mapping;
 use tauri::{AppHandle, Manager};
 
 use super::{locked, review_emitter, run_locked, Storage};
+use crate::ant_core::shortcuts::create_shortcuts;
 use crate::config::{EditableType, NewKind, WkbStatus};
 use crate::mutations::{self, DeletePreview, MoveDirection, Mutation, PendingRecycle};
 use crate::error::{FmError, R};
-use crate::index::{reindex, review_index, search_index, Emit};
+use crate::index::{reindex, reindex_paths, review_index, search_index, Emit};
 use crate::tree::tree_store;
 
 pub(super) fn with_index(
     root: &Path,
     result: R<Mutation>,
     emit: Emit,
+    create: impl FnOnce(&[(PathBuf, PathBuf)]) -> Vec<String>,
     rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>,
 ) -> R<Mutation> {
     let mut m = result?;
-    m.warnings.extend(reindex(root, emit, rebuild).into_iter().map(|f| format!("Review index: {f}")));
+    // Same rule as the search index: a synced yaml may have changed paths the mutation never touched.
+    let failures = if !m.touched.is_empty() && !m.tree.yaml_changed {
+        reindex_paths(root, emit, &m.before, &m.touched, create, rebuild)
+    } else {
+        reindex(root, emit, rebuild)
+    };
+    m.warnings.extend(failures.into_iter().map(|f| format!("Review index: {f}")));
     with_search_index(root, Ok(m))
 }
 
@@ -49,12 +57,13 @@ pub(super) fn delete_flow(
     rel: &[String],
     flags: (bool, bool),
     emit: Emit,
+    create: impl FnOnce(&[(PathBuf, PathBuf)]) -> Vec<String>,
     rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>,
     recycle: impl FnOnce(PendingRecycle) -> Vec<String>,
 ) -> R<Mutation> {
     let (mut m, pending) = locked(storage, |root| {
         let (m, pending) = mutations::delete_node(root, rel, flags.0, flags.1)?;
-        Ok((with_index(root, Ok(m), emit, rebuild)?, pending))
+        Ok((with_index(root, Ok(m), emit, create, rebuild)?, pending))
     })?;
     if let Some(pending) = pending {
         m.warnings.extend(recycle(pending));
@@ -67,7 +76,7 @@ pub async fn rename_node(app: AppHandle, rel_parts: Vec<String>, new_editable: S
     let emitter = app.clone();
     run_locked(app, move |root| {
         let result = mutations::rename_node(root, &rel_parts, &new_editable);
-        with_index(root, result, &review_emitter(&emitter), review_index::rebuild)
+        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
     })
     .await
 }
@@ -108,7 +117,7 @@ pub async fn add_node(app: AppHandle, rel_parts: Vec<String>, kind: NewKind) -> 
     let emitter = app.clone();
     run_locked(app, move |root| {
         let result = mutations::add_next(root, &rel_parts, kind);
-        with_index(root, result, &review_emitter(&emitter), review_index::rebuild)
+        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
     })
     .await
 }
@@ -118,7 +127,7 @@ pub async fn move_node(app: AppHandle, rel_parts: Vec<String>, direction: MoveDi
     let emitter = app.clone();
     run_locked(app, move |root| {
         let result = mutations::move_node(root, &rel_parts, direction);
-        with_index(root, result, &review_emitter(&emitter), review_index::rebuild)
+        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
     })
     .await
 }
@@ -139,7 +148,7 @@ pub async fn delete_node(
         let flags = (expect_ghost, confirm_non_empty);
         let emit = review_emitter(&app);
         let storage = app.state::<Storage>();
-        delete_flow(&storage, &rel_parts, flags, &emit, review_index::rebuild, mutations::recycle_staged)
+        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, mutations::recycle_staged)
     })
     .await
     .map_err(|e| FmError::Internal { message: e.to_string() })?
