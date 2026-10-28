@@ -65,8 +65,17 @@ export interface StorageInfo {
   maxDepth: number;
 }
 
+// Touched children arrive with their subtree filled; the others with children null.
+export interface LevelPatch {
+  parent: string[];
+  hasChildren: boolean;
+  children: TreeNode[];
+}
+
+// A null tree means a local change: only the listed levels are patched.
 export interface Mutation {
-  tree: TreeSnapshot;
+  tree: TreeSnapshot | null;
+  levels: LevelPatch[];
   select: string[] | null;
   warnings: string[];
 }

@@ -1,17 +1,25 @@
-// User operations: call the backend, replace the snapshot, report errors in the status line.
+// User operations: call the backend, patch or replace the tree, report errors in the status line.
 import * as api from "../ipc/api";
 import { warningConfirmDialog } from "../ui/dialogs";
 import { el } from "../ui/dom";
 import { beginOperationStatus, clearStatus, endOperationStatus, setStatus } from "../ui/status";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
-import { applySettings, findNode, hydrate, keyOf, lastSelection, notify, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, state, type Settings } from "../store/state";
+import { applySettings, findNode, hydrate, keyOf, lastSelection, notify, patchLevels, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, state, type Settings } from "../store/state";
 import { isFmError } from "../ipc/types";
-import type { EditableType, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
+import type { EditableType, LevelPatch, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
   setTree(snapshot ?? (await api.refresh()));
   await hydrate();
+  pruneSelection();
+}
+
+// A level whose parent the UI never loaded cannot be patched, so the tree is read again.
+async function patch(levels: LevelPatch[]): Promise<void> {
+  const patched = patchLevels(levels);
+  if (!patched) return reload();
+  for (const nodes of patched) await hydrate(nodes);
   pruneSelection();
 }
 
@@ -43,8 +51,9 @@ async function applyMutation(m: Mutation, fallback: string[] | null = null): Pro
     for (let i = 1; i < target.length; i++) state.expanded.add(keyOf(target.slice(0, i)));
     state.selectedKey = keyOf(target);
   }
+  if (m.tree === null) await patch(m.levels);
   // The backend may flag a yaml change and leave the node list empty; the tree then has to be read again.
-  if (m.tree.nodes.length === 0 && m.tree.yamlChanged) await reload();
+  else if (m.tree.nodes.length === 0 && m.tree.yamlChanged) await reload();
   else await reload(m.tree);
   if (m.warnings.length > 0) setStatus("warning", m.warnings.join(". "));
   else clearStatus();
