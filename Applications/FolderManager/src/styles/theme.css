@@ -44,7 +44,6 @@ body {
 
 .app-header { display: flex; align-items: center; justify-content: space-between; padding: 12px; gap: 12px; }
 .app-header h1 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 11pt; color: var(--title); }
-.root-name { color: var(--text); }
 .nav-bar { display: flex; align-items: center; gap: 6px; padding: 0 12px 10px; }
 .nav-bar .icon-btn { width: 30px; height: 30px; background: transparent; }
 .search-box { position: relative; width: var(--panel-w); flex: none; }
@@ -202,6 +201,19 @@ dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
 .col-item.ghost { opacity: 0.7; }
 .col-item.ghost .name { color: var(--ghost-text); font-style: italic; }
 .col-item.locked .name { color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); align-content: start; gap: 8px; height: 100%; overflow-y: auto; padding: 12px; }
+.grid-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border-radius: 6px; cursor: default; user-select: none; }
+.grid-item:hover { background: var(--input-bg); }
+.grid-item.selected { background: var(--highlight); }
+.grid-item.ghost { opacity: 0.7; }
+.grid-item.ghost .name { color: var(--ghost-text); font-style: italic; }
+.grid-item.locked .name { color: var(--muted); }
+.grid-art { position: relative; display: inline-flex; }
+.grid-art .icon { width: 56px; height: 56px; }
+.grid-art .status-mark { position: absolute; right: -6px; bottom: -4px; }
+.grid-art .fav-mark { position: absolute; left: -6px; top: -4px; }
+.grid-item .name { max-width: 100%; justify-content: center; }
+.grid-item .name-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: normal; overflow-wrap: anywhere; text-align: center; }
 .chevron { color: var(--accent); }
 
 .ctx-menu {

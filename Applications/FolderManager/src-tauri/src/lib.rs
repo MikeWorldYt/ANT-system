@@ -8,6 +8,7 @@ mod error;
 mod extensions;
 mod fs_safe;
 mod index;
+mod intake;
 mod mutations;
 mod scheduler;
 mod storage;
@@ -32,6 +33,7 @@ pub fn run() {
     let storage = commands::Storage::resolve(cwd.clone());
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
         .manage(storage)
         .register_uri_scheme_protocol(extensions::sandbox_page::SCHEME, |_ctx, _request| extensions::sandbox_page::response())
         .setup(move |app| {
@@ -72,6 +74,7 @@ pub fn run() {
             commands::skip_version,
             commands::set_node_details,
             commands::set_favorite,
+            commands::set_user_flag,
             settings::get_settings,
             settings::set_setting,
             settings::open_link,
@@ -106,6 +109,7 @@ pub fn run() {
             commands::install_registry_extension,
             commands::inspect_extension_repo,
             commands::install_inspected_extension,
+            commands::run_intake,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Folder Manager");

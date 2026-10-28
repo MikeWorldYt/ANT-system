@@ -25,7 +25,7 @@ export function createTreeView(): ViewMode {
     const key = keyOf(n.relParts);
     const expanded = state.expanded.has(key);
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(n.hasChildren ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
-    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, caret, folderIcon(n), nameCell(n));
+    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, caret, folderIcon(n, expanded && n.hasChildren), nameCell(n));
     row.style.setProperty("--depth", String(n.depth));
     row.setAttribute("aria-selected", String(key === state.selectedKey));
     if (n.hasChildren) row.setAttribute("aria-expanded", String(expanded));

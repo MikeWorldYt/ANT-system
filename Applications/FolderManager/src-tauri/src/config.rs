@@ -18,6 +18,8 @@ pub const FOOTPRINT_FILENAME: &str = "dragpath.json";
 pub const MAX_DEPTH: usize = 3;
 
 pub const LOCKED_TYPES: &[&str] = &["REV", "RES", "TPL", "CFG"];
+pub const DATA_FLAG: &str = "data";
+pub const MAIN_FLAG: &str = "main";
 pub const LINKED_PREFIXES: &[&str] = &["90", "98"];
 pub const WKB_IDENTIFIERS: &[&str] = &["PJ.", "PR.", "HW."];
 pub const SPECIAL_TYPES: &[(&str, &str)] = &[("90.", "RES"), ("97.", "TPL"), ("98.", "REV")];

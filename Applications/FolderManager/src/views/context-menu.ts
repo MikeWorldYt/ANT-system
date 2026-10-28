@@ -4,7 +4,7 @@ import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { statusIcon } from "../ui/status-mark";
 import { STATUSES, TYPES } from "../store/node-info";
-import { remove, setDetails, setFavorite, setType } from "../actions/ops";
+import { remove, setDetails, setFavorite, setType, setUserFlag } from "../actions/ops";
 import { select, startEdit } from "../store/state";
 import { setStatus } from "../ui/status";
 import { menuItems, runMenuItem } from "../extensions/host";
@@ -77,6 +77,12 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     close();
     void setFavorite(node, !node.favorite);
   });
+  const allowsFiles = node.flags.includes("data");
+  const files = menuItem(allowsFiles ? "Deny files" : "Allow files", "menuitem", a.editFlags, () => {
+    close();
+    void setUserFlag(node, !allowsFiles);
+  });
+  const fileItems = node.nodeType?.base === "NODE" ? [files] : [];
   const typeChoices = TYPES.map(([base, label]) =>
     menuItem(label, "menuitemradio", a.changeType, () => {
       close();
@@ -109,11 +115,11 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     }),
   );
 
-  const items = [open, rename, favorite, ...subs.map((s) => s.trigger), copy, del, ...extras];
+  const items = [open, rename, favorite, ...fileItems, ...subs.map((s) => s.trigger), copy, del, ...extras];
   const closeSubs = () => subs.filter((s) => !s.element.contains(document.activeElement)).forEach((s) => s.close());
   items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
   subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));
-  const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` }, open, rename, favorite, ...subs.map((s) => s.element), separator(), copy, del, ...(extras.length > 0 ? [separator(), ...extras] : []));
+  const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` }, open, rename, favorite, ...fileItems, ...subs.map((s) => s.element), separator(), copy, del, ...(extras.length > 0 ? [separator(), ...extras] : []));
   menu.addEventListener("mouseleave", closeSubs);
 
   function close(restore = true): void {

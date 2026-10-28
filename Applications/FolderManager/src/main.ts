@@ -3,6 +3,7 @@ import "./styles/theme.css";
 import "./styles/themes.css";
 import { describeError } from "./ipc/api";
 import { createColumnsView } from "./views/columns-view";
+import { createGridView } from "./views/grid-view";
 import { installContextMenu } from "./views/context-menu";
 import { createDetailsPanel } from "./shell/details-panel";
 import { el } from "./ui/dom";
@@ -28,7 +29,7 @@ const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
 
 const host = el("section", { class: "tree-host", "aria-label": "Storage" });
-const views = createViewSwitcher(host, [createTreeView(), createColumnsView()]);
+const views = createViewSwitcher(host, [createTreeView(), createColumnsView(), createGridView()]);
 const PANEL_PREF = "fm.details";
 let detailsVisible = readPref(PANEL_PREF) !== "hidden";
 const toolbar = createToolbar(

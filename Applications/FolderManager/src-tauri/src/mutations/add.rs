@@ -7,6 +7,7 @@ use serde_yaml::Mapping;
 use super::{child_rel, ensure_free, finish, guard_frozen, load_synced, locate, persist, register_ids, Mutation};
 use crate::ant_core::names::{editable_part, list_subdirs, next_available_id};
 use crate::ant_core::tree_types::child_entries;
+use crate::backup::stamp::local_date;
 use crate::config::{NewKind, DATA_DIR, MAX_DEPTH};
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, Journal, StorageLock};
@@ -77,7 +78,7 @@ pub fn add_child(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     }
     persist(root, &data, journal, "add child")?;
     // The folder exists now, so a failure here is only reported.
-    if let Err(e) = mark_folder(&new_abs, workboard) {
+    if let Err(e) = mark_folder(&new_abs, workboard, parent.last().map_or("", String::as_str)) {
         warnings.push(format!("Could not set up {DATA_DIR}: {e}"));
     }
     register_ids(root, &mut data, &mut warnings);
@@ -99,9 +100,17 @@ fn next_tracker(data: &Mapping) -> u32 {
 }
 
 // Every created folder gets a .ant folder, which is what lets its id follow it around; workboards also start their info.json.
-fn mark_folder(folder: &Path, workboard: bool) -> R<()> {
+fn mark_folder(folder: &Path, workboard: bool, parent: &str) -> R<()> {
     if workboard {
-        return write_info(folder, &[(&["status"], "status", Some("in-progress".into())), (&OWNER_KEYS, "owner", Some("unknown".into()))]);
+        return write_info(
+            folder,
+            &[
+                (&["status"], "status", Some("in-progress".into())),
+                (&OWNER_KEYS, "owner", Some("unknown".into())),
+                (&["created"], "created", Some(local_date().into())),
+                (&["breadcrumb"], "breadcrumb", Some(parent.into())),
+            ],
+        );
     }
     let dir = folder.join(DATA_DIR);
     fs::create_dir(&dir).map_err(|e| io_err("create info folder", &dir, &e))?;
@@ -154,6 +163,7 @@ mod tests {
         assert_eq!(names(&wkb), [".ant"], "no 98 folder inside a workboard");
         let info = std::fs::read_to_string(wkb.join(".ant/info.json")).unwrap();
         assert!(info.contains("\"status\": \"in-progress\"") && info.contains("\"owner\": \"unknown\""), "{info}");
+        assert!(info.contains("\"breadcrumb\": \"01.Math\"") && info.contains("\"created\": \""), "{info}");
         assert!(wkb.join(".ant/dragpath.json").is_file());
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "PJ.001_New-Workboard"]), "WKB-L3");
     }

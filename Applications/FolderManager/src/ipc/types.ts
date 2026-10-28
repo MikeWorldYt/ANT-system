@@ -27,6 +27,7 @@ export interface NodeActions {
   open: boolean;
   favorite: boolean;
   editDetails: boolean;
+  editFlags: boolean;
 }
 
 export interface TreeNode {
@@ -40,6 +41,7 @@ export interface TreeNode {
   statusRaw: string | null;
   locked: boolean;
   reserved: boolean;
+  flags: string[];
   hasChildren: boolean;
   isGit: boolean;
   fixedPrefix: string;
@@ -73,6 +75,24 @@ export interface DeletePreview {
   ghost: boolean;
   files: number;
   dirs: number;
+}
+
+export interface Moved {
+  node: string;
+  name: string;
+  count: number;
+  review: string;
+}
+
+export interface LooseFile {
+  node: string;
+  file: string;
+}
+
+export interface IntakeReport {
+  moved: Moved[];
+  loose: LooseFile[];
+  warnings: string[];
 }
 
 export interface ReviewIndexEvent {

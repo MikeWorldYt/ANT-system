@@ -1,7 +1,7 @@
 // Reads node types stored in the tree ("NODE-L2", "REV-L3", "CFG") and the entries that name child folders.
 use serde_yaml::Mapping;
 
-pub const META_KEYS: [&str; 2] = ["type", "status"];
+pub const META_KEYS: [&str; 4] = ["type", "status", "uid", "flags"];
 
 pub fn type_base(t: &str) -> &str {
     t.split('-').next().unwrap_or("")
@@ -9,6 +9,14 @@ pub fn type_base(t: &str) -> &str {
 
 pub fn type_level(t: &str) -> Option<&str> {
     t.split('-').nth(1).filter(|s| !s.is_empty())
+}
+
+// User flags are stored as one comma-separated text in the node's "flags" entry.
+pub fn flags_in(node: &Mapping) -> Vec<String> {
+    node.get("flags")
+        .and_then(serde_yaml::Value::as_str)
+        .map(|text| text.split(',').map(str::trim).filter(|f| !f.is_empty()).map(str::to_string).collect())
+        .unwrap_or_default()
 }
 
 pub fn child_entries<'a>(m: &'a Mapping) -> impl Iterator<Item = (&'a str, &'a Mapping)> + 'a {

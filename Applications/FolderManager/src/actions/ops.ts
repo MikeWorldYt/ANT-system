@@ -3,6 +3,7 @@ import * as api from "../ipc/api";
 import { confirmDialog } from "../ui/dialogs";
 import { setStatus, clearStatus } from "../ui/status";
 import { checkStorage } from "./startup-check";
+import { runIntake } from "./intake";
 import { applySettings, findNode, hydrate, keyOf, lastSelection, notify, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, state, type Settings } from "../store/state";
 import { isFmError } from "../ipc/types";
 import type { EditableType, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
@@ -86,12 +87,14 @@ export const restoreBackupNamed = (name: string, stamp: string) =>
     clearStatus();
   });
 
-export function refresh(): Promise<boolean> {
-  if (state.busy) return Promise.resolve(false);
-  return run(async () => {
+export async function refresh(): Promise<boolean> {
+  if (state.busy) return false;
+  const ok = await run(async () => {
     await reload();
     clearStatus();
   });
+  if (ok) void runIntake();
+  return ok;
 }
 
 export async function expand(node: TreeNode): Promise<void> {
@@ -144,6 +147,9 @@ export const setDetails = (node: TreeNode, status: WkbStatus | null, owner: stri
 
 export const setFavorite = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setFavorite(node.relParts, on), node.relParts));
+
+export const setUserFlag = (node: TreeNode, on: boolean) =>
+  run(async () => applyMutation(await api.setUserFlag(node.relParts, on), node.relParts));
 
 export const remove = (node: TreeNode) =>
   run(async () => {

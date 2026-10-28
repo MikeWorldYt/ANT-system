@@ -4,7 +4,6 @@ import { guiIcon } from "../ui/gui-icons";
 import { iconButton } from "../ui/icon-button";
 import { attachMenu } from "../ui/anchored-menu";
 import { openSettings } from "./settings-dialog";
-import { rootName as baseName } from "./path-input";
 import { addNext, move, refresh } from "../actions/ops";
 import { activeColumnKey, selectedNode, setColumnSort, sortOf, state, type SortBy } from "../store/state";
 import type { TreeNode } from "../ipc/types";
@@ -21,10 +20,8 @@ export interface PanelToggle {
 }
 
 export function createToolbar(views: ViewPicker, panel: PanelToggle): { element: HTMLElement; render(): void } {
-  const rootName = el("span", { class: "root-name" });
-  const title = el("h1", {}, "Storage: ", rootName);
   const settingsBtn = iconButton("Settings", "settings", () => void openSettings());
-  const titleRow = el("div", { class: "header-title" }, title, settingsBtn);
+  const titleRow = el("div", { class: "header-title" }, settingsBtn);
 
   const withSelected = (fn: (n: TreeNode) => void) => {
     const n = selectedNode();
@@ -70,7 +67,6 @@ export function createToolbar(views: ViewPicker, panel: PanelToggle): { element:
       const a = selectedNode()?.actions;
       const idle = !state.busy;
       const setDisabled = (b: HTMLButtonElement, disabled: boolean) => b.setAttribute("aria-disabled", String(disabled));
-      rootName.textContent = baseName(state.tree?.root);
       setDisabled(add, !(a?.addNext && idle));
       setDisabled(up, !(a?.moveUp && idle));
       setDisabled(down, !(a?.moveDown && idle));

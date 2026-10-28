@@ -2,6 +2,7 @@
 mod add;
 mod delete;
 mod favorite;
+mod user_flags;
 mod recycle;
 mod rename;
 mod reorder;
@@ -26,6 +27,7 @@ use crate::tree::tree_store::{self, get_node, get_type, is_locked_type};
 pub use add::add_next;
 pub use delete::{delete_node, inspect_delete, DeletePreview};
 pub use favorite::set_favorite;
+pub use user_flags::set_user_flag;
 pub use recycle::{recover_trashed, recycle_staged, PendingRecycle};
 pub use rename::rename_node;
 pub use reorder::{move_node, MoveDirection};
@@ -50,13 +52,12 @@ pub(crate) struct Target {
 // Folders that just got a .ant folder receive their id now instead of at the next refresh.
 fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) {
     match footprint::plan(root, data) {
-        Ok(applied) => {
-            // The db keeps the old paths if this save fails, so the next run migrates again.
-            let saved = if applied.changed { tree_store::save(root, data) } else { Ok(()) };
-            if let Err(e) = saved.and_then(|()| applied.commit(root)) {
+        Ok(true) => {
+            if let Err(e) = tree_store::save(root, data) {
                 warnings.push(format!("Could not save moved folders: {e}"));
             }
         }
+        Ok(false) => {}
         Err(e) => warnings.push(format!("Could not assign folder ids: {e}")),
     }
 }

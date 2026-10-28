@@ -5,6 +5,7 @@ import type {
   DeletePreview,
   EditableType,
   FmError,
+  IntakeReport,
   MoveDirection,
   NewKind,
   Mutation,
@@ -26,6 +27,7 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
 export const getStorage = () => call<StorageInfo>("get_storage");
 export const loadTree = () => call<TreeSnapshot>("load_tree");
 export const refresh = () => call<TreeSnapshot>("refresh");
+export const runIntake = () => call<IntakeReport>("run_intake");
 export const listChildren = (relParts: string[]) => call<TreeNode[]>("list_children", { relParts });
 export const renameNode = (relParts: string[], newEditable: string) =>
   call<Mutation>("rename_node", { relParts, newEditable });
@@ -33,6 +35,7 @@ export const setNodeType = (relParts: string[], typeBase: EditableType, status: 
   call<Mutation>("set_node_type", { relParts, typeBase, status });
 export const openNode = (relParts: string[]) => call<void>("open_node", { relParts });
 export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("set_favorite", { relParts, on });
+export const setUserFlag = (relParts: string[], on: boolean) => call<Mutation>("set_user_flag", { relParts, on });
 export const getSettings = () => call<Record<string, string>>("get_settings");
 export const setSetting = (key: string, value: string) => call<void>("set_setting", { key, value });
 export const openLink = (link: "issues" | "mail" | "changelog" | "docs") => call<void>("open_link", { link });
