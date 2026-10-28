@@ -8,8 +8,10 @@ use crate::tree::tree_store::is_locked_type;
 
 const REVIEW_PREFIX: &str = "98.";
 const SYSTEM_FILES: [&str; 2] = ["desktop.ini", "Thumbs.db"];
+const ROOT_EXEMPT_MARKER: &str = "foldermanager";
 
 pub(super) enum Rule<'a> {
+    Root,
     // The folder and everything below it belong to the app or to a workboard, so intake never looks inside.
     Skip,
     Keep,
@@ -19,7 +21,7 @@ pub(super) enum Rule<'a> {
 
 pub(super) fn rule<'a>(rel: &[String], node: &'a Mapping) -> Rule<'a> {
     if rel.is_empty() {
-        return Rule::Keep;
+        return Rule::Root;
     }
     let raw = node_type(node);
     if is_reserved(rel) || is_locked_type(raw) || type_base(raw) == "WKB" {
@@ -33,6 +35,10 @@ pub(super) fn rule<'a>(rel: &[String], node: &'a Mapping) -> Rule<'a> {
         return Rule::Keep;
     }
     Rule::Review(review_child(node))
+}
+
+pub(super) fn is_root_exempt_file(name: &str) -> bool {
+    name.to_ascii_lowercase().contains(ROOT_EXEMPT_MARKER)
 }
 
 pub(super) fn is_skipped_file(name: &str) -> bool {

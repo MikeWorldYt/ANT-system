@@ -15,7 +15,7 @@ use crate::ant_core::tree_types::child_entries;
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, Journal, StorageLock};
 use crate::mutations::{child_rel, load_synced};
-use rules::{is_skipped_file, rule, Rule};
+use rules::{is_root_exempt_file, is_skipped_file, rule, Rule};
 
 #[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -53,6 +53,7 @@ pub fn run(root: &Path) -> R<IntakeReport> {
 fn walk(dir: &Path, node: &Mapping, rel: &[String], report: &mut IntakeReport) -> R<()> {
     let subdirs = list_subdirs(dir)?;
     match rule(rel, node) {
+        Rule::Root => report_root_loose(dir, report)?,
         Rule::Skip => return Ok(()),
         Rule::Keep => {}
         Rule::Loose => report_loose(dir, rel, report)?,
@@ -64,6 +65,16 @@ fn walk(dir: &Path, node: &Mapping, rel: &[String], report: &mut IntakeReport) -
     // Tree entries missing on disk are ghosts and hold no files.
     for (name, child) in child_entries(node).filter(|(name, _)| subdirs.iter().any(|d| d == name)) {
         walk(&dir.join(name), child, &child_rel(rel, name), report)?;
+    }
+    Ok(())
+}
+
+fn report_root_loose(dir: &Path, report: &mut IntakeReport) -> R<()> {
+    for file in direct_files(dir)? {
+        let file = file.to_string_lossy().into_owned();
+        if !is_root_exempt_file(&file) {
+            report.loose.push(LooseFile { node: String::new(), file });
+        }
     }
     Ok(())
 }

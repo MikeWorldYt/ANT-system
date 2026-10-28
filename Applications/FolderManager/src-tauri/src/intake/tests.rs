@@ -89,17 +89,21 @@ fn a_file_in_a_main_node_moves_into_its_review_child() {
 }
 
 #[test]
-fn folder_manager_files_root_files_and_system_files_are_ignored() {
+fn folder_manager_files_at_root_are_exempt_but_other_root_files_are_reported() {
     let dir = fixture("intake-exempt");
     put(&dir, "FolderManager.exe", "x");
+    put(&dir, "FolderManager_notas.txt", "x");
     put(&dir, "100.PERSONAL/desktop.ini", "x");
     put(&dir, "100.PERSONAL/.hidden", "x");
-    put(&dir, "at-root.txt", "x");
+    put(&dir, "New Text Document.txt", "x");
     put(&dir, "999.Settings/00.Core/core.txt", "x");
     put(&dir, "100.PERSONAL/03.Toki/Thumbs.db", "x");
     let report = run(dir.path()).unwrap();
-    assert!(report.moved.is_empty() && report.loose.is_empty() && report.warnings.is_empty(), "{report:?}");
-    assert!(has(&dir, "FolderManager.exe") && has(&dir, "100.PERSONAL/03.Toki/Thumbs.db"));
+    assert!(report.moved.is_empty() && report.warnings.is_empty(), "{report:?}");
+    assert_eq!(report.loose.len(), 1, "{report:?}");
+    assert_eq!((report.loose[0].node.as_str(), report.loose[0].file.as_str()), ("", "New Text Document.txt"));
+    assert!(has(&dir, "FolderManager.exe") && has(&dir, "FolderManager_notas.txt"));
+    assert!(has(&dir, "100.PERSONAL/03.Toki/Thumbs.db"));
 }
 
 #[test]

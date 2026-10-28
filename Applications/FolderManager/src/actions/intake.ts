@@ -23,10 +23,14 @@ async function notifyMoved(moved: Moved[]): Promise<void> {
 }
 
 function looseFilesMessage(files: { node: string; file: string }[]): string {
-  const shown = files.slice(0, 5).map(({ node, file }) => `${node}/${file}`);
+  const inRoot = files.every(({ node }) => node.length === 0);
+  const shown = files.slice(0, 5).map(({ node, file }) => (node ? `${node}/${file}` : `Storage root/${file}`));
   const omitted = files.length - shown.length;
   if (omitted > 0) shown.push(`...and ${omitted} more`);
-  return `Unclassified files detected (${files.length}):\n${shown.join("\n")}`;
+  const subject = files.length === 1 ? "file" : "files";
+  const pronoun = files.length === 1 ? "it" : "them";
+  const location = inRoot ? " in Storage root" : " in your Storage";
+  return `I detected ${files.length} unclassified ${subject}${location}. Please move ${pronoun} to a category:\n${shown.join("\n")}`;
 }
 
 export async function runIntake(): Promise<void> {
