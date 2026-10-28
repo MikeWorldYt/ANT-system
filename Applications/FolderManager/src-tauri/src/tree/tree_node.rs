@@ -7,7 +7,7 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, flags_in, type_base, type_level, META_KEYS};
 use crate::config::{
-    LINKED_PREFIXES, MAX_DEPTH, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
+    LINKED_PREFIXES, MAIN_FLAG, MAX_DEPTH, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::error::R;
 use crate::fs_safe::join_rel;
@@ -197,7 +197,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
         status_raw,
         locked,
         reserved,
-        flags: yaml_entry.map(flags_in).unwrap_or_default(),
+        flags: node_flags(depth, yaml_entry),
         has_children,
         is_git,
         fixed_prefix,
@@ -228,8 +228,15 @@ fn compute_actions(depth: usize, ghost: bool, raw_type: &str, reserved: bool, in
         // A broken info.json is never overwritten, so neither edit can be saved into it.
         favorite: !reserved && !ghost && !info_broken,
         edit_details: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
-        edit_flags: !frozen && !ghost && type_base(raw_type) == "NODE",
+        edit_flags: !frozen && !ghost && depth > 0 && type_base(raw_type) == "NODE",
     }
+}
+
+// Root folders are always main, a rule rather than a stored flag; the rest carry what the user set.
+fn node_flags(depth: usize, yaml_entry: Option<&Mapping>) -> Vec<String> {
+    let mut flags = if depth == 0 { vec![MAIN_FLAG.to_string()] } else { Vec::new() };
+    flags.extend(yaml_entry.map(flags_in).unwrap_or_default());
+    flags
 }
 
 // Moves swap ids with the nearest movable sibling, so the ends of the movable list cannot go further.
@@ -539,7 +546,7 @@ mod tests {
         let tree = build_tree(dir.path(), &data, false).unwrap();
         let a = &find(&tree.nodes, "04.Wkb").actions;
         assert!(!a.favorite && !a.edit_details);
-        assert!(find(&tree.nodes, "02.Beta").actions.edit_flags && !find(&tree.nodes, "04.Wkb").actions.edit_flags);
+        assert!(!find(&tree.nodes, "02.Beta").actions.edit_flags && !find(&tree.nodes, "04.Wkb").actions.edit_flags);
     }
 
     #[test]

@@ -8,11 +8,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{child_entries, META_KEYS};
-use crate::config::{DATA_DIR, FOOTPRINT_FILENAME, MAX_DEPTH};
+use crate::ant_core::tree_types::{child_entries, flags_in, type_base, META_KEYS};
+use crate::config::{DATA_DIR, DATA_FLAG, FOOTPRINT_FILENAME, MAX_DEPTH};
 use crate::error::R;
-use crate::fs_safe::{join_rel, write_atomic};
+use crate::fs_safe::{io_err, join_rel, write_atomic};
 use crate::ant_core::names::list_subdirs;
+use crate::storage::db::hide;
 use crate::tree::tree_node::is_reserved;
 use crate::tree::tree_store::{delete_key, get_node, get_node_mut};
 
@@ -27,49 +28,94 @@ struct Live {
 pub struct Scan {
     live: Vec<Live>,
     known: HashMap<String, String>,
+    // Nodes that should have a .ant folder but do not yet.
+    unmarked: Vec<String>,
+    // Nodes with the data flag, which get no id unless they already have one.
+    data_paths: HashSet<String>,
 }
 
 impl Scan {
-    // Clean means every folder already has an id and the db remembers exactly these paths.
+    // Clean means every folder that carries an id has the one the tree remembers for its path.
     pub fn is_clean(&self) -> bool {
-        self.live.len() == self.known.len()
-            && self.live.iter().all(|l| l.id.as_ref().is_some_and(|id| self.known.get(id) == Some(&l.rel.join("/"))))
+        self.unmarked.is_empty() && self.live.iter().filter(|l| self.tracked(l)).all(|l| l.id.as_ref().is_some_and(|id| self.known.get(id) == Some(&l.rel.join("/"))))
+    }
+
+    fn tracked(&self, l: &Live) -> bool {
+        l.id.is_some() || !self.data_paths.contains(&l.rel.join("/"))
     }
 }
 
 pub fn scan(root: &Path, data: &Mapping) -> R<Scan> {
     let mut live = Vec::new();
     walk(&mut Vec::new(), root, &mut live)?;
-    Ok(Scan { live, known: known_ids(data) })
+    let mut nodes = Vec::new();
+    visit(data, &mut Vec::new(), &mut nodes);
+    Ok(Scan {
+        live,
+        known: known_ids(&nodes),
+        unmarked: unmarked(root, &nodes),
+        data_paths: nodes.iter().filter(|(_, node)| flags_in(node).iter().any(|f| f == DATA_FLAG)).map(|(path, _)| path.clone()).collect(),
+    })
 }
 
-// The uid of every node in the tree, mapped to its path.
-fn known_ids(data: &Mapping) -> HashMap<String, String> {
-    let mut known = HashMap::new();
-    collect_ids(data, &[], &mut known);
-    known
-}
-
-fn collect_ids(node: &Mapping, parent: &[String], out: &mut HashMap<String, String>) {
+// Every node in the tree as its "a/b" path, parents before children.
+fn visit<'a>(node: &'a Mapping, parent: &mut Vec<String>, out: &mut Vec<(String, &'a Mapping)>) {
     for (name, child) in child_entries(node) {
-        let mut rel = parent.to_vec();
-        rel.push(name.to_string());
-        if let Some(uid) = child.get("uid").and_then(Value::as_str) {
-            out.insert(uid.to_string(), rel.join("/"));
-        }
-        collect_ids(child, &rel, out);
+        parent.push(name.to_string());
+        out.push((parent.join("/"), child));
+        visit(child, parent, out);
+        parent.pop();
     }
+}
+
+fn known_ids(nodes: &[(String, &Mapping)]) -> HashMap<String, String> {
+    nodes.iter().filter_map(|(path, node)| Some((node.get("uid").and_then(Value::as_str)?.to_string(), path.clone()))).collect()
+}
+
+// Folders that should carry a .ant folder for their id: nodes and workboards, but not nodes with the data flag.
+fn unmarked(root: &Path, nodes: &[(String, &Mapping)]) -> Vec<String> {
+    nodes
+        .iter()
+        .filter(|(_, node)| {
+            let base = node.get("type").and_then(Value::as_str).map(type_base);
+            matches!(base, Some("NODE" | "WKB")) && !flags_in(node).iter().any(|f| f == DATA_FLAG)
+        })
+        .filter(|(path, _)| {
+            let dir = join_rel(root, &rel_of(path));
+            dir.is_dir() && !dir.join(DATA_DIR).exists()
+        })
+        .map(|(path, _)| path.clone())
+        .collect()
+}
+
+fn create_markers(root: &Path, paths: &[String]) -> R<()> {
+    for path in paths {
+        let dir = join_rel(root, &rel_of(path)).join(DATA_DIR);
+        fs::create_dir(&dir).map_err(|e| io_err("create info folder", &dir, &e))?;
+        hide(&dir);
+    }
+    Ok(())
+}
+
+fn rel_of(path: &str) -> Vec<String> {
+    path.split('/').map(str::to_string).collect()
 }
 
 // Writes missing ids to disk, carries moved folders' entries to their new place and stores each uid in the tree; returns whether the tree changed.
 pub fn plan(root: &Path, data: &mut Mapping) -> R<bool> {
-    let Scan { live, known } = scan(root, data)?;
+    let mut nodes = Vec::new();
+    visit(data, &mut Vec::new(), &mut nodes);
+    create_markers(root, &unmarked(root, &nodes))?;
+    let Scan { live, known, data_paths, .. } = scan(root, data)?;
     let mut taken: HashSet<String> = known.keys().cloned().chain(live.iter().filter_map(|l| l.id.clone())).collect();
     let mut by_id: HashMap<String, Vec<Vec<String>>> = HashMap::new();
     for l in live {
         let id = match l.id {
             Some(id) => id,
             None => {
+                if data_paths.contains(&l.rel.join("/")) {
+                    continue;
+                }
                 let id = new_id(&taken);
                 write_id(&join_rel(root, &l.rel), &id)?;
                 taken.insert(id.clone());
@@ -171,7 +217,21 @@ fn read_id(folder: &Path) -> Option<String> {
 }
 
 fn write_id(folder: &Path, id: &str) -> R<()> {
-    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), format!("{{\"id\": \"{id}\"}}\n").as_bytes())
+    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), footprint_text(id, &[]).as_bytes())
+}
+
+// Keeps the folder's dragpath.json in step with its user flags; a folder without one, or with a broken one, is left as it is.
+pub fn mirror_flags(folder: &Path, flags: &[String]) -> R<()> {
+    let Some(id) = read_id(folder) else { return Ok(()) };
+    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), footprint_text(&id, flags).as_bytes())
+}
+
+fn footprint_text(id: &str, flags: &[String]) -> String {
+    if flags.is_empty() {
+        return format!("{{\"id\": \"{id}\"}}\n");
+    }
+    let list: Vec<String> = flags.iter().map(|f| format!("\"{f}\"")).collect();
+    format!("{{\"id\": \"{id}\", \"flags\": [{}]}}\n", list.join(", "))
 }
 
 fn migrate(data: &mut Mapping, old: &[String], new: &[String]) -> bool {
@@ -255,6 +315,18 @@ mod tests {
         assert!(scan(dir.path(), &data).unwrap().is_clean());
         assert!(!plan(dir.path(), &mut data).unwrap());
         assert_eq!(read_id(&dir.path().join("100.A/PJ.001")).unwrap(), first);
+    }
+
+    #[test]
+    fn a_refresh_marks_nodes_but_not_data_nodes() {
+        let dir = TempDir::new("footprint-marks");
+        dir.mkdir("100.A/01.Plain");
+        dir.mkdir("100.A/02.Data");
+        let mut data: Mapping = serde_yaml::from_str("100.A:\n  type: NODE-L1\n  01.Plain: {type: NODE-L2}\n  02.Data: {type: NODE-L2, flags: data}\n").unwrap();
+        assert!(plan(dir.path(), &mut data).unwrap());
+        assert!(read_id(&dir.path().join("100.A/01.Plain")).is_some());
+        assert!(!dir.path().join("100.A/02.Data/.ant").exists());
+        assert!(scan(dir.path(), &data).unwrap().is_clean());
     }
 
     #[test]

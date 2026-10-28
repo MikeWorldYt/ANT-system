@@ -4,8 +4,8 @@ use std::path::Path;
 use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{type_base, META_KEYS};
-use crate::config::{LOCKED_TYPES, MAX_DEPTH, SPECIAL_TYPES, WKB_IDENTIFIERS};
-use crate::storage::db::Store;
+use crate::config::{DATA_FLAG, LOCKED_TYPES, MAX_DEPTH, SPECIAL_TYPES, WKB_IDENTIFIERS};
+use crate::storage::db::{db_path, Store};
 use crate::error::R;
 use crate::ant_core::names::list_subdirs;
 
@@ -36,8 +36,10 @@ pub fn is_locked_type(t: &str) -> bool {
 }
 
 // Disk dirs missing from the tree are added; tree-only keys stay as ghosts.
+// A storage with no db yet is new, so its Node folders on level 3 start with the data flag.
 pub fn sync(root: &Path, data: &mut Mapping) -> R<bool> {
-    sync_level(root, data, 0)
+    let fresh = !db_path(root).is_file();
+    sync_level(root, data, 0, fresh)
 }
 
 pub fn get_node<'a>(data: &'a Mapping, rel: &[String]) -> Option<&'a Mapping> {
@@ -84,7 +86,7 @@ pub fn delete_key(data: &mut Mapping, parent: &[String], key: &str) -> bool {
     matches!(node.get(key), Some(Value::Mapping(_))) && node.remove(key).is_some()
 }
 
-fn sync_level(dir: &Path, node: &mut Mapping, depth: usize) -> R<bool> {
+fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool) -> R<bool> {
     if depth >= MAX_DEPTH {
         return Ok(false);
     }
@@ -95,13 +97,17 @@ fn sync_level(dir: &Path, node: &mut Mapping, depth: usize) -> R<bool> {
             continue;
         }
         if !matches!(node.get(name.as_str()), Some(Value::Mapping(_))) {
+            let kind = infer_type(&name, depth);
             let mut entry = Mapping::new();
-            entry.insert("type".into(), infer_type(&name, depth).into());
+            if fresh && kind == "NODE-L3" {
+                entry.insert("flags".into(), DATA_FLAG.into());
+            }
+            entry.insert("type".into(), kind.into());
             node.insert(Value::String(name.clone()), Value::Mapping(entry));
             changed = true;
         }
         if let Some(Value::Mapping(child)) = node.get_mut(name.as_str()) {
-            changed |= sync_level(&dir.join(&name), child, depth + 1)?;
+            changed |= sync_level(&dir.join(&name), child, depth + 1, fresh)?;
         }
     }
     Ok(changed)
@@ -252,5 +258,19 @@ mod tests {
         let _held = std::fs::OpenOptions::new().read(true).share_mode(0x1).open(crate::storage::db::db_path(dir.path())).unwrap();
         assert!(save(dir.path(), &parse("two: {type: NODE-L1}\n")).is_err());
         assert_eq!(load(dir.path()).unwrap(), before);
+    }
+
+    #[test]
+    fn only_a_new_storage_gives_level_three_nodes_the_data_flag() {
+        let dir = TempDir::new("fresh-l3");
+        dir.mkdir("100.A/01.B/01.C");
+        let mut data = Mapping::new();
+        sync(dir.path(), &mut data).unwrap();
+        assert_eq!(get_node(&data, &rel(&["100.A", "01.B", "01.C"])).unwrap().get("flags").and_then(Value::as_str), Some("data"));
+        assert!(get_node(&data, &rel(&["100.A", "01.B"])).unwrap().get("flags").is_none());
+        save(dir.path(), &data).unwrap();
+        dir.mkdir("100.A/01.B/02.D");
+        sync(dir.path(), &mut data).unwrap();
+        assert!(get_node(&data, &rel(&["100.A", "01.B", "02.D"])).unwrap().get("flags").is_none());
     }
 }
