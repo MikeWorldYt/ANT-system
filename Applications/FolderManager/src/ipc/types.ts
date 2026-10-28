@@ -77,6 +77,24 @@ export interface DeletePreview {
   dirs: number;
 }
 
+export interface Moved {
+  node: string;
+  name: string;
+  count: number;
+  review: string;
+}
+
+export interface LooseFile {
+  node: string;
+  file: string;
+}
+
+export interface IntakeReport {
+  moved: Moved[];
+  loose: LooseFile[];
+  warnings: string[];
+}
+
 export interface ReviewIndexEvent {
   phase: "started" | "done";
   failures: string[];

@@ -5,6 +5,7 @@ import type {
   DeletePreview,
   EditableType,
   FmError,
+  IntakeReport,
   MoveDirection,
   NewKind,
   Mutation,
@@ -26,6 +27,7 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
 export const getStorage = () => call<StorageInfo>("get_storage");
 export const loadTree = () => call<TreeSnapshot>("load_tree");
 export const refresh = () => call<TreeSnapshot>("refresh");
+export const runIntake = () => call<IntakeReport>("run_intake");
 export const listChildren = (relParts: string[]) => call<TreeNode[]>("list_children", { relParts });
 export const renameNode = (relParts: string[], newEditable: string) =>
   call<Mutation>("rename_node", { relParts, newEditable });
