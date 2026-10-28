@@ -42,7 +42,7 @@ export function createColumnsView(): ViewMode {
 
   function buildItem(n: TreeNode, onPath: boolean, tabbable: boolean): HTMLElement {
     const selected = keyOf(n.relParts) === state.selectedKey;
-    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, folderIcon(n), nameCell(n, false));
+    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, folderIcon(n, (selected || onPath) && n.hasChildren), nameCell(n, false));
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
     else if (onPath) item.classList.add("on-path");
