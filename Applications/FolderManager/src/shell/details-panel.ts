@@ -3,7 +3,7 @@ import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { statusLabeled } from "../ui/status-mark";
 import { isWorkboard, nodeDetails, ownerOf, STATUSES, UNKNOWN } from "../store/node-info";
-import { renameTo, setDetails } from "../actions/ops";
+import { renameTo, setDetails, setUserFlag } from "../actions/ops";
 import { extensionArea } from "../extensions/panel";
 import { detailFields, onDetailsChange, runDetailsAction } from "../extensions/details";
 import { keyOf, selectedNode } from "../store/state";
@@ -15,6 +15,14 @@ const canEdit = (n: TreeNode) => n.actions.editDetails;
 const termId = (label: string) => `details-term-${label.toLowerCase()}`;
 const fieldId = (label: string) => `details-field-${label.toLowerCase()}`;
 const labelled = (label: string) => ({ id: fieldId(label), "aria-labelledby": termId(label) });
+
+// The data flag is a checkbox that saves on change, so it works without entering edit mode.
+function filesRow(n: TreeNode): HTMLElement[] {
+  const box = el("input", { type: "checkbox", ...labelled("Allow files") });
+  box.checked = n.flags.includes("data");
+  box.addEventListener("change", () => void setUserFlag(n, box.checked));
+  return [el("dt", { id: termId("Allow files") }, "Allow files"), el("dd", {}, box)];
+}
 
 export function createDetailsPanel(): { element: HTMLElement; render(): void } {
   const list = el("dl", { class: "details" });
@@ -101,6 +109,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     else if (n && form?.key !== editing) form = { key: editing, inputs: controls(n) };
     const inputs = form?.inputs ?? {};
     const rows = (n ? nodeDetails(n) : []).flatMap(([k, v]) => [el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))]);
+    if (n?.actions.editFlags) rows.push(...filesRow(n));
     if (inputs[""]) rows.push(el("dd", {}, inputs[""]));
     for (const ext of detailFields(n)) {
       for (const f of ext.fields) {
