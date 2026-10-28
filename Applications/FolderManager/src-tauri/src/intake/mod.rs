@@ -1,4 +1,4 @@
-// Sorts files dropped into the Storage tree: Node files go to their review folder, main-folder files are reported.
+// Sorts files dropped into the Storage tree: Node files go to their review folder, while data and special nodes keep them.
 mod rules;
 #[cfg(test)]
 mod tests;
@@ -15,7 +15,7 @@ use crate::ant_core::tree_types::child_entries;
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, Journal, StorageLock};
 use crate::mutations::{child_rel, load_synced};
-use rules::{is_exempt, is_skipped_file, rule, Rule};
+use rules::{is_skipped_file, rule, Rule};
 
 #[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -72,9 +72,7 @@ fn report_loose(dir: &Path, rel: &[String], report: &mut IntakeReport) -> R<()> 
     let node = rel.join("/");
     for file in direct_files(dir)? {
         let file = file.to_string_lossy().into_owned();
-        if !is_exempt(&file) {
-            report.loose.push(LooseFile { node: node.clone(), file });
-        }
+        report.loose.push(LooseFile { node: node.clone(), file });
     }
     Ok(())
 }

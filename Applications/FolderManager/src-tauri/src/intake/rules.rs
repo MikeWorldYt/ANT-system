@@ -7,7 +7,6 @@ use crate::tree::tree_node::is_reserved;
 use crate::tree::tree_store::is_locked_type;
 
 const REVIEW_PREFIX: &str = "98.";
-const EXEMPT_MARK: &str = "FolderManager";
 const SYSTEM_FILES: [&str; 2] = ["desktop.ini", "Thumbs.db"];
 
 pub(super) enum Rule<'a> {
@@ -27,7 +26,8 @@ pub(super) fn rule<'a>(rel: &[String], node: &'a Mapping) -> Rule<'a> {
         return Rule::Skip;
     }
     if rel.len() == 1 {
-        return Rule::Loose;
+        // Storage's top-level folders are main nodes; send their files to their own review folder.
+        return if type_base(raw) == "NODE" { Rule::Review(review_child(node)) } else { Rule::Loose };
     }
     if type_base(raw) != "NODE" || flags_in(node).iter().any(|f| f == DATA_FLAG) {
         return Rule::Keep;
@@ -36,11 +36,7 @@ pub(super) fn rule<'a>(rel: &[String], node: &'a Mapping) -> Rule<'a> {
 }
 
 pub(super) fn is_skipped_file(name: &str) -> bool {
-    name.starts_with('.') || is_exempt(name) || SYSTEM_FILES.iter().any(|s| name.eq_ignore_ascii_case(s))
-}
-
-pub(super) fn is_exempt(name: &str) -> bool {
-    name.contains(EXEMPT_MARK)
+    name.starts_with('.') || SYSTEM_FILES.iter().any(|s| name.eq_ignore_ascii_case(s))
 }
 
 fn review_child(node: &Mapping) -> Option<&str> {

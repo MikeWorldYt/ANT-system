@@ -4,8 +4,6 @@ import * as api from "../ipc/api";
 import { setStatus } from "../ui/status";
 import type { Moved } from "../ipc/types";
 
-const LOOSE_MESSAGE = "I detected a unclassified file in your Storage, please move it to a category";
-
 // Focus and manual refreshes can overlap; a second intake would repeat the same report.
 let running = false;
 // Refreshes repeat while loose files remain; report once until the Storage is clear again.
@@ -19,8 +17,16 @@ async function notifyMoved(moved: Moved[]): Promise<void> {
   if (moved.length === 0) return;
   if (!(await notificationPermissionGranted())) return;
   for (const m of moved) {
-    sendNotification({ title: "ANT System Manager", body: `${m.count} archivos en ${m.name} fueron movidos para su revision` });
+    const files = `${m.count} file${m.count === 1 ? "" : "s"}`;
+    sendNotification({ title: "ANT System Manager", body: `${files} from ${m.name} moved to ${m.review} for review.` });
   }
+}
+
+function looseFilesMessage(files: { node: string; file: string }[]): string {
+  const shown = files.slice(0, 5).map(({ node, file }) => `${node}/${file}`);
+  const omitted = files.length - shown.length;
+  if (omitted > 0) shown.push(`...and ${omitted} more`);
+  return `Unclassified files detected (${files.length}):\n${shown.join("\n")}`;
 }
 
 export async function runIntake(): Promise<void> {
@@ -33,8 +39,9 @@ export async function runIntake(): Promise<void> {
       looseNotified = false;
     } else if (!looseNotified) {
       looseNotified = true;
+      console.warn("[intake] Unclassified files detected:", report.loose);
       if (await notificationPermissionGranted()) {
-        sendNotification({ title: "ANT System Manager", body: LOOSE_MESSAGE });
+        sendNotification({ title: "ANT System Manager", body: looseFilesMessage(report.loose) });
       }
     }
     await notifyMoved(report.moved);
