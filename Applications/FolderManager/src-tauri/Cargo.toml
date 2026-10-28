@@ -15,3 +15,4 @@ tauri = { version = "2", features = ["devtools"] }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 rusqlite = { version = "0.40", features = ["bundled"] }
+tauri-plugin-notification = "2"
