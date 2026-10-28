@@ -47,6 +47,11 @@ pub fn local_stamp() -> String {
     format_stamp(year as u32, month as u32, day as u32, (rest / 3600) as u32, (rest % 3600 / 60) as u32)
 }
 
+// The date part of the local stamp, in the YY-MM-DD form the folder names use.
+pub fn local_date() -> String {
+    local_stamp()[..8].to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

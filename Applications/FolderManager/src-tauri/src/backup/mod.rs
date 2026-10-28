@@ -3,7 +3,7 @@ mod archive;
 mod latest;
 pub mod schedule;
 mod stage;
-mod stamp;
+pub(crate) mod stamp;
 #[cfg(test)]
 mod tests;
 
