@@ -1,28 +1,34 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Generator: Adobe Illustrator 24.3.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
-<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 24 24" style="enable-background:new 0 0 24 24;" xml:space="preserve">
-<style type="text/css">
-	.st0{fill:none;}
-	.st1{fill:#7E54D1;}
-	.st2{fill:#7D3DE2;}
-	.st3{fill:url(#SVGID_1_);}
-</style>
-<pattern  width="98" height="88.5" patternUnits="userSpaceOnUse" id="Nueva_muestra_de_motivo_2" viewBox="0 -88.5 98 88.5" style="overflow:visible;">
-	<g>
-		<rect y="-88.5" class="st0" width="98" height="88.5"/>
-		<rect x="0" y="-88.5" class="st1" width="98" height="88.5"/>
-	</g>
-</pattern>
-<g>
-	<path class="st2" d="M12,20.4c-3.9,0-7.8,0-11.7,0c-0.1,0-0.1,0-0.1-0.1c0-4.3,0-8.5,0-12.8c0-1,0-1.9,0-2.9c0-0.4,0.3-0.8,0.7-0.8
-		c0.1,0,0.1,0,0.2,0c2.6,0,5.1,0,7.7,0c0.5,0,0.9,0.2,1.2,0.5c0.4,0.4,0.7,0.7,1.1,1.1c0,0,0.1,0.1,0.2,0.1c3.9,0,7.8,0,11.7,0
-		c0.5,0,0.8,0.3,0.9,0.7c0,0,0,0.1,0,0.1c0,4.7,0,9.4,0,14.1c0,0.1,0,0.1-0.1,0.1C19.9,20.4,16,20.4,12,20.4z"/>
-</g>
-<pattern  id="SVGID_1_" xlink:href="#Nueva_muestra_de_motivo_2" patternTransform="matrix(0.3706 0 0 0.3706 -5140.4717 -5172.9253)">
-</pattern>
-<path class="st3" d="M23.9,6.3c0,0,0-0.1,0-0.1c-0.1-0.4-0.4-0.7-0.9-0.7c-3.2,0-6.4,0-9.6,0h-0.1h-0.5c0,0,0,0,0,0
-	c-0.3,0-0.5,0-0.8,0c-0.3,0-0.5,0-0.8,0c0,0,0,0,0,0h-0.5h-0.1c-3.2,0-6.4,0-9.6,0c-0.5,0-0.8,0.3-0.9,0.7c0,0,0,0.1,0,0.1
-	c0,4.7,0,9.4,0,14.1c0,0.1,0,0.1,0.1,0.1c3.1,0,6.3,0,9.4,0c0.8,0,1.5,0,2.3,0c0,0,0,0,0,0c0.8,0,1.5,0,2.3,0c3.1,0,6.3,0,9.4,0
-	c0.1,0,0.1,0,0.1-0.1C23.9,15.7,23.9,11,23.9,6.3z"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24">
+  <!-- Generator: Adobe Illustrator 29.1.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 142)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: url(#SVGID_1_);
+      }
+
+      .st1 {
+        fill: none;
+      }
+
+      .st2 {
+        fill: #7d3de2;
+      }
+
+      .st3 {
+        fill: #7e54d1;
+      }
+    </style>
+    <pattern id="SVGID_1_" data-name="SVGID 1 " x="0" y="0" width="98" height="88.5" patternTransform="translate(-10272.1 -5356.4) scale(.4 -.4)" patternUnits="userSpaceOnUse" viewBox="0 0 98 88.5">
+      <g>
+        <rect class="st1" width="98" height="88.5"/>
+        <g>
+          <rect class="st1" width="98" height="88.5"/>
+          <rect class="st3" width="98" height="88.5"/>
+        </g>
+      </g>
+    </pattern>
+  </defs>
+  <path class="st2" d="M12,19.7H1.3q0,0,0,0V5.2c0-.4.3-.7.6-.7h7.2c.5,0,.8.2,1.1.5.4.4.6.6,1,1,0,0,0,0,.2,0h10.7c.5,0,.7.3.8.6h0v13q0,0,0,0c-3.6,0-7.1,0-10.8,0Z"/>
+  <path class="st0" d="M22.9,6.8h0c0-.5-.4-.7-.8-.7H1.9c-.5,0-.7.3-.8.6h0v13q0,0,0,0h21.4q0,0,0,0c.2-4.3.2-8.6.2-12.9Z"/>
 </svg>
