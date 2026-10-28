@@ -5,7 +5,7 @@ import { showNotificationDialog } from "../shell/notification-dialog";
 import { setStatus } from "../ui/status";
 import type { Moved } from "../ipc/types";
 
-const LOOSE_MESSAGE = "Detecte un archivo sin clasificar dentro de tu Storage, porfavor muevelo a una categoria";
+const LOOSE_MESSAGE = "I detected a unclassified file in your Storage, please move it to a category";
 
 // Focus and manual refreshes can overlap; a second intake would repeat the same report.
 let running = false;
