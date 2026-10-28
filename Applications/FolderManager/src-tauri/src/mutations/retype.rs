@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde_yaml::Value;
 
-use super::{finish, guard_frozen, load_synced, locate, Mutation};
+use super::{finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
 use crate::ant_core::tree_types::{type_base, type_level};
 use crate::config::{EditableType, WkbStatus};
 use crate::error::{FmError, R};
@@ -18,7 +18,7 @@ pub fn set_node_type(
     status: Option<WkbStatus>,
 ) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, synced) = load_synced(root)?;
+    let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
     let base_name = base.as_str();
@@ -39,13 +39,13 @@ pub fn set_node_type(
         }
     }
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new()))
+    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new(), vec![rel.to_vec()]))
 }
 
 // Status and owner live in the folder's info.json; a value that is missing there is written as "unknown".
 pub fn set_details(root: &Path, rel: &[String], status: Option<WkbStatus>, owner: Option<&str>) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (data, synced) = load_synced(root)?;
+    let (data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
     if target.ghost {
@@ -68,7 +68,7 @@ pub fn set_details(root: &Path, rel: &[String], status: Option<WkbStatus>, owner
     };
     write_info(&target.abs, &[(&["status"], "status", Some(status.into())), (&OWNER_KEYS, "owner", Some(owner.into()))])?;
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new()))
+    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new(), vec![rel.to_vec()]))
 }
 
 #[cfg(test)]

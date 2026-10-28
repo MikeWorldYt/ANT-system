@@ -205,7 +205,7 @@ mod tests {
     }
 
     fn assert_like_full_rebuild(dir: &TempDir, m: &Mutation, expected_created: usize) {
-        assert!(m.warnings.is_empty() && !m.tree.yaml_changed && !m.touched.is_empty(), "{:?}", m.warnings);
+        assert!(m.warnings.is_empty() && m.tree.is_none() && !m.touched.is_empty(), "{:?}", m.warnings);
         let (failures, created) = quick(dir, m, |_, _| panic!("the quick update should not fall back"));
         assert!(failures.is_empty(), "{failures:?}");
         assert_eq!(created, expected_created, "only the touched branch gets new shortcuts");

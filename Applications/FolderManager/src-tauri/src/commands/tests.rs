@@ -226,7 +226,7 @@ fn index_state(dir: &TempDir) -> (Vec<(String, String, String)>, Vec<Vec<Vec<Str
 }
 
 fn assert_matches_full_rebuild(dir: &TempDir, m: &Mutation) {
-    assert!(m.warnings.is_empty() && !m.tree.yaml_changed, "{:?}", m.warnings);
+    assert!(m.warnings.is_empty() && m.tree.is_none(), "{:?}", m.warnings);
     let incremental = index_state(dir);
     search_index::rebuild(dir.path(), &yaml(dir.path())).unwrap();
     assert_eq!(incremental, index_state(dir));
@@ -267,6 +267,36 @@ fn renames_and_moves_update_the_search_index_like_a_full_rebuild() {
     let moved = mutations::move_node(dir.path(), &rel(&["100.ACADEMIC", "01.Physics"]), MoveDirection::Down);
     let m = with_index(dir.path(), moved, &emit, no_quick, probe.rebuild(&[])).unwrap();
     assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "02.Physics"])));
+    assert_matches_full_rebuild(&dir, &m);
+}
+
+#[test]
+fn a_folder_added_deep_in_a_touched_subtree_falls_back_to_the_full_snapshot() {
+    let dir = indexed("cmd-inc-deep");
+    dir.mkdir("100.ACADEMIC/01.Math/05.Deep");
+    let probe = Probe::new();
+    let emit = probe.emit();
+    let renamed = mutations::rename_node(dir.path(), &rel(&["100.ACADEMIC"]), "School");
+    let m = with_index(dir.path(), renamed, &emit, no_quick, probe.rebuild(&[])).unwrap();
+    assert!(m.tree.as_ref().is_some_and(|t| t.yaml_changed && !t.nodes.is_empty()) && m.levels.is_empty());
+    let incremental = index_state(&dir);
+    search_index::rebuild(dir.path(), &yaml(dir.path())).unwrap();
+    assert_eq!(incremental, index_state(&dir));
+    let search = Store::open_or_create(dir.path()).unwrap().search(&parse_query("deep")).unwrap();
+    assert_eq!(search, [rel(&["100.SCHOOL", "01.Math", "05.Deep"])]);
+}
+
+#[test]
+fn field_edits_update_the_search_index_like_a_full_rebuild() {
+    let dir = indexed("cmd-inc-fields");
+    let (bio, math) = (rel(&["100.ACADEMIC", "02.Bio"]), rel(&["100.ACADEMIC", "01.Math"]));
+    let m = with_search_index(dir.path(), mutations::set_node_type(dir.path(), &bio, EditableType::Wkb, Some(WkbStatus::Hold))).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
+    let m = with_search_index(dir.path(), mutations::set_details(dir.path(), &bio, Some(WkbStatus::Done), Some("Zed"))).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
+    let m = with_search_index(dir.path(), mutations::set_favorite(dir.path(), &math, true)).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
+    let m = with_search_index(dir.path(), mutations::set_user_flag(dir.path(), &math, true)).unwrap();
     assert_matches_full_rebuild(&dir, &m);
 }
 

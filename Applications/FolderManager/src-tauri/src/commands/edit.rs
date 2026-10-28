@@ -20,8 +20,8 @@ pub(super) fn with_index(
     rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>,
 ) -> R<Mutation> {
     let mut m = result?;
-    // Same rule as the search index: a synced yaml may have changed paths the mutation never touched.
-    let failures = if !m.touched.is_empty() && !m.tree.yaml_changed {
+    // Same rule as the search index: a full snapshot means paths the mutation never touched may have changed.
+    let failures = if m.tree.is_none() {
         reindex_paths(root, emit, &m.before, &m.touched, create, rebuild)
     } else {
         reindex(root, emit, rebuild)
@@ -32,18 +32,17 @@ pub(super) fn with_index(
 
 pub(super) fn with_search_index(root: &Path, result: R<Mutation>) -> R<Mutation> {
     let mut m = result?;
-    // A synced yaml may have changed paths the mutation never touched, so only an unsynced tree updates in place.
-    if !m.touched.is_empty() && !m.tree.yaml_changed {
-        match search_index::update_paths(root, &m.tree.nodes, &m.touched) {
+    // Only a local change updates in place; a full snapshot comes with a synced yaml or an unknown scope.
+    if m.tree.is_none() {
+        match search_index::update_paths(root, &m.touched_nodes(), &m.touched) {
             Ok(()) => return Ok(m),
             Err(e) => m.warnings.push(format!("Search index: the quick update failed, so it was rebuilt in full. {e}")),
         }
     }
-    // An empty tree may be after_commit's fallback, so the yaml is indexed instead of wiping the index.
-    let indexed = if m.tree.nodes.is_empty() {
-        tree_store::load(root).and_then(|data| search_index::rebuild(root, &data))
-    } else {
-        search_index::rebuild_from_nodes(root, &m.tree.nodes)
+    // A local change or after_commit's empty fallback has no full tree, so the yaml is indexed instead of wiping the index.
+    let indexed = match m.tree.as_ref().filter(|t| !t.nodes.is_empty()) {
+        Some(tree) => search_index::rebuild_from_nodes(root, &tree.nodes),
+        None => tree_store::load(root).and_then(|data| search_index::rebuild(root, &data)),
     };
     if let Err(e) = indexed {
         m.warnings.push(format!("Search index: {e}"));

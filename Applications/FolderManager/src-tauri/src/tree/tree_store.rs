@@ -7,6 +7,7 @@ use crate::ant_core::tree_types::{type_base, META_KEYS};
 use crate::config::{DATA_FLAG, LOCKED_TYPES, MAX_DEPTH, SPECIAL_TYPES, WKB_IDENTIFIERS};
 use crate::storage::db::{db_path, Store};
 use crate::error::R;
+use crate::fs_safe::join_rel;
 use crate::ant_core::names::list_subdirs;
 
 pub fn load(root: &Path) -> R<Mapping> {
@@ -86,6 +87,33 @@ pub fn delete_key(data: &mut Mapping, parent: &[String], key: &str) -> bool {
     matches!(node.get(key), Some(Value::Mapping(_))) && node.remove(key).is_some()
 }
 
+// Syncs only the levels from the root down to `dir`, one listing each, without descending any further.
+pub fn sync_branch(root: &Path, data: &mut Mapping, dir: &[String]) -> R<bool> {
+    let fresh = !db_path(root).is_file();
+    let (mut node, mut path, mut changed) = (data, root.to_path_buf(), false);
+    for depth in 0..=dir.len().min(MAX_DEPTH - 1) {
+        let names = list_subdirs(&path)?;
+        for name in names.iter().filter(|n| !META_KEYS.contains(&n.as_str())) {
+            changed |= add_missing(node, name, depth, fresh);
+        }
+        // Exact names only, as a full sync only descends into folders listed on disk.
+        let Some(part) = dir.get(depth).filter(|p| names.contains(p)) else { break };
+        let Some(Value::Mapping(child)) = node.get_mut(part.as_str()) else { break };
+        node = child;
+        path.push(part);
+    }
+    Ok(changed)
+}
+
+// Syncs a node's whole subtree; a missing folder has nothing to add.
+pub fn sync_subtree(root: &Path, rel: &[String], node: &mut Mapping) -> R<bool> {
+    let dir = join_rel(root, rel);
+    if !dir.is_dir() {
+        return Ok(false);
+    }
+    sync_level(&dir, node, rel.len(), !db_path(root).is_file())
+}
+
 fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool) -> R<bool> {
     if depth >= MAX_DEPTH {
         return Ok(false);
@@ -96,21 +124,26 @@ fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool) -> R<bo
         if META_KEYS.contains(&name.as_str()) {
             continue;
         }
-        if !matches!(node.get(name.as_str()), Some(Value::Mapping(_))) {
-            let kind = infer_type(&name, depth);
-            let mut entry = Mapping::new();
-            if fresh && kind == "NODE-L3" {
-                entry.insert("flags".into(), DATA_FLAG.into());
-            }
-            entry.insert("type".into(), kind.into());
-            node.insert(Value::String(name.clone()), Value::Mapping(entry));
-            changed = true;
-        }
+        changed |= add_missing(node, &name, depth, fresh);
         if let Some(Value::Mapping(child)) = node.get_mut(name.as_str()) {
             changed |= sync_level(&dir.join(&name), child, depth + 1, fresh)?;
         }
     }
     Ok(changed)
+}
+
+fn add_missing(node: &mut Mapping, name: &str, depth: usize, fresh: bool) -> bool {
+    if matches!(node.get(name), Some(Value::Mapping(_))) {
+        return false;
+    }
+    let kind = infer_type(name, depth);
+    let mut entry = Mapping::new();
+    if fresh && kind == "NODE-L3" {
+        entry.insert("flags".into(), DATA_FLAG.into());
+    }
+    entry.insert("type".into(), kind.into());
+    node.insert(Value::String(name.to_string()), Value::Mapping(entry));
+    true
 }
 
 // Siblings are stored in byte order of their names so the tree reads back the same way every time.
@@ -180,6 +213,20 @@ mod tests {
         assert!(get_node(&data, &rel(&["01.Math", "PJ.Demo", "deep", "deeper"])).is_none());
         assert!(data.get(".ant-trash").is_none());
         assert!(!sync(dir.path(), &mut data).unwrap());
+    }
+
+    #[test]
+    fn sync_branch_lists_only_the_levels_down_to_the_folder() {
+        let dir = TempDir::new("sync-branch");
+        dir.mkdir("01.Math/01.Alg/01.Deep");
+        dir.mkdir("02.Bio/01.Cell");
+        let mut data = parse("01.Math: {type: NODE-L1}\n");
+        assert!(sync_branch(dir.path(), &mut data, &rel(&["01.Math"])).unwrap());
+        assert_eq!(get_type(&data, &rel(&["02.Bio"])), "NODE-L1");
+        assert_eq!(get_type(&data, &rel(&["01.Math", "01.Alg"])), "NODE-L2");
+        assert!(get_node(&data, &rel(&["02.Bio", "01.Cell"])).is_none());
+        assert!(get_node(&data, &rel(&["01.Math", "01.Alg", "01.Deep"])).is_none());
+        assert!(!sync_branch(dir.path(), &mut data, &rel(&["01.Math"])).unwrap());
     }
 
     #[test]

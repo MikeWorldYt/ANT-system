@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde_yaml::Value;
 
-use super::{finish, load_synced, locate, register_ids, Mutation};
+use super::{finish, load_synced_at, locate, parent_of, register_ids, Mutation};
 use crate::error::{FmError, R};
 use crate::fs_safe::StorageLock;
 use crate::storage::info::write_info;
@@ -13,7 +13,7 @@ use crate::tree::tree_store;
 // A favorite is a flag in the folder's own info.json, so it travels with the folder and is searchable.
 pub fn set_favorite(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, synced) = load_synced(root)?;
+    let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     if is_reserved(rel) {
         return Err(FmError::Reserved { rel_parts: rel.to_vec() });
@@ -23,9 +23,9 @@ pub fn set_favorite(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     }
     write_info(&target.abs, &[(&["favorite"], "favorite", on.then_some(Value::Bool(true)))])?;
     let mut warnings = Vec::new();
-    register_ids(root, &mut data, &mut warnings);
+    let moved = register_ids(root, &mut data, &mut warnings);
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), warnings))
+    Ok(finish(root, &data, synced || moved, Some(rel.to_vec()), warnings, vec![rel.to_vec()]))
 }
 
 #[cfg(test)]

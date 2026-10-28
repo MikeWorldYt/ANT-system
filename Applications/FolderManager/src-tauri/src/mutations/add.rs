@@ -4,7 +4,7 @@ use std::path::Path;
 
 use serde_yaml::Mapping;
 
-use super::{child_rel, ensure_free, finish, guard_frozen, load_synced, locate, persist, register_ids, Mutation};
+use super::{child_rel, ensure_free, finish, guard_frozen, load_synced, load_synced_at, locate, persist, register_ids, Mutation};
 use crate::ant_core::names::{editable_part, list_subdirs, next_available_id, next_main_category_id};
 use crate::ant_core::tree_types::child_entries;
 use crate::backup::stamp::local_date;
@@ -29,7 +29,8 @@ pub fn add_next(root: &Path, rel: &[String], kind: NewKind) -> R<Mutation> {
 
 pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, synced) = load_synced(root)?;
+    // A tracker must be unique across the Storage, so a workboard counts every branch on disk.
+    let (mut data, synced) = if kind == NewKind::Workboard { load_synced(root)? } else { load_synced_at(root, parent)? };
     if parent.is_empty() && kind == NewKind::Workboard {
         return Err(FmError::InvalidPath { rel_parts: parent.to_vec(), reason: "workboards cannot be created at the storage root".to_string() });
     }
@@ -97,9 +98,9 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     if let Err(e) = mark_folder(&new_abs, workboard, parent.last().map_or("", String::as_str)) {
         warnings.push(format!("Could not set up {DATA_DIR}: {e}"));
     }
-    register_ids(root, &mut data, &mut warnings);
+    let moved = register_ids(root, &mut data, &mut warnings);
     let new_rel = child_rel(parent, &new_name);
-    Ok(finish(root, &data, synced, Some(new_rel.clone()), warnings).touching(vec![new_rel]))
+    Ok(finish(root, &data, synced || moved, Some(new_rel.clone()), warnings, vec![new_rel]))
 }
 
 // Next free tracker (3 digits, more once they run out) after every PJ workboard in the tree, missing folders included.
@@ -170,7 +171,8 @@ mod tests {
         assert_eq!(main.select, Some(expected.clone()));
         assert_eq!(yaml_type(dir.path(), &["200.NEW-CATEGORY"]), "NODE-L1");
         assert!(dir.path().join("200.NEW-CATEGORY/98.NEW-CATEGORY").is_dir());
-        let main_node = main.tree.nodes.iter().find(|node| node.rel_parts == expected).unwrap();
+        let main_node = main.touched_nodes()[0];
+        assert_eq!(main_node.rel_parts, expected);
         assert!(main_node.flags.iter().any(|flag| flag == "main"));
     }
 
@@ -189,6 +191,17 @@ mod tests {
         assert!(info.contains("\"breadcrumb\": \"01.Math\"") && info.contains("\"created\": \""), "{info}");
         assert!(wkb.join(".ant/dragpath.json").is_file());
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "PJ.001_New-Workboard"]), "WKB-L3");
+    }
+
+    #[test]
+    fn a_workboard_made_outside_the_app_in_another_branch_keeps_its_tracker() {
+        let dir = academic("add-wkb-outside");
+        let mut data = yaml(dir.path());
+        crate::tree::tree_store::sync(dir.path(), &mut data).unwrap();
+        crate::tree::tree_store::save(dir.path(), &data).unwrap();
+        dir.mkdir("100.ACADEMIC/01.Math/PJ.007_Outside");
+        let m = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
+        assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "PJ.008_New-Workboard"])));
     }
 
     #[test]

@@ -10,18 +10,19 @@ mod retype;
 #[cfg(not(windows))]
 mod unix_trash;
 
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::META_KEYS;
-use crate::config::is_hidden_dir;
+use crate::ant_core::tree_types::{child_entries, META_KEYS};
+use crate::config::{is_hidden_dir, MAX_DEPTH};
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, resolve, same_name, Journal};
 use crate::index::footprint;
-use crate::tree::tree_node::{build_tree, fill_children, is_reserved, TreeSnapshot};
+use crate::tree::tree_node::{build_children, build_tree, fill_children, is_reserved, TreeNode, TreeSnapshot};
 use crate::tree::tree_store::{self, get_node, get_type, is_locked_type};
 
 pub use add::add_next;
@@ -35,10 +36,21 @@ pub use retype::{set_details, set_node_type};
 #[cfg(test)]
 pub(crate) use {add::add_node, recycle::recycle_staged_with};
 
+// One parent's children as they are now; touched children carry their filled subtree, the others none.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LevelPatch {
+    pub parent: Vec<String>,
+    pub has_children: bool,
+    pub children: Vec<TreeNode>,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Mutation {
-    pub tree: TreeSnapshot,
+    // Only set when the change is not local (a re-synced yaml, an unknown scope or a failed patch).
+    pub tree: Option<TreeSnapshot>,
+    pub levels: Vec<LevelPatch>,
     pub select: Option<Vec<String>>,
     pub warnings: Vec<String>,
     // Subtrees whose search docs changed, before and after; empty means unknown and forces a full rebuild.
@@ -50,14 +62,20 @@ pub struct Mutation {
 }
 
 impl Mutation {
-    pub(crate) fn touching(mut self, paths: Vec<Vec<String>>) -> Self {
-        self.touched = paths;
-        self
-    }
-
     pub(crate) fn replacing(mut self, before: Vec<(Vec<String>, Mapping)>) -> Self {
         self.before = before;
         self
+    }
+
+    pub(crate) fn touched_nodes(&self) -> Vec<&TreeNode> {
+        self.touched
+            .iter()
+            .filter_map(|rel| {
+                let (_, parent) = rel.split_last()?;
+                let level = self.levels.iter().find(|l| l.parent == parent)?;
+                level.children.iter().find(|n| n.rel_parts == *rel)
+            })
+            .collect()
     }
 }
 
@@ -72,17 +90,36 @@ pub(crate) struct Target {
     pub node_type: String,
 }
 
-// Folders that just got a .ant folder receive their id now instead of at the next refresh.
-fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) {
+// New .ant folders get their id now; true means a folder moved outside the app was re-keyed, which is not a local change.
+fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) -> bool {
+    let shape = node_paths(data);
     match footprint::plan(root, data) {
         Ok(true) => {
             if let Err(e) = tree_store::save(root, data) {
                 warnings.push(format!("Could not save moved folders: {e}"));
             }
+            node_paths(data) != shape
         }
-        Ok(false) => {}
-        Err(e) => warnings.push(format!("Could not assign folder ids: {e}")),
+        Ok(false) => false,
+        Err(e) => {
+            warnings.push(format!("Could not assign folder ids: {e}"));
+            false
+        }
     }
+}
+
+fn node_paths(data: &Mapping) -> BTreeSet<Vec<String>> {
+    fn walk(node: &Mapping, rel: &mut Vec<String>, out: &mut BTreeSet<Vec<String>>) {
+        for (name, child) in child_entries(node) {
+            rel.push(name.to_string());
+            out.insert(rel.clone());
+            walk(child, rel, out);
+            rel.pop();
+        }
+    }
+    let mut out = BTreeSet::new();
+    walk(data, &mut Vec::new(), &mut out);
+    out
 }
 
 // Folders added on disk since the last refresh get their yaml entry before any check runs.
@@ -90,6 +127,20 @@ pub(crate) fn load_synced(root: &Path) -> R<(Mapping, bool)> {
     let mut data = tree_store::load(root)?;
     let changed = tree_store::sync(root, &mut data)?;
     Ok((data, changed))
+}
+
+// Ordinary mutations list only the levels down to `dir`; drift found there re-syncs everything, as the change is then not local.
+pub(crate) fn load_synced_at(root: &Path, dir: &[String]) -> R<(Mapping, bool)> {
+    let mut data = tree_store::load(root)?;
+    let changed = tree_store::sync_branch(root, &mut data, dir)?;
+    if changed {
+        tree_store::sync(root, &mut data)?;
+    }
+    Ok((data, changed))
+}
+
+pub(crate) fn parent_of(rel: &[String]) -> &[String] {
+    rel.split_last().map_or(&[], |(_, parent)| parent)
 }
 
 pub(crate) fn split(rel: &[String]) -> R<(&String, &[String])> {
@@ -112,19 +163,22 @@ pub(crate) fn locate(root: &Path, data: &Mapping, rel: &[String]) -> R<Target> {
         return Err(FmError::InvalidName { name: meta.clone(), reason: "reserved name".to_string() });
     }
     let abs = resolve(root, rel)?;
-    let mut on_disk = true;
-    let mut dir = root.to_path_buf();
-    for part in rel {
-        if !has_exact_dir(&dir, part)? {
-            on_disk = false;
-            break;
-        }
-        dir.push(part);
-    }
+    let on_disk = exactly_on_disk(root, rel)?;
     if !on_disk && get_node(data, rel).is_none() {
         return Err(FmError::NotFound { rel_parts: rel.to_vec() });
     }
     Ok(Target { abs, ghost: !on_disk, node_type: get_type(data, rel) })
+}
+
+fn exactly_on_disk(root: &Path, rel: &[String]) -> R<bool> {
+    let mut dir = root.to_path_buf();
+    for part in rel {
+        if !has_exact_dir(&dir, part)? {
+            return Ok(false);
+        }
+        dir.push(part);
+    }
+    Ok(true)
 }
 
 // Exact match, because Windows would also open "01.math" for a yaml key "01.Math".
@@ -189,19 +243,63 @@ pub(crate) fn persist(root: &Path, data: &Mapping, journal: Journal, op: &str) -
     }
 }
 
-// Runs after the yaml is committed, so it never fails: the change is already on disk.
+// Never fails, as the change is already on disk; a local change sends only the touched paths' parent levels.
 pub(crate) fn finish(
     root: &Path,
     data: &Mapping,
     yaml_changed: bool,
     select: Option<Vec<String>>,
     warnings: Vec<String>,
+    touched: Vec<Vec<String>>,
 ) -> Mutation {
-    let tree = build_tree(root, data, yaml_changed).and_then(|mut tree| {
+    let local = !yaml_changed && !touched.is_empty();
+    match local.then(|| subtree_drift(root, data, &touched)) {
+        Some(Ok(false)) => match patch_levels(root, data, &touched) {
+            Ok(levels) => return Mutation { tree: None, levels, select, warnings, touched, before: Vec::new() },
+            Err(e) => return after_commit(root, Err(e), select, warnings, touched),
+        },
+        Some(Err(e)) => return after_commit(root, Err(e), select, warnings, touched),
+        _ => {}
+    }
+    // Reaching here with a local scope means drift was found inside a touched subtree.
+    let tree = build_tree(root, data, yaml_changed || local).and_then(|mut tree| {
         fill_children(root, data, &mut tree.nodes)?;
         Ok(tree)
     });
-    after_commit(root, tree, select, warnings)
+    after_commit(root, tree, select, warnings, touched)
+}
+
+// The quick sync stops above a touched subtree, so folders added deeper inside it would reach the UI unsynced.
+fn subtree_drift(root: &Path, data: &Mapping, touched: &[Vec<String>]) -> R<bool> {
+    for rel in touched {
+        if let Some(node) = get_node(data, rel) {
+            if tree_store::sync_subtree(root, rel, &mut node.clone())? {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+
+// Mirrors the snapshot's rules: a ghost parent or one on the last level shows no children.
+fn patch_levels(root: &Path, data: &Mapping, touched: &[Vec<String>]) -> R<Vec<LevelPatch>> {
+    let mut levels: Vec<LevelPatch> = Vec::new();
+    for rel in touched {
+        let (_, parent) = split(rel)?;
+        if levels.iter().any(|l| l.parent == parent) {
+            continue;
+        }
+        let mut children = build_children(root, data, parent)?;
+        let has_children = parent.is_empty() || (parent.len() < MAX_DEPTH && !children.is_empty() && exactly_on_disk(root, parent)?);
+        if !has_children {
+            children.clear();
+        }
+        for child in children.iter_mut().filter(|n| touched.contains(&n.rel_parts)) {
+            fill_children(root, data, std::slice::from_mut(child))?;
+        }
+        levels.push(LevelPatch { parent: parent.to_vec(), has_children, children });
+    }
+    Ok(levels)
 }
 
 // An empty tree with yamlChanged set tells the UI to refresh instead of showing a stale tree.
@@ -210,12 +308,13 @@ fn after_commit(
     tree: R<TreeSnapshot>,
     select: Option<Vec<String>>,
     mut warnings: Vec<String>,
+    touched: Vec<Vec<String>>,
 ) -> Mutation {
     let tree = tree.unwrap_or_else(|e| {
         warnings.push(format!("The change was saved but the tree could not be reloaded; refresh. {e}"));
         TreeSnapshot { root: root.to_string_lossy().into_owned(), nodes: Vec::new(), yaml_changed: true }
     });
-    Mutation { tree, select, warnings, touched: Vec::new(), before: Vec::new() }
+    Mutation { tree: Some(tree), levels: Vec::new(), select, warnings, touched, before: Vec::new() }
 }
 
 #[cfg(test)]
@@ -226,16 +325,34 @@ mod tests {
     use crate::test_support::*;
 
     #[test]
-    fn a_mutation_returns_every_level_the_snapshot_shows() {
+    fn a_local_mutation_returns_only_the_parent_level_with_the_touched_subtree_filled() {
         let dir = academic("finish-depth");
+        let mut data = yaml(dir.path());
+        tree_store::sync(dir.path(), &mut data).unwrap();
+        tree_store::save(dir.path(), &data).unwrap();
+        let m = rename_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), "Calc").unwrap();
+        assert!(m.tree.is_none());
+        assert_eq!(m.levels.len(), 1);
+        let level = &m.levels[0];
+        assert_eq!(level.parent, rel(&["100.ACADEMIC"]));
+        assert!(level.has_children);
+        let calc = level.children.iter().find(|n| n.name == "01.Calc").unwrap();
+        assert!(calc.children.as_ref().is_some_and(|k| k.iter().any(|n| n.name == "01.Algebra")), "{calc:?}");
+        assert!(level.children.iter().find(|n| n.name == "02.Bio").is_some_and(|n| n.children.is_none()));
+        assert_eq!(m.touched_nodes().len(), 1);
+    }
+
+    #[test]
+    fn drift_found_while_syncing_returns_the_full_snapshot() {
+        let dir = academic("finish-drift");
+        dir.mkdir("100.ACADEMIC/05.Fresh");
+        dir.mkdir("200.ELSEWHERE/01.Deep");
         let m = rename_node(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), "Chem").unwrap();
-        let kids = |nodes: &[crate::tree::tree_node::TreeNode], name: &str| {
-            nodes.iter().find(|n| n.name == name).and_then(|n| n.children.clone()).unwrap_or_default()
-        };
-        let academic = kids(&m.tree.nodes, "100.ACADEMIC");
-        let math = kids(&academic, "01.Math");
-        assert!(math.iter().any(|n| n.name == "01.Algebra"), "{math:?}");
-        assert!(academic.iter().any(|n| n.name == "02.Chem"));
+        let tree = m.tree.expect("a re-synced yaml is not a local change");
+        assert!(tree.yaml_changed && m.levels.is_empty());
+        let academic = tree.nodes.iter().find(|n| n.name == "100.ACADEMIC").and_then(|n| n.children.clone()).unwrap();
+        assert!(academic.iter().any(|n| n.name == "02.Chem") && academic.iter().any(|n| n.name == "05.Fresh"));
+        assert_eq!(yaml_type(dir.path(), &["200.ELSEWHERE", "01.Deep"]), "NODE-L2");
     }
 
     #[test]
@@ -277,8 +394,9 @@ mod tests {
     fn a_tree_failure_after_commit_is_a_warning_not_an_error() {
         let dir = academic("after-commit");
         let failed = Err(FmError::Internal { message: "boom".to_string() });
-        let m = after_commit(dir.path(), failed, Some(rel(&["x"])), vec!["w".to_string()]);
-        assert!(m.tree.nodes.is_empty() && m.tree.yaml_changed);
+        let m = after_commit(dir.path(), failed, Some(rel(&["x"])), vec!["w".to_string()], Vec::new());
+        let tree = m.tree.as_ref().unwrap();
+        assert!(tree.nodes.is_empty() && tree.yaml_changed);
         assert_eq!(m.select, Some(rel(&["x"])));
         assert_eq!(m.warnings.len(), 2);
         assert!(m.warnings[1].contains("refresh") && m.warnings[1].contains("boom"), "{:?}", m.warnings);
