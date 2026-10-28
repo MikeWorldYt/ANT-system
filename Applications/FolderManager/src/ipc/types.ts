@@ -27,6 +27,7 @@ export interface NodeActions {
   open: boolean;
   favorite: boolean;
   editDetails: boolean;
+  editFlags: boolean;
 }
 
 export interface TreeNode {
@@ -40,6 +41,7 @@ export interface TreeNode {
   statusRaw: string | null;
   locked: boolean;
   reserved: boolean;
+  flags: string[];
   hasChildren: boolean;
   isGit: boolean;
   fixedPrefix: string;

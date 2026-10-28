@@ -84,6 +84,11 @@ pub async fn set_favorite(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R
 }
 
 #[tauri::command]
+pub async fn set_user_flag(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_user_flag(root, &rel_parts, on))).await
+}
+
+#[tauri::command]
 pub async fn set_node_details(app: AppHandle, rel_parts: Vec<String>, status: Option<WkbStatus>, owner: Option<String>) -> R<Mutation> {
     run_locked(app, move |root| {
         with_search_index(root, mutations::set_details(root, &rel_parts, status, owner.as_deref()))

@@ -24,6 +24,7 @@ export function nodeFlags(n: TreeNode): string[] {
   if (n.locked) flags.push("locked");
   if (n.reserved) flags.push("reserved");
   if (n.isGit) flags.push("git project");
+  flags.push(...n.flags);
   return flags;
 }
 

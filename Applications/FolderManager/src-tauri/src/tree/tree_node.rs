@@ -5,7 +5,7 @@ use std::path::Path;
 use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{child_entries, type_base, type_level, META_KEYS};
+use crate::ant_core::tree_types::{child_entries, flags_in, type_base, type_level, META_KEYS};
 use crate::config::{
     LINKED_PREFIXES, MAX_DEPTH, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
@@ -36,6 +36,7 @@ pub struct NodeActions {
     pub open: bool,
     pub favorite: bool,
     pub edit_details: bool,
+    pub edit_flags: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -51,6 +52,7 @@ pub struct TreeNode {
     pub status_raw: Option<String>,
     pub locked: bool,
     pub reserved: bool,
+    pub flags: Vec<String>,
     pub has_children: bool,
     pub is_git: bool,
     pub fixed_prefix: String,
@@ -195,6 +197,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
         status_raw,
         locked,
         reserved,
+        flags: yaml_entry.map(flags_in).unwrap_or_default(),
         has_children,
         is_git,
         fixed_prefix,
@@ -225,6 +228,7 @@ fn compute_actions(depth: usize, ghost: bool, raw_type: &str, reserved: bool, in
         // A broken info.json is never overwritten, so neither edit can be saved into it.
         favorite: !reserved && !ghost && !info_broken,
         edit_details: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
+        edit_flags: !frozen && !ghost && type_base(raw_type) == "NODE",
     }
 }
 
@@ -535,6 +539,7 @@ mod tests {
         let tree = build_tree(dir.path(), &data, false).unwrap();
         let a = &find(&tree.nodes, "04.Wkb").actions;
         assert!(!a.favorite && !a.edit_details);
+        assert!(find(&tree.nodes, "02.Beta").actions.edit_flags && !find(&tree.nodes, "04.Wkb").actions.edit_flags);
     }
 
     #[test]

@@ -2,6 +2,7 @@
 mod add;
 mod delete;
 mod favorite;
+mod user_flags;
 mod recycle;
 mod rename;
 mod reorder;
@@ -26,6 +27,7 @@ use crate::tree::tree_store::{self, get_node, get_type, is_locked_type};
 pub use add::add_next;
 pub use delete::{delete_node, inspect_delete, DeletePreview};
 pub use favorite::set_favorite;
+pub use user_flags::set_user_flag;
 pub use recycle::{recover_trashed, recycle_staged, PendingRecycle};
 pub use rename::rename_node;
 pub use reorder::{move_node, MoveDirection};

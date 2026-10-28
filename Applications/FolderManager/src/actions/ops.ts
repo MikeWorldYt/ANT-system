@@ -145,6 +145,9 @@ export const setDetails = (node: TreeNode, status: WkbStatus | null, owner: stri
 export const setFavorite = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setFavorite(node.relParts, on), node.relParts));
 
+export const setUserFlag = (node: TreeNode, on: boolean) =>
+  run(async () => applyMutation(await api.setUserFlag(node.relParts, on), node.relParts));
+
 export const remove = (node: TreeNode) =>
   run(async () => {
     const preview = await api.inspectDelete(node.relParts);
