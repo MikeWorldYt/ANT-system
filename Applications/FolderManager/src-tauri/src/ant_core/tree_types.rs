@@ -1,7 +1,7 @@
 // Reads node types stored in the tree ("NODE-L2", "REV-L3", "CFG") and the entries that name child folders.
 use serde_yaml::Mapping;
 
-pub const META_KEYS: [&str; 2] = ["type", "status"];
+pub const META_KEYS: [&str; 4] = ["type", "status", "uid", "flags"];
 
 pub fn type_base(t: &str) -> &str {
     t.split('-').next().unwrap_or("")

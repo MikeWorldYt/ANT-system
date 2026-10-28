@@ -50,13 +50,12 @@ pub(crate) struct Target {
 // Folders that just got a .ant folder receive their id now instead of at the next refresh.
 fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) {
     match footprint::plan(root, data) {
-        Ok(applied) => {
-            // The db keeps the old paths if this save fails, so the next run migrates again.
-            let saved = if applied.changed { tree_store::save(root, data) } else { Ok(()) };
-            if let Err(e) = saved.and_then(|()| applied.commit(root)) {
+        Ok(true) => {
+            if let Err(e) = tree_store::save(root, data) {
                 warnings.push(format!("Could not save moved folders: {e}"));
             }
         }
+        Ok(false) => {}
         Err(e) => warnings.push(format!("Could not assign folder ids: {e}")),
     }
 }

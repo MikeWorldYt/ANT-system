@@ -8,9 +8,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::META_KEYS;
+use crate::ant_core::tree_types::{child_entries, META_KEYS};
 use crate::config::{DATA_DIR, FOOTPRINT_FILENAME, MAX_DEPTH};
-use crate::storage::db::Store;
 use crate::error::R;
 use crate::fs_safe::{join_rel, write_atomic};
 use crate::ant_core::names::list_subdirs;
@@ -38,31 +37,33 @@ impl Scan {
     }
 }
 
-pub fn scan(root: &Path) -> R<Scan> {
+pub fn scan(root: &Path, data: &Mapping) -> R<Scan> {
     let mut live = Vec::new();
     walk(&mut Vec::new(), root, &mut live)?;
-    let known = match Store::open_existing(root)? {
-        Some(store) => store.footprints()?,
-        None => HashMap::new(),
-    };
-    Ok(Scan { live, known })
+    Ok(Scan { live, known: known_ids(data) })
 }
 
-// What apply decided: whether the yaml changed and the id -> path map to persist once that change is saved.
-pub struct Applied {
-    pub changed: bool,
-    remembered: HashMap<String, String>,
+// The uid of every node in the tree, mapped to its path.
+fn known_ids(data: &Mapping) -> HashMap<String, String> {
+    let mut known = HashMap::new();
+    collect_ids(data, &[], &mut known);
+    known
 }
 
-impl Applied {
-    pub fn commit(&self, root: &Path) -> R<()> {
-        Store::open_or_create(root)?.replace_footprints(&self.remembered)
+fn collect_ids(node: &Mapping, parent: &[String], out: &mut HashMap<String, String>) {
+    for (name, child) in child_entries(node) {
+        let mut rel = parent.to_vec();
+        rel.push(name.to_string());
+        if let Some(uid) = child.get("uid").and_then(Value::as_str) {
+            out.insert(uid.to_string(), rel.join("/"));
+        }
+        collect_ids(child, &rel, out);
     }
 }
 
-// Writes missing ids and carries moved folders' yaml entries to their new place; persisting the map is left to commit.
-pub fn plan(root: &Path, data: &mut Mapping) -> R<Applied> {
-    let Scan { live, known } = scan(root)?;
+// Writes missing ids to disk, carries moved folders' entries to their new place and stores each uid in the tree; returns whether the tree changed.
+pub fn plan(root: &Path, data: &mut Mapping) -> R<bool> {
+    let Scan { live, known } = scan(root, data)?;
     let mut taken: HashSet<String> = known.keys().cloned().chain(live.iter().filter_map(|l| l.id.clone())).collect();
     let mut by_id: HashMap<String, Vec<Vec<String>>> = HashMap::new();
     for l in live {
@@ -79,7 +80,7 @@ pub fn plan(root: &Path, data: &mut Mapping) -> R<Applied> {
     }
 
     let mut moves: Vec<(Vec<String>, Vec<String>)> = Vec::new();
-    let mut remembered = HashMap::new();
+    let mut remembered: HashMap<String, String> = HashMap::new();
     for (id, paths) in by_id {
         let current = match paths.as_slice() {
             [only] => {
@@ -116,14 +117,22 @@ pub fn plan(root: &Path, data: &mut Mapping) -> R<Applied> {
         }
         done.push((from, new));
     }
-    Ok(Applied { changed, remembered })
+    for (id, path) in &remembered {
+        if set_uid(data, path, id) {
+            changed = true;
+        }
+    }
+    Ok(changed)
 }
 
-#[cfg(test)]
-pub fn apply(root: &Path, data: &mut Mapping) -> R<bool> {
-    let applied = plan(root, data)?;
-    applied.commit(root)?;
-    Ok(applied.changed)
+fn set_uid(data: &mut Mapping, path: &str, uid: &str) -> bool {
+    let rel: Vec<String> = path.split('/').map(str::to_string).collect();
+    let Some(node) = get_node_mut(data, &rel) else { return false };
+    if node.get("uid").and_then(Value::as_str) == Some(uid) {
+        return false;
+    }
+    node.insert("uid".into(), uid.into());
+    true
 }
 
 // Compares the real directory listing, because on Windows a case-only rename still resolves under the old name.
@@ -239,12 +248,12 @@ mod tests {
     #[test]
     fn a_folder_with_a_dot_ant_gets_one_id_and_keeps_it() {
         let (dir, mut data) = storage();
-        assert!(!scan(dir.path()).unwrap().is_clean());
-        assert!(!apply(dir.path(), &mut data).unwrap());
+        assert!(!scan(dir.path(), &data).unwrap().is_clean());
+        assert!(plan(dir.path(), &mut data).unwrap());
         let first = read_id(&dir.path().join("100.A/PJ.001")).unwrap();
         assert_eq!(first.len(), ID_LEN);
-        assert!(scan(dir.path()).unwrap().is_clean());
-        apply(dir.path(), &mut data).unwrap();
+        assert!(scan(dir.path(), &data).unwrap().is_clean());
+        assert!(!plan(dir.path(), &mut data).unwrap());
         assert_eq!(read_id(&dir.path().join("100.A/PJ.001")).unwrap(), first);
     }
 
@@ -253,41 +262,41 @@ mod tests {
         let dir = TempDir::new("footprint-plain");
         dir.mkdir("100.A/PJ.001");
         let mut data = Mapping::new();
-        apply(dir.path(), &mut data).unwrap();
+        plan(dir.path(), &mut data).unwrap();
         assert!(!dir.path().join("100.A/PJ.001/.ant").exists());
     }
 
     #[test]
     fn a_folder_moved_outside_the_app_keeps_its_type_and_status() {
         let (dir, mut data) = storage();
-        apply(dir.path(), &mut data).unwrap();
+        plan(dir.path(), &mut data).unwrap();
         fs::rename(dir.path().join("100.A/PJ.001"), dir.path().join("100.A/PJ.009")).unwrap();
         sync(dir.path(), &mut data).unwrap();
-        assert!(apply(dir.path(), &mut data).unwrap());
+        assert!(plan(dir.path(), &mut data).unwrap());
         let moved = get_node(&data, &rel(&["100.A", "PJ.009"])).unwrap();
         assert_eq!(moved.get("status").and_then(Value::as_str), Some("hold"));
         assert!(get_node(&data, &rel(&["100.A", "PJ.001"])).is_none());
-        assert!(scan(dir.path()).unwrap().is_clean());
+        assert!(scan(dir.path(), &data).unwrap().is_clean());
     }
 
     #[test]
     fn a_copied_folder_is_not_taken_for_a_move() {
         let (dir, mut data) = storage();
-        apply(dir.path(), &mut data).unwrap();
+        plan(dir.path(), &mut data).unwrap();
         dir.mkdir("100.A/PJ.002/.ant");
         fs::copy(dir.path().join("100.A/PJ.001/.ant/dragpath.json"), dir.path().join("100.A/PJ.002/.ant/dragpath.json")).unwrap();
         sync(dir.path(), &mut data).unwrap();
-        assert!(!apply(dir.path(), &mut data).unwrap());
+        assert!(!plan(dir.path(), &mut data).unwrap());
         assert!(get_node(&data, &rel(&["100.A", "PJ.001"])).is_some() && get_node(&data, &rel(&["100.A", "PJ.002"])).is_some());
     }
 
     #[test]
     fn a_case_only_rename_migrates_the_entry() {
         let (dir, mut data) = storage();
-        apply(dir.path(), &mut data).unwrap();
+        plan(dir.path(), &mut data).unwrap();
         fs::rename(dir.path().join("100.A/PJ.001"), dir.path().join("100.A/pj.001")).unwrap();
         sync(dir.path(), &mut data).unwrap();
-        assert!(apply(dir.path(), &mut data).unwrap());
+        assert!(plan(dir.path(), &mut data).unwrap());
         let moved = get_node(&data, &rel(&["100.A", "pj.001"])).unwrap();
         assert_eq!(moved.get("status").and_then(Value::as_str), Some("hold"));
     }
@@ -302,22 +311,21 @@ mod tests {
   PJ.001: {type: WKB-L2, status: hold}
 ").unwrap();
         sync(dir.path(), &mut data).unwrap();
-        apply(dir.path(), &mut data).unwrap();
+        plan(dir.path(), &mut data).unwrap();
         fs::rename(dir.path().join("100.A"), dir.path().join("200.B")).unwrap();
         fs::rename(dir.path().join("200.B/PJ.001"), dir.path().join("200.B/PJ.002")).unwrap();
         sync(dir.path(), &mut data).unwrap();
-        assert!(apply(dir.path(), &mut data).unwrap());
+        assert!(plan(dir.path(), &mut data).unwrap());
         let child = get_node(&data, &rel(&["200.B", "PJ.002"])).unwrap();
         assert_eq!(child.get("status").and_then(Value::as_str), Some("hold"));
         assert!(get_node(&data, &rel(&["100.A"])).is_none());
     }
 
     #[test]
-    fn plan_does_not_touch_the_db_until_commit() {
+    fn plan_writes_the_uid_into_the_tree() {
         let (dir, mut data) = storage();
-        let applied = plan(dir.path(), &mut data).unwrap();
-        assert!(!scan(dir.path()).unwrap().is_clean());
-        applied.commit(dir.path()).unwrap();
-        assert!(scan(dir.path()).unwrap().is_clean());
+        assert!(plan(dir.path(), &mut data).unwrap());
+        let node = get_node(&data, &rel(&["100.A", "PJ.001"])).unwrap();
+        assert_eq!(node.get("uid").and_then(Value::as_str), read_id(&dir.path().join("100.A/PJ.001")).as_deref());
     }
 }

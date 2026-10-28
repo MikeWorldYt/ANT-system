@@ -17,21 +17,18 @@ pub fn snapshot(root: &Path) -> R<TreeSnapshot> {
     }
     let mut data = tree_store::load(root)?;
     let mut changed = tree_store::sync(root, &mut data)?;
-    if changed || !footprint::scan(root)?.is_clean() {
+    if changed || !footprint::scan(root, &data)?.is_clean() {
         // Reloading under the file lock keeps this save from overwriting another process's edit.
         let _lock = StorageLock::acquire(root)?;
         data = tree_store::load(root)?;
         changed = tree_store::sync(root, &mut data)?;
-        let applied = footprint::plan(root, &mut data)?;
-        if applied.changed {
+        if footprint::plan(root, &mut data)? {
             tree_store::sync(root, &mut data)?;
             changed = true;
         }
         if changed {
             tree_store::save(root, &data)?;
         }
-        // Saved first: a failed save must leave the old paths in the db so the next run migrates again.
-        applied.commit(root)?;
     }
     let mut tree = build_tree(root, &data, changed)?;
     fill_children(root, &data, &mut tree.nodes)?;

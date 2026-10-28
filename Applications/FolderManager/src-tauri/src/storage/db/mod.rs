@@ -14,7 +14,7 @@ use crate::fs_safe::io_err;
 
 pub(crate) use query::{Doc, Suggestion};
 
-const SCHEMA_VERSION: i64 = 1;
+const SCHEMA_VERSION: i64 = 2;
 
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL) WITHOUT ROWID;
@@ -26,16 +26,18 @@ CREATE TABLE IF NOT EXISTS nodes (
     type TEXT,
     status TEXT,
     extra TEXT,
+    uid TEXT,
+    flags TEXT,
     UNIQUE (parent_id, name)
 );
 CREATE INDEX IF NOT EXISTS nodes_name ON nodes (name COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS nodes_uid ON nodes (uid);
 CREATE TABLE IF NOT EXISTS node_fields (
     path TEXT NOT NULL,
     key TEXT NOT NULL,
     value TEXT NOT NULL,
     PRIMARY KEY (path, key)
 ) WITHOUT ROWID;
-CREATE TABLE IF NOT EXISTS footprints (id TEXT PRIMARY KEY, path TEXT NOT NULL) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS node_fields_key_value ON node_fields (key, value COLLATE NOCASE);
 ";
 
@@ -74,18 +76,40 @@ impl Store {
 
     fn open(path: PathBuf) -> R<Store> {
         let fail = |e: rusqlite::Error| db_err("open ant.db", &path, &e);
-        let conn = Connection::open(&path).map_err(fail)?;
+        let mut conn = Connection::open(&path).map_err(fail)?;
         conn.busy_timeout(Duration::from_secs(5)).map_err(fail)?;
         let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).map_err(fail)?;
         if version > SCHEMA_VERSION {
             return Err(FmError::Internal { message: "ant.db was written by a newer version of the app".to_string() });
         }
+        match version {
+            0 => conn.execute_batch(SCHEMA).map_err(fail)?,
+            1 => migrate_v1(&mut conn).map_err(fail)?,
+            _ => {}
+        }
         if version < SCHEMA_VERSION {
-            conn.execute_batch(SCHEMA).map_err(fail)?;
             conn.pragma_update(None, "user_version", SCHEMA_VERSION).map_err(fail)?;
         }
         Ok(Store { conn, path })
     }
+}
+
+// v1 kept folder ids in a footprints table; they move onto their nodes so one row carries the whole folder.
+fn migrate_v1(conn: &mut Connection) -> rusqlite::Result<()> {
+    let tx = conn.transaction()?;
+    tx.execute_batch(
+        "ALTER TABLE nodes ADD COLUMN uid TEXT;
+         ALTER TABLE nodes ADD COLUMN flags TEXT;
+         CREATE INDEX IF NOT EXISTS nodes_uid ON nodes (uid);",
+    )?;
+    let footprints: Vec<(String, String)> = {
+        let mut stmt = tx.prepare("SELECT id, path FROM footprints")?;
+        let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
+        rows.collect::<rusqlite::Result<_>>()?
+    };
+    tree::adopt_uids(&tx, &footprints)?;
+    tx.execute_batch("DROP TABLE footprints;")?;
+    tx.commit()
 }
 
 fn db_err(op: &str, path: &Path, e: &rusqlite::Error) -> FmError {
