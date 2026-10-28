@@ -27,15 +27,22 @@ export function nodeFlags(n: TreeNode): string[] {
   return flags;
 }
 
-export const nodeSummary = (n: TreeNode): string => [n.nodeType?.raw, ...nodeFlags(n)].filter(Boolean).join(" · ");
+// Non-editable types (reviews, resources, templates) keep their stored label.
+export const typeName = (n: TreeNode): string => TYPES.find(([v]) => v === n.nodeType?.base)?.[1] ?? n.nodeType?.raw ?? "—";
+
+// Flags sit in parentheses after the type, e.g. "Node (reserved)".
+export const typeLabel = (n: TreeNode): string => {
+  const flags = nodeFlags(n);
+  return flags.length > 0 ? `${typeName(n)} (${flags.join(", ")})` : typeName(n);
+};
+
+export const nodeSummary = (n: TreeNode): string => typeLabel(n);
 
 export function nodeDetails(n: TreeNode): [string, string][] {
-  const rows: [string, string][] = [["Name", n.name], ["Type", n.nodeType?.raw ?? "—"]];
+  const rows: [string, string][] = [["Name", n.name], ["Type", typeLabel(n)]];
   const wkb = isWorkboard(n);
   if (wkb) rows.push(["Status", n.status ? statusLabel(n.status) : UNKNOWN]);
   if (wkb) rows.push(["Owner", ownerOf(n) ?? UNKNOWN]);
-  const flags = nodeFlags(n);
-  if (flags.length > 0) rows.push(["Flags", flags.join(", ")]);
   if (n.info?.error) rows.push(["Info", n.info.error]);
   for (const f of n.info?.fields ?? []) {
     // Status and owner of a workboard already have their own rows.
