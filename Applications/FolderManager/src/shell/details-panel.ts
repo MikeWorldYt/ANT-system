@@ -11,18 +11,10 @@ import type { TreeNode, WkbStatus } from "../ipc/types";
 
 // Status and owner live in info.json, so a broken file blocks them but not the rename.
 const canEditFields = (n: TreeNode) => isWorkboard(n) && !n.ghost && n.actions.changeType && !n.info?.error;
-const canEdit = (n: TreeNode) => n.actions.editDetails;
+const canEdit = (n: TreeNode) => n.actions.editDetails || n.actions.editFlags || n.actions.rename;
 const termId = (label: string) => `details-term-${label.toLowerCase()}`;
 const fieldId = (label: string) => `details-field-${label.toLowerCase()}`;
 const labelled = (label: string) => ({ id: fieldId(label), "aria-labelledby": termId(label) });
-
-// The data flag is a checkbox that saves on change, so it works without entering edit mode.
-function filesRow(n: TreeNode): HTMLElement[] {
-  const box = el("input", { type: "checkbox", ...labelled("Allow files") });
-  box.checked = n.flags.includes("data");
-  box.addEventListener("change", () => void setUserFlag(n, box.checked));
-  return [el("dt", { id: termId("Allow files") }, "Allow files"), el("dd", {}, box)];
-}
 
 export function createDetailsPanel(): { element: HTMLElement; render(): void } {
   const list = el("dl", { class: "details" });
@@ -46,12 +38,19 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     let name: HTMLInputElement | null = null;
     let status: HTMLSelectElement | null = null;
     let owner: HTMLInputElement | null = null;
+    let files: HTMLInputElement | null = null;
 
     if (n.actions.rename) {
       name = el("input", { class: "details-input", type: "text", ...labelled("Name"), spellcheck: "false", autocomplete: "off" });
       name.value = n.editableName;
       inputs.Name = el("div", { class: "details-name" }, el("span", { class: "name-fixed" }, n.fixedPrefix), name);
       first = name;
+    }
+    if (n.actions.editFlags) {
+      files = el("input", { type: "checkbox", ...labelled("Allow files") });
+      files.checked = n.flags.includes("data");
+      inputs["Allow files"] = files;
+      first ??= files;
     }
     if (canEditFields(n)) {
       const select = el("select", { class: "details-input", ...labelled("Status") });
@@ -81,6 +80,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
       const current = selectedNode();
       stop();
       if (!current) return;
+      if (files && files.checked !== current.flags.includes("data") && !(await setUserFlag(current, files.checked))) return;
       const fieldsChanged = (status?.value && status.value !== current.status) || (owner && owner.value.trim() !== (ownerOf(current) ?? ""));
       if (fieldsChanged && !(await setDetails(current, (status?.value || null) as WkbStatus | null, owner?.value ?? null))) return;
       // A details save re-selects the node, so the rename works on its fresh copy.
@@ -92,7 +92,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
       if (ev.key === "Escape") stop();
       else if (ev.key === "Enter" && ev.target !== status) save.click();
     };
-    const fields: (HTMLElement | null)[] = [name, status, owner];
+    const fields: (HTMLElement | null)[] = [name, status, owner, files];
     for (const field of fields) field?.addEventListener("keydown", onKey);
     queueMicrotask(() => first?.focus());
     inputs[""] = el("div", { class: "details-actions" }, save, cancel);
@@ -109,7 +109,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     else if (n && form?.key !== editing) form = { key: editing, inputs: controls(n) };
     const inputs = form?.inputs ?? {};
     const rows = (n ? nodeDetails(n) : []).flatMap(([k, v]) => [el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))]);
-    if (n?.actions.editFlags) rows.push(...filesRow(n));
+    if (inputs["Allow files"]) rows.push(el("dt", { id: termId("Allow files") }, "Allow files"), el("dd", {}, inputs["Allow files"]));
     if (inputs[""]) rows.push(el("dd", {}, inputs[""]));
     for (const ext of detailFields(n)) {
       for (const f of ext.fields) {
