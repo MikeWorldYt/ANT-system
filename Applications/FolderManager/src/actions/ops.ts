@@ -1,6 +1,7 @@
 // User operations: call the backend, replace the snapshot, report errors in the status line.
 import * as api from "../ipc/api";
-import { confirmDialog } from "../ui/dialogs";
+import { confirmDialog, warningConfirmDialog } from "../ui/dialogs";
+import { el } from "../ui/dom";
 import { setStatus, clearStatus } from "../ui/status";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
@@ -121,8 +122,25 @@ export async function toggleExpand(node: TreeNode): Promise<void> {
   await expand(node);
 }
 
-export const addNext = (node: TreeNode, kind: NewKind) =>
-  run(async () => applyMutation(await api.addNode(node.relParts, kind)));
+export const addNext = async (node: TreeNode, kind: NewKind) => {
+  const atRoot = node.relParts.length === 1;
+  if (atRoot) {
+    if (kind === "workboard") return;
+    const confirmed = await warningConfirmDialog(
+      "You are about to create a main category!",
+      [
+        el("p", {},
+          "Choose a broad, stable name because Level 1 categories should not be renamed later; linked paths and shortcuts may depend on them. ",
+          el("a", { href: "https://ant-system.vercel.app/en/foundationals/folder-structure#level-1", target: "_blank", rel: "noopener noreferrer" }, "Learn more"),
+        ),
+        "If you proceed, keep more specific folders inside this category.",
+      ],
+      "Create category",
+    );
+    if (!confirmed) return;
+  }
+  await run(async () => applyMutation(await api.addNode(node.relParts, kind)));
+};
 
 export const move = (node: TreeNode, dir: MoveDirection) =>
   run(async () => applyMutation(await api.moveNode(node.relParts, dir), node.relParts));

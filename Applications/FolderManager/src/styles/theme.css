@@ -176,6 +176,24 @@ dialog.confirm {
 }
 dialog.confirm::backdrop { background: rgb(0 0 0 / 0.6); }
 dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
+dialog.warning-confirm {
+  position: relative; overflow: visible; width: calc(100vw - 48px); max-width: 460px; padding: 24px;
+  border-radius: 12px;
+}
+dialog.warning-confirm form { position: relative; }
+.warning-confirm-icon {
+  position: absolute; top: -36px; left: -36px; z-index: 1;
+  display: block; width: 72px; height: 68px;
+  filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.65));
+}
+.warning-confirm-icon .gui-icon { width: 100%; height: 100%; }
+.warning-confirm h2 { padding-left: 40px; }
+.warning-confirm form > h2 { margin-bottom: 16px; }
+.warning-confirm-copy { display: grid; gap: 16px; }
+.warning-confirm-copy p { margin: 0; line-height: 1.45; }
+.warning-confirm-copy a { color: var(--st-review); text-underline-offset: 2px; }
+.warning-confirm .btn { border-radius: 6px; }
+.warning-confirm .dialog-buttons { margin-top: 24px; }
 .dialog-input { width: 100%; padding: 8px; font: inherit; color: var(--text); background: var(--field-bg); border: 1px solid transparent; border-radius: var(--radius-sm); }
 .dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 

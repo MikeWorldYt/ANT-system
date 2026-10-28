@@ -218,8 +218,8 @@ fn compute_actions(depth: usize, ghost: bool, raw_type: &str, reserved: bool, in
     NodeActions {
         rename: !ghost && !frozen,
         change_type: !frozen && in_tree,
-        // Level 1 has its own creation rules, so a new folder is only offered next to a level 2 or deeper one.
-        add_next: depth >= 1 && !reserved && in_tree,
+        // Main categories can create another Level 1 category; deeper nodes create siblings as usual.
+        add_next: !ghost && !reserved && in_tree,
         move_up: false,
         move_down: false,
         delete: !reserved && (ghost || !locked),
@@ -483,7 +483,7 @@ mod tests {
         )
         .unwrap();
         let top = build_children(dir.path(), &data, &[]).unwrap();
-        assert!(!top[0].actions.add_next);
+        assert!(top[0].actions.add_next);
         let l2 = build_children(dir.path(), &data, &rel(&["01.A"])).unwrap();
         assert!(l2[0].actions.add_next);
         let l3 = build_children(dir.path(), &data, &rel(&["01.A", "01.B"])).unwrap();

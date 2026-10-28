@@ -58,7 +58,7 @@ function bindings(go: ShortcutTargets): Binding[] {
   const runs: Record<string, () => void> = {
     ...go,
     newNode: withSelected((n) => n.actions.addNext && void addNext(n, "node")),
-    newWorkboard: withSelected((n) => n.actions.addNext && void addNext(n, "workboard")),
+    newWorkboard: withSelected((n) => n.actions.addNext && n.relParts.length > 1 && void addNext(n, "workboard")),
   };
   return [
     ...EDITABLE_SHORTCUTS.map((s) => ({ ...comboOf(s.id), plain: false, run: runs[s.id]! })),

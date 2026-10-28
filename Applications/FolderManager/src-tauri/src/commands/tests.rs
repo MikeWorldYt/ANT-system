@@ -96,13 +96,13 @@ fn a_refused_mutation_neither_rebuilds_nor_emits() {
 }
 
 #[test]
-fn move_and_add_child_rebuild_too() {
+fn move_and_add_node_rebuild_too() {
     let dir = work("cmd-move-add");
     let probe = Probe::new();
     let emit = probe.emit();
     let moved = mutations::move_node(dir.path(), &rel(&["100.WORK", "01.A"]), MoveDirection::Down);
     with_index(dir.path(), moved, &emit, probe.rebuild(&[])).unwrap();
-    let added = mutations::add_child(dir.path(), &rel(&["100.WORK"]), NewKind::Node);
+    let added = mutations::add_node(dir.path(), &rel(&["100.WORK"]), NewKind::Node);
     let m = with_index(dir.path(), added, &emit, probe.rebuild(&[])).unwrap();
     assert!(m.warnings.is_empty());
     assert_eq!(probe.phases(), ["started", "done", "started", "done"]);
@@ -168,7 +168,7 @@ fn delete_recycles_cleanly_and_ghost_deletes_skip_the_recycle() {
 fn commands_release_both_locks_and_fail_without_a_storage() {
     let dir = work("cmd-locks");
     let storage = Storage::resolve(dir.path().to_path_buf());
-    locked(&storage, |root| mutations::add_child(root, &rel(&["100.WORK"]), NewKind::Node)).unwrap();
+    locked(&storage, |root| mutations::add_node(root, &rel(&["100.WORK"]), NewKind::Node)).unwrap();
     locked(&storage, |root| mutations::rename_node(root, &rel(&["100.WORK", "02.B"]), "Bee")).unwrap();
     assert!(storage.lock.try_lock().is_ok());
     assert!(StorageLock::acquire(dir.path()).is_ok());

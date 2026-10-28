@@ -33,7 +33,7 @@ pub use rename::rename_node;
 pub use reorder::{move_node, MoveDirection};
 pub use retype::{set_details, set_node_type};
 #[cfg(test)]
-pub(crate) use {add::add_child, recycle::recycle_staged_with};
+pub(crate) use {add::add_node, recycle::recycle_staged_with};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -223,7 +223,7 @@ mod tests {
         let refused = |r: R<Mutation>| matches!(r, Err(FmError::InvalidName { .. }));
         assert!(refused(rename_node(dir.path(), &rel(&["100.ACADEMIC", "type"]), "X")));
         assert!(refused(set_node_type(dir.path(), &rel(&["100.ACADEMIC", "type"]), EditableType::Wkb, None)));
-        assert!(refused(add_child(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "status"]), NewKind::Node)));
+        assert!(refused(add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "status"]), NewKind::Node)));
         assert!(dir.path().join("100.ACADEMIC/type").is_dir());
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC"]), "NODE-L1");
         let math = get_node(&yaml(dir.path()), &rel(&["100.ACADEMIC", "01.Math"])).unwrap().clone();

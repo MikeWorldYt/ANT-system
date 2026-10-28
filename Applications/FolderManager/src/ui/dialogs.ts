@@ -1,5 +1,6 @@
 // Modal confirm built on <dialog> for the native focus trap and Escape handling.
 import { el } from "./dom";
+import { guiIcon } from "./gui-icons";
 
 // The first choice is the safest one and gets focus; Escape resolves to "later".
 export function choiceDialog(title: string, message: string, choices: [value: string, label: string][]): Promise<string> {
@@ -25,6 +26,25 @@ export function confirmDialog(title: string, message: string, confirmLabel: stri
     const buttons = el("div", { class: "dialog-buttons" }, cancel, ok);
     const form = el("form", { method: "dialog" }, el("h2", { id: "confirm-title" }, title), el("p", {}, message), buttons);
     const dialog = el("dialog", { class: "confirm", "aria-labelledby": "confirm-title" }, form);
+
+    dialog.addEventListener("close", () => {
+      resolve(dialog.returnValue === "ok");
+      dialog.remove();
+    });
+    document.body.append(dialog);
+    dialog.showModal();
+    cancel.focus();
+  });
+}
+
+export function warningConfirmDialog(title: string, paragraphs: (string | HTMLElement)[], confirmLabel: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const cancel = el("button", { type: "submit", class: "btn", value: "cancel" }, "Cancel");
+    const ok = el("button", { type: "submit", class: "btn btn-primary", value: "ok" }, confirmLabel);
+    const buttons = el("div", { class: "dialog-buttons" }, cancel, ok);
+    const copy = el("div", { class: "warning-confirm-copy" }, ...paragraphs.map((paragraph) => typeof paragraph === "string" ? el("p", {}, paragraph) : paragraph));
+    const form = el("form", { method: "dialog" }, el("span", { class: "warning-confirm-icon", "aria-hidden": "true" }, guiIcon("warning")), el("h2", { id: "warning-confirm-title" }, title), copy, buttons);
+    const dialog = el("dialog", { class: "confirm warning-confirm", "aria-labelledby": "warning-confirm-title" }, form);
 
     dialog.addEventListener("close", () => {
       resolve(dialog.returnValue === "ok");

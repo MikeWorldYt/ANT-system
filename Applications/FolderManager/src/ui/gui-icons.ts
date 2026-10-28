@@ -27,8 +27,9 @@ import statusHold from "../assets/gui/status-hold.svg?raw";
 import statusProgress from "../assets/gui/status-progress.svg?raw";
 import statusReview from "../assets/gui/status-review.svg?raw";
 import up from "../assets/gui/up.svg?raw";
+import warning from "../assets/gui/warning.svg?raw";
 
-const SOURCES = { add, back, chevronDown, chevronRight, forward, infoPanel, layout, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, refresh, search, separator, settings, starred, statusDone, statusHold, statusProgress, statusReview, up };
+const SOURCES = { add, back, chevronDown, chevronRight, forward, infoPanel, layout, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, refresh, search, separator, settings, starred, statusDone, statusHold, statusProgress, statusReview, up, warning };
 
 export type GuiIcon = keyof typeof SOURCES;
 

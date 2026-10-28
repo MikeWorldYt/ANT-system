@@ -31,10 +31,13 @@ export function createToolbar(views: ViewPicker, panel: PanelToggle): { element:
 
   // ─────────♦ ADD AND MOVE ─────────────────────────────────────────────────────
   const add = iconButton("Add", "add");
-  attachMenu(add, "Add", () => [
-    { label: "Add node", run: () => withSelected((n) => addNext(n, "node")) },
-    { label: "Add workboard", run: () => withSelected((n) => addNext(n, "workboard")) },
-  ]);
+  attachMenu(add, "Add", () => {
+    const atRoot = selectedNode()?.relParts.length === 1;
+    return [
+      { label: atRoot ? "Add main category" : "Add node", run: () => withSelected((n) => void addNext(n, "node")) },
+      ...(!atRoot ? [{ label: "Add workboard", run: () => withSelected((n) => void addNext(n, "workboard")) }] : []),
+    ];
+  });
   const up = iconButton("Move up", "moveUp", act((n) => void move(n, "up")));
   const down = iconButton("Move down", "moveDown", act((n) => void move(n, "down")));
 
