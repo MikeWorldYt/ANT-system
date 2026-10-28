@@ -1,8 +1,8 @@
 // User operations: call the backend, replace the snapshot, report errors in the status line.
 import * as api from "../ipc/api";
-import { confirmDialog, warningConfirmDialog } from "../ui/dialogs";
+import { warningConfirmDialog } from "../ui/dialogs";
 import { el } from "../ui/dom";
-import { setStatus, clearStatus } from "../ui/status";
+import { beginOperationStatus, clearStatus, endOperationStatus, setStatus } from "../ui/status";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { applySettings, findNode, hydrate, keyOf, lastSelection, notify, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, state, type Settings } from "../store/state";
@@ -15,7 +15,8 @@ async function reload(snapshot?: TreeSnapshot): Promise<void> {
   pruneSelection();
 }
 
-async function run(fn: () => Promise<void>): Promise<boolean> {
+async function run(fn: () => Promise<void>, progress?: string): Promise<boolean> {
+  if (progress) beginOperationStatus(progress);
   setBusy(true);
   try {
     await fn();
@@ -31,6 +32,7 @@ async function run(fn: () => Promise<void>): Promise<boolean> {
     }
     return false;
   } finally {
+    if (progress) endOperationStatus();
     setBusy(false);
   }
 }
@@ -139,11 +141,15 @@ export const addNext = async (node: TreeNode, kind: NewKind) => {
     );
     if (!confirmed) return;
   }
-  await run(async () => applyMutation(await api.addNode(node.relParts, kind)));
+  const parentName = node.relParts.length > 1 ? node.relParts[node.relParts.length - 2] : "Storage root";
+  const progress = atRoot
+    ? "Creating a main category in Storage root…"
+    : `Creating ${kind === "workboard" ? "workboard" : "node"} in "${parentName}"…`;
+  await run(async () => applyMutation(await api.addNode(node.relParts, kind)), progress);
 };
 
 export const move = (node: TreeNode, dir: MoveDirection) =>
-  run(async () => applyMutation(await api.moveNode(node.relParts, dir), node.relParts));
+  run(async () => applyMutation(await api.moveNode(node.relParts, dir), node.relParts), `Moving "${node.name}" ${dir}…`);
 
 export const renameTo = (node: TreeNode, editable: string) =>
   run(async () => {
@@ -175,9 +181,10 @@ export const remove = (node: TreeNode) =>
     const nonEmpty = preview.files + preview.dirs > 0;
     if (state.settings.confirmDelete && !preview.ghost) {
       const what = nonEmpty ? `contains ${preview.files} files and ${preview.dirs} folders. They go` : "goes";
-      if (!(await confirmDialog("Delete folder", `"${node.name}" ${what} to the Recycle Bin`, "Delete"))) return;
+      if (!(await warningConfirmDialog("Delete folder", [`"${node.name}" ${what} to the Recycle Bin`], "Delete", "danger"))) return;
     }
+    beginOperationStatus(`Deleting "${node.name}"…`);
     const m = await api.deleteNode(node.relParts, preview.ghost, nonEmpty);
     const parent = node.relParts.slice(0, -1);
     await applyMutation(m, parent.length > 0 ? parent : null);
-  });
+  }, "Waiting for user decision…");

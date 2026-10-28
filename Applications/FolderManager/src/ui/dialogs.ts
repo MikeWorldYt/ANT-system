@@ -37,10 +37,10 @@ export function confirmDialog(title: string, message: string, confirmLabel: stri
   });
 }
 
-export function warningConfirmDialog(title: string, paragraphs: (string | HTMLElement)[], confirmLabel: string): Promise<boolean> {
+export function warningConfirmDialog(title: string, paragraphs: (string | HTMLElement)[], confirmLabel: string, confirmTone: "primary" | "danger" = "primary"): Promise<boolean> {
   return new Promise((resolve) => {
     const cancel = el("button", { type: "submit", class: "btn", value: "cancel" }, "Cancel");
-    const ok = el("button", { type: "submit", class: "btn btn-primary", value: "ok" }, confirmLabel);
+    const ok = el("button", { type: "submit", class: `btn btn-${confirmTone}`, value: "ok" }, confirmLabel);
     const buttons = el("div", { class: "dialog-buttons" }, cancel, ok);
     const copy = el("div", { class: "warning-confirm-copy" }, ...paragraphs.map((paragraph) => typeof paragraph === "string" ? el("p", {}, paragraph) : paragraph));
     const form = el("form", { method: "dialog" }, el("span", { class: "warning-confirm-icon", "aria-hidden": "true" }, guiIcon("warning")), el("h2", { id: "warning-confirm-title" }, title), copy, buttons);

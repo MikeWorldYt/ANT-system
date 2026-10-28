@@ -13,7 +13,7 @@ import { onReviewIndex, onWindowFocus } from "./ipc/events";
 import { init, refresh } from "./actions/ops";
 import { installShortcuts } from "./actions/shortcuts";
 import { readPref, savePref } from "./store/prefs";
-import { createStatusLine, clearStatus, setStatus } from "./ui/status";
+import { createStatusLine, clearStatus, currentOperationStatus, setStatus } from "./ui/status";
 import { rememberSelection, state, subscribe } from "./store/state";
 import { createToolbar } from "./shell/toolbar";
 import { openSettings } from "./shell/settings-dialog";
@@ -86,13 +86,16 @@ let indexing = false;
 onReviewIndex((e) => {
   if (e.phase === "started") {
     indexing = true;
-    setStatus("info", "Rebuilding review index");
+    const operation = currentOperationStatus();
+    setStatus("info", operation ? `${operation} Updating review index…` : "Rebuilding review index");
   } else if (e.failures.length > 0) {
     indexing = false;
     setStatus("warning", `Review index: ${plural(e.failures.length, "shortcut")} failed (${e.failures[0]})`);
   } else if (indexing) {
     indexing = false;
-    clearStatus();
+    const operation = currentOperationStatus();
+    if (operation) setStatus("info", operation);
+    else clearStatus();
   }
 }).catch((e) => setStatus("warning", `Review index updates unavailable: ${describeError(e)}`));
 onWindowFocus(() => void refresh()).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
