@@ -5,7 +5,7 @@ use rusqlite::{params, Connection, OptionalExtension, Transaction};
 use serde_yaml::{Mapping, Value};
 
 use super::{db_err, Store};
-use crate::ant_core::tree_types::{child_entries, META_KEYS};
+use crate::ant_core::tree_types::META_KEYS;
 use crate::error::R;
 
 const ROOT_EXTRA: &str = "root_extra";
