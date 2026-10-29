@@ -2,6 +2,7 @@
   "name": "folder-manager",
   "private": true,
   "version": "2.2.1",
+  "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "vite",
