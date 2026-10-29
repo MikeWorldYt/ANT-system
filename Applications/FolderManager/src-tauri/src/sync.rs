@@ -3,6 +3,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use crate::error::R;
+use crate::index::footprint::Copies;
 use crate::index::review_index;
 use crate::scheduler::{self, Task};
 use crate::tree::{snapshot, tree_store};
@@ -14,7 +15,7 @@ pub fn apply(on: bool, root: &Path) -> R<()> {
 }
 
 fn sync(root: &Path) -> R<()> {
-    snapshot(root)?;
+    snapshot(root, Copies::Ignore)?;
     for failure in review_index::rebuild(root, &tree_store::load(root)?) {
         eprintln!("Review index: {failure}");
     }

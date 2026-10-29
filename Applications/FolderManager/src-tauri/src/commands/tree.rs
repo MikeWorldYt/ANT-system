@@ -5,18 +5,20 @@ use serde_yaml::Mapping;
 use tauri::AppHandle;
 
 use super::{review_emitter, run_locked};
-use crate::config::MAX_DEPTH;
 use crate::error::R;
 use crate::fs_safe::validate_component;
+use crate::index::footprint::Copies;
 use crate::index::{reindex, review_folders, review_index, Emit};
-use crate::tree::snapshot;
+use crate::tree::{depth, snapshot};
 use crate::tree::tree_node::{build_children, fill_children, TreeNode, TreeSnapshot};
 use crate::tree::tree_store;
 
 pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>) -> R<TreeSnapshot> {
-    let mut tree = snapshot(root)?;
+    let mut tree = snapshot(root, Copies::Tail)?;
     if review_folders::restore(root)? {
-        tree = snapshot(root)?;
+        let copies = tree.copies;
+        tree = snapshot(root, Copies::Tail)?;
+        tree.copies.extend(copies);
         tree.yaml_changed = true;
     }
     reindex(root, emit, rebuild);
@@ -25,7 +27,7 @@ pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, 
 
 #[tauri::command]
 pub async fn load_tree(app: AppHandle) -> R<TreeSnapshot> {
-    run_locked(app, snapshot).await
+    run_locked(app, |root| snapshot(root, Copies::Tail)).await
 }
 
 #[tauri::command]
@@ -38,7 +40,7 @@ pub async fn refresh(app: AppHandle) -> R<TreeSnapshot> {
 pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<TreeNode>> {
     run_locked(app, move |root| {
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
-        if rel_parts.len() >= MAX_DEPTH {
+        if rel_parts.len() >= depth::limit(root)? {
             return Ok(Vec::new());
         }
         let data = tree_store::load(root)?;

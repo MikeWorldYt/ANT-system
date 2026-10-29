@@ -4,11 +4,12 @@ use std::path::Path;
 use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{type_base, META_KEYS};
-use crate::config::{DATA_FLAG, LOCKED_TYPES, MAX_DEPTH, SPECIAL_TYPES, WKB_IDENTIFIERS};
+use crate::config::{DATA_FLAG, LOCKED_TYPES, SPECIAL_TYPES, WKB_IDENTIFIERS};
 use crate::storage::db::{db_path, Store};
 use crate::error::R;
 use crate::fs_safe::join_rel;
 use crate::ant_core::names::list_subdirs;
+use crate::tree::depth;
 
 pub fn load(root: &Path) -> R<Mapping> {
     match Store::open_existing(root)? {
@@ -40,7 +41,7 @@ pub fn is_locked_type(t: &str) -> bool {
 // A storage with no db yet is new, so its Node folders on level 3 start with the data flag.
 pub fn sync(root: &Path, data: &mut Mapping) -> R<bool> {
     let fresh = !db_path(root).is_file();
-    sync_level(root, data, 0, fresh)
+    sync_level(root, data, 0, fresh, depth::limit(root)?)
 }
 
 pub fn get_node<'a>(data: &'a Mapping, rel: &[String]) -> Option<&'a Mapping> {
@@ -90,8 +91,9 @@ pub fn delete_key(data: &mut Mapping, parent: &[String], key: &str) -> bool {
 // Syncs only the levels from the root down to `dir`, one listing each, without descending any further.
 pub fn sync_branch(root: &Path, data: &mut Mapping, dir: &[String]) -> R<bool> {
     let fresh = !db_path(root).is_file();
+    let limit = depth::limit(root)?;
     let (mut node, mut path, mut changed) = (data, root.to_path_buf(), false);
-    for depth in 0..=dir.len().min(MAX_DEPTH - 1) {
+    for depth in 0..=dir.len().min(limit - 1) {
         let names = list_subdirs(&path)?;
         for name in names.iter().filter(|n| !META_KEYS.contains(&n.as_str())) {
             changed |= add_missing(node, name, depth, fresh);
@@ -111,11 +113,11 @@ pub fn sync_subtree(root: &Path, rel: &[String], node: &mut Mapping) -> R<bool> 
     if !dir.is_dir() {
         return Ok(false);
     }
-    sync_level(&dir, node, rel.len(), !db_path(root).is_file())
+    sync_level(&dir, node, rel.len(), !db_path(root).is_file(), depth::limit(root)?)
 }
 
-fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool) -> R<bool> {
-    if depth >= MAX_DEPTH {
+fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool, limit: usize) -> R<bool> {
+    if depth >= limit {
         return Ok(false);
     }
     let mut changed = false;
@@ -126,7 +128,7 @@ fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool) -> R<bo
         }
         changed |= add_missing(node, &name, depth, fresh);
         if let Some(Value::Mapping(child)) = node.get_mut(name.as_str()) {
-            changed |= sync_level(&dir.join(&name), child, depth + 1, fresh)?;
+            changed |= sync_level(&dir.join(&name), child, depth + 1, fresh, limit)?;
         }
     }
     Ok(changed)

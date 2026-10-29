@@ -8,11 +8,12 @@ use super::{child_rel, ensure_free, finish, guard_frozen, load_synced, load_sync
 use crate::ant_core::names::{editable_part, list_subdirs, next_available_id, next_main_category_id};
 use crate::ant_core::tree_types::child_entries;
 use crate::backup::stamp::local_date;
-use crate::config::{NewKind, DATA_DIR, DATA_FLAG, MAX_DEPTH};
+use crate::config::{NewKind, DATA_DIR, DATA_FLAG};
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, Journal, StorageLock};
 use crate::storage::db::hide;
 use crate::storage::info::{write_info, OWNER_KEYS};
+use crate::tree::depth;
 use crate::tree::tree_store::{get_node, get_node_mut};
 
 // A selected Level 1 node creates a sibling category at the Storage root.
@@ -43,8 +44,9 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     if target.ghost {
         return Err(FmError::GhostNotAllowed { op: "add node".to_string() });
     }
+    let limit = depth::limit(root)?;
     let child_depth = parent.len();
-    if child_depth >= MAX_DEPTH {
+    if child_depth >= limit {
         return Err(FmError::DepthLimit);
     }
     let parent_yaml =
@@ -75,8 +77,8 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     let rev_name = format!("98.{}", editable_part(&new_name));
     // A workboard keeps its review shortcuts out of its own folder.
     match if workboard { Ok(()) } else { journal.mkdir(&new_abs.join(&rev_name)) } {
-        // The deepest level keeps its 98 folder on disk only, as the tree stops at MAX_DEPTH.
-        Ok(()) if level < MAX_DEPTH && !workboard => {
+        // The deepest level keeps its 98 folder on disk only, as the tree stops at the depth limit.
+        Ok(()) if level < limit && !workboard => {
             let mut rev = Mapping::new();
             rev.insert("type".into(), format!("REV-L{level}").into());
             entry.insert(rev_name.into(), rev.into());
@@ -228,6 +230,21 @@ PJ.1000_Next: {type: WKB-L1}
         let locked = add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "98.Math"]), NewKind::Node);
         assert!(matches!(locked, Err(FmError::Locked { .. })));
         assert!(matches!(add_node(dir.path(), &rel(&["999.Settings"]), NewKind::Node), Err(FmError::Reserved { .. })));
+    }
+
+    #[test]
+    fn a_raised_depth_limit_moves_the_last_level_down() {
+        let dir = academic("add-deeper");
+        crate::storage::db::Store::open_or_create(dir.path()).unwrap().set_setting(depth::DEPTH_KEY, "4").unwrap();
+        add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), NewKind::Node).unwrap();
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "02.New-Node", "98.New-Node"]), "REV-L3");
+        let m = add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "01.Algebra"]), NewKind::Node).unwrap();
+        let l4 = rel(&["100.ACADEMIC", "01.Math", "01.Algebra", "01.New-Node"]);
+        assert_eq!(m.select, Some(l4.clone()));
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "01.Algebra", "01.New-Node"]), "NODE-L4");
+        assert!(dir.path().join("100.ACADEMIC/01.Math/01.Algebra/01.New-Node/98.New-Node").is_dir());
+        assert!(get_node(&yaml(dir.path()), &l4).unwrap().get("98.New-Node").is_none());
+        assert!(matches!(add_node(dir.path(), &l4, NewKind::Node), Err(FmError::DepthLimit)));
     }
 
     #[test]

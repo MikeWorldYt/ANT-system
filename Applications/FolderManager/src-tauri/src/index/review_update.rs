@@ -9,6 +9,7 @@ use serde_yaml::Mapping;
 use super::review_index::{branch_owners, rev_folder};
 use crate::ant_core::shortcuts::review_shortcut_name;
 use crate::ant_core::tree_types::child_entries;
+use crate::tree::depth;
 use crate::tree::tree_store::get_node;
 
 pub(crate) fn update_with(
@@ -19,10 +20,11 @@ pub(crate) fn update_with(
     touched: &[Vec<String>],
     create: impl FnOnce(&[(PathBuf, PathBuf)]) -> Vec<String>,
 ) -> Result<Vec<String>, String> {
-    let old: BTreeSet<Vec<String>> = before.iter().flat_map(|(rel, node)| branch_owners(data, rel, node)).collect();
+    let limit = depth::limit(root).map_err(|e| e.to_string())?;
+    let old: BTreeSet<Vec<String>> = before.iter().flat_map(|(rel, node)| branch_owners(data, rel, node, limit)).collect();
     let new: BTreeSet<Vec<String>> = touched
         .iter()
-        .filter_map(|rel| get_node(data, rel).map(|node| branch_owners(data, rel, node)))
+        .filter_map(|rel| get_node(data, rel).map(|node| branch_owners(data, rel, node, limit)))
         .flatten()
         .collect();
     let mut failures = Vec::new();
@@ -38,7 +40,7 @@ pub(crate) fn update_with(
     }
     // An owner without a valid name never got a link, so there is nothing of it to remove.
     let stale: Vec<String> = old.iter().filter_map(|owner| review_shortcut_name(owner, "").ok()).collect();
-    check_unshared(root, data, &stale, &fresh)?;
+    check_unshared(root, data, &stale, &fresh, limit)?;
     for name in &stale {
         remove_owned(root, review_dir, &review_dir.join(name))?;
     }
@@ -55,7 +57,7 @@ pub(crate) fn update_with(
 }
 
 // A name another folder also produces depends on the full walk's order, so only the full rebuild may settle it.
-fn check_unshared(root: &Path, data: &Mapping, stale: &[String], fresh: &[(String, PathBuf)]) -> Result<(), String> {
+fn check_unshared(root: &Path, data: &Mapping, stale: &[String], fresh: &[(String, PathBuf)], limit: usize) -> Result<(), String> {
     let mut mine: HashMap<String, usize> = HashMap::new();
     for (name, _) in fresh {
         *mine.entry(name.to_lowercase()).or_default() += 1;
@@ -68,7 +70,7 @@ fn check_unshared(root: &Path, data: &Mapping, stale: &[String], fresh: &[(Strin
         if !category.to_lowercase().chars().next().is_some_and(|c| initials.contains(&c)) {
             continue;
         }
-        for owner in branch_owners(data, &[category.to_string()], node) {
+        for owner in branch_owners(data, &[category.to_string()], node, limit) {
             let Ok(name) = review_shortcut_name(&owner, "") else { continue };
             let name = name.to_lowercase();
             if affected.contains(&name) && rev_folder(root, &owner).is_dir() {

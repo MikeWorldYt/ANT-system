@@ -7,7 +7,7 @@ use tauri::{AppHandle, Manager};
 use super::{locked, review_emitter, run_locked, Storage};
 use crate::ant_core::shortcuts::create_shortcuts;
 use crate::config::{EditableType, NewKind, WkbStatus};
-use crate::mutations::{self, DeletePreview, MoveDirection, Mutation, PendingRecycle};
+use crate::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation, PendingRecycle};
 use crate::error::{FmError, R};
 use crate::index::{reindex, reindex_paths, review_index, search_index, Emit};
 use crate::tree::tree_store;
@@ -109,6 +109,11 @@ pub async fn set_node_details(app: AppHandle, rel_parts: Vec<String>, status: Op
         with_search_index(root, mutations::set_details(root, &rel_parts, status, owner.as_deref()))
     })
     .await
+}
+
+#[tauri::command]
+pub async fn answer_copy(app: AppHandle, rel_parts: Vec<String>, answer: CopyAnswer) -> R<()> {
+    run_locked(app, move |root| mutations::answer_copy(root, &rel_parts, answer)).await
 }
 
 #[tauri::command]

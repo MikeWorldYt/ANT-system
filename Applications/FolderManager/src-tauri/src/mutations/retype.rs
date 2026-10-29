@@ -9,6 +9,7 @@ use crate::config::{EditableType, WkbStatus};
 use crate::error::{FmError, R};
 use crate::fs_safe::StorageLock;
 use crate::storage::info::{field_of, read_info, write_info, OWNER_KEYS};
+use crate::tree::depth;
 use crate::tree::tree_store::{self, get_node, get_node_mut};
 
 pub fn set_node_type(
@@ -18,6 +19,10 @@ pub fn set_node_type(
     status: Option<WkbStatus>,
 ) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
+    // Entries kept from a higher limit stay in ant.db, so the level itself is checked.
+    if rel.len() > depth::limit(root)? {
+        return Err(FmError::DepthLimit);
+    }
     let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
@@ -106,6 +111,20 @@ mod tests {
         set_node_type(dir.path(), &p, EditableType::Portf, Some(WkbStatus::Done)).unwrap();
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "02.Bio"]), "PORTF-L2");
         assert_eq!(status(dir.path()), None);
+    }
+
+    #[test]
+    fn a_raised_depth_limit_lets_the_next_level_be_retyped() {
+        let dir = academic("retype-deeper");
+        dir.mkdir("100.ACADEMIC/01.Math/01.Algebra/01.Rings");
+        let p = rel(&["100.ACADEMIC", "01.Math", "01.Algebra", "01.Rings"]);
+        assert!(matches!(set_node_type(dir.path(), &p, EditableType::Wkb, None), Err(FmError::DepthLimit)));
+        let mut store = crate::storage::db::Store::open_or_create(dir.path()).unwrap();
+        store.set_setting(depth::DEPTH_KEY, "4").unwrap();
+        set_node_type(dir.path(), &p, EditableType::Wkb, Some(WkbStatus::Hold)).unwrap();
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "01.Algebra", "01.Rings"]), "WKB-L4");
+        store.set_setting(depth::DEPTH_KEY, "3").unwrap();
+        assert!(matches!(set_node_type(dir.path(), &p, EditableType::Node, None), Err(FmError::DepthLimit)));
     }
 
     #[test]

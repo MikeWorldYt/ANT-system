@@ -20,9 +20,10 @@ use std::sync::{Mutex, RwLock};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::config::MAX_DEPTH;
+use crate::config::{DEPTH_CEILING, MAX_DEPTH};
 use crate::error::{FmError, R};
 use crate::index::ReviewIndexEvent;
+use crate::tree::depth;
 use crate::updater;
 
 pub use backup::*;
@@ -83,6 +84,8 @@ pub struct StorageInfo {
     root: String,
     app_version: String,
     max_depth: usize,
+    depth_options: Vec<usize>,
+    depth_warning: Option<String>,
 }
 
 pub fn locked<T>(storage: &Storage, f: impl FnOnce(&Path) -> R<T>) -> R<T> {
@@ -116,10 +119,13 @@ fn review_emitter(app: &AppHandle) -> impl Fn(&ReviewIndexEvent) -> Result<(), S
 #[tauri::command]
 pub async fn get_storage(app: AppHandle) -> R<StorageInfo> {
     run_locked(app, |root| {
+        let setting = depth::read(root)?;
         Ok(StorageInfo {
             root: root.to_string_lossy().into_owned(),
             app_version: updater::CURRENT_VERSION.to_string(),
-            max_depth: MAX_DEPTH,
+            max_depth: setting.limit,
+            depth_options: (MAX_DEPTH..=DEPTH_CEILING).collect(),
+            depth_warning: setting.warning,
         })
     })
     .await

@@ -7,9 +7,10 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Instant;
 
-use crate::config::{DATA_DIR, MAX_DEPTH};
+use crate::config::DATA_DIR;
 use crate::error::{FmError, R};
 use crate::storage::db::db_path;
+use crate::tree::depth;
 use crate::updater::CURRENT_VERSION;
 use sysinfo::SysInfo;
 
@@ -54,6 +55,10 @@ fn header(root: &Path, info: &SysInfo) -> String {
     let build = if cfg!(debug_assertions) { "debug" } else { "release" };
     let webview = tauri::webview_version().unwrap_or_else(|_| "unknown".to_string());
     let db = fs::metadata(db_path(root)).map(|m| m.len().to_string()).unwrap_or_else(|_| "missing".to_string());
+    let tree_depth = match depth::read(root) {
+        Ok(setting) => setting.warning.map_or_else(|| setting.limit.to_string(), |w| format!("{} ({w})", setting.limit)),
+        Err(e) => format!("unknown ({e})"),
+    };
     let rows = [
         ("App", "ANT System Manager (FolderManager)".to_string()),
         ("Version", CURRENT_VERSION.to_string()),
@@ -65,7 +70,7 @@ fn header(root: &Path, info: &SysInfo) -> String {
         ("GPU", info.gpu.clone()),
         ("WebView", webview),
         ("Storage", root.display().to_string()),
-        ("Tree depth limit", MAX_DEPTH.to_string()),
+        ("Tree depth limit", tree_depth),
         ("ant.db", db),
         ("Process", format!("pid {}", std::process::id())),
     ];

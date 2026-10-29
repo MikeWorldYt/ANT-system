@@ -1,5 +1,6 @@
 // Rename, retype and add nodes, keeping disk folders, linked 90./98. folders and the tree in step.
 mod add;
+mod copy_answer;
 mod delete;
 mod favorite;
 mod user_flags;
@@ -22,11 +23,12 @@ use crate::ant_core::tree_types::{child_entries, META_KEYS};
 use crate::config::is_hidden_dir;
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, resolve, same_name, Journal};
-use crate::index::footprint;
+use crate::index::footprint::{self, Copies};
 use crate::tree::tree_node::{is_reserved, TreeNode, TreeSnapshot};
 use crate::tree::tree_store::{self, get_node, get_type, is_locked_type};
 
 pub use add::add_next;
+pub use copy_answer::{answer_copy, CopyAnswer};
 pub use delete::{delete_node, inspect_delete, DeletePreview};
 pub use favorite::set_favorite;
 pub use user_flags::set_user_flag;
@@ -87,7 +89,7 @@ pub(crate) struct Target {
 // New .ant folders get their id now; true means a folder moved outside the app was re-keyed, which is not a local change.
 fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) -> bool {
     let shape = node_paths(data);
-    match footprint::plan(root, data) {
+    match footprint::plan(root, data, Copies::Ignore).map(|plan| plan.changed) {
         Ok(true) => {
             if let Err(e) = tree_store::save(root, data) {
                 warnings.push(format!("Could not save moved folders: {e}"));

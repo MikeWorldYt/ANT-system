@@ -57,12 +57,23 @@ export interface TreeSnapshot {
   root: string;
   nodes: TreeNode[];
   yamlChanged: boolean;
+  copies: Copied[];
 }
+
+export interface Copied {
+  relParts: string[];
+  original: string[];
+}
+
+export type CopyAnswer = "copy" | "independent";
 
 export interface StorageInfo {
   root: string;
   appVersion: string;
   maxDepth: number;
+  depthOptions: number[];
+  // Set when the saved depth was unusable and the default is used instead.
+  depthWarning: string | null;
 }
 
 // Touched children arrive with their subtree filled; the others with children null.

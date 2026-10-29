@@ -5,8 +5,8 @@ use serde::Serialize;
 use serde_yaml::Mapping;
 
 use super::{exactly_on_disk, split, Mutation};
-use crate::config::MAX_DEPTH;
 use crate::error::R;
+use crate::tree::depth;
 use crate::tree::tree_node::{build_children, build_tree, fill_children, TreeNode, TreeSnapshot};
 use crate::tree::tree_store::{self, get_node};
 
@@ -59,6 +59,7 @@ fn subtree_drift(root: &Path, data: &Mapping, touched: &[Vec<String>]) -> R<bool
 
 // Mirrors the snapshot's rules: a ghost parent or one on the last level shows no children.
 fn patch_levels(root: &Path, data: &Mapping, touched: &[Vec<String>]) -> R<Vec<LevelPatch>> {
+    let limit = depth::limit(root)?;
     let mut levels: Vec<LevelPatch> = Vec::new();
     for rel in touched {
         let (_, parent) = split(rel)?;
@@ -66,7 +67,7 @@ fn patch_levels(root: &Path, data: &Mapping, touched: &[Vec<String>]) -> R<Vec<L
             continue;
         }
         let mut children = build_children(root, data, parent)?;
-        let has_children = parent.is_empty() || (parent.len() < MAX_DEPTH && !children.is_empty() && exactly_on_disk(root, parent)?);
+        let has_children = parent.is_empty() || (parent.len() < limit && !children.is_empty() && exactly_on_disk(root, parent)?);
         if !has_children {
             children.clear();
         }
@@ -88,7 +89,7 @@ pub(super) fn after_commit(
 ) -> Mutation {
     let tree = tree.unwrap_or_else(|e| {
         warnings.push(format!("The change was saved but the tree could not be reloaded; refresh. {e}"));
-        TreeSnapshot { root: root.to_string_lossy().into_owned(), nodes: Vec::new(), yaml_changed: true }
+        TreeSnapshot { root: root.to_string_lossy().into_owned(), nodes: Vec::new(), yaml_changed: true, copies: Vec::new() }
     });
     Mutation { tree: Some(tree), levels: Vec::new(), select, warnings, touched, before: Vec::new() }
 }

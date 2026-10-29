@@ -6,9 +6,10 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::shortcuts::{create_shortcuts, review_shortcut_name};
 use crate::ant_core::tree_types::child_entries;
-use crate::config::{MAX_DEPTH, REVIEW_FOLDER};
+use crate::config::REVIEW_FOLDER;
 use crate::fs_safe::{is_link, join_rel};
 use crate::ant_core::names::editable_part;
+use crate::tree::depth;
 use crate::tree::tree_store::{get_node, is_locked_type};
 
 pub fn rebuild(root: &Path, data: &Mapping) -> Vec<String> {
@@ -25,9 +26,13 @@ pub(crate) fn rebuild_with(
         Ok(None) => return Vec::new(),
         Err(failure) => return vec![failure],
     };
+    let limit = match depth::limit(root) {
+        Ok(limit) => limit,
+        Err(e) => return vec![e.to_string()],
+    };
     let mut failures = remove_old_links(root, &review_dir);
     let mut found = Vec::new();
-    owners(data, &[], &mut found);
+    owners(data, &[], &mut found, limit);
     let mut pairs = Vec::new();
     for owner in &found {
         let rev_abs = rev_folder(root, owner);
@@ -57,15 +62,15 @@ pub(super) fn rev_folder(root: &Path, owner: &[String]) -> PathBuf {
     join_rel(root, owner).join(format!("98.{editable}"))
 }
 
-// Owners of one branch under the full walk's rules: no locked node on the way and nothing past MAX_DEPTH.
-pub(super) fn branch_owners(data: &Mapping, branch: &[String], node: &Mapping) -> Vec<Vec<String>> {
+// Owners of one branch under the full walk's rules: no locked node on the way and nothing past the depth limit.
+pub(super) fn branch_owners(data: &Mapping, branch: &[String], node: &Mapping, limit: usize) -> Vec<Vec<String>> {
     let open = |depth: usize| get_node(data, &branch[..depth]).is_some_and(|n| !is_locked(n));
-    if branch.is_empty() || branch.len() > MAX_DEPTH || is_locked(node) || !(1..branch.len()).all(open) {
+    if branch.is_empty() || branch.len() > limit || is_locked(node) || !(1..branch.len()).all(open) {
         return Vec::new();
     }
     let mut found = vec![branch.to_vec()];
-    if branch.len() < MAX_DEPTH {
-        owners(node, branch, &mut found);
+    if branch.len() < limit {
+        owners(node, branch, &mut found, limit);
     }
     found
 }
@@ -137,7 +142,7 @@ fn is_locked(node: &Mapping) -> bool {
 }
 
 // Sorted pre-order, so the full rebuild always hands its pairs over in the same order.
-fn owners(node: &Mapping, parts: &[String], found: &mut Vec<Vec<String>>) {
+fn owners(node: &Mapping, parts: &[String], found: &mut Vec<Vec<String>>, limit: usize) {
     let mut children: Vec<(&str, &Mapping)> = child_entries(node).collect();
     children.sort_by(|a, b| a.0.cmp(b.0));
     for (name, child) in children {
@@ -147,8 +152,8 @@ fn owners(node: &Mapping, parts: &[String], found: &mut Vec<Vec<String>>) {
         let mut child_parts = parts.to_vec();
         child_parts.push(name.to_string());
         found.push(child_parts.clone());
-        if child_parts.len() < MAX_DEPTH {
-            owners(child, &child_parts, found);
+        if child_parts.len() < limit {
+            owners(child, &child_parts, found, limit);
         }
     }
 }

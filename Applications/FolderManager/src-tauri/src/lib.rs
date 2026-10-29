@@ -74,6 +74,7 @@ pub fn run() {
             commands::skip_version,
             commands::set_node_details,
             commands::set_favorite,
+            commands::answer_copy,
             commands::set_user_flag,
             settings::get_settings,
             settings::set_setting,

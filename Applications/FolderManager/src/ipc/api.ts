@@ -2,6 +2,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isFmError } from "./types";
 import type {
+  CopyAnswer,
   DeletePreview,
   EditableType,
   FmError,
@@ -36,6 +37,7 @@ export const setNodeType = (relParts: string[], typeBase: EditableType, status: 
 export const openNode = (relParts: string[]) => call<void>("open_node", { relParts });
 export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("set_favorite", { relParts, on });
 export const setUserFlag = (relParts: string[], on: boolean) => call<Mutation>("set_user_flag", { relParts, on });
+export const answerCopy = (relParts: string[], answer: CopyAnswer) => call<void>("answer_copy", { relParts, answer });
 export const getSettings = () => call<Record<string, string>>("get_settings");
 export const setSetting = (key: string, value: string) => call<void>("set_setting", { key, value });
 export const openLink = (link: "issues" | "mail" | "changelog" | "docs") => call<void>("open_link", { link });

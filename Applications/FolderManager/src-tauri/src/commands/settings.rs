@@ -7,6 +7,7 @@ use tauri::AppHandle;
 
 use crate::commands::run_locked;
 use crate::storage::db::Store;
+use crate::tree::depth;
 use crate::error::{FmError, R};
 use crate::updater::CURRENT_VERSION;
 
@@ -90,6 +91,7 @@ fn check(key: &str, value: &str) -> R<()> {
         "shortcuts" => shortcuts_valid(value),
         "backupFrequency" => BACKUP_FREQUENCIES.contains(&value),
         "backupFolder" => valid_backup_folder(value),
+        depth::DEPTH_KEY => depth::parse(value).is_some(),
         _ => BOOLEAN_SETTINGS.contains(&key) && matches!(value, "true" | "false"),
     };
     if !valid {
@@ -195,6 +197,16 @@ mod tests {
         assert!(check("backupFolder", &format!("{abs}\nx")).is_err());
         assert!(check("backupFolder", &format!("{abs}/{}", "a".repeat(400))).is_err());
         assert!(check("backupLast", "123").is_err());
+    }
+
+    #[test]
+    fn the_tree_depth_is_refused_above_six_and_below_three() {
+        for ok in ["3", "4", "6"] {
+            assert!(check("treeDepth", ok).is_ok(), "{ok}");
+        }
+        for bad in ["7", "2", "0", "four", "04"] {
+            assert!(check("treeDepth", bad).is_err(), "{bad}");
+        }
     }
 
     #[test]

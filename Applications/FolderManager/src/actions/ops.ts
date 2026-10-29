@@ -1,18 +1,32 @@
 // User operations: call the backend, patch or replace the tree, report errors in the status line.
 import * as api from "../ipc/api";
-import { warningConfirmDialog } from "../ui/dialogs";
+import { choiceDialog, warningConfirmDialog } from "../ui/dialogs";
 import { el } from "../ui/dom";
 import { beginOperationStatus, clearStatus, endOperationStatus, setStatus } from "../ui/status";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { applySettings, findNode, hydrate, keyOf, lastSelection, notify, patchLevels, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, state, type Settings } from "../store/state";
 import { isFmError } from "../ipc/types";
-import type { EditableType, LevelPatch, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
+import type { Copied, EditableType, LevelPatch, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
-  setTree(snapshot ?? (await api.refresh()));
+  const tree = snapshot ?? (await api.refresh());
+  setTree(tree);
   await hydrate();
   pruneSelection();
+  await askAboutCopies(tree.copies);
+}
+
+// The backend marks each copy only once, so a dismissed question leaves the copy marked and is not asked again.
+async function askAboutCopies(copies: Copied[]): Promise<void> {
+  for (const { relParts, original } of copies) {
+    const answer = await choiceDialog(
+      "Copied folder found",
+      `"${relParts.join("/")}" looks like a copy of "${original.join("/")}". Is it a copy, or a new, independent project?`,
+      [["copy", "It is a copy"], ["independent", "New project"]],
+    );
+    if (answer === "copy" || answer === "independent") await api.answerCopy(relParts, answer);
+  }
 }
 
 // A level whose parent the UI never loaded cannot be patched, so the tree is read again.
@@ -67,6 +81,12 @@ export function init(): Promise<boolean> {
     } catch (e) {
       setStatus("warning", `Settings: ${api.describeError(e)}`);
     }
+    try {
+      const { depthWarning } = await api.getStorage();
+      if (depthWarning) setStatus("warning", depthWarning);
+    } catch (e) {
+      setStatus("warning", `Storage info: ${api.describeError(e)}`);
+    }
     await reload(await api.loadTree());
     const last = state.settings.onLaunch === "continue" ? lastSelection() : null;
     if (!last) return;
@@ -82,12 +102,21 @@ export const changeSetting = <K extends keyof Settings>(key: K, value: Settings[
     notify();
   });
 
+// The tree is read again at once, as the depth decides what it holds.
+export const changeTreeDepth = (depth: number) =>
+  run(async () => {
+    await api.setSetting("treeDepth", String(depth));
+    await reload();
+    clearStatus();
+  });
+
 export const resetPreferences = () =>
   run(async () => {
     const wasLogging = state.settings.debugLogging;
     await api.resetSettings();
     applySettings({});
     if (wasLogging) await api.stopDebugLog();
+    await reload();
     notify();
   });
 
