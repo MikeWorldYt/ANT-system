@@ -1,0 +1,94 @@
+---
+title: Plan de Migración
+description: Lleva una colección de archivos existente a un almacenamiento ANT en seis fases, con lo que haces a mano hoy y lo que FolderManager ya te ayuda a hacer.
+---
+import Callout from "/src/components/ui/Callout.astro";
+
+Esta página es para ti si ya tienes archivos repartidos entre carpetas y el escritorio y quieres llevarlos a ANT. La documentación describe las reglas del sistema. [FolderManager](/es/tools/folder-manager) aplica algunas por ti, pero todavía no migra archivos.
+
+<Callout type="warning" title="La migración es manual hoy">
+  FolderManager aún no tiene importación, renombrado por lotes ni mover a otras carpetas. Mueves y renombras tus archivos existentes en el explorador de archivos, y usas FolderManager para crear la estructura, seguir el trabajo y buscarlo después.
+</Callout>
+
+## Qué es manual y qué está automatizado
+
+| Paso | Estado | Cómo |
+| --- | --- | --- |
+| Auditar tus archivos actuales | Manual | Los revisas tú mismo |
+| Crear el almacenamiento | Automatizado | CreateNewStorage |
+| Crear nodos y tableros de trabajo | Automatizado | Añadir nodo (`Ctrl+N`) y Añadir tablero (`Ctrl+Alt+N`) en FolderManager |
+| Renombrar manteniendo el prefijo fijo (`PJ.001_`) | Automatizado | Renombrar (`F2`) edita solo la parte editable |
+| Ordenar carpetas entre sus hermanas | Automatizado | Subir y Bajar |
+| Definir estado y responsable de un tablero | Automatizado | Panel de detalles, guardado en `.ant/info.json` |
+| Encontrar carpetas por nombre, estado o responsable | Automatizado | Búsqueda (`Ctrl+F`) con los filtros `in:`, `status:` y `owner:` |
+| Mantener al día los accesos directos de `998.Review` | Automatizado | La app los reconstruye tras renombrar, mover y eliminar |
+| Mover tus carpetas existentes al almacenamiento | Manual | Planeado para FolderManager |
+| Renombrar archivos antiguos al formato de archivos ANT | Manual | Planeado para FolderManager |
+| Fecha, responsable y área de un archivo | Manual | Planeado, en las propiedades del archivo |
+| Respaldar tus propios archivos | Manual | FolderManager respalda solo los datos de ANT |
+
+## Fase 1: Audita lo que tienes
+
+1. Haz una lista de los lugares donde viven tus archivos: documentos, escritorio, descargas, discos externos, carpetas en la nube.
+2. Elige una fuente a la vez. No intentes migrar todo de golpe.
+3. Separa tres tipos de contenido: archivos sueltos, proyectos (carpetas con un objetivo y un final) y material de referencia que guardas por años.
+4. Anota lo que puedes borrar. Borrar antes de mover deja menos por clasificar.
+
+## Fase 2: Crea el almacenamiento
+
+Crea un almacenamiento vacío con CreateNewStorage y abre FolderManager dentro de él. Sigue [Primeros pasos](/es/start-here/getting-started) y consigue las herramientas en [Descargas](/es/start-here/download).
+
+Deja tus archivos originales donde están. Los copiarás o moverás en las siguientes fases, así siempre tienes un camino de vuelta.
+
+## Fase 3: Asigna tus carpetas a categorías
+
+Asigna cada grupo de contenido a una de las categorías de primer nivel, como `100.PERSONAL`, `200.WORK`, `300.PROJECTS`, `400.ACADEMIC` o `500.HOBBIES`. La lista completa y el nombre de cada nivel están en [Estructura de carpetas](/es/foundationals/folder-structure).
+
+- El nivel 1 se nombra una sola vez y no se vuelve a renombrar, así que elige con cuidado.
+- Dentro de una categoría, crea las subcategorías que necesites con **Añadir nodo**. Siguen el Chill Naming: `01.Documents`, `02.Gallery`.
+- El material de referencia que sirve a todo un nodo va en su carpeta de recursos `90`. Mira [Nodos de soporte](/es/foundationals/support-nodes).
+- Los niveles 1 y 2 no tienen archivos sueltos. Lo que aún no puedas ubicar espera en una carpeta de revisión (Fase 5).
+
+## Fase 4: Convierte proyectos en tableros de trabajo
+
+Cada proyecto, curso o tarea en el que sigas trabajando se convierte en un [tablero de trabajo](/es/foundationals/workboard-nodes).
+
+1. En la categoría donde corresponde, usa **Añadir tablero**. La app crea `PJ.NNN_New-Workboard` con el siguiente contador libre.
+2. Renómbralo con `F2`. El prefijo fijo se mantiene y solo escribes el nombre.
+3. Copia o mueve los archivos del proyecto antiguo dentro del nuevo tablero.
+4. Define su **estado** y **responsable** en el panel de detalles.
+
+El nombre de la carpeta sigue el patrón `TRACKING_NAME`, por ejemplo `PJ.145_Thesis-Draft`. Mira [Convenciones de nombres](/es/foundationals/naming-conventions#nomenclatura-control-para-carpetas) para los identificadores (`PJ`, `HW`, `PR`, `CR`, `TK`).
+
+<Callout type="info" title="Los metadatos no van en el nombre">
+  La fecha, el responsable, el área y el estado de un tablero no se escriben en su nombre. En las carpetas viven en la base de datos de ANT y en un `.ant/info.json` oculto que administra FolderManager. En los archivos están pensados para ir en las propiedades del archivo, algo que todavía no está implementado.
+</Callout>
+
+FolderManager solo crea tableros con el identificador `PJ`. Para `HW`, `PR`, `CR` o `TK`, renombra la carpeta en tu explorador de archivos. **Change type** en el menú contextual cambia cómo la app trata la carpeta, pero no la renombra.
+
+## Fase 5: Mueve por lotes
+
+1. Trabaja una carpeta de origen a la vez, en lotes de un tamaño que puedas terminar en una sesión.
+2. Copia primero y borra el original cuando hayas revisado el resultado.
+3. Lo que no puedas clasificar de inmediato va a la carpeta `98` de revisión del nodo más cercano, o a `998.Review`. No lo dejes en la carpeta de origen.
+4. Pulsa **Actualizar** en FolderManager tras mover archivos en tu explorador. La app también se actualiza sola cuando su ventana recibe el foco.
+
+No hace falta cambiar los nombres de los archivos de una sola vez. Cuando toques un archivo, dale el [formato de archivos](/es/foundationals/naming-conventions#nomenclatura-control-para-archivos). Reformatter (mira [Descargas](/es/start-here/download)) puede renombrar muchos archivos a la vez, pero escribe la fecha, el responsable y el identificador en el nombre, que no es donde los metadatos del archivo deben vivir al final. Úsalo solo si quieres ese nombre largo.
+
+## Fase 6: Verifica y respalda
+
+Repasa esta lista antes de borrar nada de la ubicación original.
+
+- [ ] El nivel 1 contiene solo las categorías numeradas y los nodos de soporte.
+- [ ] Cada proyecto en el que sigues trabajando es un tablero con estado y responsable.
+- [ ] `998.Review` no tiene elementos olvidados, o tienes una fecha para vaciarlo.
+- [ ] Puedes encontrar tres archivos al azar con el cuadro de búsqueda (`Ctrl+F`).
+- [ ] Tus archivos originales están copiados en un disco distinto al que usaste para migrar.
+
+<Callout type="warning" title="FolderManager no respalda tus archivos">
+  Su respaldo es un zip solo de los datos de ANT: `ant.db`, los archivos `.ant` y `999.Settings`. Respalda tus propios archivos con tu herramienta habitual, antes de empezar y de nuevo al terminar.
+</Callout>
+
+## Qué viene después
+
+La idea es que en el futuro FolderManager se encargue de la migración: importar una carpeta, renombrar por lotes y escribir los metadatos de los archivos. Esos pasos están marcados como planeados arriba y todavía no están disponibles. Mientras tanto, este plan es la ruta manual.

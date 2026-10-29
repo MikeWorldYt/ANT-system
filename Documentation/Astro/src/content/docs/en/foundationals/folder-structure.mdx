@@ -11,11 +11,11 @@ The first level lies directly inside the storage root.
 This means that we are talking about the **principal categories** that define the content of each [node](/en/foundationals/core-concepts#nodes).
 
 <h5> Naming Convention: </h5>
-In this level, you must use a [Sequential Chill Naming](/en/foundationals/naming-conventions#sequential-chill-naming) Convention.
+In this level, you must use a [Block Naming](/en/foundationals/naming-conventions#block-naming) Convention.
 
 <LinkCard
-  title="Sequential Chill Naming"
-  href="/en/foundationals/naming-conventions#sequential-chill-naming"
+  title="Block Naming"
+  href="/en/foundationals/naming-conventions#block-naming"
   description="Uses increments of 100 (e.g., 100, 200, 300), followed by a dot and a name in UPPERCASE (all laters are capitalized). Ideal for top-level or broad categories"
 />
 
@@ -106,12 +106,12 @@ You can use 2 naming conventions;
   │    └── 📁 . . .
 ```
 
-**2.-** If the you need manage it *for tasks, projects, etc.** use the `Control Naming` Convention.  
+**2.-** If you need to manage it *for tasks, projects, etc.*, use the `Control Naming` Convention.  
 
 <LinkCard
   title="Control Naming"
   href="/en/foundationals/naming-conventions#control-naming"
-  description="This follows a variable-based structure, where each part is defined by the user's own criteria. Although parts may share patterns or context, the structure is flexible and tailored individually to each case, making it ideal for managing projects and tasks with contextual control and clarity."
+  description="A tracking identifier and a name joined by an underscore (e.g. PJ.145_Thesis-Draft); the rest of the metadata is stored outside the name."
 />
 
 ```fs {5, 8-9}
@@ -119,11 +119,11 @@ You can use 2 naming conventions;
   ├── 📁 100.PERSONAL
   ├── 📁 200.WORK
   │    ├── 📁 01.Development
-  │    │    ├── 📁 PJ.006_(23-03-03) Landingpage [Wallter-White]_Astro Carwash 
+  │    │    ├── 📁 PJ.006_Astro-Carwash-Landing-Page
   │    │    └── 📁 . . .
   │    ├── 📁 02.Video-Edition
-  │    │    ├── 📁 PJ.130_(25-07-03) Tutorial [MikeWorldYt]_Organize Documents
-  │    │    ├── 📁 PJ.131_(25-07-03) Review [Isa-Marcial]_Huawei pura 70 
+  │    │    ├── 📁 PJ.130_Organize-Documents
+  │    │    ├── 📁 PJ.131_Huawei-Pura-70-Review
   │    │    └── 📁 . . .
 ```
 
@@ -176,22 +176,22 @@ You can use 2 naming conventions;
         - 01.Development
           - 01.Ideas/
           - 02.Hod/
-          - 90.Dev-Resources/ ← [Resources Node](/en/foundationals/support-nodes#90-resources-folder)
-          - 97.Templates/ ← [Template Node](/en/foundationals/support-nodes#97-templates-folder)
-          - 98.Development/ ← [Review Node](/en/foundationals/support-nodes#98-review-folder)
-          - PJ.003_(23-03-03) Monorepo [MikeWorldYt]_ANT-System/
-          - PJ.004_(23-03-03) App-Mobile [Uber]_Uber-Eats/
-          - PJ.006_(23-03-03) Landingpage [Wallter-White]_Astro-Carwash/
+          - 90.Dev-Resources/ ← [Resources Node](/en/foundationals/support-nodes#90resources-folder)
+          - 97.Templates/ ← [Template Node](/en/foundationals/support-nodes#97templates-folder)
+          - 98.Development/ ← [Review Node](/en/foundationals/support-nodes#98review-folder)
+          - PJ.003_ANT-System/
+          - PJ.004_Uber-Eats-App/
+          - PJ.006_Astro-Carwash-Landing-Page/
           - ...
         - 02.Video-Edition/
           - 00.Done/ ← [Done Node](/en/foundationals/support-nodes#00-done-folder)
-            - Pj.123_(25-07-03) Review [MrBeast]_7-days-buried-alive/
-            - Pj.124_(25-07-03) Review [Isa-Marcial]_Huawei-pura-70/
-          - 90.Edition-Resources/ ← [Resources Node](/en/foundationals/support-nodes#90-resources-folder)
-          - 97.Templates/ ← [Template Node](/en/foundationals/support-nodes#97-templates-folder)
-          - 98.Video-Edition/ ← [Review Node](/en/foundationals/support-nodes#98-review-folder)
-          - PJ.130_(25-07-03) Tutorial [MikeWorldYt]_Organize-Documents/
-          - PJ.131_(25-07-03) Review [Isa-Marcial]_Huawei-pura-70/
+            - PJ.123_7-Days-Buried-Alive-Review/
+            - PJ.124_Huawei-Pura-70-Review/
+          - 90.Edition-Resources/ ← [Resources Node](/en/foundationals/support-nodes#90resources-folder)
+          - 97.Templates/ ← [Template Node](/en/foundationals/support-nodes#97templates-folder)
+          - 98.Video-Edition/ ← [Review Node](/en/foundationals/support-nodes#98review-folder)
+          - PJ.130_Organize-Documents/
+          - PJ.131_Huawei-Pura-70-Review/
           - ...
         - ...
         - 98.WORK/
