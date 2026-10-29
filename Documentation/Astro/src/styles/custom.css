@@ -97,3 +97,9 @@ a[role="tab"][aria-selected="false"] {
 	--sl-color-gray-7: #f3f7fa;
 	--sl-color-black: #ffffff;
 }
+/* Table icons */
+.sl-markdown-content td > svg {
+	display: inline-block;
+	vertical-align: -0.15em;
+	margin-inline-end: 0.4em;
+}

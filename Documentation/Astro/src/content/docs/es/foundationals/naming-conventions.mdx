@@ -1,0 +1,260 @@
+---
+title: Nomenclaturas
+description: Cómo nombra ANT las carpetas y los archivos, y dónde se guarda el resto de sus metadatos.
+---
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import Callout from "/src/components/ui/Callout.astro";
+import Toggle from '/src/components/ui/Toggle.astro';
+
+Una **nomenclatura** es una regla para nombrar las cosas siempre de la misma forma, de modo que se ordenen de manera predecible y sean fáciles de encontrar.
+
+ANT usa tres: **Chill** y **Block** para las categorías, y **Control** para los tableros de trabajo y los archivos.
+
+## Nomenclatura Chill
+Usa un número incremental de dos dígitos (01–89), seguido de un punto y un nombre en Train-Case (cada palabra con mayúscula inicial y unidas por guiones).
+
+<div class="pic-container not-content">
+    <img src="https://r2.mikeworld.dev/naming-conventions/e3c07e.png" alt="Ejemplo de nomenclatura Chill: 01.Documents, 02.Gallery" />
+</div>
+
+## Nomenclatura Block
+Usa incrementos de 100 (p. ej., 100, 200, 300), seguidos de un punto y un nombre en MAYÚSCULAS.  
+Es una variante de la nomenclatura Chill, ideal para categorías amplias o de primer nivel.
+
+<div class="pic-container not-content">
+    <img src="https://r2.mikeworld.dev/naming-conventions/2e00e0.png" alt="Ejemplo de nomenclatura Block: 100.PERSONAL, 200.WORK" />
+</div>
+
+## Nomenclatura Control
+La nomenclatura Control mantiene el nombre corto: solo indica **qué es** el elemento y **cuál es**.  
+Todo lo demás (fecha, área o breadcrumb, titular o cliente, dueño, estado, versión, etc.) son **metadatos**, y ya no se escriben en el nombre.
+
+> <b>TRACKING</b> _ <b>NOMBRE</b>
+
+| Elemento | Descripción breve |
+|----------|-------------------|
+| [**Tracking**](#seguimiento-tracking) | Un [identificador](#identificadores) más un [contador](#contador-tracker), p. ej. `PJ.145` |
+| [**Nombre**](#nombre) | Un título corto y descriptivo en Train-Case, p. ej. `Thesis-Draft` |
+
+<Callout type="info" title="Los metadatos siguen siendo obligatorios">
+  Quitar los metadatos del nombre no los vuelve opcionales. El sistema los sigue exigiendo; solo se guardan [en otro lugar](#almacenamiento-de-los-metadatos).
+</Callout>
+
+### Nomenclatura Control (para carpetas)
+La usan los [Nodos del Tablero de Trabajo](/es/foundationals/workboard-nodes); está pensada para reconocer y filtrar proyectos rápidamente.
+
+```fs title="Ejemplo de uso" ins="PJ.145" ins="HW.024" ins="CR.015"
+📁 PJ.145_Thesis-Draft
+📁 HW.024_Electromagnetism-Research
+📁 CR.015_Sketching-For-Storyboards
+```
+
+Los metadatos de la carpeta viven en la [base de datos de ANT y en su `.ant/info.json`](#carpetas-base-de-datos-y-antinfojson).
+
+### Nomenclatura Control (para archivos)
+La usan los **archivos**; su propósito es organizar, filtrar e identificar.  
+Un archivo sigue la misma forma: un [identificador](#identificadores-para-archivos) corto del tipo de documento, un guion bajo y su [nombre](#nombre-para-archivos).
+
+```fs title="Root/100.PERSONAL/01.Documents/02.Finance" ins="FST" ins="CNT"
+📄 CNT_Mortgage-Contract-Houston.pdf
+📄 FST_Bank-Statement-March-2023.pdf
+📄 FST_Bank-Statement-April-2023.pdf
+📄 FST_Bank-Statement-May-2023.pdf
+```
+
+Los metadatos del archivo van en las [propiedades del archivo](#archivos-propiedades-del-archivo), no en su nombre.
+
+<Callout type="warning" title="Aún no automatizado">
+  FolderManager todavía no escribe metadatos en las propiedades de los archivos. Mientras tanto, agrégalos a mano desde el cuadro de propiedades del archivo o desde la aplicación que lo creó.
+</Callout>
+
+## Almacenamiento de los metadatos
+
+### Carpetas: base de datos y .ant/info.json
+Cada almacenamiento guarda sus metadatos en dos lugares, ambos gestionados por FolderManager:
+
+- **La base de datos de ANT**: `.ant/ant.db` en la raíz del almacenamiento. Contiene el árbol de nodos (nombre, tipo, estado) y una copia de los metadatos de cada carpeta, para que las búsquedas no tengan que abrir las carpetas. Un almacenamiento nuevo parte de `Tree.yaml`.
+- **El `info.json` de la propia carpeta**: una carpeta oculta `.ant/` dentro de la carpeta contiene `info.json`, los metadatos que viajan con la carpeta cuando se mueve o se copia.
+
+```json title="PJ.145_Thesis-Draft/.ant/info.json"
+{
+  "owner": "Mike Diaz",
+  "created": "24-06-01",
+  "status": "in-progress"
+}
+```
+
+| Clave | Significado |
+|-------|-------------|
+| `owner` | A quién pertenece el tablero. `holder` y `client` se leen como el mismo campo. |
+| `created` | Fecha de inicio, en el formato corto `YY-MM-DD`. |
+| `status` | `in-progress`, `for-review`, `hold` o `done`. |
+| `favorite` | `true` cuando la carpeta está marcada como favorita. |
+
+Cualquier otra clave que agregues (por ejemplo un breadcrumb o una fecha límite) aparece en los detalles de la carpeta y se puede buscar.
+
+<Callout type="danger" title="No edites ni borres .ant/ a mano">
+  La carpeta `.ant/` pertenece a FolderManager. También guarda el id permanente de la carpeta (`dragpath.json`), que permite a la aplicación reconocer una carpeta movida fuera de ella.
+</Callout>
+
+### Archivos: propiedades del archivo
+En los archivos, los metadatos se inyectan en las propiedades del propio archivo: propiedades de documento (autor, título, asunto, etiquetas, comentarios) o propiedades multimedia (etiquetas de imágenes, audio y video).  
+Así el nombre se mantiene corto, los metadatos viajan dentro del archivo y el buscador del sistema operativo puede encontrarlos.
+
+| Metadato | Propiedad de ejemplo |
+|----------|----------------------|
+| [Titular](#titulares-y-clientes) | Autor / Propietario |
+| [Fecha](#fecha-y-marcas-de-tiempo) | Fecha o Comentarios |
+| [Breadcrumb](#breadcrumbs) | Asunto / Etiquetas |
+
+### Cobertura de FolderManager
+FolderManager automatiza estas reglas para que no tengas que aplicarlas a mano. Algunas ya están cubiertas y otras todavía no.
+
+| Regla | FolderManager |
+|-------|---------------|
+| Siguiente contador para un tablero nuevo (`PJ.NNN_New-Workboard`) | ✅ Sí |
+| Mantiene fija la parte de tracking al renombrar un tablero | ✅ Sí |
+| Reconoce carpetas `PJ.`, `PR.` y `HW.` como tableros | ✅ Sí |
+| Reconoce carpetas `TK.` y `CR.` como tableros | ❌ Aún no |
+| Crea `.ant/info.json` con `owner` y `status` en los tableros nuevos | ✅ Sí |
+| Indexa la base de datos y los campos de `info.json` para las búsquedas | ✅ Sí |
+| Escribe metadatos en las propiedades de los archivos | ❌ Aún no |
+
+## Elementos de las nomenclaturas
+
+### Seguimiento (Tracking)
+La parte de tracking es el [identificador](#identificadores) unido por un punto al [contador](#contador-tracker): `PJ.145`.  
+Indica de un vistazo qué tipo de elemento es y en qué orden se creó.
+
+### Identificadores
+El identificador es un **código de dos letras** que indica el tipo de tablero.  
+Los identificadores oficiales son:
+- `PJ`: Proyecto
+- `PR`: Práctica
+- `HW`: Tarea escolar
+- `CR`: Curso
+- `TK`: Tarea
+
+<Callout type="info" title="Soporte en FolderManager">
+  Hoy FolderManager reconoce `PJ.`, `PR.` y `HW.` como identificadores de tablero, y los tableros nuevos empiezan como `PJ.`. `CR.` y `TK.` todavía no los maneja la aplicación.
+</Callout>
+
+### Identificadores (para archivos)
+En los archivos, el identificador es un código corto en mayúsculas para el **tipo de documento**, elegido según cada carpeta.
+
+```fs title="Ejemplo de uso" ins="FST" ins="CNT" ins="INV"
+📄 FST_Bank-Statement-March-2023.pdf ← Estado de cuenta
+📄 CNT_Mortgage-Contract-Houston.pdf ← Contrato
+📄 INV_Web-Design-Services.pdf ← Factura
+```
+
+Los archivos con el mismo identificador se ordenan juntos, así un contrato nunca queda entre estados de cuenta.
+
+### Contador (Tracker)
+El contador es un índice secuencial que da orden cronológico y una referencia sencilla.  
+> Aunque muchos sistemas pueden ordenar por fecha, un contador permite seguir el avance sin depender de marcas de tiempo.
+
+Junto con el identificador, comunica al instante el tipo y el orden del tablero.
+
+```fs title="Ejemplo de uso" ins="PJ.005" ins="PJ.006" ins="HW.015" ins="HW.016"
+📁 PJ.005_Tutorial-Organize-Documents ← para proyectos
+📁 PJ.006_Sales-Landing-Page
+
+📁 HW.015_Grammar-Essay ← para tareas escolares
+📁 HW.016_Grammar-Review
+```
+
+<Callout type="warning" title="Bastan contadores de 3 dígitos">
+  Como los [nodos del tablero de trabajo](/es/foundationals/workboard-nodes) son temporales y tarde o temprano se archivan o eliminan, **se recomiendan contadores de 3 dígitos**: permiten hasta 999 elementos por tipo. FolderManager sigue contando después de 999 (`PJ.1000`) en lugar de reiniciar.
+</Callout>
+
+### Nombre
+El nombre es una etiqueta corta y descriptiva que identifica el contenido o el enfoque del elemento; en otras palabras, su título.  
+Usa <u>Train-Case</u> (palabras con mayúscula inicial unidas por guiones) para que sea legible y sin espacios.
+
+```fs title="Ejemplo de uso" ins="Landing-Page-Redesign" ins="Environmental-Law-Essay" ins="How-To-Organize-Documents"
+📁 PJ.001_Landing-Page-Redesign
+📁 HW.002_Environmental-Law-Essay
+📁 PJ.003_How-To-Organize-Documents
+```
+
+### Nombre (para archivos)
+El nombre de un archivo sigue la misma regla y debe ser único dentro de su carpeta.  
+Si dos archivos solo se diferenciaran por una fecha o una versión, esa diferencia es parte de lo que el archivo es, así que va en el nombre:
+
+```fs title="Ejemplo de uso" ins="March-2023" ins="April-2023"
+📄 FST_Bank-Statement-March-2023.pdf
+📄 FST_Bank-Statement-April-2023.pdf
+```
+
+### Fecha y marcas de tiempo
+Aunque se llame "Fecha", este elemento funciona como una marca de tiempo flexible que se adapta al contexto. Es un metadato: guárdalo en `created` (carpetas) o en las propiedades del archivo (archivos).
+
+> Ayuda a ver momentos importantes como fechas límite, hitos, fechas de inicio, periodos o temporadas.
+
+<h5> Puedes usar estos formatos: </h5>
+- `YY-MM-DD` (Año-Mes-Día): **el más común**, para fechas de inicio, entregas, fechas límite, etc.
+- `YY-MM` (Año-Mes): para seguimiento mensual, informes o igualas.
+- `YY-QQ` (Año-Trimestre): para trimestres financieros.
+- `YY-V.1`, `YY-V.2` (Año-Versión): para versiones o iteraciones.
+- `YY-U1` o `YY-C1` (Año-Unidad/Capítulo): para unidades o capítulos en contextos educativos.
+- `9G`, `10G`, `12G` (Grado): para grados escolares; 9.º, 10.º y 12.º grado.
+- `S2`, `S3`, `S4` (Semestre): para semestres escolares, útil en el seguimiento del plan de estudios.
+
+### Breadcrumbs
+Un breadcrumb define el tipo contextual del tablero, normalmente según la categoría de la carpeta padre. Es un metadato, así que actúa como una etiqueta de categoría por la que puedes buscar, sin crear más niveles.
+
+<div class="usage-tabs">
+<Tabs>
+  <TabItem label="Ejemplo de uso" icon="approve-check">
+    Con el breadcrumb en los metadatos, tableros de distinto tipo comparten el mismo nivel.
+
+    ```fs
+    📁 02.Video-Edition
+     ├── 📁 PJ.015_How-To-Edit      ← breadcrumb: Video-Tutorial
+     ├── 📁 PJ.016_Making-Of        ← breadcrumb: Video-Tutorial
+     └── 📁 PJ.017_Weather-Simulator ← breadcrumb: Gameplay
+    ```
+  </TabItem>
+  <TabItem label="Sin usarlo" icon="close">
+    De lo contrario, te ves obligado a crear más niveles para agruparlos, aunque sean pocos.
+    ```fs del="Video-Tutorials" del="Gameplay"
+    📁 02.Video-Edition
+     ├── 📁 01.Video-Tutorials
+     │    ├── 📁 PJ.015_How-To-Edit
+     │    └── 📁 PJ.016_Making-Of
+     └── 📁 02.Gameplay
+          └── 📁 PJ.017_Weather-Simulator
+    ```
+  </TabItem>
+</Tabs>
+</div>
+
+### Titulares y clientes
+El titular identifica a quién pertenece el tablero (cliente, marca, organización, escuela, dueño). Se guarda como `owner` (carpetas) o en la propiedad de autor o propietario (archivos).
+
+> Da contexto de pertenencia y es especialmente útil cuando gestionas varios clientes o personas.
+
+<Callout type="warning" title="Recomendación">
+  Evita nombres demasiado largos o complejos (p. ej. "W&M-Laws" en lugar de "College-of-William-&-Mary-Law-School").
+</Callout>
+
+Si necesitas mantener la confidencialidad o la privacidad, usa un seudónimo junto con un documento de lista de clientes guardado en otro lugar (p. ej. `C-018-Ara` para Aradir, cliente n.º 18).
+
+<Toggle title="Ejemplo completo">
+  ```fs title="Root/200.WORK/02.Video-Edition/"
+  📁 PJ.033_How-To-Organize-Documents
+   └── 📁 .ant
+        └── 📄 info.json
+  ```
+
+  ```json title="info.json"
+  {
+    "owner": "MikeWorldYt",
+    "created": "23-03-03",
+    "status": "in-progress",
+    "breadcrumb": "Video-Tutorials"
+  }
+  ```
+  > El nombre dice que es el proyecto 33 sobre organizar documentos; los metadatos dicen que pertenece a MikeWorldYt, empezó el 3 de marzo y es un video tutorial.
+</Toggle>

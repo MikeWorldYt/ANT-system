@@ -1,0 +1,66 @@
+---
+title: Conceptos Básicos
+description: Los términos base de ANT (niveles, nodos, módulos y ciclo de vida) para entender cómo se estructura el sistema.
+---
+import Callout from "/src/components/ui/Callout.astro";
+import { Steps } from '@astrojs/starlight/components';
+
+**ANT tiene una estructura jerárquica** adaptada para implementarse de inmediato en la estructura de árbol convencional.  
+Sin embargo, **al tener una infraestructura modular y descentralizada**, sigue reglas estructurales específicas que garantizan su buen funcionamiento.  
+Para entenderlo, primero debemos conocer los términos [Niveles](#niveles), [Nodos](#nodos) y [Módulos](#módulos) dentro de este sistema;
+
+## Niveles
+El término "**Nivel**" se refiere a la profundidad de la carpeta en relación con su carpeta raíz.
+
+<div class="pic-container not-content">
+    <img src="https://r2.mikeworld.dev/core-concepts/d1507f.png" alt="Esquema de los niveles de carpetas a partir de la carpeta raíz" />
+    <img src="https://r2.mikeworld.dev/core-concepts/39c3d2.png" alt="Ejemplo de carpetas organizadas en varios niveles de profundidad" />
+</div>
+
+Aunque aconsejamos mantener 3 niveles, puede haber más. <br/> Sin embargo, se recomienda no tener demasiados niveles y usarlos solo en ciertos casos,
+porque añaden complejidad al sistema y pueden dificultar la navegación.
+
+## Nodos
+El término "**Nodo**" se refiere a cada carpeta.
+
+<div class="pic-container not-content">
+    <img src="https://r2.mikeworld.dev/core-concepts/animation.gif" alt="Animación de carpetas conectadas entre sí formando una red de nodos" />
+</div>
+Este sistema está estructurado de modo que cada carpeta está conectada y sigue su propio camino/ruta. <br/>
+Cada nodo o *"carpeta"* tiene una o más vías de entrada y salida, forma parte de un [módulo](#módulos) y, en algunos casos, tiene un ciclo de vida (existencia).
+
+## Módulos
+El término "**Módulo**" se refiere a una agrupación de [nodos](#nodos) según su nivel; es una **categoría**.
+<div class="pic-container not-content">
+    <img src="https://r2.mikeworld.dev/core-concepts/c5fc93.jpg" alt="Diagrama de nodos agrupados en módulos según su nivel" />
+</div>
+
+Esto significa que, sin importar sus conexiones, los nodos deben mantener una agrupación jerárquica y ser coherentes con la [estructura de datos de árbol](/es/reference/another-concepts#estructura-de-datos-de-árbol) convencional.<br/>
+Así se mantiene un sistema lógico, coherente y fácil de navegar, sin quitarle flexibilidad.
+
+## Ciclo de vida
+Algunos nodos pueden tener un ciclo de vida, como un [tablero de trabajo](/es/foundationals/workboard-nodes) o una [carpeta temporal](/es/foundationals/support-nodes#carpetas-temporales-).  
+Esto significa que estos nodos son útiles durante un periodo de tiempo y deben eliminarse después de usarse.
+
+Ciclo de un nodo con ciclo de vida: 
+
+<Steps>
+    1. **Creación:**  
+    Algunos nodos se crean a partir de plantillas predefinidas para incorporarlos rápidamente al almacenamiento.  
+    Estos deben ser identificables de inmediato y su contenido no siempre tiene que seguir un orden estricto.
+
+
+    2. **Uso activo:**  
+    Por lo general se usa como un repositorio con un rol autónomo, aunque el propio sistema le da seguimiento con ayuda de rastreadores o marcas especiales.
+
+    3. **Entrega:**  
+    Cuando se cumple el objetivo (p. ej., se terminó el proyecto), su contenido puede dejar de ser útil.
+
+    4. **Revisión y archivo:**  
+    Aquí se valora el contenido para saber si podría reutilizarse en el futuro:  
+    ● Si el contenido es útil, se puede archivar allí o mover a otros lugares.  
+    ● Si no, se elimina el contenido.
+    
+    5. **Muerte:**  
+    Cuando se considera obsoleto, el nodo se elimina del sistema.
+</Steps>

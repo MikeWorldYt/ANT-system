@@ -1,15 +1,30 @@
 ---
 title: Folder Manager
-description: Browse, search and organize an ANT storage from one Windows app.
+description: Browse, search and organize an ANT storage from one desktop app for Windows, Linux and macOS.
 ---
 
-Folder Manager (ANT System Manager) is the desktop app to browse an ANT storage, add nodes and workboards, track the status of your work and find any folder by name, type, status or owner. Version 2.1.x is a Tauri 2 app (Rust and TypeScript) for Windows.
+Folder Manager (ANT System Manager) is the desktop app to browse an ANT storage, add nodes and workboards, track the status of your work and find any folder by name, type, status or owner. It is a Tauri 2 app (Rust and TypeScript) with builds for Windows, Linux and macOS.
 
 ## Install and open
 
-1. Download `FolderManager.exe` from the [Applications folder on GitHub](https://github.com/MikeWorldYt/ANT-system/tree/main/Applications).
-2. Run it from inside your ANT root. The app finds the root as the folder that holds `999.Settings`, starting from where it runs and one level up.
-3. The app checks for a newer version when it opens. See [Updates](#updates).
+1. Download the file for your system from the [Downloads page](/en/start-here/download).
+2. **Windows:** run `FolderManager.exe`. **Linux and macOS:** extract the `.tar.gz` and run the file inside.
+3. The app needs an ANT storage: a folder that holds `999.Settings`. If you do not have one yet, see [Getting Started](/en/start-here/getting-started).
+
+### How the app finds your storage
+
+At launch the app picks where to look in this order, and the first one that applies wins:
+
+1. A folder path passed to the app as its first argument.
+2. The storage it remembered the last time it opened, kept per copy of the app outside your storage.
+3. The folder the app was started from, if that folder or its parent holds `999.Settings`.
+4. The folder where the executable lives.
+
+From that start folder the app takes the folder itself, or its parent, as the root when it holds `999.Settings`. If it finds nothing, or the database cannot be read, it asks what to do:
+
+- **Change path:** type the full path of the storage folder.
+- **Scan Storage:** read the folders on disk again. An unreadable `ant.db` is moved aside first.
+- **Use backup:** shown when the database is gone and a backup exists in the default backup folder. See [Backups](#backups).
 
 ## Views
 
@@ -25,22 +40,28 @@ The breadcrumb shows the selected path. Double-click it, or press `Ctrl+L`, to t
 - **Add node** and **Add workboard** create a new folder next to the selected one. They are available from level 2 down; level 1 folders and the reserved folders have their own creation rules.
 - **Rename** edits only the editable part of the name. The fixed prefix, such as `PJ.001_`, stays as it is.
 - **Move up** and **Move down** change the order of the selected folder among its siblings.
-- **Refresh** reads the storage again. The app also refreshes by itself when its window gets focus, so changes made in Explorer show up.
+- **Refresh** reads the storage again. The app also refreshes by itself when its window gets focus, so changes made in your file manager show up.
+
+:::note[Workboard identifiers]
+The ANT docs define `PJ`, `PR`, `HW`, `TK` and `CR` as official identifiers. Today the app only recognises `PJ.`, `PR.` and `HW.` as workboards, and every new workboard it creates starts as `PJ.`.
+:::
 
 ## Context menu
 
-Right-click a folder, or press the menu key or `Shift+F10`, to get:
+Right-click a folder, or press the menu key or `Shift+F10`, to get the items below. Items that do not apply to a folder, such as Delete on a reserved folder, are disabled.
 
 | Item | What it does |
 | --- | --- |
+| Open | Opens the folder in your system file manager |
 | Rename | Edits the name in place |
 | Add to favorites / Remove from favorites | Marks the folder as a favorite |
 | Change type | Switches between Node, Workboard and Portfolio |
 | Status | Only for workboards: Hold, In progress, For review or Done |
 | Copy path | Copies the absolute path to the clipboard |
-| Delete | Sends the folder to the Recycle Bin |
+| Delete | Sends the folder to the Recycle Bin (the system trash on Linux and macOS) |
+| Extension items | Added by [extensions](#extensions) that have the permission, at the end of the menu |
 
-Deleting a folder that is not empty asks you to confirm first and tells you how many files and folders go with it.
+Delete first moves the folder into a hidden `.ant-trash` folder, then to the Recycle Bin. If you restore it from the Recycle Bin, the next refresh puts it back at the storage root. With **Confirm before deleting** on, a folder that is not empty asks you to confirm first and tells you how many files and folders go with it.
 
 ## Workboard details
 
@@ -54,6 +75,8 @@ Select a workboard and use the pencil button in the details panel to edit its **
 | Done | Finished |
 
 Status and owner are stored in the folder's own `.ant/info.json`, so they travel with the folder. A new workboard starts as `in-progress` with the owner `unknown`. The owner can also be stored under `holder` or `client`; the app reads and updates whichever one is already there. Other keys in the file are shown in the panel and kept untouched. If the file is not valid JSON, the app shows the error and does not overwrite it.
+
+Metadata for individual files is not implemented: the app tracks folders only.
 
 ## Favorites
 
@@ -81,32 +104,67 @@ While you type a filter such as `in:` or `status:`, the app suggests values. Pic
 
 On macOS use `Cmd` in place of `Ctrl`. On other systems `Win` or `Super` also works.
 
-| Shortcut | Action |
-| --- | --- |
-| `Enter` | Open the selected folder |
-| `F2` | Rename the selected folder |
-| `Delete` | Delete the selected folder (to the Recycle Bin) |
-| `Ctrl+F` | Focus the search box |
-| `Ctrl+L` | Edit the path |
-| `Ctrl+N` | New node next to the selection |
-| `Ctrl+Alt+N` | New workboard next to the selection |
-| `Alt+Left`, `Alt+Right` | Back and forward through the selection history |
-| `Alt+Up` | Go to the parent folder |
+| Shortcut | Action | Editable |
+| --- | --- | --- |
+| `Ctrl+F` | Search in Storage | Yes |
+| `Ctrl+L` | Edit the path | Yes |
+| `Ctrl+N` | New node next to the selection | Yes |
+| `Ctrl+Alt+N` | New workboard next to the selection | Yes |
+| `Ctrl+,` | Open Settings | Yes |
+| `Alt+Up` | Go to the parent folder | Yes |
+| `Enter` | Open the selected folder | No |
+| `Delete` | Delete the selected folder | No |
+| `F2` | Rename the selected folder | No |
+| `Alt+Left`, `Alt+Right` | Back and forward through the selection history | No |
+| `Shift+F10` | Open the context menu | No |
 
-`Enter` and `Delete` act only on the folder views, never while you type in a field.
+`Enter` and `Delete` act only on the folder views, never while you type in a field. To change an editable shortcut, see [Settings](#settings).
 
 ## Settings
 
-Open the settings window with the gear button next to the storage name.
+Open the settings window with the gear button next to the storage name, or press `Ctrl+,`. It has one page per group. Changes apply right away.
 
-- **Pin favorites to the top of each list:** the setting described in [Favorites](#favorites).
-- **About:** the app version and the path of the storage.
-- **Check for updates:** see [Updates](#updates).
-- **Report a bug:** opens a prefilled issue on GitHub, or an email to `info@mikeworld.dev`. The app version is added for you.
+| Page | What you can do |
+| --- | --- |
+| General | Pin favorites to the top of each list. Hide workboards with status done. Choose what to open on launch (continue where you left off, or the root) and the starting view (continue, Tree or Columns). Turn **Confirm before deleting** on or off. |
+| Appearance | Theme (System, Light, Dark), accent color and text size (Small, Medium, Large). |
+| Shortcuts | Edit the six editable shortcuts: press **Edit**, then the new keys, or `Esc` to cancel. A shortcut needs `Ctrl` or `Alt` with a key, without `Shift`, and cannot reuse another shortcut or a fixed one. **Reset** restores the defaults. |
+| Storage | Rename the storage folder, with a log and **Revert last rename**, and see where the storage is. **Reindex Storage** after moving files outside the app. **Watch for external changes** checks once a day. |
+| Backup | Automatic backup, its frequency and folder, and export and import. See [Backups](#backups). |
+| Extensions | Add, enable, disable and remove extensions. See [Extensions](#extensions). |
+| Advanced | Debug logging, open the logs folder, open the developer tools and reset preferences. See [Troubleshooting](#troubleshooting). |
+| About | App version, storage path, update check, the automatic check toggle, documentation, changelog and **Report a bug** (a prefilled issue on GitHub, or an email to `info@mikeworld.dev`). |
+
+Renaming the storage folder changes its path, so close any program that reads it first. The daily **Watch for external changes** check runs as a scheduled task, which is only available on Windows for now.
+
+## Backups
+
+A backup is a zip named like `26-10-24-09-05_ANT-fm-backup.zip`. It holds the ANT data only: `ant.db`, the `.ant` files of your folders and `999.Settings`. It never includes your own files.
+
+- **Automatic backup** saves a copy every day, week or month. The app checks at launch and then every hour while it is open. On Windows a scheduled task also runs it at 12:00 while the app is closed.
+- **Backup folder** is `999.Settings/03.Backup` by default; **Change** takes a full path and **Default** goes back.
+- **Export** saves a copy now.
+- **Import** lists the backups in the backup folder. It saves a copy of the current state first, so you can undo it. To use a backup from another computer, copy the zip into this folder first.
+
+If `ant.db` is missing or unreadable at launch, the app offers **Use backup** with the newest zip of the default folder.
+
+## Extensions
+
+Extensions are small JavaScript add-ons that run isolated from the app. Each one asks for permissions, which the app lists before you install it:
+
+- Read your folders' names, types and statuses.
+- Add items to the context menu.
+- Show its own panel.
+- Show extra fields in the Details panel.
+
+Install from the **Library** (validated by the ANT developers) or paste a public GitHub address under **Add from a repository**. Extensions from a repository are marked unvalidated: install only code whose author you trust. Each installed extension has a switch to turn it off and a **Remove** button.
 
 ## Updates
 
-On open, the app compares its version with the one published on GitHub. If there is a newer one, choose **Update**, **Remind me later** or **Skip version**. Updating closes the app, swaps the executable and needs `FM_Updater.bat` in `999.Settings/00.Core` of your storage. **Check for updates** in Settings runs the same check on demand.
+On open, the app compares its version with the one published on GitHub, unless you turned off **Check for updates automatically** in About. If there is a newer one, choose **Update**, **Remind me later** or **Skip version**. **Check for updates** in About runs the check on demand, even for a skipped version.
+
+- **Windows:** Update closes the app, swaps the executable and needs `FM_Updater.bat` in `999.Settings/00.Core` of your storage.
+- **Linux and macOS:** the in-app update is not available. Download the new archive from the [Downloads page](/en/start-here/download) and replace the old file.
 
 ## Where the data lives
 
@@ -116,4 +174,11 @@ On open, the app compares its version with the one published on GitHub. If there
 | `<folder>/.ant/info.json` | Status, owner and favorite of that folder |
 | `<folder>/.ant/dragpath.json` | A lasting id for the folder, so a move made outside the app is recognised |
 
-The `.ant` folders are hidden and the app never shows them as nodes.
+The `.ant` folders are hidden and the app never shows them as nodes. Folder metadata is explained in [Naming conventions](/en/foundationals/naming-conventions). The app also remembers the storage path in its own data folder, outside your storage.
+
+## Troubleshooting
+
+- **Wrong or missing storage:** use **Change path** in the startup dialog, or start the app from inside your storage.
+- **Changes made outside the app do not show up:** use **Refresh**, or **Reindex Storage** in Settings.
+- **Something fails:** turn on **Debug logging** in Advanced, repeat the steps and open the logs folder. Logs are `.log` files under `<root>/.ant/debug`. Attach one when you **Report a bug** in About.
+- **Settings in a bad state:** **Reset preferences** in Advanced restores every setting and leaves your folders untouched.

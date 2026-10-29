@@ -1,34 +1,78 @@
 ---
 title: Workboard Nodes
+description: Temporary folders that hold everything about one project, task or practice.
 ---
+import Callout from "/src/components/ui/Callout.astro";
 
-Temporary project repositories designed with to containing all files related for tasks, projects, or practices. These nodes prevent that files get scattered assets (e.g., between Downloads, Desktop, or random drives) by providing a explicit and temporary workspaces for them.
+Workboards are temporary project folders designed to contain all the files related to a task, project or practice. They keep files from getting scattered (e.g., between Downloads, Desktop or random drives) by giving them an explicit and temporary workspace.
 
-### Naming Convention for Workboards 
-Structured as multi-component identifiers for instant recognition:
+## Naming Convention for Workboards
+Workboards use [Control Naming](/en/foundationals/naming-conventions#control-naming-for-folders): a tracking part and a name, joined by an underscore.
 
-`<Type>.<Traker>_(<Date>) <Breadcrumb> [<Holder>]_<Name>`
+`<Identifier>.<Tracker>_<Name>`
 
-| Element       |  Description                                           |
-|---------------|--------------------------------------------------------|
-| **Type**      | `PJ.` `PR.` `HW` `TK`   Its their type of workboard                |
-| **Traker**    | 3-digit incremental   Sequence counter (001, 002...)       |
-| **Date**      | `(YY-MM-DD)`      Project initiation date              |
-| **Breadcrumb**| Category tag     Project group (vlogs, tutorials etc) |
-| **Holder**    | Refers to owner (client, organization, school, etc) or reference name, within brackets.  |
-| **Name**      | Descriptive name, use Train Case |
+| Element | Description |
+|---------|-------------|
+| **Identifier** | `PJ` `PR` `HW` `CR` `TK`: the type of workboard |
+| **Tracker** | 3-digit incremental sequence counter (001, 002...) |
+| **Name** | Descriptive name in Train-Case |
 
 **Example:**  
-`PJ.005_(24-03-30) Tutorial [MikeWorldYt]_Organize Documents With INSANE Efficiency`
+`PJ.005_Organize-Documents-With-Insane-Efficiency`
 
-#### Types of Workboards
+The date, breadcrumb, holder and status are not part of the name; they are the workboard's [metadata](/en/foundationals/naming-conventions#where-the-metadata-lives), stored in the ANT database and in the workboard's `.ant/info.json`.
+
+## Types of Workboards
 - **PJ:** Project
 - **PR:** Practice
 - **HW:** Homework
+- **CR:** Course
 - **TK:** Task
 
+<Callout type="info" title="Support in FolderManager">
+  FolderManager recognises `PJ.`, `PR.` and `HW.` folders as workboards today; `CR.` and `TK.` are not handled by the app yet. New workboards created from the app start as `PJ.` with the next free tracker.
+</Callout>
 
+## Status
+Every workboard carries a status in its metadata:
 
-### Structural Anatomy
-Standard internal organization when created from [97.Templates](#97templates-folder):
+| Status | Meaning |
+|--------|---------|
+| `in-progress` | Being worked on (the default for a new workboard) |
+| `for-review` | Finished, waiting for a review |
+| `hold` | Paused |
+| `done` | Delivered; ready to be [archived or removed](/en/foundationals/core-concepts#lifespan) |
 
+## Structural Anatomy
+A workboard lives inside a category node, next to that node's [support nodes](/en/foundationals/support-nodes). This is the structure a new storage gets from `Tree.yaml`:
+
+```fs title="Root/200.WORK/"
+📁 02.Industry
+ ├── 📁 90.Industry   ← Resources
+ ├── 📁 97.Industry   ← Templates
+ ├── 📁 98.Industry   ← Review
+ ├── 📁 PJ.001_project-name-example
+ ├── 📁 PJ.002_Cangrebot
+ └── 📁 PJ.003_ANT
+```
+
+Inside, a workboard only has one fixed piece: the hidden `.ant/` folder with its `info.json`. Everything else is free, so it can start empty or as a copy of a template from the [97.Templates folder](/en/foundationals/support-nodes#97templates-folder).
+
+```fs title="PJ.003_ANT/"
+📁 PJ.003_ANT
+ ├── 📁 .ant          ← hidden, managed by FolderManager
+ │    └── 📄 info.json
+ └── 📄 . . .         ← your project files
+```
+
+```json title="PJ.003_ANT/.ant/info.json"
+{
+  "owner": "Mike Diaz",
+  "created": "24-06-01",
+  "status": "in-progress"
+}
+```
+
+<Callout type="warning" title="No review folder inside">
+  A workboard does not get its own `98.` review folder; unclassified files go to the parent's review node.
+</Callout>

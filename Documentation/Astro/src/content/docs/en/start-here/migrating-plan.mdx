@@ -1,7 +1,94 @@
 ---
 title: Migrating Plan
+description: Move an existing collection of files into an ANT storage in six phases, with what you do by hand today and what FolderManager already helps with.
 ---
+import Callout from "/src/components/ui/Callout.astro";
 
+This page is for you if you already have files spread across folders and the desktop and want to bring them into ANT. The docs describe the rules of the system. [FolderManager](/en/tools/folder-manager) applies some of them for you, but it does not migrate files yet.
 
+<Callout type="warning" title="Migration is manual today">
+  FolderManager has no import, no batch rename and no move into other folders yet. You move and rename your existing files in your file explorer, and use FolderManager to create the structure, track the work and search it afterwards.
+</Callout>
 
+## What is manual and what is automated
 
+| Step | Status | How |
+| --- | --- | --- |
+| Audit your current files | Manual | You review them yourself |
+| Create the storage | Automated | CreateNewStorage |
+| Create nodes and workboards | Automated | Add node (`Ctrl+N`) and Add workboard (`Ctrl+Alt+N`) in FolderManager |
+| Rename keeping the fixed prefix (`PJ.001_`) | Automated | Rename (`F2`) edits only the editable part |
+| Order folders among their siblings | Automated | Move up and Move down |
+| Set status and owner of a workboard | Automated | Details panel, saved in `.ant/info.json` |
+| Find folders by name, status or owner | Automated | Search (`Ctrl+F`) with `in:`, `status:` and `owner:` filters |
+| Keep the `998.Review` shortcuts up to date | Automated | The app rebuilds them after rename, move and delete |
+| Move your existing folders into the storage | Manual | Planned for FolderManager |
+| Rename old files to the ANT file format | Manual | Planned for FolderManager |
+| Date, holder and area of a file | Manual | Planned, in the file properties |
+| Back up your own files | Manual | FolderManager backs up only the ANT data |
+
+## Phase 1: Audit what you have
+
+1. List the places where your files live: documents, desktop, downloads, external drives, cloud folders.
+2. Pick one source at a time. Do not try to migrate everything at once.
+3. Separate three kinds of content: loose files, projects (folders with a goal and an end) and reference material you keep for years.
+4. Note what you can delete. Deleting before moving means less to sort.
+
+## Phase 2: Create the storage
+
+Create an empty storage with CreateNewStorage and open FolderManager inside it. Follow [Getting Started](/en/start-here/getting-started) and get the tools from [Downloads](/en/start-here/download).
+
+Keep your original files where they are. You will copy or move them in the next phases, so you always have a way back.
+
+## Phase 3: Map your folders to categories
+
+Match each group of content to one of the top-level categories, such as `100.PERSONAL`, `200.WORK`, `300.PROJECTS`, `400.ACADEMIC` or `500.HOBBIES`. The full list and the naming of each level are in [Folder Structure](/en/foundationals/folder-structure).
+
+- Level 1 is named once and not renamed again, so choose carefully.
+- Inside a category, create the sub-categories you need with **Add node**. They follow Chill Naming: `01.Documents`, `02.Gallery`.
+- Reference material that serves a whole node goes in its `90` resources folder. See [Support Nodes](/en/foundationals/support-nodes).
+- Levels 1 and 2 hold no loose files. Whatever you cannot place yet waits in a review folder (Phase 5).
+
+## Phase 4: Turn projects into workboards
+
+Every project, course or homework you are still working on becomes a [workboard](/en/foundationals/workboard-nodes).
+
+1. In the category where it belongs, use **Add workboard**. The app creates `PJ.NNN_New-Workboard` with the next free tracker.
+2. Rename it with `F2`. The fixed prefix stays, and you only type the name.
+3. Copy or move your old project files inside the new workboard.
+4. Set its **status** and **owner** in the details panel.
+
+The folder name follows the `TRACKING_NAME` pattern, for example `PJ.145_Thesis-Draft`. See [Naming Conventions](/en/foundationals/naming-conventions#control-naming-for-folders) for the identifiers (`PJ`, `HW`, `PR`, `CR`, `TK`).
+
+<Callout type="info" title="Metadata is not in the name">
+  The date, holder, area and status of a workboard are not written in its name. For folders they live in the ANT database and in a hidden `.ant/info.json` that FolderManager manages. For files they are meant to go in the file properties, which is not implemented yet.
+</Callout>
+
+FolderManager only creates workboards with the `PJ` identifier. For `HW`, `PR`, `CR` or `TK`, rename the folder in your file explorer. **Change type** in the context menu changes how the app treats the folder, but does not rename it.
+
+## Phase 5: Move in batches
+
+1. Work one source folder at a time, in batches of a size you can finish in one sitting.
+2. Copy first, then delete the original when you have checked the result.
+3. Anything you cannot classify right away goes into the `98.Review` folder of the closest node, or into `998.Review`. Do not leave it in the source folder.
+4. Press **Refresh** in FolderManager after moving files in your file explorer. The app also refreshes by itself when its window gets focus.
+
+File names do not need to be changed in one go. When you touch a file, give it the [file format](/en/foundationals/naming-conventions#control-naming-for-files). Reformatter (see [Downloads](/en/start-here/download)) can rename many files at once, but it writes the date, holder and identifier into the file name, which is not where file metadata is meant to live in the end. Use it only if you want that long name.
+
+## Phase 6: Verify and back up
+
+Go through this checklist before you delete anything from the original location.
+
+- [ ] Level 1 holds only the numbered categories and the support nodes.
+- [ ] Every project you still work on is a workboard with a status and an owner.
+- [ ] `998.Review` has no forgotten items, or you have a date to clear them.
+- [ ] You can find three random files with the search box (`Ctrl+F`).
+- [ ] Your original files are copied to a drive that is not the one you migrated to.
+
+<Callout type="warning" title="FolderManager does not back up your files">
+  Its backup is a zip of the ANT data only: `ant.db`, the `.ant` files and `999.Settings`. Back up your own files with your usual tool, before you start and again when you finish.
+</Callout>
+
+## What comes next
+
+Migration is meant to be handled by FolderManager in the future: importing a folder, renaming in batches and writing file metadata. Those steps are marked as planned above and are not available yet. Until then, this plan is the manual route.

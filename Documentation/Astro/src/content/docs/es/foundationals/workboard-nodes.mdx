@@ -1,0 +1,78 @@
+---
+title: Nodos del Tablero de Trabajo
+description: Carpetas temporales que reúnen todo lo de un proyecto, tarea o práctica.
+---
+import Callout from "/src/components/ui/Callout.astro";
+
+Los tableros de trabajo (workboards) son carpetas temporales de proyecto pensadas para contener todos los archivos de una tarea, proyecto o práctica. Evitan que los archivos se dispersen (p. ej., entre Descargas, el Escritorio o discos al azar) dándoles un espacio de trabajo explícito y temporal.
+
+## Nomenclatura de los tableros
+Los tableros usan la [nomenclatura Control](/es/foundationals/naming-conventions#nomenclatura-control-para-carpetas): una parte de tracking y un nombre, unidos por un guion bajo.
+
+`<Identificador>.<Contador>_<Nombre>`
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Identificador** | `PJ` `PR` `HW` `CR` `TK`: el tipo de tablero |
+| **Contador** | Secuencia incremental de 3 dígitos (001, 002...) |
+| **Nombre** | Nombre descriptivo en Train-Case |
+
+**Ejemplo:**  
+`PJ.005_Organize-Documents-With-Insane-Efficiency`
+
+La fecha, el breadcrumb, el titular y el estado no forman parte del nombre; son los [metadatos](/es/foundationals/naming-conventions#almacenamiento-de-los-metadatos) del tablero, guardados en la base de datos de ANT y en el `.ant/info.json` del tablero.
+
+## Tipos de tableros
+- **PJ:** Proyecto
+- **PR:** Práctica
+- **HW:** Tarea escolar
+- **CR:** Curso
+- **TK:** Tarea
+
+<Callout type="info" title="Soporte en FolderManager">
+  Hoy FolderManager reconoce las carpetas `PJ.`, `PR.` y `HW.` como tableros; `CR.` y `TK.` todavía no los maneja la aplicación. Los tableros nuevos creados desde la aplicación empiezan como `PJ.` con el siguiente contador libre.
+</Callout>
+
+## Estado
+Cada tablero lleva un estado en sus metadatos:
+
+| Estado | Significado |
+|--------|-------------|
+| `in-progress` | En curso (el valor por defecto de un tablero nuevo) |
+| `for-review` | Terminado, pendiente de revisión |
+| `hold` | En pausa |
+| `done` | Entregado; listo para [archivarse o eliminarse](/es/foundationals/core-concepts#ciclo-de-vida) |
+
+## Anatomía estructural
+Un tablero vive dentro de un nodo de categoría, junto a los [nodos de soporte](/es/foundationals/support-nodes) de ese nodo. Esta es la estructura que recibe un almacenamiento nuevo desde `Tree.yaml`:
+
+```fs title="Root/200.WORK/"
+📁 02.Industry
+ ├── 📁 90.Industry   ← Recursos
+ ├── 📁 97.Industry   ← Plantillas
+ ├── 📁 98.Industry   ← Revisión
+ ├── 📁 PJ.001_project-name-example
+ ├── 📁 PJ.002_Cangrebot
+ └── 📁 PJ.003_ANT
+```
+
+Por dentro, un tablero solo tiene una pieza fija: la carpeta oculta `.ant/` con su `info.json`. Todo lo demás es libre, así que puede empezar vacío o como copia de una plantilla de la [carpeta 97.Templates](/es/foundationals/support-nodes#carpeta-97templates).
+
+```fs title="PJ.003_ANT/"
+📁 PJ.003_ANT
+ ├── 📁 .ant          ← oculta, gestionada por FolderManager
+ │    └── 📄 info.json
+ └── 📄 . . .         ← tus archivos del proyecto
+```
+
+```json title="PJ.003_ANT/.ant/info.json"
+{
+  "owner": "Mike Diaz",
+  "created": "24-06-01",
+  "status": "in-progress"
+}
+```
+
+<Callout type="warning" title="Sin carpeta de revisión dentro">
+  Un tablero no tiene su propia carpeta de revisión `98.`; los archivos sin clasificar van al nodo de revisión del padre.
+</Callout>
