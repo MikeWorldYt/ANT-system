@@ -12,17 +12,23 @@ import type { TreeNode, WkbStatus } from "../ipc/types";
 
 // Status and owner live in info.json, so a broken file blocks them but not the rename.
 const canEditFields = (n: TreeNode) => isWorkboard(n) && !n.ghost && n.actions.changeType && !n.info?.error;
-const canEdit = (n: TreeNode) => n.actions.editDetails || n.actions.editFlags || n.actions.rename;
+export const canEdit = (n: TreeNode) => n.actions.editDetails || n.actions.editFlags || n.actions.rename;
 const termId = (label: string) => `details-term-${label.toLowerCase()}`;
 const fieldId = (label: string) => `details-field-${label.toLowerCase()}`;
 const labelled = (label: string) => ({ id: fieldId(label), "aria-labelledby": termId(label) });
 
-export function createDetailsPanel(): { element: HTMLElement; render(): void } {
+export interface DetailsSection {
+  element: HTMLElement;
+  render(): void;
+  startEdit(): boolean;
+}
+
+export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
   const list = el("dl", { class: "details" });
   const edit = el("button", { type: "button", class: "icon-btn", "aria-label": "Edit details", title: "Edit details" }, guiIcon("pencil"));
-  const head = el("div", { class: "details-head" }, el("h2", { id: "details-title" }, "Details"), edit);
+  const head = el("div", { class: "details-head" }, el("h3", { id: "details-title", class: "side-label" }, "Details"), edit);
   const empty = el("p", { class: "details-empty" }, "Select a folder to see its details.");
-  const element = el("aside", { class: "details-panel", "aria-labelledby": "details-title" }, head, list, empty, extensionArea());
+  const element = el("section", { class: "side-section", "aria-labelledby": "details-title" }, head, list, empty, extensionArea());
   let editing: string | null = null;
   // Built once per editing key, so store notifications do not discard what was typed.
   let form: { key: string; inputs: Record<string, Node> } | null = null;
@@ -94,6 +100,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     edit.hidden = !n || !canEdit(n);
     empty.hidden = n !== null;
     list.hidden = n === null;
+    const ended = editing === null && form !== null;
     if (editing === null) form = null;
     else if (n && form?.key !== editing) form = { key: editing, inputs: controls(n) };
     const inputs = form?.inputs ?? {};
@@ -117,15 +124,19 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     const focused = document.activeElement;
     list.replaceChildren(...rows);
     if (focused instanceof HTMLElement && focused !== document.activeElement && list.contains(focused)) focused.focus();
+    if (ended) onEditEnd();
   }
 
-  edit.addEventListener("click", () => {
+  function startEdit(): boolean {
     const n = selectedNode();
-    if (!n || !canEdit(n)) return;
+    if (!n || !canEdit(n)) return false;
     editing = keyOf(n.relParts);
     render();
-  });
+    return true;
+  }
+
+  edit.addEventListener("click", startEdit);
 
   onDetailsChange(render);
-  return { element, render };
+  return { element, render, startEdit };
 }

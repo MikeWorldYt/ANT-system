@@ -3,6 +3,8 @@ import add from "../assets/gui/add.svg?raw";
 import back from "../assets/gui/back.svg?raw";
 import chevronDown from "../assets/gui/chevron-down.svg?raw";
 import chevronRight from "../assets/gui/chevron-right.svg?raw";
+import chevronsLeft from "../assets/gui/chevrons-left.svg?raw";
+import chevronsRight from "../assets/gui/chevrons-right.svg?raw";
 import forward from "../assets/gui/forward.svg?raw";
 import infoPanel from "../assets/gui/info-panel.svg?raw";
 import layout from "../assets/gui/layout.svg?raw";
@@ -26,10 +28,11 @@ import statusDone from "../assets/gui/status-done.svg?raw";
 import statusHold from "../assets/gui/status-hold.svg?raw";
 import statusProgress from "../assets/gui/status-progress.svg?raw";
 import statusReview from "../assets/gui/status-review.svg?raw";
+import trash from "../assets/gui/trash.svg?raw";
 import up from "../assets/gui/up.svg?raw";
 import warning from "../assets/gui/warning.svg?raw";
 
-const SOURCES = { add, back, chevronDown, chevronRight, forward, infoPanel, layout, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, refresh, search, separator, settings, starred, statusDone, statusHold, statusProgress, statusReview, up, warning };
+const SOURCES = { add, back, chevronDown, chevronRight, chevronsLeft, chevronsRight, forward, infoPanel, layout, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, refresh, search, separator, settings, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, warning };
 
 export type GuiIcon = keyof typeof SOURCES;
 

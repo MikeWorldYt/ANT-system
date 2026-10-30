@@ -5,7 +5,6 @@ import { describeError } from "./ipc/api";
 import { createColumnsView } from "./views/columns-view";
 import { createGridView } from "./views/grid-view";
 import { installContextMenu } from "./views/context-menu";
-import { createDetailsPanel } from "./shell/details-panel";
 import { el } from "./ui/dom";
 import { createNavigator } from "./shell/navigator";
 import { createSearchBar } from "./shell/search-bar";
@@ -16,9 +15,9 @@ import { installShortcuts } from "./actions/shortcuts";
 import { trackPasteTarget } from "./actions/paste-target";
 import { installDragOut } from "./actions/drag-out";
 import { installFolderMove } from "./actions/folder-move";
-import { readPref, savePref } from "./store/prefs";
 import { createStatusLine, clearStatus, currentOperationStatus, setStatus } from "./ui/status";
 import { rememberSelection, state, subscribe } from "./store/state";
+import { createSidePanel } from "./shell/side-panel";
 import { createToolbar } from "./shell/toolbar";
 import { openSettings } from "./shell/settings-dialog";
 import { createTreeView } from "./views/tree-view";
@@ -37,8 +36,6 @@ const views = createViewSwitcher(host, [createTreeView(), createColumnsView(), c
 trackPasteTarget(host);
 installDragOut(host);
 installFolderMove(host);
-const PANEL_PREF = "fm.details";
-let detailsVisible = readPref(PANEL_PREF) !== "hidden";
 const toolbar = createToolbar(
   {
     modes: views.modes,
@@ -49,22 +46,21 @@ const toolbar = createToolbar(
     },
   },
   {
-    visible: () => detailsVisible,
-    toggle: () => {
-      detailsVisible = !detailsVisible;
-      savePref(PANEL_PREF, detailsVisible ? "shown" : "hidden");
-      panel.element.hidden = !detailsVisible;
-      toolbar.render();
-    },
+    visible: () => panel.expanded(),
+    toggle: () => panel.toggle(),
   },
 );
 const navigator = createNavigator();
 const search = createSearchBar();
 navigator.element.prepend(...toolbar.navLead);
 navigator.element.append(search.element);
-const panel = createDetailsPanel();
-panel.element.hidden = !detailsVisible;
-const main = el("main", { class: "app-main" }, host, panel.element);
+// The views already open on Enter, so the shortcut hands the key to whichever one is showing.
+const openSelected = () => {
+  views.current().focus();
+  document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+};
+const panel = createSidePanel(openSelected, () => toolbar.render());
+const main = el("main", { class: "app-main" }, host, ...panel.elements);
 app.append(toolbar.element, navigator.element, main, createStatusLine());
 installContextMenu(host, () => views.current().focus());
 installShortcuts({
@@ -72,11 +68,7 @@ installShortcuts({
   editPath: navigator.editPath,
   openSettings: () => void openSettings(),
   goUp: navigator.goUp,
-  // The views already open on Enter, so the shortcut hands the key to whichever one is showing.
-  openSelected: () => {
-    views.current().focus();
-    document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
-  },
+  openSelected,
 });
 
 subscribe(() => {
