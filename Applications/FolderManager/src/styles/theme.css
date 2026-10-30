@@ -108,7 +108,7 @@ body {
 .app-main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 0 12px 12px; }
 .tree-host { flex: 1; min-width: 0; background: var(--tree-bg); overflow: auto; border-radius: var(--radius-md); }
 
-.tree { min-height: 100%; outline-offset: -2px; }
+.tree { min-height: 100%; outline-offset: -2px; padding: 12px 0; }
 .row, .col-item { display: flex; align-items: center; gap: 6px; cursor: default; user-select: none; }
 .row { padding: 3px 8px 3px calc(8px + var(--depth, 0) * 18px); }
 .tree:focus-visible .row.selected { outline: 2px solid var(--button); outline-offset: -2px; }
@@ -160,7 +160,7 @@ body {
 .side-action.danger, .side-rail .danger:not([aria-disabled="true"]) { color: var(--delete-hover); }
 .side-action[aria-disabled="true"] { color: var(--disabled-text); cursor: default; }
 .side-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
-.side-rail { flex: none; width: 40px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; background: var(--input-bg); border-radius: var(--radius-md); }
+.side-rail { flex: none; width: 40px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0; background: var(--input-bg); border-radius: var(--radius-md); }
 /* Inner radius = rail radius minus the 5px inset of each button (rail 40px, button 30px). */
 .side-rail .icon-btn { width: 30px; height: 30px; background: transparent; border-radius: calc(var(--radius-md) - 5px); }
 .side-rail .side-rail-expand { background: var(--accent); color: var(--bg); }
@@ -250,7 +250,7 @@ dialog.warning-confirm form { position: relative; }
 .sort-btn[data-dir="desc"] .gui-icon:last-child { transform: rotate(180deg); }
 
 .columns { display: flex; height: 100%; overflow-x: auto; overflow-y: hidden; }
-.column { flex: none; width: var(--panel-w); height: 100%; overflow-y: auto; border-right: 1px solid var(--border); }
+.column { flex: none; width: var(--panel-w); height: 100%; overflow-y: auto; border-right: 1px solid var(--border); padding: 12px 0; }
 .column.loading { padding: 6px 8px; color: var(--muted); }
 .col-item { padding: 3px 8px; }
 .col-item:focus-visible { outline-offset: -2px; }
