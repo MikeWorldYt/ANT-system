@@ -6,7 +6,6 @@ import chevronRight from "../assets/gui/chevron-right.svg?raw";
 import chevronsLeft from "../assets/gui/chevrons-left.svg?raw";
 import chevronsRight from "../assets/gui/chevrons-right.svg?raw";
 import forward from "../assets/gui/forward.svg?raw";
-import infoPanel from "../assets/gui/info-panel.svg?raw";
 import layout from "../assets/gui/layout.svg?raw";
 import pageAbout from "../assets/gui/page-about.svg?raw";
 import pageAppearance from "../assets/gui/page-appearance.svg?raw";
@@ -32,7 +31,7 @@ import trash from "../assets/gui/trash.svg?raw";
 import up from "../assets/gui/up.svg?raw";
 import warning from "../assets/gui/warning.svg?raw";
 
-const SOURCES = { add, back, chevronDown, chevronRight, chevronsLeft, chevronsRight, forward, infoPanel, layout, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, refresh, search, separator, settings, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, warning };
+const SOURCES = { add, back, chevronDown, chevronRight, chevronsLeft, chevronsRight, forward, layout, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, refresh, search, separator, settings, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, warning };
 
 export type GuiIcon = keyof typeof SOURCES;
 

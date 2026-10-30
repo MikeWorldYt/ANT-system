@@ -179,8 +179,6 @@ body {
   border: 1px solid var(--button); border-radius: 3px; outline: none; box-shadow: 0 0 0 1px var(--button);
 }
 .dialog-text { white-space: pre-line; }
-.header-title { display: flex; align-items: center; gap: 8px; }
-.header-title .icon-btn { width: 26px; height: 26px; background: transparent; }
 .btn {
   padding: 8px; border: 0; border-radius: var(--radius-sm); font: inherit; font-weight: bold; cursor: pointer;
   background: var(--field-bg); color: var(--text);
@@ -240,7 +238,6 @@ dialog.warning-confirm form { position: relative; }
 .toolbar-end { margin-left: auto; }
 .view-segment { display: inline-flex; gap: 2px; padding: 2px; background: var(--input-bg); border-radius: var(--radius-md); }
 .view-segment .icon-btn { width: 28px; height: 28px; background: transparent; }
-.view-dropdown { display: none; }
 .sort-btn[data-dir="desc"] .gui-icon:first-child { transform: rotate(180deg); }
 
 .columns { display: flex; height: 100%; overflow-x: auto; overflow-y: hidden; }
@@ -331,8 +328,6 @@ dialog.warning-confirm form { position: relative; }
   .search-box { width: auto; flex: 1 1 160px; }
   .search-results { max-width: calc(100vw - 24px); }
   .search-box.collapsed { flex: none; }
-  .view-segment { display: none; }
-  .view-dropdown { display: inline-flex; }
   .details-panel { position: fixed; inset: 0 0 0 auto; width: min(280px, 90vw); z-index: 800; box-shadow: var(--shadow-pop); }
   .dialog-buttons { flex-wrap: wrap; }
 }

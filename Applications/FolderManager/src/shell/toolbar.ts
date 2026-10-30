@@ -3,7 +3,6 @@ import { el } from "../ui/dom";
 import { guiIcon, type GuiIcon } from "../ui/gui-icons";
 import { iconButton } from "../ui/icon-button";
 import { attachMenu } from "../ui/anchored-menu";
-import { openSettings } from "./settings-dialog";
 import { addNext, move, refresh } from "../actions/ops";
 import { activeColumnKey, selectedNode, setColumnSort, sortOf, state, type SortBy } from "../store/state";
 import type { TreeNode } from "../ipc/types";
@@ -14,15 +13,7 @@ export interface ViewPicker {
   onSelect(id: string): void;
 }
 
-export interface PanelToggle {
-  visible(): boolean;
-  toggle(): void;
-}
-
-export function createToolbar(views: ViewPicker, panel: PanelToggle): { element: HTMLElement; navLead: HTMLElement[]; render(): void } {
-  const settingsBtn = iconButton("Settings", "settings", () => void openSettings());
-  const titleRow = el("div", { class: "header-title" }, settingsBtn);
-
+export function createToolbar(views: ViewPicker): { element: HTMLElement; navLead: HTMLElement[]; render(): void } {
   const withSelected = (fn: (n: TreeNode) => void) => {
     const n = selectedNode();
     if (n) fn(n);
@@ -54,23 +45,19 @@ export function createToolbar(views: ViewPicker, panel: PanelToggle): { element:
       { label: "Descending", checked: dir === "desc", run: () => setColumnSort(column, { dir: "desc" }) },
     ];
   });
-  const pickerLabel = el("span", { class: "view-label" });
-  const picker = el("button", { type: "button", class: "view-picker view-dropdown", title: "Change view" }, guiIcon("layout"), pickerLabel, guiIcon("chevronDown"));
-  attachMenu(picker, "View", () => views.modes.map((m) => ({ label: m.label, checked: m.id === views.active(), run: () => views.onSelect(m.id) })));
-  // Placeholder glyphs until the dedicated view icons land; the segment shows when the toolbar has room, the dropdown otherwise.
+  // Placeholder glyphs until the dedicated view icons land.
   const VIEW_ICONS: Record<string, GuiIcon> = { tree: "layout", columns: "layout", grid: "layout" };
   const modeButtons = views.modes.map((m): [string, HTMLButtonElement] => [m.id, iconButton(`${m.label} view`, VIEW_ICONS[m.id] ?? "layout", () => views.onSelect(m.id))]);
   const segment = el("div", { class: "view-segment", role: "group", "aria-label": "View" }, ...modeButtons.map(([, b]) => b));
 
-  // ─────────♦ REFRESH AND PANEL ────────────────────────────────────────────────
+  // ─────────♦ REFRESH────────────────────────────────────────────────
   const reload = iconButton("Refresh", "refresh", () => void refresh());
-  const panelBtn = iconButton("Details panel", "infoPanel", panel.toggle);
 
   reload.classList.add("toolbar-end");
   const divider = el("span", { class: "toolbar-divider", "aria-hidden": "true" });
   const orderGroup = el("div", { class: "toolbar-group" }, up, down, sortBtn);
-  const bar = el("div", { class: "toolbar", role: "group", "aria-label": "Tree actions" }, orderGroup, segment, picker, reload, panelBtn);
-  const element = el("header", { class: "app-header" }, titleRow, el("div", { class: "header-tools" }, bar));
+  const bar = el("div", { class: "toolbar", role: "group", "aria-label": "Tree actions" }, orderGroup, segment, reload);
+  const element = el("header", { class: "app-header" }, el("div", { class: "header-tools" }, bar));
 
   return {
     element,
@@ -91,11 +78,6 @@ export function createToolbar(views: ViewPicker, panel: PanelToggle): { element:
       sortBtn.setAttribute("aria-label", `${sortText}, ${dir === "asc" ? "ascending" : "descending"}`);
       sortBtn.dataset.dir = dir;
       modeButtons.forEach(([id, b]) => b.setAttribute("aria-pressed", String(id === views.active())));
-      const mode = views.modes.find((m) => m.id === views.active())?.label ?? "";
-      pickerLabel.textContent = mode;
-      picker.setAttribute("aria-label", `View: ${mode}`);
-      panelBtn.setAttribute("aria-pressed", String(panel.visible()));
-      panelBtn.title = panel.visible() ? "Hide details" : "Show details panel";
     },
   };
 }

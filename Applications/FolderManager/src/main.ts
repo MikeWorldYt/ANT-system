@@ -45,10 +45,6 @@ const toolbar = createToolbar(
       toolbar.render();
     },
   },
-  {
-    visible: () => panel.expanded(),
-    toggle: () => panel.toggle(),
-  },
 );
 const navigator = createNavigator();
 const search = createSearchBar();
@@ -59,7 +55,7 @@ const openSelected = () => {
   views.current().focus();
   document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
 };
-const panel = createSidePanel(openSelected, () => toolbar.render());
+const panel = createSidePanel(openSelected);
 const main = el("main", { class: "app-main" }, host, ...panel.elements);
 app.append(toolbar.element, navigator.element, main, createStatusLine());
 installContextMenu(host, () => views.current().focus());

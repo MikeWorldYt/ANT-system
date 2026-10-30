@@ -14,13 +14,11 @@ const PANEL_PREF = "fm.details";
 export interface SidePanel {
   elements: HTMLElement[];
   render(): void;
-  expanded(): boolean;
-  toggle(): void;
 }
 
 const favoriteLabel = (n: TreeNode | null) => (n?.favorite ? "Remove from favorites" : "Add to favorites");
 
-export function createSidePanel(openSelected: () => void, onToggle: () => void): SidePanel {
+export function createSidePanel(openSelected: () => void): SidePanel {
   let collapsed = readPref(PANEL_PREF) === "hidden";
   // Set when the rail pencil expanded the panel, so the end of that edit returns to the rail.
   let collapseAfterEdit = false;
@@ -99,7 +97,6 @@ export function createSidePanel(openSelected: () => void, onToggle: () => void):
     collapsed = asCollapsed;
     panel.hidden = collapsed;
     rail.hidden = !collapsed;
-    onToggle();
   }
 
   function setCollapsed(on: boolean): void {
@@ -134,7 +131,5 @@ export function createSidePanel(openSelected: () => void, onToggle: () => void):
   return {
     elements: [panel, rail],
     render,
-    expanded: () => !collapsed,
-    toggle: () => setCollapsed(!collapsed),
   };
 }
