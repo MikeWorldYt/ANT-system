@@ -4,6 +4,7 @@ import { iconButton } from "../ui/icon-button";
 import { move, remove, setFavorite } from "../actions/ops";
 import { readPref, savePref } from "../store/prefs";
 import { nameWithoutIdentifier } from "../store/node-info";
+import { quickActionsShown, railLayout, type RailId } from "../store/side-layout";
 import { selectedNode, state } from "../store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
 import { openSettings } from "./settings-dialog";
@@ -78,18 +79,27 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   railDelete.classList.add("danger");
   const about = iconButton("About", "pageAbout", () => void openSettings("about"));
   about.classList.add("side-rail-end");
-  const rail = el(
-    "aside",
-    { class: "side-rail", "aria-label": "Side panel" },
-    railExpand,
-    iconButton("Settings", "settings", () => void openSettings()),
-    railFavorite,
-    railEdit,
-    railUp,
-    railDown,
-    railDelete,
-    about,
-  );
+  const railButtons: Record<RailId, HTMLButtonElement> = {
+    settings: iconButton("Settings", "settings", () => void openSettings()),
+    favorite: railFavorite,
+    edit: railEdit,
+    moveUp: railUp,
+    moveDown: railDown,
+    delete: railDelete,
+  };
+  const rail = el("aside", { class: "side-rail", "aria-label": "Side panel" });
+  let railKey: string | null = null;
+
+  // Rebuilt only when the layout changes, since replacing the buttons drops keyboard focus.
+  function layoutRail(): void {
+    const ids = railLayout()
+      .filter((i) => i.shown)
+      .map((i) => i.id);
+    const key = ids.join(",");
+    if (key === railKey) return;
+    railKey = key;
+    rail.replaceChildren(railExpand, ...ids.map((id) => railButtons[id]), about);
+  }
 
   function section(id: string, label: string, ...actions: HTMLElement[]): HTMLElement {
     return el("section", { class: "side-section", "aria-labelledby": id }, el("h3", { id, class: "side-label" }, label), ...actions);
@@ -109,11 +119,13 @@ export function createSidePanel(openSelected: () => void): SidePanel {
 
   function render(): void {
     details.render();
+    layoutRail();
     const n = selectedNode();
     const a = n?.actions;
     const idle = !state.busy;
     title.textContent = n ? nameWithoutIdentifier(n) : "Details";
-    quick.hidden = order.hidden = foot.hidden = n === null;
+    order.hidden = foot.hidden = n === null;
+    quick.hidden = n === null || !quickActionsShown();
     favorite.setLabel(favoriteLabel(n));
     favorite.button.classList.toggle("is-favorite", !!n?.favorite);
     railFavorite.setAttribute("aria-label", favoriteLabel(n));
@@ -129,6 +141,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     for (const [buttons, on] of enabled) for (const b of buttons) setDisabled(b, !on);
   }
 
+  layoutRail();
   panel.hidden = collapsed;
   rail.hidden = !collapsed;
   return {

@@ -69,3 +69,8 @@ dialog.settings-window::backdrop { background: rgb(0 0 0 / 0.6); }
 .sw-dots button { width: 22px; height: 22px; border: 0; border-radius: 50%; cursor: pointer; }
 .sw-dots button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
 .sw-seg button:focus-visible, .sw-dots button:focus-visible { outline: 2px solid var(--button); outline-offset: 2px; }
+.sw-rail { display: flex; flex: 0 1 300px; flex-direction: column; gap: 2px; min-width: 240px; margin: 0; padding: 0; list-style: none; }
+.sw-rail li { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.sw-rail-label { flex: 1; min-width: 0; }
+.sw-rail .sw-switch { margin-right: 6px; }
+.sw-rail .icon-btn { width: 26px; height: 26px; background: transparent; }
