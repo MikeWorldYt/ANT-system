@@ -19,7 +19,7 @@ export interface PanelToggle {
   toggle(): void;
 }
 
-export function createToolbar(views: ViewPicker, panel: PanelToggle): { element: HTMLElement; render(): void } {
+export function createToolbar(views: ViewPicker, panel: PanelToggle): { element: HTMLElement; navLead: HTMLElement[]; render(): void } {
   const settingsBtn = iconButton("Settings", "settings", () => void openSettings());
   const titleRow = el("div", { class: "header-title" }, settingsBtn);
 
@@ -42,7 +42,7 @@ export function createToolbar(views: ViewPicker, panel: PanelToggle): { element:
   const down = iconButton("Move down", "moveDown", act((n) => void move(n, "down")));
 
   // ─────────♦ SORT AND VIEW ────────────────────────────────────────────────────
-  const sortBtn = el("button", { type: "button", class: "view-picker", title: "Sort by", "aria-label": "Sort by" }, guiIcon("up"), guiIcon("chevronDown"));
+  const sortBtn = el("button", { type: "button", class: "view-picker", title: "Sort by", "aria-label": "Sort by" }, guiIcon("up"), el("span", {}, "Sort by"));
   const SORT_KEYS: [SortBy, string][] = [["name", "Name"], ["type", "Type"], ["status", "Status"]];
   attachMenu(sortBtn, "Sort by", () => {
     const column = activeColumnKey();
@@ -61,11 +61,15 @@ export function createToolbar(views: ViewPicker, panel: PanelToggle): { element:
   const reload = iconButton("Refresh", "refresh", () => void refresh());
   const panelBtn = iconButton("Details panel", "infoPanel", panel.toggle);
 
-  const bar = el("div", { class: "toolbar", role: "group", "aria-label": "Tree actions" }, add, up, down, sortBtn, picker, reload, panelBtn);
+  reload.classList.add("toolbar-end");
+  const divider = el("span", { class: "toolbar-divider", "aria-hidden": "true" });
+  const orderGroup = el("div", { class: "toolbar-group" }, up, down, sortBtn);
+  const bar = el("div", { class: "toolbar", role: "group", "aria-label": "Tree actions" }, orderGroup, picker, reload, panelBtn);
   const element = el("header", { class: "app-header" }, titleRow, el("div", { class: "header-tools" }, bar));
 
   return {
     element,
+    navLead: [add, divider],
     render() {
       const a = selectedNode()?.actions;
       const idle = !state.busy;

@@ -60,6 +60,7 @@ const toolbar = createToolbar(
 );
 const navigator = createNavigator();
 const search = createSearchBar();
+navigator.element.prepend(...toolbar.navLead);
 navigator.element.append(search.element);
 const panel = createDetailsPanel();
 panel.element.hidden = !detailsVisible;

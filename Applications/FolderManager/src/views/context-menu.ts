@@ -144,7 +144,7 @@ function openMenu({ node, x, y, folderOnly }: MenuRequest, restoreFocus: () => v
   items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
   subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));
   const content = folderOnly ? [open, ...pasteItems, copy, ...shortcutItems] : [open, ...pasteItems, rename, favorite, ...fileItems, ...subs.map((s) => s.element), separator(), copy, ...shortcutItems, del, ...(extras.length > 0 ? [separator(), ...extras] : [])];
-  const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` }, ...content);
+  const menu = el("div", { class: "ctx-menu ctx-node", role: "menu", "aria-label": `Actions for ${node.name}` }, ...content);
   menu.addEventListener("mouseleave", closeSubs);
 
   function close(restore = true): void {
@@ -180,5 +180,11 @@ function openMenu({ node, x, y, folderOnly }: MenuRequest, restoreFocus: () => v
 }
 
 export function installContextMenu(host: HTMLElement, restoreFocus: () => void): void {
+  // Suppresses the WebView2 default menu everywhere except text fields, which keep copy and paste.
+  document.addEventListener("contextmenu", (ev) => {
+    const t = ev.target;
+    if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable)) return;
+    ev.preventDefault();
+  });
   host.addEventListener("fm:node-menu", (ev) => openMenu(ev.detail, restoreFocus));
 }

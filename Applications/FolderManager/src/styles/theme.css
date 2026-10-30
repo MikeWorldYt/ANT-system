@@ -206,6 +206,9 @@ dialog.warning-confirm form { position: relative; }
 .view-picker .gui-icon:last-child { width: 12px; height: 12px; }
 .icon-btn[aria-pressed="true"], .icon-btn[aria-pressed="true"]:hover { background: var(--highlight); color: var(--title); }
 .header-tools { display: flex; align-items: center; gap: 12px; }
+.toolbar-group { display: flex; align-items: center; gap: 4px; }
+.toolbar-divider { align-self: stretch; width: 1px; margin: 4px 2px; background: var(--border); }
+.toolbar-end { margin-left: auto; }
 
 .columns { display: flex; height: 100%; overflow-x: auto; overflow-y: hidden; }
 .column { flex: none; width: var(--panel-w); height: 100%; overflow-y: auto; border-right: 1px solid var(--border); }
@@ -246,6 +249,7 @@ dialog.warning-confirm form { position: relative; }
   overflow-y: auto; padding: 4px 0; background: var(--input-bg); border: 1px solid var(--border);
   box-shadow: var(--shadow-pop);
 }
+.ctx-node, .ctx-node .ctx-flyout { border-radius: 3px; }
 .ctx-item {
   display: block; position: relative; width: 100%; padding: 6px 14px; border: 0; background: transparent;
   color: var(--text); font: inherit; text-align: left; cursor: pointer;
