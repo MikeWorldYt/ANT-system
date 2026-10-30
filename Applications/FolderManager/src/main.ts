@@ -9,7 +9,7 @@ import { createDetailsPanel } from "./shell/details-panel";
 import { el } from "./ui/dom";
 import { createNavigator } from "./shell/navigator";
 import { createSearchBar } from "./shell/search-bar";
-import { onReviewIndex, onWindowFocus } from "./ipc/events";
+import { onReviewIndex, onStorageChanged, onWindowFocus } from "./ipc/events";
 import { init, refresh } from "./actions/ops";
 import { installShortcuts } from "./actions/shortcuts";
 import { readPref, savePref } from "./store/prefs";
@@ -99,6 +99,28 @@ onReviewIndex((e) => {
   }
 }).catch((e) => setStatus("warning", `Review index updates unavailable: ${describeError(e)}`));
 onWindowFocus(() => void refresh()).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
+
+// Watcher batches can arrive while a refresh runs; one pending rerun covers them all.
+let refreshing = false;
+let pending = false;
+async function refreshForWatcher(): Promise<void> {
+  if (refreshing) {
+    pending = true;
+    return;
+  }
+  refreshing = true;
+  try {
+    do {
+      pending = false;
+      await refresh();
+    } while (pending);
+  } finally {
+    refreshing = false;
+  }
+}
+onStorageChanged(() => void refreshForWatcher()).catch((e) =>
+  setStatus("warning", `Live storage updates unavailable: ${describeError(e)}`),
+);
 
 installDebugLog();
 

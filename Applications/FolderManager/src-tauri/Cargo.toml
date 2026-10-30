@@ -16,3 +16,7 @@ serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 rusqlite = { version = "0.40", features = ["bundled"] }
 tauri-plugin-notification = "2"
+notify = "8.2.0"
+
+[target.'cfg(windows)'.dependencies]
+tray-icon = { version = "0.25.1", default-features = false }

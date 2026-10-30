@@ -17,9 +17,12 @@ mod sync;
 mod test_support;
 mod tree;
 mod updater;
+mod watch;
 mod window_state;
 
 use commands::settings;
+
+const STORAGE_CHANGED: &str = "storage-changed";
 
 pub fn run() {
     if std::env::args_os().nth(1).is_some_and(|a| a == "--backup") {
@@ -27,6 +30,9 @@ pub fn run() {
     }
     if std::env::args_os().nth(1).is_some_and(|a| a == "--sync") {
         std::process::exit(sync::run_headless(std::env::args_os().nth(2)));
+    }
+    if std::env::args_os().nth(1).is_some_and(|a| a == "--watch") {
+        std::process::exit(watch::run_headless(std::env::args_os().nth(2)));
     }
     let arg = std::env::args_os().nth(1).map(std::path::PathBuf::from);
     let cwd = std::env::current_dir().unwrap_or_default();
@@ -48,6 +54,17 @@ pub fn run() {
                     window.set_title(&commands::window_title(&storage::rename::folder_name(&root)))?;
                 }
             }
+            let handle = app.handle().clone();
+            let emitter = app.handle().clone();
+            app.manage(watch::GuiWatch::start(
+                move || handle.state::<commands::Storage>().root().ok(),
+                move |event| {
+                    use tauri::Emitter;
+                    if let Err(e) = emitter.emit(STORAGE_CHANGED, event) {
+                        eprintln!("Could not send {STORAGE_CHANGED}: {e}");
+                    }
+                },
+            ));
             if let Some(window) = app.get_webview_window("main") {
                 window_state::restore(&window);
                 let saved = window.clone();
@@ -112,6 +129,14 @@ pub fn run() {
             commands::install_inspected_extension,
             commands::run_intake,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Folder Manager");
+        .build(tauri::generate_context!())
+        .expect("error while running Folder Manager")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                use tauri::Manager;
+                if let Some(watcher) = app.try_state::<watch::GuiWatch>() {
+                    watcher.shutdown();
+                }
+            }
+        });
 }

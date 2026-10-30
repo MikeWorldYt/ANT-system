@@ -120,6 +120,11 @@ export interface ReviewIndexEvent {
   failures: string[];
 }
 
+export interface StorageChangedEvent {
+  paths: number;
+  full: boolean;
+}
+
 export type FmError =
   | { kind: "storageNotFound"; start: string }
   | { kind: "invalidName"; name: string; reason: string }
