@@ -3,7 +3,7 @@ import { el } from "../ui/dom";
 import { guiIcon, type GuiIcon } from "../ui/gui-icons";
 import { iconButton } from "../ui/icon-button";
 import { attachMenu } from "../ui/anchored-menu";
-import { addNext, move, refresh } from "../actions/ops";
+import { addNext, refresh } from "../actions/ops";
 import { activeColumnKey, selectedNode, setColumnSort, sortOf, state, type SortBy } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 
@@ -18,7 +18,6 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     const n = selectedNode();
     if (n) fn(n);
   };
-  const act = (fn: (n: TreeNode) => void) => () => withSelected(fn);
 
   // ─────────♦ ADD AND MOVE ─────────────────────────────────────────────────────
   const add = iconButton("Add", "add");
@@ -29,8 +28,6 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
       ...(!atRoot ? [{ label: "Add workboard", run: () => withSelected((n) => void addNext(n, "workboard")) }] : []),
     ];
   });
-  const up = iconButton("Move up", "moveUp", act((n) => void move(n, "up")));
-  const down = iconButton("Move down", "moveDown", act((n) => void move(n, "down")));
 
   // ─────────♦ SORT AND VIEW ────────────────────────────────────────────────────
   const SORT_KEYS: [SortBy, string][] = [["name", "Name"], ["type", "Type"], ["status", "Status"]];
@@ -75,15 +72,13 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
   const divider = el("span", { class: "toolbar-divider", "aria-hidden": "true" });
 
   return {
-    navLead: [add, up, down, divider],
+    navLead: [add, divider],
     trailing: [viewControl, sortBtn, reload],
     render() {
       const a = selectedNode()?.actions;
       const idle = !state.busy;
       const setDisabled = (b: HTMLButtonElement, disabled: boolean) => b.setAttribute("aria-disabled", String(disabled));
       setDisabled(add, !(a?.addNext && idle));
-      setDisabled(up, !(a?.moveUp && idle));
-      setDisabled(down, !(a?.moveDown && idle));
       setDisabled(reload, !idle);
       sortBtn.hidden = views.active() !== "columns";
       const { by, dir } = sortOf(activeColumnKey());
