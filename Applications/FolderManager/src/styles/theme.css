@@ -155,7 +155,7 @@ body {
 .side-action-icon .gui-icon { width: 16px; height: 16px; }
 .side-action-label { flex: 1; min-width: 0; }
 .side-action.accent { color: var(--accent); }
-.side-action.favorite { color: var(--st-progress); }
+.side-action.is-favorite .side-action-icon { color: var(--st-progress); }
 .side-action.danger, .side-rail .danger:not([aria-disabled="true"]) { color: var(--delete-hover); }
 .side-action[aria-disabled="true"] { color: var(--disabled-text); cursor: default; }
 .side-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }

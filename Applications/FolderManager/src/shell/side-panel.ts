@@ -51,7 +51,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   const head = el("div", { class: "side-head" }, title, settings, collapse);
 
   const open = sideAction("Open", null, openSelected, "");
-  const favorite = sideAction(favoriteLabel(null), "starred", toggleFavorite, "favorite");
+  const favorite = sideAction(favoriteLabel(null), "starred", toggleFavorite);
   const quick = section("side-quick", "Quick actions", open.button, favorite.button);
   const up = sideAction("Move up", "moveUp", moveUp, "accent");
   const down = sideAction("Move down", "moveDown", moveDown, "accent");
@@ -114,6 +114,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     title.textContent = n?.name ?? "Details";
     quick.hidden = order.hidden = foot.hidden = n === null;
     favorite.setLabel(favoriteLabel(n));
+    favorite.button.classList.toggle("is-favorite", !!n?.favorite);
     railFavorite.setAttribute("aria-label", favoriteLabel(n));
     railFavorite.title = favoriteLabel(n);
     const enabled: [HTMLButtonElement[], boolean][] = [
