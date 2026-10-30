@@ -42,9 +42,7 @@ body {
 
 :focus-visible { outline: 2px solid var(--button); outline-offset: 2px; }
 
-.app-header { display: flex; align-items: center; justify-content: space-between; padding: 12px; gap: 12px; }
-.app-header h1 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 11pt; color: var(--title); }
-.nav-bar { display: flex; align-items: center; gap: 6px; padding: 0 12px 10px; }
+.nav-bar { display: flex; align-items: center; gap: 6px; padding: 12px 12px 10px; }
 .nav-bar .icon-btn { width: 30px; height: 30px; background: transparent; }
 .search-box { position: relative; width: var(--panel-w); flex: none; transition: width 0.15s ease; }
 .search-box.collapsed { width: 32px; }
@@ -93,7 +91,6 @@ body {
 .crumb-btn { border: 0; background: transparent; padding: 0 2px; font: inherit; cursor: pointer; border-radius: 3px; }
 .crumb-btn:hover { background: var(--field-bg); }
 .crumb-btn.current { font-weight: 600; }
-.toolbar { display: flex; align-items: center; gap: 6px; }
 
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center; padding: 0;
@@ -232,11 +229,11 @@ dialog.warning-confirm form { position: relative; }
 .view-picker .gui-icon { width: 16px; height: 16px; }
 .view-picker .gui-icon:last-child { width: 12px; height: 12px; }
 .icon-btn[aria-pressed="true"], .icon-btn[aria-pressed="true"]:hover { background: var(--highlight); color: var(--title); }
-.header-tools { display: flex; align-items: center; gap: 12px; }
-.toolbar-group { display: flex; align-items: center; gap: 4px; }
 .toolbar-divider { align-self: stretch; width: 1px; margin: 4px 2px; background: var(--border); }
 .toolbar-end { margin-left: auto; }
-.view-segment { display: inline-flex; gap: 2px; padding: 2px; background: var(--input-bg); border-radius: var(--radius-md); }
+.view-control { display: inline-flex; align-items: center; gap: 6px; }
+.view-segment { display: none; gap: 2px; padding: 2px; background: var(--input-bg); border-radius: var(--radius-md); }
+.view-control.expanded .view-segment { display: inline-flex; }
 .view-segment .icon-btn { width: 28px; height: 28px; background: transparent; }
 .sort-btn[data-dir="desc"] .gui-icon:first-child { transform: rotate(180deg); }
 
@@ -324,7 +321,7 @@ dialog.warning-confirm form { position: relative; }
 }
 
 @media (max-width: 720px) {
-  .app-header, .nav-bar { flex-wrap: wrap; }
+  .nav-bar { flex-wrap: wrap; }
   .search-box { width: auto; flex: 1 1 160px; }
   .search-results { max-width: calc(100vw - 24px); }
   .search-box.collapsed { flex: none; }

@@ -49,7 +49,7 @@ const toolbar = createToolbar(
 const navigator = createNavigator();
 const search = createSearchBar();
 navigator.element.prepend(...toolbar.navLead);
-navigator.element.append(search.element);
+navigator.element.append(search.element, ...toolbar.trailing);
 // The views already open on Enter, so the shortcut hands the key to whichever one is showing.
 const openSelected = () => {
   views.current().focus();
@@ -57,7 +57,7 @@ const openSelected = () => {
 };
 const panel = createSidePanel(openSelected);
 const main = el("main", { class: "app-main" }, host, ...panel.elements);
-app.append(toolbar.element, navigator.element, main, createStatusLine());
+app.append(navigator.element, main, createStatusLine());
 installContextMenu(host, () => views.current().focus());
 installShortcuts({
   focusSearch: search.focus,
