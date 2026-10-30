@@ -52,7 +52,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     closeViewPopup?.(true);
   })]);
   const viewLabel = el("span", { class: "view-label" });
-  const viewBtn = el("button", { type: "button", class: "view-picker", "aria-haspopup": "true", "aria-expanded": "false" }, guiIcon("layout"), viewLabel, guiIcon("chevronDown"));
+  const viewBtn = el("button", { type: "button", class: "view-picker", "aria-haspopup": "true", "aria-expanded": "false" }, guiIcon("layout"), viewLabel);
 
   function openViewPopup(): void {
     const popup = el("div", { class: "view-segment", role: "group", "aria-label": "View" }, ...modeButtons.map(([, b]) => b));
