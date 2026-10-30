@@ -231,9 +231,11 @@ dialog.warning-confirm form { position: relative; }
 .icon-btn[aria-pressed="true"], .icon-btn[aria-pressed="true"]:hover { background: var(--highlight); color: var(--title); }
 .toolbar-divider { align-self: stretch; width: 1px; margin: 4px 2px; background: var(--border); }
 .toolbar-end { margin-left: auto; }
-.view-control { display: inline-flex; align-items: center; gap: 6px; }
-.view-segment { display: none; gap: 2px; padding: 2px; background: var(--input-bg); border-radius: var(--radius-md); }
-.view-control.expanded .view-segment { display: inline-flex; }
+.view-picker[aria-expanded="true"] .gui-icon:last-child { transform: rotate(180deg); }
+.view-segment {
+  position: fixed; top: 0; left: 0; z-index: 1000; display: inline-flex; gap: 2px; padding: 4px;
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-pop);
+}
 .view-segment .icon-btn { width: 28px; height: 28px; background: transparent; }
 .sort-btn[data-dir="desc"] .gui-icon:first-child { transform: rotate(180deg); }
 

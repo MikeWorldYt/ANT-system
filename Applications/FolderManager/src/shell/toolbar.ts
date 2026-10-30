@@ -1,8 +1,9 @@
-// Tree actions (add, move, sort, view, refresh) that share the navigation row.
+// Tree actions (add, sort, view, refresh) that share the navigation row.
 import { el } from "../ui/dom";
 import { guiIcon, type GuiIcon } from "../ui/gui-icons";
 import { iconButton } from "../ui/icon-button";
 import { attachMenu } from "../ui/anchored-menu";
+import { EDGE, autoDismiss, place } from "../ui/menu";
 import { addNext, refresh } from "../actions/ops";
 import { activeColumnKey, selectedNode, setColumnSort, sortOf, state, type SortBy } from "../store/state";
 import type { TreeNode } from "../ipc/types";
@@ -19,7 +20,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     if (n) fn(n);
   };
 
-  // ─────────♦ ADD AND MOVE ─────────────────────────────────────────────────────
+  // ─────────♦ ADD ────────────────────────────────────────────────────────────────
   const add = iconButton("Add", "add");
   attachMenu(add, "Add", () => {
     const atRoot = selectedNode()?.relParts.length === 1;
@@ -42,29 +43,42 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
       { label: "Descending", checked: dir === "desc", run: () => setColumnSort(column, { dir: "desc" }) },
     ];
   });
+
   // Placeholder glyphs until the dedicated view icons land.
   const VIEW_ICONS: Record<string, GuiIcon> = { tree: "layout", columns: "layout", grid: "layout" };
+  let closeViewPopup: ((restore: boolean) => void) | null = null;
   const modeButtons = views.modes.map((m): [string, HTMLButtonElement] => [m.id, iconButton(`${m.label} view`, VIEW_ICONS[m.id] ?? "layout", () => {
     views.onSelect(m.id);
-    setViewOpen(false);
+    closeViewPopup?.(true);
   })]);
-  const segment = el("div", { class: "view-segment", role: "group", "aria-label": "View" }, ...modeButtons.map(([, b]) => b));
   const viewLabel = el("span", { class: "view-label" });
-  const viewBtn = el("button", { type: "button", class: "view-picker", "aria-expanded": "false" }, guiIcon("layout"), viewLabel, guiIcon("chevronDown"));
-  const viewControl = el("div", { class: "view-control" }, viewBtn, segment);
-  const setViewOpen = (open: boolean) => {
-    viewControl.classList.toggle("expanded", open);
-    viewBtn.setAttribute("aria-expanded", String(open));
-  };
-  viewBtn.addEventListener("click", () => setViewOpen(!viewControl.classList.contains("expanded")));
-  viewControl.addEventListener("keydown", (ev) => {
-    if (ev.key !== "Escape" || !viewControl.classList.contains("expanded")) return;
-    setViewOpen(false);
-    viewBtn.focus();
-  });
-  viewControl.addEventListener("focusout", (ev) => {
-    if (!viewControl.contains(ev.relatedTarget as Node | null)) setViewOpen(false);
-  });
+  const viewBtn = el("button", { type: "button", class: "view-picker", "aria-haspopup": "true", "aria-expanded": "false" }, guiIcon("layout"), viewLabel, guiIcon("chevronDown"));
+
+  function openViewPopup(): void {
+    const popup = el("div", { class: "view-segment", role: "group", "aria-label": "View" }, ...modeButtons.map(([, b]) => b));
+    const close = (restore: boolean) => {
+      closeViewPopup = null;
+      popup.remove();
+      stopWatching();
+      viewBtn.setAttribute("aria-expanded", "false");
+      if (restore) viewBtn.focus();
+    };
+    popup.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Escape") return;
+      ev.preventDefault();
+      close(true);
+    });
+    // Keeps a press on the popup from moving focus away before the click lands.
+    popup.addEventListener("mousedown", (ev) => ev.preventDefault());
+    const r = viewBtn.getBoundingClientRect();
+    document.body.append(popup);
+    place(popup, r.left, r.bottom + EDGE);
+    const stopWatching = autoDismiss((t) => popup.contains(t) || viewBtn.contains(t), close);
+    viewBtn.setAttribute("aria-expanded", "true");
+    closeViewPopup = close;
+    modeButtons.find(([id]) => id === views.active())?.[1].focus();
+  }
+  viewBtn.addEventListener("click", () => (closeViewPopup ? closeViewPopup(true) : openViewPopup()));
 
   // ─────────♦ REFRESH ────────────────────────────────────────────────────────────
   const reload = iconButton("Refresh", "refresh", () => void refresh());
@@ -73,7 +87,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
 
   return {
     navLead: [add, divider],
-    trailing: [viewControl, sortBtn, reload],
+    trailing: [viewBtn, sortBtn, reload],
     render() {
       const a = selectedNode()?.actions;
       const idle = !state.busy;
