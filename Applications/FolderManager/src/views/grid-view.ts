@@ -140,6 +140,7 @@ export function createGridView(): ViewMode {
     },
     render() {
       syncFolder();
+      root.dataset.key = folder ?? "";
       const hadFocus = root.contains(document.activeElement);
       const nodes = shownNodes();
       const tabbable = nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0];

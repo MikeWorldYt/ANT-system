@@ -234,6 +234,24 @@ pub fn detach(root: &Path, data: &mut Mapping, rel: &[String]) -> R<()> {
     Ok(())
 }
 
+// A copy made inside the app is tailed at once, by the same rule a refresh uses, so it never shares the original's id.
+pub fn tail_copy(root: &Path, data: &mut Mapping, copy: &[String]) -> R<()> {
+    let Scan { live, known, .. } = scan(root, data)?;
+    let mut taken: HashSet<String> = known.into_keys().chain(live.into_iter().filter_map(|l| l.id)).collect();
+    // The whole copy is walked, past the depth limit too, so no folder inside it keeps the original's id.
+    let folder = join_rel(root, copy);
+    let mut inside = vec![Live { rel: copy.to_vec(), id: read_id(&folder) }];
+    walk(&mut copy.to_vec(), &folder, &mut inside, usize::MAX)?;
+    for l in inside {
+        let Some(id) = l.id else { continue };
+        let tail = tailed_id(&id, &taken);
+        replace_id(&join_rel(root, &l.rel), &tail)?;
+        taken.insert(tail.clone());
+        set_uid(data, &l.rel.join("/"), &tail);
+    }
+    Ok(())
+}
+
 fn set_uid(data: &mut Mapping, path: &str, uid: &str) -> bool {
     let rel: Vec<String> = path.split('/').map(str::to_string).collect();
     let Some(node) = get_node_mut(data, &rel) else { return false };

@@ -13,6 +13,7 @@ import { onReviewIndex, onStorageChanged, onWindowFocus } from "./ipc/events";
 import { init, refresh } from "./actions/ops";
 import { installShortcuts } from "./actions/shortcuts";
 import { installDragOut } from "./actions/drag-out";
+import { installFolderMove } from "./actions/folder-move";
 import { readPref, savePref } from "./store/prefs";
 import { createStatusLine, clearStatus, currentOperationStatus, setStatus } from "./ui/status";
 import { rememberSelection, state, subscribe } from "./store/state";
@@ -32,6 +33,7 @@ if (!app) throw new Error("Missing #app mount point");
 const host = el("section", { class: "tree-host", "aria-label": "Storage" });
 const views = createViewSwitcher(host, [createTreeView(), createColumnsView(), createGridView()]);
 installDragOut(host);
+installFolderMove(host);
 const PANEL_PREF = "fm.details";
 let detailsVisible = readPref(PANEL_PREF) !== "hidden";
 const toolbar = createToolbar(

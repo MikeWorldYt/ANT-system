@@ -227,6 +227,13 @@ dialog.warning-confirm form { position: relative; }
 .grid-item.ghost .name { color: var(--ghost-text); font-style: italic; }
 .grid-item.locked .name { color: var(--muted); }
 .grid-art { position: relative; display: inline-flex; }
+.row.drop-target, .col-item.drop-target, .grid-item.drop-target { background: var(--accent); color: var(--on-accent); }
+.column.drop-target, .grid.drop-target { outline: 2px solid var(--accent); outline-offset: -2px; }
+.drop-target .name-fixed { color: inherit; }
+.drag-ghost {
+  position: fixed; z-index: 1000; max-width: 240px; padding: 4px 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  pointer-events: none; color: var(--text); background: var(--input-bg); border: 1px solid var(--accent); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop);
+}
 .grid-art .icon { width: 56px; height: 56px; }
 .grid-art .status-mark { position: absolute; right: -6px; bottom: -4px; }
 .grid-art .fav-mark { position: absolute; left: -6px; top: -4px; }

@@ -51,6 +51,6 @@ fn review_child(node: &Mapping) -> Option<&str> {
         .map(|(name, _)| name)
 }
 
-fn node_type(node: &Mapping) -> &str {
+pub(crate) fn node_type(node: &Mapping) -> &str {
     node.get("type").and_then(Value::as_str).unwrap_or("")
 }

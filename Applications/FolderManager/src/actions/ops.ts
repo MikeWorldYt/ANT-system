@@ -223,7 +223,13 @@ export const setFavorite = (node: TreeNode, on: boolean) =>
 export const setUserFlag = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setUserFlag(node.relParts, on), node.relParts));
 
-export const remove = (node: TreeNode) =>
+export const moveFolder = (source: string[], destination: string[], copy: boolean) =>
+  run(
+    async () => applyMutation(await api.moveFolder(source, destination, copy)),
+    `${copy ? "Copying" : "Moving"} "${source[source.length - 1]}" to "${destination[destination.length - 1]}"…`,
+  );
+
+export const remove =(node: TreeNode) =>
   run(async () => {
     const preview = await api.inspectDelete(node.relParts);
     const nonEmpty = preview.files + preview.dirs > 0;

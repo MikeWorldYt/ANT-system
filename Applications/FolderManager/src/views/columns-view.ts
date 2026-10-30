@@ -8,7 +8,7 @@ import { favoriteMark, nameCell } from "./name-cell";
 import { nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
-import { keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -65,9 +65,15 @@ export function createColumnsView(): ViewMode {
     return item;
   }
 
+  // The folder whose children fill the column; the first column is the storage root.
+  const parentOf = (path: string[], index: number): TreeNode | null => (index === 0 ? null : findNode(path.slice(0, index)));
+
   function buildColumn(col: Column, index: number, path: string[], parent: string): HTMLElement {
     if (col.loading) return el("div", { class: "column loading", "aria-busy": "true" }, "Loading…");
     const column = el("div", { class: "column", role: "listbox", "aria-label": `Contents of ${parent}` });
+    const parentNode = parentOf(path, index);
+    // The empty area of a column is a drop target for the folder it lists; "" is the storage root.
+    column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
     const first = col.nodes[0];
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
     column.append(...col.nodes.map((n) => buildItem(n, n.name === path[index] && index < path.length - 1, keyOf(n.relParts) === tabbableKey)));
