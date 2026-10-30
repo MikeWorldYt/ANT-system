@@ -17,8 +17,12 @@ async function reload(snapshot?: TreeSnapshot): Promise<void> {
   await askAboutCopies(tree.copies);
 }
 
+// Shown once the operation succeeds, because callers clear the status line right after a reload.
+let unresolvedCopies: string | null = null;
+
 // The backend marks each copy only once, so a dismissed question leaves the copy marked and is not asked again.
 async function askAboutCopies(copies: Copied[]): Promise<void> {
+  const dismissed: string[] = [];
   for (const { relParts, original } of copies) {
     const answer = await choiceDialog(
       "Copied folder found",
@@ -26,7 +30,9 @@ async function askAboutCopies(copies: Copied[]): Promise<void> {
       [["copy", "It is a copy"], ["independent", "New project"]],
     );
     if (answer === "copy" || answer === "independent") await api.answerCopy(relParts, answer);
+    else dismissed.push(`"${relParts.join("/")}"`);
   }
+  if (dismissed.length > 0) unresolvedCopies = `Unresolved copy: ${dismissed.join(", ")} stays marked as a copy of another folder.`;
 }
 
 // A level whose parent the UI never loaded cannot be patched, so the tree is read again.
@@ -42,6 +48,10 @@ async function run(fn: () => Promise<void>, progress?: string): Promise<boolean>
   setBusy(true);
   try {
     await fn();
+    if (unresolvedCopies) {
+      setStatus("warning", unresolvedCopies);
+      unresolvedCopies = null;
+    }
     return true;
   } catch (e) {
     setStatus("error", api.describeError(e));
