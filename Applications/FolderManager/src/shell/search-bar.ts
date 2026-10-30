@@ -37,9 +37,10 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
   const live = el("div", { role: "status", "aria-live": "polite" });
   // Screen-reader-only: the visible messages sit in the list, outside the option set.
   Object.assign(live.style, { position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" });
-  const element = el("div", { class: "search-box" }, field, list, live);
+  const element = el("div", { class: "search-box collapsed" }, field, list, live);
 
   const chips: Chip[] = [];
+  let focused = false;
   let hits: string[][] = [];
   let items: Item[] = [];
   let lastSuggest: { key: string; prefix: string; found: Suggestion[] } | null = null;
@@ -47,7 +48,15 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
   let latest = 0;
   let timer: number | undefined;
 
-  const redraw = () => renderChips(field, input, chips, () => void run());
+  // The input stays focusable while collapsed so Tab and Ctrl+F reach it and expand the box.
+  const sync = () => element.classList.toggle("collapsed", !focused && input.value === "" && chips.length === 0);
+  const redraw = () => {
+    renderChips(field, input, chips, () => {
+      sync();
+      void run();
+    });
+    sync();
+  };
 
   function close(): void {
     list.hidden = true;
@@ -176,11 +185,20 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     if (ev.key.startsWith("Arrow")) mark();
   });
   input.addEventListener("focus", () => {
+    focused = true;
+    sync();
     if (items.length > 0 && (input.value.trim() || chips.length > 0)) show();
   });
   // Mousedown on a hit would blur the input first and close the list before the click lands.
   list.addEventListener("mousedown", (ev) => ev.preventDefault());
-  input.addEventListener("blur", close);
+  input.addEventListener("blur", () => {
+    focused = false;
+    close();
+    sync();
+  });
+  field.addEventListener("click", () => {
+    if (element.classList.contains("collapsed")) input.focus();
+  });
 
   return {
     element,

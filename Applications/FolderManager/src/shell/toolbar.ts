@@ -1,6 +1,6 @@
 // Header with the storage root name and the tree toolbar.
 import { el } from "../ui/dom";
-import { guiIcon } from "../ui/gui-icons";
+import { guiIcon, type GuiIcon } from "../ui/gui-icons";
 import { iconButton } from "../ui/icon-button";
 import { attachMenu } from "../ui/anchored-menu";
 import { openSettings } from "./settings-dialog";
@@ -42,8 +42,9 @@ export function createToolbar(views: ViewPicker, panel: PanelToggle): { element:
   const down = iconButton("Move down", "moveDown", act((n) => void move(n, "down")));
 
   // ─────────♦ SORT AND VIEW ────────────────────────────────────────────────────
-  const sortBtn = el("button", { type: "button", class: "view-picker", title: "Sort by", "aria-label": "Sort by" }, guiIcon("up"), el("span", {}, "Sort by"));
   const SORT_KEYS: [SortBy, string][] = [["name", "Name"], ["type", "Type"], ["status", "Status"]];
+  const sortLabel = el("span", {});
+  const sortBtn = el("button", { type: "button", class: "view-picker sort-btn" }, guiIcon("up"), sortLabel);
   attachMenu(sortBtn, "Sort by", () => {
     const column = activeColumnKey();
     const { by, dir } = sortOf(column);
@@ -54,8 +55,12 @@ export function createToolbar(views: ViewPicker, panel: PanelToggle): { element:
     ];
   });
   const pickerLabel = el("span", { class: "view-label" });
-  const picker = el("button", { type: "button", class: "view-picker", title: "Change view" }, guiIcon("layout"), pickerLabel, guiIcon("chevronDown"));
+  const picker = el("button", { type: "button", class: "view-picker view-dropdown", title: "Change view" }, guiIcon("layout"), pickerLabel, guiIcon("chevronDown"));
   attachMenu(picker, "View", () => views.modes.map((m) => ({ label: m.label, checked: m.id === views.active(), run: () => views.onSelect(m.id) })));
+  // Placeholder glyphs until the dedicated view icons land; the segment shows when the toolbar has room, the dropdown otherwise.
+  const VIEW_ICONS: Record<string, GuiIcon> = { tree: "layout", columns: "layout", grid: "layout" };
+  const modeButtons = views.modes.map((m): [string, HTMLButtonElement] => [m.id, iconButton(`${m.label} view`, VIEW_ICONS[m.id] ?? "layout", () => views.onSelect(m.id))]);
+  const segment = el("div", { class: "view-segment", role: "group", "aria-label": "View" }, ...modeButtons.map(([, b]) => b));
 
   // ─────────♦ REFRESH AND PANEL ────────────────────────────────────────────────
   const reload = iconButton("Refresh", "refresh", () => void refresh());
@@ -64,7 +69,7 @@ export function createToolbar(views: ViewPicker, panel: PanelToggle): { element:
   reload.classList.add("toolbar-end");
   const divider = el("span", { class: "toolbar-divider", "aria-hidden": "true" });
   const orderGroup = el("div", { class: "toolbar-group" }, up, down, sortBtn);
-  const bar = el("div", { class: "toolbar", role: "group", "aria-label": "Tree actions" }, orderGroup, picker, reload, panelBtn);
+  const bar = el("div", { class: "toolbar", role: "group", "aria-label": "Tree actions" }, orderGroup, segment, picker, reload, panelBtn);
   const element = el("header", { class: "app-header" }, titleRow, el("div", { class: "header-tools" }, bar));
 
   return {
@@ -79,6 +84,13 @@ export function createToolbar(views: ViewPicker, panel: PanelToggle): { element:
       setDisabled(down, !(a?.moveDown && idle));
       setDisabled(reload, !idle);
       sortBtn.hidden = views.active() !== "columns";
+      const { by, dir } = sortOf(activeColumnKey());
+      const sortText = `Sort by ${SORT_KEYS.find(([id]) => id === by)?.[1] ?? ""}`;
+      sortLabel.textContent = sortText;
+      sortBtn.title = sortText;
+      sortBtn.setAttribute("aria-label", `${sortText}, ${dir === "asc" ? "ascending" : "descending"}`);
+      sortBtn.dataset.dir = dir;
+      modeButtons.forEach(([id, b]) => b.setAttribute("aria-pressed", String(id === views.active())));
       const mode = views.modes.find((m) => m.id === views.active())?.label ?? "";
       pickerLabel.textContent = mode;
       picker.setAttribute("aria-label", `View: ${mode}`);
