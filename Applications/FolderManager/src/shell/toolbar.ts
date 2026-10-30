@@ -44,8 +44,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     ];
   });
 
-  // Placeholder glyphs until the dedicated view icons land.
-  const VIEW_ICONS: Record<string, GuiIcon> = { tree: "layout", columns: "layout", grid: "layout" };
+  const VIEW_ICONS: Record<string, GuiIcon> = { tree: "viewTree", columns: "viewColumns", grid: "viewGrid" };
   let closeViewPopup: ((restore: boolean) => void) | null = null;
   const modeButtons = views.modes.map((m): [string, HTMLButtonElement] => [m.id, iconButton(`${m.label} view`, VIEW_ICONS[m.id] ?? "layout", () => {
     views.onSelect(m.id);
