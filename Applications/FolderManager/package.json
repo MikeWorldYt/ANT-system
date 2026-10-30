@@ -1,7 +1,7 @@
 {
   "name": "folder-manager",
   "private": true,
-  "version": "2.2.1",
+  "version": "2.3.1-beta",
   "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {
@@ -17,6 +17,7 @@
     "vite": "^8.3.5"
   },
   "dependencies": {
-    "@tauri-apps/plugin-notification": "^2.7.0"
+    "@tauri-apps/plugin-dialog": "^2.8.4",
+    "@tauri-apps/plugin-notification": "^2.8.0"
   }
 }

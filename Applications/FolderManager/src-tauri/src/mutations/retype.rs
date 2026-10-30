@@ -3,12 +3,13 @@ use std::path::Path;
 
 use serde_yaml::Value;
 
-use super::{finish, guard_frozen, load_synced, locate, Mutation};
+use super::{finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
 use crate::ant_core::tree_types::{type_base, type_level};
 use crate::config::{EditableType, WkbStatus};
 use crate::error::{FmError, R};
 use crate::fs_safe::StorageLock;
 use crate::storage::info::{field_of, read_info, write_info, OWNER_KEYS};
+use crate::tree::depth;
 use crate::tree::tree_store::{self, get_node, get_node_mut};
 
 pub fn set_node_type(
@@ -18,7 +19,11 @@ pub fn set_node_type(
     status: Option<WkbStatus>,
 ) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, synced) = load_synced(root)?;
+    // Entries kept from a higher limit stay in ant.db, so the level itself is checked.
+    if rel.len() > depth::limit(root)? {
+        return Err(FmError::DepthLimit);
+    }
+    let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
     let base_name = base.as_str();
@@ -39,13 +44,13 @@ pub fn set_node_type(
         }
     }
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new()))
+    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new(), vec![rel.to_vec()]))
 }
 
 // Status and owner live in the folder's info.json; a value that is missing there is written as "unknown".
 pub fn set_details(root: &Path, rel: &[String], status: Option<WkbStatus>, owner: Option<&str>) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (data, synced) = load_synced(root)?;
+    let (data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
     if target.ghost {
@@ -68,7 +73,7 @@ pub fn set_details(root: &Path, rel: &[String], status: Option<WkbStatus>, owner
     };
     write_info(&target.abs, &[(&["status"], "status", Some(status.into())), (&OWNER_KEYS, "owner", Some(owner.into()))])?;
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new()))
+    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new(), vec![rel.to_vec()]))
 }
 
 #[cfg(test)]
@@ -106,6 +111,20 @@ mod tests {
         set_node_type(dir.path(), &p, EditableType::Portf, Some(WkbStatus::Done)).unwrap();
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "02.Bio"]), "PORTF-L2");
         assert_eq!(status(dir.path()), None);
+    }
+
+    #[test]
+    fn a_raised_depth_limit_lets_the_next_level_be_retyped() {
+        let dir = academic("retype-deeper");
+        dir.mkdir("100.ACADEMIC/01.Math/01.Algebra/01.Rings");
+        let p = rel(&["100.ACADEMIC", "01.Math", "01.Algebra", "01.Rings"]);
+        assert!(matches!(set_node_type(dir.path(), &p, EditableType::Wkb, None), Err(FmError::DepthLimit)));
+        let mut store = crate::storage::db::Store::open_or_create(dir.path()).unwrap();
+        store.set_setting(depth::DEPTH_KEY, "4").unwrap();
+        set_node_type(dir.path(), &p, EditableType::Wkb, Some(WkbStatus::Hold)).unwrap();
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "01.Algebra", "01.Rings"]), "WKB-L4");
+        store.set_setting(depth::DEPTH_KEY, "3").unwrap();
+        assert!(matches!(set_node_type(dir.path(), &p, EditableType::Node, None), Err(FmError::DepthLimit)));
     }
 
     #[test]

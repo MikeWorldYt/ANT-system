@@ -2,11 +2,13 @@
 import { listChildren } from "../ipc/api";
 import { favoritesFirst, SORT_BYS, type ColumnSort, type SortBy } from "./sort";
 import { readPref, savePref } from "./prefs";
-import type { TreeNode, TreeSnapshot } from "../ipc/types";
+import type { LevelPatch, TreeNode, TreeSnapshot } from "../ipc/types";
 
 interface State {
   tree: TreeSnapshot | null;
   selectedKey: string | null;
+  // Folder the last click in the views landed on, "" for the storage root; Ctrl+V pastes there.
+  pasteKey: string | null;
   expanded: Set<string>;
   busy: boolean;
   editing: { key: string; draft: string; focused: boolean } | null;
@@ -31,6 +33,7 @@ export type StartView = "continue" | "tree" | "columns";
 export interface Settings {
   pinFavorites: boolean;
   hideDone: boolean;
+  hideDirectoryIdentifiers: boolean;
   confirmDelete: boolean;
   autoUpdate: boolean;
   debugLogging: boolean;
@@ -72,11 +75,12 @@ function readSorts(): Record<string, ColumnSort> {
 export const state: State = {
   tree: null,
   selectedKey: null,
+  pasteKey: null,
   expanded: new Set(),
   busy: false,
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
 };
 
 const listeners = new Set<() => void>();
@@ -143,6 +147,7 @@ function readShortcuts(raw: string | undefined): Record<string, KeyCombo> {
 export function applySettings(saved: Record<string, string>): void {
   state.settings.pinFavorites = saved.pinFavorites !== "false";
   state.settings.hideDone = saved.hideDone === "true";
+  state.settings.hideDirectoryIdentifiers = saved.hideDirectoryIdentifiers === "true";
   state.settings.confirmDelete = saved.confirmDelete !== "false";
   state.settings.autoUpdate = saved.autoUpdate !== "false";
   state.settings.debugLogging = saved.debugLogging === "true";
@@ -227,14 +232,37 @@ export function pruneSelection(): void {
   if (state.selectedKey !== null && !selectedNode()) state.selectedKey = null;
 }
 
-// Loads children of every expanded node whose children are not fetched yet.
-export async function hydrate(): Promise<void> {
-  const walk = async (nodes: TreeNode[]): Promise<void> => {
-    for (const n of nodes) {
+// Swaps in each parent's new children, keeping the loaded subtrees of untouched siblings; null when a parent is not loaded.
+export function patchLevels(levels: LevelPatch[]): TreeNode[][] | null {
+  if (!state.tree) return null;
+  const patched: TreeNode[][] = [];
+  for (const level of levels) {
+    const parent = level.parent.length > 0 ? findNode(level.parent) : null;
+    if (level.parent.length > 0 && !parent) return null;
+    const old = parent ? (parent.children ?? []) : state.tree.nodes;
+    const children = level.children.map((n) => {
+      if (n.children !== null || !n.hasChildren) return n;
+      return { ...n, children: old.find((o) => o.name === n.name)?.children ?? null };
+    });
+    if (parent) {
+      parent.hasChildren = level.hasChildren;
+      parent.children = level.hasChildren ? children : null;
+    } else {
+      state.tree.nodes = children;
+    }
+    patched.push(children);
+  }
+  return patched;
+}
+
+// Loads children of every expanded node under `nodes` whose children are not fetched yet.
+export async function hydrate(nodes: TreeNode[] = state.tree?.nodes ?? []): Promise<void> {
+  const walk = async (level: TreeNode[]): Promise<void> => {
+    for (const n of level) {
       if (!state.expanded.has(keyOf(n.relParts))) continue;
       if (n.children === null && n.hasChildren) n.children = await listChildren(n.relParts);
       await walk(n.children ?? []);
     }
   };
-  await walk(state.tree?.nodes ?? []);
+  await walk(nodes);
 }

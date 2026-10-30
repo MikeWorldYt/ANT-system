@@ -11,10 +11,10 @@ use crate::ant_core::search::parse_query;
 use crate::config::{EditableType, NewKind, WkbStatus, TRASH_DIR};
 use crate::mutations::{self, recycle_staged_with, MoveDirection, Mutation};
 use crate::fs_safe::StorageLock;
-use crate::index::reindex;
+use crate::index::{reindex, search_index};
 use crate::storage::db::Store;
-use crate::test_support::{rel, storage, yaml};
-use crate::tree::tree_store::get_node;
+use crate::test_support::{academic, rel, storage, yaml};
+use crate::tree::tree_store::{self, get_node};
 use crate::test_support::TempDir;
 
 const TREE: &str = "100.WORK:\n  type: NODE-L1\n  01.A: {type: NODE-L2}\n  02.B: {type: NODE-L2}\n  03.Ghost: {type: NODE-L2}\n";
@@ -57,6 +57,11 @@ fn ok_recycle(staged: &Path) -> Result<(), String> {
     std::fs::remove_dir_all(staged).map_err(|e| e.to_string())
 }
 
+// These fixtures have no 998.Review, so the probe's full rebuild handles every review update.
+fn no_quick(_: &[(PathBuf, PathBuf)]) -> Vec<String> {
+    panic!("no 998.Review, so no quick update")
+}
+
 fn delete(
     storage: &Storage,
     probe: &Probe,
@@ -65,7 +70,7 @@ fn delete(
     recycle: impl FnOnce(&Path) -> Result<(), String>,
 ) -> R<Mutation> {
     let emit = probe.emit();
-    delete_flow(storage, &rel(parts), (ghost, true), &emit, probe.rebuild(&[]), |p| recycle_staged_with(p, recycle))
+    delete_flow(storage, &rel(parts), (ghost, true), &emit, no_quick, probe.rebuild(&[]), |p| recycle_staged_with(p, recycle))
 }
 
 #[test]
@@ -74,7 +79,7 @@ fn rename_rebuilds_with_the_new_yaml_and_merges_failures_into_warnings() {
     let probe = Probe::new();
     let result = mutations::rename_node(dir.path(), &rel(&["100.WORK", "01.A"]), "Alpha");
     let emit = probe.emit();
-    let m = with_index(dir.path(), result, &emit, probe.rebuild(&["no powershell"])).unwrap();
+    let m = with_index(dir.path(), result, &emit, no_quick, probe.rebuild(&["no powershell"])).unwrap();
     assert_eq!(m.warnings, ["Review index: no powershell"]);
     assert_eq!(m.select, Some(rel(&["100.WORK", "01.Alpha"])));
     assert_eq!(probe.phases(), ["started", "done"]);
@@ -90,20 +95,20 @@ fn a_refused_mutation_neither_rebuilds_nor_emits() {
     let probe = Probe::new();
     let result = mutations::rename_node(dir.path(), &rel(&["100.WORK", "03.Ghost"]), "X");
     let emit = probe.emit();
-    let err = with_index(dir.path(), result, &emit, probe.rebuild(&[])).unwrap_err();
+    let err = with_index(dir.path(), result, &emit, no_quick, probe.rebuild(&[])).unwrap_err();
     assert!(matches!(err, FmError::GhostNotAllowed { .. }));
     assert!(probe.events.borrow().is_empty() && probe.seen_yaml.borrow().is_empty());
 }
 
 #[test]
-fn move_and_add_child_rebuild_too() {
+fn move_and_add_node_rebuild_too() {
     let dir = work("cmd-move-add");
     let probe = Probe::new();
     let emit = probe.emit();
     let moved = mutations::move_node(dir.path(), &rel(&["100.WORK", "01.A"]), MoveDirection::Down);
-    with_index(dir.path(), moved, &emit, probe.rebuild(&[])).unwrap();
-    let added = mutations::add_child(dir.path(), &rel(&["100.WORK"]), NewKind::Node);
-    let m = with_index(dir.path(), added, &emit, probe.rebuild(&[])).unwrap();
+    with_index(dir.path(), moved, &emit, no_quick, probe.rebuild(&[])).unwrap();
+    let added = mutations::add_node(dir.path(), &rel(&["100.WORK"]), NewKind::Node);
+    let m = with_index(dir.path(), added, &emit, no_quick, probe.rebuild(&[])).unwrap();
     assert!(m.warnings.is_empty());
     assert_eq!(probe.phases(), ["started", "done", "started", "done"]);
     let seen = probe.seen_yaml.borrow();
@@ -115,7 +120,7 @@ fn a_failed_event_and_an_unreadable_db_become_warnings() {
     let dir = work("cmd-emit-fail");
     let boom = |_: &ReviewIndexEvent| Err::<(), _>("window closed".to_string());
     let m = mutations::set_node_type(dir.path(), &rel(&["100.WORK", "02.B"]), EditableType::Portf, None);
-    let m = with_index(dir.path(), m, &boom, |_, _| Vec::new()).unwrap();
+    let m = with_index(dir.path(), m, &boom, no_quick, |_, _| Vec::new()).unwrap();
     assert_eq!(m.warnings.len(), 2, "{:?}", m.warnings);
     assert!(m.warnings[0].contains("window closed"));
 
@@ -134,7 +139,7 @@ fn delete_rebuilds_before_the_recycle_and_releases_the_lock_for_it() {
     let probe = Probe::new();
     let emit = probe.emit();
     let rel_b = rel(&["100.WORK", "02.B"]);
-    let flow = delete_flow(&storage, &rel_b, (false, false), &emit, probe.rebuild(&["stub"]), |p| {
+    let flow = delete_flow(&storage, &rel_b, (false, false), &emit, no_quick, probe.rebuild(&["stub"]), |p| {
         assert_eq!(probe.phases(), ["started", "done"]);
         assert!(storage.lock.try_lock().is_ok(), "mutex still held during recycle");
         assert!(StorageLock::acquire(dir.path()).is_ok(), "lock file still held during recycle");
@@ -168,7 +173,7 @@ fn delete_recycles_cleanly_and_ghost_deletes_skip_the_recycle() {
 fn commands_release_both_locks_and_fail_without_a_storage() {
     let dir = work("cmd-locks");
     let storage = Storage::resolve(dir.path().to_path_buf());
-    locked(&storage, |root| mutations::add_child(root, &rel(&["100.WORK"]), NewKind::Node)).unwrap();
+    locked(&storage, |root| mutations::add_node(root, &rel(&["100.WORK"]), NewKind::Node)).unwrap();
     locked(&storage, |root| mutations::rename_node(root, &rel(&["100.WORK", "02.B"]), "Bee")).unwrap();
     assert!(storage.lock.try_lock().is_ok());
     assert!(StorageLock::acquire(dir.path()).is_ok());
@@ -200,6 +205,127 @@ fn details_and_type_edits_reach_the_search_index() {
     let m = with_search_index(dir.path(), mutations::set_details(dir.path(), &p, None, Some("Zed"))).unwrap();
     assert!(m.warnings.is_empty(), "{:?}", m.warnings);
     assert_eq!(search("client:Zed"), [p]);
+}
+
+// Startup state: a synced, saved yaml and a full index, so the next mutation updates the index in place.
+fn indexed(tag: &str) -> TempDir {
+    let dir = academic(tag);
+    dir.mkdir("100.ACADEMIC/01.Math/.ant");
+    std::fs::write(dir.path().join("100.ACADEMIC/01.Math/.ant/info.json"), r#"{"owner": "Mike"}"#).unwrap();
+    let mut data = yaml(dir.path());
+    tree_store::sync(dir.path(), &mut data).unwrap();
+    tree_store::save(dir.path(), &data).unwrap();
+    search_index::rebuild(dir.path(), &data).unwrap();
+    dir
+}
+
+fn index_state(dir: &TempDir) -> (Vec<(String, String, String)>, Vec<Vec<Vec<String>>>) {
+    let store = Store::open_or_create(dir.path()).unwrap();
+    let queries = ["", "type:NODE", "status:done", "client:Mike", "in:100.ACADEMIC new", "physics"];
+    (store.field_rows().unwrap(), queries.iter().map(|q| store.search(&parse_query(q)).unwrap()).collect())
+}
+
+fn assert_matches_full_rebuild(dir: &TempDir, m: &Mutation) {
+    assert!(m.warnings.is_empty() && m.tree.is_none(), "{:?}", m.warnings);
+    let incremental = index_state(dir);
+    search_index::rebuild(dir.path(), &yaml(dir.path())).unwrap();
+    assert_eq!(incremental, index_state(dir));
+}
+
+#[test]
+fn adds_update_the_search_index_like_a_full_rebuild() {
+    let dir = indexed("cmd-inc-add");
+    let probe = Probe::new();
+    let emit = probe.emit();
+    for parent in [&["100.ACADEMIC"][..], &["100.ACADEMIC", "01.Math"]] {
+        let added = mutations::add_node(dir.path(), &rel(parent), NewKind::Node);
+        let m = with_index(dir.path(), added, &emit, no_quick, probe.rebuild(&[])).unwrap();
+        assert_eq!(m.touched, [m.select.clone().unwrap()]);
+        assert_matches_full_rebuild(&dir, &m);
+    }
+}
+
+#[test]
+fn deletes_update_the_search_index_like_a_full_rebuild() {
+    let dir = indexed("cmd-inc-delete");
+    let storage = Storage::resolve(dir.path().to_path_buf());
+    let probe = Probe::new();
+    let m = delete(&storage, &probe, &["100.ACADEMIC", "01.Math"], false, ok_recycle).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
+    let ghost = delete(&storage, &probe, &["100.ACADEMIC", "03.Ghost"], true, |_| panic!("no disk delete")).unwrap();
+    assert_matches_full_rebuild(&dir, &ghost);
+}
+
+#[test]
+fn renames_and_moves_update_the_search_index_like_a_full_rebuild() {
+    let dir = indexed("cmd-inc-move");
+    let probe = Probe::new();
+    let emit = probe.emit();
+    let renamed = mutations::rename_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), "Physics");
+    let m = with_index(dir.path(), renamed, &emit, no_quick, probe.rebuild(&[])).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
+    let moved = mutations::move_node(dir.path(), &rel(&["100.ACADEMIC", "01.Physics"]), MoveDirection::Down);
+    let m = with_index(dir.path(), moved, &emit, no_quick, probe.rebuild(&[])).unwrap();
+    assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "02.Physics"])));
+    assert_matches_full_rebuild(&dir, &m);
+}
+
+#[test]
+fn a_folder_added_deep_in_a_touched_subtree_falls_back_to_the_full_snapshot() {
+    let dir = indexed("cmd-inc-deep");
+    dir.mkdir("100.ACADEMIC/01.Math/05.Deep");
+    let probe = Probe::new();
+    let emit = probe.emit();
+    let renamed = mutations::rename_node(dir.path(), &rel(&["100.ACADEMIC"]), "School");
+    let m = with_index(dir.path(), renamed, &emit, no_quick, probe.rebuild(&[])).unwrap();
+    assert!(m.tree.as_ref().is_some_and(|t| t.yaml_changed && !t.nodes.is_empty()) && m.levels.is_empty());
+    let incremental = index_state(&dir);
+    search_index::rebuild(dir.path(), &yaml(dir.path())).unwrap();
+    assert_eq!(incremental, index_state(&dir));
+    let search = Store::open_or_create(dir.path()).unwrap().search(&parse_query("deep")).unwrap();
+    assert_eq!(search, [rel(&["100.SCHOOL", "01.Math", "05.Deep"])]);
+}
+
+#[test]
+fn field_edits_update_the_search_index_like_a_full_rebuild() {
+    let dir = indexed("cmd-inc-fields");
+    let (bio, math) = (rel(&["100.ACADEMIC", "02.Bio"]), rel(&["100.ACADEMIC", "01.Math"]));
+    let m = with_search_index(dir.path(), mutations::set_node_type(dir.path(), &bio, EditableType::Wkb, Some(WkbStatus::Hold))).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
+    let m = with_search_index(dir.path(), mutations::set_details(dir.path(), &bio, Some(WkbStatus::Done), Some("Zed"))).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
+    let m = with_search_index(dir.path(), mutations::set_favorite(dir.path(), &math, true)).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
+    let m = with_search_index(dir.path(), mutations::set_user_flag(dir.path(), &math, true)).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
+}
+
+#[test]
+fn dropped_files_keep_the_search_index_like_a_full_rebuild() {
+    let dir = indexed("cmd-inc-drop");
+    let outside = TempDir::new("cmd-inc-drop-src");
+    let file = outside.path().join("scan.pdf");
+    std::fs::write(&file, "x").unwrap();
+    let m = with_search_index(dir.path(), mutations::drop_files(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), &[file], false).map(|o| o.mutation)).unwrap();
+    assert!(dir.path().join("100.ACADEMIC/01.Math/98.Math/scan.pdf").is_file());
+    assert_eq!(m.touched, [rel(&["100.ACADEMIC", "01.Math", "98.Math"])]);
+    assert_matches_full_rebuild(&dir, &m);
+    let search = Store::open_or_create(dir.path()).unwrap().search(&parse_query("in:/100.ACADEMIC/01.Math/98.Math")).unwrap();
+    assert_eq!(search, [rel(&["100.ACADEMIC", "01.Math", "98.Math"])]);
+}
+
+#[test]
+fn a_failed_quick_update_falls_back_to_a_full_rebuild_and_says_so() {
+    let dir = indexed("cmd-inc-fallback");
+    // Only the quick update deletes the digest row; the full rebuild replaces it, which fires no delete trigger.
+    let conn = rusqlite::Connection::open(crate::storage::db::db_path(dir.path())).unwrap();
+    conn.execute_batch("CREATE TRIGGER fail_quick BEFORE DELETE ON meta BEGIN SELECT RAISE(ABORT, 'boom'); END;").unwrap();
+    drop(conn);
+    let m = with_search_index(dir.path(), mutations::add_node(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node)).unwrap();
+    assert_eq!(m.warnings.len(), 1, "{:?}", m.warnings);
+    assert!(m.warnings[0].contains("rebuilt in full") && m.warnings[0].contains("boom"), "{:?}", m.warnings);
+    let search = Store::open_or_create(dir.path()).unwrap().search(&parse_query("in:/100.ACADEMIC/04.New-Node")).unwrap();
+    assert_eq!(search, [rel(&["100.ACADEMIC", "04.New-Node"]), rel(&["100.ACADEMIC", "04.New-Node", "98.New-Node"])]);
 }
 
 #[test]

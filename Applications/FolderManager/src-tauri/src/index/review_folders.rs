@@ -6,9 +6,9 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::names::editable_part;
 use crate::ant_core::tree_types::{child_entries, type_base};
-use crate::config::MAX_DEPTH;
 use crate::error::R;
 use crate::fs_safe::{io_err, join_rel, StorageLock};
+use crate::tree::depth;
 use crate::tree::tree_node::is_reserved;
 use crate::tree::tree_store::{self, delete_key, get_node};
 
@@ -18,7 +18,7 @@ pub fn restore(root: &Path) -> R<bool> {
     let mut data = tree_store::load(root)?;
     let mut changed = false;
     let mut owners = Vec::new();
-    collect(&data, &mut Vec::new(), &mut owners);
+    collect(&data, &mut Vec::new(), &mut owners, depth::limit(root)?);
     for owner in owners {
         let expected = format!("98.{}", editable_part(owner.last().map_or("", String::as_str)));
         let dir = join_rel(root, &owner);
@@ -44,15 +44,15 @@ pub fn restore(root: &Path) -> R<bool> {
     Ok(changed)
 }
 
-fn collect(node: &Mapping, parts: &mut Vec<String>, out: &mut Vec<Vec<String>>) {
+fn collect(node: &Mapping, parts: &mut Vec<String>, out: &mut Vec<Vec<String>>, limit: usize) {
     for (name, child) in child_entries(node) {
         parts.push(name.to_string());
         let is_node = child.get("type").and_then(Value::as_str).is_some_and(|t| type_base(t) == "NODE");
         if is_node && !is_reserved(&parts[..1]) {
             out.push(parts.clone());
         }
-        if parts.len() < MAX_DEPTH {
-            collect(child, parts, out);
+        if parts.len() < limit {
+            collect(child, parts, out, limit);
         }
         parts.pop();
     }

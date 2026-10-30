@@ -2,7 +2,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isFmError } from "./types";
 import type {
+  CopyAnswer,
   DeletePreview,
+  DropOutcome,
   EditableType,
   FmError,
   IntakeReport,
@@ -36,6 +38,7 @@ export const setNodeType = (relParts: string[], typeBase: EditableType, status: 
 export const openNode = (relParts: string[]) => call<void>("open_node", { relParts });
 export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("set_favorite", { relParts, on });
 export const setUserFlag = (relParts: string[], on: boolean) => call<Mutation>("set_user_flag", { relParts, on });
+export const answerCopy = (relParts: string[], answer: CopyAnswer) => call<void>("answer_copy", { relParts, answer });
 export const getSettings = () => call<Record<string, string>>("get_settings");
 export const setSetting = (key: string, value: string) => call<void>("set_setting", { key, value });
 export const openLink = (link: "issues" | "mail" | "changelog" | "docs") => call<void>("open_link", { link });
@@ -76,7 +79,19 @@ export const setNodeDetails = (relParts: string[], status: WkbStatus | null, own
 export const addNode = (relParts: string[], kind: NewKind) => call<Mutation>("add_node", { relParts, kind });
 export const moveNode = (relParts: string[], direction: MoveDirection) =>
   call<Mutation>("move_node", { relParts, direction });
-export const inspectDelete = (relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
+export const dropFiles = (target: string[], paths: string[]) => call<DropOutcome>("drop_files", { target, paths });
+export const pasteFiles = (target: string[]) => call<DropOutcome>("paste_files", { target });
+export const copyFolder = (target: string[], cut: boolean) => call<void>("copy_folder", { target, cut });
+export const moveFolder = (source: string[], destination: string[], copy: boolean) =>
+  call<Mutation>("move_folder", { source, destination, copy });
+export const startDragOut =(target: string[]) => call<void>("start_drag_out", { target });
+export interface ShortcutCreated {
+  name: string;
+  folder: string;
+}
+export const createShortcutIn = (target: string[], folder: string) =>
+  call<ShortcutCreated>("create_shortcut_in", { target, folder });
+export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
 export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonEmpty: boolean) =>
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
@@ -172,5 +187,7 @@ export function describeError(e: unknown): string {
       return `${e.op} failed and the rollback was incomplete: ${e.cause}. Check ${e.rollbackErrors.length} affected paths`;
     case "internal":
       return `Internal error: ${e.message}`;
+    case "clipboardEmpty":
+      return "The clipboard has no files to paste";
   }
 }

@@ -6,14 +6,16 @@ use std::hash::{BuildHasher, Hasher};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, flags_in, type_base, META_KEYS};
-use crate::config::{DATA_DIR, DATA_FLAG, FOOTPRINT_FILENAME, MAX_DEPTH};
-use crate::error::R;
+use crate::config::{DATA_DIR, DATA_FLAG, FOOTPRINT_FILENAME};
+use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, join_rel, write_atomic};
 use crate::ant_core::names::list_subdirs;
 use crate::storage::db::hide;
+use crate::tree::depth;
 use crate::tree::tree_node::is_reserved;
 use crate::tree::tree_store::{delete_key, get_node, get_node_mut};
 
@@ -47,7 +49,7 @@ impl Scan {
 
 pub fn scan(root: &Path, data: &Mapping) -> R<Scan> {
     let mut live = Vec::new();
-    walk(&mut Vec::new(), root, &mut live)?;
+    walk(&mut Vec::new(), root, &mut live, depth::limit(root)?)?;
     let mut nodes = Vec::new();
     visit(data, &mut Vec::new(), &mut nodes);
     Ok(Scan {
@@ -101,13 +103,33 @@ fn rel_of(path: &str) -> Vec<String> {
     path.split('/').map(str::to_string).collect()
 }
 
-// Writes missing ids to disk, carries moved folders' entries to their new place and stores each uid in the tree; returns whether the tree changed.
-pub fn plan(root: &Path, data: &mut Mapping) -> R<bool> {
+// Only a refresh the user sees tails copies, because each tailed copy must reach the question exactly once.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Copies {
+    Ignore,
+    Tail,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Copied {
+    pub rel_parts: Vec<String>,
+    pub original: Vec<String>,
+}
+
+pub struct Plan {
+    pub changed: bool,
+    pub copies: Vec<Copied>,
+}
+
+// Writes missing ids to disk, carries moved folders' entries to their new place and stores each uid in the tree.
+pub fn plan(root: &Path, data: &mut Mapping, mode: Copies) -> R<Plan> {
     let mut nodes = Vec::new();
     visit(data, &mut Vec::new(), &mut nodes);
     create_markers(root, &unmarked(root, &nodes))?;
     let Scan { live, known, data_paths, .. } = scan(root, data)?;
     let mut taken: HashSet<String> = known.keys().cloned().chain(live.iter().filter_map(|l| l.id.clone())).collect();
+    let mut copies: Vec<Copied> = Vec::new();
     let mut by_id: HashMap<String, Vec<Vec<String>>> = HashMap::new();
     for l in live {
         let id = match l.id {
@@ -117,7 +139,7 @@ pub fn plan(root: &Path, data: &mut Mapping) -> R<bool> {
                     continue;
                 }
                 let id = new_id(&taken);
-                write_id(&join_rel(root, &l.rel), &id)?;
+                replace_id(&join_rel(root, &l.rel), &id)?;
                 taken.insert(id.clone());
                 id
             }
@@ -127,23 +149,34 @@ pub fn plan(root: &Path, data: &mut Mapping) -> R<bool> {
 
     let mut moves: Vec<(Vec<String>, Vec<String>)> = Vec::new();
     let mut remembered: HashMap<String, String> = HashMap::new();
-    for (id, paths) in by_id {
-        let current = match paths.as_slice() {
-            [only] => {
-                // can you find me?
-                // A folder moved outside the app is found again by its id instead of showing as a ghost plus a new folder.
-                if let Some(old) = known.get(&id).filter(|old| **old != only.join("/")) {
-                    let old_rel: Vec<String> = old.split('/').map(str::to_string).collect();
-                    if !still_listed(root, &old_rel) {
-                        moves.push((old_rel, only.clone()));
-                    }
-                }
-                only.join("/")
-            }
+    for (id, mut paths) in by_id {
+        if paths.len() > 1 {
             // Copies share an id; the path the db already knows keeps it.
-            _ => known.get(&id).filter(|k| paths.iter().any(|p| p.join("/") == **k)).cloned().unwrap_or_else(|| paths[0].join("/")),
-        };
-        remembered.insert(id, current);
+            let keep = known.get(&id).and_then(|k| paths.iter().position(|p| p.join("/") == *k)).unwrap_or(0);
+            let keeper = paths.remove(keep);
+            if mode == Copies::Ignore {
+                remembered.insert(id, keeper.join("/"));
+                continue;
+            }
+            for copy in paths {
+                let tail = tailed_id(&id, &taken);
+                replace_id(&join_rel(root, &copy), &tail)?;
+                taken.insert(tail.clone());
+                remembered.insert(tail, copy.join("/"));
+                copies.push(Copied { rel_parts: copy, original: keeper.clone() });
+            }
+            paths = vec![keeper];
+        }
+        let only = &paths[0];
+        // can you find me?
+        // A folder moved outside the app is found again by its id instead of showing as a ghost plus a new folder.
+        if let Some(old) = known.get(&id).filter(|old| **old != only.join("/")) {
+            let old_rel: Vec<String> = old.split('/').map(str::to_string).collect();
+            if !still_listed(root, &old_rel) {
+                moves.push((old_rel, only.clone()));
+            }
+        }
+        remembered.insert(id, only.join("/"));
     }
 
     // Shallowest first, so a renamed parent carries its subtree before the children are re-keyed inside it.
@@ -168,7 +201,55 @@ pub fn plan(root: &Path, data: &mut Mapping) -> R<bool> {
             changed = true;
         }
     }
-    Ok(changed)
+    copies.sort_by(|a, b| a.rel_parts.cmp(&b.rel_parts));
+    Ok(Plan { changed, copies })
+}
+
+// The tail keeps the original id readable, and a copy of a copy counts on from the same original.
+fn tailed_id(id: &str, taken: &HashSet<String>) -> String {
+    let base = id.split('-').next().unwrap_or(id);
+    let mut n = 2;
+    loop {
+        let tail = format!("{base}-{n}");
+        if !taken.contains(&tail) {
+            return tail;
+        }
+        n += 1;
+    }
+}
+
+// A copy the user calls a new, independent project gets a fresh id without a tail.
+pub fn detach(root: &Path, data: &mut Mapping, rel: &[String]) -> R<()> {
+    let folder = join_rel(root, rel);
+    let not_a_copy = || FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the folder is not a marked copy".to_string() };
+    let current = read_id(&folder).ok_or_else(not_a_copy)?;
+    if !current.contains('-') {
+        return Err(not_a_copy());
+    }
+    let Scan { live, known, .. } = scan(root, data)?;
+    let taken: HashSet<String> = known.into_keys().chain(live.into_iter().filter_map(|l| l.id)).collect();
+    let fresh = new_id(&taken);
+    replace_id(&folder, &fresh)?;
+    set_uid(data, &rel.join("/"), &fresh);
+    Ok(())
+}
+
+// A copy made inside the app is tailed at once, by the same rule a refresh uses, so it never shares the original's id.
+pub fn tail_copy(root: &Path, data: &mut Mapping, copy: &[String]) -> R<()> {
+    let Scan { live, known, .. } = scan(root, data)?;
+    let mut taken: HashSet<String> = known.into_keys().chain(live.into_iter().filter_map(|l| l.id)).collect();
+    // The whole copy is walked, past the depth limit too, so no folder inside it keeps the original's id.
+    let folder = join_rel(root, copy);
+    let mut inside = vec![Live { rel: copy.to_vec(), id: read_id(&folder) }];
+    walk(&mut copy.to_vec(), &folder, &mut inside, usize::MAX)?;
+    for l in inside {
+        let Some(id) = l.id else { continue };
+        let tail = tailed_id(&id, &taken);
+        replace_id(&join_rel(root, &l.rel), &tail)?;
+        taken.insert(tail.clone());
+        set_uid(data, &l.rel.join("/"), &tail);
+    }
+    Ok(())
 }
 
 fn set_uid(data: &mut Mapping, path: &str, uid: &str) -> bool {
@@ -188,8 +269,8 @@ fn still_listed(root: &Path, rel: &[String]) -> bool {
     dir.is_dir() && list_subdirs(&dir).is_ok_and(|names| names.contains(name))
 }
 
-fn walk(rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>) -> R<()> {
-    if rel.len() >= MAX_DEPTH {
+fn walk(rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>, limit: usize) -> R<()> {
+    if rel.len() >= limit {
         return Ok(());
     }
     for name in list_subdirs(dir)? {
@@ -201,7 +282,7 @@ fn walk(rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>) -> R<()> {
         if folder.join(DATA_DIR).is_dir() {
             out.push(Live { rel: rel.clone(), id: read_id(&folder) });
         }
-        walk(rel, &folder, out)?;
+        walk(rel, &folder, out, limit)?;
         rel.pop();
     }
     Ok(())
@@ -216,8 +297,15 @@ fn read_id(folder: &Path) -> Option<String> {
     }
 }
 
-fn write_id(folder: &Path, id: &str) -> R<()> {
-    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), footprint_text(id, &[]).as_bytes())
+// The flags stay, so tailing or detaching a copy keeps what the user set on it.
+fn replace_id(folder: &Path, id: &str) -> R<()> {
+    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), footprint_text(id, &read_flags(folder)).as_bytes())
+}
+
+fn read_flags(folder: &Path) -> Vec<String> {
+    let Ok(text) = fs::read_to_string(folder.join(DATA_DIR).join(FOOTPRINT_FILENAME)) else { return Vec::new() };
+    let Ok(Value::Mapping(m)) = serde_yaml::from_str::<Value>(&text) else { return Vec::new() };
+    m.get("flags").and_then(Value::as_sequence).map_or_else(Vec::new, |list| list.iter().filter_map(Value::as_str).map(str::to_string).collect())
 }
 
 // Keeps the folder's dragpath.json in step with its user flags; a folder without one, or with a broken one, is left as it is.
@@ -309,11 +397,11 @@ mod tests {
     fn a_folder_with_a_dot_ant_gets_one_id_and_keeps_it() {
         let (dir, mut data) = storage();
         assert!(!scan(dir.path(), &data).unwrap().is_clean());
-        assert!(plan(dir.path(), &mut data).unwrap());
+        assert!(plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
         let first = read_id(&dir.path().join("100.A/PJ.001")).unwrap();
         assert_eq!(first.len(), ID_LEN);
         assert!(scan(dir.path(), &data).unwrap().is_clean());
-        assert!(!plan(dir.path(), &mut data).unwrap());
+        assert!(!plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
         assert_eq!(read_id(&dir.path().join("100.A/PJ.001")).unwrap(), first);
     }
 
@@ -323,7 +411,7 @@ mod tests {
         dir.mkdir("100.A/01.Plain");
         dir.mkdir("100.A/02.Data");
         let mut data: Mapping = serde_yaml::from_str("100.A:\n  type: NODE-L1\n  01.Plain: {type: NODE-L2}\n  02.Data: {type: NODE-L2, flags: data}\n").unwrap();
-        assert!(plan(dir.path(), &mut data).unwrap());
+        assert!(plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
         assert!(read_id(&dir.path().join("100.A/01.Plain")).is_some());
         assert!(!dir.path().join("100.A/02.Data/.ant").exists());
         assert!(scan(dir.path(), &data).unwrap().is_clean());
@@ -334,41 +422,133 @@ mod tests {
         let dir = TempDir::new("footprint-plain");
         dir.mkdir("100.A/PJ.001");
         let mut data = Mapping::new();
-        plan(dir.path(), &mut data).unwrap();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
         assert!(!dir.path().join("100.A/PJ.001/.ant").exists());
     }
 
     #[test]
     fn a_folder_moved_outside_the_app_keeps_its_type_and_status() {
         let (dir, mut data) = storage();
-        plan(dir.path(), &mut data).unwrap();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
         fs::rename(dir.path().join("100.A/PJ.001"), dir.path().join("100.A/PJ.009")).unwrap();
         sync(dir.path(), &mut data).unwrap();
-        assert!(plan(dir.path(), &mut data).unwrap());
+        assert!(plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
         let moved = get_node(&data, &rel(&["100.A", "PJ.009"])).unwrap();
         assert_eq!(moved.get("status").and_then(Value::as_str), Some("hold"));
         assert!(get_node(&data, &rel(&["100.A", "PJ.001"])).is_none());
         assert!(scan(dir.path(), &data).unwrap().is_clean());
     }
 
+    fn copy_footprint(dir: &TempDir, from: &str, to: &str) {
+        dir.mkdir(&format!("{to}/.ant"));
+        fs::copy(dir.path().join(from).join(".ant/dragpath.json"), dir.path().join(to).join(".ant/dragpath.json")).unwrap();
+    }
+
+    fn uid(data: &Mapping, parts: &[&str]) -> Option<String> {
+        get_node(data, &rel(parts)).and_then(|n| n.get("uid")).and_then(Value::as_str).map(str::to_string)
+    }
+
     #[test]
     fn a_copied_folder_is_not_taken_for_a_move() {
         let (dir, mut data) = storage();
-        plan(dir.path(), &mut data).unwrap();
-        dir.mkdir("100.A/PJ.002/.ant");
-        fs::copy(dir.path().join("100.A/PJ.001/.ant/dragpath.json"), dir.path().join("100.A/PJ.002/.ant/dragpath.json")).unwrap();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        copy_footprint(&dir, "100.A/PJ.001", "100.A/PJ.002");
         sync(dir.path(), &mut data).unwrap();
-        assert!(!plan(dir.path(), &mut data).unwrap());
+        let result = plan(dir.path(), &mut data, Copies::Ignore).unwrap();
+        assert!(!result.changed && result.copies.is_empty());
         assert!(get_node(&data, &rel(&["100.A", "PJ.001"])).is_some() && get_node(&data, &rel(&["100.A", "PJ.002"])).is_some());
+        assert_eq!(read_id(&dir.path().join("100.A/PJ.002")), read_id(&dir.path().join("100.A/PJ.001")));
+    }
+
+    #[test]
+    fn the_known_folder_keeps_the_id_and_each_copy_gets_a_tail_once() {
+        let (dir, mut data) = storage();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        let id = read_id(&dir.path().join("100.A/PJ.001")).unwrap();
+        fs::write(dir.path().join("100.A/PJ.001/.ant/dragpath.json"), format!("{{\"id\": \"{id}\", \"flags\": [\"urgent\"]}}\n")).unwrap();
+        copy_footprint(&dir, "100.A/PJ.001", "100.A/PJ.000");
+        copy_footprint(&dir, "100.A/PJ.001", "100.A/PJ.002");
+        sync(dir.path(), &mut data).unwrap();
+        let result = plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        assert!(result.changed);
+        let original = rel(&["100.A", "PJ.001"]);
+        let expected = vec![
+            Copied { rel_parts: rel(&["100.A", "PJ.000"]), original: original.clone() },
+            Copied { rel_parts: rel(&["100.A", "PJ.002"]), original: original.clone() },
+        ];
+        assert_eq!(result.copies, expected);
+        assert_eq!(read_id(&dir.path().join("100.A/PJ.001")), Some(id.clone()));
+        let tails = [read_id(&dir.path().join("100.A/PJ.000")).unwrap(), read_id(&dir.path().join("100.A/PJ.002")).unwrap()];
+        assert_eq!(tails.iter().filter(|t| t.starts_with(&format!("{id}-")) && t.len() == ID_LEN + 2).count(), 2);
+        assert_ne!(tails[0], tails[1]);
+        assert_eq!(uid(&data, &["100.A", "PJ.002"]), Some(tails[1].clone()));
+        assert_eq!(read_flags(&dir.path().join("100.A/PJ.002")), ["urgent"]);
+        assert!(scan(dir.path(), &data).unwrap().is_clean());
+        let again = plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        assert!(!again.changed && again.copies.is_empty());
+    }
+
+    #[test]
+    fn a_copy_of_a_copy_counts_on_from_the_original_id() {
+        let taken: HashSet<String> = ["7K3M9Q2XH43O7Z4", "7K3M9Q2XH43O7Z4-2"].map(str::to_string).into();
+        assert_eq!(tailed_id("7K3M9Q2XH43O7Z4", &taken), "7K3M9Q2XH43O7Z4-3");
+        assert_eq!(tailed_id("7K3M9Q2XH43O7Z4-2", &taken), "7K3M9Q2XH43O7Z4-3");
+    }
+
+    #[test]
+    fn a_copy_then_move_carries_the_entry_to_one_folder_and_tails_the_other() {
+        let (dir, mut data) = storage();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        copy_footprint(&dir, "100.A/PJ.001", "100.A/PJ.002");
+        fs::rename(dir.path().join("100.A/PJ.001"), dir.path().join("100.A/PJ.009")).unwrap();
+        sync(dir.path(), &mut data).unwrap();
+        let result = plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        assert_eq!(result.copies.len(), 1);
+        let keeper = result.copies[0].original.clone();
+        assert_eq!(get_node(&data, &keeper).unwrap().get("status").and_then(Value::as_str), Some("hold"));
+        assert!(get_node(&data, &rel(&["100.A", "PJ.001"])).is_none());
+        assert!(read_id(&join_rel(dir.path(), &result.copies[0].rel_parts)).unwrap().contains('-'));
+        assert!(scan(dir.path(), &data).unwrap().is_clean());
+    }
+
+    #[test]
+    fn a_tailed_copy_is_never_taken_for_the_deleted_original() {
+        let (dir, mut data) = storage();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        copy_footprint(&dir, "100.A/PJ.001", "100.A/PJ.002");
+        sync(dir.path(), &mut data).unwrap();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        let tail = read_id(&dir.path().join("100.A/PJ.002")).unwrap();
+        fs::remove_dir_all(dir.path().join("100.A/PJ.001")).unwrap();
+        sync(dir.path(), &mut data).unwrap();
+        let result = plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        assert!(!result.changed && result.copies.is_empty());
+        assert_eq!(get_node(&data, &rel(&["100.A", "PJ.001"])).unwrap().get("status").and_then(Value::as_str), Some("hold"));
+        assert_eq!(uid(&data, &["100.A", "PJ.002"]), Some(tail));
+    }
+
+    #[test]
+    fn a_moved_tailed_copy_is_followed_by_its_own_id() {
+        let (dir, mut data) = storage();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        copy_footprint(&dir, "100.A/PJ.001", "100.A/PJ.002");
+        sync(dir.path(), &mut data).unwrap();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        get_node_mut(&mut data, &rel(&["100.A", "PJ.002"])).unwrap().insert("status".into(), "done".into());
+        fs::rename(dir.path().join("100.A/PJ.002"), dir.path().join("100.A/PJ.008")).unwrap();
+        sync(dir.path(), &mut data).unwrap();
+        assert!(plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
+        assert_eq!(get_node(&data, &rel(&["100.A", "PJ.008"])).unwrap().get("status").and_then(Value::as_str), Some("done"));
+        assert_eq!(get_node(&data, &rel(&["100.A", "PJ.001"])).unwrap().get("status").and_then(Value::as_str), Some("hold"));
     }
 
     #[test]
     fn a_case_only_rename_migrates_the_entry() {
         let (dir, mut data) = storage();
-        plan(dir.path(), &mut data).unwrap();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
         fs::rename(dir.path().join("100.A/PJ.001"), dir.path().join("100.A/pj.001")).unwrap();
         sync(dir.path(), &mut data).unwrap();
-        assert!(plan(dir.path(), &mut data).unwrap());
+        assert!(plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
         let moved = get_node(&data, &rel(&["100.A", "pj.001"])).unwrap();
         assert_eq!(moved.get("status").and_then(Value::as_str), Some("hold"));
     }
@@ -383,11 +563,11 @@ mod tests {
   PJ.001: {type: WKB-L2, status: hold}
 ").unwrap();
         sync(dir.path(), &mut data).unwrap();
-        plan(dir.path(), &mut data).unwrap();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
         fs::rename(dir.path().join("100.A"), dir.path().join("200.B")).unwrap();
         fs::rename(dir.path().join("200.B/PJ.001"), dir.path().join("200.B/PJ.002")).unwrap();
         sync(dir.path(), &mut data).unwrap();
-        assert!(plan(dir.path(), &mut data).unwrap());
+        assert!(plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
         let child = get_node(&data, &rel(&["200.B", "PJ.002"])).unwrap();
         assert_eq!(child.get("status").and_then(Value::as_str), Some("hold"));
         assert!(get_node(&data, &rel(&["100.A"])).is_none());
@@ -396,7 +576,7 @@ mod tests {
     #[test]
     fn plan_writes_the_uid_into_the_tree() {
         let (dir, mut data) = storage();
-        assert!(plan(dir.path(), &mut data).unwrap());
+        assert!(plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
         let node = get_node(&data, &rel(&["100.A", "PJ.001"])).unwrap();
         assert_eq!(node.get("uid").and_then(Value::as_str), read_id(&dir.path().join("100.A/PJ.001")).as_deref());
     }

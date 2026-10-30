@@ -1,4 +1,4 @@
-// Rebuilds the 998.Review shortcuts from the tree; the command layer runs it after rename, move and delete.
+// Rebuilds every 998.Review shortcut from the tree, on refresh and when the per-branch update cannot be trusted.
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
@@ -6,10 +6,11 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::shortcuts::{create_shortcuts, review_shortcut_name};
 use crate::ant_core::tree_types::child_entries;
-use crate::config::{MAX_DEPTH, REVIEW_FOLDER};
-use crate::fs_safe::is_link;
+use crate::config::REVIEW_FOLDER;
+use crate::fs_safe::{is_link, join_rel};
 use crate::ant_core::names::editable_part;
-use crate::tree::tree_store::is_locked_type;
+use crate::tree::depth;
+use crate::tree::tree_store::{get_node, is_locked_type};
 
 pub fn rebuild(root: &Path, data: &Mapping) -> Vec<String> {
     rebuild_with(root, data, create_shortcuts)
@@ -20,18 +21,58 @@ pub(crate) fn rebuild_with(
     data: &Mapping,
     create: impl FnOnce(&[(PathBuf, PathBuf)]) -> Vec<String>,
 ) -> Vec<String> {
-    let review_dir = root.join(REVIEW_FOLDER);
-    match fs::symlink_metadata(&review_dir) {
-        Ok(meta) if meta.is_dir() && !is_link(&meta) => {}
-        // Clearing .lnk files through a linked 998.Review would delete files outside the storage.
-        Ok(meta) if is_link(&meta) => return vec![format!("{REVIEW_FOLDER} is a link; index not rebuilt")],
-        _ => return Vec::new(),
-    }
+    let review_dir = match review_dir(root) {
+        Ok(Some(dir)) => dir,
+        Ok(None) => return Vec::new(),
+        Err(failure) => return vec![failure],
+    };
+    let limit = match depth::limit(root) {
+        Ok(limit) => limit,
+        Err(e) => return vec![e.to_string()],
+    };
     let mut failures = remove_old_links(root, &review_dir);
+    let mut found = Vec::new();
+    owners(data, &[], &mut found, limit);
     let mut pairs = Vec::new();
-    walk(data, &[], root, &review_dir, &mut pairs, &mut failures);
+    for owner in &found {
+        let rev_abs = rev_folder(root, owner);
+        if rev_abs.is_dir() {
+            match review_shortcut_name(owner, "") {
+                Ok(link) => pairs.push((rev_abs, review_dir.join(link))),
+                Err(e) => failures.push(e.to_string()),
+            }
+        }
+    }
     failures.extend(create(&pairs));
     failures
+}
+
+pub(super) fn review_dir(root: &Path) -> Result<Option<PathBuf>, String> {
+    let review_dir = root.join(REVIEW_FOLDER);
+    match fs::symlink_metadata(&review_dir) {
+        Ok(meta) if meta.is_dir() && !is_link(&meta) => Ok(Some(review_dir)),
+        // Clearing .lnk files through a linked 998.Review would delete files outside the storage.
+        Ok(meta) if is_link(&meta) => Err(format!("{REVIEW_FOLDER} is a link; index not rebuilt")),
+        _ => Ok(None),
+    }
+}
+
+pub(super) fn rev_folder(root: &Path, owner: &[String]) -> PathBuf {
+    let editable = owner.last().map_or("", |name| editable_part(name));
+    join_rel(root, owner).join(format!("98.{editable}"))
+}
+
+// Owners of one branch under the full walk's rules: no locked node on the way and nothing past the depth limit.
+pub(super) fn branch_owners(data: &Mapping, branch: &[String], node: &Mapping, limit: usize) -> Vec<Vec<String>> {
+    let open = |depth: usize| get_node(data, &branch[..depth]).is_some_and(|n| !is_locked(n));
+    if branch.is_empty() || branch.len() > limit || is_locked(node) || !(1..branch.len()).all(open) {
+        return Vec::new();
+    }
+    let mut found = vec![branch.to_vec()];
+    if branch.len() < limit {
+        owners(node, branch, &mut found, limit);
+    }
+    found
 }
 
 fn remove_old_links(#[cfg_attr(windows, allow(unused_variables))] root: &Path, review_dir: &Path) -> Vec<String> {
@@ -74,7 +115,7 @@ fn remove_old_links(#[cfg_attr(windows, allow(unused_variables))] root: &Path, r
 
 // A link into 998.Review itself may be the user's own, so only targets elsewhere in the storage count.
 #[cfg_attr(windows, allow(dead_code))]
-fn targets_storage(root: &Path, review_dir: &Path, target: &Path) -> bool {
+pub(super) fn targets_storage(root: &Path, review_dir: &Path, target: &Path) -> bool {
     let resolved = normalize(&review_dir.join(target));
     let root = normalize(root);
     resolved != root && resolved.starts_with(&root) && !resolved.starts_with(normalize(review_dir))
@@ -96,32 +137,23 @@ fn normalize(path: &Path) -> PathBuf {
     out
 }
 
-fn walk(
-    node: &Mapping,
-    parts: &[String],
-    abs_dir: &Path,
-    review_dir: &Path,
-    pairs: &mut Vec<(PathBuf, PathBuf)>,
-    failures: &mut Vec<String>,
-) {
+fn is_locked(node: &Mapping) -> bool {
+    is_locked_type(node.get("type").and_then(Value::as_str).unwrap_or(""))
+}
+
+// Sorted pre-order, so the full rebuild always hands its pairs over in the same order.
+fn owners(node: &Mapping, parts: &[String], found: &mut Vec<Vec<String>>, limit: usize) {
     let mut children: Vec<(&str, &Mapping)> = child_entries(node).collect();
     children.sort_by(|a, b| a.0.cmp(b.0));
     for (name, child) in children {
-        if is_locked_type(child.get("type").and_then(Value::as_str).unwrap_or("")) {
+        if is_locked(child) {
             continue;
         }
         let mut child_parts = parts.to_vec();
         child_parts.push(name.to_string());
-        let child_abs = abs_dir.join(name);
-        let rev_abs = child_abs.join(format!("98.{}", editable_part(name)));
-        if rev_abs.is_dir() {
-            match review_shortcut_name(&child_parts, "") {
-                Ok(link) => pairs.push((rev_abs, review_dir.join(link))),
-                Err(e) => failures.push(e.to_string()),
-            }
-        }
-        if child_parts.len() < MAX_DEPTH {
-            walk(child, &child_parts, &child_abs, review_dir, pairs, failures);
+        found.push(child_parts.clone());
+        if child_parts.len() < limit {
+            owners(child, &child_parts, found, limit);
         }
     }
 }

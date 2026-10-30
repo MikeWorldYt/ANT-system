@@ -21,6 +21,16 @@ pub fn rebuild_from_nodes(root: &Path, nodes: &[TreeNode]) -> R<()> {
     Store::open_or_create(root)?.replace_fields(&docs)
 }
 
+// Drops every path with its subtree, then indexes the filled subtrees of the ones that still exist.
+pub fn update_paths(root: &Path, subtrees: &[&TreeNode], paths: &[Vec<String>]) -> R<()> {
+    let mut docs = Vec::new();
+    for node in subtrees {
+        collect(std::slice::from_ref(*node), &mut docs);
+    }
+    let prefixes: Vec<String> = paths.iter().map(|p| p.join("/")).collect();
+    Store::open_or_create(root)?.update_paths(&prefixes, &docs)
+}
+
 fn collect(nodes: &[TreeNode], docs: &mut Vec<Doc>) {
     for node in nodes {
         if node.reserved {

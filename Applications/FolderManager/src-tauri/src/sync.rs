@@ -3,18 +3,24 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use crate::error::R;
+use crate::index::footprint::Copies;
 use crate::index::review_index;
 use crate::scheduler::{self, Task};
 use crate::tree::{snapshot, tree_store};
 
 const TASK: Task = Task { name: "ANT System Manager Sync", flag: "--sync", start: "12:30", what: "sync" };
 
+const WATCH_TASK: Task = Task { name: "ANT System Manager Watch", flag: "--watch", start: "", what: "watch" };
+
+// Both tasks are always attempted so a failure of one never leaves the other stale.
 pub fn apply(on: bool, root: &Path) -> R<()> {
-    scheduler::apply(&TASK, on.then_some("DAILY"), root)
+    let sync = scheduler::apply(&TASK, on.then_some("DAILY"), root);
+    let watch = scheduler::apply_logon(&WATCH_TASK, on, root);
+    sync.and(watch)
 }
 
 fn sync(root: &Path) -> R<()> {
-    snapshot(root)?;
+    snapshot(root, Copies::Ignore)?;
     for failure in review_index::rebuild(root, &tree_store::load(root)?) {
         eprintln!("Review index: {failure}");
     }
@@ -57,6 +63,23 @@ mod tests {
         assert_eq!(args[8..], ["/ST", "12:30"]);
         let off = scheduler::args(&TASK, None, Path::new("a"), Path::new("b"));
         assert_eq!(off, ["/Delete", "/F", "/TN", "ANT System Manager Sync"]);
+    }
+
+    #[test]
+    fn the_watch_task_runs_at_logon_with_no_time_limit() {
+        let xml = scheduler::logon_xml(&WATCH_TASK, "PC\\Ana", Path::new("C:/App/fm.exe"), Path::new("D:/My Storage & Co"));
+        assert!(xml.contains("<LogonTrigger>"));
+        assert!(!xml.contains("<CalendarTrigger>"));
+        assert!(xml.contains("<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>"));
+        assert!(xml.contains("<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>"));
+        assert!(xml.contains("<DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>"));
+        assert!(xml.contains("<StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>"));
+        assert!(xml.contains("<Hidden>true</Hidden>"));
+        assert_eq!(xml.matches("<UserId>PC\\Ana</UserId>").count(), 2);
+        assert!(xml.contains("<LogonType>InteractiveToken</LogonType>"));
+        assert!(xml.contains("<RunLevel>LeastPrivilege</RunLevel>"));
+        assert!(xml.contains("<Command>C:/App/fm.exe</Command>"));
+        assert!(xml.contains("<Arguments>--watch \"D:/My Storage &amp; Co\"</Arguments>"));
     }
 
     #[test]

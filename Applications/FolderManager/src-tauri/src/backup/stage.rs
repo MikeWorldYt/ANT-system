@@ -2,10 +2,11 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::config::{is_hidden_dir, CORE_FOLDER, DATA_DIR, DB_FILENAME, MAX_DEPTH, SETTINGS_FOLDER};
+use crate::config::{is_hidden_dir, CORE_FOLDER, DATA_DIR, DB_FILENAME, SETTINGS_FOLDER};
 use crate::error::R;
 use crate::fs_safe::{io_err, is_link, LOCK_FILE};
 use crate::storage::db::{db_path, hide, Store};
+use crate::tree::depth;
 
 struct Entry {
     name: String,
@@ -39,7 +40,7 @@ fn rel(base: &Path, path: &Path) -> PathBuf {
 }
 
 // The root's own ant.db and its journals are copied through SQLite, never as raw files.
-fn tree_data(root: &Path, dir: &Path, depth: usize, skip: &Path, out: &mut Vec<PathBuf>) -> R<()> {
+fn tree_data(root: &Path, dir: &Path, depth: usize, limit: usize, skip: &Path, out: &mut Vec<PathBuf>) -> R<()> {
     let data = dir.join(DATA_DIR);
     if real_dir(&data) {
         for e in entries(&data)? {
@@ -48,13 +49,13 @@ fn tree_data(root: &Path, dir: &Path, depth: usize, skip: &Path, out: &mut Vec<P
             }
         }
     }
-    if depth > MAX_DEPTH {
+    if depth > limit {
         return Ok(());
     }
     for e in entries(dir)? {
         let settings = depth == 0 && e.name.eq_ignore_ascii_case(SETTINGS_FOLDER);
         if e.is_dir && !is_hidden_dir(&e.name) && !settings && e.path != skip {
-            tree_data(root, &e.path, depth + 1, skip, out)?;
+            tree_data(root, &e.path, depth + 1, limit, skip, out)?;
         }
     }
     Ok(())
@@ -88,7 +89,7 @@ pub fn stage(root: &Path, stage: &Path, skip: &Path) -> R<()> {
     fs::create_dir_all(stage.join(DATA_DIR)).map_err(|e| io_err("create folder", stage, &e))?;
     Store::open_or_create(root)?.vacuum_into(&db)?;
     let mut files = Vec::new();
-    tree_data(&base, &base, 0, skip, &mut files)?;
+    tree_data(&base, &base, 0, depth::limit(root)?, skip, &mut files)?;
     let settings = base.join(SETTINGS_FOLDER);
     if real_dir(&settings) {
         all_files(&base, &settings, skip, &mut files)?;

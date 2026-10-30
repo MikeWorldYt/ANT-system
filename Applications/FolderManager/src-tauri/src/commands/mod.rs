@@ -1,13 +1,17 @@
 // Tauri command layer: runs the pure core under the storage lock off the UI thread.
 mod backup;
+mod clipboard;
 mod debug;
+mod drag_out;
 mod edit;
 mod extensions;
+mod file_drop;
 mod health;
 mod intake;
 mod open;
 mod search;
 pub mod settings;
+mod share;
 mod storage;
 #[cfg(test)]
 mod tests;
@@ -20,19 +24,23 @@ use std::sync::{Mutex, RwLock};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::config::MAX_DEPTH;
+use crate::config::{DEPTH_CEILING, MAX_DEPTH};
 use crate::error::{FmError, R};
 use crate::index::ReviewIndexEvent;
+use crate::tree::depth;
 use crate::updater;
 
 pub use backup::*;
 pub use debug::*;
+pub use drag_out::*;
 pub use edit::*;
 pub use extensions::*;
+pub use file_drop::*;
 pub use health::*;
 pub use intake::*;
 pub use open::*;
 pub use search::*;
+pub use share::*;
 pub use storage::*;
 pub use tree::*;
 pub use update::*;
@@ -83,6 +91,8 @@ pub struct StorageInfo {
     root: String,
     app_version: String,
     max_depth: usize,
+    depth_options: Vec<usize>,
+    depth_warning: Option<String>,
 }
 
 pub fn locked<T>(storage: &Storage, f: impl FnOnce(&Path) -> R<T>) -> R<T> {
@@ -116,10 +126,13 @@ fn review_emitter(app: &AppHandle) -> impl Fn(&ReviewIndexEvent) -> Result<(), S
 #[tauri::command]
 pub async fn get_storage(app: AppHandle) -> R<StorageInfo> {
     run_locked(app, |root| {
+        let setting = depth::read(root)?;
         Ok(StorageInfo {
             root: root.to_string_lossy().into_owned(),
             app_version: updater::CURRENT_VERSION.to_string(),
-            max_depth: MAX_DEPTH,
+            max_depth: setting.limit,
+            depth_options: (MAX_DEPTH..=DEPTH_CEILING).collect(),
+            depth_warning: setting.warning,
         })
     })
     .await

@@ -1,5 +1,5 @@
 // Columns view: one column per depth of the selected path, children of the selection in the next one.
-import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
+import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
@@ -8,7 +8,7 @@ import { favoriteMark, nameCell } from "./name-cell";
 import { nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
-import { keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -43,6 +43,7 @@ export function createColumnsView(): ViewMode {
   function buildItem(n: TreeNode, onPath: boolean, tabbable: boolean): HTMLElement {
     const selected = keyOf(n.relParts) === state.selectedKey;
     const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, folderIcon(n, (selected || onPath) && n.hasChildren), nameCell(n, false));
+    item.dataset.key = keyOf(n.relParts);
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
     else if (onPath) item.classList.add("on-path");
@@ -51,6 +52,8 @@ export function createColumnsView(): ViewMode {
       item.classList.add("locked");
       item.setAttribute("aria-disabled", "true");
     }
+    item.classList.toggle("reserved", n.reserved);
+    item.classList.toggle("rev", n.nodeType?.base === "REV");
     if (n.ghost) item.setAttribute("aria-label", `${n.name} (missing on disk)`);
     // Without a status the star takes the icon's place at the end of the row.
     if (n.favorite) item.append(favoriteMark());
@@ -63,9 +66,16 @@ export function createColumnsView(): ViewMode {
     return item;
   }
 
+  // The folder whose children fill the column; the first column is the storage root.
+  const parentOf = (path: string[], index: number): TreeNode | null => (index === 0 ? null : findNode(path.slice(0, index)));
+
   function buildColumn(col: Column, index: number, path: string[], parent: string): HTMLElement {
     if (col.loading) return el("div", { class: "column loading", "aria-busy": "true" }, "Loading…");
     const column = el("div", { class: "column", role: "listbox", "aria-label": `Contents of ${parent}` });
+    const parentNode = parentOf(path, index);
+    // The empty area of a column is a drop target for the folder it lists; "" is the storage root.
+    column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
+    column.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentNode, root));
     const first = col.nodes[0];
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
     column.append(...col.nodes.map((n) => buildItem(n, n.name === path[index] && index < path.length - 1, keyOf(n.relParts) === tabbableKey)));
@@ -139,6 +149,8 @@ export function createColumnsView(): ViewMode {
     label: "Columns",
     mount(host) {
       root.addEventListener("keydown", onKey);
+      // Space beside the columns belongs to the deepest one.
+      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentOf(state.selectedKey?.split("/") ?? [], buildColumns().length - 1), root));
       host.append(root);
     },
     render() {

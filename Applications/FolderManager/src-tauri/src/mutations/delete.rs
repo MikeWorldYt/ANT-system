@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::Serialize;
 
 use super::recycle::{PendingRecycle, IN_FLIGHT};
-use super::{finish, load_synced, locate, persist, split, Mutation, Target};
+use super::{finish, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation, Target};
 use crate::config::TRASH_DIR;
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, redirects, Journal, StorageLock, MAX_NAME_UNITS};
@@ -22,7 +22,7 @@ pub struct DeletePreview {
 }
 
 pub fn inspect_delete(root: &Path, rel: &[String]) -> R<DeletePreview> {
-    let (data, _) = load_synced(root)?;
+    let (data, _) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_delete(rel, &target)?;
     if target.ghost {
@@ -40,19 +40,21 @@ pub fn delete_node(
     confirm_non_empty: bool,
 ) -> R<(Mutation, Option<PendingRecycle>)> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, synced) = load_synced(root)?;
+    let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     if target.ghost != expect_ghost {
         return Err(FmError::Stale { rel_parts: rel.to_vec() });
     }
     guard_delete(rel, &target)?;
     let (name, parent) = split(rel)?;
+    let before = subtrees(&data, &[rel.to_vec()]);
     if target.ghost {
         if !delete_key(&mut data, parent, name) {
             return Err(FmError::NotFound { rel_parts: rel.to_vec() });
         }
         tree_store::save(root, &data)?;
-        return Ok((finish(root, &data, synced, None, Vec::new()), None));
+        let m = finish(root, &data, synced, None, Vec::new(), vec![rel.to_vec()]).replacing(before);
+        return Ok((m, None));
     }
     let (files, dirs) = count_contents(&target.abs)?;
     if files + dirs > 0 && !confirm_non_empty {
@@ -65,7 +67,8 @@ pub fn delete_node(
     persist(root, &data, journal, "delete")?;
     IN_FLIGHT.lock().unwrap_or_else(|p| p.into_inner()).push(staged.clone());
     let pending = PendingRecycle { root: root.to_path_buf(), staged, name: name.clone() };
-    Ok((finish(root, &data, synced, None, Vec::new()), Some(pending)))
+    let m = finish(root, &data, synced, None, Vec::new(), vec![rel.to_vec()]).replacing(before);
+    Ok((m, Some(pending)))
 }
 
 // A locked ghost is only a stale record, so it may go; a locked real folder may not.

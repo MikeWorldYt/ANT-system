@@ -1,5 +1,5 @@
 // Grid view: large icons for the contents of one folder, entered with double click or Enter.
-import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
+import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { el } from "../ui/dom";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
@@ -61,6 +61,7 @@ export function createGridView(): ViewMode {
     if (n.favorite) art.append(favoriteMark());
     if (n.status) art.append(statusMark(n.status));
     const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, art, nameCell(n, false));
+    item.dataset.key = keyOf(n.relParts);
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
     if (n.ghost) {
@@ -71,6 +72,8 @@ export function createGridView(): ViewMode {
       item.classList.add("locked");
       item.setAttribute("aria-disabled", "true");
     }
+    item.classList.toggle("reserved", n.reserved);
+    item.classList.toggle("rev", n.nodeType?.base === "REV");
     item.title = nodeSummary(n);
     item.addEventListener("click", () => select(n.relParts));
     item.addEventListener("dblclick", () => (n.hasChildren ? enter(n) : startEdit(n.relParts)));
@@ -134,10 +137,12 @@ export function createGridView(): ViewMode {
     label: "Grid",
     mount(host) {
       root.addEventListener("keydown", onKey);
+      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, folderNode(), root));
       host.append(root);
     },
     render() {
       syncFolder();
+      root.dataset.key = folder ?? "";
       const hadFocus = root.contains(document.activeElement);
       const nodes = shownNodes();
       const tabbable = nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0];

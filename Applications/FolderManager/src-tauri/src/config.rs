@@ -15,7 +15,9 @@ pub const DATA_DIR: &str = ".ant";
 pub const DB_FILENAME: &str = "ant.db";
 pub const INFO_FILENAME: &str = "info.json";
 pub const FOOTPRINT_FILENAME: &str = "dragpath.json";
+// The default tree depth; Settings can raise it per storage up to DEPTH_CEILING.
 pub const MAX_DEPTH: usize = 3;
+pub const DEPTH_CEILING: usize = 6;
 
 pub const LOCKED_TYPES: &[&str] = &["REV", "RES", "TPL", "CFG"];
 pub const DATA_FLAG: &str = "data";

@@ -8,6 +8,9 @@ use crate::fs_safe::{io_err, FORBIDDEN};
 
 const FIRST_SLOT: u32 = 1;
 const LAST_SLOT: u32 = 89;
+const FIRST_MAIN_ID: u32 = 100;
+const LAST_MAIN_ID: u32 = 800;
+const MAIN_ID_STEP: u32 = 100;
 
 pub fn numeric_id(name: &str) -> Option<u32> {
     let digits_len = name.bytes().take_while(|b| b.is_ascii_digit()).count();
@@ -26,6 +29,13 @@ pub fn next_available_id(siblings: &[String]) -> u32 {
     (FIRST_SLOT..=LAST_SLOT)
         .find(|i| !used.contains(i))
         .unwrap_or(LAST_SLOT)
+}
+
+pub fn next_main_category_id(siblings: &[String]) -> u32 {
+    (FIRST_MAIN_ID..=LAST_MAIN_ID)
+        .step_by(MAIN_ID_STEP as usize)
+        .find(|id| !siblings.iter().any(|name| numeric_id(name) == Some(*id)))
+        .unwrap_or(LAST_MAIN_ID)
 }
 
 pub fn is_movable_node(name: &str, node_type: &str) -> bool {

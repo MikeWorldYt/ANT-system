@@ -1,4 +1,4 @@
-// Sorts files dropped into the Storage tree: Node files go to their review folder, main-folder files are reported.
+// Sorts files dropped into the Storage tree: Node files go to their review folder, while data and special nodes keep them.
 mod rules;
 #[cfg(test)]
 mod tests;
@@ -15,7 +15,8 @@ use crate::ant_core::tree_types::child_entries;
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, Journal, StorageLock};
 use crate::mutations::{child_rel, load_synced};
-use rules::{is_exempt, is_skipped_file, rule, Rule};
+use rules::{is_root_exempt_file, is_skipped_file, rule, Rule};
+pub(crate) use rules::{node_type, review_child};
 
 #[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -53,6 +54,7 @@ pub fn run(root: &Path) -> R<IntakeReport> {
 fn walk(dir: &Path, node: &Mapping, rel: &[String], report: &mut IntakeReport) -> R<()> {
     let subdirs = list_subdirs(dir)?;
     match rule(rel, node) {
+        Rule::Root => report_root_loose(dir, report)?,
         Rule::Skip => return Ok(()),
         Rule::Keep => {}
         Rule::Loose => report_loose(dir, rel, report)?,
@@ -68,13 +70,21 @@ fn walk(dir: &Path, node: &Mapping, rel: &[String], report: &mut IntakeReport) -
     Ok(())
 }
 
+fn report_root_loose(dir: &Path, report: &mut IntakeReport) -> R<()> {
+    for file in direct_files(dir)? {
+        let file = file.to_string_lossy().into_owned();
+        if !is_root_exempt_file(&file) {
+            report.loose.push(LooseFile { node: String::new(), file });
+        }
+    }
+    Ok(())
+}
+
 fn report_loose(dir: &Path, rel: &[String], report: &mut IntakeReport) -> R<()> {
     let node = rel.join("/");
     for file in direct_files(dir)? {
         let file = file.to_string_lossy().into_owned();
-        if !is_exempt(&file) {
-            report.loose.push(LooseFile { node: node.clone(), file });
-        }
+        report.loose.push(LooseFile { node: node.clone(), file });
     }
     Ok(())
 }

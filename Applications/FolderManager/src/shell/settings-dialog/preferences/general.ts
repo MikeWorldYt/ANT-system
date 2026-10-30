@@ -10,14 +10,19 @@ export const generalPage: SettingsPage = {
   icon: "pageGeneral",
   rows: () => [
     {
-      section: "Lists",
+      section: "Preferences",
       title: "Pin favorites to the top of each list",
       control: () => switchControl("Pin favorites to the top of each list", state.settings.pinFavorites, (on) => changeSetting("pinFavorites", on)),
     },
     {
-      section: "Lists",
+      section: "Preferences",
       title: "Hide Workboards with status done",
       control: () => switchControl("Hide Workboards with status done", state.settings.hideDone, (on) => changeSetting("hideDone", on)),
+    },
+    {
+      section: "Preferences",
+      title: "Hide directory identifiers",
+      control: () => switchControl("Hide directory identifiers", state.settings.hideDirectoryIdentifiers, (on) => changeSetting("hideDirectoryIdentifiers", on)),
     },
     {
       section: "Startup",

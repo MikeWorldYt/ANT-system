@@ -7,12 +7,14 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, flags_in, type_base, type_level, META_KEYS};
 use crate::config::{
-    LINKED_PREFIXES, MAIN_FLAG, MAX_DEPTH, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
+    LINKED_PREFIXES, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::error::R;
 use crate::fs_safe::join_rel;
+use crate::index::footprint::Copied;
 use crate::storage::info::{field_of, read_info, NodeInfo};
 use crate::ant_core::names::{name_parts, is_movable_node, list_subdirs, numeric_id};
+use crate::tree::depth;
 use crate::tree::tree_store::{get_node, is_locked_type};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -70,6 +72,7 @@ pub struct TreeSnapshot {
     pub root: String,
     pub nodes: Vec<TreeNode>,
     pub yaml_changed: bool,
+    pub copies: Vec<Copied>,
 }
 
 struct Entry {
@@ -81,25 +84,34 @@ struct Entry {
 pub fn build_tree(root: &Path, data: &Mapping, yaml_changed: bool) -> R<TreeSnapshot> {
     Ok(TreeSnapshot {
         root: root.to_string_lossy().into_owned(),
-        nodes: build_children(root, data, &[])?,
+        nodes: children_at(root, data, &[], depth::limit(root)?)?,
         yaml_changed,
+        copies: Vec::new(),
     })
 }
 
 pub fn build_children(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<TreeNode>> {
+    children_at(root, data, parent, depth::limit(root)?)
+}
+
+pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<()> {
+    fill_at(root, data, nodes, depth::limit(root)?)
+}
+
+fn children_at(root: &Path, data: &Mapping, parent: &[String], limit: usize) -> R<Vec<TreeNode>> {
     let mut nodes = Vec::new();
     for entry in level_entries(root, data, parent)? {
-        nodes.push(make_node(root, data, parent, entry)?);
+        nodes.push(make_node(root, data, parent, entry, limit)?);
     }
     mark_moves(&mut nodes);
     Ok(nodes)
 }
 
-pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<()> {
+fn fill_at(root: &Path, data: &Mapping, nodes: &mut [TreeNode], limit: usize) -> R<()> {
     for node in nodes {
         if node.has_children {
-            let mut kids = build_children(root, data, &node.rel_parts)?;
-            fill_children(root, data, &mut kids)?;
+            let mut kids = children_at(root, data, &node.rel_parts, limit)?;
+            fill_at(root, data, &mut kids, limit)?;
             node.children = Some(kids);
         }
     }
@@ -155,7 +167,7 @@ fn is_linked_folder(name: &str) -> bool {
 // Any of these inside a folder means it holds a git project.
 const GIT_MARKERS: [&str; 3] = [".git", ".github", ".gitignore"];
 
-fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<TreeNode> {
+fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit: usize) -> R<TreeNode> {
     let mut rel_parts = parent.to_vec();
     rel_parts.push(entry.name.clone());
     let depth = parent.len();
@@ -179,14 +191,14 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
     let locked = is_locked_type(raw_type);
     let reserved = is_reserved(&rel_parts);
     // Folders on the last tree level show no children, so the views offer nothing to open below them.
-    let has_children = !ghost && depth + 1 < MAX_DEPTH && !level_entries(root, data, &rel_parts)?.is_empty();
+    let has_children = !ghost && depth + 1 < limit && !level_entries(root, data, &rel_parts)?.is_empty();
     let is_git = !ghost && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
     let info_broken = info.as_ref().is_some_and(|i| i.error.is_some());
 
     let (fixed_prefix, editable_name) = name_parts(&entry.name, is_wkb);
     Ok(TreeNode {
-        actions: compute_actions(depth, ghost, raw_type, reserved, info_broken),
+        actions: compute_actions(depth, limit, ghost, raw_type, reserved, info_broken),
         name: entry.name,
         rel_parts,
         depth,
@@ -210,16 +222,16 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry) -> R<
 }
 
 // The only place that decides what a node allows; move flags are filled in by `mark_moves`.
-fn compute_actions(depth: usize, ghost: bool, raw_type: &str, reserved: bool, info_broken: bool) -> NodeActions {
+fn compute_actions(depth: usize, limit: usize, ghost: bool, raw_type: &str, reserved: bool, info_broken: bool) -> NodeActions {
     let locked = is_locked_type(raw_type);
     let frozen = locked || reserved;
-    // The yaml stops at MAX_DEPTH, so deeper folders have no entry to retype or to add a sibling under.
-    let in_tree = depth < MAX_DEPTH;
+    // The yaml stops at the depth limit, so deeper folders have no entry to retype or to add a sibling under.
+    let in_tree = depth < limit;
     NodeActions {
         rename: !ghost && !frozen,
         change_type: !frozen && in_tree,
-        // Level 1 has its own creation rules, so a new folder is only offered next to a level 2 or deeper one.
-        add_next: depth >= 1 && !reserved && in_tree,
+        // Main categories can create another Level 1 category; deeper nodes create siblings as usual.
+        add_next: !ghost && !reserved && in_tree,
         move_up: false,
         move_down: false,
         delete: !reserved && (ghost || !locked),
@@ -483,7 +495,7 @@ mod tests {
         )
         .unwrap();
         let top = build_children(dir.path(), &data, &[]).unwrap();
-        assert!(!top[0].actions.add_next);
+        assert!(top[0].actions.add_next);
         let l2 = build_children(dir.path(), &data, &rel(&["01.A"])).unwrap();
         assert!(l2[0].actions.add_next);
         let l3 = build_children(dir.path(), &data, &rel(&["01.A", "01.B"])).unwrap();
@@ -508,9 +520,26 @@ mod tests {
         assert!(l3[0].actions.change_type && l3[0].actions.add_next);
         let l4 = build_children(dir.path(), &data, &rel(&["01.A", "01.B", "01.C"])).unwrap();
         let a = &l4[0].actions;
-        assert_eq!(l4[0].depth, MAX_DEPTH);
+        assert_eq!(l4[0].depth, crate::config::MAX_DEPTH);
         assert!(!a.change_type && !a.add_next && a.rename && a.copy_path);
         assert!(!l4[0].has_children);
+    }
+
+    #[test]
+    fn a_raised_depth_limit_loads_and_opens_the_next_level() {
+        let dir = TempDir::new("raised-depth");
+        dir.mkdir("01.A/01.B/01.C/01.D/01.E");
+        crate::storage::db::Store::open_or_create(dir.path()).unwrap().set_setting(depth::DEPTH_KEY, "4").unwrap();
+        let tree = crate::tree::snapshot(dir.path(), crate::index::footprint::Copies::Tail).unwrap();
+        let child = |n: &TreeNode| n.children.as_ref().map(|k| k[0].clone()).unwrap();
+        let l3 = child(&child(&tree.nodes[0]));
+        assert!(l3.has_children && l3.actions.change_type && l3.actions.add_next);
+        let l4 = child(&l3);
+        assert_eq!((l4.name.as_str(), l4.depth), ("01.D", 3));
+        assert!(!l4.has_children && l4.actions.change_type && l4.actions.add_next);
+        let data = crate::tree::tree_store::load(dir.path()).unwrap();
+        assert_eq!(crate::tree::tree_store::get_type(&data, &rel(&["01.A", "01.B", "01.C", "01.D"])), "NODE-L4");
+        assert!(get_node(&data, &rel(&["01.A", "01.B", "01.C", "01.D", "01.E"])).is_none());
     }
 
     #[test]

@@ -4,13 +4,14 @@ import { guiIcon } from "../ui/gui-icons";
 import { renameTo } from "../actions/ops";
 import { keyOf, state, stopEdit } from "../store/state";
 import type { TreeNode } from "../ipc/types";
+import { displayNodeName } from "../store/node-info";
 
 export const favoriteMark = () => el("span", { class: "fav-mark", title: "Favorite" }, guiIcon("starred"));
 
 export function nameCell(n: TreeNode, inlineStar = true): HTMLElement {
   const key = keyOf(n.relParts);
   const edit = state.editing;
-  if (!edit || edit.key !== key) return el("span", { class: "name" }, el("span", { class: "name-text" }, n.name), ...(n.favorite && inlineStar ? [favoriteMark()] : []));
+  if (!edit || edit.key !== key) return el("span", { class: "name" }, el("span", { class: "name-text" }, displayNodeName(n)), ...(n.favorite && inlineStar ? [favoriteMark()] : []));
 
   const input = el("input", { class: "name-input", type: "text", spellcheck: "false", autocomplete: "off", "aria-label": `Rename ${n.name}` });
   input.value = edit.draft;

@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde::Deserialize;
 
-use super::{child_rel, ensure_free, finish, guard_frozen, load_synced, locate, persist, split, Mutation};
+use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation};
 use crate::ant_core::names::{editable_part, is_movable_node, list_subdirs, numeric_id};
 use crate::error::{FmError, R};
 use crate::fs_safe::{join_rel, same_name, validate_component, Journal, StorageLock};
@@ -18,7 +18,7 @@ pub enum MoveDirection {
 
 pub fn move_node(root: &Path, rel: &[String], dir: MoveDirection) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, synced) = load_synced(root)?;
+    let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
     if target.ghost {
@@ -58,6 +58,7 @@ pub fn move_node(root: &Path, rel: &[String], dir: MoveDirection) -> R<Mutation>
     ensure_free(&parent_abs, get_node(&data, parent), &node_final, &pair)?;
     ensure_free(&parent_abs, get_node(&data, parent), &swap_new, &pair)?;
 
+    let before = subtrees(&data, &[rel.to_vec(), child_rel(parent, &swap_name)]);
     let mut journal = Journal::new();
     journal.rename(&parent_abs.join(name), &parent_abs.join(&node_final))?;
     if let Err(e) = journal.rename(&parent_abs.join(&swap_name), &parent_abs.join(&swap_new)) {
@@ -70,7 +71,7 @@ pub fn move_node(root: &Path, rel: &[String], dir: MoveDirection) -> R<Mutation>
             siblings.insert(node_final.clone().into(), entry);
         }
         if let Some(entry) = swap_entry {
-            siblings.insert(swap_new.into(), entry);
+            siblings.insert(swap_new.clone().into(), entry);
         }
     }
     persist(root, &data, journal, "move")?;
@@ -79,7 +80,9 @@ pub fn move_node(root: &Path, rel: &[String], dir: MoveDirection) -> R<Mutation>
     } else {
         Vec::new()
     };
-    Ok(finish(root, &data, synced, Some(child_rel(parent, &node_final)), warnings))
+    let node_rel = child_rel(parent, &node_final);
+    let touched = vec![rel.to_vec(), child_rel(parent, &swap_name), node_rel.clone(), child_rel(parent, &swap_new)];
+    Ok(finish(root, &data, synced, Some(node_rel), warnings, touched).replacing(before))
 }
 
 #[cfg(test)]

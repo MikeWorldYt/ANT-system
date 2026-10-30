@@ -9,11 +9,15 @@ import { createDetailsPanel } from "./shell/details-panel";
 import { el } from "./ui/dom";
 import { createNavigator } from "./shell/navigator";
 import { createSearchBar } from "./shell/search-bar";
-import { onReviewIndex, onWindowFocus } from "./ipc/events";
+import { onFileDrag, onReviewIndex, onStorageChanged, onWindowFocus } from "./ipc/events";
 import { init, refresh } from "./actions/ops";
+import { handleFileDrag } from "./actions/file-drop";
 import { installShortcuts } from "./actions/shortcuts";
+import { trackPasteTarget } from "./actions/paste-target";
+import { installDragOut } from "./actions/drag-out";
+import { installFolderMove } from "./actions/folder-move";
 import { readPref, savePref } from "./store/prefs";
-import { createStatusLine, clearStatus, setStatus } from "./ui/status";
+import { createStatusLine, clearStatus, currentOperationStatus, setStatus } from "./ui/status";
 import { rememberSelection, state, subscribe } from "./store/state";
 import { createToolbar } from "./shell/toolbar";
 import { openSettings } from "./shell/settings-dialog";
@@ -30,6 +34,9 @@ if (!app) throw new Error("Missing #app mount point");
 
 const host = el("section", { class: "tree-host", "aria-label": "Storage" });
 const views = createViewSwitcher(host, [createTreeView(), createColumnsView(), createGridView()]);
+trackPasteTarget(host);
+installDragOut(host);
+installFolderMove(host);
 const PANEL_PREF = "fm.details";
 let detailsVisible = readPref(PANEL_PREF) !== "hidden";
 const toolbar = createToolbar(
@@ -53,6 +60,7 @@ const toolbar = createToolbar(
 );
 const navigator = createNavigator();
 const search = createSearchBar();
+navigator.element.prepend(...toolbar.navLead);
 navigator.element.append(search.element);
 const panel = createDetailsPanel();
 panel.element.hidden = !detailsVisible;
@@ -86,16 +94,43 @@ let indexing = false;
 onReviewIndex((e) => {
   if (e.phase === "started") {
     indexing = true;
-    setStatus("info", "Rebuilding review index");
+    const operation = currentOperationStatus();
+    setStatus("info", operation ? `${operation} Updating review index…` : "Rebuilding review index");
   } else if (e.failures.length > 0) {
     indexing = false;
     setStatus("warning", `Review index: ${plural(e.failures.length, "shortcut")} failed (${e.failures[0]})`);
   } else if (indexing) {
     indexing = false;
-    clearStatus();
+    const operation = currentOperationStatus();
+    if (operation) setStatus("info", operation);
+    else clearStatus();
   }
 }).catch((e) => setStatus("warning", `Review index updates unavailable: ${describeError(e)}`));
 onWindowFocus(() => void refresh()).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
+
+// Watcher batches can arrive while a refresh runs; one pending rerun covers them all.
+let refreshing = false;
+let pending = false;
+async function refreshForWatcher(): Promise<void> {
+  if (refreshing) {
+    pending = true;
+    return;
+  }
+  refreshing = true;
+  try {
+    do {
+      pending = false;
+      await refresh();
+    } while (pending);
+  } finally {
+    refreshing = false;
+  }
+}
+onStorageChanged(() => void refreshForWatcher()).catch((e) =>
+  setStatus("warning", `Live storage updates unavailable: ${describeError(e)}`),
+);
+
+onFileDrag(handleFileDrag).catch((e) => setStatus("warning", `File drop unavailable: ${describeError(e)}`));
 
 installDebugLog();
 

@@ -57,18 +57,49 @@ export interface TreeSnapshot {
   root: string;
   nodes: TreeNode[];
   yamlChanged: boolean;
+  copies: Copied[];
 }
+
+export interface Copied {
+  relParts: string[];
+  original: string[];
+}
+
+export type CopyAnswer = "copy" | "independent";
 
 export interface StorageInfo {
   root: string;
   appVersion: string;
   maxDepth: number;
+  depthOptions: number[];
+  // Set when the saved depth was unusable and the default is used instead.
+  depthWarning: string | null;
 }
 
+// Touched children arrive with their subtree filled; the others with children null.
+export interface LevelPatch {
+  parent: string[];
+  hasChildren: boolean;
+  children: TreeNode[];
+}
+
+// A null tree means a local change: only the listed levels are patched.
 export interface Mutation {
-  tree: TreeSnapshot;
+  tree: TreeSnapshot | null;
+  levels: LevelPatch[];
   select: string[] | null;
   warnings: string[];
+}
+
+export interface PlacedFile {
+  name: string;
+  folder: string[];
+  copied: boolean;
+}
+
+export interface DropOutcome {
+  mutation: Mutation;
+  placed: PlacedFile[];
 }
 
 export interface DeletePreview {
@@ -100,6 +131,11 @@ export interface ReviewIndexEvent {
   failures: string[];
 }
 
+export interface StorageChangedEvent {
+  paths: number;
+  full: boolean;
+}
+
 export type FmError =
   | { kind: "storageNotFound"; start: string }
   | { kind: "invalidName"; name: string; reason: string }
@@ -116,7 +152,8 @@ export type FmError =
   | { kind: "io"; op: string; path: string; message: string; osCode: number | null }
   | { kind: "rolledBack"; op: string; cause: string }
   | { kind: "inconsistent"; op: string; cause: string; rollbackErrors: string[] }
-  | { kind: "internal"; message: string };
+  | { kind: "internal"; message: string }
+  | { kind: "clipboardEmpty" };
 
 export function isFmError(e: unknown): e is FmError {
   return typeof e === "object" && e !== null && typeof (e as { kind?: unknown }).kind === "string";

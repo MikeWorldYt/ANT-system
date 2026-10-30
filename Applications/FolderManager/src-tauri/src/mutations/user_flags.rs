@@ -1,7 +1,7 @@
 // Adds or removes the user flag "data" on a Node folder, the only flag a user can set.
 use std::path::Path;
 
-use super::{finish, guard_frozen, load_synced, locate, Mutation};
+use super::{finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
 use crate::ant_core::tree_types::{flags_in, type_base};
 use crate::config::{DATA_FLAG, FOOTPRINT_FILENAME};
 use crate::error::{FmError, R};
@@ -11,7 +11,7 @@ use crate::tree::tree_store::{self, get_node_mut};
 
 pub fn set_user_flag(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, synced) = load_synced(root)?;
+    let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
     if target.ghost {
@@ -40,7 +40,7 @@ pub fn set_user_flag(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     if let Err(e) = mirror_flags(&target.abs, &flags) {
         warnings.push(format!("Could not update {FOOTPRINT_FILENAME}: {e}"));
     }
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), warnings))
+    Ok(finish(root, &data, synced, Some(rel.to_vec()), warnings, vec![rel.to_vec()]))
 }
 
 #[cfg(test)]

@@ -17,9 +17,12 @@ mod sync;
 mod test_support;
 mod tree;
 mod updater;
+mod watch;
 mod window_state;
 
 use commands::settings;
+
+const STORAGE_CHANGED: &str = "storage-changed";
 
 pub fn run() {
     if std::env::args_os().nth(1).is_some_and(|a| a == "--backup") {
@@ -28,12 +31,16 @@ pub fn run() {
     if std::env::args_os().nth(1).is_some_and(|a| a == "--sync") {
         std::process::exit(sync::run_headless(std::env::args_os().nth(2)));
     }
+    if std::env::args_os().nth(1).is_some_and(|a| a == "--watch") {
+        std::process::exit(watch::run_headless(std::env::args_os().nth(2)));
+    }
     let arg = std::env::args_os().nth(1).map(std::path::PathBuf::from);
     let cwd = std::env::current_dir().unwrap_or_default();
     let storage = commands::Storage::resolve(cwd.clone());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(storage)
         .register_uri_scheme_protocol(extensions::sandbox_page::SCHEME, |_ctx, _request| extensions::sandbox_page::response())
         .setup(move |app| {
@@ -48,6 +55,17 @@ pub fn run() {
                     window.set_title(&commands::window_title(&storage::rename::folder_name(&root)))?;
                 }
             }
+            let handle = app.handle().clone();
+            let emitter = app.handle().clone();
+            app.manage(watch::GuiWatch::start(
+                move || handle.state::<commands::Storage>().root().ok(),
+                move |event| {
+                    use tauri::Emitter;
+                    if let Err(e) = emitter.emit(STORAGE_CHANGED, event) {
+                        eprintln!("Could not send {STORAGE_CHANGED}: {e}");
+                    }
+                },
+            ));
             if let Some(window) = app.get_webview_window("main") {
                 window_state::restore(&window);
                 let saved = window.clone();
@@ -69,11 +87,13 @@ pub fn run() {
             commands::set_node_type,
             commands::add_node,
             commands::move_node,
+            commands::move_folder,
             commands::inspect_delete,
             commands::delete_node,
             commands::skip_version,
             commands::set_node_details,
             commands::set_favorite,
+            commands::answer_copy,
             commands::set_user_flag,
             settings::get_settings,
             settings::set_setting,
@@ -110,7 +130,20 @@ pub fn run() {
             commands::inspect_extension_repo,
             commands::install_inspected_extension,
             commands::run_intake,
+            commands::drop_files,
+            commands::paste_files,
+            commands::copy_folder,
+            commands::start_drag_out,
+            commands::create_shortcut_in,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Folder Manager");
+        .build(tauri::generate_context!())
+        .expect("error while running Folder Manager")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                use tauri::Manager;
+                if let Some(watcher) = app.try_state::<watch::GuiWatch>() {
+                    watcher.shutdown();
+                }
+            }
+        });
 }

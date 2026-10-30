@@ -4,7 +4,8 @@ import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { statusIcon } from "../ui/status-mark";
 import { STATUSES, TYPES } from "../store/node-info";
-import { remove, setDetails, setFavorite, setType, setUserFlag } from "../actions/ops";
+import { pasteFiles, remove, setDetails, setFavorite, setType, setUserFlag } from "../actions/ops";
+import { createShortcut } from "../actions/folder-share";
 import { select, startEdit } from "../store/state";
 import { setStatus } from "../ui/status";
 import { menuItems, runMenuItem } from "../extensions/host";
@@ -15,6 +16,7 @@ interface MenuRequest {
   node: TreeNode;
   x: number;
   y: number;
+  folderOnly?: boolean;
 }
 
 declare global {
@@ -25,16 +27,27 @@ declare global {
 
 let dismissOpen: (() => void) | null = null;
 
-function dispatch(host: Element, node: TreeNode, x: number, y: number): void {
-  host.dispatchEvent(new CustomEvent<MenuRequest>("fm:node-menu", { bubbles: true, detail: { node, x, y } }));
+function dispatch(host: Element, node: TreeNode, x: number, y: number, folderOnly = false): void {
+  host.dispatchEvent(new CustomEvent<MenuRequest>("fm:node-menu", { bubbles: true, detail: { node, x, y, folderOnly } }));
 }
 
 export function nodeContextMenu(ev: MouseEvent, node: TreeNode, host: Element): void {
   ev.preventDefault();
+  // The view background listens too; an item's menu must not reach it.
+  ev.stopPropagation();
   // Keyboard-originated contextmenu events carry button 0 and are handled on keydown.
   if (ev.button !== 2) return;
   select(node.relParts);
   dispatch(host, node, ev.clientX, ev.clientY);
+}
+
+// Background menu of the open folder; null (the storage root) has no menu.
+export function folderContextMenu(ev: MouseEvent, folder: TreeNode | null, host: Element): void {
+  ev.preventDefault();
+  ev.stopPropagation();
+  if (ev.button !== 2 || !folder) return;
+  select(folder.relParts);
+  dispatch(host, folder, ev.clientX, ev.clientY, true);
 }
 
 export const isMenuKey = (ev: KeyboardEvent) => ev.key === "ContextMenu" || (ev.key === "F10" && ev.shiftKey);
@@ -61,7 +74,7 @@ async function openFolder(node: TreeNode): Promise<void> {
   }
 }
 
-function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
+function openMenu({ node, x, y, folderOnly }: MenuRequest, restoreFocus: () => void): void {
   dismissOpen?.();
   const a = node.actions;
 
@@ -69,6 +82,12 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     close();
     void openFolder(node);
   });
+  // Enabled even on locked folders: the backend picks the real target and explains a refusal.
+  const paste = menuItem("Paste", "menuitem", true, () => {
+    close();
+    void pasteFiles(node.relParts);
+  });
+  const pasteItems = node.reserved || node.ghost ? [] : [paste];
   const rename = menuItem("Rename", "menuitem", a.rename, () => {
     close(false);
     startEdit(node.relParts);
@@ -97,29 +116,35 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
     item.replaceChildren(guiIcon(statusIcon(value)), label);
     return item;
   });
-  const subs: Submenu[] = [submenu("Change type", typeChoices, a.changeType)];
-  if (node.nodeType?.base === "WKB") subs.push(submenu("Status", statusChoices, a.editDetails));
+  const subs: Submenu[] = folderOnly ? [] : [submenu("Change type", typeChoices, a.changeType)];
+  if (!folderOnly && node.nodeType?.base === "WKB") subs.push(submenu("Status", statusChoices, a.editDetails));
   const copy = menuItem("Copy path", "menuitem", a.copyPath, () => {
     close();
     void copyPath(node);
   });
+  const shortcut = menuItem("Create shortcut", "menuitem", true, () => {
+    close();
+    void createShortcut(node);
+  });
+  const shortcutItems = node.reserved || node.ghost ? [] : [shortcut];
   const del = menuItem("Delete", "menuitem", a.delete, () => {
     close();
     void remove(node);
   }, "ctx-item danger");
 
-  const extras = menuItems().map((m) =>
+  const extras = (folderOnly ? [] : menuItems()).map((m) =>
     menuItem(m.label, "menuitem", true, () => {
       close();
       runMenuItem(m.extId, m.id, node);
     }),
   );
 
-  const items = [open, rename, favorite, ...fileItems, ...subs.map((s) => s.trigger), copy, del, ...extras];
+  const items = folderOnly ? [open, ...pasteItems, copy, ...shortcutItems] : [open, ...pasteItems, rename, favorite, ...fileItems, ...subs.map((s) => s.trigger), copy, ...shortcutItems, del, ...extras];
   const closeSubs = () => subs.filter((s) => !s.element.contains(document.activeElement)).forEach((s) => s.close());
   items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
   subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));
-  const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` }, open, rename, favorite, ...fileItems, ...subs.map((s) => s.element), separator(), copy, del, ...(extras.length > 0 ? [separator(), ...extras] : []));
+  const content = folderOnly ? [open, ...pasteItems, copy, ...shortcutItems] : [open, ...pasteItems, rename, favorite, ...fileItems, ...subs.map((s) => s.element), separator(), copy, ...shortcutItems, del, ...(extras.length > 0 ? [separator(), ...extras] : [])];
+  const menu = el("div", { class: "ctx-menu ctx-node", role: "menu", "aria-label": `Actions for ${node.name}` }, ...content);
   menu.addEventListener("mouseleave", closeSubs);
 
   function close(restore = true): void {
@@ -155,5 +180,11 @@ function openMenu({ node, x, y }: MenuRequest, restoreFocus: () => void): void {
 }
 
 export function installContextMenu(host: HTMLElement, restoreFocus: () => void): void {
+  // Suppresses the WebView2 default menu everywhere except text fields, which keep copy and paste.
+  document.addEventListener("contextmenu", (ev) => {
+    const t = ev.target;
+    if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable)) return;
+    ev.preventDefault();
+  });
   host.addEventListener("fm:node-menu", (ev) => openMenu(ev.detail, restoreFocus));
 }

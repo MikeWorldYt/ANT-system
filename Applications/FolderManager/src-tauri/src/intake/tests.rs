@@ -11,6 +11,7 @@ const TREE: &str = "100.PERSONAL:
     type: NODE-L2
     98.Toki: {type: REV-L2}
     01.Sub: {type: NODE-L3, flags: data}
+  98.PERSONAL: {type: REV-L2}
   04.Data:
     type: NODE-L2
     flags: data
@@ -24,6 +25,7 @@ const TREE: &str = "100.PERSONAL:
 const DIRS: &[&str] = &[
     "100.PERSONAL/03.Toki/98.Toki",
     "100.PERSONAL/03.Toki/01.Sub",
+    "100.PERSONAL/98.PERSONAL",
     "100.PERSONAL/04.Data",
     "100.PERSONAL/05.Bare",
     "100.PERSONAL/PJ.Board",
@@ -74,27 +76,34 @@ fn files_in_data_nodes_and_workboards_stay() {
 }
 
 #[test]
-fn a_file_in_a_main_node_is_reported_as_loose() {
+fn a_file_in_a_main_node_moves_into_its_review_child() {
     let dir = fixture("intake-loose");
     put(&dir, "100.PERSONAL/stray.pdf", "s");
     let report = run(dir.path()).unwrap();
-    assert!(has(&dir, "100.PERSONAL/stray.pdf"));
-    assert_eq!(report.loose.len(), 1, "{report:?}");
-    assert_eq!((report.loose[0].node.as_str(), report.loose[0].file.as_str()), ("100.PERSONAL", "stray.pdf"));
+    assert!(has(&dir, "100.PERSONAL/98.PERSONAL/stray.pdf"));
+    assert!(!has(&dir, "100.PERSONAL/stray.pdf"));
+    assert_eq!(report.moved.len(), 1, "{report:?}");
+    assert_eq!((report.moved[0].node.as_str(), report.moved[0].name.as_str()), ("100.PERSONAL", "100.PERSONAL"));
+    assert_eq!((report.moved[0].count, report.moved[0].review.as_str()), (1, "98.PERSONAL"));
+    assert!(report.loose.is_empty() && report.warnings.is_empty(), "{report:?}");
 }
 
 #[test]
-fn folder_manager_files_root_files_and_system_files_are_ignored() {
+fn folder_manager_files_at_root_are_exempt_but_other_root_files_are_reported() {
     let dir = fixture("intake-exempt");
-    put(&dir, "100.PERSONAL/FolderManager.exe", "x");
+    put(&dir, "FolderManager.exe", "x");
+    put(&dir, "FolderManager_notas.txt", "x");
     put(&dir, "100.PERSONAL/desktop.ini", "x");
     put(&dir, "100.PERSONAL/.hidden", "x");
-    put(&dir, "at-root.txt", "x");
+    put(&dir, "New Text Document.txt", "x");
     put(&dir, "999.Settings/00.Core/core.txt", "x");
     put(&dir, "100.PERSONAL/03.Toki/Thumbs.db", "x");
     let report = run(dir.path()).unwrap();
-    assert!(report.moved.is_empty() && report.loose.is_empty() && report.warnings.is_empty(), "{report:?}");
-    assert!(has(&dir, "100.PERSONAL/FolderManager.exe") && has(&dir, "100.PERSONAL/03.Toki/Thumbs.db"));
+    assert!(report.moved.is_empty() && report.warnings.is_empty(), "{report:?}");
+    assert_eq!(report.loose.len(), 1, "{report:?}");
+    assert_eq!((report.loose[0].node.as_str(), report.loose[0].file.as_str()), ("", "New Text Document.txt"));
+    assert!(has(&dir, "FolderManager.exe") && has(&dir, "FolderManager_notas.txt"));
+    assert!(has(&dir, "100.PERSONAL/03.Toki/Thumbs.db"));
 }
 
 #[test]
