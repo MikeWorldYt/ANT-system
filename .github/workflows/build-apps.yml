@@ -36,7 +36,7 @@ jobs:
       any: ${{ steps.pick.outputs.any }}
       native: ${{ steps.pick.outputs.native }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - id: pick
@@ -73,7 +73,7 @@ jobs:
       matrix:
         app: ${{ fromJson(needs.plan.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Detect app kind
         id: kind
         shell: pwsh
@@ -83,7 +83,7 @@ jobs:
           "tauri=$($tauri.ToString().ToLower())" >> $env:GITHUB_OUTPUT
           "rust=$($rust.ToString().ToLower())" >> $env:GITHUB_OUTPUT
           "python=$((-not $tauri -and -not $rust).ToString().ToLower())" >> $env:GITHUB_OUTPUT
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         if: steps.kind.outputs.python == 'true'
         with:
           python-version: "3.13"
@@ -97,11 +97,11 @@ jobs:
         run: |
           $spec = Get-ChildItem *.spec | Select-Object -First 1
           python -m PyInstaller $spec.Name --noconfirm --clean --distpath build-dist --workpath build-work
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         if: steps.kind.outputs.tauri == 'true'
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         if: steps.kind.outputs.tauri == 'true'
         with:
           node-version: 24
@@ -150,7 +150,7 @@ jobs:
           if (-not $sameVersion) { throw "exe FileVersion '$actual' does not match version.txt '$expected'" }
           "version=$expected" >> $env:GITHUB_OUTPUT
           "Built ${{ matrix.app }} $expected ($size bytes)"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.app }}
           path: Applications/${{ matrix.app }}/build-dist/${{ matrix.app }}.exe
@@ -174,7 +174,7 @@ jobs:
         shell: bash
         working-directory: Applications/${{ matrix.app }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Detect app kind
         id: kind
         run: |
@@ -184,11 +184,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential curl wget file libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         if: steps.kind.outputs.tauri == 'true'
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         if: steps.kind.outputs.tauri == 'true'
         with:
           node-version: 24
@@ -208,7 +208,7 @@ jobs:
       # tar keeps the executable bit, which an artifact upload would drop
       - name: Pack
         run: tar -czf "${{ matrix.app }}-${{ matrix.label }}.tar.gz" -C "$(dirname "$BIN")" "$(basename "$BIN")"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: unix-${{ matrix.app }}-${{ matrix.label }}
           path: Applications/${{ matrix.app }}/${{ matrix.app }}-${{ matrix.label }}.tar.gz
@@ -220,12 +220,12 @@ jobs:
     if: ${{ !cancelled() && needs.build.result == 'success' && needs.build-unix.result != 'failure' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v6
         with:
           path: built
           pattern: "!unix-*"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           path: built-unix
           pattern: unix-*
