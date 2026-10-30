@@ -50,13 +50,13 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   collapse.classList.add("side-collapse");
   const head = el("div", { class: "side-head" }, title, settings, collapse);
 
-  const open = sideAction("Open", null, openSelected, "", ["Enter", "Enter"]);
+  const open = sideAction("Open", null, openSelected, "");
   const favorite = sideAction(favoriteLabel(null), "starred", toggleFavorite, "favorite");
   const quick = section("side-quick", "Quick actions", open.button, favorite.button);
   const up = sideAction("Move up", "moveUp", moveUp, "accent");
   const down = sideAction("Move down", "moveDown", moveDown, "accent");
   const order = section("side-order", "Order", up.button, down.button);
-  const remover = sideAction("Delete", "trash", del, "danger", ["Del", "Delete"]);
+  const remover = sideAction("Delete", "trash", del, "danger");
   const foot = el("div", { class: "side-foot" }, remover.button);
   const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, details.element, order, foot);
 

@@ -117,9 +117,11 @@ body {
 .row.ghost .name { color: var(--ghost-text); font-style: italic; }
 .row.locked .name { color: var(--muted); }
 .icon { flex: none; }
-.details { margin: 4px 0 0; font-size: 9pt; }
+.details { margin: 4px 0 0; font-size: 9pt; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
 .details dt { color: var(--muted); }
-.details dd { margin: 0 0 6px; word-break: break-word; }
+.details dd { margin: 0; word-break: break-word; }
+.detail-field { display: flex; flex-direction: column; min-width: 0; }
+.detail-field:first-child { grid-column: 1 / -1; }
 .caret { width: 14px; text-align: center; color: var(--accent); }
 .st-in-progress { --st: var(--st-progress); }
 .st-hold { --st: var(--st-hold); }
@@ -152,7 +154,6 @@ body {
 .side-action-icon { display: inline-flex; width: 16px; flex: none; }
 .side-action-icon .gui-icon { width: 16px; height: 16px; }
 .side-action-label { flex: 1; min-width: 0; }
-.side-action-hint { font: inherit; font-size: 8pt; color: var(--muted); }
 .side-action.accent { color: var(--accent); }
 .side-action.favorite { color: var(--st-progress); }
 .side-action.danger, .side-rail .danger:not([aria-disabled="true"]) { color: var(--delete-hover); }
@@ -161,7 +162,7 @@ body {
 .side-rail { flex: none; width: 40px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; background: var(--input-bg); }
 .side-rail .icon-btn { width: 30px; height: 30px; background: transparent; }
 .side-rail-end { margin-top: auto; }
-.details-panel[hidden], .side-rail[hidden], .side-section[hidden] { display: none; }
+.details-panel[hidden], .side-rail[hidden], .side-section[hidden], .details[hidden] { display: none; }
 .details-input {
   box-sizing: border-box; width: 100%; padding: 2px 4px; font: inherit; color: var(--text); background: var(--field-bg);
   border: 1px solid var(--border); border-radius: 3px; outline: none;

@@ -16,6 +16,7 @@ export const canEdit = (n: TreeNode) => n.actions.editDetails || n.actions.editF
 const termId = (label: string) => `details-term-${label.toLowerCase()}`;
 const fieldId = (label: string) => `details-field-${label.toLowerCase()}`;
 const labelled = (label: string) => ({ id: fieldId(label), "aria-labelledby": termId(label) });
+const detailField = (...children: HTMLElement[]) => el("div", { class: "detail-field" }, ...children);
 
 export interface DetailsSection {
   element: HTMLElement;
@@ -104,12 +105,12 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     if (editing === null) form = null;
     else if (n && form?.key !== editing) form = { key: editing, inputs: controls(n) };
     const inputs = form?.inputs ?? {};
-    const rows = (n ? nodeDetails(n) : []).flatMap(([k, v]) => [el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))]);
-    if (inputs["Allow files"]) rows.push(el("dt", { id: termId("Allow files") }, "Allow files"), el("dd", {}, inputs["Allow files"]));
-    if (inputs[""]) rows.push(el("dd", {}, inputs[""]));
+    const rows = (n ? nodeDetails(n) : []).map(([k, v]) => detailField(el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))));
+    if (inputs["Allow files"]) rows.push(detailField(el("dt", { id: termId("Allow files") }, "Allow files"), el("dd", {}, inputs["Allow files"])));
+    if (inputs[""]) rows.push(detailField(el("dd", {}, inputs[""])));
     for (const ext of detailFields(n)) {
       for (const f of ext.fields) {
-        rows.push(el("dt", {}, f.label, el("span", { class: "ext-source" },)));
+        const term = el("dt", {}, f.label, el("span", { class: "ext-source" },));
         const value = el("dd", {}, f.value);
         if (f.action && n) {
           const { id } = f.action;
@@ -117,7 +118,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
           button.addEventListener("click", () => runDetailsAction(ext.extId, id, n));
           value.append(button);
         }
-        rows.push(value);
+        rows.push(detailField(term, value));
       }
     }
     // Moving a field into the fresh rows blurs it, so focus goes back to it.
