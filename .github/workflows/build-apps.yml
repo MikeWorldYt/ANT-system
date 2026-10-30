@@ -230,6 +230,16 @@ jobs:
           path: built-unix
           pattern: unix-*
           merge-multiple: true
+      # download-artifact v5+ unpacks a single artifact straight into the folder, so each app folder is rebuilt here
+      - name: Put each executable in its app folder
+        shell: bash
+        run: |
+          for exe in built/*.exe; do
+            [ -e "$exe" ] || continue
+            app=$(basename "$exe" .exe)
+            mkdir -p "built/$app"
+            mv "$exe" "built/$app/"
+          done
       - name: Commit executables to main
         shell: bash
         run: |
