@@ -33,7 +33,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
   // ─────────♦ SORT AND VIEW ────────────────────────────────────────────────────
   const SORT_KEYS: [SortBy, string][] = [["name", "Name"], ["type", "Type"], ["status", "Status"]];
   const sortLabel = el("span", {});
-  const sortBtn = el("button", { type: "button", class: "view-picker sort-btn" }, guiIcon("up"), sortLabel);
+  const sortBtn = el("button", { type: "button", class: "view-picker sort-btn" }, sortLabel, guiIcon("up"));
   attachMenu(sortBtn, "Sort by", () => {
     const column = activeColumnKey();
     const { by, dir } = sortOf(column);
@@ -52,7 +52,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     closeViewPopup?.(true);
   })]);
   const viewLabel = el("span", { class: "view-label" });
-  const viewBtn = el("button", { type: "button", class: "view-picker", "aria-haspopup": "true", "aria-expanded": "false" }, guiIcon("layout"), viewLabel);
+  const viewBtn = el("button", { type: "button", class: "view-picker", "aria-haspopup": "true", "aria-expanded": "false" }, viewLabel, guiIcon("layout"));
 
   function openViewPopup(): void {
     const popup = el("div", { class: "view-segment", role: "group", "aria-label": "View" }, ...modeButtons.map(([, b]) => b));

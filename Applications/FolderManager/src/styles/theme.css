@@ -227,7 +227,6 @@ dialog.warning-confirm form { position: relative; }
 }
 .view-picker:hover { background: var(--field-bg); }
 .view-picker .gui-icon { width: 16px; height: 16px; }
-.view-picker .gui-icon:last-child { width: 12px; height: 12px; }
 .icon-btn[aria-pressed="true"], .icon-btn[aria-pressed="true"]:hover { background: var(--highlight); color: var(--title); }
 .toolbar-divider { align-self: stretch; width: 1px; margin: 4px 2px; background: var(--border); }
 .toolbar-end { margin-left: auto; }
@@ -236,7 +235,7 @@ dialog.warning-confirm form { position: relative; }
   background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-pop);
 }
 .view-segment .icon-btn { width: 28px; height: 28px; background: transparent; }
-.sort-btn[data-dir="desc"] .gui-icon:first-child { transform: rotate(180deg); }
+.sort-btn[data-dir="desc"] .gui-icon:last-child { transform: rotate(180deg); }
 
 .columns { display: flex; height: 100%; overflow-x: auto; overflow-y: hidden; }
 .column { flex: none; width: var(--panel-w); height: 100%; overflow-y: auto; border-right: 1px solid var(--border); }
