@@ -54,6 +54,8 @@ export function nodeDetails(n: TreeNode): [string, string][] {
   for (const f of n.info?.fields ?? []) {
     // Status and owner of a workboard already have their own rows.
     if (wkb && (f.key.toLowerCase() === "status" || OWNER_KEYS.includes(f.key.toLowerCase()))) continue;
+    // Favorite is toggled from the quick actions, never edited as a field.
+    if (f.key.toLowerCase() === "favorite") continue;
     rows.push([f.key.charAt(0).toUpperCase() + f.key.slice(1), f.value]);
   }
   return rows;

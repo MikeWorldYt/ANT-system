@@ -171,6 +171,8 @@ body {
 .details-name { display: flex; align-items: center; }
 .details-name .details-input { flex: 1; min-width: 0; width: auto; }
 .details-actions { display: flex; gap: 6px; margin-top: 4px; }
+.details-actions .btn { flex: 1; min-width: 0; }
+.detail-field:has(> dd > .details-actions) { grid-column: 1 / -1; }
 .name { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .name.editing { display: flex; align-items: center; flex: 1; min-width: 0; }
