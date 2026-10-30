@@ -1,0 +1,129 @@
+---
+title: Nodos de Soporte
+description: Carpetas con identificador fijo (99, 98, 97, 90, 00 y ~) que guardan configuraciones, revisión, plantillas, recursos y archivos finalizados en cada nivel.
+---
+import Callout from "/src/components/ui/Callout.astro";
+
+Los nodos de soporte son carpetas que sirven para guardar archivos o directorios que no están directamente relacionados con el nivel actual. 
+Su propósito es ofrecer un lugar donde almacenar información o recursos adicionales en ese mismo nivel y, así, apoyar a la persona usuaria.
+
+Cada nodo de soporte debe tener un identificador único, para diferenciarlos e identificarlos rápidamente.
+
+## Carpeta 99.Settings
+Debe tener el identificador **99**.  
+Este [nodo](/es/foundationals/core-concepts#nodos) (carpeta) guarda configuraciones predefinidas para programas, el sistema operativo o el propio sistema ANT. Reúne en un solo lugar todos los ajustes específicos del entorno, para acceder a ellos de inmediato.
+
+Aquí debes tener subcarpetas, según el tipo de configuración que se guarde.
+
+<Callout type="warning">
+  Como recomendación, solo debes implementarla en el Nivel 1 y el Nivel 2, para asegurar el acceso global y evitar la **fragmentación de archivos**.
+</Callout>
+
+Puedes incluir:
+- Archivos de configuración de programas o del sistema operativo (p. ej., `.env`, `config.json`, etc.)
+- Recursos de personalización del sistema (iconos, temas, scripts)
+- Plantillas o preajustes
+- Flujos de automatización
+- Perfiles personalizados
+- Programas de instalación
+
+<h5> Nomenclatura: </h5>
+Este nodo puede heredar o no el nombre de su nodo padre.  
+Basta con que se vea como **99.Settings**.
+
+<h5> Utilidad </h5> 
+Funciona como un centro de almacenamiento de configuraciones, preajustes y otros ajustes que tus programas y archivos necesitan.
+
+---
+## Carpeta 98.Review
+Debe tener el identificador **98**.  
+Este [nodo](/es/foundationals/core-concepts#nodos) (carpeta) contiene todos los archivos y directorios que necesitan revisión;
+- Necesitan cambiar de nombre
+- No tienen clasificación
+- o incluso no pertenecen al nivel actual.
+
+<h5> Nomenclatura: </h5>
+Este nodo hereda solo el nombre de su nodo padre, con el prefijo **98.** antes del nombre.  
+
+```ansi {5}
+[32m 📁[37m 04.Marketing                      [35m ←−−− Padre
+[32m  ├── 📁[37m 01.Foundations of Marketing
+[32m  ├── 📁[37m 02.Web Analytics and SEO
+[32m  ├── 📁[37m . . .
+[32m  ├── 📁[37m 98.Marketing                 [35m ←−−− Carpeta de revisión
+[32m  │    ├── 📁[37m Online marketing Paolini course
+[32m  │    ├── 📄[37m Build-a-Successful-Social-Media-Strategy.pdf
+[32m  │    ├── [37m🖼 bf25a6e4ab1909bfcb25c50e3368a8.jpg
+[32m  │    └── [37m🖼 . . .
+```
+
+<h5> Utilidad </h5> 
+✅ Su función es ser como un entorno de pruebas (sandbox); esto ayuda tanto a la persona usuaria como al sistema a evitar el desorden y mantener la integridad de la organización.  
+✅ Al dirigir los archivos poco claros o sin clasificar a una zona de preparación debidamente marcada, se convierte en un lugar temporal para ellos sin comprometer el resto de los archivos.
+
+---
+## Carpeta 97.Templates
+Debe tener el identificador **97**.  
+Este [nodo](/es/foundationals/core-concepts#nodos) (carpeta) guarda estructuras modelo para los [nodos del tablero de trabajo](/es/foundationals/workboard-nodes). Estas plantillas ofrecen puntos de partida estandarizados para los [nodos con ciclo de vida](/es/foundationals/core-concepts#ciclo-de-vida) (carpetas) que se crean con frecuencia.
+
+<h5> Nomenclatura: </h5>
+No hereda el nombre del nodo padre. Siempre aparece como **97.Templates**, con las subcarpetas pertinentes:
+
+```ansi {2}
+[32m 📁[37m 02.Video-Edition                      [35m ←−−− Padre
+[32m  ├── 📁[37m 97.Templates                     [35m ←−−− Carpeta de plantillas
+[32m  │    ├── 📁[37m PJ.999_Unnamed-Project
+[32m  │    └── 📁[37m PR.999_New-Practice
+[32m  ├── 📁[37m PJ.133_Template-Use-Example
+[32m  ├── 📁[37m . . .
+```
+
+<h5> Utilidad </h5>
+Sirve como un **centro de despliegue rápido** para los [nodos del tablero de trabajo](/es/foundationals/workboard-nodes) al:  
+✅ Ofrecer plantillas para copiar y pegar con un clic en los nuevos [nodos del tablero de trabajo](/es/foundationals/workboard-nodes), que solo requieren cambiar el nombre  
+✅ Mantener estructuras coherentes para los proyectos temporales  
+✅ Poder contener archivos iniciales que se usen en proyectos nuevos  
+
+---
+## Carpeta 90.Resources
+Debe tener el identificador **90**.  
+Este [nodo](/es/foundationals/core-concepts#nodos) (carpeta) funciona como un repositorio centralizado de material de consulta de uso frecuente, recursos reutilizables y archivos de apoyo estáticos. Alberga los recursos esenciales que siguen siendo valiosos de forma constante en varios proyectos u operaciones.
+
+<h5> Nomenclatura: </h5>
+Este nodo aparece como `90.Resources-of-` y sigue heredando el nombre de su nodo padre.
+
+```ansi {2}
+[32m 📁[37m 02.Video-Edition                     [35m  ←−−− Padre
+[32m  ├── 📁[37m 90.Resources-of-Video-Edition   [35m  ←−−− Carpeta de recursos
+[32m  │    ├── 📁[37m 01.Templates-and-presets
+[32m  │    ├── 📁[37m 02.Music-and-SFX
+[32m  │    ├── 📁[37m . . .
+```
+
+<h5> Utilidad </h5>
+Funciona como una **caja de herramientas siempre disponible** para tus proyectos, tareas o trabajos escolares. Ofrece un lugar donde guardar los archivos, plantillas y recursos de uso frecuente, accesibles desde el nivel actual.
+
+---
+## Carpeta (00) Done
+Debe tener el identificador **00**.  
+Este [nodo](/es/foundationals/core-concepts#nodos) sirve exclusivamente como el **archivo final** de los resultados completados. Cuando una [carpeta de tablero de trabajo](/es/foundationals/workboard-nodes) llega al final de su vida tras completarse el proyecto o la tarea, aquí solo se conservan los recursos finalizados.
+
+<h5> Nomenclatura: </h5>
+Siempre debe aparecer como **00.Done** en cada nivel donde existan tableros de trabajo.  
+Si lo deseas, puedes ponerle el nombre que quieras, pero debes usar el prefijo **00.** antes del nombre.
+
+```ansi {2}
+[32m 📁[37m 02.Video-Edition                      [35m ←−−− Padre
+[32m  ├── 📁[37m 00.Edition-Portfolio             [35m ←−−− Carpeta Done
+[32m  │    ├── 📁[37m 01.Templates-and-presets
+[32m  │    ├── 📁[37m 02.Music-and-SFX
+[32m  │    ├── 📁[37m . . .
+```
+
+---
+## Carpetas temporales (~)
+Bueno, esto no es un identificador como tal, es solo una marca.  
+Este marcador especial (no es un identificador numerado) designa un **almacenamiento de vida ultracorta** para los archivos de trabajo activos. A diferencia de la [carpeta 98.Review](#carpeta-98review), los nodos `~` son contenedores desechables para los recursos mientras se manipulan, y funcionan como zonas de retención temporal que deben eliminarse inmediatamente después de usarse.
+
+<h5> Nomenclatura: </h5>
+Siempre llevan el prefijo `~` seguido del nombre que quieras.

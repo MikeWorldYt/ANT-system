@@ -41,7 +41,7 @@ Cada tablero lleva un estado en sus metadatos:
 | `in-progress` | En curso (el valor por defecto de un tablero nuevo) |
 | `for-review` | Terminado, pendiente de revisión |
 | `hold` | En pausa |
-| `done` | Entregado; listo para [archivarse o eliminarse](/es/foundationals/core-concepts#lifespan) |
+| `done` | Entregado; listo para [archivarse o eliminarse](/es/foundationals/core-concepts#ciclo-de-vida) |
 
 ## Anatomía estructural
 Un tablero vive dentro de un nodo de categoría, junto a los [nodos de soporte](/es/foundationals/support-nodes) de ese nodo. Esta es la estructura que recibe un almacenamiento nuevo desde `Tree.yaml`:
@@ -56,7 +56,7 @@ Un tablero vive dentro de un nodo de categoría, junto a los [nodos de soporte](
  └── 📁 PJ.003_ANT
 ```
 
-Por dentro, un tablero solo tiene una pieza fija: la carpeta oculta `.ant/` con su `info.json`. Todo lo demás es libre, así que puede empezar vacío o como copia de una plantilla de la [carpeta 97.Templates](/es/foundationals/support-nodes#97templates-folder).
+Por dentro, un tablero solo tiene una pieza fija: la carpeta oculta `.ant/` con su `info.json`. Todo lo demás es libre, así que puede empezar vacío o como copia de una plantilla de la [carpeta 97.Templates](/es/foundationals/support-nodes#carpeta-97templates).
 
 ```fs title="PJ.003_ANT/"
 📁 PJ.003_ANT

@@ -1,15 +1,30 @@
 ---
 title: Folder Manager
-description: Explora, busca y organiza un almacenamiento ANT desde una sola app de Windows.
+description: Explora, busca y organiza un almacenamiento ANT desde una app de escritorio para Windows, Linux y macOS.
 ---
 
-Folder Manager (ANT System Manager) es la app de escritorio para explorar un almacenamiento ANT, añadir nodos y tableros de trabajo, seguir el estado de tu trabajo y encontrar cualquier carpeta por nombre, tipo, estado o responsable. La versión 2.1.x es una app Tauri 2 (Rust y TypeScript) para Windows.
+Folder Manager (ANT System Manager) es la app de escritorio para explorar un almacenamiento ANT, añadir nodos y tableros de trabajo, seguir el estado de tu trabajo y encontrar cualquier carpeta por nombre, tipo, estado o responsable. Es una app Tauri 2 (Rust y TypeScript) con versiones para Windows, Linux y macOS.
 
 ## Instalar y abrir
 
-1. Descarga `FolderManager.exe` desde la [carpeta Applications en GitHub](https://github.com/MikeWorldYt/ANT-system/tree/main/Applications).
-2. Ejecútalo desde dentro de tu raíz ANT. La app encuentra la raíz como la carpeta que contiene `999.Settings`, empezando donde se ejecuta y un nivel arriba.
-3. La app busca una versión nueva al abrir. Mira [Actualizaciones](#actualizaciones).
+1. Descarga el archivo de tu sistema desde la [página de Descargas](/es/start-here/download).
+2. **Windows:** ejecuta `FolderManager.exe`. **Linux y macOS:** extrae el `.tar.gz` y ejecuta el archivo de dentro.
+3. La app necesita un almacenamiento ANT: una carpeta que contenga `999.Settings`. Si aún no tienes uno, mira [Primeros pasos](/es/start-here/getting-started).
+
+### Cómo encuentra la app tu almacenamiento
+
+Al iniciar, la app elige dónde buscar en este orden, y gana el primero que aplique:
+
+1. Una ruta de carpeta pasada a la app como primer argumento.
+2. El almacenamiento que recordó la última vez que abrió, guardado por cada copia de la app fuera de tu almacenamiento.
+3. La carpeta desde la que se inició la app, si esa carpeta o su carpeta superior contiene `999.Settings`.
+4. La carpeta donde está el ejecutable.
+
+Desde esa carpeta de inicio, la app toma la propia carpeta, o su carpeta superior, como raíz cuando contiene `999.Settings`. Si no encuentra nada, o la base de datos no se puede leer, pregunta qué hacer:
+
+- **Change path:** escribe la ruta completa de la carpeta del almacenamiento.
+- **Scan Storage:** vuelve a leer las carpetas del disco. Una `ant.db` ilegible se aparta antes.
+- **Use backup:** aparece cuando falta la base de datos y hay un respaldo en la carpeta de respaldos por defecto. Mira [Respaldos](#respaldos).
 
 ## Vistas
 
@@ -25,22 +40,28 @@ La ruta de navegación muestra el camino seleccionado. Haz doble clic, o pulsa `
 - **Añadir nodo** y **Añadir tablero** crean una carpeta nueva junto a la seleccionada. Están disponibles desde el nivel 2 hacia abajo; las carpetas de nivel 1 y las reservadas tienen sus propias reglas de creación.
 - **Renombrar** edita solo la parte editable del nombre. El prefijo fijo, como `PJ.001_`, se mantiene.
 - **Subir** y **Bajar** cambian el orden de la carpeta seleccionada entre sus hermanas.
-- **Actualizar** vuelve a leer el almacenamiento. La app también se actualiza sola cuando su ventana recibe el foco, así que los cambios hechos en el Explorador aparecen.
+- **Actualizar** vuelve a leer el almacenamiento. La app también se actualiza sola cuando su ventana recibe el foco, así que los cambios hechos en tu explorador de archivos aparecen.
+
+:::note[Identificadores de tablero]
+La documentación de ANT define `PJ`, `PR`, `HW`, `TK` y `CR` como identificadores oficiales. Hoy la app solo reconoce `PJ.`, `PR.` y `HW.` como tableros, y todo tablero nuevo que crea empieza como `PJ.`.
+:::
 
 ## Menú contextual
 
-Haz clic derecho en una carpeta, o pulsa la tecla de menú o `Shift+F10`, para ver:
+Haz clic derecho en una carpeta, o pulsa la tecla de menú o `Shift+F10`, para ver las opciones de abajo. Las opciones que no aplican a una carpeta, como Delete en una carpeta reservada, aparecen deshabilitadas.
 
 | Opción | Qué hace |
 | --- | --- |
+| Open | Abre la carpeta en el explorador de archivos del sistema |
 | Rename | Edita el nombre en el lugar |
 | Add to favorites / Remove from favorites | Marca la carpeta como favorita |
 | Change type | Cambia entre Node, Workboard y Portfolio |
 | Status | Solo para tableros: Hold, In progress, For review o Done |
 | Copy path | Copia la ruta absoluta al portapapeles |
-| Delete | Envía la carpeta a la Papelera de reciclaje |
+| Delete | Envía la carpeta a la Papelera de reciclaje (la papelera del sistema en Linux y macOS) |
+| Opciones de extensiones | Las añaden las [extensiones](#extensiones) con ese permiso, al final del menú |
 
-Eliminar una carpeta que no está vacía pide confirmación antes e indica cuántos archivos y carpetas se van con ella.
+Delete mueve primero la carpeta a una carpeta oculta `.ant-trash` y después a la Papelera. Si la restauras desde la Papelera, la siguiente actualización la devuelve a la raíz del almacenamiento. Con **Confirm before deleting** activado, una carpeta que no está vacía pide confirmación antes e indica cuántos archivos y carpetas se van con ella.
 
 ## Detalles del tablero de trabajo
 
@@ -54,6 +75,8 @@ Selecciona un tablero y usa el botón del lápiz del panel de detalles para edit
 | Done | Terminado |
 
 El estado y el responsable se guardan en el `.ant/info.json` de la propia carpeta, así que viajan con ella. Un tablero nuevo empieza como `in-progress` con responsable `unknown`. El responsable también puede estar guardado como `holder` o `client`; la app lee y actualiza el que ya exista. Las demás claves del archivo se muestran en el panel y no se tocan. Si el archivo no es JSON válido, la app muestra el error y no lo sobrescribe.
+
+Los metadatos de archivos individuales no están implementados: la app solo gestiona carpetas.
 
 ## Favoritos
 
@@ -81,32 +104,67 @@ Mientras escribes un filtro como `in:` o `status:`, la app sugiere valores. Elig
 
 En macOS usa `Cmd` en lugar de `Ctrl`. En otros sistemas también sirve `Win` o `Super`.
 
-| Atajo | Acción |
-| --- | --- |
-| `Enter` | Abrir la carpeta seleccionada |
-| `F2` | Renombrar la carpeta seleccionada |
-| `Delete` | Eliminar la carpeta seleccionada (a la Papelera) |
-| `Ctrl+F` | Enfocar el cuadro de búsqueda |
-| `Ctrl+L` | Editar la ruta |
-| `Ctrl+N` | Nuevo nodo junto a la selección |
-| `Ctrl+Alt+N` | Nuevo tablero junto a la selección |
-| `Alt+Izquierda`, `Alt+Derecha` | Atrás y adelante en el historial de selección |
-| `Alt+Arriba` | Ir a la carpeta superior |
+| Atajo | Acción | Editable |
+| --- | --- | --- |
+| `Ctrl+F` | Buscar en el almacenamiento | Sí |
+| `Ctrl+L` | Editar la ruta | Sí |
+| `Ctrl+N` | Nuevo nodo junto a la selección | Sí |
+| `Ctrl+Alt+N` | Nuevo tablero junto a la selección | Sí |
+| `Ctrl+,` | Abrir los ajustes | Sí |
+| `Alt+Arriba` | Ir a la carpeta superior | Sí |
+| `Enter` | Abrir la carpeta seleccionada | No |
+| `Delete` | Eliminar la carpeta seleccionada | No |
+| `F2` | Renombrar la carpeta seleccionada | No |
+| `Alt+Izquierda`, `Alt+Derecha` | Atrás y adelante en el historial de selección | No |
+| `Shift+F10` | Abrir el menú contextual | No |
 
-`Enter` y `Delete` actúan solo en las vistas de carpetas, nunca mientras escribes en un campo.
+`Enter` y `Delete` actúan solo en las vistas de carpetas, nunca mientras escribes en un campo. Para cambiar un atajo editable, mira [Ajustes](#ajustes).
 
 ## Ajustes
 
-Abre la ventana de ajustes con el botón del engranaje junto al nombre del almacenamiento.
+Abre la ventana de ajustes con el botón del engranaje junto al nombre del almacenamiento, o con `Ctrl+,`. Tiene una página por grupo. Los cambios se aplican al instante.
 
-- **Pin favorites to the top of each list:** la opción descrita en [Favoritos](#favoritos).
-- **About:** la versión de la app y la ruta del almacenamiento.
-- **Check for updates:** mira [Actualizaciones](#actualizaciones).
-- **Report a bug:** abre una incidencia con datos previos en GitHub, o un correo a `info@mikeworld.dev`. La versión de la app se añade por ti.
+| Página | Qué puedes hacer |
+| --- | --- |
+| General | Fijar los favoritos arriba de cada lista. Ocultar tableros con estado done. Elegir qué abrir al iniciar (continuar donde lo dejaste, o la raíz) y la vista inicial (continuar, Tree o Columns). Activar o desactivar **Confirm before deleting**. |
+| Appearance | Tema (System, Light, Dark), color de acento y tamaño del texto (Small, Medium, Large). |
+| Shortcuts | Editar los seis atajos editables: pulsa **Edit**, luego las teclas nuevas, o `Esc` para cancelar. Un atajo necesita `Ctrl` o `Alt` con una tecla, sin `Shift`, y no puede repetir otro atajo ni uno fijo. **Reset** restaura los valores por defecto. |
+| Storage | Renombrar la carpeta del almacenamiento, con registro y **Revert last rename**, y ver dónde está. **Reindex Storage** tras mover archivos fuera de la app. **Watch for external changes** revisa una vez al día. |
+| Backup | Respaldo automático, su frecuencia y carpeta, y exportar e importar. Mira [Respaldos](#respaldos). |
+| Extensions | Añadir, activar, desactivar y quitar extensiones. Mira [Extensiones](#extensiones). |
+| Advanced | Registro de depuración, abrir la carpeta de registros, abrir las herramientas de desarrollo y restablecer preferencias. Mira [Solución de problemas](#solución-de-problemas). |
+| About | Versión de la app, ruta del almacenamiento, búsqueda de actualizaciones, el interruptor de búsqueda automática, documentación, novedades y **Report a bug** (una incidencia con datos previos en GitHub, o un correo a `info@mikeworld.dev`). |
+
+Renombrar la carpeta del almacenamiento cambia su ruta, así que cierra antes cualquier programa que la esté leyendo. La revisión diaria de **Watch for external changes** corre como tarea programada, que por ahora solo está disponible en Windows.
+
+## Respaldos
+
+Un respaldo es un zip con nombre como `26-10-24-09-05_ANT-fm-backup.zip`. Contiene solo los datos de ANT: `ant.db`, los archivos `.ant` de tus carpetas y `999.Settings`. Nunca incluye tus propios archivos.
+
+- **Automatic backup** guarda una copia cada día, semana o mes. La app lo revisa al iniciar y luego cada hora mientras está abierta. En Windows, una tarea programada también lo ejecuta a las 12:00 con la app cerrada.
+- **Backup folder** es `999.Settings/03.Backup` por defecto; **Change** pide una ruta completa y **Default** vuelve a la de origen.
+- **Export** guarda una copia ahora.
+- **Import** lista los respaldos de la carpeta de respaldos. Antes guarda una copia del estado actual, así que puedes deshacerlo. Para usar un respaldo de otro equipo, copia antes el zip a esta carpeta.
+
+Si `ant.db` falta o no se puede leer al iniciar, la app ofrece **Use backup** con el zip más reciente de la carpeta por defecto.
+
+## Extensiones
+
+Las extensiones son pequeños complementos en JavaScript que corren aislados de la app. Cada una pide permisos, que la app lista antes de instalarla:
+
+- Leer los nombres, tipos y estados de tus carpetas.
+- Añadir opciones al menú contextual.
+- Mostrar su propio panel.
+- Mostrar campos extra en el panel de detalles.
+
+Instala desde la **Library** (validada por los desarrolladores de ANT) o pega una dirección pública de GitHub en **Add from a repository**. Las extensiones de un repositorio se marcan como no validadas: instala solo código de un autor en quien confíes. Cada extensión instalada tiene un interruptor para apagarla y un botón **Remove**.
 
 ## Actualizaciones
 
-Al abrir, la app compara su versión con la publicada en GitHub. Si hay una más nueva, elige **Update**, **Remind me later** o **Skip version**. Actualizar cierra la app, cambia el ejecutable y necesita `FM_Updater.bat` en `999.Settings/00.Core` de tu almacenamiento. **Check for updates** en los ajustes hace la misma comprobación cuando quieras.
+Al abrir, la app compara su versión con la publicada en GitHub, salvo que hayas desactivado **Check for updates automatically** en About. Si hay una más nueva, elige **Update**, **Remind me later** o **Skip version**. **Check for updates** en About hace la comprobación cuando quieras, incluso para una versión omitida.
+
+- **Windows:** Update cierra la app, cambia el ejecutable y necesita `FM_Updater.bat` en `999.Settings/00.Core` de tu almacenamiento.
+- **Linux y macOS:** la actualización desde la app no está disponible. Descarga el archivo nuevo desde la [página de Descargas](/es/start-here/download) y reemplaza el anterior.
 
 ## Dónde viven los datos
 
@@ -116,4 +174,11 @@ Al abrir, la app compara su versión con la publicada en GitHub. Si hay una más
 | `<carpeta>/.ant/info.json` | Estado, responsable y favorito de esa carpeta |
 | `<carpeta>/.ant/dragpath.json` | Un id duradero de la carpeta, para reconocer un movimiento hecho fuera de la app |
 
-Las carpetas `.ant` están ocultas y la app nunca las muestra como nodos.
+Las carpetas `.ant` están ocultas y la app nunca las muestra como nodos. Los metadatos de las carpetas se explican en [Nomenclaturas](/es/foundationals/naming-conventions). La app también recuerda la ruta del almacenamiento en su propia carpeta de datos, fuera de tu almacenamiento.
+
+## Solución de problemas
+
+- **Almacenamiento equivocado o ausente:** usa **Change path** en el diálogo de inicio, o inicia la app desde dentro de tu almacenamiento.
+- **Los cambios hechos fuera de la app no aparecen:** usa **Actualizar**, o **Reindex Storage** en los ajustes.
+- **Algo falla:** activa **Debug logging** en Advanced, repite los pasos y abre la carpeta de registros. Los registros son archivos `.log` en `<raíz>/.ant/debug`. Adjunta uno al usar **Report a bug** en About.
+- **Ajustes en mal estado:** **Reset preferences** en Advanced restaura todos los ajustes y no toca tus carpetas.
