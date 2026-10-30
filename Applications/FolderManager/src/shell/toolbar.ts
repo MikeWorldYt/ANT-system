@@ -45,13 +45,15 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
   });
 
   const VIEW_ICONS: Record<string, GuiIcon> = { tree: "viewTree", columns: "viewColumns", grid: "viewGrid" };
+  const VIEW_ORDER = ["tree", "grid", "columns"];
   let closeViewPopup: ((restore: boolean) => void) | null = null;
-  const modeButtons = views.modes.map((m): [string, HTMLButtonElement] => [m.id, iconButton(`${m.label} view`, VIEW_ICONS[m.id] ?? "layout", () => {
+  const ordered = [...views.modes].sort((a, b) => VIEW_ORDER.indexOf(a.id) - VIEW_ORDER.indexOf(b.id));
+  const modeButtons = ordered.map((m): [string, HTMLButtonElement] => [m.id, iconButton(`${m.label} view`, VIEW_ICONS[m.id] ?? "layout", () => {
     views.onSelect(m.id);
     closeViewPopup?.(true);
   })]);
   const viewLabel = el("span", { class: "view-label" });
-  const viewBtn = el("button", { type: "button", class: "view-picker", "aria-haspopup": "true", "aria-expanded": "false" }, viewLabel, guiIcon("layout"));
+  const viewBtn = el("button", { type: "button", class: "view-picker", "aria-haspopup": "true", "aria-expanded": "false" }, viewLabel);
 
   function openViewPopup(): void {
     const popup = el("div", { class: "view-segment", role: "group", "aria-label": "View" }, ...modeButtons.map(([, b]) => b));
@@ -103,6 +105,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
       const mode = views.modes.find((m) => m.id === views.active())?.label ?? "";
       viewLabel.textContent = mode;
       viewBtn.setAttribute("aria-label", `View: ${mode}`);
+      viewBtn.replaceChildren(viewLabel, guiIcon(VIEW_ICONS[views.active()] ?? "layout"));
       modeButtons.forEach(([id, b]) => b.setAttribute("aria-pressed", String(id === views.active())));
     },
   };
