@@ -18,7 +18,7 @@ VSVersionInfo(
           StringStruct('CompanyName', 'MikeWorldYt'),
           StringStruct('name', 'FolderManager'),
           StringStruct('FileDescription', 'Folder Management - ANT System Utility'),
-          StringStruct('FileVersion', '2.3.1-beta'),
+          StringStruct('FileVersion', '2.3.1'),
           StringStruct('InternalName', 'FolderManager'),
           StringStruct('OriginalFilename', 'FolderManager.exe'),
           StringStruct('ProductName', 'Folder Manager'),
