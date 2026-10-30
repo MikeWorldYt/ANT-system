@@ -7,6 +7,8 @@ import type { LevelPatch, TreeNode, TreeSnapshot } from "../ipc/types";
 interface State {
   tree: TreeSnapshot | null;
   selectedKey: string | null;
+  // Folder the last click in the views landed on, "" for the storage root; Ctrl+V pastes there.
+  pasteKey: string | null;
   expanded: Set<string>;
   busy: boolean;
   editing: { key: string; draft: string; focused: boolean } | null;
@@ -73,6 +75,7 @@ function readSorts(): Record<string, ColumnSort> {
 export const state: State = {
   tree: null,
   selectedKey: null,
+  pasteKey: null,
   expanded: new Set(),
   busy: false,
   editing: null,

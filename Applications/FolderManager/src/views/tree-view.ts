@@ -37,6 +37,7 @@ export function createTreeView(): ViewMode {
       row.setAttribute("aria-disabled", "true");
     }
     row.classList.toggle("reserved", n.reserved);
+    row.classList.toggle("rev", n.nodeType?.base === "REV");
     if (n.ghost) row.setAttribute("aria-label", `${n.name} (missing on disk)`);
     if (n.status) row.append(statusMark(n.status));
     row.title = nodeSummary(n);

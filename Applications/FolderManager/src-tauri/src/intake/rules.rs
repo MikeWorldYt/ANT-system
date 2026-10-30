@@ -45,7 +45,7 @@ pub(super) fn is_skipped_file(name: &str) -> bool {
     name.starts_with('.') || SYSTEM_FILES.iter().any(|s| name.eq_ignore_ascii_case(s))
 }
 
-fn review_child(node: &Mapping) -> Option<&str> {
+pub(crate) fn review_child(node: &Mapping) -> Option<&str> {
     child_entries(node)
         .find(|(name, child)| name.starts_with(REVIEW_PREFIX) && type_base(node_type(child)) == "REV")
         .map(|(name, _)| name)

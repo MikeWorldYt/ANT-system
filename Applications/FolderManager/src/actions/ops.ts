@@ -5,6 +5,7 @@ import { el } from "../ui/dom";
 import { beginOperationStatus, clearStatus, endOperationStatus, setStatus } from "../ui/status";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
+import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, hydrate, keyOf, lastSelection, notify, patchLevels, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, state, type Settings } from "../store/state";
 import { isFmError } from "../ipc/types";
 import type { Copied, EditableType, LevelPatch, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
@@ -19,6 +20,7 @@ async function reload(snapshot?: TreeSnapshot): Promise<void> {
 
 // Shown once the operation succeeds, because callers clear the status line right after a reload.
 let unresolvedCopies: string | null = null;
+let doneNotice: Notice | null = null;
 
 // The backend marks each copy only once, so a dismissed question leaves the copy marked and is not asked again.
 async function askAboutCopies(copies: Copied[]): Promise<void> {
@@ -48,13 +50,18 @@ async function run(fn: () => Promise<void>, progress?: string): Promise<boolean>
   setBusy(true);
   try {
     await fn();
+    if (doneNotice) {
+      setStatus(doneNotice.level, doneNotice.text);
+      doneNotice = null;
+    }
     if (unresolvedCopies) {
       setStatus("warning", unresolvedCopies);
       unresolvedCopies = null;
     }
     return true;
   } catch (e) {
-    setStatus("error", api.describeError(e));
+    // An empty clipboard is a user slip, not a failure.
+    setStatus(isFmError(e) && e.kind === "clipboardEmpty" ? "warning" : "error", api.describeError(e));
     if (isFmError(e) && (e.kind === "stale" || e.kind === "notFound")) {
       try {
         await reload();
@@ -222,6 +229,26 @@ export const setFavorite = (node: TreeNode, on: boolean) =>
 
 export const setUserFlag = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setUserFlag(node.relParts, on), node.relParts));
+
+export const dropFiles = (target: string[], paths: string[]) =>
+  run(
+    async () => {
+      const { mutation, placed } = await api.dropFiles(target, paths);
+      await applyMutation(mutation);
+      doneNotice = dropNotice(placed, mutation.warnings);
+    },
+    `Placing ${paths.length} ${paths.length === 1 ? "file" : "files"} in "${target[target.length - 1]}"…`,
+  );
+
+export const pasteFiles = (target: string[]) =>
+  run(
+    async () => {
+      const { mutation, placed } = await api.pasteFiles(target);
+      await applyMutation(mutation);
+      doneNotice = dropNotice(placed, mutation.warnings);
+    },
+    `Pasting files in "${target[target.length - 1]}"…`,
+  );
 
 export const moveFolder = (source: string[], destination: string[], copy: boolean) =>
   run(

@@ -301,6 +301,20 @@ fn field_edits_update_the_search_index_like_a_full_rebuild() {
 }
 
 #[test]
+fn dropped_files_keep_the_search_index_like_a_full_rebuild() {
+    let dir = indexed("cmd-inc-drop");
+    let outside = TempDir::new("cmd-inc-drop-src");
+    let file = outside.path().join("scan.pdf");
+    std::fs::write(&file, "x").unwrap();
+    let m = with_search_index(dir.path(), mutations::drop_files(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), &[file], false).map(|o| o.mutation)).unwrap();
+    assert!(dir.path().join("100.ACADEMIC/01.Math/98.Math/scan.pdf").is_file());
+    assert_eq!(m.touched, [rel(&["100.ACADEMIC", "01.Math", "98.Math"])]);
+    assert_matches_full_rebuild(&dir, &m);
+    let search = Store::open_or_create(dir.path()).unwrap().search(&parse_query("in:/100.ACADEMIC/01.Math/98.Math")).unwrap();
+    assert_eq!(search, [rel(&["100.ACADEMIC", "01.Math", "98.Math"])]);
+}
+
+#[test]
 fn a_failed_quick_update_falls_back_to_a_full_rebuild_and_says_so() {
     let dir = indexed("cmd-inc-fallback");
     // Only the quick update deletes the digest row; the full rebuild replaces it, which fires no delete trigger.

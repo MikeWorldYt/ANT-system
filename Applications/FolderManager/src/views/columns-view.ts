@@ -1,5 +1,5 @@
 // Columns view: one column per depth of the selected path, children of the selection in the next one.
-import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
+import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
@@ -53,6 +53,7 @@ export function createColumnsView(): ViewMode {
       item.setAttribute("aria-disabled", "true");
     }
     item.classList.toggle("reserved", n.reserved);
+    item.classList.toggle("rev", n.nodeType?.base === "REV");
     if (n.ghost) item.setAttribute("aria-label", `${n.name} (missing on disk)`);
     // Without a status the star takes the icon's place at the end of the row.
     if (n.favorite) item.append(favoriteMark());
@@ -74,6 +75,7 @@ export function createColumnsView(): ViewMode {
     const parentNode = parentOf(path, index);
     // The empty area of a column is a drop target for the folder it lists; "" is the storage root.
     column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
+    column.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentNode, root));
     const first = col.nodes[0];
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
     column.append(...col.nodes.map((n) => buildItem(n, n.name === path[index] && index < path.length - 1, keyOf(n.relParts) === tabbableKey)));
@@ -147,6 +149,8 @@ export function createColumnsView(): ViewMode {
     label: "Columns",
     mount(host) {
       root.addEventListener("keydown", onKey);
+      // Space beside the columns belongs to the deepest one.
+      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentOf(state.selectedKey?.split("/") ?? [], buildColumns().length - 1), root));
       host.append(root);
     },
     render() {

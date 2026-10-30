@@ -91,6 +91,17 @@ export interface Mutation {
   warnings: string[];
 }
 
+export interface PlacedFile {
+  name: string;
+  folder: string[];
+  copied: boolean;
+}
+
+export interface DropOutcome {
+  mutation: Mutation;
+  placed: PlacedFile[];
+}
+
 export interface DeletePreview {
   ghost: boolean;
   files: number;
@@ -141,7 +152,8 @@ export type FmError =
   | { kind: "io"; op: string; path: string; message: string; osCode: number | null }
   | { kind: "rolledBack"; op: string; cause: string }
   | { kind: "inconsistent"; op: string; cause: string; rollbackErrors: string[] }
-  | { kind: "internal"; message: string };
+  | { kind: "internal"; message: string }
+  | { kind: "clipboardEmpty" };
 
 export function isFmError(e: unknown): e is FmError {
   return typeof e === "object" && e !== null && typeof (e as { kind?: unknown }).kind === "string";

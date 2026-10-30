@@ -129,6 +129,8 @@ pub fn run() {
             commands::inspect_extension_repo,
             commands::install_inspected_extension,
             commands::run_intake,
+            commands::drop_files,
+            commands::paste_files,
             commands::start_drag_out,
         ])
         .build(tauri::generate_context!())

@@ -16,7 +16,7 @@ use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, Journal, StorageLock};
 use crate::mutations::{child_rel, load_synced};
 use rules::{is_root_exempt_file, is_skipped_file, rule, Rule};
-pub(crate) use rules::node_type;
+pub(crate) use rules::{node_type, review_child};
 
 #[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]

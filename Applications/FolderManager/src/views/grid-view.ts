@@ -1,5 +1,5 @@
 // Grid view: large icons for the contents of one folder, entered with double click or Enter.
-import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
+import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { el } from "../ui/dom";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
@@ -73,6 +73,7 @@ export function createGridView(): ViewMode {
       item.setAttribute("aria-disabled", "true");
     }
     item.classList.toggle("reserved", n.reserved);
+    item.classList.toggle("rev", n.nodeType?.base === "REV");
     item.title = nodeSummary(n);
     item.addEventListener("click", () => select(n.relParts));
     item.addEventListener("dblclick", () => (n.hasChildren ? enter(n) : startEdit(n.relParts)));
@@ -136,6 +137,7 @@ export function createGridView(): ViewMode {
     label: "Grid",
     mount(host) {
       root.addEventListener("keydown", onKey);
+      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, folderNode(), root));
       host.append(root);
     },
     render() {
