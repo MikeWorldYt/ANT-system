@@ -161,6 +161,7 @@ body {
 .side-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
 .side-rail { flex: none; width: 40px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; background: var(--input-bg); }
 .side-rail .icon-btn { width: 30px; height: 30px; background: transparent; }
+.side-rail .side-rail-expand { color: var(--muted); }
 .side-rail-end { margin-top: auto; }
 .details-panel[hidden], .side-rail[hidden], .side-section[hidden], .details[hidden] { display: none; }
 .details-input {

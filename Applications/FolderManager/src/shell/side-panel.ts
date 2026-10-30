@@ -67,6 +67,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     setCollapsed(false);
     collapse.focus();
   });
+  railExpand.classList.add("side-rail-expand");
   const railFavorite = iconButton(favoriteLabel(null), "starred", toggleFavorite);
   const railEdit = iconButton("Edit details", "pencil", () => {
     show(false);
