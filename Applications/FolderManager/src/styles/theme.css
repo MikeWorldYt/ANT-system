@@ -125,7 +125,7 @@ body {
 .st-done { --st: var(--st-done); }
 .status-mark { display: inline-flex; flex: none; color: var(--st); }
 .status-mark .gui-icon { width: 16px; height: 16px; }
-.ctx-item[class*="st-"], .details dd[class*="st-"], select.details-input[class*="st-"] { color: var(--st); }
+.ctx-item[class*="st-"], .details dd[class*="st-"], .status-picker[class*="st-"] { color: var(--st); }
 .fav-mark { display: inline-flex; flex: none; color: var(--st-progress); }
 .fav-mark .gui-icon { width: 12px; height: 12px; }
 
@@ -270,6 +270,10 @@ dialog.warning-confirm form { position: relative; }
 .ctx-status[aria-checked="true"] { background: var(--highlight); box-shadow: inset 3px 0 0 var(--st); font-weight: 600; }
 .status-labeled { display: inline-flex; align-items: center; gap: 6px; }
 .status-labeled .gui-icon { width: 16px; height: 16px; flex: none; }
+.status-picker { display: flex; align-items: center; gap: 6px; text-align: left; cursor: pointer; }
+.status-picker .gui-icon { width: 16px; height: 16px; flex: none; }
+.status-picker .gui-icon:last-child { width: 12px; height: 12px; margin-left: auto; color: var(--disabled-text); }
+.ctx-menu[role="listbox"] .ctx-item[aria-disabled="true"] { padding-left: 10px; }
 .ctx-sep { height: 1px; margin: 4px 0; background: var(--border); }
 
 .details-empty { margin: 0; color: var(--muted); }

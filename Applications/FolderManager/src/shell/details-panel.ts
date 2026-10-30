@@ -2,11 +2,12 @@
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { statusLabeled } from "../ui/status-mark";
-import { isWorkboard, nodeDetails, ownerOf, STATUSES, UNKNOWN } from "../store/node-info";
+import { isWorkboard, nodeDetails, ownerOf, UNKNOWN } from "../store/node-info";
 import { renameTo, setDetails, setUserFlag } from "../actions/ops";
 import { extensionArea } from "../extensions/panel";
 import { detailFields, onDetailsChange, runDetailsAction } from "../extensions/details";
 import { keyOf, selectedNode } from "../store/state";
+import { statusPicker, type StatusPicker } from "./status-picker";
 import type { TreeNode, WkbStatus } from "../ipc/types";
 
 // Status and owner live in info.json, so a broken file blocks them but not the rename.
@@ -36,7 +37,7 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     const inputs: Record<string, Node> = {};
     let first: HTMLElement | null = null;
     let name: HTMLInputElement | null = null;
-    let status: HTMLSelectElement | null = null;
+    let status: StatusPicker | null = null;
     let owner: HTMLInputElement | null = null;
     let files: HTMLInputElement | null = null;
 
@@ -53,22 +54,10 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
       first ??= files;
     }
     if (canEditFields(n)) {
-      const select = el("select", { class: "details-input", ...labelled("Status") });
-      if (!n.status) select.append(el("option", { value: "", disabled: "", selected: "" }, UNKNOWN));
-      const tint = () => {
-        select.className = `details-input${select.value ? ` st-${select.value}` : ""}`;
-      };
-      select.addEventListener("change", tint);
-      for (const [value, label] of STATUSES) {
-        const option = el("option", { value }, label);
-        option.selected = value === n.status;
-        select.append(option);
-      }
-      tint();
+      status = statusPicker(n.status ?? null, labelled("Status"));
       owner = el("input", { class: "details-input", type: "text", ...labelled("Owner"), placeholder: UNKNOWN, spellcheck: "false", autocomplete: "off" });
       owner.value = ownerOf(n) ?? "";
-      status = select;
-      inputs.Status = select;
+      inputs.Status = status.button;
       inputs.Owner = owner;
       first ??= owner;
     }
@@ -90,9 +79,9 @@ export function createDetailsPanel(): { element: HTMLElement; render(): void } {
     cancel.addEventListener("click", stop);
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") stop();
-      else if (ev.key === "Enter" && ev.target !== status) save.click();
+      else if (ev.key === "Enter" && ev.target !== status?.button) save.click();
     };
-    const fields: (HTMLElement | null)[] = [name, status, owner, files];
+    const fields: (HTMLElement | null)[] = [name, status?.button ?? null, owner, files];
     for (const field of fields) field?.addEventListener("keydown", onKey);
     queueMicrotask(() => first?.focus());
     inputs[""] = el("div", { class: "details-actions" }, save, cancel);
