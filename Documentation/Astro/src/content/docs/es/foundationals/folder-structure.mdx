@@ -1,0 +1,217 @@
+---
+title: Estructura de Carpetas
+description: Cómo se organizan los tres niveles de carpetas de un almacenamiento ANT, qué nomenclatura usa cada uno y una estructura recomendada.
+---
+import Callout from "/src/components/ui/Callout.astro";
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { LinkCard } from '@astrojs/starlight/components';
+import { FileTree } from '@astrojs/starlight/components';
+
+## Nivel 1
+El primer nivel está directamente dentro de la raíz del almacenamiento.  
+Esto significa que hablamos de las **categorías principales** que definen el contenido de cada [nodo](/es/foundationals/core-concepts#nodos).
+
+<h5> Nomenclatura: </h5>
+En este nivel debes usar la [nomenclatura Block](/es/foundationals/naming-conventions#nomenclatura-block).
+
+<LinkCard
+  title="Nomenclatura Block"
+  href="/es/foundationals/naming-conventions#nomenclatura-block"
+  description="Usa incrementos de 100 (p. ej., 100, 200, 300), seguidos de un punto y un nombre en MAYÚSCULAS (todas las letras en mayúscula). Ideal para categorías amplias o de primer nivel"
+/>
+
+```fs {2-4}
+ 📁 Root
+  ├── 📁 100.PERSONAL
+  ├── 📁 200.WORK
+  ├── 📁 300.PROJECTS
+```
+
+<Callout type="danger" title="Se nombra una sola vez">
+  Se define la primera vez y no debe volver a renombrarse, para evitar conflictos con programas que tengan rutas vinculadas, dependencias o accesos directos.
+</Callout>
+
+<h5> Puntos clave: </h5>
+- **Almacenamiento:** Este nivel no debe contener archivos, carpetas externas ni contenido sin organizar. Solo debe incluir [nodos (carpetas)](/es/foundationals/core-concepts#nodos) considerados categorías principales que definen su propio contenido.
+- **Nodos de soporte:** Reservan la secuencia 900 combinada con su identificador (p. ej., 998.Review
+en lugar de 98.Review).
+
+##### Recomendación de categorías principales:
+
+```fs {2-9}
+ 📁 Root
+  ├── 📁 100.PERSONAL
+  ├── 📁 200.WORK
+  ├── 📁 300.PROJECTS
+  ├── 📁 400.ACADEMIC
+  ├── 📁 500.HOBBIES
+  ├── 📁 900.Resources
+  ├── 📁 998.Review (Index)
+  └── 📁 999.Settings
+```
+
+## Nivel 2
+El segundo nivel es hijo de un nodo del [Nivel 1](#nivel-1); estos deben usar subcategorías de la clase padre.  
+Esto significa que hablamos de las áreas, materias, tipos de trabajo u otro grupo relacionado con su nodo padre.
+
+<h5> Nomenclatura: </h5>
+En este nivel debes usar la [nomenclatura Chill](/es/foundationals/naming-conventions#nomenclatura-chill).
+
+<LinkCard
+  title="Nomenclatura Chill"
+  href="/es/foundationals/naming-conventions#nomenclatura-chill"
+  description="Usa un número incremental de dos dígitos (01–89), seguido de un punto y <b>su nombre</b> en Train Case (cada palabra con mayúscula inicial y separadas por guiones)."
+/>
+
+```fs {3-4, 7}
+ 📁 Root
+  ├── 📁 100.PERSONAL
+  │    ├── 📁 01.Documents
+  │    ├── 📁 02.Gallery
+  │    └── 📁 . . .
+  ├── 📁 200.WORK
+  │    ├── 📁 01.Development
+  │    └── 📁 . . .
+```
+
+<Callout type="warning" title="Evita nombres duplicados o redundantes">
+  Evita los nombres duplicados o semánticamente relacionados que podrían separarse más en el siguiente nivel.
+</Callout>
+
+<h5> Puntos clave: </h5>
+- **Almacenamiento:** Este nivel no debe contener archivos, carpetas externas ni contenido sin organizar. Solo debe incluir [nodos (carpetas)](/es/foundationals/core-concepts#nodos) considerados subcategorías del padre que definen su propio contenido.
+- **Nodos de soporte:** Reservan las secuencias "90-99" y "00" para sus identificadores.
+
+## Nivel 3
+El tercer nivel es hijo de un nodo del [Nivel 2](#nivel-2) y **admite organización adicional**, ya sea mediante extensiones de categoría o [**nodos del tablero de trabajo**](/es/foundationals/workboard-nodes) **(carpetas)**.
+
+<h5> Nomenclatura: </h5>
+Puedes usar 2 nomenclaturas;  
+**1.-** Si necesitas extender *con materias, temas u otras categorías,* sigue usando la `nomenclatura Chill`.  
+
+<LinkCard
+  title="Nomenclatura Chill"
+  href="/es/foundationals/naming-conventions#nomenclatura-chill"
+  description="Usa un número incremental de dos dígitos (01–89), seguido de un punto y <b>su nombre</b> en Train Case (cada palabra con mayúscula inicial y separadas por guiones)."
+/>
+
+```fs {4-6}
+ 📁 Root    
+  ├── 📁 100.PERSONAL
+  │    ├── 📁 01.Documents
+  │    │    ├── 📁 01.Personal
+  │    │    ├── 📁 02.Finantials
+  │    │    ├── 📁 03.Legals
+  │    │    └── 📁 . . .
+  │    ├── 📁 02.Gallery
+  │    └── 📁 . . .
+```
+
+**2.-** Si necesitas gestionarlo *para tareas, proyectos, etc.*, usa la `nomenclatura Control`.  
+
+<LinkCard
+  title="Nomenclatura Control"
+  href="/es/foundationals/naming-conventions#nomenclatura-control"
+  description="Un identificador de seguimiento y un nombre unidos por un guion bajo (p. ej., PJ.145_Thesis-Draft); el resto de los metadatos se guarda fuera del nombre."
+/>
+
+```fs {5, 8-9}
+ 📁 Root    
+  ├── 📁 100.PERSONAL
+  ├── 📁 200.WORK
+  │    ├── 📁 01.Development
+  │    │    ├── 📁 PJ.006_Astro-Carwash-Landing-Page
+  │    │    └── 📁 . . .
+  │    ├── 📁 02.Video-Edition
+  │    │    ├── 📁 PJ.130_Organize-Documents
+  │    │    ├── 📁 PJ.131_Huawei-Pura-70-Review
+  │    │    └── 📁 . . .
+```
+
+<h5> Puntos clave: </h5>
+
+
+## Estructura de carpetas recomendada
+
+<Tabs>
+  <TabItem label="PERSONAL" icon="seti:folder">
+    <FileTree>
+    - Root
+      - **100.PERSONAL**
+        - 01.Documents
+          - 01.identify/
+          - 02.Household/
+          - 03.Education/
+          - 04.Bussiness/
+          - 05.Finantials/
+          - 06.Health/
+          - ...
+        - 02.Gallery/
+          - 01.Family/
+          - 02.Friends/
+          - 03.Travels/
+          - 04.Memories/
+          - ...
+        - 03.Church/
+          - 01.Newsletters-and-events/
+          - 02.Sacred-text-and-Books/
+          - 03.Study/
+          - 04.Music/
+          - ...
+        - ...
+      - 200.WORK/
+      - 400.ACADEMIC/
+      - 500.HOBBIES/
+      - 900.RESOURCES/
+      - 998.REVIEW/
+      - 999.SETTINGS/
+    </FileTree>
+  </TabItem>
+  <TabItem label="WORK" icon="seti:folder">
+    Aquí depende totalmente de tus necesidades y del tipo de trabajo (evita usar nombres de organizaciones, salvo que las gestiones).
+    <FileTree>
+    - Root
+      - 100.PERSONAL
+        - ...
+      - **200.WORK**
+        - 01.Development
+          - 01.Ideas/
+          - 02.Hod/
+          - 90.Dev-Resources/ ← [Nodo de recursos](/es/foundationals/support-nodes#carpeta-90resources)
+          - 97.Templates/ ← [Nodo de plantillas](/es/foundationals/support-nodes#carpeta-97templates)
+          - 98.Development/ ← [Nodo de revisión](/es/foundationals/support-nodes#carpeta-98review)
+          - PJ.003_ANT-System/
+          - PJ.004_Uber-Eats-App/
+          - PJ.006_Astro-Carwash-Landing-Page/
+          - ...
+        - 02.Video-Edition/
+          - 00.Done/ ← [Nodo Done](/es/foundationals/support-nodes#carpeta-00-done)
+            - PJ.123_7-Days-Buried-Alive-Review/
+            - PJ.124_Huawei-Pura-70-Review/
+          - 90.Edition-Resources/ ← [Nodo de recursos](/es/foundationals/support-nodes#carpeta-90resources)
+          - 97.Templates/ ← [Nodo de plantillas](/es/foundationals/support-nodes#carpeta-97templates)
+          - 98.Video-Edition/ ← [Nodo de revisión](/es/foundationals/support-nodes#carpeta-98review)
+          - PJ.130_Organize-Documents/
+          - PJ.131_Huawei-Pura-70-Review/
+          - ...
+        - ...
+        - 98.WORK/
+          - unorganized.jpg
+          - ...
+        - ...
+      - 400.ACADEMIC/
+      - 500.HOBBIES/
+      - 900.RESOURCES/
+      - 998.REVIEW/
+      - 999.SETTINGS/
+    </FileTree>
+  </TabItem>
+  <TabItem label="ACADEMIC" icon="seti:folder">
+    Lorem ipsum
+  </TabItem>
+  <TabItem label="HOBBIES" icon="seti:folder">
+    Lorem ipsum
+  </TabItem>
+</Tabs>
+
+

@@ -1,0 +1,101 @@
+---
+title: Primeros pasos
+description: Crea tu primer almacenamiento ANT en Windows, Linux o macOS y adminístralo con FolderManager.
+---
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import Callout from "/src/components/ui/Callout.astro";
+
+¡Bienvenido a la documentación de ANT! 🐜
+
+ANT es un sistema de métodos de organización diseñado para agilizar el almacenamiento, la gestión de proyectos y la recuperación de archivos.
+
+## Inicio rápido
+
+### 1. Crea un nuevo ANT-Storage
+
+<Tabs syncKey="os">
+  <TabItem label="Windows">
+    ```powershell
+    # PowerShell
+    Invoke-WebRequest -Uri https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage.exe -OutFile CreateNewStorage.exe
+    .\CreateNewStorage.exe --help
+    .\CreateNewStorage.exe $HOME --name "My-name-storage"   # cambia el nombre por el tuyo
+    ```
+  </TabItem>
+  <TabItem label="Linux">
+    ```bash
+    curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage-linux.tar.gz
+    tar -xzf cns.tar.gz        # extrae el ejecutable "create-new-storage", ya listo para correr
+    ./create-new-storage --help
+    ./create-new-storage ~ --name "My-name-storage"   # cambia el nombre por el tuyo
+    ```
+  </TabItem>
+  <TabItem label="macOS">
+    ```bash
+    curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage-macos.tar.gz
+    tar -xzf cns.tar.gz        # extrae el ejecutable "create-new-storage", ya listo para correr
+    ./create-new-storage --help
+    ./create-new-storage ~ --name "My-name-storage"   # cambia el nombre por el tuyo
+    ```
+  </TabItem>
+</Tabs>
+
+El primer argumento es dónde irá el almacenamiento, y `--name` crea dentro una subcarpeta con el nombre saneado.
+Si prefieres una [descarga directa](/es/start-here/download).
+
+### 2. Abre FolderManager
+
+CreateNewStorage deja **FolderManager** en tu nuevo almacenamiento.
+Ábrelo para empezar: te mostrará una estructura sugerida que puedes ajustar a tu comodidad. Lee más en [Folder Manager](/es/tools/folder-manager).
+
+![FolderManager abriendo la estructura sugerida, cambiando de vista, eliminando, renombrando y cambiando el tipo de carpetas](https://r2.mikeworld.dev/folder-manager/first-run.gif)
+
+### 3. Migra tus archivos
+
+Después de inicializar, puedes empezar a [**migrar**](/es/start-here/migrating-plan) **tus archivos existentes** al nuevo sistema.
+
+## Creación manual del almacenamiento
+
+<Callout type="warning">
+  Te recomendamos usar **CreateNewStorage** para evitar hacerlo manualmente.
+</Callout>
+
+### 1. Crea una raíz
+
+Elige una ubicación raíz, por ejemplo:
+
+<Tabs syncKey="os">
+  <TabItem label="Windows">
+    ```powershell
+    New-Item -Path "D:
+oot-name" -ItemType Directory
+    ```
+  </TabItem>
+  <TabItem label="Linux">
+    ```bash
+    sudo mkdir /root-name
+    ```
+  </TabItem>
+</Tabs>
+
+Nombra el directorio raíz  
+Crea un nombre descriptivo como:   
+- `My_Files`
+- `Home_Files`
+- `Rick_Files`
+
+### 2. Crea una estructura básica
+Abre el directorio raíz y crea las siguientes carpetas:
+
+```
+📁 You_Root
+ ├── 📁 100.PERSONAL
+ ├── 📁 200.WORK
+ ├── 📁 300.PROJECTS
+ ├── 📁 400.ACADEMIC
+ ├── 📁 500.HOBBIES
+ ├── 📁 900.Resources
+ ├── 📁 998.Review (Index)
+ └── 📁 999.Settings
+
+```

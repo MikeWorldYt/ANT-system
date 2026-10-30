@@ -1,275 +1,260 @@
 ---
 title: Naming Conventions
+description: How ANT names folders and files, and where the rest of their metadata lives.
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import Callout from "/src/components/ui/Callout.astro";
 import Toggle from '/src/components/ui/Toggle.astro';
 
-A nomenclature "**Naming Convention**" is a system for naming things in a specific way. It can be used to create a consistent and organized way to refer to things in a specific context.
+A **naming convention** is a rule for naming things the same way every time, so they sort in a predictable order and are easy to find.
+
+ANT uses three of them: **Chill Naming** and **Block Naming** for categories, and **Control Naming** for workboards and files.
 
 ## Chill Naming
-Uses a two-digit incremental number (01–89), followed by a dot and a name in Train Case (each word capitalized and separated by hyphens).
+Uses a two-digit incremental number (01–89), followed by a dot and a name in Train-Case (each word capitalized and joined by hyphens).
 
 <div class="pic-container not-content">
-    <img src="https://i.pinimg.com/originals/e3/c0/7e/e3c07edbe1b8d5a666feb929588178d8.png" />
+    <img src="https://r2.mikeworld.dev/naming-conventions/e3c07e.png" alt="Chill Naming example: 01.Documents, 02.Gallery" />
 </div>
 
 ## Block Naming
 Uses increments of 100 (e.g., 100, 200, 300), followed by a dot and a name in UPPERCASE.  
-This is a variant of Chill Naming, and its Ideal for top-level or broad categories
+It is a variant of Chill Naming, ideal for top-level or broad categories.
 
 <div class="pic-container not-content">
-    <img src="https://i.pinimg.com/originals/2e/00/e0/2e00e04710e709dafda6acda28baac13.png" />
+    <img src="https://r2.mikeworld.dev/naming-conventions/2e00e0.png" alt="Block Naming example: 100.PERSONAL, 200.WORK" />
 </div>
 
 ## Control Naming
-This follows a variable-based structure, where each part is defined by the user's own criteria. Although parts may share patterns or context, the structure is flexible and tailored individually to each case, making it ideal for managing projects and tasks with contextual control and clarity.
+Control Naming keeps the name short: it only carries **what the item is** and **which one it is**.  
+Everything else (date, area or breadcrumb, holder or client, owner, status, version, etc.) is **metadata**, and it is no longer written in the name.
 
-### Control Naming (for Folders)
-Used by [Workboard Nodes](/en/foundationals/workboard-nodes), this structure was designed for quick recognition and easy filtering between projects.
+> <b>TRACKING</b> _ <b>NAME</b>
 
-That is usually separated by three main Stages joined by underscores:  
-> <b>TRACKING</b> _ <b>METADATA</b> _ <b>NAME</b> 
+| Element | Brief description |
+|---------|-------------------|
+| [**Tracking**](#tracking) | An [identifier](#identifiers) plus a [tracker](#tracker), e.g. `PJ.145` |
+| [**Name**](#name) | A short, descriptive title in Train-Case, e.g. `Thesis-Draft` |
 
-<div class="no-underline">
-Each stage contains the following structure:  
-> [\<**Id**>](#identificators-for-workboards)[\<**Traker**>](#tracker-for-workboards)\_[\<**Date**>](#date-for-workboards)[\<**Breadcrumb**>](#breadcrumbs-for-workboards)[\<**Holder**>](#holder-for-workboards)_[\<**Name**>](#name-for-workboards)
-</div>
-
-<div class="pic-container not-content">
-    <img src="https://i.pinimg.com/originals/5c/17/67/5c1767b95d0d83f7d7023bb890e47482.png" />
-</div>
-
-| Element           |  Brief description                                           |
-|-------------------|--------------------------------------------------------|
-| [***Id**](#identificators-for-workboards)     | A `code label` that identifies the type of workboard  |
-| [***Tracker**](#tracker-for-workboards)       | A sequential index of `3-digit` that provides chronological order  |
-| [**Date**](#date-and-timestamps)              | A timestamp within in parentheses, the common format is `YY-MM-DD`   |
-| [**Breadcrumb**](#breadcrumbs) | Its like a `category tag`, typically aligned with the parent folder’s category |
-| [**Holder**](#holders-and-clients)          | Its the `owner` or `client` always within in brackets  |
-| [***Name**](#name-for-workboards)             | A descriptive phrase that helps identify purpose or content |
-
-*This element is required for this naming convention
-
-<Toggle title="Use Example">
-  <h5> Full Use Example: </h5>
-
-  ```ansi title="Root/200.WORK/02.Vide-Edition/"
-  📁 [32mPJ.[33m033[34m_[32m(23-03-03)[33m-Video-Tutorials-[32m[MikeWorldYt][34m_[33mhow-to-organize-documents
-  ```
-  > This one is quickly identified as an video edition project, seems a tutorial about how to organize documents that belongs to MikeWorldYt and probably deliveries on March 3rd.
-
-  <h5> Partial Use Example: </h5>
-  ```ansi title="Root/400.ACADEMIC/12.Science/"
-  📁 [32mHW.[33m024[34m_[32m(12G-U2)[33m-Physics-[34m_[32mElectromagnetism-research
-  ```
-  > This one is Science Homework, seems a research about electromagnetism, its from a Student of 12th grade in their second unit of Physics.
-
-  ```ansi title="Root/500.HOBBIES/03.Drawing/01.Courses/"
-  📁 [32mCR.[33m015[34m_[32mSketiching-for-storyboards
-  ```
-  > This one is just a Drawing Course about sketching for storyboards, seems its their 15th course.
-</Toggle>
-
-
-### Control Naming (for Files)
-Used by **Files**, their main porpose is organize, filter and identify.  
-<Callout type="info" title="Seems complicated, but it is Copy-Pasteable">
-Although visually they usually have long file names, when a new file is added, usually just copy the name of a existing one and pasted with a couple of changes.  
-Practically it is incorporating quickly and easily to the system.
+<Callout type="info" title="Metadata is still required">
+  Removing the metadata from the name does not make it optional. The system still requires it; it is just stored [somewhere else](#where-the-metadata-lives).
 </Callout>
 
+### Control Naming (for Folders)
+Used by [Workboard Nodes](/en/foundationals/workboard-nodes), it was designed for quick recognition and easy filtering between projects.
 
-That is usually separated by three main Stages joined by underscores:  
-> <b>METADATA</b> _ <b>ID</b> _ <b>NAME</b> 
-
-<div class="no-underline">
-Each Stage countain the following structure:  
-> [\<**Date**>](#date-for-workboards)[\<**Breadcrumb**>](#breadcrumbs-for-workboards)[\<**Holder**>](#holder-for-workboards)_[\<**Id**>](#identificators-for-workboards)\_[\<**Name**>](#name-for-workboards)
-</div>
-
-| Element           |  Brief description                                           |
-|-------------------|--------------------------------------------------------|
-| [**Date**](#date-and-timestamps)    | A timestamp within in parentheses, the common format is `YY-MM-DD`   |
-| [**Breadcrumb**](#breadcrumbs)      | Its like a `category tag`, typically aligned with the parent folder’s category |
-| [**Holder**](#holders-and-clients)  | Its the `owner` or `client` always within in brackets  |
-| [**Id**](#identificators-for-files) | A short, descriptive label that identifies the content or focus of the workboard,   |
-| [**Name**](#name-for-files)         | A short, descriptive label that identifies the content or focus of the workboard,   |
-| [**Wildcard**](#wildcard)           | Any element that aid to add more context, even if is repited   |
-
-*This element is required for this naming convention
-
-```ansi title="Root/100.PERSONAL/05.Finantials"
-📄 [32m(23-03-03)[33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement March-2023[34m.pdf
-📄 [32m(23-04-03)[33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement April-2023[34m.pdf
-📄 [32m(23-04-11)[33m-Citi-Bank-[32m[Emma-C][34m_[33mCNT[34m_[32mMortgage-contract Houston[34m.pdf ←
-📄 [32m(23-05-03)[33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement May-2023[34m.pdf
- . . .
+```fs title="Use example" ins="PJ.145" ins="HW.024" ins="CR.015"
+📁 PJ.145_Thesis-Draft
+📁 HW.024_Electromagnetism-Research
+📁 CR.015_Sketching-For-Storyboards
 ```
+
+The folder's metadata lives in the [ANT database and its `.ant/info.json`](#folders-database-and-antinfojson).
+
+### Control Naming (for Files)
+Used by **files**; their main purpose is to organize, filter and identify.  
+A file follows the same shape: a short [identifier](#identifiers-for-files) of the kind of document, an underscore and its [name](#name-for-files).
+
+```fs title="Root/100.PERSONAL/01.Documents/02.Finance" ins="FST" ins="CNT"
+📄 CNT_Mortgage-Contract-Houston.pdf
+📄 FST_Bank-Statement-March-2023.pdf
+📄 FST_Bank-Statement-April-2023.pdf
+📄 FST_Bank-Statement-May-2023.pdf
+```
+
+The file's metadata goes into the [file properties](#files-file-properties), not into its name.
+
+<Callout type="warning" title="Not automated yet">
+  FolderManager does not write metadata into file properties yet. Until it does, add it by hand from the file's properties dialog or the app that created the file.
+</Callout>
+
+## Where the Metadata Lives
+
+### Folders: Database and .ant/info.json
+Each storage keeps its metadata in two places, both managed by FolderManager:
+
+- **The ANT database**: `.ant/ant.db` at the storage root. It holds the tree of nodes (name, type, status) and a copy of every folder's metadata, so searches never have to open the folders. A new storage is seeded from `Tree.yaml`.
+- **The folder's own `info.json`**: a hidden `.ant/` folder inside the folder holds `info.json`, the metadata that travels with the folder when it is moved or copied.
+
+```json title="PJ.145_Thesis-Draft/.ant/info.json"
+{
+  "owner": "Mike Diaz",
+  "created": "24-06-01",
+  "status": "in-progress"
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `owner` | Who the workboard belongs to. `holder` and `client` are read as the same field. |
+| `created` | Start date, in the short `YY-MM-DD` form. |
+| `status` | `in-progress`, `for-review`, `hold` or `done`. |
+| `favorite` | `true` when the folder is marked as a favorite. |
+
+Any other key you add (for example a breadcrumb or a deadline) is shown in the folder details and can be searched.
+
+<Callout type="danger" title="Don't edit or delete .ant/ by hand">
+  The `.ant/` folder belongs to FolderManager. It also holds the folder's lasting id (`dragpath.json`), which lets the app recognise a folder moved outside of it.
+</Callout>
+
+### Files: File Properties
+For files, the metadata is injected into the file's own properties: document properties (author, title, subject, tags, comments) or media properties (tags of images, audio and video).  
+That way the name stays short, the metadata travels inside the file, and the operating system's search can still find it.
+
+| Metadata | Example property |
+|----------|------------------|
+| [Holder](#holders-and-clients) | Author / Owner |
+| [Date](#date-and-timestamps) | Date or Comments |
+| [Breadcrumb](#breadcrumbs) | Subject / Tags |
+
+### What FolderManager Covers
+FolderManager automates these rules so you don't apply them by hand. Some are covered today, others are not yet.
+
+| Rule | FolderManager |
+|------|---------------|
+| Next tracker for a new workboard (`PJ.NNN_New-Workboard`) | ✅ Yes |
+| Keeps the tracking part fixed when renaming a workboard | ✅ Yes |
+| Recognises `PJ.`, `PR.` and `HW.` folders as workboards | ✅ Yes |
+| Recognises `TK.` and `CR.` folders as workboards | ❌ Not yet |
+| Creates `.ant/info.json` with `owner` and `status` for new workboards | ✅ Yes |
+| Indexes the database and `info.json` fields for search | ✅ Yes |
+| Writes metadata into file properties | ❌ Not yet |
 
 ## Elements of Naming Conventions
 
-### Identificators (for Workboards)
-The identificator is a **code label** that identifies the type of workboard.  
-Some of the most common identificators are:
+### Tracking
+The tracking part is the [identifier](#identifiers) joined by a dot to the [tracker](#tracker): `PJ.145`.  
+It tells at a glance what kind of item it is and in which order it was created.
+
+### Identifiers
+The identifier is a **two-letter code** that identifies the type of workboard.  
+The official identifiers are:
 - `PJ`: Project
 - `PR`: Practice
 - `HW`: Homework
 - `CR`: Course
 - `TK`: Task
 
-### Identificators (for Files)
-...
+<Callout type="info" title="Support in FolderManager">
+  FolderManager recognises `PJ.`, `PR.` and `HW.` as workboard identifiers today, and new workboards start as `PJ.`. `CR.` and `TK.` are not handled by the app yet.
+</Callout>
 
-### Tracker (for Workboards)
+### Identifiers (for Files)
+For files, the identifier is a short uppercase code for the **kind of document**, chosen to fit each folder.
+
+```fs title="Use example" ins="FST" ins="CNT" ins="INV"
+📄 FST_Bank-Statement-March-2023.pdf ← Financial statement
+📄 CNT_Mortgage-Contract-Houston.pdf ← Contract
+📄 INV_Web-Design-Services.pdf ← Invoice
+```
+
+Files with the same identifier sort together, so a contract never ends up between bank statements.
+
+### Tracker
 The tracker is a sequential index that provides chronological order and simple referencing.  
-> While many systems can sort by date, a tracker provides a quick way to follow progress without relying on timestamps.  
+> While many systems can sort by date, a tracker provides a quick way to follow progress without relying on timestamps.
 
-Used in tandem with the identificator, it instantly communicates the type and order of the workboard.
+Used in tandem with the identifier, it instantly communicates the type and order of the workboard.
 
-```fs  title="Use example" ins="PJ.005" ins="PJ.006" ins="HW.015" ins="HW.016"
-📁 PJ.005_(24-03-30) Tut . . . ← for projects
-📁 PJ.006_(24-04-12) Sal . . .
+```fs title="Use example" ins="PJ.005" ins="PJ.006" ins="HW.015" ins="HW.016"
+📁 PJ.005_Tutorial-Organize-Documents ← for projects
+📁 PJ.006_Sales-Landing-Page
 
-📁 HW.015_Gramm . . . ← for school homeworks
-📁 HW.016_Gramm . . .
+📁 HW.015_Grammar-Essay ← for school homework
+📁 HW.016_Grammar-Review
 ```
 
 <Callout type="warning" title="Only need 3-digit counters">
-  As a [workboard node](/en/foundationals/workboard-nodes) are temporary and meant to be eventually stored or removed, **Its recommended just use 3-digit counters**,
-this allows up to 999 items per type; if exceeded, the counter may will reset.
+  As [workboard nodes](/en/foundationals/workboard-nodes) are temporary and meant to be eventually stored or removed, **3-digit counters are recommended**: they allow up to 999 items per type. FolderManager keeps counting past 999 (`PJ.1000`) instead of resetting.
 </Callout>
 
+### Name
+The name is a short, descriptive label that identifies the content or focus of the item; in other words, its title.  
+Use <u>Train-Case</u> (words capitalized and joined by hyphens) to keep it readable and free of spaces.
+
+```fs title="Use example" ins="Landing-Page-Redesign" ins="Environmental-Law-Essay" ins="How-To-Organize-Documents"
+📁 PJ.001_Landing-Page-Redesign
+📁 HW.002_Environmental-Law-Essay
+📁 PJ.003_How-To-Organize-Documents
+```
+
+### Name (for Files)
+A file name follows the same rule, and it must be unique inside its folder.  
+If two files would only differ by a date or a version, that difference is part of what the file is, so it belongs in the name:
+
+```fs title="Use example" ins="March-2023" ins="April-2023"
+📄 FST_Bank-Statement-March-2023.pdf
+📄 FST_Bank-Statement-April-2023.pdf
+```
+
 ### Date and Timestamps
-Although labeled as “Date”, this element works like a flexible timestamp that adapts to context.  
-**When is used must appear within in parentheses**, to ensure quick visual identification.
+Although labeled as "Date", this element works like a flexible timestamp that adapts to context. It is metadata: store it in `created` (folders) or in the file properties (files).
 
-> This one is not required, but aid to visualize important time such as deadlines, milestones, start dates, periods, seasons, etc.
+> It helps to see important times such as deadlines, milestones, start dates, periods or seasons.
 
-<h5> You may used these formats: </h5>
-- `YY-MM-DD` (Year-Month-Day) — **Most commonly**, used for Start dates, Deadlines, deliveries, etc.  
-- `YY-MM` (Year-Month) — For monthly tracking, reports, or retainers.  
-- `YY-QQ` (Year-Quarter) — Used for Finantials Quarters (trimesters).  
-- `YY-V.1`, `YY-V.2` (Year-Version) — For versioning or iterations.  
-- `YY-U1` or `YY-C1` (Year-Unit/Chapter) — For units or chapters in educational contexts.  
-- `9G`, `10G`, `12G` (Grade) — For schoolar grades; 9th grade, 10th grade, 12th grade.  
-- `S2`, `S3`, `S4` (Semester) — For School Semester, often used in curriculum tracking.
+<h5> You may use these formats: </h5>
+- `YY-MM-DD` (Year-Month-Day): **most common**, used for start dates, deadlines, deliveries, etc.
+- `YY-MM` (Year-Month): for monthly tracking, reports or retainers.
+- `YY-QQ` (Year-Quarter): for financial quarters.
+- `YY-V.1`, `YY-V.2` (Year-Version): for versions or iterations.
+- `YY-U1` or `YY-C1` (Year-Unit/Chapter): for units or chapters in educational contexts.
+- `9G`, `10G`, `12G` (Grade): for school grades; 9th grade, 10th grade, 12th grade.
+- `S2`, `S3`, `S4` (Semester): for school semesters, often used in curriculum tracking.
 
 ### Breadcrumbs
-A breadcrumb defines the contextual type of the workboard, usually based on the parent folder’s category.
-
-> This one is not required but completely recommended, Because acts like a category-tag, aiding as extra filter and avoiding the creation of more levels.
+A breadcrumb defines the contextual type of the workboard, usually based on the parent folder's category. It is metadata, so it acts like a category tag you can search by, without creating more levels.
 
 <div class="usage-tabs">
 <Tabs>
-  <TabItem label="Use example" icon="approve-check" color="green">
-    When use it, you create a visual grouping in the same level.
+  <TabItem label="Use example" icon="approve-check">
+    With a breadcrumb in the metadata, workboards of different kinds share the same level.
 
-    ```fs ins="Video-Tutorial" ins="Gameplay"
+    ```fs
     📁 02.Video-Edition
-     ├── 📁 PJ.015_(25-04-01) Video-Tutorial [Sadvir]_How-To . . .
-     ├── 📁 PJ.016_(25-04-08) Video-Tutorial [Sadvir]_Making . . .
-     └── 📁 PJ.016_(25-04-11) Gameplay [Aradir]_Weather-simul . . .
+     ├── 📁 PJ.015_How-To-Edit      ← breadcrumb: Video-Tutorial
+     ├── 📁 PJ.016_Making-Of        ← breadcrumb: Video-Tutorial
+     └── 📁 PJ.017_Weather-Simulator ← breadcrumb: Gameplay
     ```
   </TabItem>
-  <TabItem label="Whitout use it" icon="close">
-    Otherwise, you force to create more levels to group them even if just have a few.
+  <TabItem label="Without it" icon="close">
+    Otherwise, you are forced to create more levels to group them, even if there are only a few.
     ```fs del="Video-Tutorials" del="Gameplay"
     📁 02.Video-Edition
      ├── 📁 01.Video-Tutorials
-     │    ├── 📁 PJ.015_(25-04-01) [Sadvir]_How-To . . .
-     │    └── 📁 PJ.016_(25-04-08) [Sadvir]_Making . . .
-     ├── 📁 02.Gameplay
-     │    └──📁 PJ.016_(25-04-11) [Aradir]_Weather-simul . . .
+     │    ├── 📁 PJ.015_How-To-Edit
+     │    └── 📁 PJ.016_Making-Of
+     └── 📁 02.Gameplay
+          └── 📁 PJ.017_Weather-Simulator
     ```
   </TabItem>
 </Tabs>
 </div>
 
-
 ### Holders and Clients
-The holder identifies who the workboard belongs (client, brand, organization, school, owner).  
-**When is used must appear within in brackets**, to ensure quick visual identification.
+The holder identifies who the workboard belongs to (client, brand, organization, school, owner). It is stored as `owner` (folders) or as the author or owner property (files).
 
-> It provides ownership context and is especially useful when managing multiple clients or persons.
+> It provides ownership context and is especially useful when managing multiple clients or people.
 
-```fs  title="Use example" ins="[Oxford]" ins="[Aradir]" ins="[Henry-Dav]"
-📁 HW.1 . . . ances [Oxford]_Revolving-deb . . . ← Institutions
-📁 PJ.0 . . . eplay [Aradir]_Weather-simul . . . ← Client
-📁 PR.0 . . . awing [Henry-Dav]_anatomy-po . . . ← even Yourself (Owner)
-```
-<Callout type="warning" title="Recomendation">
-  Try not use name that are too long or complex.  
-  (e.g. "College-of-William-&-Mary-Law-School" instead of "W&M-Laws")
+<Callout type="warning" title="Recommendation">
+  Avoid names that are too long or complex (e.g. "W&M-Laws" instead of "College-of-William-&-Mary-Law-School").
 </Callout>
 
-> Besides if you need to keep confidentiality or privacy, You could use a pseudo-name with aid a Client List document that could well be saved in another site.
+If you need to keep confidentiality or privacy, use a pseudonym together with a client list document saved somewhere else (e.g. `C-018-Ara` for Aradir, client no. 18).
 
-```fs title="Use example with a Client List" ins="[C-018-Ara]" ins="[C-031-Bea]"
-📁 PJ.0 . . . eplay [C-018-Ara]_Weather-simul . . .  ← Its Aradir, the client n.18
-📁 PR.0 . . . eling [C-031-Bea]_Machu-Pichu-o . . .  ← Do you could guess who is?
-```
-
-### Name (for Workboards)
-This is a short, descriptive label that identifies the content or focus of the workboard,  
-In other words, its just the name or title.
-
-Using <u>train-case or kebab-case</u> is recommended to separate any concepts amoung themselves.
-
-```fs title="Use example" ins="landingpage-redesign pet-store" ins="environmental-law-essay" ins="how-to-organize-documents"
-📁 PJ.01 . . . ova]_landingpage-redesign pet-store  
-📁 HW.02 . . . Ark]_environmental-law-essay 
-📁 PJ.03 . . . dYt]_how-to-organize-documents 
-```
-
-### Name (for Files)
-...
-
-### Wildcard
-
-The `<wildcard>` element is a flexible placeholder that allows the user to append any additional element(s) to the filename as needed.
-
-This can include duplicates or variations of existing elements like `<Date>`, `<Holder>`, `<Id>`, or entirely new metadata relevant to the specific use case. Its position and composition are user-defined, offering maximum customization when a fixed naming structure is not sufficient.
-
-```fs title="Use example" ins="[John-Doe]" ins="(03-23)"
-📁 PJ.01 . . . ova]_landingpage-redesign pet-store [John-Doe] ← Holder as Wildcard
-📁 HW.02 . . . Ark]_environmental-law-essay (03-23) ← Date as Wildcard
-```
-
-
-<h4> <span style="background:rgba(136, 49, 204, 0.2)"> Wildcard Use Cases : </span> </h4>
-
-  Here we can see some Finantials Documents:
-  ```ansi title="Root/100.PERSONAL/05.Finantials"
-  📄 [32m(23-03-03)[33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement March-2023[34m.pdf
-  📄 [32m(23-04-03)[33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement April-2023[34m.pdf
-  📄 [32m(23-04-11)[33m-Citi-Bank-[32m[Emma-C][34m_[33mCNT[34m_[32mMortgage-contract Houston[34m.pdf ←
-  📄 [32m(23-05-03)[33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement May-2023[34m.pdf
-   . . .
+<Toggle title="Full example">
+  ```fs title="Root/200.WORK/02.Video-Edition/"
+  📁 PJ.033_How-To-Organize-Documents
+   └── 📁 .ant
+        └── 📄 info.json
   ```
 
-  This one are using the Full Naming Convention following strict order, though here he has left a file between the bank statements
-
-  If we remove the date, we can solve it, and now is already separated
-  ```ansi title="Root/100.PERSONAL/05.Finantials"
-  📄 [33m-Citi-Bank-[32m[Emma-C][34m_[33mCNT[34m_[32mMortgage-contract Houston[34m.pdf ←
-  📄 [31m-Citi-Bank-[Emma-C]_FST_Bank-statement[34m.pdf
-  📄 [31m-Citi-Bank-[Emma-C]_FST_Bank-statement[34m.pdf
-  📄 [31m-Citi-Bank-[Emma-C]_FST_Bank-statement[34m.pdf
-   . . .
+  ```json title="info.json"
+  {
+    "owner": "MikeWorldYt",
+    "created": "23-03-03",
+    "status": "in-progress",
+    "breadcrumb": "Video-Tutorials"
+  }
   ```
-  Though now get another issue, We've similar name files  
-  Besides that the OS your computer will not let you, Could you identify what month each one is from?
-
-  So you should come back the date again, though not in the same order 
-
-  ```ansi title="Root/100.PERSONAL/05.Finantials"
-  📄 [33m-Citi-Bank-[32m[Emma-C][34m_[33mCNT[34m_[32mMortgage-contract Houston[34m.pdf
-  📄 [33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement (03-23) March[34m.pdf
-  📄 [33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement (04-23) April[34m.pdf
-  📄 [33m-Citi-Bank-[32m[Emma-C][34m_[33mFST[34m_[32mBank-statement (05-23) May[34m.pdf
-   . . .
-  ```
-  Now in the last part, conbined in the name element.
-
-  ---
+  > The name says it is project 33 about organizing documents; the metadata says it belongs to MikeWorldYt, started on March 3rd and is a video tutorial.
+</Toggle>

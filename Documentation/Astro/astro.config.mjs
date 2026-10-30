@@ -33,6 +33,7 @@ export default defineConfig({
 						items: [
 							{ label: 'Getting Started', link: 'start-here/getting-started', translations: { es: 'Primeros Pasos' } },
 							{ label: 'Migrating Plan', link: 'start-here/migrating-plan', translations: { es: 'Plan de Migración' } },
+							{ label: 'Downloads', link: 'start-here/download', translations: { es: 'Descargas' } },
 						],
 					},
 					{
