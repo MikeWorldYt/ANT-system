@@ -95,7 +95,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
       const setDisabled = (b: HTMLButtonElement, disabled: boolean) => b.setAttribute("aria-disabled", String(disabled));
       setDisabled(add, !(a?.addNext && idle));
       setDisabled(reload, !idle);
-      sortBtn.hidden = views.active() !== "columns";
+      sortBtn.hidden = views.active() === "tree";
       const { by, dir } = sortOf(activeColumnKey());
       const sortText = `Sort by ${SORT_KEYS.find(([id]) => id === by)?.[1] ?? ""}`;
       sortLabel.textContent = sortText;
