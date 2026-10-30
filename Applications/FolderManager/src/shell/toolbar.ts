@@ -88,7 +88,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
 
   return {
     navLead: [add, divider],
-    trailing: [viewBtn, sortBtn, reload],
+    trailing: [sortBtn, viewBtn, reload],
     render() {
       const a = selectedNode()?.actions;
       const idle = !state.busy;
