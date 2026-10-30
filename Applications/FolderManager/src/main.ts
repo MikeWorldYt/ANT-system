@@ -65,6 +65,8 @@ installShortcuts({
   openSettings: () => void openSettings(),
   goUp: navigator.goUp,
   openSelected,
+  toggleSidePanel: panel.toggleCollapsed,
+  editDetails: panel.editDetails,
 });
 
 subscribe(() => {

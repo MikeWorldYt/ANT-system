@@ -91,6 +91,8 @@ export function createGridView(): ViewMode {
   }
 
   function onKey(ev: KeyboardEvent): void {
+    // Modified arrows belong to the global shortcuts (Ctrl+Right, Alt+Down, Alt+Up).
+    if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
     const n = selectedNode();
     if (isMenuKey(ev)) {
       if (n) nodeMenuFromKey(root, n, root.querySelector(".grid-item.selected"));

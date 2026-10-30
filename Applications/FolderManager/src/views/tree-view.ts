@@ -59,6 +59,8 @@ export function createTreeView(): ViewMode {
   }
 
   function onKey(ev: KeyboardEvent): void {
+    // Modified arrows belong to the global shortcuts (Ctrl+Right, Alt+Down, Alt+Up).
+    if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
     const i = indexOfSelected();
     const n = rows[i];
     const open = n !== undefined && state.expanded.has(keyOf(n.relParts));

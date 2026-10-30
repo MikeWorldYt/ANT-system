@@ -18,6 +18,8 @@ const RAIL_GROUP: Record<RailId, number> = { settings: 0, favorite: 1, edit: 1, 
 export interface SidePanel {
   elements: HTMLElement[];
   render(): void;
+  toggleCollapsed(): void;
+  editDetails(): void;
 }
 
 const favoriteLabel = (n: TreeNode | null) => (n?.favorite ? "Remove from favorites" : "Add to favorites");
@@ -71,11 +73,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   });
   railExpand.classList.add("side-rail-expand");
   const railFavorite = iconButton(favoriteLabel(null), "starred", toggleFavorite);
-  const railEdit = iconButton("Edit details", "pencil", () => {
-    show(false);
-    if (details.startEdit()) collapseAfterEdit = true;
-    else show(true);
-  });
+  const railEdit = iconButton("Edit details", "pencil", editDetails);
   const railUp = iconButton("Move up", "moveUp", moveUp);
   const railDown = iconButton("Move down", "moveDown", moveDown);
   const railDelete = iconButton("Delete", "trash", del);
@@ -128,6 +126,23 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     show(on);
   }
 
+  // Focus follows only when it sat in the half being hidden, so a shortcut from the views keeps it there.
+  function toggleCollapsed(): void {
+    const hadFocus = (collapsed ? rail : panel).contains(document.activeElement);
+    setCollapsed(!collapsed);
+    if (hadFocus) (collapsed ? railExpand : collapse).focus();
+  }
+
+  function editDetails(): void {
+    if (!collapsed) {
+      details.startEdit();
+      return;
+    }
+    show(false);
+    if (details.startEdit()) collapseAfterEdit = true;
+    else show(true);
+  }
+
   function render(): void {
     details.render();
     layoutRail();
@@ -159,5 +174,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   return {
     elements: [panel, rail],
     render,
+    toggleCollapsed,
+    editDetails,
   };
 }
