@@ -12,6 +12,8 @@ import { setDisabled, sideAction } from "./side-action";
 import type { TreeNode } from "../ipc/types";
 
 const PANEL_PREF = "fm.details";
+// Function groups of the collapsed rail: view settings, item state, ordering, removal.
+const RAIL_GROUP: Record<RailId, number> = { settings: 0, favorite: 1, edit: 1, moveUp: 2, moveDown: 2, delete: 3 };
 
 export interface SidePanel {
   elements: HTMLElement[];
@@ -99,7 +101,15 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     const key = ids.join(",");
     if (key === railKey) return;
     railKey = key;
-    rail.replaceChildren(railExpand, ...ids.map((id) => railButtons[id]), about);
+    const children: HTMLElement[] = [railExpand];
+    let previous: number | null = null;
+    for (const id of ids) {
+      // A separator marks each change of function, so a moved button may start its own group.
+      if (previous !== null && RAIL_GROUP[id] !== previous) children.push(el("div", { class: "side-rail-sep", role: "separator" }));
+      children.push(railButtons[id]);
+      previous = RAIL_GROUP[id];
+    }
+    rail.replaceChildren(...children, about);
   }
 
   function section(id: string, label: string, ...actions: HTMLElement[]): HTMLElement {
