@@ -13,11 +13,11 @@ export const STATUSES: [WkbStatus, string][] = [
 export const statusLabel = (status: WkbStatus): string => STATUSES.find(([v]) => v === status)?.[1] ?? status;
 
 export const UNKNOWN = "unknown";
-export const displayNodeName = (n: TreeNode): string => {
-  if (!state.settings.hideDirectoryIdentifiers) return n.name;
+export const nameWithoutIdentifier = (n: TreeNode): string => {
   const isDirectoryIdentifier = /^\d+\.$/.test(n.fixedPrefix) || /^[A-Za-z]+\.\d+_$/.test(n.fixedPrefix);
   return isDirectoryIdentifier ? n.name.slice(n.fixedPrefix.length) : n.name;
 };
+export const displayNodeName = (n: TreeNode): string => (state.settings.hideDirectoryIdentifiers ? nameWithoutIdentifier(n) : n.name);
 const OWNER_KEYS = ["owner", "holder", "client"];
 
 export const isWorkboard = (n: TreeNode) => n.nodeType?.base === "WKB";

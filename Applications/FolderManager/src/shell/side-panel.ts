@@ -3,6 +3,7 @@ import { el } from "../ui/dom";
 import { iconButton } from "../ui/icon-button";
 import { move, remove, setFavorite } from "../actions/ops";
 import { readPref, savePref } from "../store/prefs";
+import { nameWithoutIdentifier } from "../store/node-info";
 import { selectedNode, state } from "../store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
 import { openSettings } from "./settings-dialog";
@@ -111,7 +112,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     const n = selectedNode();
     const a = n?.actions;
     const idle = !state.busy;
-    title.textContent = n?.name ?? "Details";
+    title.textContent = n ? nameWithoutIdentifier(n) : "Details";
     quick.hidden = order.hidden = foot.hidden = n === null;
     favorite.setLabel(favoriteLabel(n));
     favorite.button.classList.toggle("is-favorite", !!n?.favorite);
