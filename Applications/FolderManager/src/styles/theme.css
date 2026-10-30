@@ -117,6 +117,7 @@ body {
 .row.ghost .name { color: var(--ghost-text); font-style: italic; }
 .row.locked .name { color: var(--muted); }
 .icon { flex: none; }
+.node-toggle { display: inline-flex; flex: none; align-items: center; gap: 6px; }
 .details { margin: 4px 0 0; font-size: 9pt; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
 .details dt { color: var(--muted); }
 .details dd { margin: 0; word-break: break-word; }

@@ -4,6 +4,7 @@ import { el } from "../ui/dom";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
 import { favoriteMark, nameCell } from "./name-cell";
+import { nodeToggle } from "./node-toggle";
 import { nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
@@ -57,7 +58,8 @@ export function createGridView(): ViewMode {
 
   function buildItem(n: TreeNode, tabbable: boolean): HTMLElement {
     const selected = keyOf(n.relParts) === state.selectedKey;
-    const art = el("span", { class: "grid-art" }, folderIcon(n));
+    const art = n.hasChildren ? nodeToggle(`Open ${n.name}`, null, folderIcon(n)) : el("span", {}, folderIcon(n));
+    art.classList.add("grid-art");
     if (n.favorite) art.append(favoriteMark());
     if (n.status) art.append(statusMark(n.status));
     const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, art, nameCell(n, false));
@@ -76,7 +78,8 @@ export function createGridView(): ViewMode {
     item.classList.toggle("rev", n.nodeType?.base === "REV");
     item.title = nodeSummary(n);
     item.addEventListener("click", () => select(n.relParts));
-    item.addEventListener("dblclick", () => (n.hasChildren ? enter(n) : startEdit(n.relParts)));
+    // As in Explorer, the name renames and the rest of the tile opens.
+    item.addEventListener("dblclick", (ev) => (ev.target instanceof Element && ev.target.closest(".name") ? startEdit(n.relParts) : enter(n)));
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
     return item;
   }

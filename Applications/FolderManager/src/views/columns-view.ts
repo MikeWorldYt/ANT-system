@@ -5,6 +5,7 @@ import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
 import { favoriteMark, nameCell } from "./name-cell";
+import { fromToggle, nodeToggle } from "./node-toggle";
 import { nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
@@ -17,7 +18,8 @@ interface Column {
   loading: boolean;
 }
 
-function buildColumns(): Column[] {
+// `closed` is the selected folder whose child column the user folded away.
+function buildColumns(closed: string | null): Column[] {
   const cols: Column[] = [];
   const path = state.selectedKey?.split("/") ?? [];
   let nodes: TreeNode[] = state.tree?.nodes ?? [];
@@ -25,7 +27,7 @@ function buildColumns(): Column[] {
     const shown = sortedForColumns(listed(nodes), sortOf(path.slice(0, depth).join("/")), state.settings.pinFavorites);
     cols.push({ nodes: shown, loading: false });
     const open = nodes.find((n) => n.name === path[depth]);
-    if (!open || !open.hasChildren) break;
+    if (!open || !open.hasChildren || keyOf(open.relParts) === closed) break;
     if (open.children === null) {
       cols.push({ nodes: [], loading: true });
       break;
@@ -39,10 +41,31 @@ function buildColumns(): Column[] {
 export function createColumnsView(): ViewMode {
   const root = el("div", { class: "columns", role: "group", "aria-label": "Storage columns" });
   const loading = new Set<string>();
+  let closedKey: string | null = null;
+
+  function isOpen(n: TreeNode): boolean {
+    const key = keyOf(n.relParts);
+    const sel = state.selectedKey;
+    return n.hasChildren && (sel === key ? closedKey !== key : (sel?.startsWith(`${key}/`) ?? false));
+  }
+
+  function openColumn(n: TreeNode): void {
+    closedKey = null;
+    select(n.relParts);
+  }
+
+  function toggleColumn(n: TreeNode): void {
+    if (!isOpen(n)) return openColumn(n);
+    closedKey = keyOf(n.relParts);
+    select(n.relParts);
+  }
 
   function buildItem(n: TreeNode, onPath: boolean, tabbable: boolean): HTMLElement {
     const selected = keyOf(n.relParts) === state.selectedKey;
-    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, folderIcon(n, (selected || onPath) && n.hasChildren), nameCell(n, false));
+    const open = isOpen(n);
+    const icon = folderIcon(n, open);
+    const lead = n.hasChildren ? nodeToggle(`${open ? "Close" : "Open"} ${n.name}`, open, icon) : icon;
+    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, lead, nameCell(n, false));
     item.dataset.key = keyOf(n.relParts);
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
@@ -59,9 +82,19 @@ export function createColumnsView(): ViewMode {
     if (n.favorite) item.append(favoriteMark());
     if (n.status) item.append(statusMark(n.status));
     item.title = nodeSummary(n);
-    if (n.hasChildren) item.append(el("span", { class: "chevron", "aria-hidden": "true" }, guiIcon("chevronRight")));
-    item.addEventListener("click", () => select(n.relParts));
-    item.addEventListener("dblclick", () => startEdit(n.relParts));
+    if (n.hasChildren) {
+      lead.addEventListener("click", () => toggleColumn(n));
+      const chevron = nodeToggle(`Show contents of ${n.name}`, null, guiIcon("chevronRight"));
+      chevron.classList.add("chevron");
+      chevron.addEventListener("click", () => openColumn(n));
+      item.append(chevron);
+    }
+    item.addEventListener("click", (ev) => {
+      if (!fromToggle(ev)) openColumn(n);
+    });
+    item.addEventListener("dblclick", (ev) => {
+      if (!fromToggle(ev)) startEdit(n.relParts);
+    });
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
     return item;
   }
@@ -95,7 +128,7 @@ export function createColumnsView(): ViewMode {
       ev.preventDefault();
       return;
     }
-    const cols = buildColumns();
+    const cols = buildColumns(closedKey);
     const siblings = (n ? cols[n.relParts.length - 1]?.nodes : cols[0]?.nodes) ?? [];
     const i = n ? siblings.indexOf(n) : -1;
     const go = (j: number) => {
@@ -125,8 +158,11 @@ export function createColumnsView(): ViewMode {
         if (n) startEdit(n.relParts);
         break;
       case "Enter":
-      case " ":
         go(Math.max(i, 0));
+        break;
+      case " ":
+        if (n?.hasChildren) toggleColumn(n);
+        else go(Math.max(i, 0));
         break;
       default:
         return;
@@ -139,7 +175,7 @@ export function createColumnsView(): ViewMode {
     const n = selectedNode();
     if (!n || !n.hasChildren || n.children !== null) return;
     const key = keyOf(n.relParts);
-    if (loading.has(key)) return;
+    if (loading.has(key) || key === closedKey) return;
     loading.add(key);
     void expand(n).finally(() => loading.delete(key));
   }
@@ -150,13 +186,15 @@ export function createColumnsView(): ViewMode {
     mount(host) {
       root.addEventListener("keydown", onKey);
       // Space beside the columns belongs to the deepest one.
-      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentOf(state.selectedKey?.split("/") ?? [], buildColumns().length - 1), root));
+      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentOf(state.selectedKey?.split("/") ?? [], buildColumns(closedKey).length - 1), root));
       host.append(root);
     },
     render() {
+      // Folding lasts only while that folder stays selected; any other selection opens columns as usual.
+      if (closedKey !== state.selectedKey) closedKey = null;
       const hadFocus = root.contains(document.activeElement);
       const path = state.selectedKey?.split("/") ?? [];
-      root.replaceChildren(...buildColumns().map((c, i) => buildColumn(c, i, path, path[i - 1] ?? "storage")));
+      root.replaceChildren(...buildColumns(closedKey).map((c, i) => buildColumn(c, i, path, path[i - 1] ?? "storage")));
       root.querySelectorAll(".col-item.on-path, .col-item.selected").forEach((e) => e.scrollIntoView({ block: "nearest", inline: "nearest" }));
       root.lastElementChild?.scrollIntoView({ block: "nearest", inline: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });
