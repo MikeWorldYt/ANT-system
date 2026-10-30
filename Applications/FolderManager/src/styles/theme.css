@@ -163,6 +163,7 @@ body {
 .side-rail .icon-btn { width: 30px; height: 30px; background: transparent; }
 .side-rail .side-rail-expand { background: var(--accent); color: var(--bg); }
 .side-rail-sep { flex: none; width: 22px; height: 1px; margin: 2px 0; background: var(--border); }
+.side-rail .is-favorite { color: var(--st-progress); }
 .side-rail-end { margin-top: auto; }
 .details-panel[hidden], .side-rail[hidden], .side-section[hidden], .details[hidden] { display: none; }
 .details-input {

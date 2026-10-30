@@ -139,6 +139,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     quick.hidden = n === null || !quickActionsShown();
     favorite.setLabel(favoriteLabel(n));
     favorite.button.classList.toggle("is-favorite", !!n?.favorite);
+    railFavorite.classList.toggle("is-favorite", !!n?.favorite);
     railFavorite.setAttribute("aria-label", favoriteLabel(n));
     railFavorite.title = favoriteLabel(n);
     const enabled: [HTMLButtonElement[], boolean][] = [
