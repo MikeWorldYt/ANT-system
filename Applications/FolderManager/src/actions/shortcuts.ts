@@ -2,6 +2,7 @@
 import { selectedNode, state, type KeyCombo } from "../store/state";
 import { addNext, remove } from "./ops";
 import { pasteHere } from "./paste-target";
+import { putOnClipboard } from "./folder-share";
 
 export interface ShortcutTargets {
   focusSearch(): void;
@@ -28,9 +29,11 @@ export const EDITABLE_SHORTCUTS: { id: string; label: string; combo: KeyCombo }[
   { id: "openSettings", label: "Open Settings", combo: { code: "Comma", mod: true, alt: false } },
   { id: "goUp", label: "Go up one level", combo: { code: "ArrowUp", mod: false, alt: true } },
   { id: "paste", label: "Paste files", combo: { code: "KeyV", mod: true, alt: false } },
+  { id: "copyFolder", label: "Copy folder", combo: { code: "KeyC", mod: true, alt: false } },
+  { id: "cutFolder", label: "Cut folder", combo: { code: "KeyX", mod: true, alt: false } },
 ];
 
-const NOT_IN_FIELDS = new Set(["paste"]);
+const NOT_IN_FIELDS = new Set(["paste", "copyFolder", "cutFolder"]);
 
 // The folder views own these keys, so the settings page never offers them.
 const FIXED_SHORTCUTS: KeyCombo[] = [
@@ -66,6 +69,8 @@ function bindings(go: ShortcutTargets): Binding[] {
     newNode: withSelected((n) => n.actions.addNext && void addNext(n, "node")),
     newWorkboard: withSelected((n) => n.actions.addNext && n.relParts.length > 1 && void addNext(n, "workboard")),
     paste: pasteHere,
+    copyFolder: withSelected((n) => void putOnClipboard(n, false)),
+    cutFolder: withSelected((n) => void putOnClipboard(n, true)),
   };
   return [
     ...EDITABLE_SHORTCUTS.map((s) => ({ ...comboOf(s.id), plain: false, inFields: !NOT_IN_FIELDS.has(s.id), run: runs[s.id]! })),

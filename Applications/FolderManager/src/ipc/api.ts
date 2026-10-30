@@ -81,9 +81,16 @@ export const moveNode = (relParts: string[], direction: MoveDirection) =>
   call<Mutation>("move_node", { relParts, direction });
 export const dropFiles = (target: string[], paths: string[]) => call<DropOutcome>("drop_files", { target, paths });
 export const pasteFiles = (target: string[]) => call<DropOutcome>("paste_files", { target });
+export const copyFolder = (target: string[], cut: boolean) => call<void>("copy_folder", { target, cut });
 export const moveFolder = (source: string[], destination: string[], copy: boolean) =>
   call<Mutation>("move_folder", { source, destination, copy });
 export const startDragOut =(target: string[]) => call<void>("start_drag_out", { target });
+export interface ShortcutCreated {
+  name: string;
+  folder: string;
+}
+export const createShortcutIn = (target: string[], folder: string) =>
+  call<ShortcutCreated>("create_shortcut_in", { target, folder });
 export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
 export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonEmpty: boolean) =>
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });

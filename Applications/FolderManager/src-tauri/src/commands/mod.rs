@@ -11,6 +11,7 @@ mod intake;
 mod open;
 mod search;
 pub mod settings;
+mod share;
 mod storage;
 #[cfg(test)]
 mod tests;
@@ -39,6 +40,7 @@ pub use health::*;
 pub use intake::*;
 pub use open::*;
 pub use search::*;
+pub use share::*;
 pub use storage::*;
 pub use tree::*;
 pub use update::*;

@@ -17,6 +17,7 @@ serde_yaml = "0.9"
 rusqlite = { version = "0.40", features = ["bundled"] }
 tauri-plugin-notification = "2"
 notify = "8.2.0"
+tauri-plugin-dialog = "2"
 
 [target.'cfg(windows)'.dependencies]
 tray-icon = { version = "0.25.1", default-features = false }

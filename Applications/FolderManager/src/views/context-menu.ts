@@ -5,6 +5,7 @@ import { guiIcon } from "../ui/gui-icons";
 import { statusIcon } from "../ui/status-mark";
 import { STATUSES, TYPES } from "../store/node-info";
 import { pasteFiles, remove, setDetails, setFavorite, setType, setUserFlag } from "../actions/ops";
+import { createShortcut } from "../actions/folder-share";
 import { select, startEdit } from "../store/state";
 import { setStatus } from "../ui/status";
 import { menuItems, runMenuItem } from "../extensions/host";
@@ -121,6 +122,11 @@ function openMenu({ node, x, y, folderOnly }: MenuRequest, restoreFocus: () => v
     close();
     void copyPath(node);
   });
+  const shortcut = menuItem("Create shortcut", "menuitem", true, () => {
+    close();
+    void createShortcut(node);
+  });
+  const shortcutItems = node.reserved || node.ghost ? [] : [shortcut];
   const del = menuItem("Delete", "menuitem", a.delete, () => {
     close();
     void remove(node);
@@ -133,11 +139,11 @@ function openMenu({ node, x, y, folderOnly }: MenuRequest, restoreFocus: () => v
     }),
   );
 
-  const items = folderOnly ? [open, ...pasteItems, copy] : [open, ...pasteItems, rename, favorite, ...fileItems, ...subs.map((s) => s.trigger), copy, del, ...extras];
+  const items = folderOnly ? [open, ...pasteItems, copy, ...shortcutItems] : [open, ...pasteItems, rename, favorite, ...fileItems, ...subs.map((s) => s.trigger), copy, ...shortcutItems, del, ...extras];
   const closeSubs = () => subs.filter((s) => !s.element.contains(document.activeElement)).forEach((s) => s.close());
   items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
   subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));
-  const content = folderOnly ? [open, ...pasteItems, copy] : [open, ...pasteItems, rename, favorite, ...fileItems, ...subs.map((s) => s.element), separator(), copy, del, ...(extras.length > 0 ? [separator(), ...extras] : [])];
+  const content = folderOnly ? [open, ...pasteItems, copy, ...shortcutItems] : [open, ...pasteItems, rename, favorite, ...fileItems, ...subs.map((s) => s.element), separator(), copy, ...shortcutItems, del, ...(extras.length > 0 ? [separator(), ...extras] : [])];
   const menu = el("div", { class: "ctx-menu", role: "menu", "aria-label": `Actions for ${node.name}` }, ...content);
   menu.addEventListener("mouseleave", closeSubs);
 

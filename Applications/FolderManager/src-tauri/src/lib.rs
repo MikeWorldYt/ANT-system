@@ -40,6 +40,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(storage)
         .register_uri_scheme_protocol(extensions::sandbox_page::SCHEME, |_ctx, _request| extensions::sandbox_page::response())
         .setup(move |app| {
@@ -131,7 +132,9 @@ pub fn run() {
             commands::run_intake,
             commands::drop_files,
             commands::paste_files,
+            commands::copy_folder,
             commands::start_drag_out,
+            commands::create_shortcut_in,
         ])
         .build(tauri::generate_context!())
         .expect("error while running Folder Manager")
