@@ -20,6 +20,7 @@ pub enum FmError {
     RolledBack { op: String, cause: String },
     Inconsistent { op: String, cause: String, rollback_errors: Vec<String> },
     Internal { message: String },
+    ClipboardEmpty,
 }
 
 // Readable text for causes nested inside RolledBack, Inconsistent and warnings.
@@ -50,6 +51,7 @@ impl std::fmt::Display for FmError {
                 write!(f, "{op} failed ({cause}) and was not fully undone: {}", rollback_errors.join("; "))
             }
             Self::Internal { message } => write!(f, "{message}"),
+            Self::ClipboardEmpty => write!(f, "The clipboard has no files to paste"),
         }
     }
 }

@@ -27,6 +27,7 @@ export function createTreeView(): ViewMode {
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(n.hasChildren ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
     const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, caret, folderIcon(n, expanded && n.hasChildren), nameCell(n));
     row.style.setProperty("--depth", String(n.depth));
+    row.dataset.key = key;
     row.setAttribute("aria-selected", String(key === state.selectedKey));
     if (n.hasChildren) row.setAttribute("aria-expanded", String(expanded));
     if (key === state.selectedKey) row.classList.add("selected");
@@ -35,6 +36,7 @@ export function createTreeView(): ViewMode {
       row.classList.add("locked");
       row.setAttribute("aria-disabled", "true");
     }
+    row.classList.toggle("reserved", n.reserved);
     if (n.ghost) row.setAttribute("aria-label", `${n.name} (missing on disk)`);
     if (n.status) row.append(statusMark(n.status));
     row.title = nodeSummary(n);

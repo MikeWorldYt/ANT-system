@@ -78,6 +78,7 @@ export const setNodeDetails = (relParts: string[], status: WkbStatus | null, own
 export const addNode = (relParts: string[], kind: NewKind) => call<Mutation>("add_node", { relParts, kind });
 export const moveNode = (relParts: string[], direction: MoveDirection) =>
   call<Mutation>("move_node", { relParts, direction });
+export const startDragOut =(target: string[]) => call<void>("start_drag_out", { target });
 export const inspectDelete = (relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
 export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonEmpty: boolean) =>
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });

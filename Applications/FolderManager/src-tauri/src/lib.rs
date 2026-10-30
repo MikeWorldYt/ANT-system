@@ -128,6 +128,7 @@ pub fn run() {
             commands::inspect_extension_repo,
             commands::install_inspected_extension,
             commands::run_intake,
+            commands::start_drag_out,
         ])
         .build(tauri::generate_context!())
         .expect("error while running Folder Manager")

@@ -61,6 +61,7 @@ export function createGridView(): ViewMode {
     if (n.favorite) art.append(favoriteMark());
     if (n.status) art.append(statusMark(n.status));
     const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, art, nameCell(n, false));
+    item.dataset.key = keyOf(n.relParts);
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
     if (n.ghost) {
@@ -71,6 +72,7 @@ export function createGridView(): ViewMode {
       item.classList.add("locked");
       item.setAttribute("aria-disabled", "true");
     }
+    item.classList.toggle("reserved", n.reserved);
     item.title = nodeSummary(n);
     item.addEventListener("click", () => select(n.relParts));
     item.addEventListener("dblclick", () => (n.hasChildren ? enter(n) : startEdit(n.relParts)));
