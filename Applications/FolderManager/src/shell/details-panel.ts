@@ -91,7 +91,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     const fields: (HTMLElement | null)[] = [name, status?.button ?? null, owner, files];
     for (const field of fields) field?.addEventListener("keydown", onKey);
     queueMicrotask(() => first?.focus());
-    inputs[""] = el("div", { class: "details-actions" }, save, cancel);
+    inputs[""] = el("div", { class: "details-actions" }, cancel, save);
     return inputs;
   }
 
