@@ -1,6 +1,6 @@
 // Runs the backend intake after a refresh and reports loose and moved files to the user.
-import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 import * as api from "../ipc/api";
+import { notifyDesktop } from "../ui/desktop-notify";
 import { setStatus } from "../ui/status";
 import type { Moved } from "../ipc/types";
 
@@ -9,16 +9,10 @@ let running = false;
 // Refreshes repeat while loose files remain; report once until the Storage is clear again.
 let looseNotified = false;
 
-async function notificationPermissionGranted(): Promise<boolean> {
-  return (await isPermissionGranted()) || (await requestPermission()) === "granted";
-}
-
 async function notifyMoved(moved: Moved[]): Promise<void> {
-  if (moved.length === 0) return;
-  if (!(await notificationPermissionGranted())) return;
   for (const m of moved) {
     const files = `${m.count} file${m.count === 1 ? "" : "s"}`;
-    sendNotification({ title: "ANT System Manager", body: `${files} from ${m.name} moved to ${m.review} for review.` });
+    await notifyDesktop(`${files} from ${m.name} moved to ${m.review} for review.`);
   }
 }
 
@@ -44,9 +38,7 @@ export async function runIntake(): Promise<void> {
     } else if (!looseNotified) {
       looseNotified = true;
       console.warn("[intake] Unclassified files detected:", report.loose);
-      if (await notificationPermissionGranted()) {
-        sendNotification({ title: "ANT System Manager", body: looseFilesMessage(report.loose) });
-      }
+      await notifyDesktop(looseFilesMessage(report.loose));
     }
     await notifyMoved(report.moved);
   } catch (e) {
