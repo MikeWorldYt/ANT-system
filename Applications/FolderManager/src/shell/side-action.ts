@@ -10,7 +10,7 @@ export interface SideAction {
 export function sideAction(label: string, icon: GuiIcon | null, run: () => void, tone = "", hint?: [shown: string, keys: string]): SideAction {
   const text = el("span", { class: "side-action-label" }, label);
   const slot = el("span", { class: "side-action-icon" }, ...(icon ? [guiIcon(icon)] : []));
-  const button = el("button", { type: "button", class: `side-action ${tone}`.trim() }, slot, text);
+  const button = el("button", { type: "button", class: `side-action ${tone}`.trim() }, text, ...(icon ? [slot] : []));
   if (hint) {
     button.setAttribute("aria-keyshortcuts", hint[1]);
     button.append(el("kbd", { class: "side-action-hint", "aria-hidden": "true" }, hint[0]));

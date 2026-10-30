@@ -47,10 +47,11 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     setCollapsed(true);
     railExpand.focus();
   });
+  collapse.classList.add("side-collapse");
   const head = el("div", { class: "side-head" }, title, settings, collapse);
 
   const open = sideAction("Open", null, openSelected, "", ["Enter", "Enter"]);
-  const favorite = sideAction(favoriteLabel(null), "starred", toggleFavorite, "accent");
+  const favorite = sideAction(favoriteLabel(null), "starred", toggleFavorite, "favorite");
   const quick = section("side-quick", "Quick actions", open.button, favorite.button);
   const up = sideAction("Move up", "moveUp", moveUp, "accent");
   const down = sideAction("Move down", "moveDown", moveDown, "accent");

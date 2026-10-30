@@ -136,8 +136,10 @@ body {
   overflow-y: auto; background: var(--input-bg); padding: 12px;
 }
 .side-head { display: flex; align-items: center; gap: 2px; }
-.side-title { flex: 1; min-width: 0; margin: 0; font-size: 11pt; color: var(--title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-title { flex: 1; min-width: 0; margin: 0; font-size: 11pt; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-head .icon-btn, .details-head .icon-btn { width: 26px; height: 26px; background: transparent; }
+.side-head .side-collapse { background: var(--accent); color: var(--bg); }
+.details-head .icon-btn { color: var(--title); }
 .side-section { display: flex; flex-direction: column; gap: 2px; padding-top: 10px; border-top: 1px solid var(--border); }
 .side-label { margin: 0 0 4px; font-size: 8pt; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .details-head { display: flex; align-items: center; justify-content: space-between; }
@@ -152,6 +154,7 @@ body {
 .side-action-label { flex: 1; min-width: 0; }
 .side-action-hint { font: inherit; font-size: 8pt; color: var(--muted); }
 .side-action.accent { color: var(--accent); }
+.side-action.favorite { color: var(--st-progress); }
 .side-action.danger, .side-rail .danger:not([aria-disabled="true"]) { color: var(--delete-hover); }
 .side-action[aria-disabled="true"] { color: var(--disabled-text); cursor: default; }
 .side-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
