@@ -25,6 +25,12 @@ export const generalPage: SettingsPage = {
       control: () => switchControl("Hide directory identifiers", state.settings.hideDirectoryIdentifiers, (on) => changeSetting("hideDirectoryIdentifiers", on)),
     },
     {
+      section: "Preferences",
+      title: "Open columns on select",
+      description: "In Columns view, selecting a folder opens its contents. Double-click the folder icon or the arrow otherwise.",
+      control: () => switchControl("Open columns on select", state.settings.autoOpenColumns, (on) => changeSetting("autoOpenColumns", on)),
+    },
+    {
       section: "Startup",
       title: "On launch",
       description: "What to show when ANT starts.",

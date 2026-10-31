@@ -28,7 +28,7 @@ function sections(rows: SettingRow[]): HTMLElement[] {
   return out;
 }
 
-export async function openSettings(): Promise<void> {
+export async function openSettings(pageId?: string): Promise<void> {
   let storage: StorageInfo | null = null;
   try {
     storage = await getStorage();
@@ -36,7 +36,7 @@ export async function openSettings(): Promise<void> {
     setStatus("warning", `Storage info: ${describeError(e)}`);
   }
 
-  let currentId = PAGES[0]!.id;
+  let currentId = PAGES.find((p) => p.id === pageId)?.id ?? PAGES[0]!.id;
   const title = el("h2", { id: "settings-title" });
   const body = el("div", { class: "sw-body" });
   const search = el("input", { type: "search", class: "sw-search-input", placeholder: "Search settings", "aria-label": "Search settings" });

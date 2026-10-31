@@ -2,7 +2,8 @@
 import * as api from "../ipc/api";
 import { notifyDesktop } from "../ui/desktop-notify";
 import { setStatus } from "../ui/status";
-import type { Moved } from "../ipc/types";
+import { waitingIntakeDialog } from "../ui/waiting-intake-dialog";
+import type { Moved, WaitingNode } from "../ipc/types";
 
 // Focus and manual refreshes can overlap; a second intake would repeat the same report.
 let running = false;
@@ -27,11 +28,32 @@ function looseFilesMessage(files: { node: string; file: string }[]): string {
   return `I detected ${files.length} unclassified ${subject}${location}. Please move ${pronoun} to a category:\n${shown.join("\n")}`;
 }
 
-export async function runIntake(): Promise<void> {
+// Nodes the app has never managed wait for the answer; returns whether any answer was applied.
+async function answerWaiting(nodes: WaitingNode[], reload: () => Promise<void>): Promise<boolean> {
+  const decisions = await waitingIntakeDialog(nodes);
+  if (!decisions) return false;
+  let applied = false;
+  for (const { relParts, choice } of decisions) {
+    try {
+      if (choice === "data") await api.setUserFlag(relParts, true);
+      else await api.acknowledgeIntake(relParts);
+      applied = true;
+    } catch (e) {
+      setStatus("warning", api.describeError(e));
+    }
+  }
+  if (applied) await reload();
+  return applied;
+}
+
+export async function runIntake(reload: () => Promise<void>): Promise<void> {
   if (running) return;
   running = true;
   try {
-    const report = await api.runIntake();
+    let report = await api.runIntake();
+    if (report.waiting.length > 0 && (await answerWaiting(report.waiting, reload))) {
+      report = await api.runIntake();
+    }
     if (report.warnings.length > 0) setStatus("warning", report.warnings.join(". "));
     if (report.loose.length === 0) {
       looseNotified = false;

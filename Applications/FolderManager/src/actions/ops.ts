@@ -5,10 +5,12 @@ import { el } from "../ui/dom";
 import { beginOperationStatus, clearStatus, endOperationStatus, setStatus } from "../ui/status";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
+import { checkRootFolders } from "./root-check";
 import { dropNotice, type Notice } from "./drop-summary";
-import { applySettings, findNode, hydrate, keyOf, lastSelection, notify, patchLevels, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, state, type Settings } from "../store/state";
+import { applySettings, findNode, hydrate, keyOf, lastSelection, listed, notify, patchLevels, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
+import { sortedForColumns } from "../store/sort";
 import { isFmError } from "../ipc/types";
-import type { Copied, EditableType, LevelPatch, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
+import type { Copied, EditableType, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
   const tree = snapshot ?? (await api.refresh());
@@ -151,7 +153,10 @@ export async function refresh(): Promise<boolean> {
     await reload();
     clearStatus();
   });
-  if (ok) void runIntake();
+  if (ok) {
+    void runIntake(reload);
+    void checkRootFolders(resolveInvalid);
+  }
   return ok;
 }
 
@@ -202,6 +207,12 @@ export const addNext = async (node: TreeNode, kind: NewKind) => {
     : `Creating ${kind === "workboard" ? "workboard" : "node"} in "${parentName}"…`;
   await run(async () => applyMutation(await api.addNode(node.relParts, kind)), progress);
 };
+
+export const addChild = (node: TreeNode, kind: NewKind) =>
+  run(
+    async () => applyMutation(await api.addChild(node.relParts, kind)),
+    `Creating ${kind === "workboard" ? "workboard" : "node"} in "${node.name}"…`,
+  );
 
 export const move = (node: TreeNode, dir: MoveDirection) =>
   run(async () => applyMutation(await api.moveNode(node.relParts, dir), node.relParts), `Moving "${node.name}" ${dir}…`);
@@ -256,6 +267,22 @@ export const moveFolder = (source: string[], destination: string[], copy: boolea
     `${copy ? "Copying" : "Moving"} "${source[source.length - 1]}" to "${destination[destination.length - 1]}"…`,
   );
 
+export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
+  run(
+    async () => applyMutation(await api.resolveInvalid(relParts, resolution)),
+    `Fixing "${relParts[relParts.length - 1]}"…`,
+  );
+
+// The folder after it in its column as the user sees it, else the one before; null when it is the only one shown.
+function nearestSibling(node: TreeNode): string[] | null {
+  const parent = node.relParts.slice(0, -1);
+  const level = parent.length > 0 ? (findNode(parent)?.children ?? []) : (state.tree?.nodes ?? []);
+  const shown = sortedForColumns(listed(level), sortOf(keyOf(parent)), state.settings.pinFavorites);
+  const at = shown.findIndex((n) => n.name === node.name);
+  if (at < 0) return null;
+  return (shown[at + 1] ?? shown[at - 1])?.relParts ?? null;
+}
+
 export const remove =(node: TreeNode) =>
   run(async () => {
     const preview = await api.inspectDelete(node.relParts);
@@ -265,7 +292,8 @@ export const remove =(node: TreeNode) =>
       if (!(await warningConfirmDialog("Delete folder", [`"${node.name}" ${what} to the Recycle Bin`], "Delete", "danger"))) return;
     }
     beginOperationStatus(`Deleting "${node.name}"…`);
+    const sibling = nearestSibling(node);
     const m = await api.deleteNode(node.relParts, preview.ghost, nonEmpty);
     const parent = node.relParts.slice(0, -1);
-    await applyMutation(m, parent.length > 0 ? parent : null);
+    await applyMutation(m, sibling ?? (parent.length > 0 ? parent : null));
   }, "Waiting for user decision…");

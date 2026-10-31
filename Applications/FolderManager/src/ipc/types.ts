@@ -20,6 +20,7 @@ export interface NodeActions {
   rename: boolean;
   changeType: boolean;
   addNext: boolean;
+  addChild: boolean;
   moveUp: boolean;
   moveDown: boolean;
   delete: boolean;
@@ -120,11 +121,32 @@ export interface LooseFile {
   file: string;
 }
 
+export interface WaitingNode {
+  node: string;
+  relParts: string[];
+  files: number;
+}
+
 export interface IntakeReport {
   moved: Moved[];
   loose: LooseFile[];
+  waiting: WaitingNode[];
   warnings: string[];
 }
+
+export interface InvalidFolder {
+  relParts: string[];
+  review: string[][];
+}
+
+export interface RootCheck {
+  invalid: InvalidFolder[];
+}
+
+export type Resolution =
+  | { kind: "review"; destination: string[] }
+  | { kind: "node" }
+  | { kind: "workboard"; tracker: string };
 
 export interface ReviewIndexEvent {
   phase: "started" | "done";

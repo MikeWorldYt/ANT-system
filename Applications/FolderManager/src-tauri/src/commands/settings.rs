@@ -16,8 +16,8 @@ const RELEASES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/t
 const DOCS_URL: &str = "https://ant.mikeworld.dev";
 const MAIL_ADDRESS: &str = "info@mikeworld.dev";
 // A new key is added here before the UI can write it: on/off switches, the launch choice and the shortcut overrides.
-const BOOLEAN_SETTINGS: [&str; 8] =
-    ["pinFavorites", "hideDone", "hideDirectoryIdentifiers", "confirmDelete", "autoUpdate", "debugLogging", "backupAuto", "watchExternal"];
+const BOOLEAN_SETTINGS: [&str; 9] =
+    ["pinFavorites", "hideDone", "hideDirectoryIdentifiers", "confirmDelete", "autoUpdate", "debugLogging", "backupAuto", "watchExternal", "autoOpenColumns"];
 const ON_LAUNCH_VALUES: [&str; 2] = ["continue", "root"];
 const START_VIEW_VALUES: [&str; 3] = ["continue", "tree", "columns"];
 const THEME_VALUES: [&str; 3] = ["system", "light", "dark"];
@@ -25,7 +25,8 @@ const ACCENT_VALUES: [&str; 5] = ["green", "blue", "purple", "coral", "gold"];
 const TEXT_SIZE_VALUES: [&str; 3] = ["small", "medium", "large"];
 const BACKUP_FREQUENCIES: [&str; 3] = ["day", "week", "month"];
 const MAX_BACKUP_FOLDER_CHARS: usize = 400;
-const SHORTCUT_ACTIONS: [&str; 6] = ["focusSearch", "editPath", "newNode", "newWorkboard", "openSettings", "goUp"];
+const SHORTCUT_ACTIONS: [&str; 10] =
+    ["focusSearch", "editPath", "newNode", "newWorkboard", "openSettings", "goUp", "toggleSidePanel", "moveDown", "toggleFavorite", "editDetails"];
 // Keys the folder views own, so a shortcut can never take them: (code, mod, alt).
 const FIXED_KEYS: [(&str, bool, bool); 2] = [("Delete", false, false), ("Enter", false, false)];
 

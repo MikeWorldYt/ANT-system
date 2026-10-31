@@ -1,0 +1,14 @@
+/* Table of folders outside the id format; the dialog keeps its width and scrolls the rows. */
+dialog.invalid-dialog { max-width: min(860px, calc(100vw - 32px)); }
+.invalid-scroll { max-height: min(420px, 60vh); overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.invalid-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+.invalid-table th, .invalid-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+.invalid-table thead th { position: sticky; top: 0; background: var(--input-bg); color: var(--muted); font-weight: 600; }
+.invalid-table td:not(:first-child) { text-align: center; }
+.invalid-table td:not(:first-child) .invalid-pick { width: auto; margin-left: 6px; padding: 2px 4px; }
+.invalid-table th[scope="row"] { font-weight: 400; }
+.invalid-path { display: inline; padding: 2px 4px; color: var(--text); background: none; border: 0; border-radius: var(--radius-sm); font: inherit; text-align: left; cursor: pointer; }
+.invalid-path:hover { color: var(--accent); }
+.invalid-path:focus-visible, .invalid-table input:focus-visible, .invalid-table select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.invalid-table input[type="radio"] { accent-color: var(--accent); }
+.invalid-table input[type="radio"]:disabled { opacity: 0.35; }

@@ -23,11 +23,13 @@ const TREE: &str = "100.PERSONAL:
     type: WKB
 ";
 const DIRS: &[&str] = &[
+    "100.PERSONAL/.ant",
     "100.PERSONAL/03.Toki/98.Toki",
     "100.PERSONAL/03.Toki/01.Sub",
+    "100.PERSONAL/03.Toki/.ant",
     "100.PERSONAL/98.PERSONAL",
     "100.PERSONAL/04.Data",
-    "100.PERSONAL/05.Bare",
+    "100.PERSONAL/05.Bare/.ant",
     "100.PERSONAL/PJ.Board",
 ];
 
@@ -107,43 +109,61 @@ fn folder_manager_files_at_root_are_exempt_but_other_root_files_are_reported() {
 }
 
 #[test]
-fn a_name_collision_leaves_the_source_and_warns() {
+fn a_name_collision_lands_with_a_number_and_keeps_the_existing_file() {
     let dir = fixture("intake-collision");
     put(&dir, "100.PERSONAL/03.Toki/same.txt", "new");
     put(&dir, "100.PERSONAL/03.Toki/98.Toki/same.txt", "old");
     let report = run(dir.path()).unwrap();
-    assert_eq!(read(&dir.path().join("100.PERSONAL/03.Toki/same.txt")), "new");
     assert_eq!(read(&dir.path().join("100.PERSONAL/03.Toki/98.Toki/same.txt")), "old");
-    assert!(report.moved.is_empty(), "{report:?}");
-    assert_eq!(report.warnings.len(), 1);
-    assert!(report.warnings[0].contains("same.txt") && report.warnings[0].contains("98.Toki"), "{:?}", report.warnings);
+    assert_eq!(read(&dir.path().join("100.PERSONAL/03.Toki/98.Toki/same (2).txt")), "new");
+    assert!(!has(&dir, "100.PERSONAL/03.Toki/same.txt"));
+    assert_eq!(report.moved.len(), 1, "{report:?}");
+    assert!(report.warnings.is_empty(), "{report:?}");
 }
 
 #[test]
-fn a_node_without_a_review_child_keeps_its_files_and_warns() {
+fn a_node_without_a_review_child_gets_one_and_its_files_move_into_it() {
     let dir = fixture("intake-no-review");
     put(&dir, "100.PERSONAL/05.Bare/lost.txt", "l");
     let report = run(dir.path()).unwrap();
-    assert!(has(&dir, "100.PERSONAL/05.Bare/lost.txt"));
-    assert!(report.moved.is_empty(), "{report:?}");
-    assert_eq!(report.warnings.len(), 1);
-    assert!(report.warnings[0].starts_with("100.PERSONAL/05.Bare"), "{:?}", report.warnings);
+    assert!(has(&dir, "100.PERSONAL/05.Bare/98.Bare/lost.txt"));
+    assert!(!has(&dir, "100.PERSONAL/05.Bare/lost.txt"));
+    assert_eq!(report.moved.len(), 1, "{report:?}");
+    assert!(report.warnings.is_empty(), "{report:?}");
 }
 
 #[test]
-fn a_review_child_missing_on_disk_keeps_the_files_and_warns() {
+fn a_node_the_app_has_never_marked_waits_until_the_user_acknowledges_it() {
+    let dir = fixture("intake-waiting");
+    dir.mkdir("100.PERSONAL/07.Fresh");
+    put(&dir, "100.PERSONAL/07.Fresh/loose.txt", "f");
+    let report = run(dir.path()).unwrap();
+    assert!(has(&dir, "100.PERSONAL/07.Fresh/loose.txt"));
+    assert_eq!(report.waiting.len(), 1, "{report:?}");
+    assert_eq!(report.waiting[0].node, "100.PERSONAL/07.Fresh");
+    assert!(report.moved.is_empty(), "{report:?}");
+    acknowledge(dir.path(), &["100.PERSONAL".to_string(), "07.Fresh".to_string()]).unwrap();
+    let report = run(dir.path()).unwrap();
+    assert!(has(&dir, "100.PERSONAL/07.Fresh/98.Fresh/loose.txt"));
+    assert!(report.waiting.is_empty() && report.moved.len() == 1, "{report:?}");
+}
+
+#[test]
+fn a_review_child_missing_on_disk_is_recreated_and_takes_the_files() {
     let dir = fixture("intake-ghost-review");
     fs::remove_dir(dir.path().join("100.PERSONAL/03.Toki/98.Toki")).unwrap();
     put(&dir, "100.PERSONAL/03.Toki/notes.txt", "n");
     let report = run(dir.path()).unwrap();
-    assert!(has(&dir, "100.PERSONAL/03.Toki/notes.txt"));
-    assert!(report.moved.is_empty() && report.warnings.len() == 1, "{report:?}");
+    assert!(has(&dir, "100.PERSONAL/03.Toki/98.Toki/notes.txt"));
+    assert_eq!(report.moved.len(), 1, "{report:?}");
+    assert!(report.warnings.is_empty(), "{report:?}");
 }
 
 #[test]
-fn subfolders_are_never_moved_and_the_tree_is_not_saved() {
+fn subfolders_are_never_moved_and_a_second_run_changes_nothing() {
     let dir = fixture("intake-subfolder");
     dir.mkdir("100.PERSONAL/03.Toki/loose-folder");
+    run(dir.path()).unwrap();
     let before = yaml(dir.path());
     let report = run(dir.path()).unwrap();
     assert!(dir.path().join("100.PERSONAL/03.Toki/loose-folder").is_dir());

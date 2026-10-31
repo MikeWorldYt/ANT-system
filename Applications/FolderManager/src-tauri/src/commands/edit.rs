@@ -127,6 +127,16 @@ pub async fn add_node(app: AppHandle, rel_parts: Vec<String>, kind: NewKind) -> 
 }
 
 #[tauri::command]
+pub async fn add_child(app: AppHandle, rel_parts: Vec<String>, kind: NewKind) -> R<Mutation> {
+    let emitter = app.clone();
+    run_locked(app, move |root| {
+        let result = mutations::add_node(root, &rel_parts, kind);
+        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn move_node(app: AppHandle, rel_parts: Vec<String>, direction: MoveDirection) -> R<Mutation> {
     let emitter = app.clone();
     run_locked(app, move |root| {
@@ -141,6 +151,21 @@ pub async fn move_folder(app: AppHandle, source: Vec<String>, destination: Vec<S
     let emitter = app.clone();
     run_locked(app, move |root| {
         let result = mutations::move_folder(root, &source, &destination, copy);
+        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn preview_invalid(app: AppHandle, rows: Vec<mutations::Pending>) -> R<Vec<String>> {
+    run_locked(app, move |root| mutations::preview_names(root, &rows)).await
+}
+
+#[tauri::command]
+pub async fn resolve_invalid(app: AppHandle, rel_parts: Vec<String>, resolution: mutations::Resolution) -> R<Mutation> {
+    let emitter = app.clone();
+    run_locked(app, move |root| {
+        let result = mutations::resolve_invalid(root, &rel_parts, resolution);
         with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
     })
     .await

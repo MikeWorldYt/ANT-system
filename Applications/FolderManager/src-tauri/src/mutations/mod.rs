@@ -10,6 +10,7 @@ mod recycle;
 mod rename;
 mod reorder;
 mod result;
+mod resolve;
 mod retype;
 #[cfg(not(windows))]
 mod unix_trash;
@@ -29,22 +30,23 @@ use crate::index::footprint::{self, Copies};
 use crate::tree::tree_node::{is_reserved, TreeNode, TreeSnapshot};
 use crate::tree::tree_store::{self, get_node, get_type, is_locked_type};
 
-pub use add::add_next;
+pub use add::{add_next, add_node};
 pub use copy_answer::{answer_copy, CopyAnswer};
 pub use delete::{delete_node, inspect_delete, DeletePreview};
 pub use favorite::set_favorite;
 pub use file_drop::{drop_files, DropOutcome};
 pub(crate) use file_drop::free_name;
-pub use move_folder::move_folder;
+pub use move_folder::{move_folder, move_to_review};
 pub use user_flags::set_user_flag;
 pub use recycle::{recover_trashed, recycle_staged, PendingRecycle};
 pub use rename::rename_node;
 pub use reorder::{move_node, MoveDirection};
 pub use result::LevelPatch;
 pub(crate) use result::finish;
+pub use resolve::{preview_names, resolve_invalid, Pending, Resolution};
 pub use retype::{set_details, set_node_type};
 #[cfg(test)]
-pub(crate) use {add::add_node, recycle::recycle_staged_with};
+pub(crate) use recycle::recycle_staged_with;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

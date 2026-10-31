@@ -6,6 +6,7 @@ import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
 import { nameCell } from "./name-cell";
+import { fromToggle, nodeToggle } from "./node-toggle";
 import { toggleExpand } from "../actions/ops";
 import { keyOf, select, startEdit, state, visibleRows } from "../store/state";
 import type { TreeNode } from "../ipc/types";
@@ -25,7 +26,9 @@ export function createTreeView(): ViewMode {
     const key = keyOf(n.relParts);
     const expanded = state.expanded.has(key);
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(n.hasChildren ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
-    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, caret, folderIcon(n, expanded && n.hasChildren), nameCell(n));
+    const icon = folderIcon(n, expanded && n.hasChildren);
+    const toggle = n.hasChildren ? nodeToggle(`${expanded ? "Collapse" : "Expand"} ${n.name}`, expanded, caret, icon) : null;
+    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, ...(toggle ? [toggle] : [caret, icon]), nameCell(n));
     row.style.setProperty("--depth", String(n.depth));
     row.dataset.key = key;
     row.setAttribute("aria-selected", String(key === state.selectedKey));
@@ -41,18 +44,23 @@ export function createTreeView(): ViewMode {
     if (n.ghost) row.setAttribute("aria-label", `${n.name} (missing on disk)`);
     if (n.status) row.append(statusMark(n.status));
     row.title = nodeSummary(n);
-    caret.addEventListener("click", (ev) => {
-      ev.stopPropagation();
+    toggle?.addEventListener("click", () => {
       select(n.relParts);
       void toggleExpand(n);
     });
-    row.addEventListener("click", () => select(n.relParts));
-    row.addEventListener("dblclick", () => startEdit(n.relParts));
+    row.addEventListener("click", (ev) => {
+      if (!fromToggle(ev)) select(n.relParts);
+    });
+    row.addEventListener("dblclick", (ev) => {
+      if (!fromToggle(ev)) startEdit(n.relParts);
+    });
     row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, tree));
     return row;
   }
 
   function onKey(ev: KeyboardEvent): void {
+    // Modified arrows belong to the global shortcuts (Ctrl+Right, Alt+Down, Alt+Up).
+    if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
     const i = indexOfSelected();
     const n = rows[i];
     const open = n !== undefined && state.expanded.has(keyOf(n.relParts));

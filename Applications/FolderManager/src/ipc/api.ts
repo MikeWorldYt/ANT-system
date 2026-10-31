@@ -11,6 +11,8 @@ import type {
   MoveDirection,
   NewKind,
   Mutation,
+  Resolution,
+  RootCheck,
   StorageInfo,
   TreeNode,
   TreeSnapshot,
@@ -30,6 +32,11 @@ export const getStorage = () => call<StorageInfo>("get_storage");
 export const loadTree = () => call<TreeSnapshot>("load_tree");
 export const refresh = () => call<TreeSnapshot>("refresh");
 export const runIntake = () => call<IntakeReport>("run_intake");
+export const acknowledgeIntake = (relParts: string[]) => call<void>("acknowledge_intake", { relParts });
+export const checkRoot = () => call<RootCheck>("check_root");
+export const previewInvalid = (rows: { relParts: string[]; resolution: Resolution }[]) => call<string[]>("preview_invalid", { rows });
+export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
+  call<Mutation>("resolve_invalid", { relParts, resolution });
 export const listChildren = (relParts: string[]) => call<TreeNode[]>("list_children", { relParts });
 export const renameNode = (relParts: string[], newEditable: string) =>
   call<Mutation>("rename_node", { relParts, newEditable });
@@ -77,6 +84,7 @@ export const openDevtools = () => call<void>("open_devtools");
 export const setNodeDetails = (relParts: string[], status: WkbStatus | null, owner: string | null) =>
   call<Mutation>("set_node_details", { relParts, status, owner });
 export const addNode = (relParts: string[], kind: NewKind) => call<Mutation>("add_node", { relParts, kind });
+export const addChild = (relParts: string[], kind: NewKind) => call<Mutation>("add_child", { relParts, kind });
 export const moveNode = (relParts: string[], direction: MoveDirection) =>
   call<Mutation>("move_node", { relParts, direction });
 export const dropFiles = (target: string[], paths: string[]) => call<DropOutcome>("drop_files", { target, paths });

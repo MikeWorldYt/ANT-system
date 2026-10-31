@@ -12,9 +12,12 @@ use serde_yaml::Mapping;
 
 use crate::ant_core::names::list_subdirs;
 use crate::ant_core::tree_types::child_entries;
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, Journal, StorageLock};
-use crate::mutations::{child_rel, load_synced};
+use crate::config::DATA_DIR;
+use crate::error::R;
+use crate::fs_safe::{io_err, join_rel, Journal, StorageLock};
+use crate::index::review_folders;
+use crate::mutations::{child_rel, free_name, load_synced};
+use crate::storage::db::hide;
 use rules::{is_root_exempt_file, is_skipped_file, rule, Rule};
 pub(crate) use rules::{node_type, review_child};
 
@@ -23,7 +26,17 @@ pub(crate) use rules::{node_type, review_child};
 pub struct IntakeReport {
     pub moved: Vec<Moved>,
     pub loose: Vec<LooseFile>,
+    pub waiting: Vec<WaitingNode>,
     pub warnings: Vec<String>,
+}
+
+// A node the app has never marked, with loose files in it: its files move only once the user says so.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WaitingNode {
+    pub node: String,
+    pub rel_parts: Vec<String>,
+    pub files: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -42,8 +55,9 @@ pub struct LooseFile {
     pub file: String,
 }
 
-// The tree is only read: intake moves files, never folders, so nothing in it changes.
+// Intake moves files, never folders; the only folder it makes is a missing 98.* review folder, so every node has one to take files.
 pub fn run(root: &Path) -> R<IntakeReport> {
+    review_folders::restore(root)?;
     let _lock = StorageLock::acquire(root)?;
     let (data, _) = load_synced(root)?;
     let mut report = IntakeReport::default();
@@ -59,13 +73,37 @@ fn walk(dir: &Path, node: &Mapping, rel: &[String], report: &mut IntakeReport) -
         Rule::Keep => {}
         Rule::Loose => report_loose(dir, rel, report)?,
         Rule::Review(review) => {
-            let review = review.filter(|r| subdirs.iter().any(|d| d == r));
-            move_to_review(dir, rel, review, report)?;
+            let files = waiting_files(dir, rel, node)?;
+            if files > 0 {
+                report.waiting.push(WaitingNode { node: rel.join("/"), rel_parts: rel.to_vec(), files });
+            } else {
+                let review = review.filter(|r| subdirs.iter().any(|d| d == r));
+                move_to_review(dir, rel, review, report)?;
+            }
         }
     }
     // Tree entries missing on disk are ghosts and hold no files.
     for (name, child) in child_entries(node).filter(|(name, _)| subdirs.iter().any(|d| d == name)) {
         walk(&dir.join(name), child, &child_rel(rel, name), report)?;
+    }
+    Ok(())
+}
+
+// Zero unless the node is one the app has not marked yet and has loose files; footprint leaves such a node unmarked until the user answers.
+pub(crate) fn waiting_files(dir: &Path, rel: &[String], node: &Mapping) -> R<usize> {
+    if !matches!(rule(rel, node), Rule::Review(_)) || dir.join(DATA_DIR).exists() {
+        return Ok(0);
+    }
+    Ok(direct_files(dir)?.len())
+}
+
+// The user let intake take a node's loose files; the marker folder lets footprint track the node like the others.
+pub fn acknowledge(root: &Path, rel: &[String]) -> R<()> {
+    let _lock = StorageLock::acquire(root)?;
+    let dir = join_rel(root, rel).join(DATA_DIR);
+    if !dir.is_dir() {
+        fs::create_dir(&dir).map_err(|e| io_err("create info folder", &dir, &e))?;
+        hide(&dir);
     }
     Ok(())
 }
@@ -103,12 +141,16 @@ fn move_to_review(dir: &Path, rel: &[String], review: Option<&str>, report: &mut
     let mut journal = Journal::new();
     let mut count = 0;
     for file in files {
-        let shown = file.to_string_lossy();
-        match journal.rename(&dir.join(&file), &target.join(&file)) {
-            Ok(()) => count += 1,
-            Err(FmError::AlreadyExists { .. }) => {
-                report.warnings.push(format!("{node}/{shown}: {review} already has a file with this name, left in place"));
+        let shown = file.to_string_lossy().into_owned();
+        let landing = match free_name(&target, &shown, &[]) {
+            Ok(name) => name,
+            Err(e) => {
+                report.warnings.push(format!("{node}/{shown}: not moved, {e}"));
+                continue;
             }
+        };
+        match journal.rename(&dir.join(&file), &target.join(&landing)) {
+            Ok(()) => count += 1,
             // A file still being copied in stays locked, so it is reported and the other files still move.
             Err(e) => report.warnings.push(format!("{node}/{shown}: not moved, {e}")),
         }

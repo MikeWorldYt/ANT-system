@@ -2,7 +2,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::ant_core::tree_types::type_base;
-use crate::config::{is_hidden_dir, SETTINGS_FOLDER};
+use crate::config::{is_hidden_dir, SETTINGS_FOLDER, WKB_IDENTIFIERS};
 use crate::error::R;
 use crate::fs_safe::{io_err, FORBIDDEN};
 
@@ -11,6 +11,8 @@ const LAST_SLOT: u32 = 89;
 const FIRST_MAIN_ID: u32 = 100;
 const LAST_MAIN_ID: u32 = 800;
 const MAIN_ID_STEP: u32 = 100;
+const FIRST_SYSTEM_ID: u32 = 900;
+const LAST_SYSTEM_ID: u32 = 999;
 
 pub fn numeric_id(name: &str) -> Option<u32> {
     let digits_len = name.bytes().take_while(|b| b.is_ascii_digit()).count();
@@ -36,6 +38,38 @@ pub fn next_main_category_id(siblings: &[String]) -> u32 {
         .step_by(MAIN_ID_STEP as usize)
         .find(|id| !siblings.iter().any(|name| numeric_id(name) == Some(*id)))
         .unwrap_or(LAST_MAIN_ID)
+}
+
+pub fn is_main_category(name: &str) -> bool {
+    numeric_id(name).is_some_and(|id| (FIRST_MAIN_ID..=LAST_MAIN_ID).contains(&id) && id % MAIN_ID_STEP == 0)
+}
+
+// The 9xx range at the root belongs to the app (998.Review, 999.Settings).
+pub fn is_system_root_name(name: &str) -> bool {
+    numeric_id(name).is_some_and(|id| (FIRST_SYSTEM_ID..=LAST_SYSTEM_ID).contains(&id))
+}
+
+pub fn is_valid_root_name(name: &str) -> bool {
+    is_main_category(name) || is_system_root_name(name)
+}
+
+// Nodes below the root open with a two-digit id ("01.Math"); "00" is not one.
+pub fn has_node_id(name: &str) -> bool {
+    let b = name.as_bytes();
+    b.len() >= 3 && b[0].is_ascii_digit() && b[1].is_ascii_digit() && b[2] == b'.' && &name[..2] != "00"
+}
+
+pub fn is_workboard_name(name: &str) -> bool {
+    WKB_IDENTIFIERS.iter().any(|tracker| name.starts_with(tracker))
+}
+
+// The root takes only category or app ids; deeper folders take a node id or a workboard tracker.
+pub fn has_valid_id(rel: &[String]) -> bool {
+    match rel {
+        [name] => is_valid_root_name(name),
+        [.., name] => has_node_id(name) || is_workboard_name(name),
+        [] => false,
+    }
 }
 
 pub fn is_movable_node(name: &str, node_type: &str) -> bool {
@@ -163,6 +197,18 @@ mod tests {
     fn next_available_id_falls_back_when_all_slots_full() {
         let full: Vec<String> = (1..=89).map(|i| format!("{i:02}.X")).collect();
         assert_eq!(next_available_id(&full), 89);
+    }
+
+    #[test]
+    fn root_names_need_a_hundred_step_category_or_the_system_range() {
+        for valid in ["100.ACADEMIC", "200.WORK", "800.X", "998.Review", "999.Settings", "900.Sys"] {
+            assert!(is_valid_root_name(valid), "{valid}");
+        }
+        for invalid in ["Marcos", "New Folder", "574.Notes", "000.Zero", "050.Half", "100", "1000.Big", "01.Math"] {
+            assert!(!is_valid_root_name(invalid), "{invalid}");
+        }
+        assert!(is_main_category("300.HOME"));
+        assert!(!is_main_category("998.Review"));
     }
 
     #[test]

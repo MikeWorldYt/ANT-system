@@ -1,6 +1,6 @@
 // Every global keyboard shortcut in one table, so adding or changing one never means hunting through the views.
 import { selectedNode, state, type KeyCombo } from "../store/state";
-import { addNext, remove } from "./ops";
+import { addNext, move, remove, setFavorite } from "./ops";
 import { pasteHere } from "./paste-target";
 import { putOnClipboard } from "./folder-share";
 
@@ -10,6 +10,8 @@ export interface ShortcutTargets {
   openSettings(): void;
   goUp(): void;
   openSelected(): void;
+  toggleSidePanel(): void;
+  editDetails(): void;
 }
 
 interface Binding extends KeyCombo {
@@ -28,17 +30,22 @@ export const EDITABLE_SHORTCUTS: { id: string; label: string; combo: KeyCombo }[
   { id: "newWorkboard", label: "New Workboard", combo: { code: "KeyN", mod: true, alt: true } },
   { id: "openSettings", label: "Open Settings", combo: { code: "Comma", mod: true, alt: false } },
   { id: "goUp", label: "Go up one level", combo: { code: "ArrowUp", mod: false, alt: true } },
-  { id: "paste", label: "Paste files", combo: { code: "KeyV", mod: true, alt: false } },
-  { id: "copyFolder", label: "Copy folder", combo: { code: "KeyC", mod: true, alt: false } },
-  { id: "cutFolder", label: "Cut folder", combo: { code: "KeyX", mod: true, alt: false } },
+  { id: "toggleSidePanel", label: "Collapse/Expand side panel", combo: { code: "ArrowRight", mod: true, alt: false } },
+  { id: "moveDown", label: "Move down", combo: { code: "ArrowDown", mod: false, alt: true } },
+  { id: "toggleFavorite", label: "Add/remove to favorite", combo: { code: "KeyD", mod: true, alt: false } },
+  { id: "editDetails", label: "Edit details", combo: { code: "KeyE", mod: true, alt: false } },
 ];
 
-const NOT_IN_FIELDS = new Set(["paste", "copyFolder", "cutFolder"]);
+const NOT_IN_FIELDS = new Set(["toggleSidePanel", "moveDown", "toggleFavorite", "editDetails"]);
 
 // The folder views own these keys, so the settings page never offers them.
 const FIXED_SHORTCUTS: KeyCombo[] = [
   { code: "Delete", mod: false, alt: false },
   { code: "Enter", mod: false, alt: false },
+  { code: "KeyO", mod: true, alt: false },
+  { code: "KeyV", mod: true, alt: false },
+  { code: "KeyC", mod: true, alt: false },
+  { code: "KeyX", mod: true, alt: false },
 ];
 
 export const comboOf = (id: string): KeyCombo =>
@@ -52,7 +59,7 @@ export function conflictWith(combo: KeyCombo, exceptId: string): string | null {
   return EDITABLE_SHORTCUTS.find((s) => s.id !== exceptId && same(comboOf(s.id), combo))?.label ?? null;
 }
 
-const isField = (t: EventTarget | null) =>
+export const isField = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
 
 const onViews = (t: EventTarget | null) => t === document.body || (t instanceof Element && t.closest(".tree-host") !== null);
@@ -68,14 +75,16 @@ function bindings(go: ShortcutTargets): Binding[] {
     ...go,
     newNode: withSelected((n) => n.actions.addNext && void addNext(n, "node")),
     newWorkboard: withSelected((n) => n.actions.addNext && n.relParts.length > 1 && void addNext(n, "workboard")),
-    paste: pasteHere,
-    copyFolder: withSelected((n) => void putOnClipboard(n, false)),
-    cutFolder: withSelected((n) => void putOnClipboard(n, true)),
+    moveDown: withSelected((n) => n.actions.moveDown && !state.busy && void move(n, "down")),
+    toggleFavorite: withSelected((n) => n.actions.favorite && void setFavorite(n, !n.favorite)),
   };
   return [
     ...EDITABLE_SHORTCUTS.map((s) => ({ ...comboOf(s.id), plain: false, inFields: !NOT_IN_FIELDS.has(s.id), run: runs[s.id]! })),
     { code: "Delete", mod: false, alt: false, plain: true, inFields: false, run: withSelected((n) => n.actions.delete && void remove(n)) },
-    { code: "Enter", mod: false, alt: false, plain: true, inFields: false, run: go.openSelected },
+    { code: "KeyO", mod: true, alt: false, plain: false, inFields: false, run: go.openSelected },
+    { code: "KeyV", mod: true, alt: false, plain: false, inFields: false, run: pasteHere },
+    { code: "KeyC", mod: true, alt: false, plain: false, inFields: false, run: withSelected((n) => void putOnClipboard(n, false)) },
+    { code: "KeyX", mod: true, alt: false, plain: false, inFields: false, run: withSelected((n) => void putOnClipboard(n, true)) },
   ];
 }
 
