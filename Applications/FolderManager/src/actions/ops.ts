@@ -6,7 +6,8 @@ import { beginOperationStatus, clearStatus, endOperationStatus, setStatus } from
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { dropNotice, type Notice } from "./drop-summary";
-import { applySettings, findNode, hydrate, keyOf, lastSelection, notify, patchLevels, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, state, type Settings } from "../store/state";
+import { applySettings, findNode, hydrate, keyOf, lastSelection, listed, notify, patchLevels, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
+import { sortedForColumns } from "../store/sort";
 import { isFmError } from "../ipc/types";
 import type { Copied, EditableType, LevelPatch, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
@@ -256,6 +257,16 @@ export const moveFolder = (source: string[], destination: string[], copy: boolea
     `${copy ? "Copying" : "Moving"} "${source[source.length - 1]}" to "${destination[destination.length - 1]}"…`,
   );
 
+// The folder after it in its column as the user sees it, else the one before; null when it is the only one shown.
+function nearestSibling(node: TreeNode): string[] | null {
+  const parent = node.relParts.slice(0, -1);
+  const level = parent.length > 0 ? (findNode(parent)?.children ?? []) : (state.tree?.nodes ?? []);
+  const shown = sortedForColumns(listed(level), sortOf(keyOf(parent)), state.settings.pinFavorites);
+  const at = shown.findIndex((n) => n.name === node.name);
+  if (at < 0) return null;
+  return (shown[at + 1] ?? shown[at - 1])?.relParts ?? null;
+}
+
 export const remove =(node: TreeNode) =>
   run(async () => {
     const preview = await api.inspectDelete(node.relParts);
@@ -265,7 +276,8 @@ export const remove =(node: TreeNode) =>
       if (!(await warningConfirmDialog("Delete folder", [`"${node.name}" ${what} to the Recycle Bin`], "Delete", "danger"))) return;
     }
     beginOperationStatus(`Deleting "${node.name}"…`);
+    const sibling = nearestSibling(node);
     const m = await api.deleteNode(node.relParts, preview.ghost, nonEmpty);
     const parent = node.relParts.slice(0, -1);
-    await applyMutation(m, parent.length > 0 ? parent : null);
+    await applyMutation(m, sibling ?? (parent.length > 0 ? parent : null));
   }, "Waiting for user decision…");
