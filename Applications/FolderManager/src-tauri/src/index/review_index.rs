@@ -7,9 +7,12 @@ use serde_yaml::{Mapping, Value};
 use crate::ant_core::shortcuts::{create_shortcuts, review_shortcut_name};
 use crate::ant_core::tree_types::child_entries;
 use crate::config::REVIEW_FOLDER;
+use crate::error::R;
 use crate::fs_safe::{is_link, join_rel};
 use crate::ant_core::names::editable_part;
 use crate::tree::depth;
+use crate::tree::tree_node::is_reserved;
+use crate::storage::info::{field_of, read_info};
 use crate::tree::tree_store::{get_node, is_locked_type};
 
 pub fn rebuild(root: &Path, data: &Mapping) -> Vec<String> {
@@ -57,9 +60,71 @@ pub(super) fn review_dir(root: &Path) -> Result<Option<PathBuf>, String> {
     }
 }
 
-pub(super) fn rev_folder(root: &Path, owner: &[String]) -> PathBuf {
+pub(crate) fn rev_folder(root: &Path, owner: &[String]) -> PathBuf {
     let editable = owner.last().map_or("", |name| editable_part(name));
     join_rel(root, owner).join(format!("98.{editable}"))
+}
+
+// The links 998.Review lists: each existing shortcut with the owner it opens.
+pub(crate) fn links(root: &Path, data: &Mapping) -> R<Vec<(String, Vec<String>)>> {
+    let review = match review_dir(root) {
+        Ok(Some(dir)) => dir,
+        // A linked 998.Review is reported by the index rebuild, so the listing shows nothing.
+        Ok(None) | Err(_) => return Ok(Vec::new()),
+    };
+    let limit = depth::limit(root)?;
+    let mut found = Vec::new();
+    owners(data, &[], &mut found, limit);
+    let mut links = Vec::new();
+    for owner in found {
+        if is_reserved(&owner[..1]) {
+            continue;
+        }
+        let link = review_shortcut_name(&owner, limit)?;
+        if rev_folder(root, &owner).is_dir() && review.join(format!("{link}.lnk")).is_file() {
+            links.push((link, owner));
+        }
+    }
+    Ok(links)
+}
+
+// The owner folder a 998.Review link opens, so files dropped on the link land in its review folder.
+pub(crate) fn linked_owner(root: &Path, data: &Mapping, rel: &[String]) -> R<Option<Vec<String>>> {
+    let [top, name] = rel else { return Ok(None) };
+    if !top.eq_ignore_ascii_case(REVIEW_FOLDER) {
+        return Ok(None);
+    }
+    Ok(links(root, data)?.into_iter().find(|(link, _)| link == name).map(|(_, owner)| owner))
+}
+
+// The review folder a link stands for, which is what opening it shows.
+pub(crate) fn link_folder(root: &Path, data: &Mapping, rel: &[String]) -> R<Option<PathBuf>> {
+    Ok(linked_owner(root, data, rel)?.map(|owner| rev_folder(root, &owner)))
+}
+
+// The review folder's storage path as the details show it, e.g. "200.WORK/03.Toki/98.Toki".
+pub(crate) fn rev_path(owner: &[String]) -> String {
+    let editable = owner.last().map_or("", |name| editable_part(name));
+    let mut parts = owner.to_vec();
+    parts.push(format!("98.{editable}"));
+    parts.join("/")
+}
+
+// One field of the 998.Review filter, kept in that folder's info.json.
+fn filter_field(root: &Path, key: &str) -> Option<String> {
+    read_info(&root.join(REVIEW_FOLDER)).and_then(|info| field_of(&info, &[key]).map(str::to_string))
+}
+
+// The categories the user unchecked in the 998.Review filter.
+pub(crate) fn hidden_categories(root: &Path) -> Vec<String> {
+    filter_field(root, "hidden")
+        .map(|text| text.split(',').map(str::trim).filter(|c| !c.is_empty()).map(str::to_string).collect())
+        .unwrap_or_default()
+}
+
+// Starred links stay listed even when their category is hidden; an unchecked Favorites box turns that off.
+pub(crate) fn favorites_shown(root: &Path) -> bool {
+    filter_field(root, "favorites").as_deref() != Some("off")
 }
 
 // Owners of one branch under the full walk's rules: no locked node on the way and nothing past the depth limit.

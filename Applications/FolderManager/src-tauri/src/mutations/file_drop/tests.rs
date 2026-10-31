@@ -134,6 +134,17 @@ fn a_file_moved_onto_its_own_folder_stays_put() {
 }
 
 #[test]
+fn a_drop_on_a_review_link_lands_in_the_folder_it_opens() {
+    let (dir, src) = fixture("drop-link");
+    dir.mkdir("998.Review");
+    fs::write(dir.path().join("998.Review/103.00.Toki.lnk"), "").unwrap();
+    let out = drop_at(&dir, &src, &["998.Review", "103.00.Toki"], &["notes"], false).unwrap();
+    assert_eq!(out.placed, [placed("notes", &["100.PERSONAL", "03.Toki", "98.Toki"], false)]);
+    assert!(dir.path().join("100.PERSONAL/03.Toki/98.Toki/notes").is_file());
+    assert!(drop_at(&dir, &src, &["998.Review", "999.Gone"], &["report.pdf"], false).is_err());
+}
+
+#[test]
 fn the_tree_gets_the_destination_level_back() {
     let (dir, src) = fixture("drop-tree");
     let mut data = crate::test_support::yaml(dir.path());

@@ -15,6 +15,7 @@ use crate::ant_core::tree_types::child_entries;
 use crate::config::{is_hidden_dir, SETTINGS_FOLDER};
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, resolve, Journal, StorageLock};
+use crate::index::review_index;
 use crate::tree::tree_store::{self, get_node};
 pub(crate) use naming::free_name;
 use target::destination;
@@ -48,6 +49,8 @@ enum Outcome {
 
 pub fn drop_files(root: &Path, target: &[String], paths: &[PathBuf], copy: bool) -> R<DropOutcome> {
     let _lock = StorageLock::acquire(root)?;
+    let owner = review_index::linked_owner(root, &tree_store::load(root)?, target)?;
+    let target = owner.as_deref().unwrap_or(target);
     let (data, synced) = load_synced_at(root, target)?;
     if locate(root, &data, target)?.ghost {
         return Err(FmError::GhostNotAllowed { op: "drop files into".to_string() });
