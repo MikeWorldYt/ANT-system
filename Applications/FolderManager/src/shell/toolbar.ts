@@ -26,11 +26,12 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
 
   // ─────────♦ ADD ────────────────────────────────────────────────────────────────
   const add = iconButton("Add", "add");
+  add.classList.add("nav-add");
   attachMenu(add, "Add", () => {
     const atRoot = selectedNode()?.relParts.length === 1;
     return [
-      { label: atRoot ? "Add main category" : "Add node", run: () => withSelected((n) => void addNext(n, "node")) },
-      ...(!atRoot ? [{ label: "Add workboard", run: () => withSelected((n) => void addNext(n, "workboard")) }] : []),
+      { label: atRoot ? "Add main category" : "New node", run: () => withSelected((n) => void addNext(n, "node")) },
+      ...(!atRoot ? [{ label: "New workboard", run: () => withSelected((n) => void addNext(n, "workboard")) }] : []),
     ];
   });
 

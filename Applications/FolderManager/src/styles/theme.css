@@ -44,6 +44,7 @@ body {
 
 .nav-bar { display: flex; align-items: center; gap: 6px; padding: 12px 12px 10px; }
 .nav-bar .icon-btn { width: 30px; height: 30px; background: transparent; }
+.nav-bar .nav-add { background: var(--accent); color: var(--bg); }
 .search-box { position: relative; width: var(--panel-w); flex: none; transition: width 0.15s ease; }
 .search-box.collapsed { width: 32px; }
 .search-box.collapsed .search-field { gap: 0; padding: 2px 7px; cursor: pointer; }
