@@ -12,9 +12,10 @@ use serde_yaml::Mapping;
 
 use crate::ant_core::names::list_subdirs;
 use crate::ant_core::tree_types::child_entries;
-use crate::error::{FmError, R};
+use crate::error::R;
 use crate::fs_safe::{io_err, Journal, StorageLock};
-use crate::mutations::{child_rel, load_synced};
+use crate::index::review_folders;
+use crate::mutations::{child_rel, free_name, load_synced};
 use rules::{is_root_exempt_file, is_skipped_file, rule, Rule};
 pub(crate) use rules::{node_type, review_child};
 
@@ -42,8 +43,9 @@ pub struct LooseFile {
     pub file: String,
 }
 
-// The tree is only read: intake moves files, never folders, so nothing in it changes.
+// Intake moves files, never folders; the only folder it makes is a missing 98.* review folder, so every node has one to take files.
 pub fn run(root: &Path) -> R<IntakeReport> {
+    review_folders::restore(root)?;
     let _lock = StorageLock::acquire(root)?;
     let (data, _) = load_synced(root)?;
     let mut report = IntakeReport::default();
@@ -103,12 +105,16 @@ fn move_to_review(dir: &Path, rel: &[String], review: Option<&str>, report: &mut
     let mut journal = Journal::new();
     let mut count = 0;
     for file in files {
-        let shown = file.to_string_lossy();
-        match journal.rename(&dir.join(&file), &target.join(&file)) {
-            Ok(()) => count += 1,
-            Err(FmError::AlreadyExists { .. }) => {
-                report.warnings.push(format!("{node}/{shown}: {review} already has a file with this name, left in place"));
+        let shown = file.to_string_lossy().into_owned();
+        let landing = match free_name(&target, &shown, &[]) {
+            Ok(name) => name,
+            Err(e) => {
+                report.warnings.push(format!("{node}/{shown}: not moved, {e}"));
+                continue;
             }
+        };
+        match journal.rename(&dir.join(&file), &target.join(&landing)) {
+            Ok(()) => count += 1,
             // A file still being copied in stays locked, so it is reported and the other files still move.
             Err(e) => report.warnings.push(format!("{node}/{shown}: not moved, {e}")),
         }
