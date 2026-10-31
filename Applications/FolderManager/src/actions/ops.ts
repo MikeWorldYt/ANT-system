@@ -10,7 +10,7 @@ import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, hydrate, keyOf, lastSelection, listed, notify, patchLevels, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
 import { sortedForColumns } from "../store/sort";
 import { isFmError } from "../ipc/types";
-import type { Copied, EditableType, LevelPatch, MoveDirection, Mutation, NewKind, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
+import type { Copied, EditableType, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
   const tree = snapshot ?? (await api.refresh());
@@ -155,7 +155,7 @@ export async function refresh(): Promise<boolean> {
   });
   if (ok) {
     void runIntake();
-    void checkRootFolders(moveToReview);
+    void checkRootFolders(resolveInvalid);
   }
   return ok;
 }
@@ -267,10 +267,10 @@ export const moveFolder = (source: string[], destination: string[], copy: boolea
     `${copy ? "Copying" : "Moving"} "${source[source.length - 1]}" to "${destination[destination.length - 1]}"…`,
   );
 
-export const moveToReview = (name: string, destination: string[]) =>
+export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
   run(
-    async () => applyMutation(await api.moveToReview(name, destination)),
-    `Moving "${name}" to "${destination.join("/")}"…`,
+    async () => applyMutation(await api.resolveInvalid(relParts, resolution)),
+    `Fixing "${relParts[relParts.length - 1]}"…`,
   );
 
 // The folder after it in its column as the user sees it, else the one before; null when it is the only one shown.

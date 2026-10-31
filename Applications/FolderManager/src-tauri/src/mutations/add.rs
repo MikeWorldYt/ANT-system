@@ -58,7 +58,7 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     let new_name = if parent.is_empty() {
         format!("{:03}.NEW-CATEGORY", next_main_category_id(&taken))
     } else if workboard {
-        format!("PJ.{:03}_New-Workboard", next_tracker(&data))
+        format!("PJ.{:03}_New-Workboard", next_tracker(&data, "PJ"))
     } else {
         format!("{:02}.New-Node", next_available_id(&taken))
     };
@@ -105,22 +105,22 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     Ok(finish(root, &data, synced || moved, Some(new_rel.clone()), warnings, vec![new_rel]))
 }
 
-// Next free tracker (3 digits, more once they run out) after every PJ workboard in the tree, missing folders included.
-fn next_tracker(data: &Mapping) -> u32 {
-    fn highest(node: &Mapping) -> u32 {
+// Next free id of a tracker (3 digits, more once they run out) after every workboard of that tracker in the tree, missing folders included.
+pub(super) fn next_tracker(data: &Mapping, tracker: &str) -> u32 {
+    fn highest(node: &Mapping, prefix: &str) -> u32 {
         child_entries(node)
             .map(|(name, child)| {
-                let own = name.strip_prefix("PJ.").map(|r| r.split(|c: char| !c.is_ascii_digit()).next().unwrap_or("")).and_then(|d| d.parse().ok()).unwrap_or(0);
-                own.max(highest(child))
+                let own = name.strip_prefix(prefix).map(|r| r.split(|c: char| !c.is_ascii_digit()).next().unwrap_or("")).and_then(|d| d.parse().ok()).unwrap_or(0);
+                own.max(highest(child, prefix))
             })
             .max()
             .unwrap_or(0)
     }
-    highest(data) + 1
+    highest(data, &format!("{tracker}.")) + 1
 }
 
 // Every created folder gets a .ant folder, which is what lets its id follow it around; workboards also start their info.json.
-fn mark_folder(folder: &Path, workboard: bool, parent: &str) -> R<()> {
+pub(super) fn mark_folder(folder: &Path, workboard: bool, parent: &str) -> R<()> {
     if workboard {
         return write_info(
             folder,
@@ -212,7 +212,7 @@ mod tests {
         let data = serde_yaml::from_str("PJ.999_Full: {type: WKB-L1}
 PJ.1000_Next: {type: WKB-L1}
 ").unwrap();
-        assert_eq!(next_tracker(&data), 1001);
+        assert_eq!(next_tracker(&data, "PJ"), 1001);
         std::fs::create_dir(dir.path().join("100.ACADEMIC/PJ.999_Full")).unwrap();
         let m = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
         assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "PJ.1000_New-Workboard"])));

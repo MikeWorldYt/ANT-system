@@ -5,10 +5,9 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::names::sanitize_train_case;
+use crate::ant_core::names::{has_node_id, is_workboard_name, sanitize_train_case};
 use crate::ant_core::tree_types::type_base;
 use crate::backup::stamp::local_date;
-use crate::config::WKB_IDENTIFIERS;
 use crate::debug_log::logs_dir;
 use crate::error::R;
 use crate::fs_safe::{io_err, Journal, StorageLock};
@@ -55,7 +54,7 @@ fn walk(dir: &Path, node: &mut Mapping, rel: &mut Vec<String>, limit: usize, jou
     let names: Vec<String> = node.iter().filter(|(_, v)| v.is_mapping()).filter_map(|(k, _)| k.as_str().map(str::to_string)).collect();
     for name in names {
         let level = rel.len() + 1;
-        if level >= 2 && is_workboard(&name) {
+        if level >= 2 && is_workboard_name(&name) {
             tidy_workboard(dir, node, rel, &name, journal, renames)?;
             continue;
         }
@@ -109,21 +108,12 @@ fn rename_entry(dir: &Path, node: &mut Mapping, rel: &[String], old: &str, new: 
 
 // "10.Math" stays, "Unit01.Math" becomes "01.Math": letters in front of a two-digit id are noise.
 fn trimmed(name: &str) -> Option<String> {
-    if has_id(name) {
+    if has_node_id(name) {
         return None;
     }
     let at = name.find(|c: char| !c.is_alphabetic())?;
     let rest = &name[at..];
-    (at > 0 && has_id(rest)).then(|| rest.to_string())
-}
-
-fn has_id(name: &str) -> bool {
-    let b = name.as_bytes();
-    b.len() >= 3 && b[0].is_ascii_digit() && b[1].is_ascii_digit() && b[2] == b'.' && &name[..2] != "00"
-}
-
-fn is_workboard(name: &str) -> bool {
-    WKB_IDENTIFIERS.iter().any(|tracker| name.starts_with(tracker))
+    (at > 0 && has_node_id(rest)).then(|| rest.to_string())
 }
 
 // "PJ.111_(23-05MAY-04) Large [c011]_presentation" becomes "PJ.111_Presentation" with its metadata; None leaves the name for the user.

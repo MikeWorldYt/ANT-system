@@ -1,50 +1,59 @@
-// Level-1 folders must use the category format; each stray one is announced and can be moved into a review folder.
+// Folders outside the id format are announced on every check and settled in one dialog.
 import * as api from "../ipc/api";
-import { choiceDialog, selectDialog } from "../ui/dialogs";
+import { invalidDialog, type Decision } from "../ui/invalid-dialog";
 import { notifyDesktop } from "../ui/desktop-notify";
 import { currentOperationStatus, setStatus } from "../ui/status";
 import { state } from "../store/state";
 import { folderMoveActive } from "./folder-move";
+import type { InvalidFolder, Resolution } from "../ipc/types";
 
-type MoveToReview = (name: string, destination: string[]) => Promise<boolean>;
-
-const TITLE = "Invalid directory found";
+type ResolveInvalid = (relParts: string[], resolution: Resolution) => Promise<unknown>;
 
 let checking = false;
 
 const dialogOpen = () => document.querySelector("dialog[open]") !== null;
 
-async function askAbout(name: string, reviews: string[][], moveToReview: MoveToReview): Promise<void> {
-  const message = `"${name}" is a level-1 folder outside the category format (100, 200, … 800; the 900 range belongs to the system).`;
-  if (reviews.length === 0) {
-    await choiceDialog(TITLE, `${message} No Review folder exists yet.`, [["ignore", "Ignore"]]);
-    return;
-  }
-  const answer = await choiceDialog(TITLE, message, [["ignore", "Ignore"], ["move", "Move to a Review Node"]]);
-  if (answer !== "move") return;
-  const options = reviews.map((parts, i): [string, string] => [String(i), parts.join("/")]);
-  const picked = await selectDialog("Move to a Review Node", `Choose the review folder that takes "${name}".`, options, "Move");
-  const destination = picked === null ? undefined : reviews[Number(picked)];
-  if (destination) await moveToReview(name, destination);
+function resolutionOf(decision: Decision): Resolution | null {
+  if (decision.choice === "review") return decision.destination ? { kind: "review", destination: decision.destination } : null;
+  if (decision.choice === "node") return { kind: "node" };
+  if (decision.choice === "workboard") return { kind: "workboard", tracker: decision.tracker };
+  return null;
 }
 
-export async function checkRootFolders(moveToReview: MoveToReview): Promise<void> {
+export async function checkRootFolders(resolve: ResolveInvalid): Promise<void> {
   // An open dialog or a running drag or operation would stack a second modal; the next focus or refresh checks again.
   if (checking || dialogOpen() || folderMoveActive() || state.busy || currentOperationStatus() !== null) return;
   checking = true;
   try {
-    const { invalid, reviews } = await api.checkRoot();
-    for (const name of invalid) {
+    const { invalid } = await api.checkRoot();
+    if (invalid.length === 0) return;
+    for (const folder of invalid) {
+      await announce(folder);
+    }
+    const decisions = await invalidDialog(invalid, (relParts) => void api.openNode(relParts).catch((e: unknown) => setStatus("warning", api.describeError(e))));
+    // Deepest first, so renaming or moving a parent never changes the path of a row still waiting.
+    const ordered = [...(decisions ?? [])].sort((a, b) => b.relParts.length - a.relParts.length);
+    for (const decision of ordered) {
+      const resolution = resolutionOf(decision);
+      if (!resolution) continue;
       try {
-        await notifyDesktop(`Invalid directory in your Storage found in ${name} (level 1)`);
+        await resolve(decision.relParts, resolution);
       } catch (e) {
-        setStatus("warning", `Notification: ${api.describeError(e)}`);
+        setStatus("warning", api.describeError(e));
       }
-      await askAbout(name, reviews, moveToReview);
     }
   } catch (e) {
     setStatus("warning", `Storage check: ${api.describeError(e)}`);
   } finally {
     checking = false;
+  }
+}
+
+async function announce({ relParts }: InvalidFolder): Promise<void> {
+  const name = relParts[relParts.length - 1] ?? "";
+  try {
+    await notifyDesktop(`Invalid directory in your Storage found in ${name} (level ${relParts.length})`);
+  } catch (e) {
+    setStatus("warning", `Notification: ${api.describeError(e)}`);
   }
 }

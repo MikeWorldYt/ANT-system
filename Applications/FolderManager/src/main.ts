@@ -1,6 +1,7 @@
 // Entry point: assembles the shell and wires store, events and views.
 import "./styles/theme.css";
 import "./styles/themes.css";
+import "./styles/invalid-dialog.css";
 import { describeError } from "./ipc/api";
 import { createColumnsView } from "./views/columns-view";
 import { createGridView } from "./views/grid-view";

@@ -10,6 +10,7 @@ mod recycle;
 mod rename;
 mod reorder;
 mod result;
+mod resolve;
 mod retype;
 #[cfg(not(windows))]
 mod unix_trash;
@@ -42,6 +43,7 @@ pub use rename::rename_node;
 pub use reorder::{move_node, MoveDirection};
 pub use result::LevelPatch;
 pub(crate) use result::finish;
+pub use resolve::{resolve_invalid, Resolution};
 pub use retype::{set_details, set_node_type};
 #[cfg(test)]
 pub(crate) use recycle::recycle_staged_with;

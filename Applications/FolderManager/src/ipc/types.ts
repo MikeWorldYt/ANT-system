@@ -127,10 +127,19 @@ export interface IntakeReport {
   warnings: string[];
 }
 
-export interface RootCheck {
-  invalid: string[];
-  reviews: string[][];
+export interface InvalidFolder {
+  relParts: string[];
+  review: string[][];
 }
+
+export interface RootCheck {
+  invalid: InvalidFolder[];
+}
+
+export type Resolution =
+  | { kind: "review"; destination: string[] }
+  | { kind: "node" }
+  | { kind: "workboard"; tracker: string };
 
 export interface ReviewIndexEvent {
   phase: "started" | "done";
