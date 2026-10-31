@@ -111,7 +111,10 @@ export function createColumnsView(): ViewMode {
     const onPath = index < path.length - 1 ? col.nodes.find((n) => n.name === path[index]) : undefined;
     // The empty area of a column steps back to its row on the selected path.
     column.addEventListener("click", (ev) => {
-      if (onPath && !(ev.target instanceof Element && ev.target.closest(".col-item"))) pick(onPath);
+      if (!onPath || (ev.target instanceof Element && ev.target.closest(".col-item"))) return;
+      pick(onPath);
+      // The column background cannot take focus, so keys go back to the row that now holds it.
+      root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });
     });
     const first = col.nodes[0];
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
