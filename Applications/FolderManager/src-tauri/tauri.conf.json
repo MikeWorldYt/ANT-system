@@ -16,6 +16,7 @@
         "width": 1000,
         "minWidth": 589,
         "height": 640,
+        "minHeight": 260,
         "theme": "Dark"
       }
     ],
