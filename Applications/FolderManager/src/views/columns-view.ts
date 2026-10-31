@@ -5,9 +5,9 @@ import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
 import { columnSortToggle } from "./column-sort";
-import { favoriteMark, nameCell } from "./name-cell";
+import { favoriteMark, hideBox, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
-import { nodeSummary } from "../store/node-info";
+import { hiddenCategories, isReviewRoot, linkCategory, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
 import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
@@ -30,12 +30,16 @@ function buildColumns(opened: string | null): Column[] {
     const open = nodes.find((n) => n.name === path[depth]);
     if (!open || !open.hasChildren) break;
     const key = keyOf(open.relParts);
-    if (key === state.selectedKey && key !== opened) break;
+    // The review folder's list stays open while it is selected, so its filter legend has a column to sit in.
+    if (key === state.selectedKey && key !== opened && !isReviewRoot(open)) break;
     if (open.children === null) {
       cols.push({ nodes: [], loading: true });
       break;
     }
-    if (open.children.length === 0) break;
+    if (open.children.length === 0) {
+      if (isReviewRoot(open)) cols.push({ nodes: [], loading: false });
+      break;
+    }
     nodes = open.children;
   }
   return cols;
@@ -67,7 +71,7 @@ export function createColumnsView(): ViewMode {
     const open = isOpen(n);
     const icon = folderIcon(n, open);
     const lead = n.hasChildren ? nodeToggle(`${open ? "Close" : "Open"} ${n.name}`, open, icon) : icon;
-    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, lead, nameCell(n, false));
+    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), lead, nameCell(n, false, true));
     item.dataset.key = keyOf(n.relParts);
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
@@ -106,6 +110,8 @@ export function createColumnsView(): ViewMode {
     if (col.loading) return el("div", { class: "column loading", "aria-busy": "true" }, "Loading…");
     const column = el("div", { class: "column", role: "listbox", "aria-label": `Contents of ${parent}` });
     const parentNode = parentOf(path, index);
+    // The review list holds long link names, so it gets twice the width of an ordinary column.
+    column.classList.toggle("review-list", parentNode !== null && isReviewRoot(parentNode));
     // The empty area of a column is a drop target for the folder it lists; "" is the storage root.
     column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
     column.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentNode, root));
@@ -119,7 +125,20 @@ export function createColumnsView(): ViewMode {
     });
     const first = col.nodes[0];
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
-    column.append(columnSortToggle(path.slice(0, index).join("/")), ...col.nodes.map((n) => buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey)));
+    // Not an item, so it cannot be selected; it only tells why the review list is empty.
+    const legend = col.nodes.length === 0 && parentNode !== null && isReviewRoot(parentNode) && hiddenCategories(parentNode).length > 0;
+    const rows = col.nodes.flatMap((n, i) => {
+      const prev = col.nodes[i - 1];
+      // Review links are grouped by category, so a change of category gets a line between the groups.
+      const groupStart = prev?.linked && n.linked && linkCategory(prev) !== linkCategory(n);
+      const item = buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey);
+      return groupStart ? [el("div", { class: "col-sep", role: "separator" }), item] : [item];
+    });
+    column.append(
+      columnSortToggle(path.slice(0, index).join("/")),
+      ...rows,
+      ...(legend ? [el("p", { class: "column-legend" }, "No active filters")] : []),
+    );
     return column;
   }
 
@@ -132,6 +151,8 @@ export function createColumnsView(): ViewMode {
   function onKey(ev: KeyboardEvent): void {
     // Modified arrows belong to the global shortcuts (Ctrl+Right, Alt+Down, Alt+Up).
     if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
+    // A focused hide box keeps its own Space.
+    if (ev.target instanceof HTMLInputElement) return;
     const n = selectedNode();
     if (isMenuKey(ev)) {
       if (n) nodeMenuFromKey(root, n, root.querySelector(".col-item.selected"));

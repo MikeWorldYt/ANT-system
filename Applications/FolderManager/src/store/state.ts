@@ -11,6 +11,8 @@ interface State {
   pasteKey: string | null;
   expanded: Set<string>;
   busy: boolean;
+  // Lists every review link so the hidden ones can be selected again, instead of only the shown ones.
+  hidingLinks: boolean;
   editing: { key: string; draft: string; focused: boolean } | null;
   // Order of each column, keyed by its parent's path ("" for the first one); the tree view has its own.
   sorts: Record<string, ColumnSort>;
@@ -79,6 +81,7 @@ export const state: State = {
   pasteKey: null,
   expanded: new Set(),
   busy: false,
+  hidingLinks: false,
   editing: null,
   sorts: readSorts(),
   settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
@@ -112,8 +115,15 @@ export function selectedNode(): TreeNode | null {
   return state.selectedKey === null ? null : findNode(state.selectedKey.split("/"));
 }
 
-export const listed = (nodes: TreeNode[]): TreeNode[] =>
-  state.settings.hideDone ? nodes.filter((n) => n.status !== "done" || inSelectedPath(n)) : nodes;
+export const listed = (nodes: TreeNode[]): TreeNode[] => {
+  const shown = state.hidingLinks ? nodes : nodes.filter((n) => !n.hidden);
+  return state.settings.hideDone ? shown.filter((n) => n.status !== "done" || inSelectedPath(n)) : shown;
+};
+
+export function toggleHidingLinks(): void {
+  state.hidingLinks = !state.hidingLinks;
+  notify();
+}
 
 const inSelectedPath = (n: TreeNode): boolean => {
   const key = keyOf(n.relParts);

@@ -7,7 +7,7 @@ import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
 import { dropNotice, type Notice } from "./drop-summary";
-import { applySettings, findNode, hydrate, keyOf, lastSelection, listed, notify, patchLevels, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
+import { applySettings, findNode, hydrate, keyOf, lastSelection, listed, notify, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
 import { sortedForColumns } from "../store/sort";
 import { isFmError } from "../ipc/types";
 import type { Copied, EditableType, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
@@ -237,6 +237,30 @@ export const setDetails = (node: TreeNode, status: WkbStatus | null, owner: stri
 
 export const setFavorite = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setFavorite(node.relParts, on), node.relParts));
+
+export const setLinkHidden = (node: TreeNode, on: boolean) =>
+  run(async () => applyMutation(await api.setLinkHidden(node.relParts, on), node.relParts));
+
+const REVIEW_PATH = ["998.Review"];
+
+// The review list in the order its column shows it.
+function reviewListing(): string[] {
+  const children = findNode(REVIEW_PATH)?.children ?? [];
+  return sortedForColumns(listed(children), sortOf(keyOf(REVIEW_PATH)), state.settings.pinFavorites).map((n) => keyOf(n.relParts));
+}
+
+export const setReviewFilter = (hidden: string[], favorites: boolean) =>
+  run(async () => {
+    const before = reviewListing();
+    const selected = state.selectedKey;
+    const index = selected === null ? -1 : before.indexOf(selected);
+    await applyMutation(await api.setReviewFilter(hidden, favorites));
+    if (selected === null || selectedNode() !== null) return;
+    // A hidden selection moves to the nearest link still listed, or to the review folder when none is left.
+    const remaining = new Set(reviewListing());
+    const nearest = before.slice(index + 1).find((k) => remaining.has(k)) ?? before.slice(0, Math.max(index, 0)).reverse().find((k) => remaining.has(k));
+    select(nearest ? nearest.split("/") : REVIEW_PATH);
+  });
 
 export const setUserFlag = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setUserFlag(node.relParts, on), node.relParts));

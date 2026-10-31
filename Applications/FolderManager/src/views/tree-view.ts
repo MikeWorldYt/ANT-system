@@ -5,7 +5,7 @@ import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
-import { nameCell } from "./name-cell";
+import { hideBox, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
 import { toggleExpand } from "../actions/ops";
 import { keyOf, select, startEdit, state, visibleRows } from "../store/state";
@@ -28,7 +28,7 @@ export function createTreeView(): ViewMode {
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(n.hasChildren ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
     const icon = folderIcon(n, expanded && n.hasChildren);
     const toggle = n.hasChildren ? nodeToggle(`${expanded ? "Collapse" : "Expand"} ${n.name}`, expanded, caret, icon) : null;
-    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, ...(toggle ? [toggle] : [caret, icon]), nameCell(n));
+    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), nameCell(n, true, true));
     row.style.setProperty("--depth", String(n.depth));
     row.dataset.key = key;
     row.setAttribute("aria-selected", String(key === state.selectedKey));

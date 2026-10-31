@@ -122,8 +122,10 @@ body {
 .details { margin: 4px 0 0; font-size: 9pt; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
 .details dt { color: var(--muted); }
 .details dd { margin: 0; word-break: break-word; }
+.details dd.path { word-break: normal; }
+.details dd.path .seg { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
 .detail-field { display: flex; flex-direction: column; min-width: 0; }
-.detail-field:first-child { grid-column: 1 / -1; }
+.detail-field:first-child, .detail-field:has(> dd.path) { grid-column: 1 / -1; }
 .caret { width: 14px; text-align: center; color: var(--accent); }
 .st-in-progress { --st: var(--st-progress); }
 .st-hold { --st: var(--st-hold); }
@@ -146,6 +148,11 @@ body {
 .details-head .icon-btn { color: var(--title); }
 .side-section { display: flex; flex-direction: column; gap: 2px; padding-top: 10px; border-top: 1px solid var(--border); }
 .side-label { margin: 0 0 4px; font-size: 8pt; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.side-categories { display: flex; flex-direction: column; }
+.side-category { display: flex; align-items: center; gap: 8px; padding: 3px 6px; font-size: 9pt; color: var(--text); cursor: pointer; }
+.side-link { display: block; padding: 3px 6px; font-size: 9pt; color: var(--accent); text-decoration: none; }
+.side-link:hover, .side-link.is-active { text-decoration: underline; }
+.hide-box { flex: none; margin: 0 6px 0 0; accent-color: var(--accent); }
 .details-head { display: flex; align-items: center; justify-content: space-between; }
 .details-head .side-label { margin: 0; }
 .side-action {
@@ -260,6 +267,10 @@ dialog.warning-confirm form { position: relative; }
 .col-sort:focus-visible { outline-offset: -2px; }
 .col-sort .gui-icon { width: 10px; height: 10px; }
 .column.loading { padding: 6px 8px; color: var(--muted); }
+.col-sep { height: 1px; margin: 6px 8px; background: var(--border); }
+.top-link .name-text { color: var(--accent); }
+.column.review-list { width: calc(var(--panel-w) * 2); }
+.column-legend { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; white-space: nowrap; color: var(--muted); font-size: 9pt; }
 .col-item { padding: 3px 8px; }
 .col-item:focus-visible { outline-offset: -2px; }
 .col-item .name { flex: 1; }

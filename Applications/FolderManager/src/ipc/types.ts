@@ -29,6 +29,7 @@ export interface NodeActions {
   favorite: boolean;
   editDetails: boolean;
   editFlags: boolean;
+  hideLink: boolean;
 }
 
 export interface TreeNode {
@@ -42,12 +43,15 @@ export interface TreeNode {
   statusRaw: string | null;
   locked: boolean;
   reserved: boolean;
+  linked: boolean;
+  linkPath: string | null;
   flags: string[];
   hasChildren: boolean;
   isGit: boolean;
   fixedPrefix: string;
   editableName: string;
   favorite: boolean;
+  hidden: boolean;
   info: NodeInfo | null;
   children: TreeNode[] | null;
   absPath: string;

@@ -14,10 +14,16 @@ export const statusLabel = (status: WkbStatus): string => STATUSES.find(([v]) =>
 
 export const UNKNOWN = "unknown";
 export const nameWithoutIdentifier = (n: TreeNode): string => {
+  // A review link's name carries its owner's id slots, so it shows the owner folder's own name instead.
+  if (n.linked && n.linkPath) {
+    const segments = n.linkPath.split("/");
+    return (segments[segments.length - 2] ?? n.name).replace(/^[^.]*\./, "");
+  }
   const isDirectoryIdentifier = /^\d+\.$/.test(n.fixedPrefix) || /^[A-Za-z]+\.\d+_$/.test(n.fixedPrefix);
   return isDirectoryIdentifier ? n.name.slice(n.fixedPrefix.length) : n.name;
 };
-export const displayNodeName = (n: TreeNode): string => (state.settings.hideDirectoryIdentifiers ? nameWithoutIdentifier(n) : n.name);
+// Review links always drop their identifier: their numbers repeat the category's, which reads as noise.
+export const displayNodeName = (n: TreeNode): string => (n.linked || state.settings.hideDirectoryIdentifiers ? nameWithoutIdentifier(n) : n.name);
 const OWNER_KEYS = ["owner", "holder", "client"];
 
 export const isWorkboard = (n: TreeNode) => n.nodeType?.base === "WKB";
@@ -45,8 +51,34 @@ export const typeLabel = (n: TreeNode): string => {
 
 export const nodeSummary = (n: TreeNode): string => typeLabel(n);
 
+export const isReviewRoot = (n: TreeNode) => n.relParts.length === 1 && n.name.toLowerCase() === "998.review";
+export const isMainCategory = (n: TreeNode) => n.depth === 0 && !n.ghost && /^[1-8]00\./.test(n.name);
+
+// A review link's path is its owner's folders plus the 98.* folder, so the owner's level is the segments before it.
+export const linkLevel = (n: TreeNode): number | null => (n.linked && n.linkPath ? n.linkPath.split("/").length - 1 : null);
+export const isTopLink = (n: TreeNode): boolean => linkLevel(n) === 1;
+// One dash per level below the first, so the review list reads as a staircase.
+export const linkDashes = (n: TreeNode): string => "-".repeat(Math.max(0, (linkLevel(n) ?? 1) - 1));
+export const linkCategory = (n: TreeNode): string | null => n.linkPath?.split("/")[0] ?? null;
+
+// The 998.Review filter is stored by the backend as fields of its info.json.
+const filterField = (n: TreeNode, key: string): string | undefined =>
+  n.info?.fields.find((f) => f.key.toLowerCase() === key)?.value;
+
+// Categories the filter hides, as one comma-separated field.
+export const hiddenCategories = (n: TreeNode): string[] =>
+  (filterField(n, "hidden") ?? "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter((c) => c !== "");
+
+// Favorites are on unless the backend stored "off".
+export const favoritesShown = (n: TreeNode): boolean => filterField(n, "favorites") !== "off";
+
 export function nodeDetails(n: TreeNode): [string, string][] {
-  const rows: [string, string][] = [["Name", n.name], ["Type", typeLabel(n)]];
+  const rows: [string, string][] = [["Name", n.name]];
+  if (n.linked) rows.push(["Path", n.linkPath ?? UNKNOWN]);
+  else if (!isReviewRoot(n)) rows.push(["Type", typeLabel(n)]);
   const wkb = isWorkboard(n);
   if (wkb) rows.push(["Status", n.status ? statusLabel(n.status) : UNKNOWN]);
   if (wkb) rows.push(["Owner", ownerOf(n) ?? UNKNOWN]);
@@ -56,6 +88,8 @@ export function nodeDetails(n: TreeNode): [string, string][] {
     if (wkb && (f.key.toLowerCase() === "status" || OWNER_KEYS.includes(f.key.toLowerCase()))) continue;
     // Favorite is toggled from the quick actions, never edited as a field.
     if (f.key.toLowerCase() === "favorite") continue;
+    // The review filter has its own checkboxes, so its stored values are not detail rows.
+    if (isReviewRoot(n) && (f.key.toLowerCase() === "hidden" || f.key.toLowerCase() === "favorites")) continue;
     rows.push([f.key.charAt(0).toUpperCase() + f.key.slice(1), f.value]);
   }
   return rows;

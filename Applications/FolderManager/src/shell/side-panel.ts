@@ -1,11 +1,11 @@
 // Right column: quick actions, details and order of the selected node, collapsible to an icon rail.
 import { el } from "../ui/dom";
 import { iconButton } from "../ui/icon-button";
-import { move, remove, setFavorite } from "../actions/ops";
+import { move, remove, setFavorite, setReviewFilter } from "../actions/ops";
 import { readPref, savePref } from "../store/prefs";
-import { nameWithoutIdentifier } from "../store/node-info";
+import { favoritesShown, hiddenCategories, isMainCategory, isReviewRoot, nameWithoutIdentifier } from "../store/node-info";
 import { quickActionsShown, railLayout, type RailId } from "../store/side-layout";
-import { selectedNode, state } from "../store/state";
+import { selectedNode, state, toggleHidingLinks } from "../store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
 import { openSettings } from "./settings-dialog";
 import { setDisabled, sideAction } from "./side-action";
@@ -64,7 +64,14 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   const order = section("side-order", "Order", up.button, down.button);
   const remover = sideAction("Delete", "trash", del, "danger");
   const foot = el("div", { class: "side-foot" }, remover.button);
-  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, details.element, order, foot);
+  const categories = el("div", { class: "side-categories" });
+  const hideLinks = el("a", { href: "#", class: "side-link" }, "Select elements to hide");
+  hideLinks.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    toggleHidingLinks();
+  });
+  const categoriesSection = section("side-categories", "Filters", categories, hideLinks);
+  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, categoriesSection, details.element, order, foot);
 
   // ─────────♦ COLLAPSED RAIL ───────────────────────────────────────────────────
   const railExpand = iconButton("Expand side panel", "chevronsLeft", () => {
@@ -114,6 +121,33 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     return el("section", { class: "side-section", "aria-labelledby": id }, el("h3", { id, class: "side-label" }, label), ...actions);
   }
 
+  // Rebuilt only when the category set changes, so the box that was clicked keeps its focus.
+  let categoryKey = "";
+  let categoryInputs: HTMLInputElement[] = [];
+  const favoritesInput = el("input", { type: "checkbox" });
+  favoritesInput.addEventListener("change", applyFilters);
+  const favoritesRow = el("label", { class: "side-category" }, favoritesInput, "Favorites");
+
+  function applyFilters(): void {
+    const unchecked = categoryInputs.filter((i) => !i.checked).map((i) => i.value);
+    void setReviewFilter(unchecked, favoritesInput.checked);
+  }
+
+  function syncCategories(reviewRoot: TreeNode): void {
+    const mains = (state.tree?.nodes ?? []).filter(isMainCategory);
+    const names = mains.map((c) => c.name);
+    const hidden = hiddenCategories(reviewRoot);
+    const key = names.join(",");
+    if (key !== categoryKey) {
+      categoryKey = key;
+      categoryInputs = names.map((name) => el("input", { type: "checkbox", value: name }));
+      for (const input of categoryInputs) input.addEventListener("change", applyFilters);
+      categories.replaceChildren(favoritesRow, ...categoryInputs.map((input, i) => el("label", { class: "side-category" }, input, nameWithoutIdentifier(mains[i]))));
+    }
+    favoritesInput.checked = favoritesShown(reviewRoot);
+    for (const input of categoryInputs) input.checked = !hidden.includes(input.value);
+  }
+
   function show(asCollapsed: boolean): void {
     collapsed = asCollapsed;
     panel.hidden = collapsed;
@@ -150,7 +184,16 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     const a = n?.actions;
     const idle = !state.busy;
     title.textContent = n ? nameWithoutIdentifier(n) : "Details";
-    order.hidden = foot.hidden = n === null;
+    // The review root keeps its filter but no details; its links show the same filter above their details.
+    const review = n !== null && isReviewRoot(n);
+    const reviewRoot = state.tree?.nodes.find(isReviewRoot) ?? null;
+    const filtered = review || !!n?.linked;
+    details.element.hidden = review;
+    categoriesSection.hidden = !filtered || reviewRoot === null;
+    if (filtered && reviewRoot) syncCategories(reviewRoot);
+    hideLinks.classList.toggle("is-active", state.hidingLinks);
+    // The review root and its links have no order or delete: their folders are the app's or the owners'.
+    order.hidden = foot.hidden = n === null || review || n.linked;
     quick.hidden = n === null || !quickActionsShown();
     favorite.setLabel(favoriteLabel(n));
     favorite.button.classList.toggle("is-favorite", !!n?.favorite);

@@ -3,7 +3,7 @@ import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "
 import { el } from "../ui/dom";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
-import { favoriteMark, nameCell } from "./name-cell";
+import { favoriteMark, hideBox, nameCell } from "./name-cell";
 import { nodeToggle } from "./node-toggle";
 import { nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
@@ -62,7 +62,7 @@ export function createGridView(): ViewMode {
     art.classList.add("grid-art");
     if (n.favorite) art.append(favoriteMark());
     if (n.status) art.append(statusMark(n.status));
-    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, art, nameCell(n, false));
+    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, nameCell(n, false));
     item.dataset.key = keyOf(n.relParts);
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
