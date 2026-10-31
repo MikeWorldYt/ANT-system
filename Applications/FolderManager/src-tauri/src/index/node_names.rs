@@ -53,6 +53,10 @@ pub fn tidy(root: &Path) -> R<()> {
 fn walk(dir: &Path, node: &mut Mapping, rel: &mut Vec<String>, limit: usize, journal: &mut Journal, renames: &mut Vec<Rename>) -> R<()> {
     let names: Vec<String> = node.iter().filter(|(_, v)| v.is_mapping()).filter_map(|(k, _)| k.as_str().map(str::to_string)).collect();
     for name in names {
+        // A tree entry whose folder is gone has nothing to rename or record; the sync reports it as a ghost.
+        if !dir.join(&name).is_dir() {
+            continue;
+        }
         let level = rel.len() + 1;
         if level >= 2 && is_workboard_name(&name) {
             tidy_workboard(dir, node, rel, &name, journal, renames)?;
@@ -268,6 +272,20 @@ mod tests {
         assert_eq!(workboard("PR.010").unwrap().0, "PR.010");
         assert!(workboard("PJ.1_Short").is_none());
         assert!(workboard("PJ.150x").is_none());
+    }
+
+    #[test]
+    fn tree_entries_whose_folder_is_gone_are_left_alone() {
+        let dir = storage(
+            "node-names-ghosts",
+            &["100.ACADEMIC/02.Keep"],
+            "100.ACADEMIC:\n  type: NODE-L1\n  PJ.002_New-Workboard: {type: WKB-L2}\n  Unit03.Gone: {type: NODE-L2}\n",
+        );
+        tidy(dir.path()).unwrap();
+        let data = yaml(dir.path());
+        assert!(get_node(&data, &rel(&["100.ACADEMIC", "PJ.002_New-Workboard"])).is_some());
+        assert!(get_node(&data, &rel(&["100.ACADEMIC", "Unit03.Gone"])).is_some());
+        assert!(!logs_dir(dir.path()).join(format!("{}_ANT-fm-renamed.log", local_date())).exists());
     }
 
     #[test]
