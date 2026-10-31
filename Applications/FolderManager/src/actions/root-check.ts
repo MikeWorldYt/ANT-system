@@ -30,7 +30,7 @@ export async function checkRootFolders(resolve: ResolveInvalid): Promise<void> {
     for (const folder of invalid) {
       await announce(folder);
     }
-    const decisions = await invalidDialog(invalid, (relParts) => void api.openNode(relParts).catch((e: unknown) => setStatus("warning", api.describeError(e))));
+    const decisions = await invalidDialog(invalid, (relParts) => void api.openNode(relParts).catch((e: unknown) => setStatus("warning", api.describeError(e))), previewNames);
     // Deepest first, so renaming or moving a parent never changes the path of a row still waiting.
     const ordered = [...(decisions ?? [])].sort((a, b) => b.relParts.length - a.relParts.length);
     for (const decision of ordered) {
@@ -46,6 +46,16 @@ export async function checkRootFolders(resolve: ResolveInvalid): Promise<void> {
     setStatus("warning", `Storage check: ${api.describeError(e)}`);
   } finally {
     checking = false;
+  }
+}
+
+// A failed preview keeps the names as they are; the dialog still works, and the error goes to the status line.
+async function previewNames(rows: { relParts: string[]; resolution: Resolution }[]): Promise<(string | null)[]> {
+  try {
+    return await api.previewInvalid(rows);
+  } catch (e) {
+    setStatus("warning", `Preview: ${api.describeError(e)}`);
+    return rows.map(() => null);
   }
 }
 

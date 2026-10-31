@@ -90,6 +90,7 @@ pub fn run() {
             commands::add_child,
             commands::move_node,
             commands::move_folder,
+            commands::preview_invalid,
             commands::resolve_invalid,
             commands::inspect_delete,
             commands::delete_node,

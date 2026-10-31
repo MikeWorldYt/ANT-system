@@ -157,6 +157,11 @@ pub async fn move_folder(app: AppHandle, source: Vec<String>, destination: Vec<S
 }
 
 #[tauri::command]
+pub async fn preview_invalid(app: AppHandle, rows: Vec<mutations::Pending>) -> R<Vec<String>> {
+    run_locked(app, move |root| mutations::preview_names(root, &rows)).await
+}
+
+#[tauri::command]
 pub async fn resolve_invalid(app: AppHandle, rel_parts: Vec<String>, resolution: mutations::Resolution) -> R<Mutation> {
     let emitter = app.clone();
     run_locked(app, move |root| {
