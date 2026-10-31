@@ -42,6 +42,7 @@ const NOT_IN_FIELDS = new Set(["toggleSidePanel", "moveDown", "toggleFavorite", 
 const FIXED_SHORTCUTS: KeyCombo[] = [
   { code: "Delete", mod: false, alt: false },
   { code: "Enter", mod: false, alt: false },
+  { code: "Enter", mod: true, alt: false },
   { code: "KeyV", mod: true, alt: false },
   { code: "KeyC", mod: true, alt: false },
   { code: "KeyX", mod: true, alt: false },
@@ -80,7 +81,7 @@ function bindings(go: ShortcutTargets): Binding[] {
   return [
     ...EDITABLE_SHORTCUTS.map((s) => ({ ...comboOf(s.id), plain: false, inFields: !NOT_IN_FIELDS.has(s.id), run: runs[s.id]! })),
     { code: "Delete", mod: false, alt: false, plain: true, inFields: false, run: withSelected((n) => n.actions.delete && void remove(n)) },
-    { code: "Enter", mod: false, alt: false, plain: true, inFields: false, run: go.openSelected },
+    { code: "Enter", mod: true, alt: false, plain: false, inFields: false, run: go.openSelected },
     { code: "KeyV", mod: true, alt: false, plain: false, inFields: false, run: pasteHere },
     { code: "KeyC", mod: true, alt: false, plain: false, inFields: false, run: withSelected((n) => void putOnClipboard(n, false)) },
     { code: "KeyX", mod: true, alt: false, plain: false, inFields: false, run: withSelected((n) => void putOnClipboard(n, true)) },
