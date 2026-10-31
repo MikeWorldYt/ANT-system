@@ -45,8 +45,12 @@ pub fn is_main_category(name: &str) -> bool {
 }
 
 // The 9xx range at the root belongs to the app (998.Review, 999.Settings).
+pub fn is_system_root_name(name: &str) -> bool {
+    numeric_id(name).is_some_and(|id| (FIRST_SYSTEM_ID..=LAST_SYSTEM_ID).contains(&id))
+}
+
 pub fn is_valid_root_name(name: &str) -> bool {
-    is_main_category(name) || numeric_id(name).is_some_and(|id| (FIRST_SYSTEM_ID..=LAST_SYSTEM_ID).contains(&id))
+    is_main_category(name) || is_system_root_name(name)
 }
 
 // Nodes below the root open with a two-digit id ("01.Math"); "00" is not one.

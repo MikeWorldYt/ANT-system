@@ -13,7 +13,7 @@ use crate::error::R;
 use crate::fs_safe::join_rel;
 use crate::index::footprint::Copied;
 use crate::storage::info::{field_of, read_info, NodeInfo};
-use crate::ant_core::names::{name_parts, is_movable_node, list_subdirs, numeric_id};
+use crate::ant_core::names::{name_parts, is_movable_node, is_system_root_name, list_subdirs, numeric_id};
 use crate::tree::depth;
 use crate::tree::tree_store::{get_node, is_locked_type};
 
@@ -275,10 +275,10 @@ fn is_movable(node: &TreeNode) -> bool {
     !node.ghost && !node.locked && !node.reserved && is_movable_node(&node.name, raw)
 }
 
-// Windows folder names ignore case, so "999.settings" is the same reserved folder.
+// Windows folder names ignore case, so "999.settings" is the same reserved folder; the whole 9xx range is the app's.
 pub(crate) fn is_reserved(rel_parts: &[String]) -> bool {
     matches!(rel_parts, [name]
-        if name.eq_ignore_ascii_case(SETTINGS_FOLDER) || name.eq_ignore_ascii_case(REVIEW_FOLDER))
+        if name.eq_ignore_ascii_case(SETTINGS_FOLDER) || name.eq_ignore_ascii_case(REVIEW_FOLDER) || is_system_root_name(name))
 }
 
 fn parse_type(raw: &str) -> NodeType {

@@ -14,6 +14,7 @@ use crate::fs_safe::{io_err, Journal, StorageLock};
 use crate::mutations::load_synced;
 use crate::storage::info::{field_of, read_info, write_info, OWNER_KEYS};
 use crate::tree::depth;
+use crate::tree::tree_node::is_reserved;
 use crate::tree::tree_store;
 
 struct Rename {
@@ -54,7 +55,7 @@ fn walk(dir: &Path, node: &mut Mapping, rel: &mut Vec<String>, limit: usize, jou
     let names: Vec<String> = node.iter().filter(|(_, v)| v.is_mapping()).filter_map(|(k, _)| k.as_str().map(str::to_string)).collect();
     for name in names {
         // A tree entry whose folder is gone has nothing to rename or record; the sync reports it as a ghost.
-        if !dir.join(&name).is_dir() {
+        if !dir.join(&name).is_dir() || (rel.is_empty() && is_reserved(std::slice::from_ref(&name))) {
             continue;
         }
         let level = rel.len() + 1;
@@ -272,6 +273,14 @@ mod tests {
         assert_eq!(workboard("PR.010").unwrap().0, "PR.010");
         assert!(workboard("PJ.1_Short").is_none());
         assert!(workboard("PJ.150x").is_none());
+    }
+
+    #[test]
+    fn system_folders_at_the_root_are_not_renamed_inside() {
+        let dir = storage("node-names-system", &["999.Settings/Unit01.Keep", "900.Sys/Unit02.Keep"], "");
+        tidy(dir.path()).unwrap();
+        assert!(dir.path().join("999.Settings/Unit01.Keep").is_dir());
+        assert!(dir.path().join("900.Sys/Unit02.Keep").is_dir());
     }
 
     #[test]

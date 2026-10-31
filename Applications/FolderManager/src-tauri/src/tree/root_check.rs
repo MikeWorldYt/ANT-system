@@ -9,6 +9,7 @@ use crate::ant_core::tree_types::type_base;
 use crate::config::TypeBase;
 use crate::error::R;
 use crate::tree::depth;
+use crate::tree::tree_node::is_reserved;
 use crate::tree::tree_store::{self, infer_type};
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -35,6 +36,9 @@ pub fn check_root(root: &Path) -> R<RootCheck> {
 // Only node folders are checked; review, app and workboard folders keep their own names.
 fn walk(root: &Path, dir: &Path, node: Option<&Mapping>, rel: &mut Vec<String>, limit: usize, out: &mut Vec<Invalid>) -> R<()> {
     for name in list_subdirs(dir)? {
+        if rel.is_empty() && is_reserved(std::slice::from_ref(&name)) {
+            continue;
+        }
         let child = node.and_then(|n| n.get(name.as_str())).and_then(Value::as_mapping);
         let kind = child.and_then(|c| c.get("type")).and_then(Value::as_str).map_or_else(|| infer_type(&name, rel.len()), str::to_string);
         if type_base(&kind) != "NODE" {
@@ -101,7 +105,7 @@ mod tests {
     #[test]
     fn a_clean_storage_reports_nothing_and_levels_past_the_database_depth_are_not_read() {
         let dir = TempDir::new("root-check-clean");
-        for d in ["100.WORK/98.WORK", "100.WORK/01.Plain/02.Deep/Inside", "999.Settings", ".ant"] {
+        for d in ["100.WORK/98.WORK", "100.WORK/01.Plain/02.Deep/Inside", "900.Sys/Stray", "999.Settings/00.Core", ".ant"] {
             dir.mkdir(d);
         }
         assert_eq!(check_root(dir.path()).unwrap(), RootCheck { invalid: Vec::new() });
