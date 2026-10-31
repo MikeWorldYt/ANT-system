@@ -157,6 +157,16 @@ pub async fn move_folder(app: AppHandle, source: Vec<String>, destination: Vec<S
 }
 
 #[tauri::command]
+pub async fn move_to_review(app: AppHandle, name: String, destination: Vec<String>) -> R<Mutation> {
+    let emitter = app.clone();
+    run_locked(app, move |root| {
+        let result = mutations::move_to_review(root, &name, &destination);
+        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn inspect_delete(app: AppHandle, rel_parts: Vec<String>) -> R<DeletePreview> {
     run_locked(app, move |root| mutations::inspect_delete(root, &rel_parts)).await
 }

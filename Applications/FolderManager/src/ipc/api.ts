@@ -11,6 +11,7 @@ import type {
   MoveDirection,
   NewKind,
   Mutation,
+  RootCheck,
   StorageInfo,
   TreeNode,
   TreeSnapshot,
@@ -30,6 +31,9 @@ export const getStorage = () => call<StorageInfo>("get_storage");
 export const loadTree = () => call<TreeSnapshot>("load_tree");
 export const refresh = () => call<TreeSnapshot>("refresh");
 export const runIntake = () => call<IntakeReport>("run_intake");
+export const checkRoot = () => call<RootCheck>("check_root");
+export const moveToReview = (name: string, destination: string[]) =>
+  call<Mutation>("move_to_review", { name, destination });
 export const listChildren = (relParts: string[]) => call<TreeNode[]>("list_children", { relParts });
 export const renameNode = (relParts: string[], newEditable: string) =>
   call<Mutation>("rename_node", { relParts, newEditable });

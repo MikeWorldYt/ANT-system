@@ -9,6 +9,7 @@ use crate::error::R;
 use crate::fs_safe::validate_component;
 use crate::index::footprint::Copies;
 use crate::index::{reindex, review_folders, review_index, Emit};
+use crate::tree::root_check::{self, RootCheck};
 use crate::tree::{depth, snapshot};
 use crate::tree::tree_node::{build_children, fill_children, TreeNode, TreeSnapshot};
 use crate::tree::tree_store;
@@ -34,6 +35,11 @@ pub async fn load_tree(app: AppHandle) -> R<TreeSnapshot> {
 pub async fn refresh(app: AppHandle) -> R<TreeSnapshot> {
     let emitter = app.clone();
     run_locked(app, move |root| refresh_flow(root, &review_emitter(&emitter), review_index::rebuild)).await
+}
+
+#[tauri::command]
+pub async fn check_root(app: AppHandle) -> R<RootCheck> {
+    run_locked(app, |root| root_check::check_root(root)).await
 }
 
 #[tauri::command]

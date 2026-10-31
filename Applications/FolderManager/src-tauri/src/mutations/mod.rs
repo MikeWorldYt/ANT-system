@@ -35,7 +35,7 @@ pub use delete::{delete_node, inspect_delete, DeletePreview};
 pub use favorite::set_favorite;
 pub use file_drop::{drop_files, DropOutcome};
 pub(crate) use file_drop::free_name;
-pub use move_folder::move_folder;
+pub use move_folder::{move_folder, move_to_review};
 pub use user_flags::set_user_flag;
 pub use recycle::{recover_trashed, recycle_staged, PendingRecycle};
 pub use rename::rename_node;

@@ -127,6 +127,11 @@ export interface IntakeReport {
   warnings: string[];
 }
 
+export interface RootCheck {
+  invalid: string[];
+  reviews: string[][];
+}
+
 export interface ReviewIndexEvent {
   phase: "started" | "done";
   failures: string[];

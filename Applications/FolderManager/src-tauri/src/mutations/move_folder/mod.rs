@@ -3,6 +3,9 @@ mod copy;
 mod rules;
 #[cfg(test)]
 mod tests;
+mod to_review;
+
+pub use to_review::move_to_review;
 
 use std::path::Path;
 

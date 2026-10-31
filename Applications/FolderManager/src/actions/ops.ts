@@ -5,6 +5,7 @@ import { el } from "../ui/dom";
 import { beginOperationStatus, clearStatus, endOperationStatus, setStatus } from "../ui/status";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
+import { checkRootFolders } from "./root-check";
 import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, hydrate, keyOf, lastSelection, listed, notify, patchLevels, pruneSelection, reveal, select, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
 import { sortedForColumns } from "../store/sort";
@@ -152,7 +153,10 @@ export async function refresh(): Promise<boolean> {
     await reload();
     clearStatus();
   });
-  if (ok) void runIntake();
+  if (ok) {
+    void runIntake();
+    void checkRootFolders(moveToReview);
+  }
   return ok;
 }
 
@@ -261,6 +265,12 @@ export const moveFolder = (source: string[], destination: string[], copy: boolea
   run(
     async () => applyMutation(await api.moveFolder(source, destination, copy)),
     `${copy ? "Copying" : "Moving"} "${source[source.length - 1]}" to "${destination[destination.length - 1]}"…`,
+  );
+
+export const moveToReview = (name: string, destination: string[]) =>
+  run(
+    async () => applyMutation(await api.moveToReview(name, destination)),
+    `Moving "${name}" to "${destination.join("/")}"…`,
   );
 
 // The folder after it in its column as the user sees it, else the one before; null when it is the only one shown.
