@@ -1,4 +1,4 @@
-// Columns view: one column per depth of the selected path, children of the selection in the next one.
+// Columns view: one column per depth of the selected path, children of an opened selection in the next one.
 import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
@@ -18,8 +18,8 @@ interface Column {
   loading: boolean;
 }
 
-// `closed` is the selected folder whose child column the user folded away.
-function buildColumns(closed: string | null): Column[] {
+// `opened` is the selected folder whose child column the user opened; selecting alone shows none.
+function buildColumns(opened: string | null): Column[] {
   const cols: Column[] = [];
   const path = state.selectedKey?.split("/") ?? [];
   let nodes: TreeNode[] = state.tree?.nodes ?? [];
@@ -27,7 +27,9 @@ function buildColumns(closed: string | null): Column[] {
     const shown = sortedForColumns(listed(nodes), sortOf(path.slice(0, depth).join("/")), state.settings.pinFavorites);
     cols.push({ nodes: shown, loading: false });
     const open = nodes.find((n) => n.name === path[depth]);
-    if (!open || !open.hasChildren || keyOf(open.relParts) === closed) break;
+    if (!open || !open.hasChildren) break;
+    const key = keyOf(open.relParts);
+    if (key === state.selectedKey && key !== opened) break;
     if (open.children === null) {
       cols.push({ nodes: [], loading: true });
       break;
@@ -41,22 +43,16 @@ function buildColumns(closed: string | null): Column[] {
 export function createColumnsView(): ViewMode {
   const root = el("div", { class: "columns", role: "group", "aria-label": "Storage columns" });
   const loading = new Set<string>();
-  let closedKey: string | null = null;
+  let openKey: string | null = null;
 
   function isOpen(n: TreeNode): boolean {
     const key = keyOf(n.relParts);
     const sel = state.selectedKey;
-    return n.hasChildren && (sel === key ? closedKey !== key : (sel?.startsWith(`${key}/`) ?? false));
+    return n.hasChildren && (sel === key ? openKey === key : (sel?.startsWith(`${key}/`) ?? false));
   }
 
   function openColumn(n: TreeNode): void {
-    closedKey = null;
-    select(n.relParts);
-  }
-
-  function toggleColumn(n: TreeNode): void {
-    if (!isOpen(n)) return openColumn(n);
-    closedKey = keyOf(n.relParts);
+    openKey = keyOf(n.relParts);
     select(n.relParts);
   }
 
@@ -83,15 +79,13 @@ export function createColumnsView(): ViewMode {
     if (n.status) item.append(statusMark(n.status));
     item.title = nodeSummary(n);
     if (n.hasChildren) {
-      lead.addEventListener("click", () => toggleColumn(n));
+      lead.addEventListener("dblclick", () => openColumn(n));
       const chevron = nodeToggle(`Show contents of ${n.name}`, null, guiIcon("chevronRight"));
       chevron.classList.add("chevron");
-      chevron.addEventListener("click", () => openColumn(n));
+      chevron.addEventListener("dblclick", () => openColumn(n));
       item.append(chevron);
     }
-    item.addEventListener("click", (ev) => {
-      if (!fromToggle(ev)) openColumn(n);
-    });
+    item.addEventListener("click", () => select(n.relParts));
     item.addEventListener("dblclick", (ev) => {
       if (!fromToggle(ev)) startEdit(n.relParts);
     });
@@ -130,7 +124,7 @@ export function createColumnsView(): ViewMode {
       ev.preventDefault();
       return;
     }
-    const cols = buildColumns(closedKey);
+    const cols = buildColumns(openKey);
     const siblings = (n ? cols[n.relParts.length - 1]?.nodes : cols[0]?.nodes) ?? [];
     const i = n ? siblings.indexOf(n) : -1;
     const go = (j: number) => {
@@ -153,9 +147,12 @@ export function createColumnsView(): ViewMode {
       case "ArrowRight":
         if (n?.hasChildren) void enterChildren(n);
         break;
-      case "ArrowLeft":
-        if (n && n.relParts.length > 1) select(n.relParts.slice(0, -1));
+      case "ArrowLeft": {
+        const parent = n && n.relParts.length > 1 ? findNode(n.relParts.slice(0, -1)) : null;
+        // The column just left stays visible beside its folder.
+        if (parent) openColumn(parent);
         break;
+      }
       case "F2":
         if (n) startEdit(n.relParts);
         break;
@@ -163,7 +160,7 @@ export function createColumnsView(): ViewMode {
         go(Math.max(i, 0));
         break;
       case " ":
-        if (n?.hasChildren) toggleColumn(n);
+        if (n?.hasChildren) openColumn(n);
         else go(Math.max(i, 0));
         break;
       default:
@@ -172,12 +169,12 @@ export function createColumnsView(): ViewMode {
     ev.preventDefault();
   }
 
-  // The snapshot only carries the first level, so deeper children are fetched on selection.
+  // The snapshot only carries the first level, so deeper children are fetched when a column opens.
   function loadSelectedChildren(): void {
     const n = selectedNode();
     if (!n || !n.hasChildren || n.children !== null) return;
     const key = keyOf(n.relParts);
-    if (loading.has(key) || key === closedKey) return;
+    if (loading.has(key) || key !== openKey) return;
     loading.add(key);
     void expand(n).finally(() => loading.delete(key));
   }
@@ -188,15 +185,15 @@ export function createColumnsView(): ViewMode {
     mount(host) {
       root.addEventListener("keydown", onKey);
       // Space beside the columns belongs to the deepest one.
-      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentOf(state.selectedKey?.split("/") ?? [], buildColumns(closedKey).length - 1), root));
+      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentOf(state.selectedKey?.split("/") ?? [], buildColumns(openKey).length - 1), root));
       host.append(root);
     },
     render() {
-      // Folding lasts only while that folder stays selected; any other selection opens columns as usual.
-      if (closedKey !== state.selectedKey) closedKey = null;
+      // An opened column lasts only while its folder stays selected; selecting another row closes it.
+      if (openKey !== state.selectedKey) openKey = null;
       const hadFocus = root.contains(document.activeElement);
       const path = state.selectedKey?.split("/") ?? [];
-      root.replaceChildren(...buildColumns(closedKey).map((c, i) => buildColumn(c, i, path, path[i - 1] ?? "storage")));
+      root.replaceChildren(...buildColumns(openKey).map((c, i) => buildColumn(c, i, path, path[i - 1] ?? "storage")));
       root.querySelectorAll(".col-item.on-path, .col-item.selected").forEach((e) => e.scrollIntoView({ block: "nearest", inline: "nearest" }));
       root.lastElementChild?.scrollIntoView({ block: "nearest", inline: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });
