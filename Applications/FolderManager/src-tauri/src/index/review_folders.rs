@@ -25,15 +25,16 @@ pub fn restore(root: &Path) -> R<bool> {
         if !dir.is_dir() {
             continue;
         }
+        let keep = review_name(&data, &owner, &dir, expected);
         let mut review = owner.clone();
-        review.push(expected);
+        review.push(keep.clone());
         let target = join_rel(root, &review);
         if !target.is_dir() {
             fs::create_dir(&target).map_err(|e| io_err("create folder", &target, &e))?;
             changed = true;
         }
         // An entry for a review folder that no longer exists on disk would show as a ghost beside the live one.
-        for stale in stale_reviews(&data, &owner, &dir, &review[review.len() - 1]) {
+        for stale in stale_reviews(&data, &owner, &dir, &keep) {
             changed |= delete_key(&mut data, &owner, &stale);
         }
     }
@@ -58,15 +59,25 @@ fn collect(node: &Mapping, parts: &mut Vec<String>, out: &mut Vec<Vec<String>>, 
     }
 }
 
+// A review folder still under the node's old name after an outside rename is the node's review, so it is kept, not duplicated.
+fn review_name(data: &Mapping, owner: &[String], dir: &Path, expected: String) -> String {
+    if dir.join(&expected).is_dir() {
+        return expected;
+    }
+    let Some(node) = get_node(data, owner) else { return expected };
+    child_entries(node)
+        .find(|(name, child)| name.starts_with("98.") && is_review(child) && dir.join(name).is_dir())
+        .map_or(expected, |(name, _)| name.to_string())
+}
+
+fn is_review(child: &Mapping) -> bool {
+    child.get("type").and_then(Value::as_str).is_some_and(|t| type_base(t) == "REV")
+}
+
 fn stale_reviews(data: &Mapping, owner: &[String], dir: &Path, keep: &str) -> Vec<String> {
     let Some(node) = get_node(data, owner) else { return Vec::new() };
     child_entries(node)
-        .filter(|(name, child)| {
-            *name != keep
-                && name.starts_with("98.")
-                && child.get("type").and_then(Value::as_str).is_some_and(|t| type_base(t) == "REV")
-                && !dir.join(name).is_dir()
-        })
+        .filter(|(name, child)| *name != keep && name.starts_with("98.") && is_review(child) && !dir.join(name).is_dir())
         .map(|(name, _)| name.to_string())
         .collect()
 }
@@ -90,5 +101,18 @@ mod tests {
         assert!(get_node(&data, &["100.ACADEMIC".to_string(), "98.Review".to_string()]).is_none());
         assert!(get_node(&data, &["100.ACADEMIC".to_string(), "01.Math".to_string(), "98.Math".to_string()]).is_some());
         assert!(!restore(dir.path()).unwrap());
+    }
+
+    #[test]
+    fn a_review_folder_left_under_the_old_name_is_adopted_instead_of_duplicated() {
+        let dir = storage(
+            "review-adopt",
+            &["100.ACADEMIC/98.ACADEMIC", "100.ACADEMIC/01.Maths/98.Old"],
+            "100.ACADEMIC:\n  type: NODE-L1\n  98.ACADEMIC: {type: REV-L1}\n  01.Maths: {type: NODE-L2, 98.Old: {type: REV-L3}}\n",
+        );
+        assert!(!restore(dir.path()).unwrap());
+        assert!(!dir.path().join("100.ACADEMIC/01.Maths/98.Maths").exists());
+        assert!(dir.path().join("100.ACADEMIC/01.Maths/98.Old").is_dir());
+        assert!(get_node(&yaml(dir.path()), &["100.ACADEMIC".to_string(), "01.Maths".to_string(), "98.Old".to_string()]).is_some());
     }
 }
