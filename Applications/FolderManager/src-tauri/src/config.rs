@@ -6,6 +6,7 @@ pub const VERSION_URL: &str =
 pub const EXE_DOWNLOAD_URL: &str =
     "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe";
 pub const UPDATER_SCRIPT: &str = "FM_Updater.bat";
+pub const UPDATER_SCRIPT_URL: &str = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Migration/Core/FM_Updater.bat";
 
 pub const SETTINGS_FOLDER: &str = "999.Settings";
 pub const CORE_FOLDER: &str = "00.Core";
