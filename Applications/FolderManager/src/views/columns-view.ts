@@ -108,9 +108,14 @@ export function createColumnsView(): ViewMode {
     // The empty area of a column is a drop target for the folder it lists; "" is the storage root.
     column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
     column.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentNode, root));
+    const onPath = index < path.length - 1 ? col.nodes.find((n) => n.name === path[index]) : undefined;
+    // The empty area of a column steps back to its row on the selected path.
+    column.addEventListener("click", (ev) => {
+      if (onPath && !(ev.target instanceof Element && ev.target.closest(".col-item"))) pick(onPath);
+    });
     const first = col.nodes[0];
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
-    column.append(...col.nodes.map((n) => buildItem(n, n.name === path[index] && index < path.length - 1, keyOf(n.relParts) === tabbableKey)));
+    column.append(...col.nodes.map((n) => buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey)));
     return column;
   }
 
