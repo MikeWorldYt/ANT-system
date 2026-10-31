@@ -4,6 +4,7 @@ import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
+import { columnSortToggle } from "./column-sort";
 import { favoriteMark, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
 import { nodeSummary } from "../store/node-info";
@@ -118,7 +119,7 @@ export function createColumnsView(): ViewMode {
     });
     const first = col.nodes[0];
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
-    column.append(...col.nodes.map((n) => buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey)));
+    column.append(columnSortToggle(path.slice(0, index).join("/")), ...col.nodes.map((n) => buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey)));
     return column;
   }
 

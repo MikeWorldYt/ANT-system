@@ -251,7 +251,14 @@ dialog.warning-confirm form { position: relative; }
 .sort-btn[data-dir="desc"] .gui-icon:last-child { transform: rotate(180deg); }
 
 .columns { display: flex; height: 100%; overflow-x: auto; overflow-y: hidden; }
-.column { flex: none; width: var(--panel-w); height: 100%; overflow-y: auto; border-right: 1px solid var(--border); padding: 12px 0; }
+.column { position: relative; flex: none; width: var(--panel-w); height: 100%; overflow-y: auto; border-right: 1px solid var(--border); padding: 12px 0; }
+.col-sort {
+  position: absolute; top: 0; left: 50%; display: flex; align-items: center; justify-content: center; width: 24px; height: 12px;
+  padding: 0; transform: translateX(-50%); color: var(--muted); background: transparent; border: 0; border-radius: var(--radius-sm); cursor: pointer;
+}
+.col-sort:hover { color: var(--text); }
+.col-sort:focus-visible { outline-offset: -2px; }
+.col-sort .gui-icon { width: 10px; height: 10px; }
 .column.loading { padding: 6px 8px; color: var(--muted); }
 .col-item { padding: 3px 8px; }
 .col-item:focus-visible { outline-offset: -2px; }
