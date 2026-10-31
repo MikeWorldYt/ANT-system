@@ -11,7 +11,7 @@ import { createSearchBar } from "./shell/search-bar";
 import { onFileDrag, onReviewIndex, onStorageChanged, onWindowFocus } from "./ipc/events";
 import { init, refresh } from "./actions/ops";
 import { handleFileDrag } from "./actions/file-drop";
-import { installShortcuts } from "./actions/shortcuts";
+import { installShortcuts, isField } from "./actions/shortcuts";
 import { trackPasteTarget } from "./actions/paste-target";
 import { installDragOut } from "./actions/drag-out";
 import { installFolderMove } from "./actions/folder-move";
@@ -96,7 +96,11 @@ onReviewIndex((e) => {
     else clearStatus();
   }
 }).catch((e) => setStatus("warning", `Review index updates unavailable: ${describeError(e)}`));
-onWindowFocus(() => void refresh()).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
+onWindowFocus(() => {
+  void refresh();
+  // Keys go back to the view unless the user is typing or a dialog holds the focus.
+  if (!isField(document.activeElement) && !document.querySelector("dialog[open]")) views.current().focus();
+}).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
 
 // Watcher batches can arrive while a refresh runs; one pending rerun covers them all.
 let refreshing = false;

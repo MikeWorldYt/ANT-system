@@ -59,7 +59,7 @@ export function conflictWith(combo: KeyCombo, exceptId: string): string | null {
   return EDITABLE_SHORTCUTS.find((s) => s.id !== exceptId && same(comboOf(s.id), combo))?.label ?? null;
 }
 
-const isField = (t: EventTarget | null) =>
+export const isField = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
 
 const onViews = (t: EventTarget | null) => t === document.body || (t instanceof Element && t.closest(".tree-host") !== null);
