@@ -292,6 +292,7 @@ dialog.warning-confirm form { position: relative; }
 /* Room on the left of the node menu for an icon, kept free on rows without one so the labels line up. */
 .ctx-node > .ctx-item, .ctx-node > .ctx-sub > .ctx-item { padding-left: 34px; }
 .ctx-node > .ctx-item > .gui-icon { position: absolute; left: 10px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); }
+.ctx-node > .ctx-item.ctx-favorite-add > .gui-icon { color: var(--st-progress); }
 .ctx-item {
   display: block; position: relative; width: 100%; padding: 6px 14px; border: 0; background: transparent;
   color: var(--text); font: inherit; text-align: left; cursor: pointer;

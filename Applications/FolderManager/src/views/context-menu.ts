@@ -92,6 +92,7 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     void setFavorite(node, !node.favorite);
   });
   favorite.prepend(guiIcon("starred"));
+  favorite.classList.toggle("ctx-favorite-add", !node.favorite);
   const rename = menuItem("Rename", "menuitem", a.rename, () => {
     close(false);
     startEdit(node.relParts);
