@@ -289,6 +289,9 @@ dialog.warning-confirm form { position: relative; }
   box-shadow: var(--shadow-pop);
 }
 .ctx-node, .ctx-node .ctx-flyout { border-radius: 3px; }
+/* Room on the left of the node menu for an icon, kept free on rows without one so the labels line up. */
+.ctx-node > .ctx-item, .ctx-node > .ctx-sub > .ctx-item { padding-left: 34px; }
+.ctx-node > .ctx-item > .gui-icon { position: absolute; left: 10px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); }
 .ctx-item {
   display: block; position: relative; width: 100%; padding: 6px 14px; border: 0; background: transparent;
   color: var(--text); font: inherit; text-align: left; cursor: pointer;
@@ -303,8 +306,8 @@ dialog.warning-confirm form { position: relative; }
 .ctx-sub-trigger[aria-expanded="true"] { background: var(--highlight); }
 .ctx-sub-trigger .gui-icon { width: 12px; height: 12px; color: var(--disabled-text); }
 .ctx-item[aria-checked="true"]::before { content: "✓"; position: absolute; left: 12px; color: var(--accent); }
-.ctx-menu:not(.ctx-node, .ctx-flyout) .ctx-item[aria-checked="true"]:not(.ctx-status)::before { content: "●"; left: 13px; top: 50%; font-size: 8pt; transform: translateY(-50%); }
-.ctx-menu:not(.ctx-node, .ctx-flyout) .ctx-item[aria-checked="true"]:not(.ctx-status) { background: var(--highlight); }
+.ctx-menu:not(.ctx-node) .ctx-item[aria-checked="true"]:not(.ctx-status)::before { content: "●"; left: 13px; top: 50%; font-size: 8pt; transform: translateY(-50%); }
+.ctx-menu:not(.ctx-node) .ctx-item[aria-checked="true"]:not(.ctx-status) { background: var(--highlight); }
 .ctx-item.ctx-status { display: flex; align-items: center; gap: 8px; padding-left: 10px; }
 .ctx-status .gui-icon { width: 16px; height: 16px; flex: none; }
 .ctx-status[aria-checked="true"]::before { content: none; }

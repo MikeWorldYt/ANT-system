@@ -91,6 +91,7 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     close();
     void setFavorite(node, !node.favorite);
   });
+  favorite.prepend(guiIcon("starred"));
   const rename = menuItem("Rename", "menuitem", a.rename, () => {
     close(false);
     startEdit(node.relParts);
@@ -136,6 +137,7 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     close();
     void remove(node);
   }, "ctx-item danger");
+  del.prepend(guiIcon("trash"));
 
   const extras = menuItems().map((m) =>
     menuItem(m.label, "menuitem", true, () => {
