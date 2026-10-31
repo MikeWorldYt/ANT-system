@@ -134,11 +134,11 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   });
   const subs: Submenu[] = [submenu("Change type", typeChoices, a.changeType)];
   if (node.nodeType?.base === "WKB") subs.push(submenu("Change status", statusChoices, a.editDetails));
-  const newNode = menuItem("New node", "menuitem", a.addNext, () => {
+  const newNode = menuItem("New node", "menuitem", a.addChild, () => {
     close();
     void addChild(node, "node");
   });
-  const newWorkboard = menuItem("New workboard", "menuitem", a.addNext && node.relParts.length > 1, () => {
+  const newWorkboard = menuItem("New workboard", "menuitem", a.addChild && node.relParts.length > 1, () => {
     close();
     void addChild(node, "workboard");
   });

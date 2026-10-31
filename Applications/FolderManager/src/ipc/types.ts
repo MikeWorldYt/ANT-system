@@ -20,6 +20,7 @@ export interface NodeActions {
   rename: boolean;
   changeType: boolean;
   addNext: boolean;
+  addChild: boolean;
   moveUp: boolean;
   moveDown: boolean;
   delete: boolean;

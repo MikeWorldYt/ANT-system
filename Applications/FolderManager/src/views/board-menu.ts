@@ -46,7 +46,7 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
     close();
     void refresh();
   });
-  const canAdd = node.actions.addNext && idle;
+  const canAdd = node.actions.addChild && idle;
   const newNode = menuItem("New node", "menuitem", canAdd, () => {
     close();
     void addChild(node, "node");

@@ -31,6 +31,7 @@ pub struct NodeActions {
     pub rename: bool,
     pub change_type: bool,
     pub add_next: bool,
+    pub add_child: bool,
     pub move_up: bool,
     pub move_down: bool,
     pub delete: bool,
@@ -232,6 +233,8 @@ fn compute_actions(depth: usize, limit: usize, ghost: bool, raw_type: &str, rese
         change_type: !frozen && in_tree,
         // Main categories can create another Level 1 category; deeper nodes create siblings as usual.
         add_next: !ghost && !reserved && in_tree,
+        // Mirrors add_node: the new child sits one level below this node and must stay inside the limit.
+        add_child: !ghost && !frozen && depth + 1 < limit,
         move_up: false,
         move_down: false,
         delete: !reserved && (ghost || !locked),
@@ -402,7 +405,7 @@ mod tests {
         let ghost_rev = find(&kids, "03.GhostRev");
         assert!(ghost_rev.locked && ghost_rev.ghost);
         let a = &ghost_rev.actions;
-        assert!(a.delete && !a.rename && !a.change_type && !a.copy_path);
+        assert!(a.delete && !a.rename && !a.change_type && !a.copy_path && !a.add_child);
         assert!(!a.move_up && !a.move_down);
     }
 
@@ -424,7 +427,7 @@ mod tests {
         alpha.insert("98.Real".into(), serde_yaml::from_str("type: REV-L2").unwrap());
         let kids = build_children(dir.path(), &data, &rel(&["01.Alpha"])).unwrap();
         let a = &find(&kids, "98.Real").actions;
-        assert!(!a.delete && !a.rename && !a.change_type && a.copy_path);
+        assert!(!a.delete && !a.rename && !a.change_type && !a.add_child && a.copy_path);
     }
 
     #[test]
@@ -435,7 +438,7 @@ mod tests {
             let node = find(&tree.nodes, name);
             assert!(node.reserved, "{name}");
             let a = &node.actions;
-            assert!(!a.rename && !a.change_type && !a.add_next, "{name}");
+            assert!(!a.rename && !a.change_type && !a.add_next && !a.add_child, "{name}");
             assert!(!a.move_up && !a.move_down && !a.delete && a.copy_path, "{name}");
         }
         let nested: Mapping = serde_yaml::from_str("01.Alpha:\n  999.Settings:\n    type: NODE-L2\n").unwrap();
@@ -495,11 +498,11 @@ mod tests {
         )
         .unwrap();
         let top = build_children(dir.path(), &data, &[]).unwrap();
-        assert!(top[0].actions.add_next);
+        assert!(top[0].actions.add_next && top[0].actions.add_child);
         let l2 = build_children(dir.path(), &data, &rel(&["01.A"])).unwrap();
-        assert!(l2[0].actions.add_next);
+        assert!(l2[0].actions.add_next && l2[0].actions.add_child);
         let l3 = build_children(dir.path(), &data, &rel(&["01.A", "01.B"])).unwrap();
-        assert!(l3[0].actions.add_next);
+        assert!(l3[0].actions.add_next && !l3[0].actions.add_child);
     }
 
     #[test]
@@ -583,7 +586,7 @@ mod tests {
         let (dir, data) = fixture();
         let tree = build_tree(dir.path(), &data, false).unwrap();
         let text = serde_yaml::to_string(&tree).unwrap();
-        for key in ["yamlChanged", "relParts", "inYaml", "hasChildren", "absPath", "changeType", "copyPath", "editDetails"] {
+        for key in ["yamlChanged", "relParts", "inYaml", "hasChildren", "absPath", "changeType", "copyPath", "editDetails", "addChild"] {
             assert!(text.contains(key), "{key}");
         }
     }
