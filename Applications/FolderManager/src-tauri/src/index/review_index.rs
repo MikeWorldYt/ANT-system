@@ -37,7 +37,7 @@ pub(crate) fn rebuild_with(
     for owner in &found {
         let rev_abs = rev_folder(root, owner);
         if rev_abs.is_dir() {
-            match review_shortcut_name(owner, "") {
+            match review_shortcut_name(owner, limit) {
                 Ok(link) => pairs.push((rev_abs, review_dir.join(link))),
                 Err(e) => failures.push(e.to_string()),
             }
@@ -202,7 +202,7 @@ mod tests {
         let a = dir.path().join("100.ACADEMIC");
         let expected = vec![
             (a.join("98.ACADEMIC"), review.join("100.ACADEMIC")),
-            (a.join("01.Math/98.Math"), review.join("101.Math")),
+            (a.join("01.Math/98.Math"), review.join("101.00.Math")),
             (a.join("01.Math/PJ.Thesis/98.Thesis"), review.join("101.PJ.Thesis")),
         ];
         assert_eq!(seen, expected);
@@ -264,6 +264,6 @@ mod tests {
         let failures = rebuild(dir.path(), &yaml(dir.path()));
         assert!(failures.is_empty(), "{failures:?}");
         assert!(dir.path().join("998.Review/100.AÑO.lnk").is_file());
-        assert!(dir.path().join("998.Review/101.Café.lnk").is_file());
+        assert!(dir.path().join("998.Review/101.00.Café.lnk").is_file());
     }
 }
