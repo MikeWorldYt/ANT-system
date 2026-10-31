@@ -52,6 +52,7 @@ export interface TreeNode {
   editableName: string;
   favorite: boolean;
   hidden: boolean;
+  file: boolean;
   info: NodeInfo | null;
   children: TreeNode[] | null;
   absPath: string;

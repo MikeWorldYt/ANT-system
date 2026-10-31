@@ -1,5 +1,5 @@
 // Tree view: indented expandable rows with keyboard navigation.
-import { nodeSummary } from "../store/node-info";
+import { isReviewFolder, nodeSummary } from "../store/node-info";
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
@@ -58,6 +58,14 @@ export function createTreeView(): ViewMode {
     return row;
   }
 
+  // An opened review folder with nothing in it gets a line under its row, so the row does not look unfinished.
+  function emptyLegend(n: TreeNode): HTMLElement[] {
+    if (!isReviewFolder(n) || n.children?.length !== 0 || !state.expanded.has(keyOf(n.relParts))) return [];
+    const legend = el("div", { class: "tree-legend" }, "Empty");
+    legend.style.setProperty("--depth", String(n.depth + 1));
+    return [legend];
+  }
+
   function onKey(ev: KeyboardEvent): void {
     // Modified arrows belong to the global shortcuts (Ctrl+Right, Alt+Down, Alt+Up).
     if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
@@ -111,7 +119,7 @@ export function createTreeView(): ViewMode {
     },
     render() {
       rows = visibleRows();
-      tree.replaceChildren(...rows.map(buildRow));
+      tree.replaceChildren(...rows.flatMap((n, i) => [buildRow(n, i), ...emptyLegend(n)]));
       const i = indexOfSelected();
       if (i >= 0) {
         tree.setAttribute("aria-activedescendant", `row-${i}`);

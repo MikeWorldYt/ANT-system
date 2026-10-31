@@ -33,7 +33,8 @@ pub fn update_paths(root: &Path, subtrees: &[&TreeNode], paths: &[Vec<String>]) 
 
 fn collect(nodes: &[TreeNode], docs: &mut Vec<Doc>) {
     for node in nodes {
-        if node.reserved {
+        // Files are shown from disk only, so the database never holds them.
+        if node.reserved || node.file {
             continue;
         }
         let mut fields = vec![("name".to_string(), node.name.clone())];

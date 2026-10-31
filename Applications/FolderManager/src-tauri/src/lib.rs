@@ -10,6 +10,7 @@ mod fs_safe;
 mod index;
 mod intake;
 mod mutations;
+mod preview;
 mod scheduler;
 mod storage;
 mod sync;
@@ -98,6 +99,7 @@ pub fn run() {
             commands::set_node_details,
             commands::set_favorite,
             commands::set_link_hidden,
+            commands::file_image,
             commands::set_review_filter,
             commands::answer_copy,
             commands::set_user_flag,

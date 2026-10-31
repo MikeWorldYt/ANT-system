@@ -2,10 +2,11 @@
 import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { el } from "../ui/dom";
 import { folderIcon } from "../ui/icons";
+import { nativeImage } from "../ui/file-images";
 import { statusMark } from "../ui/status-mark";
 import { favoriteMark, hideBox, nameCell } from "./name-cell";
 import { nodeToggle } from "./node-toggle";
-import { nodeSummary } from "../store/node-info";
+import { isReviewFolder, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
 import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
@@ -56,9 +57,16 @@ export function createGridView(): ViewMode {
     select(n.relParts);
   }
 
+  // A file's thumbnail replaces its icon once the shell has drawn it.
+  function previewIcon(n: TreeNode): HTMLElement {
+    const src = nativeImage(n, true);
+    return src ? el("img", { class: "thumb", src, alt: "" }) : folderIcon(n);
+  }
+
   function buildItem(n: TreeNode, tabbable: boolean): HTMLElement {
     const selected = keyOf(n.relParts) === state.selectedKey;
-    const art = n.hasChildren ? nodeToggle(`Open ${n.name}`, null, folderIcon(n)) : el("span", {}, folderIcon(n));
+    const icon = n.file ? previewIcon(n) : folderIcon(n);
+    const art = n.hasChildren ? nodeToggle(`Open ${n.name}`, null, folderIcon(n)) : el("span", {}, icon);
     art.classList.add("grid-art");
     if (n.favorite) art.append(favoriteMark());
     if (n.status) art.append(statusMark(n.status));
@@ -151,7 +159,9 @@ export function createGridView(): ViewMode {
       const hadFocus = root.contains(document.activeElement);
       const nodes = shownNodes();
       const tabbable = nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0];
-      root.replaceChildren(...nodes.map((n) => buildItem(n, n === tabbable)));
+      const open = folderNode();
+      const empty = nodes.length === 0 && open !== null && open.children !== null && isReviewFolder(open);
+      root.replaceChildren(...nodes.map((n) => buildItem(n, n === tabbable)), ...(empty ? [el("p", { class: "grid-legend" }, "Empty")] : []));
       root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus({ preventScroll: true });
       loadChildren();

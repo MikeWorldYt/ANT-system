@@ -7,7 +7,7 @@ import { statusMark } from "../ui/status-mark";
 import { columnSortToggle } from "./column-sort";
 import { favoriteMark, hideBox, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
-import { hiddenCategories, isReviewRoot, linkCategory, nodeSummary } from "../store/node-info";
+import { hiddenCategories, isReviewFolder, isReviewRoot, linkCategory, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
 import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
@@ -17,6 +17,13 @@ import type { ViewMode } from "./view-mode";
 interface Column {
   nodes: TreeNode[];
   loading: boolean;
+}
+
+// Why an empty column is empty: a filter hides the review list, or a review folder has no content yet.
+function emptyLegend(parent: TreeNode | null): string | null {
+  if (parent === null) return null;
+  if (isReviewRoot(parent)) return hiddenCategories(parent).length > 0 ? "No active filters" : null;
+  return isReviewFolder(parent) ? "Empty" : null;
 }
 
 // `opened` is the selected folder whose child column the user opened; selecting alone shows none.
@@ -37,7 +44,7 @@ function buildColumns(opened: string | null): Column[] {
       break;
     }
     if (open.children.length === 0) {
-      if (isReviewRoot(open)) cols.push({ nodes: [], loading: false });
+      if (isReviewRoot(open) || isReviewFolder(open)) cols.push({ nodes: [], loading: false });
       break;
     }
     nodes = open.children;
@@ -126,7 +133,7 @@ export function createColumnsView(): ViewMode {
     const first = col.nodes[0];
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
     // Not an item, so it cannot be selected; it only tells why the review list is empty.
-    const legend = col.nodes.length === 0 && parentNode !== null && isReviewRoot(parentNode) && hiddenCategories(parentNode).length > 0;
+    const legend = col.nodes.length === 0 ? emptyLegend(parentNode) : null;
     const rows = col.nodes.flatMap((n, i) => {
       const prev = col.nodes[i - 1];
       // Review links are grouped by category, so a change of category gets a line between the groups.
@@ -137,7 +144,7 @@ export function createColumnsView(): ViewMode {
     column.append(
       columnSortToggle(path.slice(0, index).join("/")),
       ...rows,
-      ...(legend ? [el("p", { class: "column-legend" }, "No active filters")] : []),
+      ...(legend ? [el("p", { class: "column-legend" }, legend)] : []),
     );
     return column;
   }

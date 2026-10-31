@@ -1,5 +1,6 @@
 // Tree rows sent to the UI: disk folders merged with tree entries, plus the per-node action rules.
 use std::collections::BTreeSet;
+use std::fs;
 use std::path::Path;
 
 use serde::Serialize;
@@ -10,13 +11,13 @@ use crate::config::{
     LINK_FAVORITES_FILENAME, LINK_HIDDEN_FILENAME, LINKED_PREFIXES, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::error::R;
-use crate::fs_safe::join_rel;
+use crate::fs_safe::{io_err, join_rel};
 use crate::index::footprint::Copied;
 use crate::index::{link_list, review_index};
 use crate::storage::info::{field_of, read_info, NodeInfo};
 use crate::ant_core::names::{name_parts, is_movable_node, is_system_root_name, list_subdirs, numeric_id};
 use crate::tree::depth;
-use crate::tree::tree_store::{get_node, is_locked_type};
+use crate::tree::tree_store::{get_node, get_type, is_locked_type};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -66,6 +67,7 @@ pub struct TreeNode {
     pub editable_name: String,
     pub favorite: bool,
     pub hidden: bool,
+    pub file: bool,
     pub info: Option<NodeInfo>,
     pub children: Option<Vec<TreeNode>>,
     pub abs_path: String,
@@ -88,6 +90,7 @@ struct Entry {
     link: Option<Vec<String>>,
     favorite: bool,
     hidden: bool,
+    file: bool,
 }
 
 pub fn build_tree(root: &Path, data: &Mapping, yaml_changed: bool) -> R<TreeSnapshot> {
@@ -109,8 +112,14 @@ pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<(
 
 fn children_at(root: &Path, data: &Mapping, parent: &[String], limit: usize) -> R<Vec<TreeNode>> {
     let mut nodes = Vec::new();
+    // A review folder at the depth limit shows its files only, as it did before it listed any content.
+    let past_limit_review = parent.len() >= limit && type_base(&get_type(data, parent)) == "REV";
     for entry in level_entries(root, data, parent)? {
-        nodes.push(make_node(root, data, parent, entry, limit)?);
+        if entry.file {
+            nodes.push(file_node(root, parent, entry.name));
+        } else if !past_limit_review {
+            nodes.push(make_node(root, data, parent, entry, limit)?);
+        }
     }
     mark_moves(&mut nodes);
     Ok(nodes)
@@ -160,12 +169,20 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
                 let kept_as_heading = owner.len() == 1 && starred_categories.contains(&owner[0]);
                 (kept_as_favorite || kept_as_heading || !hidden.contains(&owner[0])) && !names.contains(name.as_str())
             })
-            .map(|(name, owner)| Entry { favorite: starred.contains(&name), hidden: hidden_links.contains(&name), name, on_disk: true, in_yaml: false, link: Some(owner) })
+            .map(|(name, owner)| Entry { favorite: starred.contains(&name), hidden: hidden_links.contains(&name), name, on_disk: true, in_yaml: false, link: Some(owner), file: false })
             .collect()
     } else {
         Vec::new()
     };
 
+    let file_entries: Vec<Entry> = if type_base(&get_type(data, parent)) == "REV" {
+        disk_files(&disk_dir)?
+            .into_iter()
+            .map(|name| Entry { name, on_disk: true, in_yaml: false, link: None, favorite: false, hidden: false, file: true })
+            .collect()
+    } else {
+        Vec::new()
+    };
     let mut entries: Vec<Entry> = names
         .into_iter()
         .map(|name| Entry {
@@ -175,9 +192,11 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
             link: None,
             favorite: false,
             hidden: false,
+            file: false,
         })
         .filter(|e| !(e.on_disk && !e.in_yaml && is_linked_folder(&e.name)))
         .chain(link_entries)
+        .chain(file_entries)
         .collect();
     entries.sort_by_cached_key(|e| (is_tail(&e.name), natural_key(&e.name)));
     Ok(entries)
@@ -204,6 +223,71 @@ fn is_linked_folder(name: &str) -> bool {
 
 // Any of these inside a folder means it holds a git project.
 const GIT_MARKERS: [&str; 3] = [".git", ".github", ".gitignore"];
+
+// Files are read from disk when their review folder opens; they carry no info, children or actions.
+fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
+    let mut rel_parts = parent.to_vec();
+    rel_parts.push(name.clone());
+    TreeNode {
+        abs_path: join_rel(root, &rel_parts).to_string_lossy().into_owned(),
+        rel_parts,
+        depth: parent.len(),
+        ghost: false,
+        in_yaml: false,
+        node_type: None,
+        status: None,
+        status_raw: None,
+        locked: false,
+        reserved: false,
+        linked: false,
+        link_path: None,
+        flags: Vec::new(),
+        has_children: false,
+        is_git: false,
+        fixed_prefix: String::new(),
+        editable_name: name.clone(),
+        favorite: false,
+        hidden: false,
+        file: true,
+        info: None,
+        children: None,
+        actions: NodeActions {
+            rename: false,
+            change_type: false,
+            add_next: false,
+            add_child: false,
+            move_up: false,
+            move_down: false,
+            delete: false,
+            copy_path: false,
+            open: false,
+            favorite: false,
+            edit_details: false,
+            edit_flags: false,
+            hide_link: false,
+        },
+        name,
+    }
+}
+
+// Review folders also list their files; hidden files and the Windows desktop.ini stay out.
+fn disk_files(dir: &Path) -> R<Vec<String>> {
+    if !dir.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut files = Vec::new();
+    for entry in fs::read_dir(dir).map_err(|e| io_err("read the folder", dir, &e))? {
+        let entry = entry.map_err(|e| io_err("read the folder", dir, &e))?;
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if name.starts_with('.') || name.eq_ignore_ascii_case("desktop.ini") {
+            continue;
+        }
+        if entry.file_type().map_err(|e| io_err("read the folder", dir, &e))?.is_file() {
+            files.push(name);
+        }
+    }
+    Ok(files)
+}
 
 fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit: usize) -> R<TreeNode> {
     let mut rel_parts = parent.to_vec();
@@ -236,7 +320,9 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
     // Folders on the last tree level show no children, so the views offer nothing to open below them.
     // The review root stays a container even when its filter hides every link, so its empty list can say why.
     let review_root = depth == 0 && entry.name.eq_ignore_ascii_case(REVIEW_FOLDER);
-    let has_children = !ghost && (review_root || (!linked && depth + 1 < limit && !level_entries(root, data, &rel_parts)?.is_empty()));
+    // A review folder always opens, even when empty, so its files and the Empty legend can show.
+    let review_folder = !ghost && !linked && type_base(raw_type) == "REV";
+    let has_children = !ghost && (review_root || review_folder || (!linked && depth + 1 < limit && !level_entries(root, data, &rel_parts)?.is_empty()));
     let is_git = !ghost && !linked && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
     let info_broken = info.as_ref().is_some_and(|i| i.error.is_some());
@@ -263,6 +349,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
         editable_name,
         favorite: entry.favorite || info.as_ref().and_then(|i| field_of(i, &["favorite"])).is_some_and(|v| v.eq_ignore_ascii_case("true")),
         hidden: entry.hidden,
+        file: false,
         info,
         children: None,
         abs_path: abs_path.to_string_lossy().into_owned(),
@@ -339,7 +426,7 @@ fn mark_moves(nodes: &mut [TreeNode]) {
 
 fn is_movable(node: &TreeNode) -> bool {
     let raw = node.node_type.as_ref().map_or("", |t| t.raw.as_str());
-    !node.ghost && !node.locked && !node.reserved && !node.linked && is_movable_node(&node.name, raw)
+    !node.file && !node.ghost && !node.locked && !node.reserved && !node.linked && is_movable_node(&node.name, raw)
 }
 
 // Windows folder names ignore case, so "999.settings" is the same reserved folder; the whole 9xx range is the app's.
@@ -366,7 +453,7 @@ pub(crate) fn parse_status(raw: &str) -> Option<WkbStatus> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::TempDir;
+    use crate::test_support::{storage, TempDir};
 
     fn rel(parts: &[&str]) -> Vec<String> {
         parts.iter().map(|s| s.to_string()).collect()
@@ -545,6 +632,24 @@ mod tests {
             assert!(is_reserved(&rel(&[name])), "{name}");
         }
         assert!(!is_reserved(&rel(&["01.A", "998.review"])));
+    }
+
+    #[test]
+    fn review_folders_always_open_and_list_their_files() {
+        let dir = storage("review-files", &["100.A/98.A", "100.A/98.B"], "100.A:\n  98.A:\n    type: REV-L2\n  98.B:\n    type: REV-L2\n");
+        std::fs::write(dir.path().join("100.A/98.A/notes.txt"), "x").unwrap();
+        std::fs::write(dir.path().join("100.A/98.A/.hidden"), "x").unwrap();
+        std::fs::write(dir.path().join("100.A/98.A/desktop.ini"), "x").unwrap();
+        let data = crate::test_support::yaml(dir.path());
+        let folders = build_children(dir.path(), &data, &rel(&["100.A"])).unwrap();
+        let review = folders.iter().find(|n| n.name == "98.A").unwrap();
+        assert!(review.has_children);
+        let files = build_children(dir.path(), &data, &review.rel_parts).unwrap();
+        assert_eq!(names(&files), ["notes.txt"]);
+        assert!(files[0].file && !files[0].has_children && !files[0].actions.rename);
+        let empty = folders.iter().find(|n| n.name == "98.B").unwrap();
+        assert!(empty.has_children);
+        assert!(build_children(dir.path(), &data, &empty.rel_parts).unwrap().is_empty());
     }
 
     #[test]
