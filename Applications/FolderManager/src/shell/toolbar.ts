@@ -14,6 +14,10 @@ export interface ViewPicker {
   onSelect(id: string): void;
 }
 
+export const SORT_KEYS: [SortBy, string][] = [["name", "Name"], ["type", "Type"], ["status", "Status"]];
+const VIEW_ORDER = ["tree", "grid", "columns"];
+export const orderedModes = (views: ViewPicker) => [...views.modes].sort((a, b) => VIEW_ORDER.indexOf(a.id) - VIEW_ORDER.indexOf(b.id));
+
 export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trailing: HTMLElement[]; render(): void } {
   const withSelected = (fn: (n: TreeNode) => void) => {
     const n = selectedNode();
@@ -31,7 +35,6 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
   });
 
   // ─────────♦ SORT AND VIEW ────────────────────────────────────────────────────
-  const SORT_KEYS: [SortBy, string][] = [["name", "Name"], ["type", "Type"], ["status", "Status"]];
   const sortLabel = el("span", {});
   const sortBtn = el("button", { type: "button", class: "view-picker sort-btn" }, sortLabel, guiIcon("up"));
   attachMenu(sortBtn, "Sort by", () => {
@@ -45,10 +48,8 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
   });
 
   const VIEW_ICONS: Record<string, GuiIcon> = { tree: "viewTree", columns: "viewColumns", grid: "viewGrid" };
-  const VIEW_ORDER = ["tree", "grid", "columns"];
   let closeViewPopup: ((restore: boolean) => void) | null = null;
-  const ordered = [...views.modes].sort((a, b) => VIEW_ORDER.indexOf(a.id) - VIEW_ORDER.indexOf(b.id));
-  const modeButtons = ordered.map((m): [string, HTMLButtonElement] => [m.id, iconButton(`${m.label} view`, VIEW_ICONS[m.id] ?? "layout", () => {
+  const modeButtons = orderedModes(views).map((m): [string, HTMLButtonElement] => [m.id, iconButton(`${m.label} view`, VIEW_ICONS[m.id] ?? "layout", () => {
     views.onSelect(m.id);
     closeViewPopup?.(true);
   })]);

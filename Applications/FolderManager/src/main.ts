@@ -19,7 +19,7 @@ import { installFolderMove } from "./actions/folder-move";
 import { createStatusLine, clearStatus, currentOperationStatus, setStatus } from "./ui/status";
 import { rememberSelection, state, subscribe } from "./store/state";
 import { createSidePanel } from "./shell/side-panel";
-import { createToolbar } from "./shell/toolbar";
+import { createToolbar, type ViewPicker } from "./shell/toolbar";
 import { openSettings } from "./shell/settings-dialog";
 import { createTreeView } from "./views/tree-view";
 import { checkForUpdates } from "./actions/updates";
@@ -37,16 +37,15 @@ const views = createViewSwitcher(host, [createTreeView(), createColumnsView(), c
 trackPasteTarget(host);
 installDragOut(host);
 installFolderMove(host);
-const toolbar = createToolbar(
-  {
-    modes: views.modes,
-    active: () => views.current().id,
-    onSelect: (id) => {
-      views.switchTo(id);
-      toolbar.render();
-    },
+const viewPicker: ViewPicker = {
+  modes: views.modes,
+  active: () => views.current().id,
+  onSelect: (id) => {
+    views.switchTo(id);
+    toolbar.render();
   },
-);
+};
+const toolbar = createToolbar(viewPicker);
 const navigator = createNavigator();
 const search = createSearchBar();
 navigator.element.prepend(...toolbar.navLead);
@@ -59,7 +58,7 @@ const openSelected = () => {
 const panel = createSidePanel(openSelected);
 const main = el("main", { class: "app-main" }, host, ...panel.elements);
 app.append(navigator.element, main, createStatusLine());
-installContextMenu(host, () => views.current().focus());
+installContextMenu(host, () => views.current().focus(), viewPicker);
 installShortcuts({
   focusSearch: search.focus,
   editPath: navigator.editPath,
