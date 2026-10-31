@@ -332,12 +332,3 @@ dialog.warning-confirm form { position: relative; }
 @media (prefers-reduced-motion: reduce) {
   .search-box { transition: none; }
 }
-
-@media (max-width: 720px) {
-  .nav-bar { flex-wrap: wrap; }
-  .search-box { width: auto; flex: 1 1 160px; }
-  .search-results { max-width: calc(100vw - 24px); }
-  .search-box.collapsed { flex: none; }
-  .details-panel { position: fixed; inset: 0 0 0 auto; width: min(280px, 90vw); z-index: 800; box-shadow: var(--shadow-pop); }
-  .dialog-buttons { flex-wrap: wrap; }
-}
