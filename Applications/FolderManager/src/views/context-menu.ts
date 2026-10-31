@@ -4,7 +4,7 @@ import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { statusIcon } from "../ui/status-mark";
 import { STATUSES, TYPES } from "../store/node-info";
-import { pasteFiles, remove, setDetails, setFavorite, setType, setUserFlag } from "../actions/ops";
+import { addNext, pasteFiles, remove, setDetails, setFavorite, setType, setUserFlag } from "../actions/ops";
 import { createShortcut, putOnClipboard } from "../actions/folder-share";
 import { select, startEdit } from "../store/state";
 import { setStatus } from "../ui/status";
@@ -134,6 +134,14 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   });
   const subs: Submenu[] = [submenu("Change type", typeChoices, a.changeType)];
   if (node.nodeType?.base === "WKB") subs.push(submenu("Change status", statusChoices, a.editDetails));
+  const newNode = menuItem("New node", "menuitem", a.addNext, () => {
+    close();
+    void addNext(node, "node");
+  });
+  const newWorkboard = menuItem("New workboard", "menuitem", a.addNext && node.relParts.length > 1, () => {
+    close();
+    void addNext(node, "workboard");
+  });
   const del = menuItem("Delete", "menuitem", a.delete, () => {
     close();
     void remove(node);
@@ -148,12 +156,13 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [open, copyPathItem, favorite, rename, copy, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, del, ...extras],
+    items: [open, copyPathItem, favorite, rename, copy, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, del, ...extras],
     subs,
     content: [
       open, copyPathItem, favorite, separator(),
       rename, copy, ...shareItems, separator(),
       ...subs.map((s) => s.element), ...fileItems, separator(),
+      newNode, newWorkboard, separator(),
       del, ...(extras.length > 0 ? [separator(), ...extras] : []),
     ],
   };
