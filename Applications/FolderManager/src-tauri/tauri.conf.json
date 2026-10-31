@@ -14,6 +14,7 @@
       {
         "title": "ANT System Manager",
         "width": 1000,
+        "minWidth": 589,
         "height": 640,
         "theme": "Dark"
       }
