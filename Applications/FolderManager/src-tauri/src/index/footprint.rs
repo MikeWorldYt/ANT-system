@@ -9,8 +9,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{child_entries, flags_in, type_base, META_KEYS};
-use crate::config::{DATA_DIR, DATA_FLAG, FOOTPRINT_FILENAME};
+use crate::ant_core::tree_types::{child_entries, type_base, META_KEYS};
+use crate::config::{DATA_DIR, FOOTPRINT_FILENAME};
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, join_rel, write_atomic};
 use crate::ant_core::names::list_subdirs;
@@ -32,18 +32,12 @@ pub struct Scan {
     known: HashMap<String, String>,
     // Nodes that should have a .ant folder but do not yet.
     unmarked: Vec<String>,
-    // Nodes with the data flag, which get no id unless they already have one.
-    data_paths: HashSet<String>,
 }
 
 impl Scan {
     // Clean means every folder that carries an id has the one the tree remembers for its path.
     pub fn is_clean(&self) -> bool {
-        self.unmarked.is_empty() && self.live.iter().filter(|l| self.tracked(l)).all(|l| l.id.as_ref().is_some_and(|id| self.known.get(id) == Some(&l.rel.join("/"))))
-    }
-
-    fn tracked(&self, l: &Live) -> bool {
-        l.id.is_some() || !self.data_paths.contains(&l.rel.join("/"))
+        self.unmarked.is_empty() && self.live.iter().all(|l| l.id.as_ref().is_some_and(|id| self.known.get(id) == Some(&l.rel.join("/"))))
     }
 }
 
@@ -56,7 +50,6 @@ pub fn scan(root: &Path, data: &Mapping) -> R<Scan> {
         live,
         known: known_ids(&nodes),
         unmarked: unmarked(root, &nodes),
-        data_paths: nodes.iter().filter(|(_, node)| flags_in(node).iter().any(|f| f == DATA_FLAG)).map(|(path, _)| path.clone()).collect(),
     })
 }
 
@@ -74,14 +67,11 @@ fn known_ids(nodes: &[(String, &Mapping)]) -> HashMap<String, String> {
     nodes.iter().filter_map(|(path, node)| Some((node.get("uid").and_then(Value::as_str)?.to_string(), path.clone()))).collect()
 }
 
-// Folders that should carry a .ant folder for their id: nodes and workboards, but not nodes with the data flag.
+// Folders that should carry a .ant folder for their id: nodes, data nodes included, and workboards.
 fn unmarked(root: &Path, nodes: &[(String, &Mapping)]) -> Vec<String> {
     nodes
         .iter()
-        .filter(|(_, node)| {
-            let base = node.get("type").and_then(Value::as_str).map(type_base);
-            matches!(base, Some("NODE" | "WKB")) && !flags_in(node).iter().any(|f| f == DATA_FLAG)
-        })
+        .filter(|(_, node)| matches!(node.get("type").and_then(Value::as_str).map(type_base), Some("NODE" | "WKB")))
         .filter(|(path, _)| {
             let dir = join_rel(root, &rel_of(path));
             dir.is_dir() && !dir.join(DATA_DIR).exists()
@@ -127,7 +117,7 @@ pub fn plan(root: &Path, data: &mut Mapping, mode: Copies) -> R<Plan> {
     let mut nodes = Vec::new();
     visit(data, &mut Vec::new(), &mut nodes);
     create_markers(root, &unmarked(root, &nodes))?;
-    let Scan { live, known, data_paths, .. } = scan(root, data)?;
+    let Scan { live, known, .. } = scan(root, data)?;
     let mut taken: HashSet<String> = known.keys().cloned().chain(live.iter().filter_map(|l| l.id.clone())).collect();
     let mut copies: Vec<Copied> = Vec::new();
     let mut by_id: HashMap<String, Vec<Vec<String>>> = HashMap::new();
@@ -135,9 +125,6 @@ pub fn plan(root: &Path, data: &mut Mapping, mode: Copies) -> R<Plan> {
         let id = match l.id {
             Some(id) => id,
             None => {
-                if data_paths.contains(&l.rel.join("/")) {
-                    continue;
-                }
                 let id = new_id(&taken);
                 replace_id(&join_rel(root, &l.rel), &id)?;
                 taken.insert(id.clone());
@@ -406,14 +393,14 @@ mod tests {
     }
 
     #[test]
-    fn a_refresh_marks_nodes_but_not_data_nodes() {
+    fn a_refresh_marks_data_nodes_too() {
         let dir = TempDir::new("footprint-marks");
         dir.mkdir("100.A/01.Plain");
         dir.mkdir("100.A/02.Data");
         let mut data: Mapping = serde_yaml::from_str("100.A:\n  type: NODE-L1\n  01.Plain: {type: NODE-L2}\n  02.Data: {type: NODE-L2, flags: data}\n").unwrap();
         assert!(plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
         assert!(read_id(&dir.path().join("100.A/01.Plain")).is_some());
-        assert!(!dir.path().join("100.A/02.Data/.ant").exists());
+        assert!(read_id(&dir.path().join("100.A/02.Data")).is_some());
         assert!(scan(dir.path(), &data).unwrap().is_clean());
     }
 
