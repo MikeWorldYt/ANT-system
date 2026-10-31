@@ -42,7 +42,8 @@ pub async fn open_node(app: AppHandle, rel_parts: Vec<String>) -> R<()> {
             Some(dir) => dir,
             None => join_rel(root, &rel_parts),
         };
-        if !dir.is_dir() {
+        // Files open with the system's default app, folders in the file manager.
+        if !dir.exists() {
             return Err(FmError::NotFound { rel_parts });
         }
         launcher(&dir)

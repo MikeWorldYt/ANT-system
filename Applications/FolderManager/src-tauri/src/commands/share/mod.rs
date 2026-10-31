@@ -57,6 +57,30 @@ pub async fn create_shortcut_in(app: AppHandle, target: Vec<String>, folder: Str
     .await
 }
 
+#[tauri::command]
+pub async fn copy_file(app: AppHandle, target: Vec<String>) -> R<()> {
+    run_locked(app, move |root| {
+        let abs = crate::mutations::file_path(root, &target)?;
+        clipboard::write(&abs, clipboard::drop_effect(false))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn create_file_shortcut_in(app: AppHandle, target: Vec<String>, folder: String) -> R<ShortcutCreated> {
+    run_locked(app, move |root| {
+        let abs = crate::mutations::file_path(root, &target)?;
+        let (abs, link) = link_in(root, abs, Path::new(&folder))?;
+        let failures = create_shortcuts(&[(abs, link.clone())]);
+        if !failures.is_empty() {
+            return Err(FmError::Internal { message: failures.join("; ") });
+        }
+        let name = link.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        Ok(ShortcutCreated { name, folder })
+    })
+    .await
+}
+
 // The link path comes without its extension, because create_shortcuts appends it.
 pub(super) fn shortcut_plan(root: &Path, data: &Mapping, target: &[String], dir: &Path) -> R<(PathBuf, PathBuf)> {
     let Target { abs, ghost, .. } = locate(root, data, target)?;
@@ -66,6 +90,11 @@ pub(super) fn shortcut_plan(root: &Path, data: &Mapping, target: &[String], dir:
     if ghost {
         return Err(FmError::GhostNotAllowed { op: "create a shortcut to".to_string() });
     }
+    link_in(root, abs, dir)
+}
+
+// Folders and files share these rules: the link goes into a folder outside the storage, under a free name.
+pub(super) fn link_in(root: &Path, abs: PathBuf, dir: &Path) -> R<(PathBuf, PathBuf)> {
     let refuse = |message: &str| FmError::Io {
         op: "create shortcut in".to_string(),
         path: dir.display().to_string(),

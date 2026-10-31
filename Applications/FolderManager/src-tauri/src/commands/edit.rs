@@ -81,6 +81,24 @@ pub async fn rename_node(app: AppHandle, rel_parts: Vec<String>, new_editable: S
 }
 
 #[tauri::command]
+pub async fn rename_file(app: AppHandle, rel_parts: Vec<String>, new_name: String) -> R<Mutation> {
+    run_locked(app, move |root| mutations::rename_file(root, &rel_parts, &new_name)).await
+}
+
+// The file goes to the Recycle Bin after the storage lock is released, as folders do.
+#[tauri::command]
+pub async fn delete_file(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let storage = app.state::<Storage>();
+        let (mut m, pending) = locked(&storage, |root| mutations::delete_file(root, &rel_parts))?;
+        m.warnings.extend(mutations::recycle_staged(pending));
+        Ok(m)
+    })
+    .await
+    .map_err(|e| FmError::Internal { message: e.to_string() })?
+}
+
+#[tauri::command]
 pub async fn set_node_type(
     app: AppHandle,
     rel_parts: Vec<String>,

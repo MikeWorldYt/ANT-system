@@ -100,8 +100,8 @@ fn check_staged(root: &Path, staged: &Path) -> Result<(), String> {
     }
     let meta = fs::symlink_metadata(staged).map_err(|e| e.to_string())?;
     match redirects(staged, &meta) {
-        Ok(false) if meta.is_dir() => Ok(()),
-        Ok(_) => Err("it is no longer a plain folder".to_string()),
+        Ok(false) => Ok(()),
+        Ok(_) => Err("it is no longer a plain file or folder".to_string()),
         Err(e) => Err(e.to_string()),
     }
 }

@@ -252,15 +252,15 @@ fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
         info: None,
         children: None,
         actions: NodeActions {
-            rename: false,
+            rename: true,
             change_type: false,
             add_next: false,
             add_child: false,
             move_up: false,
             move_down: false,
-            delete: false,
-            copy_path: false,
-            open: false,
+            delete: true,
+            copy_path: true,
+            open: true,
             favorite: false,
             edit_details: false,
             edit_flags: false,
@@ -646,7 +646,7 @@ mod tests {
         assert!(review.has_children);
         let files = build_children(dir.path(), &data, &review.rel_parts).unwrap();
         assert_eq!(names(&files), ["notes.txt"]);
-        assert!(files[0].file && !files[0].has_children && !files[0].actions.rename);
+        assert!(files[0].file && !files[0].has_children && files[0].actions.rename && !files[0].actions.favorite);
         let empty = folders.iter().find(|n| n.name == "98.B").unwrap();
         assert!(empty.has_children);
         assert!(build_children(dir.path(), &data, &empty.rel_parts).unwrap().is_empty());

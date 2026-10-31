@@ -30,8 +30,6 @@ declare global {
 let dismissOpen: (() => void) | null = null;
 
 function dispatch(host: Element, node: TreeNode, x: number, y: number, folderOnly = false): void {
-  // Files carry no actions, so there is no menu to show for them.
-  if (node.file) return;
   host.dispatchEvent(new CustomEvent<MenuRequest>("fm:node-menu", { bubbles: true, detail: { node, x, y, folderOnly } }));
 }
 
@@ -159,6 +157,15 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     void remove(node);
   }, "ctx-item danger");
   del.prepend(guiIcon("trash"));
+
+  // A file offers only the actions that apply to one file.
+  if (node.file) {
+    return {
+      items: [open, copyPathItem, rename, copy, shortcut, del],
+      subs: [],
+      content: [open, copyPathItem, separator(), rename, copy, shortcut, separator(), del],
+    };
+  }
 
   const extras = menuItems().map((m) =>
     menuItem(m.label, "menuitem", true, () => {

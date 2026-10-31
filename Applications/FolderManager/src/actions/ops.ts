@@ -221,7 +221,7 @@ export const renameTo = (node: TreeNode, editable: string) =>
   run(async () => {
     const text = editable.trim();
     if (text === node.editableName) return;
-    await applyMutation(await api.renameNode(node.relParts, text));
+    await applyMutation(node.file ? await api.renameFile(node.relParts, text) : await api.renameNode(node.relParts, text));
   });
 
 export const setType = (node: TreeNode, base: EditableType, status: WkbStatus) =>
@@ -307,8 +307,17 @@ function nearestSibling(node: TreeNode): string[] | null {
   return (shown[at + 1] ?? shown[at - 1])?.relParts ?? null;
 }
 
+// Files have no contents to count, so they only need the confirmation and the sibling choice.
+async function removeFile(node: TreeNode): Promise<void> {
+  if (state.settings.confirmDelete && !(await warningConfirmDialog("Delete file", [`"${node.name}" goes to the Recycle Bin`], "Delete", "danger"))) return;
+  beginOperationStatus(`Deleting "${node.name}"…`);
+  const sibling = nearestSibling(node);
+  await applyMutation(await api.deleteFile(node.relParts), sibling ?? node.relParts.slice(0, -1));
+}
+
 export const remove =(node: TreeNode) =>
   run(async () => {
+    if (node.file) return removeFile(node);
     const preview = await api.inspectDelete(node.relParts);
     const nonEmpty = preview.files + preview.dirs > 0;
     if (state.settings.confirmDelete && !preview.ghost) {

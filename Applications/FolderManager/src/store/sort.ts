@@ -29,11 +29,16 @@ export function favoritesFirst(nodes: TreeNode[], pin: boolean): TreeNode[] {
   return [...body.filter((n) => n.favorite), ...body.filter((n) => !n.favorite), ...nodes.filter((n) => isTail(n.name))];
 }
 
+// Folders come before files in every list, whatever the sort direction.
+export function foldersFirst(nodes: TreeNode[]): TreeNode[] {
+  return [...nodes.filter((n) => !n.file), ...nodes.filter((n) => n.file)];
+}
+
 // Ties keep the incoming name order, and the tail folders close the list in either direction.
 export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort, pin: boolean): TreeNode[] {
   const head = nodes.filter((n) => !isTail(n.name));
   const key = sortValue[by];
   const ordered = [...head].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
   if (dir === "desc") ordered.reverse();
-  return favoritesFirst([...ordered, ...nodes.filter((n) => isTail(n.name))], pin);
+  return foldersFirst(favoritesFirst([...ordered, ...nodes.filter((n) => isTail(n.name))], pin));
 }

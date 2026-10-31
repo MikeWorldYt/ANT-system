@@ -102,6 +102,11 @@ export interface ShortcutCreated {
 }
 export const createShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_shortcut_in", { target, folder });
+export const copyFile = (target: string[]) => call<void>("copy_file", { target });
+export const createFileShortcutIn = (target: string[], folder: string) =>
+  call<ShortcutCreated>("create_file_shortcut_in", { target, folder });
+export const renameFile = (relParts: string[], newName: string) => call<Mutation>("rename_file", { relParts, newName });
+export const deleteFile = (relParts: string[]) => call<Mutation>("delete_file", { relParts });
 export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
 export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonEmpty: boolean) =>
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });

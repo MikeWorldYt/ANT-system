@@ -1,6 +1,6 @@
 // Single in-memory store for the tree snapshot, selection and expansion.
 import { listChildren } from "../ipc/api";
-import { favoritesFirst, SORT_BYS, type ColumnSort, type SortBy } from "./sort";
+import { favoritesFirst, foldersFirst, SORT_BYS, type ColumnSort, type SortBy } from "./sort";
 import { readPref, savePref } from "./prefs";
 import type { LevelPatch, TreeNode, TreeSnapshot } from "../ipc/types";
 
@@ -133,7 +133,7 @@ const inSelectedPath = (n: TreeNode): boolean => {
 export function visibleRows(): TreeNode[] {
   const rows: TreeNode[] = [];
   const walk = (nodes: TreeNode[]) => {
-    for (const n of favoritesFirst(listed(nodes), state.settings.pinFavorites)) {
+    for (const n of foldersFirst(favoritesFirst(listed(nodes), state.settings.pinFavorites))) {
       rows.push(n);
       if (state.expanded.has(keyOf(n.relParts)) && n.children) walk(n.children);
     }

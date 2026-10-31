@@ -104,7 +104,7 @@ fn count_contents(dir: &Path) -> R<(usize, usize)> {
     Ok((files, dirs))
 }
 
-fn stage_in_trash(root: &Path, journal: &mut Journal, abs: &Path, name: &str) -> R<PathBuf> {
+pub(super) fn stage_in_trash(root: &Path, journal: &mut Journal, abs: &Path, name: &str) -> R<PathBuf> {
     let trash = root.join(TRASH_DIR);
     match fs::symlink_metadata(&trash) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => journal.mkdir(&trash)?,
