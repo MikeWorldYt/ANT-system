@@ -39,6 +39,7 @@ export interface Settings {
   debugLogging: boolean;
   backupAuto: boolean;
   watchExternal: boolean;
+  autoOpenColumns: boolean;
   theme: Theme;
   accent: AccentId;
   textSize: TextSize;
@@ -80,7 +81,7 @@ export const state: State = {
   busy: false,
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
 };
 
 const listeners = new Set<() => void>();
@@ -153,6 +154,7 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.debugLogging = saved.debugLogging === "true";
   state.settings.backupAuto = saved.backupAuto === "true";
   state.settings.watchExternal = saved.watchExternal === "true";
+  state.settings.autoOpenColumns = saved.autoOpenColumns === "true";
   state.settings.theme = saved.theme === "light" || saved.theme === "system" ? saved.theme : "dark";
   state.settings.accent = ["blue", "purple", "coral", "gold"].includes(saved.accent ?? "") ? (saved.accent as AccentId) : "green";
   state.settings.textSize = saved.textSize === "medium" || saved.textSize === "large" ? saved.textSize : "small";

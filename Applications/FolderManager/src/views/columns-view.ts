@@ -85,7 +85,7 @@ export function createColumnsView(): ViewMode {
       chevron.addEventListener("dblclick", () => openColumn(n));
       item.append(chevron);
     }
-    item.addEventListener("click", () => select(n.relParts));
+    item.addEventListener("click", () => (n.hasChildren && state.settings.autoOpenColumns ? openColumn(n) : select(n.relParts)));
     item.addEventListener("dblclick", (ev) => {
       if (!fromToggle(ev)) startEdit(n.relParts);
     });
