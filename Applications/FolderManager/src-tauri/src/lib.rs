@@ -86,6 +86,7 @@ pub fn run() {
             commands::rename_node,
             commands::set_node_type,
             commands::add_node,
+            commands::add_child,
             commands::move_node,
             commands::move_folder,
             commands::inspect_delete,

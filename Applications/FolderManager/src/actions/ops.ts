@@ -204,6 +204,12 @@ export const addNext = async (node: TreeNode, kind: NewKind) => {
   await run(async () => applyMutation(await api.addNode(node.relParts, kind)), progress);
 };
 
+export const addChild = (node: TreeNode, kind: NewKind) =>
+  run(
+    async () => applyMutation(await api.addChild(node.relParts, kind)),
+    `Creating ${kind === "workboard" ? "workboard" : "node"} in "${node.name}"…`,
+  );
+
 export const move = (node: TreeNode, dir: MoveDirection) =>
   run(async () => applyMutation(await api.moveNode(node.relParts, dir), node.relParts), `Moving "${node.name}" ${dir}…`);
 

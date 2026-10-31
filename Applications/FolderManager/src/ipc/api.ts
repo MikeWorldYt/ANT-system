@@ -77,6 +77,7 @@ export const openDevtools = () => call<void>("open_devtools");
 export const setNodeDetails = (relParts: string[], status: WkbStatus | null, owner: string | null) =>
   call<Mutation>("set_node_details", { relParts, status, owner });
 export const addNode = (relParts: string[], kind: NewKind) => call<Mutation>("add_node", { relParts, kind });
+export const addChild = (relParts: string[], kind: NewKind) => call<Mutation>("add_child", { relParts, kind });
 export const moveNode = (relParts: string[], direction: MoveDirection) =>
   call<Mutation>("move_node", { relParts, direction });
 export const dropFiles = (target: string[], paths: string[]) => call<DropOutcome>("drop_files", { target, paths });

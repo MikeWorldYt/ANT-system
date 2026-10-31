@@ -1,5 +1,5 @@
 // Background menu of the open folder: paste into it, switch the view, sort its contents and add folders.
-import { addNext, pasteFiles, refresh } from "../actions/ops";
+import { addChild, pasteFiles, refresh } from "../actions/ops";
 import { keyOf, setColumnSort, sortOf, state, type ColumnSort } from "../store/state";
 import { SORT_KEYS, orderedModes, type ViewPicker } from "../shell/toolbar";
 import { menuItem, separator, submenu, type Submenu } from "../ui/menu";
@@ -49,13 +49,13 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   const canAdd = node.actions.addNext && idle;
   const newNode = menuItem("New node", "menuitem", canAdd, () => {
     close();
-    void addNext(node, "node");
+    void addChild(node, "node");
   });
   const newWorkboard = menuItem("New workboard", "menuitem", canAdd, () => {
     close();
-    void addNext(node, "workboard");
+    void addChild(node, "workboard");
   });
-  // Like the toolbar's Add menu, a main category gets no workboard beside it.
+  // Like the toolbar's Add menu, a main category gets no workboard.
   const addItems = node.relParts.length === 1 ? [newNode] : [newNode, newWorkboard];
 
   return {

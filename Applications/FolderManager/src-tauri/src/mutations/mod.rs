@@ -29,7 +29,7 @@ use crate::index::footprint::{self, Copies};
 use crate::tree::tree_node::{is_reserved, TreeNode, TreeSnapshot};
 use crate::tree::tree_store::{self, get_node, get_type, is_locked_type};
 
-pub use add::add_next;
+pub use add::{add_next, add_node};
 pub use copy_answer::{answer_copy, CopyAnswer};
 pub use delete::{delete_node, inspect_delete, DeletePreview};
 pub use favorite::set_favorite;
@@ -44,7 +44,7 @@ pub use result::LevelPatch;
 pub(crate) use result::finish;
 pub use retype::{set_details, set_node_type};
 #[cfg(test)]
-pub(crate) use {add::add_node, recycle::recycle_staged_with};
+pub(crate) use recycle::recycle_staged_with;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
