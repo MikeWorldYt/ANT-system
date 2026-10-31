@@ -56,6 +56,11 @@ export function createColumnsView(): ViewMode {
     select(n.relParts);
   }
 
+  function pick(n: TreeNode): void {
+    if (n.hasChildren && state.settings.autoOpenColumns) openColumn(n);
+    else select(n.relParts);
+  }
+
   function buildItem(n: TreeNode, onPath: boolean, tabbable: boolean): HTMLElement {
     const selected = keyOf(n.relParts) === state.selectedKey;
     const open = isOpen(n);
@@ -85,7 +90,7 @@ export function createColumnsView(): ViewMode {
       chevron.addEventListener("dblclick", () => openColumn(n));
       item.append(chevron);
     }
-    item.addEventListener("click", () => (n.hasChildren && state.settings.autoOpenColumns ? openColumn(n) : select(n.relParts)));
+    item.addEventListener("click", () => pick(n));
     item.addEventListener("dblclick", (ev) => {
       if (!fromToggle(ev)) startEdit(n.relParts);
     });
@@ -127,22 +132,27 @@ export function createColumnsView(): ViewMode {
     const cols = buildColumns(openKey);
     const siblings = (n ? cols[n.relParts.length - 1]?.nodes : cols[0]?.nodes) ?? [];
     const i = n ? siblings.indexOf(n) : -1;
+    const at = (j: number): TreeNode | undefined => siblings[Math.max(0, Math.min(siblings.length - 1, j))];
     const go = (j: number) => {
-      const target = siblings[Math.max(0, Math.min(siblings.length - 1, j))];
+      const target = at(j);
       if (target) select(target.relParts);
+    };
+    const move = (j: number) => {
+      const target = at(j);
+      if (target) pick(target);
     };
     switch (ev.key) {
       case "ArrowDown":
-        go(i + 1);
+        move(i + 1);
         break;
       case "ArrowUp":
-        go(i < 0 ? 0 : i - 1);
+        move(i < 0 ? 0 : i - 1);
         break;
       case "Home":
-        go(0);
+        move(0);
         break;
       case "End":
-        go(siblings.length - 1);
+        move(siblings.length - 1);
         break;
       case "ArrowRight":
         if (n?.hasChildren) void enterChildren(n);
