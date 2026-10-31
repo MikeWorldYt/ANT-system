@@ -49,7 +49,7 @@ pub fn scan(root: &Path, data: &Mapping) -> R<Scan> {
     Ok(Scan {
         live,
         known: known_ids(&nodes),
-        unmarked: unmarked(root, &nodes),
+        unmarked: unmarked(root, &nodes)?,
     })
 }
 
@@ -68,16 +68,20 @@ fn known_ids(nodes: &[(String, &Mapping)]) -> HashMap<String, String> {
 }
 
 // Folders that should carry a .ant folder for their id: nodes, data nodes included, and workboards.
-fn unmarked(root: &Path, nodes: &[(String, &Mapping)]) -> Vec<String> {
-    nodes
-        .iter()
-        .filter(|(_, node)| matches!(node.get("type").and_then(Value::as_str).map(type_base), Some("NODE" | "WKB")))
-        .filter(|(path, _)| {
-            let dir = join_rel(root, &rel_of(path));
-            dir.is_dir() && !dir.join(DATA_DIR).exists()
-        })
-        .map(|(path, _)| path.clone())
-        .collect()
+// A node with loose files waits for the user before it is marked, so intake can ask first.
+fn unmarked(root: &Path, nodes: &[(String, &Mapping)]) -> R<Vec<String>> {
+    let mut out = Vec::new();
+    for (path, node) in nodes {
+        if !matches!(node.get("type").and_then(Value::as_str).map(type_base), Some("NODE" | "WKB")) {
+            continue;
+        }
+        let rel = rel_of(path);
+        let dir = join_rel(root, &rel);
+        if dir.is_dir() && !dir.join(DATA_DIR).exists() && crate::intake::waiting_files(&dir, &rel, node)? == 0 {
+            out.push(path.clone());
+        }
+    }
+    Ok(out)
 }
 
 fn create_markers(root: &Path, paths: &[String]) -> R<()> {
@@ -116,7 +120,7 @@ pub struct Plan {
 pub fn plan(root: &Path, data: &mut Mapping, mode: Copies) -> R<Plan> {
     let mut nodes = Vec::new();
     visit(data, &mut Vec::new(), &mut nodes);
-    create_markers(root, &unmarked(root, &nodes))?;
+    create_markers(root, &unmarked(root, &nodes)?)?;
     let Scan { live, known, .. } = scan(root, data)?;
     let mut taken: HashSet<String> = known.keys().cloned().chain(live.iter().filter_map(|l| l.id.clone())).collect();
     let mut copies: Vec<Copied> = Vec::new();
@@ -390,6 +394,20 @@ mod tests {
         assert!(scan(dir.path(), &data).unwrap().is_clean());
         assert!(!plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
         assert_eq!(read_id(&dir.path().join("100.A/PJ.001")).unwrap(), first);
+    }
+
+    #[test]
+    fn a_node_with_loose_files_gets_no_marker_until_it_is_acknowledged() {
+        let dir = TempDir::new("footprint-waiting");
+        dir.mkdir("100.A/01.Plain");
+        fs::write(dir.path().join("100.A/01.Plain/loose.txt"), "l").unwrap();
+        let mut data: Mapping = serde_yaml::from_str("100.A:\n  type: NODE-L1\n  01.Plain: {type: NODE-L2}\n").unwrap();
+        plan(dir.path(), &mut data, Copies::Tail).unwrap();
+        assert!(!dir.path().join("100.A/01.Plain/.ant").exists());
+        assert!(scan(dir.path(), &data).unwrap().is_clean());
+        fs::create_dir(dir.path().join("100.A/01.Plain/.ant")).unwrap();
+        assert!(plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
+        assert!(read_id(&dir.path().join("100.A/01.Plain")).is_some());
     }
 
     #[test]

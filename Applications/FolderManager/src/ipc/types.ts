@@ -121,9 +121,16 @@ export interface LooseFile {
   file: string;
 }
 
+export interface WaitingNode {
+  node: string;
+  relParts: string[];
+  files: number;
+}
+
 export interface IntakeReport {
   moved: Moved[];
   loose: LooseFile[];
+  waiting: WaitingNode[];
   warnings: string[];
 }
 

@@ -32,6 +32,7 @@ export const getStorage = () => call<StorageInfo>("get_storage");
 export const loadTree = () => call<TreeSnapshot>("load_tree");
 export const refresh = () => call<TreeSnapshot>("refresh");
 export const runIntake = () => call<IntakeReport>("run_intake");
+export const acknowledgeIntake = (relParts: string[]) => call<void>("acknowledge_intake", { relParts });
 export const checkRoot = () => call<RootCheck>("check_root");
 export const previewInvalid = (rows: { relParts: string[]; resolution: Resolution }[]) => call<string[]>("preview_invalid", { rows });
 export const resolveInvalid = (relParts: string[], resolution: Resolution) =>

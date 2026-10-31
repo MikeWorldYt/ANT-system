@@ -154,7 +154,7 @@ export async function refresh(): Promise<boolean> {
     clearStatus();
   });
   if (ok) {
-    void runIntake();
+    void runIntake(reload);
     void checkRootFolders(resolveInvalid);
   }
   return ok;

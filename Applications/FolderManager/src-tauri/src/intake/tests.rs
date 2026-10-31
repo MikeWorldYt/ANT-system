@@ -23,11 +23,13 @@ const TREE: &str = "100.PERSONAL:
     type: WKB
 ";
 const DIRS: &[&str] = &[
+    "100.PERSONAL/.ant",
     "100.PERSONAL/03.Toki/98.Toki",
     "100.PERSONAL/03.Toki/01.Sub",
+    "100.PERSONAL/03.Toki/.ant",
     "100.PERSONAL/98.PERSONAL",
     "100.PERSONAL/04.Data",
-    "100.PERSONAL/05.Bare",
+    "100.PERSONAL/05.Bare/.ant",
     "100.PERSONAL/PJ.Board",
 ];
 
@@ -128,6 +130,22 @@ fn a_node_without_a_review_child_gets_one_and_its_files_move_into_it() {
     assert!(!has(&dir, "100.PERSONAL/05.Bare/lost.txt"));
     assert_eq!(report.moved.len(), 1, "{report:?}");
     assert!(report.warnings.is_empty(), "{report:?}");
+}
+
+#[test]
+fn a_node_the_app_has_never_marked_waits_until_the_user_acknowledges_it() {
+    let dir = fixture("intake-waiting");
+    dir.mkdir("100.PERSONAL/07.Fresh");
+    put(&dir, "100.PERSONAL/07.Fresh/loose.txt", "f");
+    let report = run(dir.path()).unwrap();
+    assert!(has(&dir, "100.PERSONAL/07.Fresh/loose.txt"));
+    assert_eq!(report.waiting.len(), 1, "{report:?}");
+    assert_eq!(report.waiting[0].node, "100.PERSONAL/07.Fresh");
+    assert!(report.moved.is_empty(), "{report:?}");
+    acknowledge(dir.path(), &["100.PERSONAL".to_string(), "07.Fresh".to_string()]).unwrap();
+    let report = run(dir.path()).unwrap();
+    assert!(has(&dir, "100.PERSONAL/07.Fresh/98.Fresh/loose.txt"));
+    assert!(report.waiting.is_empty() && report.moved.len() == 1, "{report:?}");
 }
 
 #[test]

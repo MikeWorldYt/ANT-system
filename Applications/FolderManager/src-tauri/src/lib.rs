@@ -134,6 +134,7 @@ pub fn run() {
             commands::inspect_extension_repo,
             commands::install_inspected_extension,
             commands::run_intake,
+            commands::acknowledge_intake,
             commands::drop_files,
             commands::paste_files,
             commands::copy_folder,
