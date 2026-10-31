@@ -4,6 +4,7 @@ mod copy_answer;
 mod delete;
 mod favorite;
 mod file_drop;
+mod link_hidden;
 mod move_folder;
 mod user_flags;
 mod recycle;
@@ -12,6 +13,7 @@ mod reorder;
 mod result;
 mod resolve;
 mod retype;
+mod review_filter;
 #[cfg(not(windows))]
 mod unix_trash;
 
@@ -34,6 +36,7 @@ pub use add::{add_next, add_node};
 pub use copy_answer::{answer_copy, CopyAnswer};
 pub use delete::{delete_node, inspect_delete, DeletePreview};
 pub use favorite::set_favorite;
+pub use link_hidden::set_link_hidden;
 pub use file_drop::{drop_files, DropOutcome};
 pub(crate) use file_drop::free_name;
 pub use move_folder::{move_folder, move_to_review};
@@ -45,6 +48,7 @@ pub use result::LevelPatch;
 pub(crate) use result::finish;
 pub use resolve::{preview_names, resolve_invalid, Pending, Resolution};
 pub use retype::{set_details, set_node_type};
+pub use review_filter::set_review_filter;
 #[cfg(test)]
 pub(crate) use recycle::recycle_staged_with;
 

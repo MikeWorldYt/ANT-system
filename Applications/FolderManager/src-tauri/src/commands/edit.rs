@@ -99,6 +99,16 @@ pub async fn set_favorite(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R
 }
 
 #[tauri::command]
+pub async fn set_link_hidden(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_link_hidden(root, &rel_parts, on))).await
+}
+
+#[tauri::command]
+pub async fn set_review_filter(app: AppHandle, hidden: Vec<String>, favorites: bool) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_review_filter(root, &hidden, favorites))).await
+}
+
+#[tauri::command]
 pub async fn set_user_flag(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
     run_locked(app, move |root| with_search_index(root, mutations::set_user_flag(root, &rel_parts, on))).await
 }

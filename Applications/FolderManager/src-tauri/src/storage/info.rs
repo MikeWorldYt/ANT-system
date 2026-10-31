@@ -126,7 +126,7 @@ fn to_json(v: &Value) -> String {
     }
 }
 
-fn json_string(s: &str) -> String {
+pub(crate) fn json_string(s: &str) -> String {
     let mut out = String::from("\"");
     for c in s.chars() {
         match c {

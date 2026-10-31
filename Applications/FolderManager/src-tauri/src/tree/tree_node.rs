@@ -7,11 +7,12 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, flags_in, type_base, type_level, META_KEYS};
 use crate::config::{
-    LINKED_PREFIXES, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
+    LINK_FAVORITES_FILENAME, LINK_HIDDEN_FILENAME, LINKED_PREFIXES, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::error::R;
 use crate::fs_safe::join_rel;
 use crate::index::footprint::Copied;
+use crate::index::{link_list, review_index};
 use crate::storage::info::{field_of, read_info, NodeInfo};
 use crate::ant_core::names::{name_parts, is_movable_node, is_system_root_name, list_subdirs, numeric_id};
 use crate::tree::depth;
@@ -40,6 +41,7 @@ pub struct NodeActions {
     pub favorite: bool,
     pub edit_details: bool,
     pub edit_flags: bool,
+    pub hide_link: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -55,12 +57,15 @@ pub struct TreeNode {
     pub status_raw: Option<String>,
     pub locked: bool,
     pub reserved: bool,
+    pub linked: bool,
+    pub link_path: Option<String>,
     pub flags: Vec<String>,
     pub has_children: bool,
     pub is_git: bool,
     pub fixed_prefix: String,
     pub editable_name: String,
     pub favorite: bool,
+    pub hidden: bool,
     pub info: Option<NodeInfo>,
     pub children: Option<Vec<TreeNode>>,
     pub abs_path: String,
@@ -80,6 +85,9 @@ struct Entry {
     name: String,
     on_disk: bool,
     in_yaml: bool,
+    link: Option<Vec<String>>,
+    favorite: bool,
+    hidden: bool,
 }
 
 pub fn build_tree(root: &Path, data: &Mapping, yaml_changed: bool) -> R<TreeSnapshot> {
@@ -131,7 +139,32 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
         .map(String::as_str)
         .filter(|d| !META_KEYS.contains(d))
         .chain(yaml.iter().copied().filter(|k| !is_hidden_dir(k)))
+        .filter(|name| !(parent.is_empty() && is_hidden_system_root(name)))
         .collect();
+    let link_entries: Vec<Entry> = if matches!(parent, [top] if top.eq_ignore_ascii_case(REVIEW_FOLDER)) {
+        let starred = link_list::read(root, LINK_FAVORITES_FILENAME)?;
+        let hidden_links = link_list::read(root, LINK_HIDDEN_FILENAME)?;
+        let hidden = review_index::hidden_categories(root);
+        let favorites_shown = review_index::favorites_shown(root);
+        let links = review_index::links(root, data)?;
+        // A starred link brings its category's top link along, so the group keeps its heading under a hidden category.
+        let starred_categories: Vec<String> = links
+            .iter()
+            .filter(|(name, _)| favorites_shown && starred.contains(name))
+            .map(|(_, owner)| owner[0].clone())
+            .collect();
+        links
+            .into_iter()
+            .filter(|(name, owner)| {
+                let kept_as_favorite = favorites_shown && starred.contains(name);
+                let kept_as_heading = owner.len() == 1 && starred_categories.contains(&owner[0]);
+                (kept_as_favorite || kept_as_heading || !hidden.contains(&owner[0])) && !names.contains(name.as_str())
+            })
+            .map(|(name, owner)| Entry { favorite: starred.contains(&name), hidden: hidden_links.contains(&name), name, on_disk: true, in_yaml: false, link: Some(owner) })
+            .collect()
+    } else {
+        Vec::new()
+    };
 
     let mut entries: Vec<Entry> = names
         .into_iter()
@@ -139,8 +172,12 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
             name: name.to_string(),
             on_disk: disk.iter().any(|d| d == name),
             in_yaml: yaml.contains(&name),
+            link: None,
+            favorite: false,
+            hidden: false,
         })
         .filter(|e| !(e.on_disk && !e.in_yaml && is_linked_folder(&e.name)))
+        .chain(link_entries)
         .collect();
     entries.sort_by_cached_key(|e| (is_tail(&e.name), natural_key(&e.name)));
     Ok(entries)
@@ -173,11 +210,16 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
     rel_parts.push(entry.name.clone());
     let depth = parent.len();
     let ghost = !entry.on_disk;
+    let linked = entry.link.is_some();
 
     let yaml_entry = get_node(data, &rel_parts);
     let raw_type = yaml_entry.and_then(|m| m.get("type")).and_then(Value::as_str).unwrap_or("");
-    let abs_path = join_rel(root, &rel_parts);
-    let info = if ghost { None } else { read_info(&abs_path) };
+    // A review link stands for its owner's review folder, so that is where its path and drops point.
+    let abs_path = match &entry.link {
+        Some(owner) => review_index::rev_folder(root, owner),
+        None => join_rel(root, &rel_parts),
+    };
+    let info = if ghost || linked { None } else { read_info(&abs_path) };
     // A status in the folder's own info.json is the one shown; the yaml one is the fallback.
     let status_raw = info
         .iter()
@@ -192,14 +234,16 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
     let locked = is_locked_type(raw_type);
     let reserved = is_reserved(&rel_parts);
     // Folders on the last tree level show no children, so the views offer nothing to open below them.
-    let has_children = !ghost && depth + 1 < limit && !level_entries(root, data, &rel_parts)?.is_empty();
-    let is_git = !ghost && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
+    // The review root stays a container even when its filter hides every link, so its empty list can say why.
+    let review_root = depth == 0 && entry.name.eq_ignore_ascii_case(REVIEW_FOLDER);
+    let has_children = !ghost && (review_root || (!linked && depth + 1 < limit && !level_entries(root, data, &rel_parts)?.is_empty()));
+    let is_git = !ghost && !linked && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
     let info_broken = info.as_ref().is_some_and(|i| i.error.is_some());
 
     let (fixed_prefix, editable_name) = name_parts(&entry.name, is_wkb);
     Ok(TreeNode {
-        actions: compute_actions(depth, limit, ghost, raw_type, reserved, info_broken),
+        actions: if linked { link_actions() } else { compute_actions(depth, limit, ghost, raw_type, reserved, info_broken) },
         name: entry.name,
         rel_parts,
         depth,
@@ -210,16 +254,38 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
         status_raw,
         locked,
         reserved,
+        linked,
+        link_path: entry.link.as_deref().map(review_index::rev_path),
         flags: node_flags(depth, yaml_entry),
         has_children,
         is_git,
         fixed_prefix,
         editable_name,
-        favorite: info.as_ref().and_then(|i| field_of(i, &["favorite"])).is_some_and(|v| v.eq_ignore_ascii_case("true")),
+        favorite: entry.favorite || info.as_ref().and_then(|i| field_of(i, &["favorite"])).is_some_and(|v| v.eq_ignore_ascii_case("true")),
+        hidden: entry.hidden,
         info,
         children: None,
         abs_path: abs_path.to_string_lossy().into_owned(),
     })
+}
+
+// A review link only opens its owner folder; files reach the owner through the drop target instead.
+fn link_actions() -> NodeActions {
+    NodeActions {
+        rename: false,
+        change_type: false,
+        add_next: false,
+        add_child: false,
+        move_up: false,
+        move_down: false,
+        delete: false,
+        copy_path: true,
+        open: true,
+        favorite: true,
+        edit_details: false,
+        edit_flags: false,
+        hide_link: true,
+    }
 }
 
 // The only place that decides what a node allows; move flags are filled in by `mark_moves`.
@@ -244,6 +310,7 @@ fn compute_actions(depth: usize, limit: usize, ghost: bool, raw_type: &str, rese
         favorite: !reserved && !ghost && !info_broken,
         edit_details: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
         edit_flags: !frozen && !ghost && depth > 0 && type_base(raw_type) == "NODE",
+        hide_link: false,
     }
 }
 
@@ -272,13 +339,18 @@ fn mark_moves(nodes: &mut [TreeNode]) {
 
 fn is_movable(node: &TreeNode) -> bool {
     let raw = node.node_type.as_ref().map_or("", |t| t.raw.as_str());
-    !node.ghost && !node.locked && !node.reserved && is_movable_node(&node.name, raw)
+    !node.ghost && !node.locked && !node.reserved && !node.linked && is_movable_node(&node.name, raw)
 }
 
 // Windows folder names ignore case, so "999.settings" is the same reserved folder; the whole 9xx range is the app's.
 pub(crate) fn is_reserved(rel_parts: &[String]) -> bool {
     matches!(rel_parts, [name]
         if name.eq_ignore_ascii_case(SETTINGS_FOLDER) || name.eq_ignore_ascii_case(REVIEW_FOLDER) || is_system_root_name(name))
+}
+
+// The 9xx root folders are the app's; 998.Review stays listed because its links are what the user browses.
+fn is_hidden_system_root(name: &str) -> bool {
+    is_system_root_name(name) && !name.eq_ignore_ascii_case(REVIEW_FOLDER)
 }
 
 fn parse_type(raw: &str) -> NodeType {
@@ -343,7 +415,7 @@ mod tests {
         assert!(tree.yaml_changed);
         assert_eq!(
             names(&tree.nodes),
-            ["01.Alpha", "02.Beta", "03.Gamma", "04.Wkb", "99.Gone", "998.Review", "999.Settings"]
+            ["01.Alpha", "02.Beta", "03.Gamma", "04.Wkb", "99.Gone", "998.Review"]
         );
         let gone = find(&tree.nodes, "99.Gone");
         assert!(gone.ghost && gone.in_yaml && !gone.has_children && gone.children.is_none());
@@ -431,20 +503,40 @@ mod tests {
     }
 
     #[test]
-    fn reserved_root_nodes_allow_nothing_but_copy_path() {
+    fn system_root_folders_stay_out_of_the_tree_but_nested_ones_show() {
         let (dir, data) = fixture();
         let tree = build_tree(dir.path(), &data, false).unwrap();
-        for name in ["999.Settings", "998.Review"] {
-            let node = find(&tree.nodes, name);
-            assert!(node.reserved, "{name}");
-            let a = &node.actions;
-            assert!(!a.rename && !a.change_type && !a.add_next && !a.add_child, "{name}");
-            assert!(!a.move_up && !a.move_down && !a.delete && a.copy_path, "{name}");
-        }
+        assert!(!names(&tree.nodes).contains(&"999.Settings"));
+        assert!(find(&tree.nodes, "998.Review").reserved);
         let nested: Mapping = serde_yaml::from_str("01.Alpha:\n  999.Settings:\n    type: NODE-L2\n").unwrap();
         dir.mkdir("01.Alpha/999.Settings");
         let kids = build_children(dir.path(), &nested, &rel(&["01.Alpha"])).unwrap();
         assert!(!find(&kids, "999.Settings").reserved);
+    }
+
+    #[test]
+    fn review_links_are_leaf_folders_that_open_their_owner() {
+        let (dir, data) = fixture();
+        dir.mkdir("02.Beta/98.Beta");
+        std::fs::write(dir.path().join("998.Review/02.Beta.lnk"), "").unwrap();
+        let kids = build_children(dir.path(), &data, &rel(&["998.Review"])).unwrap();
+        let link = find(&kids, "02.Beta");
+        assert!(link.linked && !link.ghost && !link.has_children && link.node_type.is_none());
+        assert_eq!(std::path::PathBuf::from(&link.abs_path), dir.path().join("02.Beta/98.Beta"));
+        let a = &link.actions;
+        assert!(a.open && a.copy_path && a.favorite && !a.rename && !a.delete && !a.move_up && !a.move_down);
+        assert!(!link.favorite);
+        dir.mkdir(".ant");
+        std::fs::write(dir.path().join(".ant/lnk-favorites.json"), "[\"02.Beta\"]\n").unwrap();
+        let kids = build_children(dir.path(), &data, &rel(&["998.Review"])).unwrap();
+        assert!(find(&kids, "02.Beta").favorite);
+    }
+
+    #[test]
+    fn the_review_root_stays_a_container_when_no_link_is_listed() {
+        let (dir, data) = fixture();
+        let tree = build_tree(dir.path(), &data, false).unwrap();
+        assert!(find(&tree.nodes, "998.Review").has_children);
     }
 
     #[test]
@@ -572,7 +664,6 @@ mod tests {
         assert_eq!(acts("02.Beta"), (true, false));
         assert_eq!(acts("03.Gamma"), (false, false));
         assert_eq!(acts("99.Gone"), (false, false));
-        assert_eq!(acts("999.Settings"), (false, false));
         dir.mkdir("04.Wkb/.ant");
         std::fs::write(dir.path().join("04.Wkb/.ant/info.json"), "[1]").unwrap();
         let tree = build_tree(dir.path(), &data, false).unwrap();

@@ -97,6 +97,8 @@ pub fn run() {
             commands::skip_version,
             commands::set_node_details,
             commands::set_favorite,
+            commands::set_link_hidden,
+            commands::set_review_filter,
             commands::answer_copy,
             commands::set_user_flag,
             settings::get_settings,
