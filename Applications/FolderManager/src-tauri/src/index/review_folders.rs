@@ -4,7 +4,7 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::names::editable_part;
+use crate::ant_core::names::{editable_part, list_subdirs};
 use crate::ant_core::tree_types::{child_entries, type_base};
 use crate::error::R;
 use crate::fs_safe::{io_err, join_rel, StorageLock};
@@ -25,7 +25,8 @@ pub fn restore(root: &Path) -> R<bool> {
         if !dir.is_dir() {
             continue;
         }
-        let keep = review_name(&data, &owner, &dir, expected);
+        let (keep, renamed) = review_name(&mut data, &owner, &dir, expected)?;
+        changed |= renamed;
         let mut review = owner.clone();
         review.push(keep.clone());
         let target = join_rel(root, &review);
@@ -59,15 +60,24 @@ fn collect(node: &Mapping, parts: &mut Vec<String>, out: &mut Vec<Vec<String>>, 
     }
 }
 
-// A review folder still under the node's old name after an outside rename is the node's review, so it is kept, not duplicated.
-fn review_name(data: &Mapping, owner: &[String], dir: &Path, expected: String) -> String {
-    if dir.join(&expected).is_dir() {
-        return expected;
+// A review folder left under the node's old name after an outside rename is the node's review, so it takes the node's name.
+fn review_name(data: &mut Mapping, owner: &[String], dir: &Path, expected: String) -> R<(String, bool)> {
+    let names = list_subdirs(dir)?;
+    if names.contains(&expected) {
+        return Ok((expected, false));
     }
-    let Some(node) = get_node(data, owner) else { return expected };
+    let Some(old) = old_review(data, owner, &names) else { return Ok((expected, false)) };
+    let from = dir.join(&old);
+    fs::rename(&from, dir.join(&expected)).map_err(|e| io_err("rename folder", &from, &e))?;
+    tree_store::rename_key(data, owner, &old, &expected);
+    Ok((expected, true))
+}
+
+fn old_review(data: &Mapping, owner: &[String], names: &[String]) -> Option<String> {
+    let node = get_node(data, owner)?;
     child_entries(node)
-        .find(|(name, child)| name.starts_with("98.") && is_review(child) && dir.join(name).is_dir())
-        .map_or(expected, |(name, _)| name.to_string())
+        .find(|(name, child)| name.starts_with("98.") && is_review(child) && names.iter().any(|n| n.as_str() == *name))
+        .map(|(name, _)| name.to_string())
 }
 
 fn is_review(child: &Mapping) -> bool {
@@ -104,15 +114,18 @@ mod tests {
     }
 
     #[test]
-    fn a_review_folder_left_under_the_old_name_is_adopted_instead_of_duplicated() {
+    fn a_review_folder_left_under_the_old_name_is_renamed_to_follow_the_node() {
         let dir = storage(
             "review-adopt",
             &["100.ACADEMIC/98.ACADEMIC", "100.ACADEMIC/01.Maths/98.Old"],
             "100.ACADEMIC:\n  type: NODE-L1\n  98.ACADEMIC: {type: REV-L1}\n  01.Maths: {type: NODE-L2, 98.Old: {type: REV-L3}}\n",
         );
+        assert!(restore(dir.path()).unwrap());
+        assert!(!dir.path().join("100.ACADEMIC/01.Maths/98.Old").exists());
+        assert!(dir.path().join("100.ACADEMIC/01.Maths/98.Maths").is_dir());
+        let data = yaml(dir.path());
+        assert!(get_node(&data, &["100.ACADEMIC".to_string(), "01.Maths".to_string(), "98.Old".to_string()]).is_none());
+        assert!(get_node(&data, &["100.ACADEMIC".to_string(), "01.Maths".to_string(), "98.Maths".to_string()]).is_some());
         assert!(!restore(dir.path()).unwrap());
-        assert!(!dir.path().join("100.ACADEMIC/01.Maths/98.Maths").exists());
-        assert!(dir.path().join("100.ACADEMIC/01.Maths/98.Old").is_dir());
-        assert!(get_node(&yaml(dir.path()), &["100.ACADEMIC".to_string(), "01.Maths".to_string(), "98.Old".to_string()]).is_some());
     }
 }
