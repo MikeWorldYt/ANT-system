@@ -8,13 +8,14 @@ use super::{review_emitter, run_locked};
 use crate::error::R;
 use crate::fs_safe::validate_component;
 use crate::index::footprint::Copies;
-use crate::index::{reindex, review_folders, review_index, Emit};
+use crate::index::{node_names, reindex, review_folders, review_index, Emit};
 use crate::tree::root_check::{self, RootCheck};
 use crate::tree::{depth, snapshot};
 use crate::tree::tree_node::{build_children, fill_children, TreeNode, TreeSnapshot};
 use crate::tree::tree_store;
 
 pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>) -> R<TreeSnapshot> {
+    node_names::tidy(root)?;
     let mut tree = snapshot(root, Copies::Tail)?;
     if review_folders::restore(root)? {
         let copies = tree.copies;

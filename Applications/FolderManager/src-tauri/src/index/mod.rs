@@ -1,5 +1,6 @@
 // Data derived from the tree after each change: search fields, 998.Review shortcuts and folder ids.
 pub mod footprint;
+pub mod node_names;
 pub mod review_folders;
 pub mod review_index;
 pub mod review_update;
