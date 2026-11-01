@@ -6,14 +6,19 @@ pub const VERSION_URL: &str =
 pub const EXE_DOWNLOAD_URL: &str =
     "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe";
 pub const UPDATER_SCRIPT: &str = "FM_Updater.bat";
+pub const UPDATER_SCRIPT_URL: &str = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Migration/Core/FM_Updater.bat";
 
 pub const SETTINGS_FOLDER: &str = "999.Settings";
 pub const CORE_FOLDER: &str = "00.Core";
 pub const REVIEW_FOLDER: &str = "998.Review";
+// The Portfolio that a workboard's level gets automatically; the title can be renamed, the 00. id is kept.
+pub const PORTFOLIO_FOLDER: &str = "00.Outcomes";
 pub const TRASH_DIR: &str = ".ant-trash";
 pub const DATA_DIR: &str = ".ant";
 pub const DB_FILENAME: &str = "ant.db";
 pub const INFO_FILENAME: &str = "info.json";
+pub const LINK_FAVORITES_FILENAME: &str = "lnk-favorites.json";
+pub const LINK_HIDDEN_FILENAME: &str = "lnk-hidden.json";
 pub const FOOTPRINT_FILENAME: &str = "dragpath.json";
 // The default tree depth; Settings can raise it per storage up to DEPTH_CEILING.
 pub const MAX_DEPTH: usize = 3;
@@ -21,6 +26,8 @@ pub const DEPTH_CEILING: usize = 6;
 
 pub const LOCKED_TYPES: &[&str] = &["REV", "RES", "TPL", "CFG"];
 pub const DATA_FLAG: &str = "data";
+// A hidden folder stays in the storage but is not listed, searched or read.
+pub const HIDDEN_FLAG: &str = "hidden";
 pub const MAIN_FLAG: &str = "main";
 pub const LINKED_PREFIXES: &[&str] = &["90", "98"];
 pub const WKB_IDENTIFIERS: &[&str] = &["PJ.", "PR.", "HW.", "CR.", "TK."];
@@ -31,7 +38,7 @@ pub const SPECIAL_TYPES: &[(&str, &str)] = &[("90.", "RES"), ("97.", "TPL"), ("9
 pub enum TypeBase {
     Node,
     Wkb,
-    Portf,
+    Out,
     Rev,
     Res,
     Tpl,
@@ -40,13 +47,13 @@ pub enum TypeBase {
 }
 
 impl TypeBase {
-    const ALL: [Self; 8] = [Self::Node, Self::Wkb, Self::Portf, Self::Rev, Self::Res, Self::Tpl, Self::Cfg, Self::Unknown];
+    const ALL: [Self; 8] = [Self::Node, Self::Wkb, Self::Out, Self::Rev, Self::Res, Self::Tpl, Self::Cfg, Self::Unknown];
 
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Node => "NODE",
             Self::Wkb => "WKB",
-            Self::Portf => "PORTF",
+            Self::Out => "OUT",
             Self::Rev => "REV",
             Self::Res => "RES",
             Self::Tpl => "TPL",
@@ -67,12 +74,12 @@ pub enum NewKind {
     Workboard,
 }
 
+// Portfolio is not offered: each 00.* folder is created and removed with its workboards.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum EditableType {
     Node,
     Wkb,
-    Portf,
 }
 
 impl EditableType {
@@ -80,7 +87,6 @@ impl EditableType {
         match self {
             Self::Node => "NODE",
             Self::Wkb => "WKB",
-            Self::Portf => "PORTF",
         }
     }
 }
@@ -134,7 +140,7 @@ mod tests {
             assert_eq!(s.as_str(), serde_name(s));
             assert_eq!(WkbStatus::from_str(s.as_str()), Some(s));
         }
-        for e in [EditableType::Node, EditableType::Wkb, EditableType::Portf] {
+        for e in [EditableType::Node, EditableType::Wkb] {
             assert_eq!(e.as_str(), serde_name(e));
         }
         assert_eq!(TypeBase::from_str("node"), None);

@@ -5,9 +5,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde_yaml::Mapping;
 
-use crate::config::TRASH_DIR;
 use crate::error::R;
-use crate::mutations::{delete_node, recycle_staged_with, Mutation};
+use crate::mutations::{delete_node, Mutation};
 use crate::tree::tree_store::{get_type, load, save};
 
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -102,11 +101,10 @@ pub fn work(tag: &str) -> TempDir {
 }
 
 pub fn ok_recycle(path: &Path) -> Result<(), String> {
-    assert!(path.parent().unwrap().ends_with(TRASH_DIR), "{}", path.display());
     fs::remove_dir_all(path).map_err(|e| e.to_string())
 }
 
-// What the command layer does: delete under the lock, then recycle after releasing it.
+// Stands in for the Recycle Bin, which the command layer calls under the storage lock.
 pub fn delete_with(
     root: &Path,
     rel: &[String],
@@ -114,9 +112,5 @@ pub fn delete_with(
     confirm: bool,
     recycle: impl FnOnce(&Path) -> Result<(), String>,
 ) -> R<Mutation> {
-    let (mut m, pending) = delete_node(root, rel, expect_ghost, confirm)?;
-    if let Some(pending) = pending {
-        m.warnings.extend(recycle_staged_with(pending, recycle));
-    }
-    Ok(m)
+    delete_node(root, rel, expect_ghost, confirm, recycle)
 }

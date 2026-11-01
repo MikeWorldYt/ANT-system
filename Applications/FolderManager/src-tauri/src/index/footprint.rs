@@ -9,8 +9,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{child_entries, type_base, META_KEYS};
-use crate::config::{DATA_DIR, FOOTPRINT_FILENAME};
+use crate::ant_core::tree_types::{child_entries, flags_in, type_base, META_KEYS};
+use crate::config::{DATA_DIR, FOOTPRINT_FILENAME, HIDDEN_FLAG};
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, join_rel, write_atomic};
 use crate::ant_core::names::list_subdirs;
@@ -43,7 +43,7 @@ impl Scan {
 
 pub fn scan(root: &Path, data: &Mapping) -> R<Scan> {
     let mut live = Vec::new();
-    walk(&mut Vec::new(), root, &mut live, depth::limit(root)?)?;
+    walk(Some(data), &mut Vec::new(), root, &mut live, depth::limit(root)?)?;
     let mut nodes = Vec::new();
     visit(data, &mut Vec::new(), &mut nodes);
     Ok(Scan {
@@ -232,7 +232,7 @@ pub fn tail_copy(root: &Path, data: &mut Mapping, copy: &[String]) -> R<()> {
     // The whole copy is walked, past the depth limit too, so no folder inside it keeps the original's id.
     let folder = join_rel(root, copy);
     let mut inside = vec![Live { rel: copy.to_vec(), id: read_id(&folder) }];
-    walk(&mut copy.to_vec(), &folder, &mut inside, usize::MAX)?;
+    walk(None, &mut copy.to_vec(), &folder, &mut inside, usize::MAX)?;
     for l in inside {
         let Some(id) = l.id else { continue };
         let tail = tailed_id(&id, &taken);
@@ -260,7 +260,8 @@ fn still_listed(root: &Path, rel: &[String]) -> bool {
     dir.is_dir() && list_subdirs(&dir).is_ok_and(|names| names.contains(name))
 }
 
-fn walk(rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>, limit: usize) -> R<()> {
+// Hidden folders are not read, so their ids and marks are left out too.
+fn walk(data: Option<&Mapping>, rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>, limit: usize) -> R<()> {
     if rel.len() >= limit {
         return Ok(());
     }
@@ -270,17 +271,21 @@ fn walk(rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>, limit: usize) ->
         }
         let folder = dir.join(&name);
         rel.push(name);
+        if data.and_then(|d| get_node(d, rel)).is_some_and(|node| flags_in(node).iter().any(|f| f == HIDDEN_FLAG)) {
+            rel.pop();
+            continue;
+        }
         if folder.join(DATA_DIR).is_dir() {
             out.push(Live { rel: rel.clone(), id: read_id(&folder) });
         }
-        walk(rel, &folder, out, limit)?;
+        walk(data, rel, &folder, out, limit)?;
         rel.pop();
     }
     Ok(())
 }
 
 // An unreadable or malformed file counts as no id, so a new one replaces it.
-fn read_id(folder: &Path) -> Option<String> {
+pub(crate) fn read_id(folder: &Path) -> Option<String> {
     let text = fs::read_to_string(folder.join(DATA_DIR).join(FOOTPRINT_FILENAME)).ok()?;
     match serde_yaml::from_str::<Value>(&text).ok()? {
         Value::Mapping(m) => m.get("id").and_then(Value::as_str).filter(|id| !id.is_empty() && !id.contains(char::is_whitespace)).map(str::to_string),
@@ -290,7 +295,19 @@ fn read_id(folder: &Path) -> Option<String> {
 
 // The flags stay, so tailing or detaching a copy keeps what the user set on it.
 fn replace_id(folder: &Path, id: &str) -> R<()> {
-    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), footprint_text(id, &read_flags(folder)).as_bytes())
+    write_footprint(folder, id, &read_flags(folder), read_hidden(folder))
+}
+
+// Keeps the folder's dragpath.json in step with its user flags; a folder without one, or with a broken one, is left as it is.
+pub fn mirror_flags(folder: &Path, flags: &[String]) -> R<()> {
+    let Some(id) = read_id(folder) else { return Ok(()) };
+    write_footprint(folder, &id, flags, read_hidden(folder))
+}
+
+// Writes or drops the "hidden" key; a folder that is not hidden carries no key at all.
+pub fn mirror_hidden(folder: &Path, hidden: bool) -> R<()> {
+    let Some(id) = read_id(folder) else { return Ok(()) };
+    write_footprint(folder, &id, &read_flags(folder), hidden)
 }
 
 fn read_flags(folder: &Path) -> Vec<String> {
@@ -299,18 +316,25 @@ fn read_flags(folder: &Path) -> Vec<String> {
     m.get("flags").and_then(Value::as_sequence).map_or_else(Vec::new, |list| list.iter().filter_map(Value::as_str).map(str::to_string).collect())
 }
 
-// Keeps the folder's dragpath.json in step with its user flags; a folder without one, or with a broken one, is left as it is.
-pub fn mirror_flags(folder: &Path, flags: &[String]) -> R<()> {
-    let Some(id) = read_id(folder) else { return Ok(()) };
-    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), footprint_text(&id, flags).as_bytes())
+pub fn read_hidden(folder: &Path) -> bool {
+    let Ok(text) = fs::read_to_string(folder.join(DATA_DIR).join(FOOTPRINT_FILENAME)) else { return false };
+    matches!(serde_yaml::from_str::<Value>(&text), Ok(Value::Mapping(m)) if m.get("hidden") == Some(&Value::Bool(true)))
 }
 
-fn footprint_text(id: &str, flags: &[String]) -> String {
-    if flags.is_empty() {
-        return format!("{{\"id\": \"{id}\"}}\n");
+fn write_footprint(folder: &Path, id: &str, flags: &[String], hidden: bool) -> R<()> {
+    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), footprint_text(id, flags, hidden).as_bytes())
+}
+
+fn footprint_text(id: &str, flags: &[String], hidden: bool) -> String {
+    let mut parts = vec![format!("\"id\": \"{id}\"")];
+    if !flags.is_empty() {
+        let list: Vec<String> = flags.iter().map(|f| format!("\"{f}\"")).collect();
+        parts.push(format!("\"flags\": [{}]", list.join(", ")));
     }
-    let list: Vec<String> = flags.iter().map(|f| format!("\"{f}\"")).collect();
-    format!("{{\"id\": \"{id}\", \"flags\": [{}]}}\n", list.join(", "))
+    if hidden {
+        parts.push("\"hidden\": true".to_string());
+    }
+    format!("{{{}}}\n", parts.join(", "))
 }
 
 fn migrate(data: &mut Mapping, old: &[String], new: &[String]) -> bool {

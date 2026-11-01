@@ -6,8 +6,10 @@ use serde::Deserialize;
 use tauri::AppHandle;
 
 use crate::commands::run_locked;
+use crate::index::review_index;
 use crate::storage::db::Store;
 use crate::tree::depth;
+use crate::tree::tree_store;
 use crate::error::{FmError, R};
 use crate::updater::CURRENT_VERSION;
 
@@ -113,7 +115,19 @@ pub async fn get_settings(app: AppHandle) -> R<HashMap<String, String>> {
 #[tauri::command]
 pub async fn set_setting(app: AppHandle, key: String, value: String) -> R<()> {
     check(&key, &value)?;
-    run_locked(app, move |root| Store::open_or_create(root)?.set_setting(&key, &value)).await
+    run_locked(app, move |root| {
+        Store::open_or_create(root)?.set_setting(&key, &value)?;
+        // Shortcut names carry one slot per level, so a new depth renames every review link.
+        if key != depth::DEPTH_KEY {
+            return Ok(());
+        }
+        let failures = review_index::rebuild(root, &tree_store::load(root)?);
+        if failures.is_empty() {
+            return Ok(());
+        }
+        Err(FmError::Internal { message: failures.join("; ") })
+    })
+    .await
 }
 
 #[tauri::command]

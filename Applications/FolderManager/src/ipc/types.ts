@@ -1,6 +1,6 @@
 // IPC contract shared with the Rust backend; mirror of the serde types.
-export type TypeBase = "NODE" | "WKB" | "PORTF" | "REV" | "RES" | "TPL" | "CFG" | "UNKNOWN";
-export type EditableType = "NODE" | "WKB" | "PORTF";
+export type TypeBase = "NODE" | "WKB" | "OUT" | "REV" | "RES" | "TPL" | "CFG" | "UNKNOWN";
+export type EditableType = "NODE" | "WKB";
 export type NewKind = "node" | "workboard";
 export type WkbStatus = "in-progress" | "for-review" | "hold" | "done";
 export type MoveDirection = "up" | "down";
@@ -16,6 +16,12 @@ export interface NodeInfo {
   error: string | null;
 }
 
+export interface HiddenChoice {
+  node: TreeNode;
+  hidden: boolean;
+  fixed: boolean;
+}
+
 export interface NodeActions {
   rename: boolean;
   changeType: boolean;
@@ -29,6 +35,8 @@ export interface NodeActions {
   favorite: boolean;
   editDetails: boolean;
   editFlags: boolean;
+  hideLink: boolean;
+  hide: boolean;
 }
 
 export interface TreeNode {
@@ -42,12 +50,16 @@ export interface TreeNode {
   statusRaw: string | null;
   locked: boolean;
   reserved: boolean;
+  linked: boolean;
+  linkPath: string | null;
   flags: string[];
   hasChildren: boolean;
   isGit: boolean;
   fixedPrefix: string;
   editableName: string;
   favorite: boolean;
+  hidden: boolean;
+  file: boolean;
   info: NodeInfo | null;
   children: TreeNode[] | null;
   absPath: string;
@@ -98,9 +110,17 @@ export interface PlacedFile {
   copied: boolean;
 }
 
+// A workboard already in the storage under the same id; `source` is what to send back to replace it.
+export interface WorkboardConflict {
+  name: string;
+  source: string;
+  existing: string[];
+}
+
 export interface DropOutcome {
   mutation: Mutation;
   placed: PlacedFile[];
+  conflicts: WorkboardConflict[];
 }
 
 export interface DeletePreview {
@@ -137,6 +157,8 @@ export interface IntakeReport {
 export interface InvalidFolder {
   relParts: string[];
   review: string[][];
+  workboard: boolean;
+  tracker: string | null;
 }
 
 export interface RootCheck {

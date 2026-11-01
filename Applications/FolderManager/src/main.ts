@@ -17,6 +17,7 @@ import { restoreFocus, trackFieldFocus } from "./actions/focus-return";
 import { trackPasteTarget } from "./actions/paste-target";
 import { installDragOut } from "./actions/drag-out";
 import { installFolderMove } from "./actions/folder-move";
+import { installMarquee } from "./actions/marquee";
 import { createStatusLine, clearStatus, currentOperationStatus, setStatus } from "./ui/status";
 import { rememberSelection, state, subscribe } from "./store/state";
 import { createSidePanel } from "./shell/side-panel";
@@ -38,6 +39,7 @@ const views = createViewSwitcher(host, [createTreeView(), createColumnsView(), c
 trackPasteTarget(host);
 installDragOut(host);
 installFolderMove(host);
+installMarquee(host);
 const viewPicker: ViewPicker = {
   modes: views.modes,
   active: () => views.current().id,

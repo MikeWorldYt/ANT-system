@@ -64,7 +64,8 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
   function crumbs(): (Node | string)[] {
     const out: (Node | string)[] = [];
     const sep = () => el("span", { class: "crumb-sep", "aria-hidden": "true" }, guiIcon("separator"));
-    const parts = state.selectedKey?.split("/") ?? [];
+    // A selected file cannot be opened as a folder, so the trail ends at the folder that holds it.
+    const parts = (state.selectedKey?.split("/") ?? []).slice(0, selectedNode()?.file ? -1 : undefined);
     const rootBtn = el("button", { type: "button", class: "crumb crumb-btn crumb-root", title: state.tree?.root ?? "" }, rootName(state.tree?.root));
     rootBtn.addEventListener("click", () => select(null));
     out.push(rootBtn);

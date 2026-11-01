@@ -32,14 +32,14 @@ pub(crate) fn update_with(
     for owner in &new {
         let target = rev_folder(root, owner);
         if target.is_dir() {
-            match review_shortcut_name(owner, "") {
+            match review_shortcut_name(owner, limit) {
                 Ok(name) => fresh.push((name, target)),
                 Err(e) => failures.push(e.to_string()),
             }
         }
     }
     // An owner without a valid name never got a link, so there is nothing of it to remove.
-    let stale: Vec<String> = old.iter().filter_map(|owner| review_shortcut_name(owner, "").ok()).collect();
+    let stale: Vec<String> = old.iter().filter_map(|owner| review_shortcut_name(owner, limit).ok()).collect();
     check_unshared(root, data, &stale, &fresh, limit)?;
     for name in &stale {
         remove_owned(root, review_dir, &review_dir.join(name))?;
@@ -71,7 +71,7 @@ fn check_unshared(root: &Path, data: &Mapping, stale: &[String], fresh: &[(Strin
             continue;
         }
         for owner in branch_owners(data, &[category.to_string()], node, limit) {
-            let Ok(name) = review_shortcut_name(&owner, "") else { continue };
+            let Ok(name) = review_shortcut_name(&owner, limit) else { continue };
             let name = name.to_lowercase();
             if affected.contains(&name) && rev_folder(root, &owner).is_dir() {
                 *producing.entry(name).or_default() += 1;
@@ -260,7 +260,7 @@ mod tests {
         let dir = reviewed("rev-inc-fallback");
         let review = dir.path().join("998.Review");
         // A stale link already sits where the new node's shortcut goes.
-        fake_create(&[(dir.path().join("100.ACADEMIC/02.Bio/98.Bio"), review.join("103.New-Node"))]);
+        fake_create(&[(dir.path().join("100.ACADEMIC/02.Bio/98.Bio"), review.join("103.00.New-Node"))]);
         let m = mutations::add_node(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node).unwrap();
         assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "03.New-Node"])));
         let rebuilt = Cell::new(false);
@@ -290,6 +290,6 @@ mod tests {
         assert!(other_letter.is_ok(), "{other_letter:?}");
         let m = mutations::rename_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), "Garden").unwrap();
         let shared = update_with(dir.path(), &review, &yaml(dir.path()), &m.before, &m.touched, |_| panic!("not created"));
-        assert!(shared.is_err_and(|e| e.contains("101.garden") && e.contains("more than one folder")));
+        assert!(shared.is_err_and(|e| e.contains("101.00.garden") && e.contains("more than one folder")));
     }
 }

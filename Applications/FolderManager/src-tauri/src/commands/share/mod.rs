@@ -14,8 +14,8 @@ use super::run_locked;
 use crate::ant_core::shortcuts::create_shortcuts;
 use crate::ant_core::tree_types::flags_in;
 use crate::error::{FmError, R};
-use crate::fs_safe::io_err;
-use crate::mutations::{free_name, locate, Target};
+use crate::fs_safe::{io_err, join_rel};
+use crate::mutations::{self, free_name, locate, Target};
 use crate::tree::tree_node::is_reserved;
 use crate::tree::tree_store::{self, get_node};
 
@@ -30,14 +30,23 @@ pub struct ShortcutCreated {
     pub folder: String,
 }
 
+// Files and folders go on the clipboard together, as a cut or a copy; a folder refused for cut refuses the whole set.
 #[tauri::command]
-pub async fn copy_folder(app: AppHandle, target: Vec<String>, cut: bool) -> R<()> {
+pub async fn copy_items(app: AppHandle, targets: Vec<Vec<String>>, cut: bool) -> R<()> {
     run_locked(app, move |root| {
         let data = tree_store::load(root)?;
-        let Target { abs, ghost, node_type } = locate(root, &data, &target)?;
-        let flags = get_node(&data, &target).map(flags_in).unwrap_or_default();
-        let effect = clipboard::folder_effect(&target, &node_type, &flags, ghost, cut)?;
-        clipboard::write(&abs, effect)
+        let mut paths = Vec::with_capacity(targets.len());
+        for target in &targets {
+            if join_rel(root, target).is_file() {
+                paths.push(mutations::file_path(root, target)?);
+                continue;
+            }
+            let Target { abs, ghost, node_type } = locate(root, &data, target)?;
+            let flags = get_node(&data, target).map(flags_in).unwrap_or_default();
+            clipboard::folder_effect(target, &node_type, &flags, ghost, cut)?;
+            paths.push(abs);
+        }
+        clipboard::write(&paths, clipboard::drop_effect(cut))
     })
     .await
 }
@@ -57,6 +66,21 @@ pub async fn create_shortcut_in(app: AppHandle, target: Vec<String>, folder: Str
     .await
 }
 
+#[tauri::command]
+pub async fn create_file_shortcut_in(app: AppHandle, target: Vec<String>, folder: String) -> R<ShortcutCreated> {
+    run_locked(app, move |root| {
+        let abs = crate::mutations::file_path(root, &target)?;
+        let (abs, link) = link_in(root, abs, Path::new(&folder))?;
+        let failures = create_shortcuts(&[(abs, link.clone())]);
+        if !failures.is_empty() {
+            return Err(FmError::Internal { message: failures.join("; ") });
+        }
+        let name = link.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        Ok(ShortcutCreated { name, folder })
+    })
+    .await
+}
+
 // The link path comes without its extension, because create_shortcuts appends it.
 pub(super) fn shortcut_plan(root: &Path, data: &Mapping, target: &[String], dir: &Path) -> R<(PathBuf, PathBuf)> {
     let Target { abs, ghost, .. } = locate(root, data, target)?;
@@ -66,6 +90,11 @@ pub(super) fn shortcut_plan(root: &Path, data: &Mapping, target: &[String], dir:
     if ghost {
         return Err(FmError::GhostNotAllowed { op: "create a shortcut to".to_string() });
     }
+    link_in(root, abs, dir)
+}
+
+// Folders and files share these rules: the link goes into a folder outside the storage, under a free name.
+pub(super) fn link_in(root: &Path, abs: PathBuf, dir: &Path) -> R<(PathBuf, PathBuf)> {
     let refuse = |message: &str| FmError::Io {
         op: "create shortcut in".to_string(),
         path: dir.display().to_string(),

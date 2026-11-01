@@ -10,6 +10,7 @@ mod fs_safe;
 mod index;
 mod intake;
 mod mutations;
+mod preview;
 mod scheduler;
 mod storage;
 mod sync;
@@ -96,7 +97,21 @@ pub fn run() {
             commands::delete_node,
             commands::skip_version,
             commands::set_node_details,
+            commands::set_node_output,
+            commands::deliver_output,
+            commands::restore_output,
+            commands::set_node_hidden,
+            commands::set_hidden_nodes,
+            commands::list_hidden_choices,
             commands::set_favorite,
+            commands::set_link_hidden,
+            commands::file_image,
+            commands::rename_file,
+            commands::delete_file,
+            commands::copy_items,
+            commands::move_files_in,
+            commands::create_file_shortcut_in,
+            commands::set_review_filter,
             commands::answer_copy,
             commands::set_user_flag,
             settings::get_settings,
@@ -105,6 +120,7 @@ pub fn run() {
             commands::check_update,
             commands::start_update,
             commands::search_nodes,
+            commands::search_disk,
             commands::suggest_search,
             commands::start_debug_log,
             commands::stop_debug_log,
@@ -137,7 +153,6 @@ pub fn run() {
             commands::acknowledge_intake,
             commands::drop_files,
             commands::paste_files,
-            commands::copy_folder,
             commands::start_drag_out,
             commands::create_shortcut_in,
         ])

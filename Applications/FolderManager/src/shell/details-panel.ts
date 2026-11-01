@@ -2,8 +2,10 @@
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { statusLabeled } from "../ui/status-mark";
-import { isWorkboard, nodeDetails, ownerOf, UNKNOWN } from "../store/node-info";
-import { renameTo, setDetails, setUserFlag } from "../actions/ops";
+import { isWorkboard, nodeDetails, outputOf, ownerOf, UNKNOWN } from "../store/node-info";
+import { renameTo, setDetails, setOutput, setUserFlag } from "../actions/ops";
+import { pickInside } from "../actions/outputs";
+import { setStatus } from "../ui/status";
 import { extensionArea } from "../extensions/panel";
 import { detailFields, onDetailsChange, runDetailsAction } from "../extensions/details";
 import { keyOf, selectedNode } from "../store/state";
@@ -17,6 +19,9 @@ const termId = (label: string) => `details-term-${label.toLowerCase()}`;
 const fieldId = (label: string) => `details-field-${label.toLowerCase()}`;
 const labelled = (label: string) => ({ id: fieldId(label), "aria-labelledby": termId(label) });
 const detailField = (...children: HTMLElement[]) => el("div", { class: "detail-field" }, ...children);
+// A break is allowed only between folders, so each folder stays whole and the line fills before it wraps.
+const pathSegments = (path: string): (HTMLElement | string)[] =>
+  path.split("/").flatMap((folder, i, all) => (i < all.length - 1 ? [el("span", { class: "seg" }, `${folder}/`), "​"] : [el("span", { class: "seg" }, folder)]));
 
 export interface DetailsSection {
   element: HTMLElement;
@@ -46,6 +51,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     let name: HTMLInputElement | null = null;
     let status: StatusPicker | null = null;
     let owner: HTMLInputElement | null = null;
+    let output: HTMLInputElement | null = null;
     let files: HTMLInputElement | null = null;
 
     if (n.actions.rename) {
@@ -67,6 +73,17 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
       inputs.Status = status.button;
       inputs.Owner = owner;
       first ??= owner;
+      const outputField = el("input", { class: "details-input", type: "text", ...labelled("Output"), placeholder: UNKNOWN, spellcheck: "false", autocomplete: "off" });
+      outputField.value = outputOf(n) ?? "";
+      const pick = el("button", { type: "button", class: "icon-btn", "aria-label": "Choose the output folder", title: "Choose the output folder" }, guiIcon("link"));
+      pick.addEventListener("click", async () => {
+        const picked = await pickInside(n, true);
+        if (!picked) return;
+        if (picked.relative === null) setStatus("warning", "Pick a folder inside the workboard");
+        else outputField.value = picked.relative;
+      });
+      output = outputField;
+      inputs.Output = el("div", { class: "details-name" }, outputField, pick);
     }
 
     const save = el("button", { type: "button", class: "btn btn-primary" }, "Save");
@@ -77,6 +94,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
       stop();
       if (!current) return;
       if (files && files.checked !== current.flags.includes("data") && !(await setUserFlag(current, files.checked))) return;
+      if (output && output.value.trim() !== (outputOf(current) ?? "") && !(await setOutput(current, output.value.trim() || null))) return;
       const fieldsChanged = (status?.value && status.value !== current.status) || (owner && owner.value.trim() !== (ownerOf(current) ?? ""));
       if (fieldsChanged && !(await setDetails(current, (status?.value || null) as WkbStatus | null, owner?.value ?? null))) return;
       // A details save re-selects the node, so the rename works on its fresh copy.
@@ -88,7 +106,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
       if (ev.key === "Escape") stop();
       else if (ev.key === "Enter" && ev.target !== status?.button) save.click();
     };
-    const fields: (HTMLElement | null)[] = [name, status?.button ?? null, owner, files];
+    const fields: (HTMLElement | null)[] = [name, status?.button ?? null, owner, output, files];
     for (const field of fields) field?.addEventListener("keydown", onKey);
     queueMicrotask(() => first?.focus());
     inputs[""] = el("div", { class: "details-actions" }, cancel, save);
@@ -105,7 +123,11 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     if (editing === null) form = null;
     else if (n && form?.key !== editing) form = { key: editing, inputs: controls(n) };
     const inputs = form?.inputs ?? {};
-    const rows = (n ? nodeDetails(n) : []).map(([k, v]) => detailField(el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))));
+    const rows = (n ? nodeDetails(n) : []).map(([k, v]) =>
+      k === "Path"
+        ? detailField(el("dt", { id: termId(k) }, k), el("dd", { class: "path" }, ...pathSegments(v)))
+        : detailField(el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))),
+    );
     if (inputs["Allow files"]) rows.push(detailField(el("dt", { id: termId("Allow files") }, "Allow files"), el("dd", {}, inputs["Allow files"])));
     if (inputs[""]) rows.push(detailField(el("dd", {}, inputs[""])));
     for (const ext of detailFields(n)) {

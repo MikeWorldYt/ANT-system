@@ -2,16 +2,16 @@
 use std::path::Path;
 
 use serde_yaml::Mapping;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
-use super::{review_emitter, run_locked};
-use crate::error::R;
-use crate::fs_safe::validate_component;
+use super::{review_emitter, run_locked, Storage};
+use crate::error::{FmError, R};
+use crate::fs_safe::{join_rel, validate_component};
 use crate::index::footprint::Copies;
 use crate::index::{node_names, reindex, review_folders, review_index, Emit};
 use crate::tree::root_check::{self, RootCheck};
 use crate::tree::{depth, snapshot};
-use crate::tree::tree_node::{build_children, fill_children, TreeNode, TreeSnapshot};
+use crate::tree::tree_node::{build_children, fill_children, holds_files, lists_files, TreeNode, TreeSnapshot};
 use crate::tree::tree_store;
 
 pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>) -> R<TreeSnapshot> {
@@ -47,13 +47,30 @@ pub async fn check_root(app: AppHandle) -> R<RootCheck> {
 pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<TreeNode>> {
     run_locked(app, move |root| {
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
-        if rel_parts.len() >= depth::limit(root)? {
+        let data = tree_store::load(root)?;
+        // A review folder past the depth limit still lists its files, so only other folders stop here.
+        if rel_parts.len() >= depth::limit(root)? && !holds_files(&data, &rel_parts) {
             return Ok(Vec::new());
         }
-        let data = tree_store::load(root)?;
         let mut kids = build_children(root, &data, &rel_parts)?;
         fill_children(root, &data, &mut kids)?;
         Ok(kids)
     })
     .await
+}
+
+// Reads without the storage lock, so a slow shell thumbnail never holds up a change.
+#[tauri::command]
+pub async fn file_image(app: AppHandle, rel_parts: Vec<String>, large: bool) -> R<Option<String>> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = app.state::<Storage>().root()?;
+        rel_parts.iter().try_for_each(|part| validate_component(part))?;
+        let parent = &rel_parts[..rel_parts.len().saturating_sub(1)];
+        if !lists_files(parent) {
+            return Ok(None);
+        }
+        crate::preview::file_image(&join_rel(&root, &rel_parts), large)
+    })
+    .await
+    .map_err(|e| FmError::Internal { message: e.to_string() })?
 }

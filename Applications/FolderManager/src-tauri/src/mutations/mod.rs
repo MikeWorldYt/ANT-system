@@ -3,7 +3,11 @@ mod add;
 mod copy_answer;
 mod delete;
 mod favorite;
+mod hidden;
 mod file_drop;
+mod file_ops;
+mod link_hidden;
+mod outputs;
 mod move_folder;
 mod user_flags;
 mod recycle;
@@ -12,6 +16,7 @@ mod reorder;
 mod result;
 mod resolve;
 mod retype;
+mod review_filter;
 #[cfg(not(windows))]
 mod unix_trash;
 
@@ -34,19 +39,22 @@ pub use add::{add_next, add_node};
 pub use copy_answer::{answer_copy, CopyAnswer};
 pub use delete::{delete_node, inspect_delete, DeletePreview};
 pub use favorite::set_favorite;
+pub use file_ops::{delete_file, file_path, rename_file};
+pub use link_hidden::set_link_hidden;
 pub use file_drop::{drop_files, DropOutcome};
 pub(crate) use file_drop::free_name;
 pub use move_folder::{move_folder, move_to_review};
 pub use user_flags::set_user_flag;
-pub use recycle::{recover_trashed, recycle_staged, PendingRecycle};
+pub(crate) use recycle::send_to_recycle_bin;
 pub use rename::rename_node;
 pub use reorder::{move_node, MoveDirection};
 pub use result::LevelPatch;
 pub(crate) use result::finish;
 pub use resolve::{preview_names, resolve_invalid, Pending, Resolution};
+pub use hidden::{hidden_choices, set_hidden, set_hidden_children, HiddenChoice};
+pub use outputs::{deliver, restore, set_output};
 pub use retype::{set_details, set_node_type};
-#[cfg(test)]
-pub(crate) use recycle::recycle_staged_with;
+pub use review_filter::set_review_filter;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -94,7 +102,7 @@ pub(crate) struct Target {
 }
 
 // New .ant folders get their id now; true means a folder moved outside the app was re-keyed, which is not a local change.
-fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) -> bool {
+pub(crate) fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) -> bool {
     let shape = node_paths(data);
     match footprint::plan(root, data, Copies::Ignore).map(|plan| plan.changed) {
         Ok(true) => {

@@ -4,9 +4,9 @@ import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { statusIcon } from "../ui/status-mark";
 import { STATUSES, TYPES } from "../store/node-info";
-import { addChild, pasteFiles, remove, setDetails, setFavorite, setType, setUserFlag } from "../actions/ops";
+import { addChild, hideNode, pasteFiles, remove, removeMany, setDetails, setFavorite, setLinkHidden, setType, setUserFlag } from "../actions/ops";
 import { createShortcut, putOnClipboard } from "../actions/folder-share";
-import { select, startEdit } from "../store/state";
+import { isSelected, keyOf, selectedNodes, startEdit, state } from "../store/state";
 import { setStatus } from "../ui/status";
 import { menuItems, runMenuItem } from "../extensions/host";
 import { autoDismiss, focusInitial, menuItem, place, rove, separator, submenu, type Submenu } from "../ui/menu";
@@ -16,6 +16,8 @@ import type { TreeNode } from "../ipc/types";
 
 interface MenuRequest {
   node: TreeNode;
+  // Set when the menu acts on a marked group; node is then the one that was clicked.
+  nodes?: TreeNode[];
   x: number;
   y: number;
   folderOnly?: boolean;
@@ -29,8 +31,8 @@ declare global {
 
 let dismissOpen: (() => void) | null = null;
 
-function dispatch(host: Element, node: TreeNode, x: number, y: number, folderOnly = false): void {
-  host.dispatchEvent(new CustomEvent<MenuRequest>("fm:node-menu", { bubbles: true, detail: { node, x, y, folderOnly } }));
+function dispatch(host: Element, detail: MenuRequest): void {
+  host.dispatchEvent(new CustomEvent<MenuRequest>("fm:node-menu", { bubbles: true, detail }));
 }
 
 export function nodeContextMenu(ev: MouseEvent, node: TreeNode, host: Element): void {
@@ -39,8 +41,14 @@ export function nodeContextMenu(ev: MouseEvent, node: TreeNode, host: Element): 
   ev.stopPropagation();
   // Keyboard-originated contextmenu events carry button 0 and are handled on keydown.
   if (ev.button !== 2) return;
-  select(node.relParts);
-  dispatch(host, node, ev.clientX, ev.clientY);
+  // Right-clicking a marked item keeps the marks, so the menu acts on all of them.
+  if (isSelected(keyOf(node.relParts)) && state.selectedKeys.length > 1) {
+    dispatch(host, { node, nodes: selectedNodes(), x: ev.clientX, y: ev.clientY });
+    return;
+  }
+  // The clicked item only shows its menu; the selection and the open columns stay where they are.
+  if (ev.target instanceof Element) ev.target.closest("[data-key]")?.classList.add("menu-target");
+  dispatch(host, { node, x: ev.clientX, y: ev.clientY });
 }
 
 // Background menu of the open folder; null (the storage root) has no menu.
@@ -48,15 +56,16 @@ export function folderContextMenu(ev: MouseEvent, folder: TreeNode | null, host:
   ev.preventDefault();
   ev.stopPropagation();
   if (ev.button !== 2 || !folder) return;
-  select(folder.relParts);
-  dispatch(host, folder, ev.clientX, ev.clientY, true);
+  // The background menu acts on its folder without selecting it, so the open columns stay put.
+  dispatch(host, { node: folder, x: ev.clientX, y: ev.clientY, folderOnly: true });
 }
 
 export const isMenuKey = (ev: KeyboardEvent) => ev.key === "ContextMenu" || (ev.key === "F10" && ev.shiftKey);
 
 export function nodeMenuFromKey(host: Element, node: TreeNode, anchor: Element | null): void {
   const r = (anchor ?? host).getBoundingClientRect();
-  dispatch(host, node, r.left + 24, r.bottom);
+  const nodes = isSelected(keyOf(node.relParts)) && state.selectedKeys.length > 1 ? selectedNodes() : undefined;
+  dispatch(host, { node, nodes, x: r.left + 24, y: r.bottom });
 }
 
 async function copyPath(node: TreeNode): Promise<void> {
@@ -93,6 +102,12 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   });
   favorite.prepend(guiIcon("starred"));
   favorite.classList.toggle("ctx-favorite-add", !node.favorite);
+  const hide = menuItem(node.hidden ? "Show element" : "Hide element", "menuitem", a.hideLink, () => {
+    close();
+    void setLinkHidden(node, !node.hidden);
+  });
+  // Only review links carry the action, so the item is left out everywhere else.
+  const hideItems = a.hideLink ? [hide] : [];
   const rename = menuItem("Rename", "menuitem", a.rename, () => {
     close(false);
     startEdit(node.relParts);
@@ -100,13 +115,22 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   // Ungated like Ctrl+C: the backend explains a refusal.
   const copy = menuItem("Copy", "menuitem", true, () => {
     close();
-    void putOnClipboard(node, false);
+    void putOnClipboard([node], false);
+  });
+  // The backend refuses a cut that is not allowed, such as a folder that holds no loose data.
+  const cut = menuItem("Cut", "menuitem", true, () => {
+    close();
+    void putOnClipboard([node], true);
   });
   // Enabled even on locked folders: the backend picks the real target and explains a refusal.
   const paste = menuItem("Paste", "menuitem", true, () => {
     close();
     void pasteFiles(node.relParts);
   });
+  // A review link only opens its owner folder, so the actions that change the folder do not apply.
+  if (node.linked) {
+    return { items: [open, copyPathItem, favorite, ...hideItems, copy, paste], subs: [], content: [open, copyPathItem, favorite, ...hideItems, separator(), copy, paste] };
+  }
   const shortcut = menuItem("Create shortcut", "menuitem", true, () => {
     close();
     void createShortcut(node);
@@ -147,6 +171,20 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     void remove(node);
   }, "ctx-item danger");
   del.prepend(guiIcon("trash"));
+  const hideElement = menuItem("Hide element", "menuitem", a.hide, () => {
+    close();
+    void hideNode(node);
+  });
+  hideElement.prepend(guiIcon("hide"));
+
+  // A file offers only the actions that apply to one file.
+  if (node.file) {
+    return {
+      items: [open, copyPathItem, rename, copy, cut, shortcut, del],
+      subs: [],
+      content: [open, copyPathItem, separator(), rename, copy, cut, shortcut, separator(), del],
+    };
+  }
 
   const extras = menuItems().map((m) =>
     menuItem(m.label, "menuitem", true, () => {
@@ -156,25 +194,45 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [open, copyPathItem, favorite, rename, copy, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, del, ...extras],
+    items: [open, copyPathItem, favorite, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, hideElement, del, ...extras],
     subs,
     content: [
-      open, copyPathItem, favorite, separator(),
-      rename, copy, ...shareItems, separator(),
+      open, copyPathItem, favorite, ...hideItems, separator(),
+      rename, copy, cut, ...shareItems, separator(),
       ...subs.map((s) => s.element), ...fileItems, separator(),
       newNode, newWorkboard, separator(),
-      del, ...(extras.length > 0 ? [separator(), ...extras] : []),
+      hideElement, del, ...(extras.length > 0 ? [separator(), ...extras] : []),
     ],
   };
 }
 
-function openMenu({ node, x, y, folderOnly }: MenuRequest, restoreFocus: () => void, views: ViewPicker): void {
+// Several marked items share Copy, Cut and Delete; Delete needs every one of them deletable.
+function selectionMenu(nodes: TreeNode[], close: (restore?: boolean) => void): MenuParts {
+  const copy = menuItem("Copy", "menuitem", true, () => {
+    close();
+    void putOnClipboard(nodes, false);
+  });
+  const cut = menuItem("Cut", "menuitem", true, () => {
+    close();
+    void putOnClipboard(nodes, true);
+  });
+  const del = menuItem("Delete", "menuitem", nodes.every((n) => n.actions.delete), () => {
+    close();
+    void removeMany(nodes);
+  }, "ctx-item danger");
+  del.prepend(guiIcon("trash"));
+  return { items: [copy, cut, del], subs: [], content: [copy, cut, separator(), del] };
+}
+
+function openMenu({ node, nodes, x, y, folderOnly }: MenuRequest, restoreFocus: () => void, views: ViewPicker): void {
   dismissOpen?.();
-  const { items, subs, content } = folderOnly ? boardMenu(node, views, close) : nodeMenu(node, close);
+  const marked = nodes !== undefined && nodes.length > 1;
+  const { items, subs, content } = folderOnly ? boardMenu(node, views, close) : marked ? selectionMenu(nodes, close) : nodeMenu(node, close);
   const closeSubs = () => subs.filter((s) => !s.element.contains(document.activeElement)).forEach((s) => s.close());
   items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
   subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));
-  const menu = el("div", { class: "ctx-menu ctx-node", role: "menu", "aria-label": `Actions for ${node.name}` }, ...content);
+  const label = marked ? `Actions for ${nodes.length} items` : `Actions for ${node.name}`;
+  const menu = el("div", { class: "ctx-menu ctx-node", role: "menu", "aria-label": label }, ...content);
   menu.addEventListener("mouseleave", closeSubs);
 
   function close(restore = true): void {

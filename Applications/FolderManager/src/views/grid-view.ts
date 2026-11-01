@@ -2,13 +2,15 @@
 import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { el } from "../ui/dom";
 import { folderIcon } from "../ui/icons";
+import { nativeImage } from "../ui/file-images";
 import { statusMark } from "../ui/status-mark";
-import { favoriteMark, nameCell } from "./name-cell";
+import { favoriteMark, hideBox, nameCell } from "./name-cell";
 import { nodeToggle } from "./node-toggle";
-import { nodeSummary } from "../store/node-info";
+import { holdsFiles, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
-import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "./manage-row";
+import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -31,6 +33,8 @@ export function createGridView(): ViewMode {
     folder = selectedNode()?.hasChildren ? key : parent;
   }
 
+  let built: ManageSnapshot | null = null;
+
   function folderNode(): TreeNode | null {
     return folder === null ? null : findNode(folder.split("/"));
   }
@@ -38,7 +42,7 @@ export function createGridView(): ViewMode {
   function shownNodes(): TreeNode[] {
     const open = folderNode();
     const base = folder === null ? (state.tree?.nodes ?? []) : (open?.children ?? []);
-    return sortedForColumns(listed(base), sortOf(folder ?? ""), state.settings.pinFavorites);
+    return (isManagedFolder(folder ?? "") ? managedNodes() : null) ?? sortedForColumns(listed(base), sortOf(folder ?? ""), state.settings.pinFavorites);
   }
 
   // The snapshot only carries the first level, so the folder's children are fetched when it is shown.
@@ -56,14 +60,22 @@ export function createGridView(): ViewMode {
     select(n.relParts);
   }
 
+  // A file's thumbnail replaces its icon once the shell has drawn it.
+  function previewIcon(n: TreeNode): HTMLElement {
+    const src = nativeImage(n, true);
+    return src ? el("img", { class: "thumb", src, alt: "" }) : folderIcon(n);
+  }
+
   function buildItem(n: TreeNode, tabbable: boolean): HTMLElement {
-    const selected = keyOf(n.relParts) === state.selectedKey;
-    const art = n.hasChildren ? nodeToggle(`Open ${n.name}`, null, folderIcon(n)) : el("span", {}, folderIcon(n));
+    const selected = isSelected(keyOf(n.relParts));
+    const icon = n.file ? previewIcon(n) : folderIcon(n);
+    const art = n.hasChildren ? nodeToggle(`Open ${n.name}`, null, folderIcon(n)) : el("span", {}, icon);
     art.classList.add("grid-art");
     if (n.favorite) art.append(favoriteMark());
     if (n.status) art.append(statusMark(n.status));
-    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, art, nameCell(n, false));
+    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, nameCell(n, false));
     item.dataset.key = keyOf(n.relParts);
+    item.prepend(...manageBox(n, item));
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
     if (n.ghost) {
@@ -77,7 +89,10 @@ export function createGridView(): ViewMode {
     item.classList.toggle("reserved", n.reserved);
     item.classList.toggle("rev", n.nodeType?.base === "REV");
     item.title = nodeSummary(n);
-    item.addEventListener("click", () => select(n.relParts));
+    item.addEventListener("click", (ev) => {
+      if (ev.ctrlKey || ev.shiftKey) clickSelect(n.relParts, shownNodes().map((s) => keyOf(s.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
+      else select(n.relParts);
+    });
     // As in Explorer, the name renames and the rest of the tile opens.
     item.addEventListener("dblclick", (ev) => (ev.target instanceof Element && ev.target.closest(".name") ? startEdit(n.relParts) : enter(n)));
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
@@ -148,10 +163,15 @@ export function createGridView(): ViewMode {
     render() {
       syncFolder();
       root.dataset.key = folder ?? "";
+      if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
       const nodes = shownNodes();
       const tabbable = nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0];
-      root.replaceChildren(...nodes.map((n) => buildItem(n, n === tabbable)));
+      const open = folderNode();
+      const empty = nodes.length === 0 && open !== null && open.children !== null && holdsFiles(open);
+      const header = isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : [];
+      root.replaceChildren(...header, ...nodes.map((n) => buildItem(n, n === tabbable)), ...(empty ? [el("p", { class: "grid-legend" }, "Empty")] : []));
+      built = manageSnapshot();
       root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus({ preventScroll: true });
       loadChildren();

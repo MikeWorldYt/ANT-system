@@ -10,10 +10,10 @@ use std::time::{Duration, Instant};
 use crate::ant_core::version::{parse_file_version, parse_version};
 use crate::config::VERSION_URL;
 #[cfg(windows)]
-use crate::config::{CORE_FOLDER, EXE_DOWNLOAD_URL, SETTINGS_FOLDER, UPDATER_SCRIPT};
+use crate::config::{CORE_FOLDER, EXE_DOWNLOAD_URL, SETTINGS_FOLDER, UPDATER_SCRIPT, UPDATER_SCRIPT_URL};
 use crate::error::{FmError, R};
 #[cfg(windows)]
-use crate::fs_safe::{io_err, run_powershell, CREATE_NO_WINDOW};
+use crate::fs_safe::{io_err, run_powershell, write_atomic, CREATE_NO_WINDOW};
 
 pub const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -48,7 +48,7 @@ pub fn launch_updater(root: &Path) -> R<()> {
     let core = root.join(SETTINGS_FOLDER).join(CORE_FOLDER);
     let bat = core.join(UPDATER_SCRIPT);
     if !bat.is_file() {
-        return Err(FmError::Internal { message: format!("Could not find {UPDATER_SCRIPT} in {}", core.display()) });
+        fetch_updater(&core, UPDATER_SCRIPT_URL)?;
     }
     let exe = std::env::current_exe().map_err(|e| io_err("find the app", &core, &e))?;
     // cmd /s strips only the outer quote pair, so every quoted path survives spaces.
@@ -65,6 +65,29 @@ pub fn launch_updater(root: &Path) -> R<()> {
         std::thread::sleep(Duration::from_millis(100));
     }
     Ok(())
+}
+
+// The published script is saved with CRLF endings, which cmd needs for its labels and jumps.
+#[cfg(windows)]
+fn fetch_updater(core: &Path, url: &str) -> R<()> {
+    std::fs::create_dir_all(core).map_err(|e| io_err("create the core folder", core, &e))?;
+    let bat = core.join(UPDATER_SCRIPT);
+    let part = core.join(format!("{UPDATER_SCRIPT}.part"));
+    let out = part.display().to_string();
+    let script = "Invoke-WebRequest -UseBasicParsing -Uri $env:FM_URL -OutFile $env:FM_OUT -TimeoutSec 30 -Headers @{'User-Agent'='FolderManager-Updater'}";
+    run_powershell(script, &[("FM_URL", url.as_ref()), ("FM_OUT", out.as_ref())], None, Duration::from_secs(45))
+        .map_err(|e| FmError::Internal { message: format!("Could not download {UPDATER_SCRIPT}: {e}") })?;
+    let text = std::fs::read_to_string(&part).map_err(|e| io_err("read the download", &part, &e))?;
+    if text.trim().is_empty() {
+        return Err(FmError::Internal { message: format!("Could not download {UPDATER_SCRIPT}: the file is empty") });
+    }
+    write_atomic(&bat, to_crlf(&text).as_bytes())?;
+    std::fs::remove_file(&part).map_err(|e| io_err("remove the download", &part, &e))
+}
+
+#[cfg(windows)]
+fn to_crlf(text: &str) -> String {
+    text.replace("\r\n", "\n").replace('\n', "\r\n")
 }
 
 #[cfg(not(windows))]
@@ -88,10 +111,18 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn a_storage_without_the_updater_script_is_reported() {
+    fn a_missing_updater_script_that_cannot_be_downloaded_is_reported() {
         let dir = TempDir::new("updater-missing");
-        let err = launch_updater(dir.path()).unwrap_err();
-        assert!(err.to_string().contains(UPDATER_SCRIPT), "{err}");
+        let core = dir.path().join("999.Settings/00.Core");
+        let err = fetch_updater(&core, "http://127.0.0.1:9/FM_Updater.bat").unwrap_err();
+        assert!(err.to_string().contains("Could not download"), "{err}");
+        assert!(!core.join(UPDATER_SCRIPT).exists());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn the_downloaded_script_is_saved_with_crlf_endings() {
+        assert_eq!(to_crlf("@echo off\n:: x\r\n"), "@echo off\r\n:: x\r\n");
     }
 
     #[cfg(windows)]

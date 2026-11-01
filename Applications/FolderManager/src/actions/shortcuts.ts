@@ -1,6 +1,6 @@
 // Every global keyboard shortcut in one table, so adding or changing one never means hunting through the views.
-import { selectedNode, state, type KeyCombo } from "../store/state";
-import { addNext, move, remove, setFavorite } from "./ops";
+import { actedNodes, selectedNode, state, type KeyCombo } from "../store/state";
+import { addNext, move, remove, removeMany, setFavorite } from "./ops";
 import { pasteHere } from "./paste-target";
 import { putOnClipboard } from "./folder-share";
 
@@ -80,11 +80,22 @@ function bindings(go: ShortcutTargets): Binding[] {
   };
   return [
     ...EDITABLE_SHORTCUTS.map((s) => ({ ...comboOf(s.id), plain: false, inFields: !NOT_IN_FIELDS.has(s.id), run: runs[s.id]! })),
-    { code: "Delete", mod: false, alt: false, plain: true, inFields: false, run: withSelected((n) => n.actions.delete && void remove(n)) },
+    {
+      code: "Delete",
+      mod: false,
+      alt: false,
+      plain: true,
+      inFields: false,
+      run: () => {
+        const nodes = actedNodes();
+        if (nodes.length > 1) void removeMany(nodes);
+        else if (nodes[0]?.actions.delete) void remove(nodes[0]);
+      },
+    },
     { code: "KeyO", mod: true, alt: false, plain: false, inFields: false, run: go.openSelected },
     { code: "KeyV", mod: true, alt: false, plain: false, inFields: false, run: pasteHere },
-    { code: "KeyC", mod: true, alt: false, plain: false, inFields: false, run: withSelected((n) => void putOnClipboard(n, false)) },
-    { code: "KeyX", mod: true, alt: false, plain: false, inFields: false, run: withSelected((n) => void putOnClipboard(n, true)) },
+    { code: "KeyC", mod: true, alt: false, plain: false, inFields: false, run: () => void putOnClipboard(actedNodes(), false) },
+    { code: "KeyX", mod: true, alt: false, plain: false, inFields: false, run: () => void putOnClipboard(actedNodes(), true) },
   ];
 }
 

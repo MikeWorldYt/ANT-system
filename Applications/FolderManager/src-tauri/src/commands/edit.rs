@@ -7,7 +7,7 @@ use tauri::{AppHandle, Manager};
 use super::{locked, review_emitter, run_locked, Storage};
 use crate::ant_core::shortcuts::create_shortcuts;
 use crate::config::{EditableType, NewKind, WkbStatus};
-use crate::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation, PendingRecycle};
+use crate::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
 use crate::error::{FmError, R};
 use crate::index::{reindex, reindex_paths, review_index, search_index, Emit};
 use crate::tree::tree_store;
@@ -50,7 +50,6 @@ pub(super) fn with_search_index(root: &Path, result: R<Mutation>) -> R<Mutation>
     Ok(m)
 }
 
-// The recycle runs after the storage lock is released so a slow Recycle Bin never blocks other commands.
 pub(super) fn delete_flow(
     storage: &Storage,
     rel: &[String],
@@ -58,16 +57,12 @@ pub(super) fn delete_flow(
     emit: Emit,
     create: impl FnOnce(&[(PathBuf, PathBuf)]) -> Vec<String>,
     rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>,
-    recycle: impl FnOnce(PendingRecycle) -> Vec<String>,
+    recycle: impl FnOnce(&Path) -> Result<(), String>,
 ) -> R<Mutation> {
-    let (mut m, pending) = locked(storage, |root| {
-        let (m, pending) = mutations::delete_node(root, rel, flags.0, flags.1)?;
-        Ok((with_index(root, Ok(m), emit, create, rebuild)?, pending))
-    })?;
-    if let Some(pending) = pending {
-        m.warnings.extend(recycle(pending));
-    }
-    Ok(m)
+    locked(storage, |root| {
+        let m = mutations::delete_node(root, rel, flags.0, flags.1, recycle)?;
+        with_index(root, Ok(m), emit, create, rebuild)
+    })
 }
 
 #[tauri::command]
@@ -78,6 +73,21 @@ pub async fn rename_node(app: AppHandle, rel_parts: Vec<String>, new_editable: S
         with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
     })
     .await
+}
+
+#[tauri::command]
+pub async fn rename_file(app: AppHandle, rel_parts: Vec<String>, new_name: String) -> R<Mutation> {
+    run_locked(app, move |root| mutations::rename_file(root, &rel_parts, &new_name)).await
+}
+
+#[tauri::command]
+pub async fn delete_file(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let storage = app.state::<Storage>();
+        locked(&storage, |root| mutations::delete_file(root, &rel_parts, mutations::send_to_recycle_bin))
+    })
+    .await
+    .map_err(|e| FmError::Internal { message: e.to_string() })?
 }
 
 #[tauri::command]
@@ -99,6 +109,16 @@ pub async fn set_favorite(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R
 }
 
 #[tauri::command]
+pub async fn set_link_hidden(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_link_hidden(root, &rel_parts, on))).await
+}
+
+#[tauri::command]
+pub async fn set_review_filter(app: AppHandle, hidden: Vec<String>, favorites: bool) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_review_filter(root, &hidden, favorites))).await
+}
+
+#[tauri::command]
 pub async fn set_user_flag(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
     run_locked(app, move |root| with_search_index(root, mutations::set_user_flag(root, &rel_parts, on))).await
 }
@@ -109,6 +129,36 @@ pub async fn set_node_details(app: AppHandle, rel_parts: Vec<String>, status: Op
         with_search_index(root, mutations::set_details(root, &rel_parts, status, owner.as_deref()))
     })
     .await
+}
+
+#[tauri::command]
+pub async fn set_node_output(app: AppHandle, rel_parts: Vec<String>, output: Option<String>) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_output(root, &rel_parts, output.as_deref()))).await
+}
+
+#[tauri::command]
+pub async fn deliver_output(app: AppHandle, rel_parts: Vec<String>, date: String, all: bool) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::deliver(root, &rel_parts, &date, all))).await
+}
+
+#[tauri::command]
+pub async fn restore_output(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::restore(root, &rel_parts))).await
+}
+
+#[tauri::command]
+pub async fn set_node_hidden(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_hidden(root, &rel_parts, on))).await
+}
+
+#[tauri::command]
+pub async fn set_hidden_nodes(app: AppHandle, parent: Vec<String>, hidden: Vec<String>) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_hidden_children(root, &parent, &hidden))).await
+}
+
+#[tauri::command]
+pub async fn list_hidden_choices(app: AppHandle, parent: Vec<String>) -> R<Vec<mutations::HiddenChoice>> {
+    run_locked(app, move |root| mutations::hidden_choices(root, &parent)).await
 }
 
 #[tauri::command]
@@ -187,7 +237,7 @@ pub async fn delete_node(
         let flags = (expect_ghost, confirm_non_empty);
         let emit = review_emitter(&app);
         let storage = app.state::<Storage>();
-        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, mutations::recycle_staged)
+        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, mutations::send_to_recycle_bin)
     })
     .await
     .map_err(|e| FmError::Internal { message: e.to_string() })?

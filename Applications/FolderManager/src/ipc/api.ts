@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { isFmError } from "./types";
 import type {
   CopyAnswer,
+  HiddenChoice,
   DeletePreview,
   DropOutcome,
   EditableType,
@@ -44,6 +45,9 @@ export const setNodeType = (relParts: string[], typeBase: EditableType, status: 
   call<Mutation>("set_node_type", { relParts, typeBase, status });
 export const openNode = (relParts: string[]) => call<void>("open_node", { relParts });
 export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("set_favorite", { relParts, on });
+export const fileImage = (relParts: string[], large: boolean) => call<string | null>("file_image", { relParts, large });
+export const setLinkHidden =(relParts: string[], on: boolean) => call<Mutation>("set_link_hidden", { relParts, on });
+export const setReviewFilter = (hidden: string[], favorites: boolean) => call<Mutation>("set_review_filter", { hidden, favorites });
 export const setUserFlag = (relParts: string[], on: boolean) => call<Mutation>("set_user_flag", { relParts, on });
 export const answerCopy = (relParts: string[], answer: CopyAnswer) => call<void>("answer_copy", { relParts, answer });
 export const getSettings = () => call<Record<string, string>>("get_settings");
@@ -83,26 +87,40 @@ export const openLogsFolder = () => call<void>("open_logs_folder");
 export const openDevtools = () => call<void>("open_devtools");
 export const setNodeDetails = (relParts: string[], status: WkbStatus | null, owner: string | null) =>
   call<Mutation>("set_node_details", { relParts, status, owner });
+export const setNodeHidden = (relParts: string[], on: boolean) => call<Mutation>("set_node_hidden", { relParts, on });
+export const setHiddenNodes = (parent: string[], hidden: string[]) => call<Mutation>("set_hidden_nodes", { parent, hidden });
+export const listHiddenChoices = (parent: string[]) => call<HiddenChoice[]>("list_hidden_choices", { parent });
+export const setNodeOutput = (relParts: string[], output: string | null) => call<Mutation>("set_node_output", { relParts, output });
+export const deliverOutput = (relParts: string[], date: string, all: boolean) => call<Mutation>("deliver_output", { relParts, date, all });
+export const restoreOutput = (relParts: string[]) => call<Mutation>("restore_output", { relParts });
 export const addNode = (relParts: string[], kind: NewKind) => call<Mutation>("add_node", { relParts, kind });
 export const addChild = (relParts: string[], kind: NewKind) => call<Mutation>("add_child", { relParts, kind });
 export const moveNode = (relParts: string[], direction: MoveDirection) =>
   call<Mutation>("move_node", { relParts, direction });
-export const dropFiles = (target: string[], paths: string[]) => call<DropOutcome>("drop_files", { target, paths });
+export const dropFiles = (target: string[], paths: string[], replace: string[] = []) => call<DropOutcome>("drop_files", { target, paths, replace });
 export const pasteFiles = (target: string[]) => call<DropOutcome>("paste_files", { target });
-export const copyFolder = (target: string[], cut: boolean) => call<void>("copy_folder", { target, cut });
+export const moveFilesIn = (sources: string[][], target: string[], copy: boolean) =>
+  call<DropOutcome>("move_files_in", { sources, target, copy });
 export const moveFolder = (source: string[], destination: string[], copy: boolean) =>
   call<Mutation>("move_folder", { source, destination, copy });
-export const startDragOut =(target: string[]) => call<void>("start_drag_out", { target });
+// The drop effect Explorer chose: 2 when the items were moved out of the storage.
+export const startDragOut = (targets: string[][]) => call<number>("start_drag_out", { targets });
 export interface ShortcutCreated {
   name: string;
   folder: string;
 }
 export const createShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_shortcut_in", { target, folder });
+export const copyItems = (targets: string[][], cut: boolean) => call<void>("copy_items", { targets, cut });
+export const createFileShortcutIn = (target: string[], folder: string) =>
+  call<ShortcutCreated>("create_file_shortcut_in", { target, folder });
+export const renameFile = (relParts: string[], newName: string) => call<Mutation>("rename_file", { relParts, newName });
+export const deleteFile = (relParts: string[]) => call<Mutation>("delete_file", { relParts });
 export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
 export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonEmpty: boolean) =>
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
+export const searchDisk = (query: string) => call<string[][]>("search_disk", { query });
 export interface Suggestion {
   value: string;
   label: string;

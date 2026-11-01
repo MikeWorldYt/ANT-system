@@ -1,14 +1,14 @@
 // Tree view: indented expandable rows with keyboard navigation.
-import { nodeSummary } from "../store/node-info";
+import { holdsFiles, isWorkboard, nodeSummary } from "../store/node-info";
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
-import { nameCell } from "./name-cell";
+import { hideBox, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
 import { toggleExpand } from "../actions/ops";
-import { keyOf, select, startEdit, state, visibleRows } from "../store/state";
+import { clickSelect, isSelected, keyOf, select, startEdit, state, visibleRows } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -28,12 +28,12 @@ export function createTreeView(): ViewMode {
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(n.hasChildren ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
     const icon = folderIcon(n, expanded && n.hasChildren);
     const toggle = n.hasChildren ? nodeToggle(`${expanded ? "Collapse" : "Expand"} ${n.name}`, expanded, caret, icon) : null;
-    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, ...(toggle ? [toggle] : [caret, icon]), nameCell(n));
+    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorkboard(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
     row.style.setProperty("--depth", String(n.depth));
     row.dataset.key = key;
-    row.setAttribute("aria-selected", String(key === state.selectedKey));
+    row.setAttribute("aria-selected", String(isSelected(key)));
     if (n.hasChildren) row.setAttribute("aria-expanded", String(expanded));
-    if (key === state.selectedKey) row.classList.add("selected");
+    if (isSelected(key)) row.classList.add("selected");
     if (n.ghost) row.classList.add("ghost");
     if (n.locked) {
       row.classList.add("locked");
@@ -42,20 +42,30 @@ export function createTreeView(): ViewMode {
     row.classList.toggle("reserved", n.reserved);
     row.classList.toggle("rev", n.nodeType?.base === "REV");
     if (n.ghost) row.setAttribute("aria-label", `${n.name} (missing on disk)`);
-    if (n.status) row.append(statusMark(n.status));
+    if (n.status && !isWorkboard(n)) row.append(statusMark(n.status));
     row.title = nodeSummary(n);
     toggle?.addEventListener("click", () => {
       select(n.relParts);
       void toggleExpand(n);
     });
     row.addEventListener("click", (ev) => {
-      if (!fromToggle(ev)) select(n.relParts);
+      if (fromToggle(ev)) return;
+      if (ev.ctrlKey || ev.shiftKey) clickSelect(n.relParts, rows.map((r) => keyOf(r.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
+      else select(n.relParts);
     });
     row.addEventListener("dblclick", (ev) => {
       if (!fromToggle(ev)) startEdit(n.relParts);
     });
     row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, tree));
     return row;
+  }
+
+  // An opened review folder with nothing in it gets a line under its row, so the row does not look unfinished.
+  function emptyLegend(n: TreeNode): HTMLElement[] {
+    if (!holdsFiles(n) || n.children?.length !== 0 || !state.expanded.has(keyOf(n.relParts))) return [];
+    const legend = el("div", { class: "tree-legend" }, "Empty");
+    legend.style.setProperty("--depth", String(n.depth + 1));
+    return [legend];
   }
 
   function onKey(ev: KeyboardEvent): void {
@@ -111,7 +121,7 @@ export function createTreeView(): ViewMode {
     },
     render() {
       rows = visibleRows();
-      tree.replaceChildren(...rows.map(buildRow));
+      tree.replaceChildren(...rows.flatMap((n, i) => [buildRow(n, i), ...emptyLegend(n)]));
       const i = indexOfSelected();
       if (i >= 0) {
         tree.setAttribute("aria-activedescendant", `row-${i}`);

@@ -26,7 +26,7 @@ pub(crate) fn destination(rel: &[String], node: &Mapping) -> R<Vec<String>> {
         return Err(FmError::Locked { rel_parts: rel.to_vec(), node_type: raw.to_string() });
     }
     match type_base(raw) {
-        "WKB" | "PORTF" => Ok(rel.to_vec()),
+        "WKB" | "OUT" => Ok(rel.to_vec()),
         "NODE" if flags_in(node).iter().any(|f| f == DATA_FLAG) => Ok(rel.to_vec()),
         "NODE" => review_child(node)
             .map(|review| child_rel(rel, review))

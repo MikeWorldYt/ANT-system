@@ -10,25 +10,23 @@ use crate::error::R;
 use crate::fs_safe::StorageLock;
 use crate::index::footprint::{self, Copies};
 use crate::index::search_index;
-use crate::mutations;
 use tree_node::{build_tree, fill_children, TreeSnapshot};
 
 pub fn snapshot(root: &Path, mode: Copies) -> R<TreeSnapshot> {
-    if root.join(crate::config::TRASH_DIR).is_dir() {
-        let _lock = StorageLock::acquire(root)?;
-        mutations::recover_trashed(root)?;
-    }
     let mut data = tree_store::load(root)?;
     let mut changed = tree_store::sync(root, &mut data)?;
+    changed |= tree_store::reconcile_portfolios_all(root, &mut data)?;
     let mut copies = Vec::new();
     if changed || !footprint::scan(root, &data)?.is_clean() {
         // Reloading under the file lock keeps this save from overwriting another process's edit.
         let _lock = StorageLock::acquire(root)?;
         data = tree_store::load(root)?;
-        changed = tree_store::sync(root, &mut data)?;
+        changed |= tree_store::sync(root, &mut data)?;
+        changed |= tree_store::reconcile_portfolios_all(root, &mut data)?;
         let plan = footprint::plan(root, &mut data, mode)?;
         if plan.changed {
             tree_store::sync(root, &mut data)?;
+            tree_store::reconcile_portfolios_all(root, &mut data)?;
             changed = true;
         }
         copies = plan.copies;

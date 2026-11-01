@@ -110,11 +110,11 @@ fn assert_indexes_like_full_rebuild(dir: &TempDir, m: &Mutation) {
 fn a_data_node_moves_into_a_node_with_its_uid_type_and_contents() {
     let dir = ready("mf-data");
     let m = move_folder(dir.path(), &rel(&["100.WORK", "02.Data"]), &rel(&["200.HOME", "01.Garden"]), false).unwrap();
-    let moved = ["200.HOME", "01.Garden", "02.Data"];
+    let moved = ["200.HOME", "01.Garden", "01.Data"];
     assert_eq!(m.select, Some(rel(&moved)));
     assert_eq!(m.levels.iter().map(|l| l.parent.clone()).collect::<Vec<_>>(), [rel(&["100.WORK"]), rel(&["200.HOME", "01.Garden"])]);
     assert!(!dir.path().join("100.WORK/02.Data").exists());
-    assert_eq!(fs::read_to_string(dir.path().join("200.HOME/01.Garden/02.Data/notes.txt")).unwrap(), "keep");
+    assert_eq!(fs::read_to_string(dir.path().join("200.HOME/01.Garden/01.Data/notes.txt")).unwrap(), "keep");
     assert!(get_node(&yaml(dir.path()), &rel(&["100.WORK", "02.Data"])).is_none());
     let node = get_node(&yaml(dir.path()), &rel(&moved)).unwrap().clone();
     assert_eq!(node.get("type").and_then(Value::as_str), Some("NODE-L2"));
@@ -122,6 +122,20 @@ fn a_data_node_moves_into_a_node_with_its_uid_type_and_contents() {
     assert_eq!(uid(&dir, &moved).as_deref(), Some("DATA00000000001"));
     assert!(node.get("98.Data").is_none(), "past the depth limit the 98 folder stays on disk only");
     assert_indexes_like_full_rebuild(&dir, &m);
+}
+
+#[test]
+fn a_moved_node_takes_the_lowest_free_slot_of_its_new_level() {
+    let dir = ready("mf-slot");
+    for taken in ["01.Taken", "02.Taken", "03.Taken"] {
+        dir.mkdir(&format!("200.HOME/01.Garden/{taken}"));
+    }
+    let m = move_folder(dir.path(), &rel(&["100.WORK", "02.Data"]), &rel(&["200.HOME", "01.Garden"]), false).unwrap();
+    assert_eq!(m.select, Some(rel(&["200.HOME", "01.Garden", "04.Data"])));
+    assert!(dir.path().join("200.HOME/01.Garden/04.Data/notes.txt").is_file());
+    let m = move_folder(dir.path(), &rel(&["100.WORK", "03.Target"]), &rel(&["200.HOME", "01.Garden"]), false).unwrap();
+    assert_eq!(m.select, Some(rel(&["200.HOME", "01.Garden", "05.Target"])));
+    assert!(dir.path().join("200.HOME/01.Garden/05.Target").is_dir());
 }
 
 #[test]
@@ -164,7 +178,7 @@ fn reason(err: FmError) -> String {
 fn refusals_leave_the_disk_and_the_tree_unchanged() {
     let dir = ready("mf-refuse");
     let target = ["100.WORK", "03.Target"];
-    assert!(reason(refused(&dir, &["100.WORK", "01.Plain"], &target, false)).contains("no data flag"));
+    assert!(reason(refused(&dir, &["100.WORK"], &target, false)).contains("main categories"));
     assert!(matches!(refused(&dir, &["998.Review"], &target, false), FmError::Reserved { .. }));
     assert!(matches!(refused(&dir, &["100.WORK", "01.Plain", "98.Plain"], &target, false), FmError::Locked { .. }));
     assert!(matches!(refused(&dir, &["100.WORK", "04.Ghost"], &target, false), FmError::GhostNotAllowed { .. }));
@@ -177,7 +191,6 @@ fn refusals_leave_the_disk_and_the_tree_unchanged() {
     let big = ["100.WORK", "PJ.003_Big"];
     assert!(reason(refused(&dir, &big, &["100.WORK", "PJ.003_Big", "01.Part"], true)).contains("into itself"));
     assert!(reason(refused(&dir, &web, &["100.WORK"], false)).contains("already in 100.WORK"));
-    assert_eq!(reason(refused(&dir, &web, &["100.WORK"], true)), "a folder named PJ.001_Web already exists in 100.WORK");
     dir.mkdir("100.WORK/03.Target/PJ.001_Web");
     assert_eq!(reason(refused(&dir, &web, &target, false)), "a folder named PJ.001_Web already exists in 100.WORK/03.Target");
 }
@@ -187,8 +200,8 @@ fn a_review_folder_takes_a_data_node_and_a_workboard_but_998_review_does_not() {
     let dir = ready("mf-review");
     let review = ["100.WORK", "98.WORK"];
     let m = move_folder(dir.path(), &rel(&["100.WORK", "02.Data"]), &rel(&review), false).unwrap();
-    assert_eq!(fs::read_to_string(dir.path().join("100.WORK/98.WORK/02.Data/notes.txt")).unwrap(), "keep");
-    assert_eq!(uid(&dir, &["100.WORK", "98.WORK", "02.Data"]).as_deref(), Some("DATA00000000001"));
+    assert_eq!(fs::read_to_string(dir.path().join("100.WORK/98.WORK/01.Data/notes.txt")).unwrap(), "keep");
+    assert_eq!(uid(&dir, &["100.WORK", "98.WORK", "01.Data"]).as_deref(), Some("DATA00000000001"));
     assert_indexes_like_full_rebuild(&dir, &m);
     let web = uid(&dir, &["100.WORK", "PJ.001_Web"]);
     let m = move_folder(dir.path(), &rel(&["100.WORK", "PJ.001_Web"]), &rel(&review), false).unwrap();
@@ -197,7 +210,8 @@ fn a_review_folder_takes_a_data_node_and_a_workboard_but_998_review_does_not() {
     let copied = move_folder(dir.path(), &rel(&["100.WORK", "PJ.002_App"]), &rel(&review), true).unwrap();
     assert!(dir.path().join("100.WORK/98.WORK/PJ.002_App/.ant").is_dir());
     assert_indexes_like_full_rebuild(&dir, &copied);
-    assert_eq!(reason(refused(&dir, &["100.WORK", "PJ.002_App"], &review, true)), "a folder named PJ.002_App already exists in 100.WORK/98.WORK");
+    let again = move_folder(dir.path(), &rel(&["100.WORK", "PJ.002_App"]), &rel(&review), true).unwrap();
+    assert_eq!(again.select, Some(rel(&["100.WORK", "98.WORK", "PJ.002_App (2)"])));
     assert!(matches!(refused(&dir, &["100.WORK", "PJ.002_App"], &["998.Review"], false), FmError::Reserved { .. }));
 }
 
@@ -262,4 +276,41 @@ fn a_copy_gets_its_own_tailed_uid_and_the_source_stays() {
     assert_eq!(fs::read_to_string(dir.path().join("100.WORK/03.Target/PJ.001_Web/brief.txt")).unwrap(), "brief");
     assert_eq!(get_type_of(&dir, &copy), "WKB-L2");
     assert_indexes_like_full_rebuild(&dir, &m);
+}
+
+#[test]
+fn a_moved_workboard_gets_no_review_folder() {
+    let dir = storage(
+        "move-wkb-no-review",
+        &["100.A/02.B/PJ.001_X", "100.A/03.C"],
+        "100.A:\n  type: NODE-L1\n  02.B:\n    type: NODE-L2\n    PJ.001_X:\n      type: WKB-L3\n  03.C:\n    type: NODE-L2\n",
+    );
+    move_folder(dir.path(), &rel(&["100.A", "02.B", "PJ.001_X"]), &rel(&["100.A", "03.C"]), false).unwrap();
+    let moved = dir.path().join("100.A/03.C/PJ.001_X");
+    assert!(moved.is_dir());
+    assert!(names(&moved).iter().all(|n| !n.starts_with("98.")), "{:?}", names(&moved));
+}
+
+#[test]
+fn a_copied_workboard_gets_no_review_folder() {
+    let dir = storage(
+        "copy-wkb-no-review",
+        &["100.A/02.B/PJ.001_X", "100.A/03.C"],
+        "100.A:\n  type: NODE-L1\n  02.B:\n    type: NODE-L2\n    PJ.001_X:\n      type: WKB-L3\n  03.C:\n    type: NODE-L2\n",
+    );
+    move_folder(dir.path(), &rel(&["100.A", "02.B", "PJ.001_X"]), &rel(&["100.A", "03.C"]), true).unwrap();
+    let copied = dir.path().join("100.A/03.C/PJ.001_X");
+    assert!(names(&copied).iter().all(|n| !n.starts_with("98.")), "{:?}", names(&copied));
+}
+
+#[test]
+fn an_unflagged_node_moves_with_its_contents_and_a_copy_takes_a_free_name() {
+    let dir = ready("mf-unflagged");
+    let m = move_folder(dir.path(), &rel(&["100.WORK", "01.Plain"]), &rel(&["100.WORK", "03.Target"]), false).unwrap();
+    assert_eq!(m.select, Some(rel(&["100.WORK", "03.Target", "01.Plain"])));
+    assert!(dir.path().join("100.WORK/03.Target/01.Plain/98.Plain").is_dir());
+    let copy = move_folder(dir.path(), &rel(&["100.WORK", "02.Data"]), &rel(&["100.WORK"]), true).unwrap();
+    assert_eq!(copy.select, Some(rel(&["100.WORK", "02.Data (2)"])));
+    assert!(dir.path().join("100.WORK/02.Data").is_dir());
+    assert!(dir.path().join("100.WORK/02.Data (2)").is_dir());
 }

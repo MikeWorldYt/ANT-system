@@ -1,16 +1,23 @@
 // Single in-memory store for the tree snapshot, selection and expansion.
 import { listChildren } from "../ipc/api";
-import { favoritesFirst, SORT_BYS, type ColumnSort, type SortBy } from "./sort";
+import { favoritesFirst, foldersFirst, SORT_BYS, type ColumnSort, type SortBy } from "./sort";
 import { readPref, savePref } from "./prefs";
-import type { LevelPatch, TreeNode, TreeSnapshot } from "../ipc/types";
+import type { HiddenChoice, LevelPatch, TreeNode, TreeSnapshot } from "../ipc/types";
 
 interface State {
   tree: TreeSnapshot | null;
   selectedKey: string | null;
+  // Every selected key, the primary one included; a plain click leaves just that one.
+  selectedKeys: string[];
   // Folder the last click in the views landed on, "" for the storage root; Ctrl+V pastes there.
   pasteKey: string | null;
   expanded: Set<string>;
   busy: boolean;
+  // Lists every review link so the hidden ones can be selected again, instead of only the shown ones.
+  hidingLinks: boolean;
+  // The folder whose children the side panel lists for hiding, with each child's hidden state.
+  managing: string[] | null;
+  hiddenChoices: HiddenChoice[];
   editing: { key: string; draft: string; focused: boolean } | null;
   // Order of each column, keyed by its parent's path ("" for the first one); the tree view has its own.
   sorts: Record<string, ColumnSort>;
@@ -76,9 +83,13 @@ function readSorts(): Record<string, ColumnSort> {
 export const state: State = {
   tree: null,
   selectedKey: null,
+  selectedKeys: [],
   pasteKey: null,
   expanded: new Set(),
   busy: false,
+  hidingLinks: false,
+  managing: null,
+  hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
   settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
@@ -112,8 +123,32 @@ export function selectedNode(): TreeNode | null {
   return state.selectedKey === null ? null : findNode(state.selectedKey.split("/"));
 }
 
-export const listed = (nodes: TreeNode[]): TreeNode[] =>
-  state.settings.hideDone ? nodes.filter((n) => n.status !== "done" || inSelectedPath(n)) : nodes;
+export const isSelected = (key: string): boolean => state.selectedKeys.includes(key);
+
+export function selectedNodes(): TreeNode[] {
+  return state.selectedKeys.flatMap((key) => findNode(key.split("/")) ?? []);
+}
+
+// What a command acts on: every marked item when several are marked, else the item on the path.
+export function actedNodes(): TreeNode[] {
+  if (state.selectedKeys.length > 1) return selectedNodes();
+  const n = selectedNode();
+  return n ? [n] : [];
+}
+
+// A folder's selected contents travel with it, so only the outermost picks count.
+export const outermost = (paths: string[][]): string[][] =>
+  paths.filter((p) => !paths.some((o) => o.length < p.length && o.every((part, i) => part === p[i])));
+
+export const listed = (nodes: TreeNode[]): TreeNode[] => {
+  const shown = state.hidingLinks ? nodes : nodes.filter((n) => !n.hidden);
+  return state.settings.hideDone ? shown.filter((n) => n.status !== "done" || inSelectedPath(n)) : shown;
+};
+
+export function toggleHidingLinks(): void {
+  state.hidingLinks = !state.hidingLinks;
+  notify();
+}
 
 const inSelectedPath = (n: TreeNode): boolean => {
   const key = keyOf(n.relParts);
@@ -123,7 +158,7 @@ const inSelectedPath = (n: TreeNode): boolean => {
 export function visibleRows(): TreeNode[] {
   const rows: TreeNode[] = [];
   const walk = (nodes: TreeNode[]) => {
-    for (const n of favoritesFirst(listed(nodes), state.settings.pinFavorites)) {
+    for (const n of foldersFirst(favoritesFirst(listed(nodes), state.settings.pinFavorites))) {
       rows.push(n);
       if (state.expanded.has(keyOf(n.relParts)) && n.children) walk(n.children);
     }
@@ -196,8 +231,49 @@ export function setColumnSort(columnKey: string, patch: Partial<ColumnSort>): vo
   notify();
 }
 
+// Managing lasts while the managed folder or one of its direct children is selected; any other folder ends it.
+function inManagedScope(key: string | null): boolean {
+  if (key === null || state.managing === null) return true;
+  const managed = keyOf(state.managing);
+  const at = key.lastIndexOf("/");
+  return key === managed || (at < 0 ? "" : key.slice(0, at)) === managed;
+}
+
 export function select(parts: string[] | null): void {
   state.selectedKey = parts ? keyOf(parts) : null;
+  state.selectedKeys = state.selectedKey === null ? [] : [state.selectedKey];
+  if (!inManagedScope(state.selectedKey)) {
+    state.managing = null;
+    state.hiddenChoices = [];
+  }
+  notify();
+}
+
+// Ctrl toggles one item; Shift selects the run from the anchor to it among the listed siblings.
+export function clickSelect(parts: string[], siblings: string[], mods: { ctrl: boolean; shift: boolean }): void {
+  const key = keyOf(parts);
+  const anchor = state.selectedKey;
+  if (mods.shift && anchor !== null && siblings.includes(anchor) && siblings.includes(key)) {
+    const a = siblings.indexOf(anchor);
+    const b = siblings.indexOf(key);
+    state.selectedKeys = siblings.slice(Math.min(a, b), Math.max(a, b) + 1);
+  } else if (mods.ctrl) {
+    if (state.selectedKeys.includes(key)) {
+      state.selectedKeys = state.selectedKeys.filter((k) => k !== key);
+    } else {
+      state.selectedKeys = [...state.selectedKeys, key];
+      state.selectedKey = key;
+    }
+  } else {
+    select(parts);
+    return;
+  }
+  notify();
+}
+
+// A rubber band only marks items; the path (selectedKey) stays, so the open columns do not close.
+export function selectKeys(keys: string[]): void {
+  state.selectedKeys = keys;
   notify();
 }
 
@@ -229,9 +305,38 @@ export function setTree(tree: TreeSnapshot): void {
   state.tree = tree;
 }
 
+// A rename outside the app keeps the id, so a stale path follows the one sibling that still has it.
+const ID_PREFIX = /^(?:(?:PJ|PR|HW|CR|TK)\.\d+|\d+\.)/;
+const idOf = (name: string): string | null => ID_PREFIX.exec(name)?.[0] ?? null;
+
+function followPath(parts: string[]): string[] | null {
+  const resolved: string[] = [];
+  let level: TreeNode[] = state.tree?.nodes ?? [];
+  for (const part of parts) {
+    const id = idOf(part);
+    const sameId = id === null ? [] : level.filter((n) => idOf(n.name) === id);
+    const found = level.find((n) => n.name === part) ?? (sameId.length === 1 ? sameId[0] : undefined);
+    if (!found) return null;
+    resolved.push(found.name);
+    level = found.children ?? [];
+  }
+  return resolved;
+}
+
+const followKey = (key: string): string | null => {
+  const resolved = followPath(key.split("/"));
+  return resolved ? keyOf(resolved) : null;
+};
+
+// Open folders are kept by path, so one renamed outside the app stays open under its new name.
+export function followExpanded(): void {
+  state.expanded = new Set([...state.expanded].map((key) => followKey(key) ?? key));
+}
+
 export function pruneSelection(): void {
   if (state.editing && !findNode(state.editing.key.split("/"))) state.editing = null;
-  if (state.selectedKey !== null && !selectedNode()) state.selectedKey = null;
+  state.selectedKeys = [...new Set(state.selectedKeys.map(followKey).filter((key): key is string => key !== null))];
+  if (state.selectedKey !== null) state.selectedKey = followKey(state.selectedKey) ?? state.selectedKeys.at(-1) ?? null;
 }
 
 // Swaps in each parent's new children, keeping the loaded subtrees of untouched siblings; null when a parent is not loaded.

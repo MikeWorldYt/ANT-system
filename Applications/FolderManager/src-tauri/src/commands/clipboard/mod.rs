@@ -68,6 +68,6 @@ pub fn read() -> R<ClipboardFiles> {
 }
 
 #[cfg(not(windows))]
-pub fn write(_path: &std::path::Path, _effect: u32) -> R<()> {
+pub fn write(_paths: &[PathBuf], _effect: u32) -> R<()> {
     Err(FmError::Internal { message: "Copy and cut are only available on Windows for now".to_string() })
 }

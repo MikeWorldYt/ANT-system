@@ -4,7 +4,7 @@ use std::path::Path;
 use serde::Serialize;
 use serde_yaml::Mapping;
 
-use super::{exactly_on_disk, split, Mutation};
+use super::{exactly_on_disk, parent_of, Mutation};
 use crate::error::R;
 use crate::tree::depth;
 use crate::tree::tree_node::{build_children, build_tree, fill_children, TreeNode, TreeSnapshot};
@@ -62,7 +62,7 @@ fn patch_levels(root: &Path, data: &Mapping, touched: &[Vec<String>]) -> R<Vec<L
     let limit = depth::limit(root)?;
     let mut levels: Vec<LevelPatch> = Vec::new();
     for rel in touched {
-        let (_, parent) = split(rel)?;
+        let parent = parent_of(rel);
         if levels.iter().any(|l| l.parent == parent) {
             continue;
         }

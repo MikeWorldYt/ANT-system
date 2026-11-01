@@ -22,11 +22,20 @@ const sortValue: Record<SortBy, (n: TreeNode) => string | number> = {
   status: (n) => STATUSES.findIndex(([v]) => v === n.status) + 1 || STATUSES.length + 1,
 };
 
-// Favorites go above the rest of their list when pinned; the tail folders still close it.
+const isPortfolio = (n: TreeNode): boolean => n.nodeType?.base === "OUT";
+
+// Portfolios head every list, even above favorites; pinned favorites go above the rest, and the tail folders still close it.
 export function favoritesFirst(nodes: TreeNode[], pin: boolean): TreeNode[] {
-  if (!pin) return nodes;
-  const body = nodes.filter((n) => !isTail(n.name));
-  return [...body.filter((n) => n.favorite), ...body.filter((n) => !n.favorite), ...nodes.filter((n) => isTail(n.name))];
+  const heads = nodes.filter(isPortfolio);
+  const rest = nodes.filter((n) => !isPortfolio(n));
+  if (!pin) return [...heads, ...rest];
+  const body = rest.filter((n) => !isTail(n.name));
+  return [...heads, ...body.filter((n) => n.favorite), ...body.filter((n) => !n.favorite), ...rest.filter((n) => isTail(n.name))];
+}
+
+// Folders come before files in every list, whatever the sort direction.
+export function foldersFirst(nodes: TreeNode[]): TreeNode[] {
+  return [...nodes.filter((n) => !n.file), ...nodes.filter((n) => n.file)];
 }
 
 // Ties keep the incoming name order, and the tail folders close the list in either direction.
@@ -35,5 +44,5 @@ export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort, pin
   const key = sortValue[by];
   const ordered = [...head].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
   if (dir === "desc") ordered.reverse();
-  return favoritesFirst([...ordered, ...nodes.filter((n) => isTail(n.name))], pin);
+  return foldersFirst(favoritesFirst([...ordered, ...nodes.filter((n) => isTail(n.name))], pin));
 }
