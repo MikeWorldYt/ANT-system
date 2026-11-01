@@ -64,12 +64,13 @@ pub fn preview_names(root: &Path, rows: &[Pending]) -> R<Vec<String>> {
 
 // Takes the next free id of its level; a root folder becomes a main category.
 fn node_name(root: &Path, data: &Mapping, rel: &[String]) -> R<String> {
-    let (old, parent) = split(rel)?;
+    let (_, parent) = split(rel)?;
+    let title = title_of(rel.last().map_or("", String::as_str));
     let taken = taken_names(root, data, parent)?;
     Ok(if parent.is_empty() {
-        format!("{:03}.{old}", next_main_category_id(&taken))
+        format!("{:03}.{title}", next_main_category_id(&taken))
     } else {
-        format!("{:02}.{old}", next_available_id(&taken))
+        format!("{:02}.{title}", next_available_id(&taken))
     })
 }
 
@@ -204,6 +205,18 @@ mod tests {
         let data = yaml(dir.path());
         let deep = get_node(&data, &rel(&["100.ACADEMIC", "01.Math", "01.Deep"])).unwrap();
         assert_eq!(deep.get("flags").and_then(Value::as_str), Some(DATA_FLAG));
+    }
+
+    #[test]
+    fn a_workboard_or_track_turned_into_a_node_keeps_one_id() {
+        let tree = "100.ACADEMIC:\n  type: NODE-L1\n  01.New-Node: {type: WKB-L2}\n  PJ.1007_Prueba-7: {type: NODE-L2}\n";
+        let dir = storage("resolve-node-id", &["100.ACADEMIC/01.New-Node", "100.ACADEMIC/PJ.1007_Prueba-7"], tree);
+        resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "01.New-Node"]), Resolution::Node).unwrap();
+        assert!(dir.path().join("100.ACADEMIC/02.New-Node").is_dir());
+        resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "PJ.1007_Prueba-7"]), Resolution::Node).unwrap();
+        assert!(dir.path().join("100.ACADEMIC/01.Prueba-7").is_dir());
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "02.New-Node"]), "NODE-L2");
+        assert!(crate::tree::root_check::check_root(dir.path()).unwrap().invalid.is_empty());
     }
 
     #[test]
