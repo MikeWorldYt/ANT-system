@@ -7,7 +7,7 @@ import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
 import { dropNotice, type Notice } from "./drop-summary";
-import { applySettings, findNode, hydrate, keyOf, lastSelection, listed, notify, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
+import { applySettings, findNode, hydrate, keyOf, lastSelection, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
 import { sortedForColumns } from "../store/sort";
 import { isFmError } from "../ipc/types";
 import type { Copied, EditableType, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
@@ -78,11 +78,12 @@ async function run(fn: () => Promise<void>, progress?: string): Promise<boolean>
   }
 }
 
-async function applyMutation(m: Mutation, fallback: string[] | null = null): Promise<void> {
-  const target = m.select ?? fallback;
+// A move or copy passes follow=false, so the view stays on the folder the user was in.
+async function applyMutation(m: Mutation, fallback: string[] | null = null, follow = true): Promise<void> {
+  const target = follow ? (m.select ?? fallback) : null;
   if (target) {
     for (let i = 1; i < target.length; i++) state.expanded.add(keyOf(target.slice(0, i)));
-    state.selectedKey = keyOf(target);
+    select(target);
   }
   if (m.tree === null) await patch(m.levels);
   // The backend may flag a yaml change and leave the node list empty; the tree then has to be read again.
@@ -268,9 +269,36 @@ export const setUserFlag = (node: TreeNode, on: boolean) =>
 export const dropFiles = (target: string[], paths: string[]) =>
   run(
     async () => {
-      const { mutation, placed } = await api.dropFiles(target, paths);
+      const { mutation, placed, conflicts } = await api.dropFiles(target, paths);
       await applyMutation(mutation);
       doneNotice = dropNotice(placed, mutation.warnings);
+      // Each workboard already in the storage gets its own question; only the ones answered "Replace" come back.
+      const replace: string[] = [];
+      for (const conflict of conflicts) {
+        const location = el("a", { href: "#" }, conflict.existing.join("/"));
+        location.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          void api.openNode(conflict.existing).catch((e) => setStatus("warning", api.describeError(e)));
+        });
+        // Replacing lands the new one where it was dropped, which is a new path unless that is the folder it already holds.
+        const newPath = conflict.existing.slice(0, -1).join("/") !== target.join("/");
+        const confirmed = await warningConfirmDialog(
+          "Workboard already exists",
+          [
+            el("p", {}, `"${conflict.name}" is already in the storage at "`, location, `".`),
+            el("p", {}, "If you replace it, you send that one (current in your Storage) to the Recycle Bin.", newPath ? " It will also end up at a new path." : ""),
+            el("p", {}, "Make sure the new one is a recent version and the old one has no files you could lose."),
+          ],
+          "Replace",
+          "danger",
+        );
+        if (confirmed) replace.push(conflict.source);
+      }
+      if (replace.length > 0) {
+        const swapped = await api.dropFiles(target, replace, replace);
+        await applyMutation(swapped.mutation);
+        doneNotice = dropNotice([...placed, ...swapped.placed], swapped.mutation.warnings);
+      }
     },
     `Placing ${paths.length} ${paths.length === 1 ? "file" : "files"} in "${target[target.length - 1]}"…`,
   );
@@ -289,6 +317,7 @@ export const pasteFiles = (target: string[]) =>
 export const moveFiles = (sources: string[][], target: string[], copy: boolean) =>
   run(
     async () => {
+      if (!copy) selectionAfterMoving(sources);
       const { mutation, placed } = await api.moveFilesIn(sources, target, copy);
       await applyMutation(mutation);
       doneNotice = dropNotice(placed, mutation.warnings);
@@ -296,10 +325,31 @@ export const moveFiles = (sources: string[][], target: string[], copy: boolean) 
     `${copy ? "Copying" : "Moving"} files to "${target[target.length - 1]}"…`,
   );
 
-export const moveFolder = (source: string[], destination: string[], copy: boolean) =>
+// A folder moved out of the storage on purpose loses its record, instead of staying listed as missing.
+export const forgetMoved = (sources: string[][]) =>
+  run(async () => {
+    for (const parts of sources) {
+      if (!findNode(parts)?.ghost) continue;
+      await applyMutation(await api.deleteNode(parts, true, false), null, false);
+    }
+  });
+
+// Folders move one at a time, each on its own mutation; a failed one is reported without stopping the rest.
+export const moveFolders = (sources: string[][], destination: string[], copy: boolean) =>
   run(
-    async () => applyMutation(await api.moveFolder(source, destination, copy)),
-    `${copy ? "Copying" : "Moving"} "${source[source.length - 1]}" to "${destination[destination.length - 1]}"…`,
+    async () => {
+      if (!copy) selectionAfterMoving(sources);
+      const failures: string[] = [];
+      for (const source of sources) {
+        try {
+          await applyMutation(await api.moveFolder(source, destination, copy), null, false);
+        } catch (e) {
+          failures.push(api.describeError(e));
+        }
+      }
+      if (failures.length > 0) setStatus("error", failures.join(". "));
+    },
+    `${copy ? "Copying" : "Moving"} ${sources.length === 1 ? `"${sources[0][sources[0].length - 1]}"` : `${sources.length} folders`} to "${destination[destination.length - 1]}"…`,
   );
 
 export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
@@ -309,13 +359,32 @@ export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
   );
 
 // The folder after it in its column as the user sees it, else the one before; null when it is the only one shown.
-function nearestSibling(node: TreeNode): string[] | null {
+// The folder after it in its column as the user sees it, else the one before; items that are leaving are skipped.
+function nearestSibling(node: TreeNode, leaving: string[][] = []): string[] | null {
   const parent = node.relParts.slice(0, -1);
   const level = parent.length > 0 ? (findNode(parent)?.children ?? []) : (state.tree?.nodes ?? []);
   const shown = sortedForColumns(listed(level), sortOf(keyOf(parent)), state.settings.pinFavorites);
   const at = shown.findIndex((n) => n.name === node.name);
   if (at < 0) return null;
-  return (shown[at + 1] ?? shown[at - 1])?.relParts ?? null;
+  const gone = new Set(leaving.map(keyOf));
+  for (let distance = 1; distance < shown.length; distance++) {
+    const after = shown[at + distance];
+    const before = shown[at - distance];
+    if (after && !gone.has(keyOf(after.relParts))) return after.relParts;
+    if (before && !gone.has(keyOf(before.relParts))) return before.relParts;
+  }
+  return null;
+}
+
+// A moved selection leaves nothing selected, so the nearest item that stays takes it and the columns stay open.
+function selectionAfterMoving(moving: string[][]): void {
+  const key = state.selectedKey;
+  if (key === null || !moving.some((parts) => keyOf(parts) === key)) return;
+  const node = selectedNode();
+  if (!node) return;
+  const sibling = nearestSibling(node, moving);
+  const parent = node.relParts.slice(0, -1);
+  select(sibling ?? (parent.length > 0 ? parent : null));
 }
 
 // Files have no contents to count, so they only need the confirmation and the sibling choice.
@@ -340,4 +409,27 @@ export const remove =(node: TreeNode) =>
     const m = await api.deleteNode(node.relParts, preview.ghost, nonEmpty);
     const parent = node.relParts.slice(0, -1);
     await applyMutation(m, sibling ?? (parent.length > 0 ? parent : null));
+  }, "Waiting for user decision…");
+
+// One confirmation for the batch; each item is then deleted on its own, so one refusal does not stop the rest.
+export const removeMany = (nodes: TreeNode[]) =>
+  run(async () => {
+    const keep = new Set(outermost(nodes.map((n) => n.relParts)));
+    const picked = nodes.filter((n) => keep.has(n.relParts));
+    if (state.settings.confirmDelete && !(await warningConfirmDialog("Delete items", [`${picked.length} items go to the Recycle Bin. Folders go with their contents.`], "Delete", "danger"))) return;
+    beginOperationStatus(`Deleting ${picked.length} items…`);
+    const failures: string[] = [];
+    for (const node of picked) {
+      try {
+        if (node.file) {
+          await applyMutation(await api.deleteFile(node.relParts));
+        } else {
+          const preview = await api.inspectDelete(node.relParts);
+          await applyMutation(await api.deleteNode(node.relParts, preview.ghost, preview.files + preview.dirs > 0));
+        }
+      } catch (e) {
+        failures.push(api.describeError(e));
+      }
+    }
+    if (failures.length > 0) setStatus("error", failures.join(". "));
   }, "Waiting for user decision…");

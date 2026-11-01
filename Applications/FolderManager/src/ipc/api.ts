@@ -90,21 +90,21 @@ export const addNode = (relParts: string[], kind: NewKind) => call<Mutation>("ad
 export const addChild = (relParts: string[], kind: NewKind) => call<Mutation>("add_child", { relParts, kind });
 export const moveNode = (relParts: string[], direction: MoveDirection) =>
   call<Mutation>("move_node", { relParts, direction });
-export const dropFiles = (target: string[], paths: string[]) => call<DropOutcome>("drop_files", { target, paths });
+export const dropFiles = (target: string[], paths: string[], replace: string[] = []) => call<DropOutcome>("drop_files", { target, paths, replace });
 export const pasteFiles = (target: string[]) => call<DropOutcome>("paste_files", { target });
 export const moveFilesIn = (sources: string[][], target: string[], copy: boolean) =>
   call<DropOutcome>("move_files_in", { sources, target, copy });
-export const copyFolder = (target: string[], cut: boolean) => call<void>("copy_folder", { target, cut });
 export const moveFolder = (source: string[], destination: string[], copy: boolean) =>
   call<Mutation>("move_folder", { source, destination, copy });
-export const startDragOut =(target: string[]) => call<void>("start_drag_out", { target });
+// The drop effect Explorer chose: 2 when the items were moved out of the storage.
+export const startDragOut = (targets: string[][]) => call<number>("start_drag_out", { targets });
 export interface ShortcutCreated {
   name: string;
   folder: string;
 }
 export const createShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_shortcut_in", { target, folder });
-export const copyFile = (target: string[]) => call<void>("copy_file", { target });
+export const copyItems = (targets: string[][], cut: boolean) => call<void>("copy_items", { targets, cut });
 export const createFileShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_file_shortcut_in", { target, folder });
 export const renameFile = (relParts: string[], newName: string) => call<Mutation>("rename_file", { relParts, newName });

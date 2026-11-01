@@ -8,7 +8,7 @@ import { statusMark } from "../ui/status-mark";
 import { hideBox, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
 import { toggleExpand } from "../actions/ops";
-import { keyOf, select, startEdit, state, visibleRows } from "../store/state";
+import { clickSelect, isSelected, keyOf, select, startEdit, state, visibleRows } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -31,9 +31,9 @@ export function createTreeView(): ViewMode {
     const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorkboard(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
     row.style.setProperty("--depth", String(n.depth));
     row.dataset.key = key;
-    row.setAttribute("aria-selected", String(key === state.selectedKey));
+    row.setAttribute("aria-selected", String(isSelected(key)));
     if (n.hasChildren) row.setAttribute("aria-expanded", String(expanded));
-    if (key === state.selectedKey) row.classList.add("selected");
+    if (isSelected(key)) row.classList.add("selected");
     if (n.ghost) row.classList.add("ghost");
     if (n.locked) {
       row.classList.add("locked");
@@ -49,7 +49,9 @@ export function createTreeView(): ViewMode {
       void toggleExpand(n);
     });
     row.addEventListener("click", (ev) => {
-      if (!fromToggle(ev)) select(n.relParts);
+      if (fromToggle(ev)) return;
+      if (ev.ctrlKey || ev.shiftKey) clickSelect(n.relParts, rows.map((r) => keyOf(r.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
+      else select(n.relParts);
     });
     row.addEventListener("dblclick", (ev) => {
       if (!fromToggle(ev)) startEdit(n.relParts);

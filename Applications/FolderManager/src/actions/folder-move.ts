@@ -1,9 +1,9 @@
 // Folders and files dragged inside the window move onto a folder, or copy with Ctrl; HTML5 drag events never reach the webview.
-import { moveFiles, moveFolder } from "./ops";
-import { ITEM, LEFT_BUTTON, leftWindow, pastThreshold, type Point } from "./drag-out";
+import { moveFiles, moveFolders } from "./ops";
+import { dragSources, ITEM, LEFT_BUTTON, leftWindow, pastThreshold, type Point } from "./drag-out";
 import { el } from "../ui/dom";
 import { warningConfirmDialog } from "../ui/dialogs";
-import { findNode } from "../store/state";
+import { findNode, keyOf, outermost } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 
 const HIGHLIGHT = "drop-target";
@@ -28,28 +28,35 @@ export const canDropOn = (n: Movable | null): boolean =>
   !n.ghost &&
   ((!n.locked && (n.nodeType?.base === "NODE" || n.nodeType?.base === "WKB")) || n.nodeType?.base === "REV");
 
+// Neither a folder nor anything inside it can become its own destination.
+const holds = (source: string[], target: string[]): boolean => source.length <= target.length && source.every((part, i) => part === target[i]);
+
 // An unflagged node can break its paths in other apps, so moving it asks first; copies never do.
-async function moveDragged(source: string[], target: string[], copy: boolean): Promise<void> {
-  const node = findNode(source);
-  if (!node) return;
-  if (node.file) {
-    await moveFiles([source], target, copy);
-    return;
+async function moveDragged(sources: string[][], target: string[], copy: boolean): Promise<void> {
+  const nodes = outermost(sources)
+    .filter((parts) => !holds(parts, target))
+    .flatMap((parts) => {
+      const node = findNode(parts);
+      return node ? [{ parts, node }] : [];
+    });
+  const files = nodes.filter(({ node }) => node.file).map(({ parts }) => parts);
+  const folders = nodes.filter(({ node }) => !node.file);
+  const unflagged = folders.filter(({ node }) => node.nodeType?.base === "NODE" && !node.flags.includes("data"));
+  if (unflagged.length > 0 && !copy) {
+    const warnings = unflagged.map(({ node }) => `"${node.name}" has no data flag. Moving it can break its paths in other apps.`);
+    if (!(await warningConfirmDialog("Move folder", warnings, "Move", "danger"))) return;
   }
-  const unflagged = node.nodeType?.base === "NODE" && !node.flags.includes("data");
-  if (unflagged && !copy) {
-    const warning = `"${node.name}" has no data flag. Moving it can break its paths in other apps.`;
-    if (!(await warningConfirmDialog("Move folder", [warning], "Move", "danger"))) return;
-  }
-  await moveFolder(source, target, copy);
+  if (files.length > 0) await moveFiles(files, target, copy);
+  if (folders.length > 0) await moveFolders(folders.map(({ parts }) => parts), target, copy);
 }
 
 // The storage root has the empty key, which is never a node.
 const partsOf = (key: string | undefined): string[] | null => (key ? key.split("/") : null);
 
 interface Drag {
-  source: string[];
-  name: string;
+  key: string;
+  mods: { ctrl: boolean; shift: boolean };
+  sources: string[][];
   start: Point;
   ghost: HTMLElement | null;
   target: { el: HTMLElement; parts: string[] } | null;
@@ -93,11 +100,9 @@ export function installFolderMove(host: HTMLElement): void {
     if (ev.button !== 0 || ev.pointerType !== "mouse" || !(ev.target instanceof Element)) return;
     if (ev.target.closest("input, textarea")) return;
     const item = ev.target.closest<HTMLElement>(ITEM);
-    const source = partsOf(item?.dataset.key);
-    if (!item || !source) return;
-    const node = findNode(source);
-    if (!node || !canMove(node)) return;
-    drag = { source, name: node.name, start: { x: ev.clientX, y: ev.clientY }, ghost: null, target: null };
+    const parts = partsOf(item?.dataset.key);
+    if (!item || !parts || !canMove(findNode(parts))) return;
+    drag = { key: keyOf(parts), mods: { ctrl: ev.ctrlKey, shift: ev.shiftKey }, sources: [], start: { x: ev.clientX, y: ev.clientY }, ghost: null, target: null };
   });
   host.addEventListener("pointermove", (ev) => {
     if (!drag) return;
@@ -106,7 +111,9 @@ export function installFolderMove(host: HTMLElement): void {
     if ((ev.buttons & LEFT_BUTTON) === 0 || leftWindow(now, window.innerWidth, window.innerHeight)) return cancel();
     if (!drag.ghost) {
       if (!pastThreshold(drag.start, now)) return;
-      drag.ghost = el("div", { class: "drag-ghost", "aria-hidden": "true" }, drag.name);
+      drag.sources = dragSources(drag.key, drag.mods).map((key) => key.split("/")).filter((parts) => canMove(findNode(parts)));
+      const label = drag.sources.length === 1 ? (findNode(drag.sources[0])?.name ?? "") : `${drag.sources.length} items`;
+      drag.ghost = el("div", { class: "drag-ghost", "aria-hidden": "true" }, label);
       document.body.append(drag.ghost);
       if (!host.hasPointerCapture(ev.pointerId)) host.setPointerCapture(ev.pointerId);
     }
@@ -117,7 +124,7 @@ export function installFolderMove(host: HTMLElement): void {
     const done = drag;
     const target = done?.ghost ? done.target : null;
     cancel();
-    if (done && target) void moveDragged(done.source, target.parts, ev.ctrlKey);
+    if (done && target) void moveDragged(done.sources, target.parts, ev.ctrlKey);
   });
   host.addEventListener("pointercancel", cancel);
   window.addEventListener(

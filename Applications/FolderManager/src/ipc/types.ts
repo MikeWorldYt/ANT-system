@@ -103,9 +103,17 @@ export interface PlacedFile {
   copied: boolean;
 }
 
+// A workboard already in the storage under the same id; `source` is what to send back to replace it.
+export interface WorkboardConflict {
+  name: string;
+  source: string;
+  existing: string[];
+}
+
 export interface DropOutcome {
   mutation: Mutation;
   placed: PlacedFile[];
+  conflicts: WorkboardConflict[];
 }
 
 export interface DeletePreview {

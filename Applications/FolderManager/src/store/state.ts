@@ -7,6 +7,8 @@ import type { LevelPatch, TreeNode, TreeSnapshot } from "../ipc/types";
 interface State {
   tree: TreeSnapshot | null;
   selectedKey: string | null;
+  // Every selected key, the primary one included; a plain click leaves just that one.
+  selectedKeys: string[];
   // Folder the last click in the views landed on, "" for the storage root; Ctrl+V pastes there.
   pasteKey: string | null;
   expanded: Set<string>;
@@ -78,6 +80,7 @@ function readSorts(): Record<string, ColumnSort> {
 export const state: State = {
   tree: null,
   selectedKey: null,
+  selectedKeys: [],
   pasteKey: null,
   expanded: new Set(),
   busy: false,
@@ -114,6 +117,23 @@ export function findNode(parts: string[]): TreeNode | null {
 export function selectedNode(): TreeNode | null {
   return state.selectedKey === null ? null : findNode(state.selectedKey.split("/"));
 }
+
+export const isSelected = (key: string): boolean => state.selectedKeys.includes(key);
+
+export function selectedNodes(): TreeNode[] {
+  return state.selectedKeys.flatMap((key) => findNode(key.split("/")) ?? []);
+}
+
+// What a command acts on: every marked item when several are marked, else the item on the path.
+export function actedNodes(): TreeNode[] {
+  if (state.selectedKeys.length > 1) return selectedNodes();
+  const n = selectedNode();
+  return n ? [n] : [];
+}
+
+// A folder's selected contents travel with it, so only the outermost picks count.
+export const outermost = (paths: string[][]): string[][] =>
+  paths.filter((p) => !paths.some((o) => o.length < p.length && o.every((part, i) => part === p[i])));
 
 export const listed = (nodes: TreeNode[]): TreeNode[] => {
   const shown = state.hidingLinks ? nodes : nodes.filter((n) => !n.hidden);
@@ -208,6 +228,35 @@ export function setColumnSort(columnKey: string, patch: Partial<ColumnSort>): vo
 
 export function select(parts: string[] | null): void {
   state.selectedKey = parts ? keyOf(parts) : null;
+  state.selectedKeys = state.selectedKey === null ? [] : [state.selectedKey];
+  notify();
+}
+
+// Ctrl toggles one item; Shift selects the run from the anchor to it among the listed siblings.
+export function clickSelect(parts: string[], siblings: string[], mods: { ctrl: boolean; shift: boolean }): void {
+  const key = keyOf(parts);
+  const anchor = state.selectedKey;
+  if (mods.shift && anchor !== null && siblings.includes(anchor) && siblings.includes(key)) {
+    const a = siblings.indexOf(anchor);
+    const b = siblings.indexOf(key);
+    state.selectedKeys = siblings.slice(Math.min(a, b), Math.max(a, b) + 1);
+  } else if (mods.ctrl) {
+    if (state.selectedKeys.includes(key)) {
+      state.selectedKeys = state.selectedKeys.filter((k) => k !== key);
+    } else {
+      state.selectedKeys = [...state.selectedKeys, key];
+      state.selectedKey = key;
+    }
+  } else {
+    select(parts);
+    return;
+  }
+  notify();
+}
+
+// A rubber band only marks items; the path (selectedKey) stays, so the open columns do not close.
+export function selectKeys(keys: string[]): void {
+  state.selectedKeys = keys;
   notify();
 }
 
@@ -241,7 +290,8 @@ export function setTree(tree: TreeSnapshot): void {
 
 export function pruneSelection(): void {
   if (state.editing && !findNode(state.editing.key.split("/"))) state.editing = null;
-  if (state.selectedKey !== null && !selectedNode()) state.selectedKey = null;
+  state.selectedKeys = state.selectedKeys.filter((key) => findNode(key.split("/")) !== null);
+  if (state.selectedKey !== null && !selectedNode()) state.selectedKey = state.selectedKeys.at(-1) ?? null;
 }
 
 // Swaps in each parent's new children, keeping the loaded subtrees of untouched siblings; null when a parent is not loaded.

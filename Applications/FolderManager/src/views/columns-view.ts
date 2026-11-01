@@ -10,7 +10,7 @@ import { fromToggle, nodeToggle } from "./node-toggle";
 import { hiddenCategories, holdsFiles, isReviewRoot, isWorkboard, linkCategory, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
-import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -73,8 +73,8 @@ export function createColumnsView(): ViewMode {
     else select(n.relParts);
   }
 
-  function buildItem(n: TreeNode, onPath: boolean, tabbable: boolean): HTMLElement {
-    const selected = keyOf(n.relParts) === state.selectedKey;
+  function buildItem(n: TreeNode, onPath: boolean, tabbable: boolean, siblings: string[]): HTMLElement {
+    const selected = isSelected(keyOf(n.relParts));
     const open = isOpen(n);
     const icon = folderIcon(n, open);
     const lead = n.hasChildren ? nodeToggle(`${open ? "Close" : "Open"} ${n.name}`, open, icon) : icon;
@@ -103,7 +103,7 @@ export function createColumnsView(): ViewMode {
       chevron.addEventListener("dblclick", () => openColumn(n));
       item.append(chevron);
     }
-    item.addEventListener("click", () => pick(n));
+    item.addEventListener("click", (ev) => (ev.ctrlKey || ev.shiftKey ? clickSelect(n.relParts, siblings, { ctrl: ev.ctrlKey, shift: ev.shiftKey }) : pick(n)));
     item.addEventListener("dblclick", (ev) => {
       if (!fromToggle(ev)) startEdit(n.relParts);
     });
@@ -135,11 +135,12 @@ export function createColumnsView(): ViewMode {
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
     // Not an item, so it cannot be selected; it only tells why the review list is empty.
     const legend = col.nodes.length === 0 ? emptyLegend(parentNode) : null;
+    const siblings = col.nodes.map((n) => keyOf(n.relParts));
     const rows = col.nodes.flatMap((n, i) => {
       const prev = col.nodes[i - 1];
       // Review links are grouped by category, so a change of category gets a line between the groups.
       const groupStart = prev?.linked && n.linked && linkCategory(prev) !== linkCategory(n);
-      const item = buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey);
+      const item = buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey, siblings);
       return groupStart ? [el("div", { class: "col-sep", role: "separator" }), item] : [item];
     });
     column.append(

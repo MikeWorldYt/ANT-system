@@ -9,7 +9,7 @@ import { nodeToggle } from "./node-toggle";
 import { holdsFiles, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
-import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -64,7 +64,7 @@ export function createGridView(): ViewMode {
   }
 
   function buildItem(n: TreeNode, tabbable: boolean): HTMLElement {
-    const selected = keyOf(n.relParts) === state.selectedKey;
+    const selected = isSelected(keyOf(n.relParts));
     const icon = n.file ? previewIcon(n) : folderIcon(n);
     const art = n.hasChildren ? nodeToggle(`Open ${n.name}`, null, folderIcon(n)) : el("span", {}, icon);
     art.classList.add("grid-art");
@@ -85,7 +85,10 @@ export function createGridView(): ViewMode {
     item.classList.toggle("reserved", n.reserved);
     item.classList.toggle("rev", n.nodeType?.base === "REV");
     item.title = nodeSummary(n);
-    item.addEventListener("click", () => select(n.relParts));
+    item.addEventListener("click", (ev) => {
+      if (ev.ctrlKey || ev.shiftKey) clickSelect(n.relParts, shownNodes().map((s) => keyOf(s.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
+      else select(n.relParts);
+    });
     // As in Explorer, the name renames and the rest of the tile opens.
     item.addEventListener("dblclick", (ev) => (ev.target instanceof Element && ev.target.closest(".name") ? startEdit(n.relParts) : enter(n)));
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
