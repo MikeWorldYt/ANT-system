@@ -46,7 +46,7 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
     close();
     void refresh();
   });
-  const canAdd = node.actions.addChild && idle;
+  const canAdd = node.actions.addChild;
   const newNode = menuItem("New node", "menuitem", canAdd, () => {
     close();
     void addChild(node, "node");
@@ -57,7 +57,7 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   });
   // Like the toolbar's Add menu, a main category gets no workboard.
   const addItems = node.relParts.length === 1 ? [newNode] : [newNode, newWorkboard];
-  const manage = menuItem("Manage hidden nodes", "menuitem", idle, () => {
+  const manage = menuItem("Manage hidden nodes", "menuitem", true, () => {
     close();
     void manageHidden(node.relParts);
   });
