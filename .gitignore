@@ -1,9 +1,12 @@
 # Local planning and agent config
 /spec
 .claude/
+CLAUDE.md
 
 # Dependencies and lockfiles of other package managers
 node_modules/
+/dist
+dist/
 package-lock.json
 yarn.lock
 pnpm-debug.log*
@@ -12,5 +15,3 @@ pnpm-debug.log*
 desktop.ini
 .DS_Store
 Thumbs.db
-.angular
-/dist
