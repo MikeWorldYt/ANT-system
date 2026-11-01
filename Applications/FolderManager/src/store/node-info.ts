@@ -2,7 +2,8 @@
 import type { EditableType, TreeNode, WkbStatus } from "../ipc/types";
 import { state } from "./state";
 
-export const TYPES: [EditableType, string][] = [["NODE", "Node"], ["WKB", "Workboard"], ["PORTF", "Portfolio"]];
+export const TYPES: [EditableType, string][] = [["NODE", "Node"], ["WKB", "Workboard"]];
+const TYPE_LABELS: [string, string][] = [...TYPES, ["PORTF", "Portfolio"]];
 export const STATUSES: [WkbStatus, string][] = [
   ["hold", "Hold"],
   ["in-progress", "In progress"],
@@ -41,7 +42,7 @@ export function nodeFlags(n: TreeNode): string[] {
 }
 
 // Non-editable types (reviews, resources, templates) keep their stored label.
-export const typeName = (n: TreeNode): string => (n.file ? "File" : TYPES.find(([v]) => v === n.nodeType?.base)?.[1] ?? n.nodeType?.raw ?? "—");
+export const typeName = (n: TreeNode): string => (n.file ? "File" : TYPE_LABELS.find(([v]) => v === n.nodeType?.base)?.[1] ?? n.nodeType?.raw ?? "—");
 
 // Review folders and workboards hold files, so they always open and an empty one says "Empty".
 export const holdsFiles = (n: TreeNode): boolean => !n.linked && (n.nodeType?.base === "REV" || n.nodeType?.base === "WKB");

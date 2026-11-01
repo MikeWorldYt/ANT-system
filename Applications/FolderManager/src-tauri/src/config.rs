@@ -70,12 +70,12 @@ pub enum NewKind {
     Workboard,
 }
 
+// Portfolio is not offered: each 00.* folder is created and removed with its workboards.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum EditableType {
     Node,
     Wkb,
-    Portf,
 }
 
 impl EditableType {
@@ -83,7 +83,6 @@ impl EditableType {
         match self {
             Self::Node => "NODE",
             Self::Wkb => "WKB",
-            Self::Portf => "PORTF",
         }
     }
 }
@@ -137,7 +136,7 @@ mod tests {
             assert_eq!(s.as_str(), serde_name(s));
             assert_eq!(WkbStatus::from_str(s.as_str()), Some(s));
         }
-        for e in [EditableType::Node, EditableType::Wkb, EditableType::Portf] {
+        for e in [EditableType::Node, EditableType::Wkb] {
             assert_eq!(e.as_str(), serde_name(e));
         }
         assert_eq!(TypeBase::from_str("node"), None);

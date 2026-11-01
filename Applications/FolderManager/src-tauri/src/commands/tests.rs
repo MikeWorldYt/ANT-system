@@ -119,7 +119,7 @@ fn move_and_add_node_rebuild_too() {
 fn a_failed_event_and_an_unreadable_db_become_warnings() {
     let dir = work("cmd-emit-fail");
     let boom = |_: &ReviewIndexEvent| Err::<(), _>("window closed".to_string());
-    let m = mutations::set_node_type(dir.path(), &rel(&["100.WORK", "02.B"]), EditableType::Portf, None);
+    let m = mutations::set_node_type(dir.path(), &rel(&["100.WORK", "02.B"]), EditableType::Wkb, None);
     let m = with_index(dir.path(), m, &boom, no_quick, |_, _| Vec::new()).unwrap();
     assert_eq!(m.warnings.len(), 2, "{:?}", m.warnings);
     assert!(m.warnings[0].contains("window closed"));

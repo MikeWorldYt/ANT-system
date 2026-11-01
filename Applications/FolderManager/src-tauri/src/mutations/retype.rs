@@ -118,8 +118,8 @@ mod tests {
         assert_eq!(status(dir.path()).as_deref(), Some("for-review"));
         set_node_type(dir.path(), &p, EditableType::Wkb, None).unwrap();
         assert_eq!(status(dir.path()).as_deref(), Some("for-review"));
-        set_node_type(dir.path(), &p, EditableType::Portf, Some(WkbStatus::Done)).unwrap();
-        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "02.Bio"]), "PORTF-L2");
+        set_node_type(dir.path(), &p, EditableType::Node, Some(WkbStatus::Done)).unwrap();
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "02.Bio"]), "NODE-L2");
         assert_eq!(status(dir.path()), None);
     }
 
@@ -154,8 +154,8 @@ mod tests {
     fn set_node_type_allows_ghosts_but_not_locked_or_reserved() {
         let dir = academic("retype-refuse");
         let ghost = rel(&["100.ACADEMIC", "03.Ghost"]);
-        set_node_type(dir.path(), &ghost, EditableType::Portf, None).unwrap();
-        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "03.Ghost"]), "PORTF-L2");
+        set_node_type(dir.path(), &ghost, EditableType::Node, None).unwrap();
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "03.Ghost"]), "NODE-L2");
         let locked = set_node_type(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "90.Math"]), EditableType::Node, None);
         assert!(matches!(locked, Err(FmError::Locked { .. })));
         let reserved = set_node_type(dir.path(), &rel(&["999.Settings"]), EditableType::Node, None);

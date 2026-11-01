@@ -413,7 +413,7 @@ fn compute_actions(depth: usize, limit: usize, ghost: bool, raw_type: &str, rese
     let in_tree = depth < limit;
     NodeActions {
         rename: !ghost && !frozen,
-        change_type: !frozen && in_tree,
+        change_type: !frozen && in_tree && type_base(raw_type) != "PORTF",
         // Main categories can create another Level 1 category; deeper nodes create siblings as usual.
         add_next: !ghost && !reserved && in_tree,
         // Mirrors add_node: the new child sits one level below this node and must stay inside the limit.
