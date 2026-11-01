@@ -113,12 +113,12 @@ pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<(
 
 fn children_at(root: &Path, data: &Mapping, parent: &[String], limit: usize) -> R<Vec<TreeNode>> {
     let mut nodes = Vec::new();
-    // A review folder at the depth limit shows its files only, as it did before it listed any content.
+    // A review folder at the depth limit shows its files and the folders the database does not track, so they can be browsed.
     let past_limit_review = parent.len() >= limit && holds_files(data, parent);
     for entry in level_entries(root, data, parent)? {
         if entry.file {
             nodes.push(file_node(root, parent, entry.name));
-        } else if !past_limit_review {
+        } else if !past_limit_review || is_unmanaged(&entry) {
             nodes.push(make_node(root, data, parent, entry, limit)?);
         }
     }
@@ -126,15 +126,26 @@ fn children_at(root: &Path, data: &Mapping, parent: &[String], limit: usize) -> 
     Ok(nodes)
 }
 
+// Below the limit the children load when their folder opens, so the disk is not walked to the bottom.
 fn fill_at(root: &Path, data: &Mapping, nodes: &mut [TreeNode], limit: usize) -> R<()> {
     for node in nodes {
-        if node.has_children {
+        if node.has_children && node.depth < limit {
             let mut kids = children_at(root, data, &node.rel_parts, limit)?;
             fill_at(root, data, &mut kids, limit)?;
             node.children = Some(kids);
         }
     }
     Ok(())
+}
+
+// A folder on disk with no database entry, and not a review link.
+fn is_unmanaged(entry: &Entry) -> bool {
+    entry.on_disk && !entry.in_yaml && entry.link.is_none() && !entry.file
+}
+
+// Below a review folder past the limit the database has no entries, so its unmanaged folders are only browsed.
+fn under_review_past_limit(data: &Mapping, rel: &[String], limit: usize) -> bool {
+    (limit..rel.len()).any(|k| type_base(&get_type(data, &rel[..k])) == "REV")
 }
 
 fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>> {
@@ -340,7 +351,8 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
     let review_root = depth == 0 && entry.name.eq_ignore_ascii_case(REVIEW_FOLDER);
     // A review folder always opens, even when empty, so its files and the Empty legend can show.
     let content_folder = !ghost && !linked && matches!(type_base(raw_type), "REV" | "WKB");
-    let has_children = !ghost && (review_root || content_folder || (!linked && depth + 1 < limit && !level_entries(root, data, &rel_parts)?.is_empty()));
+    let browsable = is_unmanaged(&entry) && under_review_past_limit(data, &rel_parts, limit);
+    let has_children = !ghost && (review_root || content_folder || (!linked && (depth + 1 < limit || browsable) && !level_entries(root, data, &rel_parts)?.is_empty()));
     let is_git = !ghost && !linked && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
     let info_broken = info.as_ref().is_some_and(|i| i.error.is_some());
@@ -668,6 +680,18 @@ mod tests {
         let empty = folders.iter().find(|n| n.name == "98.B").unwrap();
         assert!(empty.has_children);
         assert!(build_children(dir.path(), &data, &empty.rel_parts).unwrap().is_empty());
+    }
+
+    #[test]
+    fn folders_past_a_review_limit_show_for_browsing_without_database_actions() {
+        let dir = storage("review-browse", &["100.A/01.B/98.B/New folder/Inside"], "100.A:\n  01.B:\n    type: NODE-L2\n    98.B: {type: REV-L3}\n");
+        std::fs::write(dir.path().join("100.A/01.B/98.B/notes.txt"), "x").unwrap();
+        let data = crate::test_support::yaml(dir.path());
+        let kids = build_children(dir.path(), &data, &rel(&["100.A", "01.B", "98.B"])).unwrap();
+        assert_eq!(names(&kids), ["New folder", "notes.txt"]);
+        let folder = find(&kids, "New folder");
+        assert!(folder.has_children && folder.node_type.is_none() && !folder.file);
+        assert_eq!(names(&build_children(dir.path(), &data, &folder.rel_parts).unwrap()), ["Inside"]);
     }
 
     #[test]

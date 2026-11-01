@@ -6,6 +6,7 @@ use serde_yaml::Mapping;
 use crate::storage::db::{Doc, Store};
 use crate::error::R;
 use crate::ant_core::search::canonical_key;
+use crate::tree::depth;
 use crate::tree::tree_node::{build_children, fill_children, TreeNode};
 
 pub fn rebuild(root: &Path, data: &Mapping) -> R<()> {
@@ -17,25 +18,26 @@ pub fn rebuild(root: &Path, data: &Mapping) -> R<()> {
 // Takes a tree built with fill_children, which reaches the same depth the search covers.
 pub fn rebuild_from_nodes(root: &Path, nodes: &[TreeNode]) -> R<()> {
     let mut docs = Vec::new();
-    collect(nodes, &mut docs);
+    collect(nodes, depth::limit(root)?, &mut docs);
     Store::open_or_create(root)?.replace_fields(&docs)
 }
 
 // Drops every path with its subtree, then indexes the filled subtrees of the ones that still exist.
 pub fn update_paths(root: &Path, subtrees: &[&TreeNode], paths: &[Vec<String>]) -> R<()> {
     let mut docs = Vec::new();
+    let limit = depth::limit(root)?;
     for node in subtrees {
-        collect(std::slice::from_ref(*node), &mut docs);
+        collect(std::slice::from_ref(*node), limit, &mut docs);
     }
     // The storage root is not a node, so it has no rows to drop; an empty prefix would match them all.
     let prefixes: Vec<String> = paths.iter().filter(|p| !p.is_empty()).map(|p| p.join("/")).collect();
     Store::open_or_create(root)?.update_paths(&prefixes, &docs)
 }
 
-fn collect(nodes: &[TreeNode], docs: &mut Vec<Doc>) {
+fn collect(nodes: &[TreeNode], limit: usize, docs: &mut Vec<Doc>) {
     for node in nodes {
-        // Files are shown from disk only, so the database never holds them.
-        if node.reserved || node.file {
+        // Files are shown from disk only, and folders past the limit that the database does not track are only browsed.
+        if node.reserved || node.file || (node.depth >= limit && !node.in_yaml && !node.ghost) {
             continue;
         }
         let mut fields = vec![("name".to_string(), node.name.clone())];
@@ -51,7 +53,7 @@ fn collect(nodes: &[TreeNode], docs: &mut Vec<Doc>) {
         }
         docs.push(Doc { path: node.rel_parts.join("/"), fields });
         if let Some(kids) = &node.children {
-            collect(kids, docs);
+            collect(kids, limit, docs);
         }
     }
 }
