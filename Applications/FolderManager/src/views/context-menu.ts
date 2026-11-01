@@ -6,7 +6,7 @@ import { statusIcon } from "../ui/status-mark";
 import { STATUSES, TYPES } from "../store/node-info";
 import { addChild, hideNode, pasteFiles, remove, removeMany, setDetails, setFavorite, setLinkHidden, setType, setUserFlag } from "../actions/ops";
 import { createShortcut, putOnClipboard } from "../actions/folder-share";
-import { isSelected, keyOf, select, selectedNodes, startEdit, state } from "../store/state";
+import { isSelected, keyOf, selectedNodes, startEdit, state } from "../store/state";
 import { setStatus } from "../ui/status";
 import { menuItems, runMenuItem } from "../extensions/host";
 import { autoDismiss, focusInitial, menuItem, place, rove, separator, submenu, type Submenu } from "../ui/menu";
@@ -46,7 +46,8 @@ export function nodeContextMenu(ev: MouseEvent, node: TreeNode, host: Element): 
     dispatch(host, { node, nodes: selectedNodes(), x: ev.clientX, y: ev.clientY });
     return;
   }
-  select(node.relParts);
+  // The clicked item only shows its menu; the selection and the open columns stay where they are.
+  if (ev.target instanceof Element) ev.target.closest("[data-key]")?.classList.add("menu-target");
   dispatch(host, { node, x: ev.clientX, y: ev.clientY });
 }
 
