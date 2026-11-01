@@ -225,13 +225,16 @@ export const renameTo = (node: TreeNode, editable: string) =>
     await applyMutation(node.file ? await api.renameFile(node.relParts, text) : await api.renameNode(node.relParts, text));
   });
 
-export const setType = (node: TreeNode, base: EditableType, status: WkbStatus) =>
-  run(async () => {
+export async function setType(node: TreeNode, base: EditableType, status: WkbStatus): Promise<void> {
+  const ok = await run(async () => {
     const changed =
       node.actions.changeType && (base !== node.nodeType?.base || (base === "WKB" && status !== node.status));
     if (!changed) return;
     await applyMutation(await api.setNodeType(node.relParts, base, base === "WKB" ? status : null), node.relParts);
   });
+  // A workboard with a name outside the track format is announced now, since the check only runs on refresh.
+  if (ok && base === "WKB") void checkRootFolders(resolveInvalid);
+}
 
 export const setDetails = (node: TreeNode, status: WkbStatus | null, owner: string | null) =>
   run(async () => applyMutation(await api.setNodeDetails(node.relParts, status, owner), node.relParts));

@@ -1,8 +1,9 @@
 // A new folder is created with its tree entry, 98 review folder and .ant marker as one journaled step.
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
-use serde_yaml::Mapping;
+use serde_yaml::{Mapping, Value};
 
 use super::{child_rel, ensure_free, finish, guard_frozen, load_synced, load_synced_at, locate, persist, register_ids, Mutation};
 use crate::ant_core::names::{editable_part, list_subdirs, next_available_id, next_main_category_id};
@@ -12,7 +13,7 @@ use crate::config::{NewKind, DATA_DIR, DATA_FLAG};
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, Journal, StorageLock};
 use crate::storage::db::hide;
-use crate::storage::info::{write_info, OWNER_KEYS};
+use crate::storage::info::{field_of, read_info, write_info, OWNER_KEYS};
 use crate::tree::depth;
 use crate::tree::tree_store::{get_node, get_node_mut};
 
@@ -122,20 +123,52 @@ pub(super) fn next_tracker(data: &Mapping, tracker: &str) -> u32 {
 // Every created folder gets a .ant folder, which is what lets its id follow it around; workboards also start their info.json.
 pub(super) fn mark_folder(folder: &Path, workboard: bool, parent: &str) -> R<()> {
     if workboard {
-        return write_info(
-            folder,
-            &[
-                (&["status"], "status", Some("in-progress".into())),
-                (&OWNER_KEYS, "owner", Some("unknown".into())),
-                (&["created"], "created", Some(local_date().into())),
-                (&["breadcrumb"], "breadcrumb", Some(parent.into())),
-            ],
-        );
+        return mark_workboard(folder, parent, "in-progress");
     }
     let dir = folder.join(DATA_DIR);
     fs::create_dir(&dir).map_err(|e| io_err("create info folder", &dir, &e))?;
     hide(&dir);
     Ok(())
+}
+
+// Only the keys the info.json lacks get their default, so a workboard's own status and owner stay.
+pub(super) fn mark_workboard(folder: &Path, parent: &str, status: &str) -> R<()> {
+    let current = read_info(folder);
+    let lacks = |keys: &[&str]| current.as_ref().and_then(|info| field_of(info, keys)).is_none();
+    let mut updates: Vec<(&[&str], &str, Option<Value>)> = Vec::new();
+    if lacks(&["status"]) {
+        updates.push((&["status"], "status", Some(status.into())));
+    }
+    if lacks(&OWNER_KEYS) {
+        updates.push((&OWNER_KEYS, "owner", Some("unknown".into())));
+    }
+    if lacks(&["created"]) {
+        updates.push((&["created"], "created", Some(local_date().into())));
+    }
+    if lacks(&["breadcrumb"]) {
+        updates.push((&["breadcrumb"], "breadcrumb", Some(parent.into())));
+    }
+    if updates.is_empty() {
+        return Ok(());
+    }
+    write_info(folder, &updates)
+}
+
+// The lowest number of a tracker that no workboard in the tree uses, ghosts included.
+pub(super) fn lowest_free_track(data: &Mapping, tracker: &str) -> u32 {
+    let mut used = BTreeSet::new();
+    collect_tracks(data, &format!("{tracker}."), &mut used);
+    (1u32..).find(|n| !used.contains(n)).unwrap_or(1)
+}
+
+fn collect_tracks(node: &Mapping, prefix: &str, used: &mut BTreeSet<u32>) {
+    for (name, child) in child_entries(node) {
+        let digits = name.strip_prefix(prefix).map(|rest| rest.split(|c: char| !c.is_ascii_digit()).next().unwrap_or(""));
+        if let Some(number) = digits.and_then(|d| d.parse().ok()) {
+            used.insert(number);
+        }
+        collect_tracks(child, prefix, used);
+    }
 }
 
 #[cfg(test)]

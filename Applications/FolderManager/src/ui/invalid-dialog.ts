@@ -83,6 +83,7 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
   const hasReview = folder.review.length > 0;
   const reviewPick = folder.review.length > 1 ? el("select", { class: "dialog-input invalid-pick", "aria-label": `Review folder for ${label}` }, ...folder.review.map((parts, i) => el("option", { value: String(i) }, parts.join("/")))) : null;
   const trackerPick = el("select", { class: "dialog-input invalid-pick", "aria-label": `Tracker for ${label}` }, ...TRACKERS.map((t) => el("option", { value: t }, t)));
+  trackerPick.value = folder.tracker ?? "PJ";
   const radios = new Map<Choice, HTMLInputElement>();
 
   const cells = ACTIONS.map(([choice, action]) => {
@@ -94,7 +95,7 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
     const extra = choice === "review" ? reviewPick : choice === "workboard" ? trackerPick : null;
     return el("td", {}, input, ...(extra ? [extra] : []));
   });
-  const start: Choice = hasReview ? "review" : "ignore";
+  const start: Choice = folder.workboard && rel.length >= 2 ? "workboard" : hasReview ? "review" : "ignore";
   const startRadio = radios.get(start);
   if (startRadio) startRadio.checked = true;
 

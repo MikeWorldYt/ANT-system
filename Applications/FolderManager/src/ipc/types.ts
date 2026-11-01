@@ -150,6 +150,8 @@ export interface IntakeReport {
 export interface InvalidFolder {
   relParts: string[];
   review: string[][];
+  workboard: boolean;
+  tracker: string | null;
 }
 
 export interface RootCheck {

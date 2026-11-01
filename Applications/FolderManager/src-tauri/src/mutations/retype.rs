@@ -3,6 +3,7 @@ use std::path::Path;
 
 use serde_yaml::Value;
 
+use super::add::mark_workboard;
 use super::{finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
 use crate::ant_core::tree_types::{type_base, type_level};
 use crate::config::{EditableType, WkbStatus};
@@ -34,6 +35,7 @@ pub fn set_node_type(
     let node = get_node_mut(&mut data, rel)
         .ok_or_else(|| FmError::NotFound { rel_parts: rel.to_vec() })?;
     node.insert("type".into(), new_type.into());
+    let workboard = matches!(base, EditableType::Wkb);
     match (base, status) {
         (EditableType::Wkb, Some(s)) => {
             node.insert("status".into(), s.as_str().into());
@@ -43,8 +45,16 @@ pub fn set_node_type(
             node.remove("status");
         }
     }
+    let status_now = node.get("status").and_then(Value::as_str).map(str::to_string);
+    let mut warnings = Vec::new();
+    if workboard && !target.ghost {
+        let breadcrumb = parent_of(rel).last().map_or("", String::as_str);
+        if let Err(e) = mark_workboard(&target.abs, breadcrumb, status_now.as_deref().unwrap_or("in-progress")) {
+            warnings.push(format!("Could not set up the info file: {e}"));
+        }
+    }
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new(), vec![rel.to_vec()]))
+    Ok(finish(root, &data, synced, Some(rel.to_vec()), warnings, vec![rel.to_vec()]))
 }
 
 // Status and owner live in the folder's info.json; a value that is missing there is written as "unknown".
@@ -111,6 +121,19 @@ mod tests {
         set_node_type(dir.path(), &p, EditableType::Portf, Some(WkbStatus::Done)).unwrap();
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "02.Bio"]), "PORTF-L2");
         assert_eq!(status(dir.path()), None);
+    }
+
+    #[test]
+    fn changing_to_a_workboard_gives_the_default_info_without_overwriting_it() {
+        let dir = academic("retype-info");
+        let p = rel(&["100.ACADEMIC", "02.Bio"]);
+        set_node_type(dir.path(), &p, EditableType::Wkb, None).unwrap();
+        let info = std::fs::read_to_string(dir.path().join("100.ACADEMIC/02.Bio/.ant/info.json")).unwrap();
+        assert!(info.contains("\"status\": \"in-progress\"") && info.contains("\"owner\": \"unknown\""), "{info}");
+        set_details(dir.path(), &p, Some(WkbStatus::Done), Some("Ana")).unwrap();
+        set_node_type(dir.path(), &p, EditableType::Wkb, None).unwrap();
+        let info = std::fs::read_to_string(dir.path().join("100.ACADEMIC/02.Bio/.ant/info.json")).unwrap();
+        assert!(info.contains("\"status\": \"done\"") && info.contains("\"owner\": \"Ana\""), "{info}");
     }
 
     #[test]

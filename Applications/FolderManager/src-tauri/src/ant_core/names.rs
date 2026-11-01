@@ -93,6 +93,20 @@ pub fn is_workboard_name(name: &str) -> bool {
     WKB_IDENTIFIERS.iter().any(|tracker| name.starts_with(tracker))
 }
 
+// A tracker and its number ("PJ.001", "PJ.1007_Name"); the title after the number is free.
+pub fn is_track_name(name: &str) -> bool {
+    WKB_IDENTIFIERS.iter().any(|tracker| name.strip_prefix(tracker).is_some_and(|rest| rest.starts_with(|c: char| c.is_ascii_digit())))
+}
+
+// The title left after a folder's id: "PJ.001_Name" and "01.Name" both give "Name".
+pub fn title_of(name: &str) -> &str {
+    match WKB_IDENTIFIERS.iter().find_map(|tracker| name.strip_prefix(tracker)) {
+        Some(rest) => rest.trim_start_matches(|c: char| c.is_ascii_digit()).trim_start_matches('_'),
+        None if has_node_id(name) => &name[3..],
+        None => name,
+    }
+}
+
 // The root takes only category or app ids; deeper folders take a node id or a workboard tracker.
 pub fn has_valid_id(rel: &[String]) -> bool {
     match rel {
@@ -282,6 +296,15 @@ mod tests {
         assert_eq!(free_track("PJ.009", &siblings), "PJ.002");
         assert_eq!(free_track("PR.002_Mine", &siblings), "PR.001_Mine");
         assert_eq!(free_track("PJ.0009_Wide", &["PJ.0009_X".to_string()]), "PJ.0001_Wide");
+    }
+
+    #[test]
+    fn track_names_and_their_titles() {
+        assert!(is_track_name("PJ.1007_Prueba-7") && is_track_name("PR.001") && !is_track_name("PJ.Prueba"));
+        assert_eq!(title_of("PJ.1007_Prueba-7"), "Prueba-7");
+        assert_eq!(title_of("01.New-Node"), "New-Node");
+        assert_eq!(title_of("Prueba 4"), "Prueba 4");
+        assert_eq!(title_of("PJ.001"), "");
     }
 
     #[test]

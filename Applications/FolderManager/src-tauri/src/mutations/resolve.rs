@@ -2,12 +2,12 @@
 use std::path::Path;
 
 use serde::Deserialize;
-use serde_yaml::Mapping;
+use serde_yaml::{Mapping, Value};
 
-use super::add::{mark_folder, next_tracker};
+use super::add::{lowest_free_track, mark_workboard};
 use super::{child_rel, ensure_free, finish, load_synced, move_to_review, persist, split, subtrees, Mutation};
-use crate::ant_core::names::{has_valid_id, list_subdirs, next_available_id, next_main_category_id, sanitize_train_case};
-use crate::ant_core::tree_types::child_entries;
+use crate::ant_core::names::{has_node_id, is_track_name, is_valid_root_name, list_subdirs, next_available_id, next_main_category_id, sanitize_train_case, title_of};
+use crate::ant_core::tree_types::{child_entries, type_base};
 use crate::config::{DATA_FLAG, WKB_IDENTIFIERS};
 use crate::error::{FmError, R};
 use crate::fs_safe::{join_rel, Journal, StorageLock};
@@ -48,7 +48,10 @@ pub fn preview_names(root: &Path, rows: &[Pending]) -> R<Vec<String>> {
         let new = match &rows[i].resolution {
             Resolution::Review { .. } => continue,
             Resolution::Node => node_name(root, &data, rel)?,
-            Resolution::Workboard { tracker } => workboard_name(&data, rel, tracker),
+            Resolution::Workboard { tracker } => {
+                delete_key(&mut data, parent, rel.last().map_or("", String::as_str));
+                workboard_name(&data, rel, tracker)
+            }
         };
         // The name is held in the tree so the next row sees it as taken.
         if let Some(slot) = get_node_mut(&mut data, parent) {
@@ -70,11 +73,10 @@ fn node_name(root: &Path, data: &Mapping, rel: &[String]) -> R<String> {
     })
 }
 
-// Takes the next free id of its tracker, with the title in the tracker format.
+// Takes the lowest free track of its tracker and keeps the title the folder already has.
 fn workboard_name(data: &Mapping, rel: &[String], tracker: &str) -> String {
-    let old = rel.last().map_or("", String::as_str);
-    let id = next_tracker(data, tracker);
-    let title = sanitize_train_case(&old.replace('_', "-"));
+    let title = sanitize_train_case(&title_of(rel.last().map_or("", String::as_str)).replace('_', "-"));
+    let id = lowest_free_track(data, tracker);
     if title.is_empty() { format!("{tracker}.{id:03}") } else { format!("{tracker}.{id:03}_{title}") }
 }
 
@@ -82,11 +84,12 @@ fn become_node(root: &Path, rel: &[String]) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced(root)?;
     let (_, parent) = split(rel)?;
-    refuse_if_identified(rel)?;
+    refuse_if_node(rel, &node_entry(&data, rel)?)?;
     let new = node_name(root, &data, rel)?;
     let level = rel.len();
     let mut entry = node_entry(&data, rel)?;
     entry.insert("type".into(), format!("NODE-L{level}").into());
+    entry.remove("status");
     if level >= 3 {
         entry.insert("flags".into(), DATA_FLAG.into());
     }
@@ -96,27 +99,31 @@ fn become_node(root: &Path, rel: &[String]) -> R<Mutation> {
     Ok(finish(root, &data, synced, Some(new_rel.clone()), Vec::new(), vec![rel.to_vec(), new_rel]).replacing(before))
 }
 
-// Takes the next free id of its tracker and the usual info.json of a workboard, in the tracker format.
+// Takes the lowest free track of its tracker and the usual info.json of a workboard, keeping any values it already has.
 fn become_workboard(root: &Path, rel: &[String], tracker: &str) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced(root)?;
-    let (_, parent) = split(rel)?;
+    let (old, parent) = split(rel)?;
     if parent.is_empty() {
         return Err(refuse(rel, "workboards cannot be created at the storage root"));
     }
     if !WKB_IDENTIFIERS.contains(&format!("{tracker}.").as_str()) {
         return Err(refuse(rel, format!("{tracker} is not a workboard tracker")));
     }
-    refuse_if_identified(rel)?;
-    let new = workboard_name(&data, rel, tracker);
     let mut entry = node_entry(&data, rel)?;
+    refuse_if_workboard(rel, &entry)?;
+    // The folder's own entry is left out, so the number it holds now counts as free.
+    let mut others = data.clone();
+    delete_key(&mut others, parent, old);
+    let new = workboard_name(&others, rel, tracker);
+    let status = entry.get("status").and_then(Value::as_str).unwrap_or("in-progress").to_string();
     entry.insert("type".into(), format!("WKB-L{}", rel.len()).into());
     entry.remove("flags");
     let new_rel = child_rel(parent, &new);
     let before = subtrees(&data, &[rel.to_vec()]);
     reidentify(root, &mut data, rel, &new_rel, entry, "make workboard")?;
     let mut warnings = Vec::new();
-    if let Err(e) = mark_folder(&join_rel(root, &new_rel), true, parent.last().map_or("", String::as_str)) {
+    if let Err(e) = mark_workboard(&join_rel(root, &new_rel), parent.last().map_or("", String::as_str), &status) {
         warnings.push(format!("Could not set up the info file: {e}"));
     }
     Ok(finish(root, &data, synced, Some(new_rel.clone()), warnings, vec![rel.to_vec(), new_rel]).replacing(before))
@@ -126,9 +133,23 @@ fn refuse(rel: &[String], reason: impl Into<String>) -> FmError {
     FmError::InvalidPath { rel_parts: rel.to_vec(), reason: reason.into() }
 }
 
-fn refuse_if_identified(rel: &[String]) -> R<()> {
-    if has_valid_id(rel) {
+fn kind_of(node: &Mapping) -> &str {
+    node.get("type").and_then(Value::as_str).unwrap_or_default()
+}
+
+// A node keeps the id it has; a workboard-typed folder with a bad name is still free to become a node.
+fn refuse_if_node(rel: &[String], node: &Mapping) -> R<()> {
+    let name = rel.last().map_or("", String::as_str);
+    let has_id = if rel.len() == 1 { is_valid_root_name(name) } else { has_node_id(name) };
+    if type_base(kind_of(node)) == "NODE" && has_id {
         return Err(refuse(rel, "the folder already has an id"));
+    }
+    Ok(())
+}
+
+fn refuse_if_workboard(rel: &[String], node: &Mapping) -> R<()> {
+    if type_base(kind_of(node)) == "WKB" && is_track_name(rel.last().map_or("", String::as_str)) {
+        return Err(refuse(rel, "the folder already has a track"));
     }
     Ok(())
 }
@@ -201,6 +222,21 @@ mod tests {
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "PJ.001_Thesis"]), "WKB-L2");
         let info = read_info(&folder).unwrap();
         assert_eq!(field_of(&info, &["status"]), Some("in-progress"));
+    }
+
+    #[test]
+    fn a_workboard_with_a_bad_name_takes_the_lowest_free_track_and_keeps_its_title() {
+        let tree = "100.ACADEMIC:\n  type: NODE-L1\n  01.New-Node: {type: WKB-L2}\n  PJ.001_Fine: {type: WKB-L2}\n  PJ.1007_Prueba-7: {type: NODE-L2}\n";
+        let dir = storage("resolve-track", &["100.ACADEMIC/01.New-Node", "100.ACADEMIC/PJ.001_Fine", "100.ACADEMIC/PJ.1007_Prueba-7"], tree);
+        let pj = Resolution::Workboard { tracker: "PJ".to_string() };
+        resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "01.New-Node"]), pj).unwrap();
+        let folder = dir.path().join("100.ACADEMIC/PJ.002_New-Node");
+        assert!(folder.is_dir());
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "PJ.002_New-Node"]), "WKB-L2");
+        assert_eq!(field_of(&read_info(&folder).unwrap(), &["status"]), Some("in-progress"));
+        let pj = Resolution::Workboard { tracker: "PJ".to_string() };
+        resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "PJ.1007_Prueba-7"]), pj).unwrap();
+        assert!(dir.path().join("100.ACADEMIC/PJ.003_Prueba-7").is_dir());
     }
 
     #[test]
