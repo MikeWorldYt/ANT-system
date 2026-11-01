@@ -13,7 +13,8 @@ export interface RailItem {
 const QUICK_PREF = "fm.quickActions";
 const RAIL_PREF = "fm.rail";
 
-const defaultRail = (): RailItem[] => RAIL_IDS.map((id) => ({ id, shown: true }));
+const RAIL_OFF_BY_DEFAULT: readonly RailId[] = ["moveUp", "moveDown"];
+const defaultRail = (): RailItem[] => RAIL_IDS.map((id) => ({ id, shown: !RAIL_OFF_BY_DEFAULT.includes(id) }));
 
 function readRail(): RailItem[] {
   const raw = readPref(RAIL_PREF);
@@ -35,7 +36,7 @@ function readRail(): RailItem[] {
     if (RAIL_IDS.includes(id as RailId) && !items.some((i) => i.id === id)) items.push({ id: id as RailId, shown: shown !== false });
   }
   RAIL_IDS.forEach((id, index) => {
-    if (!items.some((i) => i.id === id)) items.splice(Math.min(index, items.length), 0, { id, shown: true });
+    if (!items.some((i) => i.id === id)) items.splice(Math.min(index, items.length), 0, { id, shown: !RAIL_OFF_BY_DEFAULT.includes(id) });
   });
   return items;
 }

@@ -3,8 +3,8 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{type_base, META_KEYS};
-use crate::config::{DATA_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, SPECIAL_TYPES, WKB_IDENTIFIERS};
+use crate::ant_core::tree_types::{flags_in, type_base, META_KEYS};
+use crate::config::{DATA_FLAG, HIDDEN_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, SPECIAL_TYPES, WKB_IDENTIFIERS};
 use crate::storage::db::{db_path, Store};
 use crate::error::R;
 use crate::fs_safe::{io_err, join_rel};
@@ -81,7 +81,9 @@ fn reconcile_level(dir: &Path, node: &mut Mapping, depth: usize, limit: usize) -
             continue;
         }
         if let Some(Value::Mapping(child)) = node.get_mut(name.as_str()) {
-            changed |= reconcile_level(&dir.join(&name), child, depth + 1, limit)?;
+            if !flags_in(child).iter().any(|f| f == HIDDEN_FLAG) {
+                changed |= reconcile_level(&dir.join(&name), child, depth + 1, limit)?;
+            }
         }
     }
     if depth > 0 {
@@ -175,7 +177,9 @@ fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool, limit: 
         }
         changed |= add_missing(node, &name, depth, fresh);
         if let Some(Value::Mapping(child)) = node.get_mut(name.as_str()) {
-            changed |= sync_level(&dir.join(&name), child, depth + 1, fresh, limit)?;
+            if !flags_in(child).iter().any(|f| f == HIDDEN_FLAG) {
+                changed |= sync_level(&dir.join(&name), child, depth + 1, fresh, limit)?;
+            }
         }
     }
     Ok(changed)

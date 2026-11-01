@@ -1,31 +1,42 @@
 // Walks the folders on disk for the search's slow pass, matching them the way the database search matches its rows.
 use std::path::Path;
 
+use serde_yaml::Mapping;
+
 use crate::ant_core::names::list_subdirs;
 use crate::ant_core::search::{canonical_key, Query};
+use crate::ant_core::tree_types::flags_in;
+use crate::config::HIDDEN_FLAG;
 use crate::error::R;
 use crate::storage::info::read_info;
+use crate::tree::tree_store::{self, get_node};
 
 // Past this many matches the walk stops, so a broad search cannot grow the list without bound.
 const CAP: usize = 300;
 
 pub fn search_disk(root: &Path, query: &Query) -> R<Vec<Vec<String>>> {
+    let data = tree_store::load(root)?;
     let mut found = Vec::new();
-    walk(root, &mut Vec::new(), query, &mut found)?;
+    walk(root, &mut Vec::new(), &data, query, &mut found)?;
     Ok(found)
 }
 
-fn walk(dir: &Path, parts: &mut Vec<String>, query: &Query, found: &mut Vec<Vec<String>>) -> R<()> {
+fn walk(dir: &Path, parts: &mut Vec<String>, data: &Mapping, query: &Query, found: &mut Vec<Vec<String>>) -> R<()> {
     for name in list_subdirs(dir)? {
         if found.len() >= CAP {
             break;
         }
         let folder = dir.join(&name);
         parts.push(name);
+        // A hidden folder is neither matched nor read.
+        if get_node(data, parts).is_some_and(|node| flags_in(node).iter().any(|f| f == HIDDEN_FLAG)) {
+            parts.pop();
+            continue;
+        }
         if matches(&folder, parts, query) {
             found.push(parts.clone());
         }
-        walk(&folder, parts, query, found)?;
+        walk(&folder, parts, data, query, found)?;
         parts.pop();
     }
     Ok(())

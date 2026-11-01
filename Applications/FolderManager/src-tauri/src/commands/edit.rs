@@ -147,6 +147,21 @@ pub async fn restore_output(app: AppHandle, rel_parts: Vec<String>) -> R<Mutatio
 }
 
 #[tauri::command]
+pub async fn set_node_hidden(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_hidden(root, &rel_parts, on))).await
+}
+
+#[tauri::command]
+pub async fn set_hidden_nodes(app: AppHandle, parent: Vec<String>, hidden: Vec<String>) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_hidden_children(root, &parent, &hidden))).await
+}
+
+#[tauri::command]
+pub async fn list_hidden_choices(app: AppHandle, parent: Vec<String>) -> R<Vec<mutations::HiddenChoice>> {
+    run_locked(app, move |root| mutations::hidden_choices(root, &parent)).await
+}
+
+#[tauri::command]
 pub async fn answer_copy(app: AppHandle, rel_parts: Vec<String>, answer: CopyAnswer) -> R<()> {
     run_locked(app, move |root| mutations::answer_copy(root, &rel_parts, answer)).await
 }

@@ -16,6 +16,12 @@ export interface NodeInfo {
   error: string | null;
 }
 
+export interface HiddenChoice {
+  name: string;
+  hidden: boolean;
+  fixed: boolean;
+}
+
 export interface NodeActions {
   rename: boolean;
   changeType: boolean;
@@ -30,6 +36,7 @@ export interface NodeActions {
   editDetails: boolean;
   editFlags: boolean;
   hideLink: boolean;
+  hide: boolean;
 }
 
 export interface TreeNode {

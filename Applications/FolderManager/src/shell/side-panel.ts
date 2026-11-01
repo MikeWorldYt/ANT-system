@@ -1,13 +1,14 @@
 // Right column: quick actions, details and order of the selected node, collapsible to an icon rail.
 import { el } from "../ui/dom";
 import { iconButton } from "../ui/icon-button";
-import { move, remove, setFavorite, setReviewFilter } from "../actions/ops";
+import { hideNode, move, remove, setFavorite, setReviewFilter } from "../actions/ops";
 import { readPref, savePref } from "../store/prefs";
 import { favoritesShown, hiddenCategories, isMainCategory, isReviewRoot, nameWithoutIdentifier } from "../store/node-info";
 import { quickActionsShown, railLayout, type RailId } from "../store/side-layout";
 import { selectedNode, state, toggleHidingLinks } from "../store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
 import { openSettings } from "./settings-dialog";
+import { createHiddenManager } from "./hidden-manager";
 import { setDisabled, sideAction } from "./side-action";
 import type { TreeNode } from "../ipc/types";
 
@@ -37,6 +38,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   const moveUp = act((n) => void move(n, "up"));
   const moveDown = act((n) => void move(n, "down"));
   const del = act((n) => void remove(n));
+  const hide = act((n) => void hideNode(n));
 
   const details = createDetailsPanel(() => {
     if (!collapseAfterEdit) return;
@@ -62,8 +64,10 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   const up = sideAction("Move up", "moveUp", moveUp, "accent");
   const down = sideAction("Move down", "moveDown", moveDown, "accent");
   const order = section("side-order", "Order", up.button, down.button);
+  const hideButton = sideAction("Hide element", "hide", hide);
   const remover = sideAction("Delete", "trash", del, "danger");
-  const foot = el("div", { class: "side-foot" }, remover.button);
+  const foot = el("div", { class: "side-foot" }, hideButton.button, remover.button);
+  const hiddenManager = createHiddenManager();
   const categories = el("div", { class: "side-categories" });
   const hideLinks = el("a", { href: "#", class: "side-link" }, "Select elements to hide");
   hideLinks.addEventListener("click", (ev) => {
@@ -71,7 +75,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     toggleHidingLinks();
   });
   const categoriesSection = section("side-categories", "Filters", categories, hideLinks);
-  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, categoriesSection, details.element, order, foot);
+  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, hiddenManager.element, quick, categoriesSection, details.element, order, foot);
 
   // ─────────♦ COLLAPSED RAIL ───────────────────────────────────────────────────
   const railExpand = iconButton("Expand side panel", "chevronsLeft", () => {
@@ -188,13 +192,15 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     const review = n !== null && isReviewRoot(n);
     const reviewRoot = state.tree?.nodes.find(isReviewRoot) ?? null;
     const filtered = review || !!n?.linked;
-    details.element.hidden = review;
-    categoriesSection.hidden = !filtered || reviewRoot === null;
+    const managing = state.managing !== null;
+    hiddenManager.render();
+    details.element.hidden = review || managing;
+    categoriesSection.hidden = !filtered || reviewRoot === null || managing;
     if (filtered && reviewRoot) syncCategories(reviewRoot);
     hideLinks.classList.toggle("is-active", state.hidingLinks);
     // The review root and its links have no order or delete: their folders are the app's or the owners'.
-    order.hidden = foot.hidden = n === null || review || n.linked;
-    quick.hidden = n === null || !quickActionsShown();
+    order.hidden = foot.hidden = n === null || review || n.linked || managing;
+    quick.hidden = n === null || managing || !quickActionsShown();
     favorite.setLabel(favoriteLabel(n));
     favorite.button.classList.toggle("is-favorite", !!n?.favorite);
     railFavorite.classList.toggle("is-favorite", !!n?.favorite);
@@ -207,12 +213,13 @@ export function createSidePanel(openSelected: () => void): SidePanel {
       [[up.button, railUp], !!a?.moveUp],
       [[down.button, railDown], !!a?.moveDown],
       [[remover.button, railDelete], !!a?.delete],
+      [[hideButton.button], !!a?.hide],
     ];
     // An action the node does not offer is removed, not greyed out.
     for (const [buttons, on] of available) for (const b of buttons) b.hidden = !on;
     for (const b of [up.button, railUp, down.button, railDown]) setDisabled(b, !idle);
     order.hidden ||= !(a?.moveUp || a?.moveDown);
-    foot.hidden ||= !a?.delete;
+    foot.hidden ||= !(a?.delete || a?.hide);
   }
 
   layoutRail();

@@ -364,3 +364,7 @@ dialog.warning-confirm form { position: relative; }
 @media (prefers-reduced-motion: reduce) {
   .search-box { transition: none; }
 }
+
+.hidden-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; margin: 8px 0; }
+.hidden-choice { display: flex; align-items: center; gap: 8px; }
+.hidden-choice input:disabled + span { opacity: 0.5; }

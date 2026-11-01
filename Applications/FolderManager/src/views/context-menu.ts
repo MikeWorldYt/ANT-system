@@ -4,7 +4,7 @@ import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { statusIcon } from "../ui/status-mark";
 import { STATUSES, TYPES } from "../store/node-info";
-import { addChild, pasteFiles, remove, removeMany, setDetails, setFavorite, setLinkHidden, setType, setUserFlag } from "../actions/ops";
+import { addChild, hideNode, pasteFiles, remove, removeMany, setDetails, setFavorite, setLinkHidden, setType, setUserFlag } from "../actions/ops";
 import { createShortcut, putOnClipboard } from "../actions/folder-share";
 import { isSelected, keyOf, select, selectedNodes, startEdit, state } from "../store/state";
 import { setStatus } from "../ui/status";
@@ -170,6 +170,11 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     void remove(node);
   }, "ctx-item danger");
   del.prepend(guiIcon("trash"));
+  const hideElement = menuItem("Hide element", "menuitem", a.hide, () => {
+    close();
+    void hideNode(node);
+  });
+  hideElement.prepend(guiIcon("hide"));
 
   // A file offers only the actions that apply to one file.
   if (node.file) {
@@ -188,14 +193,14 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [open, copyPathItem, favorite, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, del, ...extras],
+    items: [open, copyPathItem, favorite, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, hideElement, del, ...extras],
     subs,
     content: [
       open, copyPathItem, favorite, ...hideItems, separator(),
       rename, copy, cut, ...shareItems, separator(),
       ...subs.map((s) => s.element), ...fileItems, separator(),
       newNode, newWorkboard, separator(),
-      del, ...(extras.length > 0 ? [separator(), ...extras] : []),
+      hideElement, del, ...(extras.length > 0 ? [separator(), ...extras] : []),
     ],
   };
 }

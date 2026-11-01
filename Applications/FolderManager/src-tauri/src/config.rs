@@ -26,6 +26,8 @@ pub const DEPTH_CEILING: usize = 6;
 
 pub const LOCKED_TYPES: &[&str] = &["REV", "RES", "TPL", "CFG"];
 pub const DATA_FLAG: &str = "data";
+// A hidden folder stays in the storage but is not listed, searched or read.
+pub const HIDDEN_FLAG: &str = "hidden";
 pub const MAIN_FLAG: &str = "main";
 pub const LINKED_PREFIXES: &[&str] = &["90", "98"];
 pub const WKB_IDENTIFIERS: &[&str] = &["PJ.", "PR.", "HW.", "CR.", "TK."];

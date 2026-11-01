@@ -11,8 +11,8 @@ use serde::Serialize;
 use serde_yaml::Mapping;
 
 use crate::ant_core::names::list_subdirs;
-use crate::ant_core::tree_types::child_entries;
-use crate::config::DATA_DIR;
+use crate::ant_core::tree_types::{child_entries, flags_in};
+use crate::config::{DATA_DIR, HIDDEN_FLAG};
 use crate::error::R;
 use crate::fs_safe::{io_err, join_rel, Journal, StorageLock};
 use crate::index::review_folders;
@@ -83,7 +83,8 @@ fn walk(dir: &Path, node: &Mapping, rel: &[String], report: &mut IntakeReport) -
         }
     }
     // Tree entries missing on disk are ghosts and hold no files.
-    for (name, child) in child_entries(node).filter(|(name, _)| subdirs.iter().any(|d| d == name)) {
+    // A hidden folder is not read, so nothing in it is moved or reported.
+    for (name, child) in child_entries(node).filter(|(name, child)| subdirs.iter().any(|d| d == name) && !flags_in(child).iter().any(|f| f == HIDDEN_FLAG)) {
         walk(&dir.join(name), child, &child_rel(rel, name), report)?;
     }
     Ok(())

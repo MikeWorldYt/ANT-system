@@ -9,8 +9,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{child_entries, type_base, META_KEYS};
-use crate::config::{DATA_DIR, FOOTPRINT_FILENAME};
+use crate::ant_core::tree_types::{child_entries, flags_in, type_base, META_KEYS};
+use crate::config::{DATA_DIR, FOOTPRINT_FILENAME, HIDDEN_FLAG};
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, join_rel, write_atomic};
 use crate::ant_core::names::list_subdirs;
@@ -43,7 +43,7 @@ impl Scan {
 
 pub fn scan(root: &Path, data: &Mapping) -> R<Scan> {
     let mut live = Vec::new();
-    walk(&mut Vec::new(), root, &mut live, depth::limit(root)?)?;
+    walk(Some(data), &mut Vec::new(), root, &mut live, depth::limit(root)?)?;
     let mut nodes = Vec::new();
     visit(data, &mut Vec::new(), &mut nodes);
     Ok(Scan {
@@ -232,7 +232,7 @@ pub fn tail_copy(root: &Path, data: &mut Mapping, copy: &[String]) -> R<()> {
     // The whole copy is walked, past the depth limit too, so no folder inside it keeps the original's id.
     let folder = join_rel(root, copy);
     let mut inside = vec![Live { rel: copy.to_vec(), id: read_id(&folder) }];
-    walk(&mut copy.to_vec(), &folder, &mut inside, usize::MAX)?;
+    walk(None, &mut copy.to_vec(), &folder, &mut inside, usize::MAX)?;
     for l in inside {
         let Some(id) = l.id else { continue };
         let tail = tailed_id(&id, &taken);
@@ -260,7 +260,8 @@ fn still_listed(root: &Path, rel: &[String]) -> bool {
     dir.is_dir() && list_subdirs(&dir).is_ok_and(|names| names.contains(name))
 }
 
-fn walk(rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>, limit: usize) -> R<()> {
+// Hidden folders are not read, so their ids and marks are left out too.
+fn walk(data: Option<&Mapping>, rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>, limit: usize) -> R<()> {
     if rel.len() >= limit {
         return Ok(());
     }
@@ -270,10 +271,14 @@ fn walk(rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>, limit: usize) ->
         }
         let folder = dir.join(&name);
         rel.push(name);
+        if data.and_then(|d| get_node(d, rel)).is_some_and(|node| flags_in(node).iter().any(|f| f == HIDDEN_FLAG)) {
+            rel.pop();
+            continue;
+        }
         if folder.join(DATA_DIR).is_dir() {
             out.push(Live { rel: rel.clone(), id: read_id(&folder) });
         }
-        walk(rel, &folder, out, limit)?;
+        walk(data, rel, &folder, out, limit)?;
         rel.pop();
     }
     Ok(())

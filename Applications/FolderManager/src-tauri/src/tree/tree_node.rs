@@ -9,7 +9,7 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, flags_in, type_base, type_level, META_KEYS};
 use crate::config::{
-    LINK_FAVORITES_FILENAME, LINK_HIDDEN_FILENAME, LINKED_PREFIXES, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
+    HIDDEN_FLAG, LINK_FAVORITES_FILENAME, LINK_HIDDEN_FILENAME, LINKED_PREFIXES, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::error::R;
 use crate::fs_safe::{io_err, join_rel};
@@ -44,6 +44,7 @@ pub struct NodeActions {
     pub edit_details: bool,
     pub edit_flags: bool,
     pub hide_link: bool,
+    pub hide: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -154,12 +155,17 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
     let yaml: Vec<&str> = get_node(data, parent)
         .map(|m| child_entries(m).map(|(k, _)| k).collect())
         .unwrap_or_default();
+    // A hidden folder keeps its yaml entry but is not listed, so nothing below it is read either.
+    let hidden_here: BTreeSet<&str> = get_node(data, parent)
+        .map(|m| child_entries(m).filter(|(_, c)| flags_in(c).iter().any(|f| f == HIDDEN_FLAG)).map(|(k, _)| k).collect())
+        .unwrap_or_default();
     // A disk folder named like a meta key has no yaml entry of its own, and the trash is never a node.
     let names: BTreeSet<&str> = disk
         .iter()
         .map(String::as_str)
         .filter(|d| !META_KEYS.contains(d))
         .chain(yaml.iter().copied().filter(|k| !is_hidden_dir(k)))
+        .filter(|name| !hidden_here.contains(name))
         .filter(|name| !(parent.is_empty() && is_hidden_system_root(name)))
         .collect();
     let link_entries: Vec<Entry> = if matches!(parent, [top] if top.eq_ignore_ascii_case(REVIEW_FOLDER)) {
@@ -287,6 +293,7 @@ fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
             edit_details: false,
             edit_flags: false,
             hide_link: false,
+            hide: false,
         },
         name,
     }
@@ -402,6 +409,7 @@ fn link_actions() -> NodeActions {
         edit_details: false,
         edit_flags: false,
         hide_link: true,
+        hide: false,
     }
 }
 
@@ -429,6 +437,7 @@ fn compute_actions(depth: usize, limit: usize, ghost: bool, raw_type: &str, rese
         edit_details: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
         edit_flags: !frozen && !ghost && depth > 0 && type_base(raw_type) == "NODE",
         hide_link: false,
+        hide: !frozen && !ghost && depth > 0,
     }
 }
 

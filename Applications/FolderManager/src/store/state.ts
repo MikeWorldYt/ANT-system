@@ -2,7 +2,7 @@
 import { listChildren } from "../ipc/api";
 import { favoritesFirst, foldersFirst, SORT_BYS, type ColumnSort, type SortBy } from "./sort";
 import { readPref, savePref } from "./prefs";
-import type { LevelPatch, TreeNode, TreeSnapshot } from "../ipc/types";
+import type { HiddenChoice, LevelPatch, TreeNode, TreeSnapshot } from "../ipc/types";
 
 interface State {
   tree: TreeSnapshot | null;
@@ -15,6 +15,9 @@ interface State {
   busy: boolean;
   // Lists every review link so the hidden ones can be selected again, instead of only the shown ones.
   hidingLinks: boolean;
+  // The folder whose children the side panel lists for hiding, with each child's hidden state.
+  managing: string[] | null;
+  hiddenChoices: HiddenChoice[];
   editing: { key: string; draft: string; focused: boolean } | null;
   // Order of each column, keyed by its parent's path ("" for the first one); the tree view has its own.
   sorts: Record<string, ColumnSort>;
@@ -85,6 +88,8 @@ export const state: State = {
   expanded: new Set(),
   busy: false,
   hidingLinks: false,
+  managing: null,
+  hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
   settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },

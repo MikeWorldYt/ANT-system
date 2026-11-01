@@ -12,7 +12,7 @@ import { sortedForColumns } from "../store/sort";
 import { outputOf } from "../store/node-info";
 import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
 import { isFmError } from "../ipc/types";
-import type { Copied, EditableType, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
+import type { Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
   const tree = snapshot ?? (await api.refresh());
@@ -237,6 +237,40 @@ export async function setType(node: TreeNode, base: EditableType, status: WkbSta
   });
   // A workboard with a name outside the track format is announced now, since the check only runs on refresh.
   if (ok && base === "WKB") void checkRootFolders(resolveInvalid);
+}
+
+export const hideNode = (node: TreeNode) => run(async () => applyMutation(await api.setNodeHidden(node.relParts, true), node.relParts));
+
+// The side panel lists the folder's children with a checkbox each, and every checkbox applies at once.
+export async function manageHidden(parent: string[]): Promise<void> {
+  state.managing = parent;
+  state.hiddenChoices = [];
+  notify();
+  await refreshHiddenChoices();
+}
+
+export function stopManaging(): void {
+  state.managing = null;
+  state.hiddenChoices = [];
+  notify();
+}
+
+async function refreshHiddenChoices(): Promise<void> {
+  const parent = state.managing;
+  if (!parent) return;
+  await run(async () => {
+    const choices: HiddenChoice[] = await api.listHiddenChoices(parent);
+    if (state.managing !== parent) return;
+    state.hiddenChoices = choices;
+    notify();
+  });
+}
+
+export async function setChildHidden(name: string, on: boolean): Promise<void> {
+  const parent = state.managing;
+  if (!parent) return;
+  await run(async () => applyMutation(await api.setNodeHidden([...parent, name], on), parent));
+  await refreshHiddenChoices();
 }
 
 export const setOutput = (node: TreeNode, output: string | null) =>

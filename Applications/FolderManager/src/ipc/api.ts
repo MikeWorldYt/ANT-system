@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { isFmError } from "./types";
 import type {
   CopyAnswer,
+  HiddenChoice,
   DeletePreview,
   DropOutcome,
   EditableType,
@@ -86,6 +87,9 @@ export const openLogsFolder = () => call<void>("open_logs_folder");
 export const openDevtools = () => call<void>("open_devtools");
 export const setNodeDetails = (relParts: string[], status: WkbStatus | null, owner: string | null) =>
   call<Mutation>("set_node_details", { relParts, status, owner });
+export const setNodeHidden = (relParts: string[], on: boolean) => call<Mutation>("set_node_hidden", { relParts, on });
+export const setHiddenNodes = (parent: string[], hidden: string[]) => call<Mutation>("set_hidden_nodes", { parent, hidden });
+export const listHiddenChoices = (parent: string[]) => call<HiddenChoice[]>("list_hidden_choices", { parent });
 export const setNodeOutput = (relParts: string[], output: string | null) => call<Mutation>("set_node_output", { relParts, output });
 export const deliverOutput = (relParts: string[], date: string, all: boolean) => call<Mutation>("deliver_output", { relParts, date, all });
 export const restoreOutput = (relParts: string[]) => call<Mutation>("restore_output", { relParts });

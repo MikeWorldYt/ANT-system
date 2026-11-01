@@ -5,8 +5,8 @@ use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::names::{has_node_id, is_main_category, is_track_name, is_valid_root_name, is_workboard_name, list_subdirs};
-use crate::ant_core::tree_types::type_base;
-use crate::config::{TypeBase, DATA_DIR, INFO_FILENAME, WKB_IDENTIFIERS};
+use crate::ant_core::tree_types::{flags_in, type_base};
+use crate::config::{TypeBase, DATA_DIR, HIDDEN_FLAG, INFO_FILENAME, WKB_IDENTIFIERS};
 use crate::error::R;
 use crate::tree::depth;
 use crate::tree::tree_node::is_reserved;
@@ -46,6 +46,10 @@ fn walk(root: &Path, dir: &Path, node: Option<&Mapping>, rel: &mut Vec<String>, 
             continue;
         }
         let child = node.and_then(|n| n.get(name.as_str())).and_then(Value::as_mapping);
+        // A hidden folder is not read, so it is not checked either.
+        if child.is_some_and(|c| flags_in(c).iter().any(|f| f == HIDDEN_FLAG)) {
+            continue;
+        }
         let kind = child
             .and_then(|c| c.get("type"))
             .and_then(Value::as_str)
