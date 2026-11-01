@@ -49,8 +49,8 @@ export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: s
     const form = el(
       "form",
       { method: "dialog" },
-      el("h2", { id: "invalid-title" }, "Invalid directories found"),
-      el("p", { class: "dialog-text" }, "These folders do not follow the id format. Choose what each one becomes."),
+      el("h2", { id: "invalid-title" }, "Format validations"),
+      el("p", { class: "dialog-text" }, "ANT detects some invalid formats that have reached your storage. Choose what each one become."),
       el("div", { class: "invalid-scroll" }, table),
       el("div", { class: "dialog-buttons" }, later, apply),
     );
