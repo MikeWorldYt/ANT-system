@@ -10,6 +10,7 @@ import { fromToggle, nodeToggle } from "./node-toggle";
 import { hiddenCategories, holdsFiles, isReviewRoot, isWorkboard, linkCategory, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
+import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "./manage-row";
 import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
@@ -56,6 +57,7 @@ export function createColumnsView(): ViewMode {
   const root = el("div", { class: "columns", role: "group", "aria-label": "Storage columns" });
   const loading = new Set<string>();
   let openKey: string | null = null;
+  let built: ManageSnapshot | null = null;
 
   function isOpen(n: TreeNode): boolean {
     const key = keyOf(n.relParts);
@@ -81,6 +83,7 @@ export function createColumnsView(): ViewMode {
     // A workboard shows its status before its name; other rows keep the status after the star.
     const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), lead, ...(isWorkboard(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, false, true));
     item.dataset.key = keyOf(n.relParts);
+    item.prepend(...manageBox(n, item));
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
     else if (onPath) item.classList.add("on-path");
@@ -123,7 +126,9 @@ export function createColumnsView(): ViewMode {
     // The empty area of a column is a drop target for the folder it lists; "" is the storage root.
     column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
     column.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentNode, root));
-    const onPath = index < path.length - 1 ? col.nodes.find((n) => n.name === path[index]) : undefined;
+    const managed = isManagedFolder(column.dataset.key ?? "");
+    const nodes = managed ? (managedNodes() ?? col.nodes) : col.nodes;
+    const onPath = index < path.length - 1 ? nodes.find((n) => n.name === path[index]) : undefined;
     // The empty area of a column steps back to its row on the selected path.
     column.addEventListener("click", (ev) => {
       if (!onPath || (ev.target instanceof Element && ev.target.closest(".col-item"))) return;
@@ -131,13 +136,13 @@ export function createColumnsView(): ViewMode {
       // The column background cannot take focus, so keys go back to the row that now holds it.
       root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });
     });
-    const first = col.nodes[0];
+    const first = nodes[0];
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
     // Not an item, so it cannot be selected; it only tells why the review list is empty.
-    const legend = col.nodes.length === 0 ? emptyLegend(parentNode) : null;
-    const siblings = col.nodes.map((n) => keyOf(n.relParts));
-    const rows = col.nodes.flatMap((n, i) => {
-      const prev = col.nodes[i - 1];
+    const legend = nodes.length === 0 ? emptyLegend(parentNode) : null;
+    const siblings = nodes.map((n) => keyOf(n.relParts));
+    const rows = nodes.flatMap((n, i) => {
+      const prev = nodes[i - 1];
       // Review links are grouped by category, so a change of category gets a line between the groups.
       const groupStart = prev?.linked && n.linked && linkCategory(prev) !== linkCategory(n);
       const item = buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey, siblings);
@@ -145,6 +150,7 @@ export function createColumnsView(): ViewMode {
     });
     column.append(
       columnSortToggle(path.slice(0, index).join("/")),
+      ...(managed ? [manageHeader("col-item")] : []),
       ...rows,
       ...(legend ? [el("p", { class: "column-legend" }, legend)] : []),
     );
@@ -240,9 +246,11 @@ export function createColumnsView(): ViewMode {
     render() {
       // An opened column lasts only while its folder stays selected; selecting another row closes it.
       if (openKey !== state.selectedKey) openKey = null;
+      if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
       const path = state.selectedKey?.split("/") ?? [];
       root.replaceChildren(...buildColumns(openKey).map((c, i) => buildColumn(c, i, path, path[i - 1] ?? "storage")));
+      built = manageSnapshot();
       root.querySelectorAll(".col-item.on-path, .col-item.selected").forEach((e) => e.scrollIntoView({ block: "nearest", inline: "nearest" }));
       root.lastElementChild?.scrollIntoView({ block: "nearest", inline: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });

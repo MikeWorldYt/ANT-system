@@ -17,7 +17,7 @@ export interface NodeInfo {
 }
 
 export interface HiddenChoice {
-  name: string;
+  node: TreeNode;
   hidden: boolean;
   fixed: boolean;
 }

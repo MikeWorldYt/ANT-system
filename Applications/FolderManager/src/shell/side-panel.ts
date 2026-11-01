@@ -8,7 +8,6 @@ import { quickActionsShown, railLayout, type RailId } from "../store/side-layout
 import { selectedNode, state, toggleHidingLinks } from "../store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
 import { openSettings } from "./settings-dialog";
-import { createHiddenManager } from "./hidden-manager";
 import { setDisabled, sideAction } from "./side-action";
 import type { TreeNode } from "../ipc/types";
 
@@ -67,7 +66,6 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   const hideButton = sideAction("Hide element", "hide", hide);
   const remover = sideAction("Delete", "trash", del, "danger");
   const foot = el("div", { class: "side-foot" }, hideButton.button, remover.button);
-  const hiddenManager = createHiddenManager();
   const categories = el("div", { class: "side-categories" });
   const hideLinks = el("a", { href: "#", class: "side-link" }, "Select elements to hide");
   hideLinks.addEventListener("click", (ev) => {
@@ -75,7 +73,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     toggleHidingLinks();
   });
   const categoriesSection = section("side-categories", "Filters", categories, hideLinks);
-  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, hiddenManager.element, quick, categoriesSection, details.element, order, foot);
+  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, categoriesSection, details.element, order, foot);
 
   // ─────────♦ COLLAPSED RAIL ───────────────────────────────────────────────────
   const railExpand = iconButton("Expand side panel", "chevronsLeft", () => {
@@ -192,15 +190,13 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     const review = n !== null && isReviewRoot(n);
     const reviewRoot = state.tree?.nodes.find(isReviewRoot) ?? null;
     const filtered = review || !!n?.linked;
-    const managing = state.managing !== null;
-    hiddenManager.render();
-    details.element.hidden = review || managing;
-    categoriesSection.hidden = !filtered || reviewRoot === null || managing;
+    details.element.hidden = review;
+    categoriesSection.hidden = !filtered || reviewRoot === null;
     if (filtered && reviewRoot) syncCategories(reviewRoot);
     hideLinks.classList.toggle("is-active", state.hidingLinks);
     // The review root and its links have no order or delete: their folders are the app's or the owners'.
-    order.hidden = foot.hidden = n === null || review || n.linked || managing;
-    quick.hidden = n === null || managing || !quickActionsShown();
+    order.hidden = foot.hidden = n === null || review || n.linked;
+    quick.hidden = n === null || !quickActionsShown();
     favorite.setLabel(favoriteLabel(n));
     favorite.button.classList.toggle("is-favorite", !!n?.favorite);
     railFavorite.classList.toggle("is-favorite", !!n?.favorite);

@@ -231,9 +231,21 @@ export function setColumnSort(columnKey: string, patch: Partial<ColumnSort>): vo
   notify();
 }
 
+// Managing lasts while the managed folder or one of its direct children is selected; any other folder ends it.
+function inManagedScope(key: string | null): boolean {
+  if (key === null || state.managing === null) return true;
+  const managed = keyOf(state.managing);
+  const at = key.lastIndexOf("/");
+  return key === managed || (at < 0 ? "" : key.slice(0, at)) === managed;
+}
+
 export function select(parts: string[] | null): void {
   state.selectedKey = parts ? keyOf(parts) : null;
   state.selectedKeys = state.selectedKey === null ? [] : [state.selectedKey];
+  if (!inManagedScope(state.selectedKey)) {
+    state.managing = null;
+    state.hiddenChoices = [];
+  }
   notify();
 }
 

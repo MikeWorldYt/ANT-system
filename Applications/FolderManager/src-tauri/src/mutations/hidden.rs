@@ -9,14 +9,14 @@ use crate::ant_core::names::list_subdirs;
 use crate::ant_core::tree_types::{flags_in, META_KEYS};
 use crate::config::{is_hidden_dir, HIDDEN_FLAG};
 use crate::error::{FmError, R};
-use crate::fs_safe::{join_rel, StorageLock};
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::{self, get_node, get_node_mut, get_type, is_locked_type};
+use crate::fs_safe::StorageLock;
+use crate::tree::tree_node::{is_reserved, managed_children, TreeNode};
+use crate::tree::tree_store::{self, get_node_mut, get_type, is_locked_type};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HiddenChoice {
-    pub name: String,
+    pub node: TreeNode,
     pub hidden: bool,
     pub fixed: bool,
 }
@@ -65,17 +65,12 @@ pub fn set_hidden_children(root: &Path, parent: &[String], hidden: &[String]) ->
 // Every folder a level holds, with whether it is hidden, so the manage dialog can show them all.
 pub fn hidden_choices(root: &Path, parent: &[String]) -> R<Vec<HiddenChoice>> {
     let data = tree_store::load(root)?;
-    let dir = join_rel(root, parent);
-    if !dir.is_dir() {
-        return Ok(Vec::new());
-    }
-    Ok(list_subdirs(&dir)?
+    Ok(managed_children(root, &data, parent)?
         .into_iter()
-        .filter(|n| listable(n))
-        .map(|name| {
-            let rel = child_rel(parent, &name);
-            let hidden = get_node(&data, &rel).is_some_and(|node| is_flagged(node));
-            HiddenChoice { fixed: is_fixed(&data, &rel), hidden, name }
+        .map(|node| {
+            let hidden = node.flags.iter().any(|f| f == HIDDEN_FLAG);
+            let fixed = is_fixed(&data, &node.rel_parts);
+            HiddenChoice { node, hidden, fixed }
         })
         .collect())
 }
@@ -86,10 +81,6 @@ fn listable(name: &str) -> bool {
 
 fn is_fixed(data: &Mapping, rel: &[String]) -> bool {
     is_reserved(rel) || is_locked_type(&get_type(data, rel))
-}
-
-fn is_flagged(node: &Mapping) -> bool {
-    flags_in(node).iter().any(|f| f == HIDDEN_FLAG)
 }
 
 fn write_flag(node: &mut Mapping, on: bool) {
@@ -138,9 +129,9 @@ mod tests {
         let dir = academic("hidden-choices");
         set_hidden_children(dir.path(), &rel(&["100.ACADEMIC"]), &["02.Bio".to_string()]).unwrap();
         let choices = hidden_choices(dir.path(), &rel(&["100.ACADEMIC"])).unwrap();
-        let bio = choices.iter().find(|c| c.name == "02.Bio").unwrap();
+        let bio = choices.iter().find(|c| c.node.name == "02.Bio").unwrap();
         assert!(bio.hidden && !bio.fixed);
-        let math = choices.iter().find(|c| c.name == "01.Math").unwrap();
+        let math = choices.iter().find(|c| c.node.name == "01.Math").unwrap();
         assert!(!math.hidden);
         set_hidden_children(dir.path(), &rel(&["100.ACADEMIC"]), &[]).unwrap();
         assert!(hidden_choices(dir.path(), &rel(&["100.ACADEMIC"])).unwrap().iter().all(|c| !c.hidden));

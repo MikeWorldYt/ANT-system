@@ -239,7 +239,14 @@ export async function setType(node: TreeNode, base: EditableType, status: WkbSta
   if (ok && base === "WKB") void checkRootFolders(resolveInvalid);
 }
 
-export const hideNode = (node: TreeNode) => run(async () => applyMutation(await api.setNodeHidden(node.relParts, true), node.relParts));
+// The nearest folder that stays listed takes the selection, so the columns do not close.
+export const hideNode = (node: TreeNode) =>
+  run(async () => {
+    const parent = node.relParts.slice(0, -1);
+    const sibling = nearestSibling(node);
+    const m = await api.setNodeHidden(node.relParts, true);
+    await applyMutation({ ...m, select: sibling ?? (parent.length > 0 ? parent : null) }, parent.length > 0 ? parent : null);
+  });
 
 // The side panel lists the folder's children with a checkbox each, and every checkbox applies at once.
 export async function manageHidden(parent: string[]): Promise<void> {
@@ -266,11 +273,16 @@ async function refreshHiddenChoices(): Promise<void> {
   });
 }
 
-export async function setChildHidden(name: string, on: boolean): Promise<void> {
+// The row already shows the new state, so the list is not rebuilt; the choice is updated to match.
+export async function setChildHidden(name: string, on: boolean): Promise<boolean> {
   const parent = state.managing;
-  if (!parent) return;
-  await run(async () => applyMutation(await api.setNodeHidden([...parent, name], on), parent));
-  await refreshHiddenChoices();
+  if (!parent) return false;
+  const saved = await run(async () => applyMutation(await api.setNodeHidden([...parent, name], on), null, false));
+  if (saved) {
+    const choice = state.hiddenChoices.find((c) => c.node.name === name);
+    if (choice) choice.hidden = on;
+  }
+  return saved;
 }
 
 export const setOutput = (node: TreeNode, output: string | null) =>

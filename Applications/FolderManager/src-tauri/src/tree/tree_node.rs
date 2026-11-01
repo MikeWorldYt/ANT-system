@@ -108,6 +108,24 @@ pub fn build_children(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<T
     children_at(root, data, parent, depth::limit(root)?)
 }
 
+// Every folder a level holds, hidden ones included, for the manage list that decides what is hidden.
+pub(crate) fn managed_children(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<TreeNode>> {
+    let dir = join_rel(root, parent);
+    if !dir.is_dir() {
+        return Ok(Vec::new());
+    }
+    let limit = depth::limit(root)?;
+    let mut nodes = Vec::new();
+    for name in list_subdirs(&dir)?.into_iter().filter(|n| !META_KEYS.contains(&n.as_str()) && !is_hidden_dir(n)) {
+        let mut rel = parent.to_vec();
+        rel.push(name.clone());
+        let in_yaml = get_node(data, &rel).is_some();
+        let entry = Entry { name, on_disk: true, in_yaml, link: None, favorite: false, hidden: false, file: false };
+        nodes.push(make_node(root, data, parent, entry, limit)?);
+    }
+    Ok(nodes)
+}
+
 pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<()> {
     fill_at(root, data, nodes, depth::limit(root)?)
 }

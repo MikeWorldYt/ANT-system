@@ -9,6 +9,7 @@ import { nodeToggle } from "./node-toggle";
 import { holdsFiles, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
+import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "./manage-row";
 import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
@@ -32,6 +33,8 @@ export function createGridView(): ViewMode {
     folder = selectedNode()?.hasChildren ? key : parent;
   }
 
+  let built: ManageSnapshot | null = null;
+
   function folderNode(): TreeNode | null {
     return folder === null ? null : findNode(folder.split("/"));
   }
@@ -39,7 +42,7 @@ export function createGridView(): ViewMode {
   function shownNodes(): TreeNode[] {
     const open = folderNode();
     const base = folder === null ? (state.tree?.nodes ?? []) : (open?.children ?? []);
-    return sortedForColumns(listed(base), sortOf(folder ?? ""), state.settings.pinFavorites);
+    return (isManagedFolder(folder ?? "") ? managedNodes() : null) ?? sortedForColumns(listed(base), sortOf(folder ?? ""), state.settings.pinFavorites);
   }
 
   // The snapshot only carries the first level, so the folder's children are fetched when it is shown.
@@ -72,6 +75,7 @@ export function createGridView(): ViewMode {
     if (n.status) art.append(statusMark(n.status));
     const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, nameCell(n, false));
     item.dataset.key = keyOf(n.relParts);
+    item.prepend(...manageBox(n, item));
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
     if (n.ghost) {
@@ -159,12 +163,15 @@ export function createGridView(): ViewMode {
     render() {
       syncFolder();
       root.dataset.key = folder ?? "";
+      if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
       const nodes = shownNodes();
       const tabbable = nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0];
       const open = folderNode();
       const empty = nodes.length === 0 && open !== null && open.children !== null && holdsFiles(open);
-      root.replaceChildren(...nodes.map((n) => buildItem(n, n === tabbable)), ...(empty ? [el("p", { class: "grid-legend" }, "Empty")] : []));
+      const header = isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : [];
+      root.replaceChildren(...header, ...nodes.map((n) => buildItem(n, n === tabbable)), ...(empty ? [el("p", { class: "grid-legend" }, "Empty")] : []));
+      built = manageSnapshot();
       root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus({ preventScroll: true });
       loadChildren();
