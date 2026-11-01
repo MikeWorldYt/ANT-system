@@ -250,7 +250,7 @@ fn copy_whole(from: &Path, to: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
+pub(super) fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
     fs::create_dir(to).map_err(|e| io_err("create folder", to, &e).to_string())?;
     for entry in fs::read_dir(from).map_err(|e| io_err("list folder", from, &e).to_string())? {
         let entry = entry.map_err(|e| io_err("list folder", from, &e).to_string())?;

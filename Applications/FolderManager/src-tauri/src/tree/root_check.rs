@@ -50,7 +50,7 @@ fn walk(root: &Path, dir: &Path, node: Option<&Mapping>, rel: &mut Vec<String>, 
             .and_then(|c| c.get("type"))
             .and_then(Value::as_str)
             .filter(|kind| !(name.starts_with("00.") && type_base(kind) == "NODE"))
-            .map_or_else(|| if name.starts_with("00.") { "PORTF".to_string() } else { infer_type(&name, rel.len()) }, str::to_string);
+            .map_or_else(|| if name.starts_with("00.") { "OUT".to_string() } else { infer_type(&name, rel.len()) }, str::to_string);
         let base = type_base(&kind);
         if base != "NODE" && base != "WKB" {
             continue;
@@ -157,6 +157,6 @@ mod tests {
         let result = check_root(dir.path()).unwrap();
         assert!(result.invalid.is_empty());
         assert!(dir.path().join("100.WORK/00.Porfolio/01.Notes").is_dir());
-        assert_eq!(tree_store::get_type(&tree_store::load(dir.path()).unwrap(), &rel(&["100.WORK", "00.Porfolio"])), "PORTF-L2");
+        assert_eq!(tree_store::get_type(&tree_store::load(dir.path()).unwrap(), &rel(&["100.WORK", "00.Porfolio"])), "OUT-L2");
     }
 }

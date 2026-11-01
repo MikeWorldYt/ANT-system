@@ -126,7 +126,7 @@ body {
 .details dd.path { word-break: normal; }
 .details dd.path .seg { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
 .detail-field { display: flex; flex-direction: column; min-width: 0; }
-.detail-field:first-child, .detail-field:has(> dd.path) { grid-column: 1 / -1; }
+.detail-field:first-child, .detail-field:has(> dd.path), .detail-field:has(> #details-term-output), .detail-field:has(> #details-term-status) { grid-column: 1 / -1; }
 .caret { width: 14px; text-align: center; color: var(--accent); }
 .st-in-progress { --st: var(--st-progress); }
 .st-hold { --st: var(--st-hold); }

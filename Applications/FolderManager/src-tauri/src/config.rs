@@ -36,7 +36,7 @@ pub const SPECIAL_TYPES: &[(&str, &str)] = &[("90.", "RES"), ("97.", "TPL"), ("9
 pub enum TypeBase {
     Node,
     Wkb,
-    Portf,
+    Out,
     Rev,
     Res,
     Tpl,
@@ -45,13 +45,13 @@ pub enum TypeBase {
 }
 
 impl TypeBase {
-    const ALL: [Self; 8] = [Self::Node, Self::Wkb, Self::Portf, Self::Rev, Self::Res, Self::Tpl, Self::Cfg, Self::Unknown];
+    const ALL: [Self; 8] = [Self::Node, Self::Wkb, Self::Out, Self::Rev, Self::Res, Self::Tpl, Self::Cfg, Self::Unknown];
 
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Node => "NODE",
             Self::Wkb => "WKB",
-            Self::Portf => "PORTF",
+            Self::Out => "OUT",
             Self::Rev => "REV",
             Self::Res => "RES",
             Self::Tpl => "TPL",

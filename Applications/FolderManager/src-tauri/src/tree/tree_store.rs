@@ -25,7 +25,7 @@ pub fn save(root: &Path, data: &Mapping) -> R<()> {
 pub fn infer_type(name: &str, depth: usize) -> String {
     let basename = name.rsplit(['/', '\\']).next().unwrap_or(name);
     if basename.starts_with("00.") {
-        return "PORTF".to_string();
+        return "OUT".to_string();
     }
     if WKB_IDENTIFIERS.iter().any(|p| basename.starts_with(p)) {
         return "WKB".to_string();
@@ -44,7 +44,24 @@ pub fn is_locked_type(t: &str) -> bool {
 // A storage with no db yet is new, so its Node folders on level 3 start with the data flag.
 pub fn sync(root: &Path, data: &mut Mapping) -> R<bool> {
     let fresh = !db_path(root).is_file();
-    sync_level(root, data, 0, fresh, depth::limit(root)?)
+    let renamed = rename_legacy_types(data);
+    Ok(renamed | sync_level(root, data, 0, fresh, depth::limit(root)?)?)
+}
+
+// Storages saved before the Portfolio type was named OUT still store PORTF; they are rewritten as OUT.
+fn rename_legacy_types(node: &mut Mapping) -> bool {
+    let mut changed = false;
+    for (_, value) in node.iter_mut() {
+        let Value::Mapping(child) = value else { continue };
+        if let Some(Value::String(kind)) = child.get_mut("type") {
+            if kind.starts_with("PORTF") {
+                *kind = kind.replacen("PORTF", "OUT", 1);
+                changed = true;
+            }
+        }
+        changed |= rename_legacy_types(child);
+    }
+    changed
 }
 
 // Portfolios are reconciled apart from the sync, so a sync or a mutation never creates or removes a 00. folder on its own.
@@ -121,7 +138,8 @@ pub fn delete_key(data: &mut Mapping, parent: &[String], key: &str) -> bool {
 pub fn sync_branch(root: &Path, data: &mut Mapping, dir: &[String]) -> R<bool> {
     let fresh = !db_path(root).is_file();
     let limit = depth::limit(root)?;
-    let (mut node, mut path, mut changed) = (data, root.to_path_buf(), false);
+    let renamed = rename_legacy_types(data);
+    let (mut node, mut path, mut changed) = (data, root.to_path_buf(), renamed);
     for depth in 0..=dir.len().min(limit - 1) {
         let names = list_subdirs(&path)?;
         for name in names.iter().filter(|n| !META_KEYS.contains(&n.as_str())) {
@@ -174,7 +192,7 @@ fn reconcile_portfolios(dir: &Path, node: &mut Mapping, depth: usize) -> R<bool>
     for name in &portfolios {
         let Some(Value::Mapping(entry)) = node.get_mut(name.as_str()) else { continue };
         if entry.get("type").and_then(Value::as_str).is_some_and(|t| type_base(t) == "NODE") {
-            entry.insert("type".into(), format!("PORTF-L{}", depth + 1).into());
+            entry.insert("type".into(), format!("OUT-L{}", depth + 1).into());
             changed = true;
         }
     }
@@ -185,7 +203,7 @@ fn reconcile_portfolios(dir: &Path, node: &mut Mapping, depth: usize) -> R<bool>
         let path = dir.join(PORTFOLIO_FOLDER);
         std::fs::create_dir(&path).map_err(|e| io_err("create portfolio", &path, &e))?;
         let mut entry = Mapping::new();
-        entry.insert("type".into(), "PORTF".into());
+        entry.insert("type".into(), "OUT".into());
         node.insert(PORTFOLIO_FOLDER.into(), Value::Mapping(entry));
         return Ok(true);
     }
@@ -302,7 +320,7 @@ mod tests {
         let mut data = parse("");
         settle(dir.path(), &mut data);
         assert!(dir.path().join("100.A/01.Plan/00.Outcomes").is_dir());
-        assert_eq!(get_type(&data, &rel(&["100.A", "01.Plan", "00.Outcomes"])), "PORTF");
+        assert_eq!(get_type(&data, &rel(&["100.A", "01.Plan", "00.Outcomes"])), "OUT");
         std::fs::remove_dir_all(dir.path().join("100.A/01.Plan/PJ.001_Thesis")).unwrap();
         assert!(settle(dir.path(), &mut data));
         assert!(!dir.path().join("100.A/01.Plan/00.Outcomes").exists());
@@ -315,7 +333,7 @@ mod tests {
         dir.mkdir("100.A/01.Plan/00.Porfolio/01.Notes");
         let mut data = parse("");
         settle(dir.path(), &mut data);
-        assert_eq!(get_type(&data, &rel(&["100.A", "01.Plan", "00.Porfolio"])), "PORTF");
+        assert_eq!(get_type(&data, &rel(&["100.A", "01.Plan", "00.Porfolio"])), "OUT");
         assert!(!dir.path().join("100.A/01.Plan/00.Outcomes").exists());
         assert!(dir.path().join("100.A/01.Plan/00.Porfolio/01.Notes").is_dir());
     }
@@ -326,7 +344,7 @@ mod tests {
         dir.mkdir("100.A/00.Porfolio/01.Notes");
         let mut data = parse("100.A:\n  type: NODE-L1\n  00.Porfolio: {type: NODE-L2}\n");
         assert!(settle(dir.path(), &mut data));
-        assert_eq!(get_type(&data, &rel(&["100.A", "00.Porfolio"])), "PORTF-L2");
+        assert_eq!(get_type(&data, &rel(&["100.A", "00.Porfolio"])), "OUT-L2");
         assert!(dir.path().join("100.A/00.Porfolio").is_dir());
     }
 
@@ -339,6 +357,15 @@ mod tests {
         settle(dir.path(), &mut data);
         assert!(!dir.path().join("999.Settings/00.Outcomes").exists());
         assert!(dir.path().join("999.Settings/00.Core").is_dir());
+    }
+
+    #[test]
+    fn a_legacy_portf_type_is_read_and_rewritten_as_out() {
+        let mut data = parse("100.A:\n  type: NODE-L1\n  02.B: {type: PORTF-L2}\n  00.P: {type: PORTF}\n");
+        assert!(rename_legacy_types(&mut data));
+        assert_eq!(get_type(&data, &rel(&["100.A", "02.B"])), "OUT-L2");
+        assert_eq!(get_type(&data, &rel(&["100.A", "00.P"])), "OUT");
+        assert!(!rename_legacy_types(&mut data));
     }
 
     #[test]
@@ -363,7 +390,7 @@ mod tests {
         assert_eq!(infer_type("90.Resources", 1), "RES");
         assert_eq!(infer_type("97.Templates", 1), "TPL");
         assert_eq!(infer_type("98.Review", 2), "REV");
-        assert_eq!(infer_type("00.Porfolio", 1), "PORTF");
+        assert_eq!(infer_type("00.Porfolio", 1), "OUT");
         assert_eq!(infer_type("01.Math", 0), "NODE-L1");
         assert_eq!(infer_type("a/b/02.X", 2), "NODE-L3");
     }
@@ -373,7 +400,7 @@ mod tests {
         for t in ["REV", "REV-L3", "RES", "TPL-L1", "CFG"] {
             assert!(is_locked_type(t), "{t}");
         }
-        for t in ["NODE-L1", "WKB", "PORTF", "", "REVX"] {
+        for t in ["NODE-L1", "WKB", "OUT", "", "REVX"] {
             assert!(!is_locked_type(t), "{t}");
         }
     }

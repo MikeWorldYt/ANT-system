@@ -350,7 +350,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
     // The review root stays a container even when its filter hides every link, so its empty list can say why.
     let review_root = depth == 0 && entry.name.eq_ignore_ascii_case(REVIEW_FOLDER);
     // A review folder always opens, even when empty, so its files and the Empty legend can show.
-    let content_folder = !ghost && !linked && matches!(type_base(raw_type), "REV" | "WKB");
+    let content_folder = !ghost && !linked && matches!(type_base(raw_type), "REV" | "WKB" | "OUT");
     let browsable = is_unmanaged(&entry) && under_review_past_limit(data, &rel_parts, limit);
     let has_children = !ghost && (review_root || content_folder || (!linked && (depth + 1 < limit || browsable) && !level_entries(root, data, &rel_parts)?.is_empty()));
     let is_git = !ghost && !linked && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
@@ -411,20 +411,21 @@ fn compute_actions(depth: usize, limit: usize, ghost: bool, raw_type: &str, rese
     let frozen = locked || reserved;
     // The yaml stops at the depth limit, so deeper folders have no entry to retype or to add a sibling under.
     let in_tree = depth < limit;
+    let outcome = type_base(raw_type) == "OUT";
     NodeActions {
         rename: !ghost && !frozen,
-        change_type: !frozen && in_tree && type_base(raw_type) != "PORTF",
+        change_type: !frozen && in_tree && type_base(raw_type) != "OUT",
         // Main categories can create another Level 1 category; deeper nodes create siblings as usual.
         add_next: !ghost && !reserved && in_tree,
         // Mirrors add_node: the new child sits one level below this node and must stay inside the limit.
         add_child: !ghost && !frozen && depth + 1 < limit,
         move_up: false,
         move_down: false,
-        delete: !reserved && (ghost || !locked),
+        delete: !reserved && (ghost || !locked) && !outcome,
         copy_path: !ghost,
         open: !ghost,
         // A broken info.json is never overwritten, so neither edit can be saved into it.
-        favorite: !reserved && !ghost && !info_broken,
+        favorite: !reserved && !ghost && !info_broken && !outcome,
         edit_details: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
         edit_flags: !frozen && !ghost && depth > 0 && type_base(raw_type) == "NODE",
         hide_link: false,
@@ -647,6 +648,18 @@ mod tests {
         std::fs::write(dir.path().join(".ant/lnk-favorites.json"), "[\"02.Beta\"]\n").unwrap();
         let kids = build_children(dir.path(), &data, &rel(&["998.Review"])).unwrap();
         assert!(find(&kids, "02.Beta").favorite);
+    }
+
+    #[test]
+    fn an_empty_outcome_still_opens_and_cannot_be_favorited_or_deleted() {
+        let dir = TempDir::new("tree-outcome");
+        dir.mkdir("100.WORK/02.Beta/00.Outcomes");
+        let mut data = Mapping::new();
+        crate::tree::tree_store::sync(dir.path(), &mut data).unwrap();
+        let kids = build_children(dir.path(), &data, &rel(&["100.WORK", "02.Beta"])).unwrap();
+        let out = find(&kids, "00.Outcomes");
+        assert!(out.has_children);
+        assert!(!out.actions.favorite && !out.actions.delete && out.actions.open);
     }
 
     #[test]

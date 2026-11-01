@@ -86,6 +86,9 @@ export const openLogsFolder = () => call<void>("open_logs_folder");
 export const openDevtools = () => call<void>("open_devtools");
 export const setNodeDetails = (relParts: string[], status: WkbStatus | null, owner: string | null) =>
   call<Mutation>("set_node_details", { relParts, status, owner });
+export const setNodeOutput = (relParts: string[], output: string | null) => call<Mutation>("set_node_output", { relParts, output });
+export const deliverOutput = (relParts: string[], date: string, all: boolean) => call<Mutation>("deliver_output", { relParts, date, all });
+export const restoreOutput = (relParts: string[]) => call<Mutation>("restore_output", { relParts });
 export const addNode = (relParts: string[], kind: NewKind) => call<Mutation>("add_node", { relParts, kind });
 export const addChild = (relParts: string[], kind: NewKind) => call<Mutation>("add_child", { relParts, kind });
 export const moveNode = (relParts: string[], direction: MoveDirection) =>

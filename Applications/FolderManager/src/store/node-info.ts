@@ -3,7 +3,7 @@ import type { EditableType, TreeNode, WkbStatus } from "../ipc/types";
 import { state } from "./state";
 
 export const TYPES: [EditableType, string][] = [["NODE", "Node"], ["WKB", "Workboard"]];
-const TYPE_LABELS: [string, string][] = [...TYPES, ["PORTF", "Portfolio"]];
+const TYPE_LABELS: [string, string][] = [...TYPES, ["OUT", "Outcomes"]];
 export const STATUSES: [WkbStatus, string][] = [
   ["hold", "Hold"],
   ["in-progress", "In progress"],
@@ -30,6 +30,7 @@ const OWNER_KEYS = ["owner", "holder", "client"];
 export const isWorkboard = (n: TreeNode) => n.nodeType?.base === "WKB";
 export const ownerOf = (n: TreeNode): string | null =>
   n.info?.fields.find((f) => OWNER_KEYS.includes(f.key.toLowerCase()))?.value ?? null;
+export const outputOf = (n: TreeNode): string | null => n.info?.fields.find((f) => f.key.toLowerCase() === "output")?.value ?? null;
 
 export function nodeFlags(n: TreeNode): string[] {
   const flags: string[] = [];
@@ -44,8 +45,8 @@ export function nodeFlags(n: TreeNode): string[] {
 // Non-editable types (reviews, resources, templates) keep their stored label.
 export const typeName = (n: TreeNode): string => (n.file ? "File" : TYPE_LABELS.find(([v]) => v === n.nodeType?.base)?.[1] ?? n.nodeType?.raw ?? "—");
 
-// Review folders and workboards hold files, so they always open and an empty one says "Empty".
-export const holdsFiles = (n: TreeNode): boolean => !n.linked && (n.nodeType?.base === "REV" || n.nodeType?.base === "WKB");
+// Review folders, workboards and outcomes hold files, so they always open and an empty one says "Empty".
+export const holdsFiles = (n: TreeNode): boolean => !n.linked && (n.nodeType?.base === "REV" || n.nodeType?.base === "WKB" || n.nodeType?.base === "OUT");
 
 // Flags sit in parentheses after the type, e.g. "Node (reserved)".
 export const typeLabel = (n: TreeNode): string => {
@@ -81,15 +82,16 @@ export const favoritesShown = (n: TreeNode): boolean => filterField(n, "favorite
 
 export function nodeDetails(n: TreeNode): [string, string][] {
   const rows: [string, string][] = [["Name", n.name]];
+  const wkb = isWorkboard(n);
+  if (wkb) rows.push(["Output", outputOf(n) ?? UNKNOWN]);
+  if (wkb) rows.push(["Status", n.status ? statusLabel(n.status) : UNKNOWN]);
   if (n.linked) rows.push(["Path", n.linkPath ?? UNKNOWN]);
   else if (!isReviewRoot(n)) rows.push(["Type", typeLabel(n)]);
-  const wkb = isWorkboard(n);
-  if (wkb) rows.push(["Status", n.status ? statusLabel(n.status) : UNKNOWN]);
   if (wkb) rows.push(["Owner", ownerOf(n) ?? UNKNOWN]);
   if (n.info?.error) rows.push(["Info", n.info.error]);
   for (const f of n.info?.fields ?? []) {
-    // Status and owner of a workboard already have their own rows.
-    if (wkb && (f.key.toLowerCase() === "status" || OWNER_KEYS.includes(f.key.toLowerCase()))) continue;
+    // Status, owner and output of a workboard already have their own rows.
+    if (wkb && (f.key.toLowerCase() === "status" || f.key.toLowerCase() === "output" || OWNER_KEYS.includes(f.key.toLowerCase()))) continue;
     // Favorite is toggled from the quick actions, never edited as a field.
     if (f.key.toLowerCase() === "favorite") continue;
     // The review filter has its own checkboxes, so its stored values are not detail rows.

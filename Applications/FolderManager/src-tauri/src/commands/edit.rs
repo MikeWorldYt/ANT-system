@@ -132,6 +132,21 @@ pub async fn set_node_details(app: AppHandle, rel_parts: Vec<String>, status: Op
 }
 
 #[tauri::command]
+pub async fn set_node_output(app: AppHandle, rel_parts: Vec<String>, output: Option<String>) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_output(root, &rel_parts, output.as_deref()))).await
+}
+
+#[tauri::command]
+pub async fn deliver_output(app: AppHandle, rel_parts: Vec<String>, date: String, all: bool) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::deliver(root, &rel_parts, &date, all))).await
+}
+
+#[tauri::command]
+pub async fn restore_output(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::restore(root, &rel_parts))).await
+}
+
+#[tauri::command]
 pub async fn answer_copy(app: AppHandle, rel_parts: Vec<String>, answer: CopyAnswer) -> R<()> {
     run_locked(app, move |root| mutations::answer_copy(root, &rel_parts, answer)).await
 }

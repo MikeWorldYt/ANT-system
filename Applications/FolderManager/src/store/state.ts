@@ -288,10 +288,38 @@ export function setTree(tree: TreeSnapshot): void {
   state.tree = tree;
 }
 
+// A rename outside the app keeps the id, so a stale path follows the one sibling that still has it.
+const ID_PREFIX = /^(?:(?:PJ|PR|HW|CR|TK)\.\d+|\d+\.)/;
+const idOf = (name: string): string | null => ID_PREFIX.exec(name)?.[0] ?? null;
+
+function followPath(parts: string[]): string[] | null {
+  const resolved: string[] = [];
+  let level: TreeNode[] = state.tree?.nodes ?? [];
+  for (const part of parts) {
+    const id = idOf(part);
+    const sameId = id === null ? [] : level.filter((n) => idOf(n.name) === id);
+    const found = level.find((n) => n.name === part) ?? (sameId.length === 1 ? sameId[0] : undefined);
+    if (!found) return null;
+    resolved.push(found.name);
+    level = found.children ?? [];
+  }
+  return resolved;
+}
+
+const followKey = (key: string): string | null => {
+  const resolved = followPath(key.split("/"));
+  return resolved ? keyOf(resolved) : null;
+};
+
+// Open folders are kept by path, so one renamed outside the app stays open under its new name.
+export function followExpanded(): void {
+  state.expanded = new Set([...state.expanded].map((key) => followKey(key) ?? key));
+}
+
 export function pruneSelection(): void {
   if (state.editing && !findNode(state.editing.key.split("/"))) state.editing = null;
-  state.selectedKeys = state.selectedKeys.filter((key) => findNode(key.split("/")) !== null);
-  if (state.selectedKey !== null && !selectedNode()) state.selectedKey = state.selectedKeys.at(-1) ?? null;
+  state.selectedKeys = [...new Set(state.selectedKeys.map(followKey).filter((key): key is string => key !== null))];
+  if (state.selectedKey !== null) state.selectedKey = followKey(state.selectedKey) ?? state.selectedKeys.at(-1) ?? null;
 }
 
 // Swaps in each parent's new children, keeping the loaded subtrees of untouched siblings; null when a parent is not loaded.

@@ -7,14 +7,17 @@ import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
 import { dropNotice, type Notice } from "./drop-summary";
-import { applySettings, findNode, hydrate, keyOf, lastSelection, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
+import { applySettings, findNode, followExpanded, hydrate, keyOf, lastSelection, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
 import { sortedForColumns } from "../store/sort";
+import { outputOf } from "../store/node-info";
+import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
 import { isFmError } from "../ipc/types";
 import type { Copied, EditableType, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
   const tree = snapshot ?? (await api.refresh());
   setTree(tree);
+  followExpanded();
   await hydrate();
   pruneSelection();
   await askAboutCopies(tree.copies);
@@ -236,8 +239,39 @@ export async function setType(node: TreeNode, base: EditableType, status: WkbSta
   if (ok && base === "WKB") void checkRootFolders(resolveInvalid);
 }
 
-export const setDetails = (node: TreeNode, status: WkbStatus | null, owner: string | null) =>
-  run(async () => applyMutation(await api.setNodeDetails(node.relParts, status, owner), node.relParts));
+export const setOutput = (node: TreeNode, output: string | null) =>
+  run(async () => applyMutation(await api.setNodeOutput(node.relParts, output), node.relParts));
+
+// Finishing a workboard delivers its output, asking first when none is set; reopening it brings the delivery back.
+export async function setDetails(node: TreeNode, status: WkbStatus | null, owner: string | null): Promise<boolean> {
+  const current = findNode(node.relParts) ?? node;
+  const finishing = status === "done" && current.status !== "done";
+  const reopening = status !== null && status !== "done" && current.status === "done";
+  let delivery: Delivery | null = null;
+  if (finishing && outputOf(current) === null) {
+    const choice = await choiceDialog("Hmmm, no encontre el entregable.", "Que deseas hacer?", [
+      ["file", "Choose a file"],
+      ["folder", "Choose a folder"],
+      ["all", "Move everything"],
+    ]);
+    if (!isDelivery(choice)) return false;
+    delivery = choice;
+  }
+  if (delivery === "file" || delivery === "folder") {
+    const picked = await pickInside(current, delivery === "folder");
+    if (!picked) return false;
+    if (picked.relative === null) {
+      setStatus("warning", "Pick a file or folder inside the workboard");
+      return false;
+    }
+    if (!(await setOutput(current, picked.relative))) return false;
+  }
+  const saved = await run(async () => applyMutation(await api.setNodeDetails(current.relParts, status, owner), current.relParts));
+  if (!saved) return false;
+  if (finishing) await run(async () => applyMutation(await api.deliverOutput(current.relParts, todayStamp(), delivery === "all"), current.relParts));
+  else if (reopening) await run(async () => applyMutation(await api.restoreOutput(current.relParts), current.relParts));
+  return true;
+}
 
 export const setFavorite = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setFavorite(node.relParts, on), node.relParts));

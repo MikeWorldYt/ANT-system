@@ -6,6 +6,7 @@ mod favorite;
 mod file_drop;
 mod file_ops;
 mod link_hidden;
+mod outputs;
 mod move_folder;
 mod user_flags;
 mod recycle;
@@ -49,6 +50,7 @@ pub use reorder::{move_node, MoveDirection};
 pub use result::LevelPatch;
 pub(crate) use result::finish;
 pub use resolve::{preview_names, resolve_invalid, Pending, Resolution};
+pub use outputs::{deliver, restore, set_output};
 pub use retype::{set_details, set_node_type};
 pub use review_filter::set_review_filter;
 
