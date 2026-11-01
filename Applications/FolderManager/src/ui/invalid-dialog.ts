@@ -14,13 +14,16 @@ export interface Decision {
 // The names each pending resolution would take, null where the row keeps its own name.
 export type PreviewNames = (rows: { relParts: string[]; resolution: Resolution }[]) => Promise<(string | null)[]>;
 
-const ACTIONS: [Choice, string][] = [
-  ["ignore", "Ignore"],
-  ["review", "Review"],
-  ["node", "Node"],
-  ["workboard", "Workboard"],
+// Two-line headers keep the table narrow.
+const ACTIONS: [Choice, string[]][] = [
+  ["ignore", ["Ignore"]],
+  ["review", ["Move to", "Review"]],
+  ["node", ["Convert to", "Node"]],
+  ["workboard", ["Convert to", "Workboard"]],
 ];
 const TRACKERS = ["PJ", "PR", "HW", "CR", "TK"];
+// Matches --name-cycle in invalid-dialog.css.
+const NAME_CYCLE_MS = 8000;
 
 // Resolves to every row's decision, or null when the dialog is left with Later or Escape.
 export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: string[]) => void, preview: PreviewNames): Promise<Decision[] | null> {
@@ -35,13 +38,13 @@ export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: s
       });
       const names = pending.length > 0 ? await preview(pending.map(({ relParts, resolution }) => ({ relParts, resolution }))) : [];
       if (turn !== latest) return;
-      rows.forEach((r) => r.showName(null));
-      pending.forEach((p, k) => rows[p.index]?.showName(names[k] ?? null));
+      const renamed = new Map<number, string | null>(pending.map((p, k): [number, string | null] => [p.index, names[k] ?? null]));
+      rows.forEach((r, i) => r.showName(renamed.get(i) ?? null));
     };
     const table = el(
       "table",
       { class: "invalid-table", "aria-label": "Folders outside the id format" },
-      el("thead", {}, el("tr", {}, el("th", { scope: "col" }, "Path"), ...ACTIONS.map(([, label]) => el("th", { scope: "col" }, label)))),
+      el("thead", {}, el("tr", {}, el("th", { scope: "col" }, "Path"), ...ACTIONS.map(([, lines]) => el("th", { scope: "col" }, ...lineBreaks(lines))))),
       el("tbody", {}, ...rows.map((r) => r.element)),
     );
     const later = el("button", { type: "submit", class: "btn", value: "cancel" }, "Later");
@@ -63,6 +66,7 @@ export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: s
     });
     document.body.append(dialog);
     dialog.showModal();
+    void showPreview();
     table.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.focus();
   });
 }
@@ -88,7 +92,7 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
 
   const cells = ACTIONS.map(([choice, action]) => {
     const enabled = choice === "ignore" || choice === "node" || (choice === "review" && hasReview) || (choice === "workboard" && rel.length >= 2);
-    const attrs: Record<string, string> = { type: "radio", name, value: choice, "aria-label": `${action} ${label}` };
+    const attrs: Record<string, string> = { type: "radio", name, value: choice, "aria-label": `${action.join(" ")} ${label}` };
     if (!enabled) attrs.disabled = "";
     const input = el("input", attrs);
     radios.set(choice, input);
@@ -101,6 +105,18 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
 
   const current = (): Choice => ACTIONS.map(([c]) => c).find((c) => radios.get(c)?.checked) ?? "ignore";
   const shown = el("strong", {}, original);
+  let applied = "";
+  const nameFor = (next: string | null, choice: Choice): HTMLElement | string => {
+    if (next === null || next === original) return choice === "ignore" ? el("span", { class: "invalid-name-kept" }, original) : original;
+    // Every row reads the same clock, so rows that open at different times still fade together.
+    const style = `animation-delay: -${Date.now() % NAME_CYCLE_MS}ms`;
+    return el(
+      "span",
+      { class: "invalid-name-cycle" },
+      el("span", { class: "invalid-name-old", style }, original),
+      el("span", { class: "invalid-name-new", style }, next),
+    );
+  };
   const element = el("tr", {}, el("th", { scope: "row" }, pathButton(rel, shown, openFolder)), ...cells);
   return {
     element,
@@ -117,9 +133,18 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
       return null;
     },
     showName: (next) => {
-      shown.textContent = next ?? original;
+      // A redraw would restart the fade, so a row keeps its element while its name and action stay the same.
+      const choice = current();
+      const key = `${next ?? ""}|${choice}`;
+      if (key === applied) return;
+      applied = key;
+      shown.replaceChildren(nameFor(next, choice));
     },
   };
+}
+
+function lineBreaks(lines: string[]): (Node | string)[] {
+  return lines.flatMap((line, i) => (i === 0 ? [line] : [el("br"), line]));
 }
 
 // The parent path shows only its last folder, as "...\<dir>\"; the button opens the folder in the file explorer.

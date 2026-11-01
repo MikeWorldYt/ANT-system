@@ -12,3 +12,15 @@ dialog.invalid-dialog { max-width: min(860px, calc(100vw - 32px)); }
 .invalid-path:focus-visible, .invalid-table input:focus-visible, .invalid-table select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .invalid-table input[type="radio"] { accent-color: var(--accent); }
 .invalid-table input[type="radio"]:disabled { opacity: 0.35; }
+/* Old and new name stack in one cell. Each cycle: new holds 3.2s, fades 2s to old, old holds 0.8s, fades 2s back (80/20 of the holds). */
+.invalid-name-kept { color: #e5484d; }
+.invalid-name-cycle { display: inline-grid; --name-cycle: 8s; }
+.invalid-name-cycle > span { grid-area: 1 / 1; }
+.invalid-name-old { color: #e5484d; animation: name-old var(--name-cycle) infinite ease-in-out; }
+.invalid-name-new { color: #30a46c; animation: name-new var(--name-cycle) infinite ease-in-out; }
+@keyframes name-new { 0%, 40% { opacity: 1; } 65%, 75% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes name-old { 0%, 40% { opacity: 0; } 65%, 75% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .invalid-name-old { display: none; }
+  .invalid-name-new { animation: none; }
+}
