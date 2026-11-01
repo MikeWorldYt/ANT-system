@@ -1,4 +1,4 @@
-// Creates a new ANT Storage from Tree.yaml; shared by the CLI and any future front end.
+// Creates a new ANT Storage from the ant.db template; shared by the CLI and any future front end.
 mod config;
 mod create;
 mod downloads;
@@ -10,6 +10,8 @@ mod plan;
 #[cfg(windows)]
 mod powershell;
 mod shortcuts;
+mod sqlite;
+mod template;
 mod tree_types;
 #[cfg(test)]
 mod test_dir;

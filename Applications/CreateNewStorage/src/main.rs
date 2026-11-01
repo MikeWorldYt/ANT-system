@@ -1,18 +1,18 @@
-// Command-line front end: create-new-storage <path> [--name <n>] [--tree <file>] [--yes] [--no-download].
+// Command-line front end: create-new-storage <path> [--name <n>] [--template <ant.db>] [--yes] [--no-download].
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 use create_new_storage::{create, sanitize_name, CreateOptions, Level};
 
-const USAGE: &str = "Usage: create-new-storage <path> [--name <name>] [--tree <Tree.yaml>] [--yes] [--no-download]";
+const USAGE: &str = "Usage: create-new-storage <path> [--name <name>] [--template <ant.db>] [--yes] [--no-download]";
 
 fn parse_args() -> Result<(CreateOptions, bool), String> {
     let mut args = std::env::args().skip(1);
-    let (mut path, mut name, mut tree, mut yes, mut download) = (None, None, None, false, true);
+    let (mut path, mut name, mut template, mut yes, mut download) = (None, None, None, false, true);
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--name" => name = Some(args.next().ok_or("--name needs a value")?),
-            "--tree" => tree = Some(args.next().ok_or("--tree needs a value")?),
+            "--template" => template = Some(args.next().ok_or("--template needs a value")?),
             "--yes" => yes = true,
             "--no-download" => download = false,
             "-h" | "--help" => return Err(String::new()),
@@ -30,11 +30,11 @@ fn parse_args() -> Result<(CreateOptions, bool), String> {
         }
         root = root.join(clean);
     }
-    let tree_yaml = match tree {
-        Some(file) => Some(std::fs::read_to_string(&file).map_err(|e| format!("Could not read {file}: {e}"))?),
+    let template = match template {
+        Some(file) => Some(std::fs::read(&file).map_err(|e| format!("Could not read {file}: {e}"))?),
         None => None,
     };
-    Ok((CreateOptions { root, tree_yaml, allow_existing: yes, download }, yes))
+    Ok((CreateOptions { root, template, allow_existing: yes, download }, yes))
 }
 
 fn main() -> ExitCode {

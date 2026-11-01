@@ -3,17 +3,18 @@ use std::path::{Path, PathBuf};
 
 use serde_yaml::Mapping;
 
-use crate::config::{CORE_DIR, REVIEW_DIR, SETTINGS_DIR, TREE_YAML_NAME, TREE_YAML_URL};
-use crate::info::write_info;
+use crate::config::{ANT_DIR, CORE_DIR, DB_NAME, REVIEW_DIR, SETTINGS_DIR, TEMPLATE_DB_URL};
+use crate::fetch::{download, MAX_TEXT_BYTES};
 use crate::fs_ops::{make_dirs_tracked, rollback_created, write_file_atomic};
-use crate::plan::parse_tree;
+use crate::info::write_info;
 use crate::shortcuts::{create_shortcuts, review_shortcut_name};
+use crate::template::tree_from_template;
 use crate::tree_types::{child_entries, node_type};
 use crate::{downloads, Level};
 
 pub struct CreateOptions {
     pub root: PathBuf,
-    pub tree_yaml: Option<String>,
+    pub template: Option<Vec<u8>>,
     pub allow_existing: bool,
     pub download: bool,
 }
@@ -24,9 +25,23 @@ pub fn create(opts: &CreateOptions, progress: Progress) -> Result<(), String> {
     if opts.root.exists() && !opts.allow_existing {
         return Err(format!("{} already exists; creating inside it needs explicit permission", opts.root.display()));
     }
-    let (raw, tree) = load_tree(opts)?;
+    let template = load_template(opts)?;
+    let tree = tree_from_template(&template)?;
+    storage(opts, &template, &tree, progress)
+}
+
+// Nothing touches the disk until the template is fetched and readable.
+fn load_template(opts: &CreateOptions) -> Result<Vec<u8>, String> {
+    match (&opts.template, opts.download) {
+        (Some(bytes), _) => Ok(bytes.clone()),
+        (None, true) => download(TEMPLATE_DB_URL, MAX_TEXT_BYTES, 60).map_err(|e| format!("Failed to download essential file 'ant.db': {e}")),
+        (None, false) => Err("An ant.db template is required when downloads are disabled".to_string()),
+    }
+}
+
+pub(crate) fn storage(opts: &CreateOptions, template: &[u8], tree: &Mapping, progress: Progress) -> Result<(), String> {
     let mut created = Vec::new();
-    match build(opts, &raw, &tree, &mut created, progress) {
+    match build(opts, template, tree, &mut created, progress) {
         Ok(()) => Ok(()),
         Err(e) => {
             progress(Level::Error, &format!("✖ {e}"));
@@ -44,32 +59,22 @@ pub fn create(opts: &CreateOptions, progress: Progress) -> Result<(), String> {
     }
 }
 
-// Nothing touches the disk until Tree.yaml is fetched and valid.
-fn load_tree(opts: &CreateOptions) -> Result<(String, Mapping), String> {
-    let raw = match (&opts.tree_yaml, opts.download) {
-        (Some(text), _) => text.clone(),
-        (None, true) => crate::fetch::download_text(TREE_YAML_URL).map_err(|e| format!("Failed to download essential file 'Tree.yaml': {e}"))?,
-        (None, false) => return Err("Tree.yaml is required when downloads are disabled".to_string()),
-    };
-    let tree = parse_tree(&raw)?;
-    Ok((raw, tree))
-}
-
-fn build(opts: &CreateOptions, raw: &str, tree: &Mapping, created: &mut Vec<PathBuf>, progress: Progress) -> Result<(), String> {
+fn build(opts: &CreateOptions, template: &[u8], tree: &Mapping, created: &mut Vec<PathBuf>, progress: Progress) -> Result<(), String> {
     let root = &opts.root;
     let review = root.join(REVIEW_DIR);
     let core = root.join(SETTINGS_DIR).join(CORE_DIR);
+    let ant = root.join(ANT_DIR);
     progress(Level::Step, "Generating root directory ...");
     make_dirs_tracked(root, created)?;
     progress(Level::Ok, &format!("✔ {}", root.display()));
     progress(Level::Step, "Generating ANT Essentials ...");
-    for dir in [&review, &core] {
+    for dir in [&review, &core, &ant] {
         make_dirs_tracked(dir, created)?;
         progress(Level::Ok, &format!("✔ {}", dir.display()));
     }
-    let tree_dest = core.join(TREE_YAML_NAME);
-    write_file_atomic(&tree_dest, raw.as_bytes())?;
-    progress(Level::Ok, &format!("✔ {}", tree_dest.display()));
+    let db_dest = ant.join(DB_NAME);
+    write_file_atomic(&db_dest, template)?;
+    progress(Level::Ok, &format!("✔ {}", db_dest.display()));
 
     progress(Level::Step, "Generating an ANT Storage Template ...");
     let mut links = Vec::new();

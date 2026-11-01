@@ -1,4 +1,4 @@
-// Writes the people and dates a Tree.yaml entry carries into the folder's .ant/info.json.
+// Writes the people and dates a template entry carries into the folder's .ant/info.json.
 use std::path::{Path, PathBuf};
 
 use serde_yaml::Mapping;
@@ -8,7 +8,7 @@ use crate::fs_ops::{make_dirs_tracked, write_file_atomic};
 use crate::{Level, Progress};
 
 // Same order the file is written in.
-const FIELDS: [&str; 3] = ["owner", "created", "status"];
+pub(crate) const FIELDS: [&str; 3] = ["owner", "created", "status"];
 
 pub fn write_info(folder: &Path, entry: &Mapping, created: &mut Vec<PathBuf>, progress: Progress) -> Result<(), String> {
     let pairs: Vec<(&str, String)> = FIELDS
