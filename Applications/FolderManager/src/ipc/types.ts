@@ -71,6 +71,7 @@ export interface TreeSnapshot {
   nodes: TreeNode[];
   yamlChanged: boolean;
   copies: Copied[];
+  warnings: string[];
 }
 
 export interface Copied {

@@ -83,6 +83,7 @@ pub struct TreeSnapshot {
     pub nodes: Vec<TreeNode>,
     pub yaml_changed: bool,
     pub copies: Vec<Copied>,
+    pub warnings: Vec<String>,
 }
 
 struct Entry {
@@ -101,6 +102,7 @@ pub fn build_tree(root: &Path, data: &Mapping, yaml_changed: bool) -> R<TreeSnap
         nodes: children_at(root, data, &[], depth::limit(root)?)?,
         yaml_changed,
         copies: Vec::new(),
+        warnings: Vec::new(),
     })
 }
 

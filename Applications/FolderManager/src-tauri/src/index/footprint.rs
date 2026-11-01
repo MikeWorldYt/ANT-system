@@ -84,13 +84,17 @@ fn unmarked(root: &Path, nodes: &[(String, &Mapping)]) -> R<Vec<String>> {
     Ok(out)
 }
 
-fn create_markers(root: &Path, paths: &[String]) -> R<()> {
+// A folder the app cannot write to, such as an encrypted one, stays unmarked and must not hide the rest of the tree.
+fn create_markers(root: &Path, paths: &[String]) -> Vec<String> {
+    let mut warnings = Vec::new();
     for path in paths {
         let dir = join_rel(root, &rel_of(path)).join(DATA_DIR);
-        fs::create_dir(&dir).map_err(|e| io_err("create info folder", &dir, &e))?;
-        hide(&dir);
+        match fs::create_dir(&dir) {
+            Ok(()) => hide(&dir),
+            Err(e) => warnings.push(io_err("create info folder", &dir, &e).to_string()),
+        }
     }
-    Ok(())
+    warnings
 }
 
 fn rel_of(path: &str) -> Vec<String> {
@@ -114,13 +118,14 @@ pub struct Copied {
 pub struct Plan {
     pub changed: bool,
     pub copies: Vec<Copied>,
+    pub warnings: Vec<String>,
 }
 
 // Writes missing ids to disk, carries moved folders' entries to their new place and stores each uid in the tree.
 pub fn plan(root: &Path, data: &mut Mapping, mode: Copies) -> R<Plan> {
     let mut nodes = Vec::new();
     visit(data, &mut Vec::new(), &mut nodes);
-    create_markers(root, &unmarked(root, &nodes)?)?;
+    let warnings = create_markers(root, &unmarked(root, &nodes)?);
     let Scan { live, known, .. } = scan(root, data)?;
     let mut taken: HashSet<String> = known.keys().cloned().chain(live.iter().filter_map(|l| l.id.clone())).collect();
     let mut copies: Vec<Copied> = Vec::new();
@@ -193,7 +198,7 @@ pub fn plan(root: &Path, data: &mut Mapping, mode: Copies) -> R<Plan> {
         }
     }
     copies.sort_by(|a, b| a.rel_parts.cmp(&b.rel_parts));
-    Ok(Plan { changed, copies })
+    Ok(Plan { changed, copies, warnings })
 }
 
 // The tail keeps the original id readable, and a copy of a copy counts on from the same original.
@@ -608,5 +613,16 @@ mod tests {
         assert!(plan(dir.path(), &mut data, Copies::Tail).unwrap().changed);
         let node = get_node(&data, &rel(&["100.A", "PJ.001"])).unwrap();
         assert_eq!(node.get("uid").and_then(Value::as_str), read_id(&dir.path().join("100.A/PJ.001")).as_deref());
+    }
+
+    #[test]
+    fn a_folder_that_cannot_take_its_marker_is_reported_and_the_others_are_marked() {
+        let dir = TempDir::new("footprint-marker-failure");
+        dir.mkdir("100.A/02.Bio");
+        let paths = ["100.A/missing".to_string(), "100.A/02.Bio".to_string()];
+        let warnings = create_markers(dir.path(), &paths);
+        assert_eq!(warnings.len(), 1);
+        assert!(warnings[0].contains("100.A"), "{warnings:?}");
+        assert!(dir.path().join("100.A/02.Bio/.ant").is_dir());
     }
 }
