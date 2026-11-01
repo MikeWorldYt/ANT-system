@@ -29,7 +29,11 @@ pub struct RootCheck {
 
 pub fn check_root(root: &Path) -> R<RootCheck> {
     let limit = depth::limit(root)?;
-    let data = tree_store::load(root)?;
+    let mut data = tree_store::load(root)?;
+    let changed = tree_store::sync(root, &mut data)? | tree_store::reconcile_portfolios_all(root, &mut data)?;
+    if changed {
+        tree_store::save(root, &data)?;
+    }
     let mut invalid = Vec::new();
     walk(root, root, Some(&data), &mut Vec::new(), limit, &mut invalid)?;
     Ok(RootCheck { invalid })
@@ -42,7 +46,11 @@ fn walk(root: &Path, dir: &Path, node: Option<&Mapping>, rel: &mut Vec<String>, 
             continue;
         }
         let child = node.and_then(|n| n.get(name.as_str())).and_then(Value::as_mapping);
-        let kind = child.and_then(|c| c.get("type")).and_then(Value::as_str).map_or_else(|| infer_type(&name, rel.len()), str::to_string);
+        let kind = child
+            .and_then(|c| c.get("type"))
+            .and_then(Value::as_str)
+            .filter(|kind| !(name.starts_with("00.") && type_base(kind) == "NODE"))
+            .map_or_else(|| if name.starts_with("00.") { "PORTF".to_string() } else { infer_type(&name, rel.len()) }, str::to_string);
         let base = type_base(&kind);
         if base != "NODE" && base != "WKB" {
             continue;
@@ -137,5 +145,18 @@ mod tests {
             dir.mkdir(d);
         }
         assert_eq!(check_root(dir.path()).unwrap(), RootCheck { invalid: Vec::new() });
+    }
+
+    #[test]
+    fn a_legacy_00_portfolio_keeps_its_name_and_becomes_a_portfolio() {
+        let dir = storage(
+            "root-check-legacy-portfolio",
+            &["100.WORK/00.Porfolio/01.Notes"],
+            "100.WORK:\n  type: NODE-L1\n  00.Porfolio: {type: NODE-L2}\n",
+        );
+        let result = check_root(dir.path()).unwrap();
+        assert!(result.invalid.is_empty());
+        assert!(dir.path().join("100.WORK/00.Porfolio/01.Notes").is_dir());
+        assert_eq!(tree_store::get_type(&tree_store::load(dir.path()).unwrap(), &rel(&["100.WORK", "00.Porfolio"])), "PORTF-L2");
     }
 }

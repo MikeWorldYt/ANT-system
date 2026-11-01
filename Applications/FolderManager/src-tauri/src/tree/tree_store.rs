@@ -4,11 +4,11 @@ use std::path::Path;
 use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{type_base, META_KEYS};
-use crate::config::{DATA_FLAG, LOCKED_TYPES, SPECIAL_TYPES, WKB_IDENTIFIERS};
+use crate::config::{DATA_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, SPECIAL_TYPES, WKB_IDENTIFIERS};
 use crate::storage::db::{db_path, Store};
 use crate::error::R;
-use crate::fs_safe::join_rel;
-use crate::ant_core::names::list_subdirs;
+use crate::fs_safe::{io_err, join_rel};
+use crate::ant_core::names::{is_system_root_name, list_subdirs};
 use crate::tree::depth;
 
 pub fn load(root: &Path) -> R<Mapping> {
@@ -24,6 +24,9 @@ pub fn save(root: &Path, data: &Mapping) -> R<()> {
 
 pub fn infer_type(name: &str, depth: usize) -> String {
     let basename = name.rsplit(['/', '\\']).next().unwrap_or(name);
+    if basename.starts_with("00.") {
+        return "PORTF".to_string();
+    }
     if WKB_IDENTIFIERS.iter().any(|p| basename.starts_with(p)) {
         return "WKB".to_string();
     }
@@ -42,6 +45,32 @@ pub fn is_locked_type(t: &str) -> bool {
 pub fn sync(root: &Path, data: &mut Mapping) -> R<bool> {
     let fresh = !db_path(root).is_file();
     sync_level(root, data, 0, fresh, depth::limit(root)?)
+}
+
+// Portfolios are reconciled apart from the sync, so a sync or a mutation never creates or removes a 00. folder on its own.
+pub fn reconcile_portfolios_all(root: &Path, data: &mut Mapping) -> R<bool> {
+    reconcile_level(root, data, 0, depth::limit(root)?)
+}
+
+fn reconcile_level(dir: &Path, node: &mut Mapping, depth: usize, limit: usize) -> R<bool> {
+    if depth >= limit {
+        return Ok(false);
+    }
+    let mut changed = false;
+    let names: Vec<String> = node.keys().filter_map(Value::as_str).map(str::to_string).collect();
+    for name in names {
+        // The app's 9xx root folders hold no workboards, so nothing beneath them gets a portfolio.
+        if depth == 0 && is_system_root_name(&name) {
+            continue;
+        }
+        if let Some(Value::Mapping(child)) = node.get_mut(name.as_str()) {
+            changed |= reconcile_level(&dir.join(&name), child, depth + 1, limit)?;
+        }
+    }
+    if depth > 0 {
+        changed |= reconcile_portfolios(dir, node, depth)?;
+    }
+    Ok(changed)
 }
 
 pub fn get_node<'a>(data: &'a Mapping, rel: &[String]) -> Option<&'a Mapping> {
@@ -134,6 +163,51 @@ fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool, limit: 
     Ok(changed)
 }
 
+// A 00. Portfolio sits beside the workboards of its level: it appears with the first one, and goes once none is left and it is empty.
+fn reconcile_portfolios(dir: &Path, node: &mut Mapping, depth: usize) -> R<bool> {
+    let has_workboard = node.iter().any(|(name, entry)| {
+        name.as_str().is_some_and(|n| dir.join(n).is_dir())
+            && entry.get("type").and_then(Value::as_str).is_some_and(|t| type_base(t) == "WKB")
+    });
+    let portfolios: Vec<String> = node.keys().filter_map(Value::as_str).filter(|n| n.starts_with("00.")).map(str::to_string).collect();
+    let mut changed = false;
+    for name in &portfolios {
+        let Some(Value::Mapping(entry)) = node.get_mut(name.as_str()) else { continue };
+        if entry.get("type").and_then(Value::as_str).is_some_and(|t| type_base(t) == "NODE") {
+            entry.insert("type".into(), format!("PORTF-L{}", depth + 1).into());
+            changed = true;
+        }
+    }
+    if has_workboard {
+        if portfolios.iter().any(|name| dir.join(name).is_dir()) || dir.join(PORTFOLIO_FOLDER).exists() {
+            return Ok(changed);
+        }
+        let path = dir.join(PORTFOLIO_FOLDER);
+        std::fs::create_dir(&path).map_err(|e| io_err("create portfolio", &path, &e))?;
+        let mut entry = Mapping::new();
+        entry.insert("type".into(), "PORTF".into());
+        node.insert(PORTFOLIO_FOLDER.into(), Value::Mapping(entry));
+        return Ok(true);
+    }
+    for name in &portfolios {
+        let path = dir.join(name);
+        if path.is_dir() {
+            if !is_empty_dir(&path)? {
+                continue;
+            }
+            std::fs::remove_dir(&path).map_err(|e| io_err("remove portfolio", &path, &e))?;
+        }
+        node.remove(name.as_str());
+        changed = true;
+    }
+    Ok(changed)
+}
+
+fn is_empty_dir(path: &Path) -> R<bool> {
+    let mut entries = std::fs::read_dir(path).map_err(|e| io_err("list folder", path, &e))?;
+    Ok(entries.next().is_none())
+}
+
 fn add_missing(node: &mut Mapping, name: &str, depth: usize, fresh: bool) -> bool {
     if matches!(node.get(name), Some(Value::Mapping(_))) {
         return false;
@@ -217,6 +291,56 @@ mod tests {
         assert!(!sync(dir.path(), &mut data).unwrap());
     }
 
+    fn settle(root: &Path, data: &mut Mapping) -> bool {
+        sync(root, data).unwrap() | reconcile_portfolios_all(root, data).unwrap()
+    }
+
+    #[test]
+    fn a_portfolio_follows_its_workboards_on_disk() {
+        let dir = TempDir::new("portfolio-follow");
+        dir.mkdir("100.A/01.Plan/PJ.001_Thesis");
+        let mut data = parse("");
+        settle(dir.path(), &mut data);
+        assert!(dir.path().join("100.A/01.Plan/00.Outcomes").is_dir());
+        assert_eq!(get_type(&data, &rel(&["100.A", "01.Plan", "00.Outcomes"])), "PORTF");
+        std::fs::remove_dir_all(dir.path().join("100.A/01.Plan/PJ.001_Thesis")).unwrap();
+        assert!(settle(dir.path(), &mut data));
+        assert!(!dir.path().join("100.A/01.Plan/00.Outcomes").exists());
+        assert!(get_node(&data, &rel(&["100.A", "01.Plan", "00.Outcomes"])).is_none());
+    }
+
+    #[test]
+    fn a_portfolio_with_content_stays_once_its_workboards_are_gone() {
+        let dir = TempDir::new("portfolio-content");
+        dir.mkdir("100.A/01.Plan/00.Porfolio/01.Notes");
+        let mut data = parse("");
+        settle(dir.path(), &mut data);
+        assert_eq!(get_type(&data, &rel(&["100.A", "01.Plan", "00.Porfolio"])), "PORTF");
+        assert!(!dir.path().join("100.A/01.Plan/00.Outcomes").exists());
+        assert!(dir.path().join("100.A/01.Plan/00.Porfolio/01.Notes").is_dir());
+    }
+
+    #[test]
+    fn a_legacy_00_node_becomes_a_portfolio_without_a_rename() {
+        let dir = TempDir::new("portfolio-legacy");
+        dir.mkdir("100.A/00.Porfolio/01.Notes");
+        let mut data = parse("100.A:\n  type: NODE-L1\n  00.Porfolio: {type: NODE-L2}\n");
+        assert!(settle(dir.path(), &mut data));
+        assert_eq!(get_type(&data, &rel(&["100.A", "00.Porfolio"])), "PORTF-L2");
+        assert!(dir.path().join("100.A/00.Porfolio").is_dir());
+    }
+
+    #[test]
+    fn the_system_folders_get_no_portfolio() {
+        let dir = TempDir::new("portfolio-system");
+        dir.mkdir("999.Settings/00.Core");
+        dir.mkdir("999.Settings/PJ.001_Inside");
+        let mut data = parse("");
+        settle(dir.path(), &mut data);
+        assert!(!dir.path().join("999.Settings/00.Outcomes").exists());
+        assert!(dir.path().join("999.Settings/00.Core").is_dir());
+    }
+
     #[test]
     fn sync_branch_lists_only_the_levels_down_to_the_folder() {
         let dir = TempDir::new("sync-branch");
@@ -239,6 +363,7 @@ mod tests {
         assert_eq!(infer_type("90.Resources", 1), "RES");
         assert_eq!(infer_type("97.Templates", 1), "TPL");
         assert_eq!(infer_type("98.Review", 2), "REV");
+        assert_eq!(infer_type("00.Porfolio", 1), "PORTF");
         assert_eq!(infer_type("01.Math", 0), "NODE-L1");
         assert_eq!(infer_type("a/b/02.X", 2), "NODE-L3");
     }

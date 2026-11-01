@@ -11,6 +11,8 @@ pub const UPDATER_SCRIPT_URL: &str = "https://raw.githubusercontent.com/MikeWorl
 pub const SETTINGS_FOLDER: &str = "999.Settings";
 pub const CORE_FOLDER: &str = "00.Core";
 pub const REVIEW_FOLDER: &str = "998.Review";
+// The Portfolio that a workboard's level gets automatically; the title can be renamed, the 00. id is kept.
+pub const PORTFOLIO_FOLDER: &str = "00.Outcomes";
 pub const TRASH_DIR: &str = ".ant-trash";
 pub const DATA_DIR: &str = ".ant";
 pub const DB_FILENAME: &str = "ant.db";
