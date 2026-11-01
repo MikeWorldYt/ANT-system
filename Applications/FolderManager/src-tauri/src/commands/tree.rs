@@ -11,7 +11,7 @@ use crate::index::footprint::Copies;
 use crate::index::{node_names, reindex, review_folders, review_index, Emit};
 use crate::tree::root_check::{self, RootCheck};
 use crate::tree::{depth, snapshot};
-use crate::tree::tree_node::{build_children, fill_children, holds_files, TreeNode, TreeSnapshot};
+use crate::tree::tree_node::{build_children, fill_children, holds_files, lists_files, TreeNode, TreeSnapshot};
 use crate::tree::tree_store;
 
 pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>) -> R<TreeSnapshot> {
@@ -65,9 +65,8 @@ pub async fn file_image(app: AppHandle, rel_parts: Vec<String>, large: bool) -> 
     tauri::async_runtime::spawn_blocking(move || {
         let root = app.state::<Storage>().root()?;
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
-        let data = tree_store::load(&root)?;
         let parent = &rel_parts[..rel_parts.len().saturating_sub(1)];
-        if !holds_files(&data, parent) {
+        if !lists_files(parent) {
             return Ok(None);
         }
         crate::preview::file_image(&join_rel(&root, &rel_parts), large)

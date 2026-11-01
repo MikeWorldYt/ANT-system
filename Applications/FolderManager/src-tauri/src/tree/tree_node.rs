@@ -175,7 +175,7 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
         Vec::new()
     };
 
-    let file_entries: Vec<Entry> = if holds_files(data, parent) {
+    let file_entries: Vec<Entry> = if lists_files(parent) {
         disk_files(&disk_dir)?
             .into_iter()
             .map(|name| Entry { name, on_disk: true, in_yaml: false, link: None, favorite: false, hidden: false, file: true })
@@ -227,6 +227,11 @@ const GIT_MARKERS: [&str; 3] = [".git", ".github", ".gitignore"];
 // Review folders and workboards hold files, so they open even when empty.
 pub(crate) fn holds_files(data: &Mapping, rel: &[String]) -> bool {
     matches!(type_base(&get_type(data, rel)), "REV" | "WKB")
+}
+
+// Every folder lists the files inside it, except the app's own reserved folders and what they hold.
+pub(crate) fn lists_files(rel: &[String]) -> bool {
+    !rel.first().is_some_and(|top| is_reserved(std::slice::from_ref(top)))
 }
 
 // Files are read from disk when their folder opens; they carry no info, children or actions.
@@ -655,6 +660,18 @@ mod tests {
         let empty = folders.iter().find(|n| n.name == "98.B").unwrap();
         assert!(empty.has_children);
         assert!(build_children(dir.path(), &data, &empty.rel_parts).unwrap().is_empty());
+    }
+
+    #[test]
+    fn every_folder_lists_its_files_but_reserved_folders_do_not() {
+        let dir = storage("files-anywhere", &["100.A/02.B"], "100.A:\n  type: NODE-L1\n  02.B: {type: NODE-L2}\n");
+        std::fs::write(dir.path().join("100.A/02.B/photo.png"), "x").unwrap();
+        let data = crate::test_support::yaml(dir.path());
+        let kids = build_children(dir.path(), &data, &rel(&["100.A"])).unwrap();
+        let node = kids.iter().find(|n| n.name == "02.B").unwrap();
+        assert!(node.has_children);
+        assert_eq!(names(&build_children(dir.path(), &data, &node.rel_parts).unwrap()), ["photo.png"]);
+        assert!(build_children(dir.path(), &data, &rel(&["998.Review"])).unwrap().iter().all(|n| !n.file));
     }
 
     #[test]

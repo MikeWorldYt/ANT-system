@@ -8,15 +8,13 @@ use super::{finish, load_synced_at, parent_of, Mutation};
 
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, join_rel, validate_component, Journal, StorageLock};
-use crate::tree::tree_node::holds_files;
-use crate::tree::tree_store;
+use crate::tree::tree_node::lists_files;
 
 // The file a review folder lists; folders, links and missing paths are refused.
 pub fn file_path(root: &Path, rel: &[String]) -> R<PathBuf> {
     rel.iter().try_for_each(|part| validate_component(part))?;
-    let data = tree_store::load(root)?;
-    if !holds_files(&data, parent_of(rel)) {
-        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only files in review folders can be changed here".to_string() });
+    if !lists_files(parent_of(rel)) {
+        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only files in the storage can be changed here".to_string() });
     }
     let path = join_rel(root, rel);
     match fs::symlink_metadata(&path) {
@@ -79,11 +77,12 @@ mod tests {
     }
 
     #[test]
-    fn only_files_in_review_folders_can_be_renamed_or_deleted() {
+    fn only_real_files_can_be_renamed_or_deleted() {
         let dir = review_with_file("file-refuse");
-        assert!(rename_file(dir.path(), &rel(&["100.A", "readme.txt"]), "x.txt").is_err());
-        assert!(delete_file(dir.path(), &rel(&["100.A", "readme.txt"])).is_err());
-        assert!(dir.path().join("100.A/readme.txt").is_file());
+        assert!(rename_file(dir.path(), &rel(&["100.A", "readme.txt"]), "x.txt").is_ok());
+        assert!(dir.path().join("100.A/x.txt").is_file());
+        assert!(rename_file(dir.path(), &rel(&["100.A", "missing.txt"]), "y.txt").is_err());
+        assert!(delete_file(dir.path(), &rel(&["100.A", "98.A"])).is_err());
     }
 
     #[test]
