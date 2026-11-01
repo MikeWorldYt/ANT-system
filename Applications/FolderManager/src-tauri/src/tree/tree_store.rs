@@ -8,6 +8,7 @@ use crate::config::{DATA_FLAG, HIDDEN_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, SPEC
 use crate::storage::db::{db_path, Store};
 use crate::error::R;
 use crate::fs_safe::{io_err, join_rel};
+use crate::index::footprint;
 use crate::ant_core::names::{is_system_root_name, list_subdirs};
 use crate::tree::depth;
 
@@ -62,6 +63,36 @@ fn rename_legacy_types(node: &mut Mapping) -> bool {
         changed |= rename_legacy_types(child);
     }
     changed
+}
+
+pub(crate) fn set_flag(node: &mut Mapping, flag: &str, on: bool) {
+    let mut flags = flags_in(node);
+    flags.retain(|f| f != flag);
+    if on {
+        flags.push(flag.to_string());
+    }
+    if flags.is_empty() {
+        node.remove("flags");
+    } else {
+        node.insert("flags".into(), flags.join(",").into());
+    }
+}
+
+// The database and the folder's dragpath.json agree on "hidden": a true on either side hides the folder, and a missing key never unhides it.
+fn reconcile_hidden(folder: &Path, node: &mut Mapping) -> R<bool> {
+    let on_disk = footprint::read_hidden(folder);
+    let in_db = flags_in(node).iter().any(|f| f == HIDDEN_FLAG);
+    match (on_disk, in_db) {
+        (true, false) => {
+            set_flag(node, HIDDEN_FLAG, true);
+            Ok(true)
+        }
+        (false, true) => {
+            footprint::mirror_hidden(folder, true)?;
+            Ok(false)
+        }
+        _ => Ok(false),
+    }
 }
 
 // Portfolios are reconciled apart from the sync, so a sync or a mutation never creates or removes a 00. folder on its own.
@@ -146,6 +177,9 @@ pub fn sync_branch(root: &Path, data: &mut Mapping, dir: &[String]) -> R<bool> {
         let names = list_subdirs(&path)?;
         for name in names.iter().filter(|n| !META_KEYS.contains(&n.as_str())) {
             changed |= add_missing(node, name, depth, fresh);
+            if let Some(Value::Mapping(child)) = node.get_mut(name.as_str()) {
+                changed |= reconcile_hidden(&path.join(name), child)?;
+            }
         }
         // Exact names only, as a full sync only descends into folders listed on disk.
         let Some(part) = dir.get(depth).filter(|p| names.contains(p)) else { break };
@@ -177,6 +211,7 @@ fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool, limit: 
         }
         changed |= add_missing(node, &name, depth, fresh);
         if let Some(Value::Mapping(child)) = node.get_mut(name.as_str()) {
+            changed |= reconcile_hidden(&dir.join(&name), child)?;
             if !flags_in(child).iter().any(|f| f == HIDDEN_FLAG) {
                 changed |= sync_level(&dir.join(&name), child, depth + 1, fresh, limit)?;
             }
@@ -361,6 +396,20 @@ mod tests {
         settle(dir.path(), &mut data);
         assert!(!dir.path().join("999.Settings/00.Outcomes").exists());
         assert!(dir.path().join("999.Settings/00.Core").is_dir());
+    }
+
+    #[test]
+    fn the_hidden_key_in_dragpath_and_the_database_agree_after_a_sync() {
+        let dir = TempDir::new("dragpath-hidden");
+        dir.mkdir("100.A/02.Bio/.ant");
+        dir.mkdir("100.A/03.Art/.ant");
+        std::fs::write(dir.path().join("100.A/02.Bio/.ant/dragpath.json"), "{\"id\": \"bio-2\", \"hidden\": true}\n").unwrap();
+        std::fs::write(dir.path().join("100.A/03.Art/.ant/dragpath.json"), "{\"id\": \"art-3\"}\n").unwrap();
+        let mut data = parse("100.A:\n  type: NODE-L1\n  03.Art:\n    type: NODE-L2\n    flags: hidden\n");
+        settle(dir.path(), &mut data);
+        assert!(flags_in(get_node(&data, &rel(&["100.A", "02.Bio"])).unwrap()).contains(&HIDDEN_FLAG.to_string()));
+        assert!(!flags_in(get_node(&data, &rel(&["100.A", "03.Art"])).unwrap()).is_empty());
+        assert!(std::fs::read_to_string(dir.path().join("100.A/03.Art/.ant/dragpath.json")).unwrap().contains("\"hidden\": true"));
     }
 
     #[test]

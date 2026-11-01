@@ -295,7 +295,19 @@ pub(crate) fn read_id(folder: &Path) -> Option<String> {
 
 // The flags stay, so tailing or detaching a copy keeps what the user set on it.
 fn replace_id(folder: &Path, id: &str) -> R<()> {
-    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), footprint_text(id, &read_flags(folder)).as_bytes())
+    write_footprint(folder, id, &read_flags(folder), read_hidden(folder))
+}
+
+// Keeps the folder's dragpath.json in step with its user flags; a folder without one, or with a broken one, is left as it is.
+pub fn mirror_flags(folder: &Path, flags: &[String]) -> R<()> {
+    let Some(id) = read_id(folder) else { return Ok(()) };
+    write_footprint(folder, &id, flags, read_hidden(folder))
+}
+
+// Writes or drops the "hidden" key; a folder that is not hidden carries no key at all.
+pub fn mirror_hidden(folder: &Path, hidden: bool) -> R<()> {
+    let Some(id) = read_id(folder) else { return Ok(()) };
+    write_footprint(folder, &id, &read_flags(folder), hidden)
 }
 
 fn read_flags(folder: &Path) -> Vec<String> {
@@ -304,18 +316,25 @@ fn read_flags(folder: &Path) -> Vec<String> {
     m.get("flags").and_then(Value::as_sequence).map_or_else(Vec::new, |list| list.iter().filter_map(Value::as_str).map(str::to_string).collect())
 }
 
-// Keeps the folder's dragpath.json in step with its user flags; a folder without one, or with a broken one, is left as it is.
-pub fn mirror_flags(folder: &Path, flags: &[String]) -> R<()> {
-    let Some(id) = read_id(folder) else { return Ok(()) };
-    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), footprint_text(&id, flags).as_bytes())
+pub fn read_hidden(folder: &Path) -> bool {
+    let Ok(text) = fs::read_to_string(folder.join(DATA_DIR).join(FOOTPRINT_FILENAME)) else { return false };
+    matches!(serde_yaml::from_str::<Value>(&text), Ok(Value::Mapping(m)) if m.get("hidden") == Some(&Value::Bool(true)))
 }
 
-fn footprint_text(id: &str, flags: &[String]) -> String {
-    if flags.is_empty() {
-        return format!("{{\"id\": \"{id}\"}}\n");
+fn write_footprint(folder: &Path, id: &str, flags: &[String], hidden: bool) -> R<()> {
+    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), footprint_text(id, flags, hidden).as_bytes())
+}
+
+fn footprint_text(id: &str, flags: &[String], hidden: bool) -> String {
+    let mut parts = vec![format!("\"id\": \"{id}\"")];
+    if !flags.is_empty() {
+        let list: Vec<String> = flags.iter().map(|f| format!("\"{f}\"")).collect();
+        parts.push(format!("\"flags\": [{}]", list.join(", ")));
     }
-    let list: Vec<String> = flags.iter().map(|f| format!("\"{f}\"")).collect();
-    format!("{{\"id\": \"{id}\", \"flags\": [{}]}}\n", list.join(", "))
+    if hidden {
+        parts.push("\"hidden\": true".to_string());
+    }
+    format!("{{{}}}\n", parts.join(", "))
 }
 
 fn migrate(data: &mut Mapping, old: &[String], new: &[String]) -> bool {

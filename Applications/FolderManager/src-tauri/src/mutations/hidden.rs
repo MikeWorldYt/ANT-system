@@ -5,13 +5,14 @@ use serde::Serialize;
 use serde_yaml::Mapping;
 
 use super::{child_rel, finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
+use crate::index::footprint;
 use crate::ant_core::names::list_subdirs;
 use crate::ant_core::tree_types::{flags_in, META_KEYS};
-use crate::config::{is_hidden_dir, HIDDEN_FLAG};
+use crate::config::{is_hidden_dir, FOOTPRINT_FILENAME, HIDDEN_FLAG};
 use crate::error::{FmError, R};
 use crate::fs_safe::StorageLock;
 use crate::tree::tree_node::{is_reserved, managed_children, TreeNode};
-use crate::tree::tree_store::{self, get_node_mut, get_type, is_locked_type};
+use crate::tree::tree_store::{self, get_node_mut, get_type, is_locked_type, set_flag};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -33,9 +34,10 @@ pub fn set_hidden(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "root folders cannot be hidden".to_string() });
     }
     let node = get_node_mut(&mut data, rel).ok_or_else(|| FmError::NotFound { rel_parts: rel.to_vec() })?;
-    write_flag(node, on);
+    set_flag(node, HIDDEN_FLAG, on);
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, true, parent_selection(rel), Vec::new(), vec![rel.to_vec()]))
+    let warnings = mirror(&target.abs, on);
+    Ok(finish(root, &data, true, parent_selection(rel), warnings, vec![rel.to_vec()]))
 }
 
 // `hidden` names the children of `parent` that stay hidden; the others are shown again. Reserved and locked folders are left as they are.
@@ -49,17 +51,23 @@ pub fn set_hidden_children(root: &Path, parent: &[String], hidden: &[String]) ->
         guard_frozen(parent, &target.node_type)?;
         target.abs
     };
+    let mut warnings = Vec::new();
     for name in list_subdirs(&dir)?.into_iter().filter(|n| listable(n)) {
         let rel = child_rel(parent, &name);
         if is_fixed(&data, &rel) {
             continue;
         }
         if let Some(node) = get_node_mut(&mut data, &rel) {
-            write_flag(node, hidden.contains(&name));
+            let on = hidden.contains(&name);
+            let was = flags_in(node).iter().any(|f| f == HIDDEN_FLAG);
+            set_flag(node, HIDDEN_FLAG, on);
+            if was != on {
+                warnings.extend(mirror(&dir.join(&name), on));
+            }
         }
     }
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, true, parent_selection(parent), Vec::new(), vec![parent.to_vec()]))
+    Ok(finish(root, &data, true, parent_selection(parent), warnings, vec![parent.to_vec()]))
 }
 
 // Every folder a level holds, with whether it is hidden, so the manage dialog can show them all.
@@ -83,16 +91,11 @@ fn is_fixed(data: &Mapping, rel: &[String]) -> bool {
     is_reserved(rel) || is_locked_type(&get_type(data, rel))
 }
 
-fn write_flag(node: &mut Mapping, on: bool) {
-    let mut flags = flags_in(node);
-    flags.retain(|f| f != HIDDEN_FLAG);
-    if on {
-        flags.push(HIDDEN_FLAG.to_string());
-    }
-    if flags.is_empty() {
-        node.remove("flags");
-    } else {
-        node.insert("flags".into(), flags.join(",").into());
+// The folder's dragpath.json follows the database; a failure is reported, the database change stands.
+fn mirror(folder: &Path, on: bool) -> Vec<String> {
+    match footprint::mirror_hidden(folder, on) {
+        Ok(()) => Vec::new(),
+        Err(e) => vec![format!("Could not update {FOOTPRINT_FILENAME}: {e}")],
     }
 }
 
@@ -122,6 +125,20 @@ mod tests {
         assert!(dir.path().join("100.ACADEMIC/02.Bio").is_dir());
         set_hidden(dir.path(), &bio, false).unwrap();
         assert!(listed_under_root_child(dir.path()).contains(&"02.Bio".to_string()));
+    }
+
+    #[test]
+    fn the_hidden_key_in_dragpath_follows_the_database() {
+        let dir = academic("hidden-dragpath");
+        dir.mkdir("100.ACADEMIC/02.Bio/.ant");
+        let file = dir.path().join("100.ACADEMIC/02.Bio/.ant/dragpath.json");
+        std::fs::write(&file, "{\"id\": \"bio-1\"}\n").unwrap();
+        let bio = rel(&["100.ACADEMIC", "02.Bio"]);
+        set_hidden(dir.path(), &bio, true).unwrap();
+        assert!(std::fs::read_to_string(&file).unwrap().contains("\"hidden\": true"));
+        set_hidden(dir.path(), &bio, false).unwrap();
+        let text = std::fs::read_to_string(&file).unwrap();
+        assert!(!text.contains("hidden") && text.contains("bio-1"), "{text}");
     }
 
     #[test]
