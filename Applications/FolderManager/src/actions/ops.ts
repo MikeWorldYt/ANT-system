@@ -17,6 +17,7 @@ import type { Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mut
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
   const tree = snapshot ?? (await api.refresh());
   setTree(tree);
+  if (tree.warnings.length > 0) setStatus("warning", tree.warnings.join(". "));
   followExpanded();
   await hydrate();
   pruneSelection();

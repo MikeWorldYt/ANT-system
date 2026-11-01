@@ -17,6 +17,7 @@ pub fn snapshot(root: &Path, mode: Copies) -> R<TreeSnapshot> {
     let mut changed = tree_store::sync(root, &mut data)?;
     changed |= tree_store::reconcile_portfolios_all(root, &mut data)?;
     let mut copies = Vec::new();
+    let mut warnings = Vec::new();
     if changed || !footprint::scan(root, &data)?.is_clean() {
         // Reloading under the file lock keeps this save from overwriting another process's edit.
         let _lock = StorageLock::acquire(root)?;
@@ -30,12 +31,14 @@ pub fn snapshot(root: &Path, mode: Copies) -> R<TreeSnapshot> {
             changed = true;
         }
         copies = plan.copies;
+        warnings = plan.warnings;
         if changed {
             tree_store::save(root, &data)?;
         }
     }
     let mut tree = build_tree(root, &data, changed)?;
     tree.copies = copies;
+    tree.warnings = warnings;
     fill_children(root, &data, &mut tree.nodes)?;
     search_index::rebuild_from_nodes(root, &tree.nodes)?;
     Ok(tree)

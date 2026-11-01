@@ -89,7 +89,7 @@ pub(super) fn after_commit(
 ) -> Mutation {
     let tree = tree.unwrap_or_else(|e| {
         warnings.push(format!("The change was saved but the tree could not be reloaded; refresh. {e}"));
-        TreeSnapshot { root: root.to_string_lossy().into_owned(), nodes: Vec::new(), yaml_changed: true, copies: Vec::new() }
+        TreeSnapshot { root: root.to_string_lossy().into_owned(), nodes: Vec::new(), yaml_changed: true, copies: Vec::new(), warnings: Vec::new() }
     });
     Mutation { tree: Some(tree), levels: Vec::new(), select, warnings, touched, before: Vec::new() }
 }
