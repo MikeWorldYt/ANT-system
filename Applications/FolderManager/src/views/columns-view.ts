@@ -7,7 +7,7 @@ import { statusMark } from "../ui/status-mark";
 import { columnSortToggle } from "./column-sort";
 import { favoriteMark, hideBox, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
-import { hiddenCategories, isReviewFolder, isReviewRoot, linkCategory, nodeSummary } from "../store/node-info";
+import { hiddenCategories, holdsFiles, isReviewRoot, isWorkboard, linkCategory, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
 import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
@@ -23,7 +23,7 @@ interface Column {
 function emptyLegend(parent: TreeNode | null): string | null {
   if (parent === null) return null;
   if (isReviewRoot(parent)) return hiddenCategories(parent).length > 0 ? "No active filters" : null;
-  return isReviewFolder(parent) ? "Empty" : null;
+  return holdsFiles(parent) ? "Empty" : null;
 }
 
 // `opened` is the selected folder whose child column the user opened; selecting alone shows none.
@@ -44,7 +44,7 @@ function buildColumns(opened: string | null): Column[] {
       break;
     }
     if (open.children.length === 0) {
-      if (isReviewRoot(open) || isReviewFolder(open)) cols.push({ nodes: [], loading: false });
+      if (isReviewRoot(open) || holdsFiles(open)) cols.push({ nodes: [], loading: false });
       break;
     }
     nodes = open.children;
@@ -78,7 +78,8 @@ export function createColumnsView(): ViewMode {
     const open = isOpen(n);
     const icon = folderIcon(n, open);
     const lead = n.hasChildren ? nodeToggle(`${open ? "Close" : "Open"} ${n.name}`, open, icon) : icon;
-    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), lead, nameCell(n, false, true));
+    // A workboard shows its status before its name; other rows keep the status after the star.
+    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), lead, ...(isWorkboard(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, false, true));
     item.dataset.key = keyOf(n.relParts);
     item.setAttribute("aria-selected", String(selected));
     if (selected) item.classList.add("selected");
@@ -93,7 +94,7 @@ export function createColumnsView(): ViewMode {
     if (n.ghost) item.setAttribute("aria-label", `${n.name} (missing on disk)`);
     // Without a status the star takes the icon's place at the end of the row.
     if (n.favorite) item.append(favoriteMark());
-    if (n.status) item.append(statusMark(n.status));
+    if (n.status && !isWorkboard(n)) item.append(statusMark(n.status));
     item.title = nodeSummary(n);
     if (n.hasChildren) {
       lead.addEventListener("dblclick", () => openColumn(n));

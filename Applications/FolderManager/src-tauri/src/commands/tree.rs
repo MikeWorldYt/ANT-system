@@ -5,14 +5,13 @@ use serde_yaml::Mapping;
 use tauri::{AppHandle, Manager};
 
 use super::{review_emitter, run_locked, Storage};
-use crate::ant_core::tree_types::type_base;
 use crate::error::{FmError, R};
 use crate::fs_safe::{join_rel, validate_component};
 use crate::index::footprint::Copies;
 use crate::index::{node_names, reindex, review_folders, review_index, Emit};
 use crate::tree::root_check::{self, RootCheck};
 use crate::tree::{depth, snapshot};
-use crate::tree::tree_node::{build_children, fill_children, TreeNode, TreeSnapshot};
+use crate::tree::tree_node::{build_children, fill_children, holds_files, TreeNode, TreeSnapshot};
 use crate::tree::tree_store;
 
 pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>) -> R<TreeSnapshot> {
@@ -50,7 +49,7 @@ pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<Tree
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
         let data = tree_store::load(root)?;
         // A review folder past the depth limit still lists its files, so only other folders stop here.
-        if rel_parts.len() >= depth::limit(root)? && type_base(&tree_store::get_type(&data, &rel_parts)) != "REV" {
+        if rel_parts.len() >= depth::limit(root)? && !holds_files(&data, &rel_parts) {
             return Ok(Vec::new());
         }
         let mut kids = build_children(root, &data, &rel_parts)?;
@@ -68,7 +67,7 @@ pub async fn file_image(app: AppHandle, rel_parts: Vec<String>, large: bool) -> 
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
         let data = tree_store::load(&root)?;
         let parent = &rel_parts[..rel_parts.len().saturating_sub(1)];
-        if type_base(&tree_store::get_type(&data, parent)) != "REV" {
+        if !holds_files(&data, parent) {
             return Ok(None);
         }
         crate::preview::file_image(&join_rel(&root, &rel_parts), large)

@@ -1,5 +1,5 @@
 // Tree view: indented expandable rows with keyboard navigation.
-import { isReviewFolder, nodeSummary } from "../store/node-info";
+import { holdsFiles, isWorkboard, nodeSummary } from "../store/node-info";
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
@@ -28,7 +28,7 @@ export function createTreeView(): ViewMode {
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(n.hasChildren ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
     const icon = folderIcon(n, expanded && n.hasChildren);
     const toggle = n.hasChildren ? nodeToggle(`${expanded ? "Collapse" : "Expand"} ${n.name}`, expanded, caret, icon) : null;
-    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), nameCell(n, true, true));
+    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorkboard(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
     row.style.setProperty("--depth", String(n.depth));
     row.dataset.key = key;
     row.setAttribute("aria-selected", String(key === state.selectedKey));
@@ -42,7 +42,7 @@ export function createTreeView(): ViewMode {
     row.classList.toggle("reserved", n.reserved);
     row.classList.toggle("rev", n.nodeType?.base === "REV");
     if (n.ghost) row.setAttribute("aria-label", `${n.name} (missing on disk)`);
-    if (n.status) row.append(statusMark(n.status));
+    if (n.status && !isWorkboard(n)) row.append(statusMark(n.status));
     row.title = nodeSummary(n);
     toggle?.addEventListener("click", () => {
       select(n.relParts);
@@ -60,7 +60,7 @@ export function createTreeView(): ViewMode {
 
   // An opened review folder with nothing in it gets a line under its row, so the row does not look unfinished.
   function emptyLegend(n: TreeNode): HTMLElement[] {
-    if (!isReviewFolder(n) || n.children?.length !== 0 || !state.expanded.has(keyOf(n.relParts))) return [];
+    if (!holdsFiles(n) || n.children?.length !== 0 || !state.expanded.has(keyOf(n.relParts))) return [];
     const legend = el("div", { class: "tree-legend" }, "Empty");
     legend.style.setProperty("--depth", String(n.depth + 1));
     return [legend];

@@ -43,8 +43,8 @@ export function nodeFlags(n: TreeNode): string[] {
 // Non-editable types (reviews, resources, templates) keep their stored label.
 export const typeName = (n: TreeNode): string => (n.file ? "File" : TYPES.find(([v]) => v === n.nodeType?.base)?.[1] ?? n.nodeType?.raw ?? "—");
 
-// Review folders always open, so an empty one can say "Empty" instead of looking broken.
-export const isReviewFolder = (n: TreeNode): boolean => !n.linked && n.nodeType?.base === "REV";
+// Review folders and workboards hold files, so they always open and an empty one says "Empty".
+export const holdsFiles = (n: TreeNode): boolean => !n.linked && (n.nodeType?.base === "REV" || n.nodeType?.base === "WKB");
 
 // Flags sit in parentheses after the type, e.g. "Node (reserved)".
 export const typeLabel = (n: TreeNode): string => {

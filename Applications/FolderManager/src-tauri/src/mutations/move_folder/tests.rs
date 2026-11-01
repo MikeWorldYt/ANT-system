@@ -263,3 +263,28 @@ fn a_copy_gets_its_own_tailed_uid_and_the_source_stays() {
     assert_eq!(get_type_of(&dir, &copy), "WKB-L2");
     assert_indexes_like_full_rebuild(&dir, &m);
 }
+
+#[test]
+fn a_moved_workboard_gets_no_review_folder() {
+    let dir = storage(
+        "move-wkb-no-review",
+        &["100.A/02.B/PJ.001_X", "100.A/03.C"],
+        "100.A:\n  type: NODE-L1\n  02.B:\n    type: NODE-L2\n    PJ.001_X:\n      type: WKB-L3\n  03.C:\n    type: NODE-L2\n",
+    );
+    move_folder(dir.path(), &rel(&["100.A", "02.B", "PJ.001_X"]), &rel(&["100.A", "03.C"]), false).unwrap();
+    let moved = dir.path().join("100.A/03.C/PJ.001_X");
+    assert!(moved.is_dir());
+    assert!(names(&moved).iter().all(|n| !n.starts_with("98.")), "{:?}", names(&moved));
+}
+
+#[test]
+fn a_copied_workboard_gets_no_review_folder() {
+    let dir = storage(
+        "copy-wkb-no-review",
+        &["100.A/02.B/PJ.001_X", "100.A/03.C"],
+        "100.A:\n  type: NODE-L1\n  02.B:\n    type: NODE-L2\n    PJ.001_X:\n      type: WKB-L3\n  03.C:\n    type: NODE-L2\n",
+    );
+    move_folder(dir.path(), &rel(&["100.A", "02.B", "PJ.001_X"]), &rel(&["100.A", "03.C"]), true).unwrap();
+    let copied = dir.path().join("100.A/03.C/PJ.001_X");
+    assert!(names(&copied).iter().all(|n| !n.starts_with("98.")), "{:?}", names(&copied));
+}

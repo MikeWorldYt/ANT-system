@@ -113,7 +113,7 @@ pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<(
 fn children_at(root: &Path, data: &Mapping, parent: &[String], limit: usize) -> R<Vec<TreeNode>> {
     let mut nodes = Vec::new();
     // A review folder at the depth limit shows its files only, as it did before it listed any content.
-    let past_limit_review = parent.len() >= limit && type_base(&get_type(data, parent)) == "REV";
+    let past_limit_review = parent.len() >= limit && holds_files(data, parent);
     for entry in level_entries(root, data, parent)? {
         if entry.file {
             nodes.push(file_node(root, parent, entry.name));
@@ -175,7 +175,7 @@ fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>
         Vec::new()
     };
 
-    let file_entries: Vec<Entry> = if type_base(&get_type(data, parent)) == "REV" {
+    let file_entries: Vec<Entry> = if holds_files(data, parent) {
         disk_files(&disk_dir)?
             .into_iter()
             .map(|name| Entry { name, on_disk: true, in_yaml: false, link: None, favorite: false, hidden: false, file: true })
@@ -224,7 +224,12 @@ fn is_linked_folder(name: &str) -> bool {
 // Any of these inside a folder means it holds a git project.
 const GIT_MARKERS: [&str; 3] = [".git", ".github", ".gitignore"];
 
-// Files are read from disk when their review folder opens; they carry no info, children or actions.
+// Review folders and workboards hold files, so they open even when empty.
+pub(crate) fn holds_files(data: &Mapping, rel: &[String]) -> bool {
+    matches!(type_base(&get_type(data, rel)), "REV" | "WKB")
+}
+
+// Files are read from disk when their folder opens; they carry no info, children or actions.
 fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
     let mut rel_parts = parent.to_vec();
     rel_parts.push(name.clone());
@@ -321,8 +326,8 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
     // The review root stays a container even when its filter hides every link, so its empty list can say why.
     let review_root = depth == 0 && entry.name.eq_ignore_ascii_case(REVIEW_FOLDER);
     // A review folder always opens, even when empty, so its files and the Empty legend can show.
-    let review_folder = !ghost && !linked && type_base(raw_type) == "REV";
-    let has_children = !ghost && (review_root || review_folder || (!linked && depth + 1 < limit && !level_entries(root, data, &rel_parts)?.is_empty()));
+    let content_folder = !ghost && !linked && matches!(type_base(raw_type), "REV" | "WKB");
+    let has_children = !ghost && (review_root || content_folder || (!linked && depth + 1 < limit && !level_entries(root, data, &rel_parts)?.is_empty()));
     let is_git = !ghost && !linked && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
     let info_broken = info.as_ref().is_some_and(|i| i.error.is_some());
@@ -650,6 +655,17 @@ mod tests {
         let empty = folders.iter().find(|n| n.name == "98.B").unwrap();
         assert!(empty.has_children);
         assert!(build_children(dir.path(), &data, &empty.rel_parts).unwrap().is_empty());
+    }
+
+    #[test]
+    fn workboards_open_with_their_files_and_hold_no_review_folder() {
+        let dir = storage("wkb-files", &["100.A/PJ.001_X"], "100.A:\n  PJ.001_X: {type: WKB-L2}\n");
+        std::fs::write(dir.path().join("100.A/PJ.001_X/brief.txt"), "x").unwrap();
+        let data = crate::test_support::yaml(dir.path());
+        let kids = build_children(dir.path(), &data, &rel(&["100.A"])).unwrap();
+        let wkb = kids.iter().find(|n| n.name == "PJ.001_X").unwrap();
+        assert!(wkb.has_children);
+        assert_eq!(names(&build_children(dir.path(), &data, &wkb.rel_parts).unwrap()), ["brief.txt"]);
     }
 
     #[test]

@@ -5,16 +5,17 @@ use std::path::{Path, PathBuf};
 use super::delete::stage_in_trash;
 use super::recycle::{PendingRecycle, IN_FLIGHT};
 use super::{finish, load_synced_at, parent_of, Mutation};
-use crate::ant_core::tree_types::type_base;
+
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, join_rel, validate_component, Journal, StorageLock};
-use crate::tree::tree_store::{self, get_type};
+use crate::tree::tree_node::holds_files;
+use crate::tree::tree_store;
 
 // The file a review folder lists; folders, links and missing paths are refused.
 pub fn file_path(root: &Path, rel: &[String]) -> R<PathBuf> {
     rel.iter().try_for_each(|part| validate_component(part))?;
     let data = tree_store::load(root)?;
-    if type_base(&get_type(&data, parent_of(rel))) != "REV" {
+    if !holds_files(&data, parent_of(rel)) {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only files in review folders can be changed here".to_string() });
     }
     let path = join_rel(root, rel);

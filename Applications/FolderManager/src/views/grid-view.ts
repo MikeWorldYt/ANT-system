@@ -6,7 +6,7 @@ import { nativeImage } from "../ui/file-images";
 import { statusMark } from "../ui/status-mark";
 import { favoriteMark, hideBox, nameCell } from "./name-cell";
 import { nodeToggle } from "./node-toggle";
-import { isReviewFolder, nodeSummary } from "../store/node-info";
+import { holdsFiles, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
 import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
@@ -160,7 +160,7 @@ export function createGridView(): ViewMode {
       const nodes = shownNodes();
       const tabbable = nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0];
       const open = folderNode();
-      const empty = nodes.length === 0 && open !== null && open.children !== null && isReviewFolder(open);
+      const empty = nodes.length === 0 && open !== null && open.children !== null && holdsFiles(open);
       root.replaceChildren(...nodes.map((n) => buildItem(n, n === tabbable)), ...(empty ? [el("p", { class: "grid-legend" }, "Empty")] : []));
       root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus({ preventScroll: true });
