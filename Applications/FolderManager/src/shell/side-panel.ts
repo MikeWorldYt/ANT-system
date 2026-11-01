@@ -200,15 +200,19 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     railFavorite.classList.toggle("is-favorite", !!n?.favorite);
     railFavorite.setAttribute("aria-label", favoriteLabel(n));
     railFavorite.title = favoriteLabel(n);
-    const enabled: [HTMLButtonElement[], boolean][] = [
+    const available: [HTMLButtonElement[], boolean][] = [
       [[open.button], n !== null],
       [[favorite.button, railFavorite], !!a?.favorite],
       [[railEdit], n !== null && canEdit(n)],
-      [[up.button, railUp], !!(a?.moveUp && idle)],
-      [[down.button, railDown], !!(a?.moveDown && idle)],
+      [[up.button, railUp], !!a?.moveUp],
+      [[down.button, railDown], !!a?.moveDown],
       [[remover.button, railDelete], !!a?.delete],
     ];
-    for (const [buttons, on] of enabled) for (const b of buttons) setDisabled(b, !on);
+    // An action the node does not offer is removed, not greyed out.
+    for (const [buttons, on] of available) for (const b of buttons) b.hidden = !on;
+    for (const b of [up.button, railUp, down.button, railDown]) setDisabled(b, !idle);
+    order.hidden ||= !(a?.moveUp || a?.moveDown);
+    foot.hidden ||= !a?.delete;
   }
 
   layoutRail();

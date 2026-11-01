@@ -51,7 +51,7 @@ export const holdsFiles = (n: TreeNode): boolean => !n.linked && (n.nodeType?.ba
 // Flags sit in parentheses after the type, e.g. "Node (reserved)".
 export const typeLabel = (n: TreeNode): string => {
   const flags = nodeFlags(n);
-  return flags.length > 0 ? `${typeName(n)} (${flags.join(", ")})` : typeName(n);
+  return flags.length > 0 ? `${typeName(n)}\n(${flags.join(", ")})` : typeName(n);
 };
 
 export const nodeSummary = (n: TreeNode): string => typeLabel(n);

@@ -122,7 +122,7 @@ body {
 .node-toggle { display: inline-flex; flex: none; align-items: center; gap: 6px; }
 .details { margin: 4px 0 0; font-size: 9pt; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
 .details dt { color: var(--muted); }
-.details dd { margin: 0; word-break: break-word; }
+.details dd { margin: 0; word-break: break-word; white-space: pre-line; }
 .details dd.path { word-break: normal; }
 .details dd.path .seg { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
 .detail-field { display: flex; flex-direction: column; min-width: 0; }
@@ -176,6 +176,7 @@ body {
 .side-rail-sep { flex: none; width: 22px; height: 1px; margin: 2px 0; background: var(--border); }
 .side-rail .is-favorite { color: var(--st-progress); }
 .side-rail-end { margin-top: auto; }
+.side-action[hidden] { display: none; }
 .details-panel[hidden], .side-rail[hidden], .side-section[hidden], .details[hidden] { display: none; }
 .details-input {
   box-sizing: border-box; width: 100%; padding: 2px 4px; font: inherit; color: var(--text); background: var(--field-bg);
