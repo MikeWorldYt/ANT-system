@@ -7,9 +7,9 @@
 [![CreateNewStorage](https://img.shields.io/github/v/release/MikeWorldYt/ANT-system?filter=create-new-storage-*&label=CreateNewStorage&color=00b386)](https://github.com/MikeWorldYt/ANT-system/releases?q=create-new-storage)
 [![FolderManager](https://img.shields.io/github/v/release/MikeWorldYt/ANT-system?filter=folder-manager-*&label=FolderManager&color=00b386)](https://github.com/MikeWorldYt/ANT-system/releases?q=folder-manager)
 [![Build apps](https://img.shields.io/github/actions/workflow/status/MikeWorldYt/ANT-system/build-apps.yml?branch=main&label=build)](https://github.com/MikeWorldYt/ANT-system/actions/workflows/build-apps.yml)
-[![Docs](https://img.shields.io/badge/docs-ant--system.vercel.app-4f8cff)](https://ant-system.vercel.app/en/introduction/what-is-ant/)
+[![Docs](https://img.shields.io/badge/docs-ant--ant.mikeworld.dev-4f8cff)](https://ant.mikeworld.dev/en/introduction/what-is-ant/)
 
-[Documentation](https://ant-system.vercel.app/en/introduction/what-is-ant/) ·
+[Documentation](https://ant.mikeworld.dev/en/introduction/what-is-ant/) ·
 [Quick start](#quick-start) ·
 [Utilities](#utilities) ·
 [Releases](https://github.com/MikeWorldYt/ANT-system/releases) ·
