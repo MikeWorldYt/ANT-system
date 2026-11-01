@@ -3,13 +3,13 @@ use crate::error::FmError;
 use crate::test_support::{academic, rel, yaml};
 
 #[test]
-fn the_drag_offers_copy_and_link_but_never_move() {
-    assert_eq!(ALLOWED_EFFECTS, 1 | 4);
-    assert_eq!(ALLOWED_EFFECTS & 2, 0);
+fn the_drag_offers_move_copy_and_link() {
+    assert_eq!(ALLOWED_EFFECTS, 1 | 2 | 4);
+    assert_eq!(ALLOWED_EFFECTS & 2, 2);
     #[cfg(windows)]
     {
-        use windows::Win32::System::Ole::{DROPEFFECT_COPY, DROPEFFECT_LINK};
-        assert_eq!(ALLOWED_EFFECTS, (DROPEFFECT_COPY | DROPEFFECT_LINK).0);
+        use windows::Win32::System::Ole::{DROPEFFECT_COPY, DROPEFFECT_LINK, DROPEFFECT_MOVE};
+        assert_eq!(ALLOWED_EFFECTS, (DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK).0);
     }
 }
 

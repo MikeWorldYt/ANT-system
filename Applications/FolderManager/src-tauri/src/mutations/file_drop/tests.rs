@@ -157,3 +157,17 @@ fn the_tree_gets_the_destination_level_back() {
     assert_eq!(m.levels[0].parent, rel(&["100.PERSONAL", "03.Toki"]));
     assert!(m.levels[0].children.iter().any(|n| n.rel_parts == review));
 }
+
+#[test]
+fn a_file_already_in_the_storage_moves_to_another_folder_and_a_copy_keeps_the_original() {
+    let (dir, _src) = fixture("drop-internal");
+    let original = dir.path().join("100.PERSONAL/03.Toki/98.Toki/inside.txt");
+    fs::write(&original, "i").unwrap();
+    let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), std::slice::from_ref(&original), false).unwrap();
+    assert!(!original.exists());
+    let landed = dir.path().join(out.placed[0].folder.join("/")).join("inside.txt");
+    assert_eq!(fs::read_to_string(&landed).unwrap(), "i");
+    fs::write(&original, "again").unwrap();
+    drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), std::slice::from_ref(&original), true).unwrap();
+    assert!(original.exists());
+}

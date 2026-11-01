@@ -1,5 +1,7 @@
-// Dragging a folder row out of the window hands it to Explorer through the backend's native drag.
+// Dragging a folder or file row out of the window hands it to Explorer as a move through the backend's native drag.
 import { describeError, startDragOut } from "../ipc/api";
+import { refresh } from "./ops";
+import { findNode } from "../store/state";
 import { setStatus } from "../ui/status";
 
 const THRESHOLD_PX = 6;
@@ -19,8 +21,14 @@ export const leftWindow = ({ x, y }: Point, width: number, height: number): bool
   x < 0 || y < 0 || x >= width || y >= height;
 
 async function dragOut(relParts: string[]): Promise<void> {
+  const node = findNode(relParts);
+  // Explorer cannot be asked mid-drag, so the warning shows in the status line before it starts.
+  if (node?.nodeType?.base === "NODE" && !node.flags.includes("data")) {
+    setStatus("warning", `Moving "${node.name}" out can break its paths in other apps`);
+  }
   try {
     await startDragOut(relParts);
+    await refresh();
   } catch (e) {
     setStatus("warning", describeError(e));
   }
@@ -34,7 +42,7 @@ export function installDragOut(host: HTMLElement): void {
     if (ev.button !== 0 || ev.pointerType !== "mouse" || !(ev.target instanceof Element)) return;
     const item = ev.target.closest<HTMLElement>(ITEM);
     const key = item?.dataset.key;
-    if (!item || !key || item.matches(".reserved, .ghost")) return;
+    if (!item || !key || item.matches(".reserved, .ghost") || findNode(key.split("/"))?.flags.includes("main")) return;
     gesture = { key, start: { x: ev.clientX, y: ev.clientY } };
   });
   host.addEventListener("pointermove", (ev) => {

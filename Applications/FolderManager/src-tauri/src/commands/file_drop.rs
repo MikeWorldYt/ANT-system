@@ -46,3 +46,13 @@ fn ctrl_held() -> bool {
 fn ctrl_held() -> bool {
     false
 }
+
+// Files already in the storage move (or copy with Ctrl) into a folder, through the same rules as files dropped from Explorer.
+#[tauri::command]
+pub async fn move_files_in(app: AppHandle, sources: Vec<Vec<String>>, target: Vec<String>, copy: bool) -> R<DropOutcome> {
+    run_locked(app, move |root| {
+        let paths = sources.iter().map(|rel| mutations::file_path(root, rel)).collect::<R<Vec<PathBuf>>>()?;
+        place(root, &target, &paths, copy)
+    })
+    .await
+}

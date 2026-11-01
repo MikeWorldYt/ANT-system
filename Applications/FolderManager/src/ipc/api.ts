@@ -92,6 +92,8 @@ export const moveNode = (relParts: string[], direction: MoveDirection) =>
   call<Mutation>("move_node", { relParts, direction });
 export const dropFiles = (target: string[], paths: string[]) => call<DropOutcome>("drop_files", { target, paths });
 export const pasteFiles = (target: string[]) => call<DropOutcome>("paste_files", { target });
+export const moveFilesIn = (sources: string[][], target: string[], copy: boolean) =>
+  call<DropOutcome>("move_files_in", { sources, target, copy });
 export const copyFolder = (target: string[], cut: boolean) => call<void>("copy_folder", { target, cut });
 export const moveFolder = (source: string[], destination: string[], copy: boolean) =>
   call<Mutation>("move_folder", { source, destination, copy });

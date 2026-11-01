@@ -103,6 +103,7 @@ pub fn run() {
             commands::rename_file,
             commands::delete_file,
             commands::copy_file,
+            commands::move_files_in,
             commands::create_file_shortcut_in,
             commands::set_review_filter,
             commands::answer_copy,

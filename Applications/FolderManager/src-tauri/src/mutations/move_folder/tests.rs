@@ -164,7 +164,7 @@ fn reason(err: FmError) -> String {
 fn refusals_leave_the_disk_and_the_tree_unchanged() {
     let dir = ready("mf-refuse");
     let target = ["100.WORK", "03.Target"];
-    assert!(reason(refused(&dir, &["100.WORK", "01.Plain"], &target, false)).contains("no data flag"));
+    assert!(reason(refused(&dir, &["100.WORK"], &target, false)).contains("main categories"));
     assert!(matches!(refused(&dir, &["998.Review"], &target, false), FmError::Reserved { .. }));
     assert!(matches!(refused(&dir, &["100.WORK", "01.Plain", "98.Plain"], &target, false), FmError::Locked { .. }));
     assert!(matches!(refused(&dir, &["100.WORK", "04.Ghost"], &target, false), FmError::GhostNotAllowed { .. }));
@@ -177,7 +177,6 @@ fn refusals_leave_the_disk_and_the_tree_unchanged() {
     let big = ["100.WORK", "PJ.003_Big"];
     assert!(reason(refused(&dir, &big, &["100.WORK", "PJ.003_Big", "01.Part"], true)).contains("into itself"));
     assert!(reason(refused(&dir, &web, &["100.WORK"], false)).contains("already in 100.WORK"));
-    assert_eq!(reason(refused(&dir, &web, &["100.WORK"], true)), "a folder named PJ.001_Web already exists in 100.WORK");
     dir.mkdir("100.WORK/03.Target/PJ.001_Web");
     assert_eq!(reason(refused(&dir, &web, &target, false)), "a folder named PJ.001_Web already exists in 100.WORK/03.Target");
 }
@@ -197,7 +196,8 @@ fn a_review_folder_takes_a_data_node_and_a_workboard_but_998_review_does_not() {
     let copied = move_folder(dir.path(), &rel(&["100.WORK", "PJ.002_App"]), &rel(&review), true).unwrap();
     assert!(dir.path().join("100.WORK/98.WORK/PJ.002_App/.ant").is_dir());
     assert_indexes_like_full_rebuild(&dir, &copied);
-    assert_eq!(reason(refused(&dir, &["100.WORK", "PJ.002_App"], &review, true)), "a folder named PJ.002_App already exists in 100.WORK/98.WORK");
+    let again = move_folder(dir.path(), &rel(&["100.WORK", "PJ.002_App"]), &rel(&review), true).unwrap();
+    assert_eq!(again.select, Some(rel(&["100.WORK", "98.WORK", "PJ.002_App (2)"])));
     assert!(matches!(refused(&dir, &["100.WORK", "PJ.002_App"], &["998.Review"], false), FmError::Reserved { .. }));
 }
 
@@ -287,4 +287,16 @@ fn a_copied_workboard_gets_no_review_folder() {
     move_folder(dir.path(), &rel(&["100.A", "02.B", "PJ.001_X"]), &rel(&["100.A", "03.C"]), true).unwrap();
     let copied = dir.path().join("100.A/03.C/PJ.001_X");
     assert!(names(&copied).iter().all(|n| !n.starts_with("98.")), "{:?}", names(&copied));
+}
+
+#[test]
+fn an_unflagged_node_moves_with_its_contents_and_a_copy_takes_a_free_name() {
+    let dir = ready("mf-unflagged");
+    let m = move_folder(dir.path(), &rel(&["100.WORK", "01.Plain"]), &rel(&["100.WORK", "03.Target"]), false).unwrap();
+    assert_eq!(m.select, Some(rel(&["100.WORK", "03.Target", "01.Plain"])));
+    assert!(dir.path().join("100.WORK/03.Target/01.Plain/98.Plain").is_dir());
+    let copy = move_folder(dir.path(), &rel(&["100.WORK", "02.Data"]), &rel(&["100.WORK"]), true).unwrap();
+    assert_eq!(copy.select, Some(rel(&["100.WORK", "02.Data (2)"])));
+    assert!(dir.path().join("100.WORK/02.Data").is_dir());
+    assert!(dir.path().join("100.WORK/02.Data (2)").is_dir());
 }

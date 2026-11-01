@@ -2,7 +2,7 @@
 use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, flags_in, type_base};
-use crate::config::DATA_FLAG;
+use crate::config::MAIN_FLAG;
 use crate::error::{FmError, R};
 use crate::intake::node_type;
 use crate::mutations::Target;
@@ -30,10 +30,12 @@ fn guard(rel: &[String], target: &Target, op: &str, open_review: bool) -> R<()> 
 
 pub(super) fn check_source(rel: &[String], target: &Target, node: &Mapping) -> R<()> {
     guard(rel, target, "move", false)?;
+    // Main categories are the storage's own top level and never leave or move inside it.
+    if rel.len() == 1 || flags_in(node).iter().any(|f| f == MAIN_FLAG) {
+        return Err(refuse(rel, "main categories cannot be moved"));
+    }
     match type_base(&target.node_type) {
-        "WKB" => Ok(()),
-        "NODE" if flags_in(node).iter().any(|f| f == DATA_FLAG) => Ok(()),
-        "NODE" => Err(refuse(rel, "only a data node or a workboard can be moved, and this node has no data flag")),
+        "WKB" | "NODE" => Ok(()),
         "" => Err(refuse(rel, "the folder has no type in the tree yet; refresh and retry")),
         other => Err(refuse(rel, format!("{other} folders cannot be moved, only data nodes and workboards"))),
     }

@@ -1,4 +1,4 @@
-// Drags a storage folder out to Explorer or the desktop, offered as a copy or, with Alt, a shortcut.
+// Drags a storage folder or file out to Explorer or the desktop, offered as a move, a copy or a shortcut.
 #[cfg(windows)]
 mod com;
 #[cfg(test)]
@@ -12,14 +12,18 @@ use tauri::AppHandle;
 
 use super::run_locked;
 use crate::error::{FmError, R};
-use crate::mutations::{locate, Target};
+use crate::ant_core::tree_types::flags_in;
+use crate::config::MAIN_FLAG;
+use crate::fs_safe::join_rel;
+use crate::mutations::{self, locate, Target};
 use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store;
+use crate::tree::tree_store::{self, get_node};
 
 const DROPEFFECT_COPY: u32 = 1;
+const DROPEFFECT_MOVE: u32 = 2;
 const DROPEFFECT_LINK: u32 = 4;
-// Without MOVE the target can never take the folder out of the storage.
-const ALLOWED_EFFECTS: u32 = DROPEFFECT_COPY | DROPEFFECT_LINK;
+// Explorer moves on one drive by default; Ctrl turns the drop into a copy.
+const ALLOWED_EFFECTS: u32 = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK;
 
 #[tauri::command]
 pub async fn start_drag_out(app: AppHandle, target: Vec<String>) -> R<()> {
@@ -40,9 +44,15 @@ pub async fn start_drag_out(app: AppHandle, target: Vec<String>) -> R<()> {
 }
 
 pub(super) fn drag_plan(root: &Path, data: &Mapping, target: &[String]) -> R<PathBuf> {
+    if join_rel(root, target).is_file() {
+        return mutations::file_path(root, target);
+    }
     let Target { abs, ghost, .. } = locate(root, data, target)?;
     if is_reserved(target) {
         return Err(FmError::Reserved { rel_parts: target.to_vec() });
+    }
+    if target.len() == 1 || get_node(data, target).map(flags_in).unwrap_or_default().iter().any(|f| f == MAIN_FLAG) {
+        return Err(FmError::InvalidPath { rel_parts: target.to_vec(), reason: "main categories cannot be moved".to_string() });
     }
     if ghost {
         return Err(FmError::GhostNotAllowed { op: "drag out".to_string() });

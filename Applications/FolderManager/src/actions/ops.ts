@@ -285,6 +285,17 @@ export const pasteFiles = (target: string[]) =>
     `Pasting files in "${target[target.length - 1]}"…`,
   );
 
+// Files already in the storage move (or copy) into a folder, with the same placement as files dropped from Explorer.
+export const moveFiles = (sources: string[][], target: string[], copy: boolean) =>
+  run(
+    async () => {
+      const { mutation, placed } = await api.moveFilesIn(sources, target, copy);
+      await applyMutation(mutation);
+      doneNotice = dropNotice(placed, mutation.warnings);
+    },
+    `${copy ? "Copying" : "Moving"} files to "${target[target.length - 1]}"…`,
+  );
+
 export const moveFolder = (source: string[], destination: string[], copy: boolean) =>
   run(
     async () => applyMutation(await api.moveFolder(source, destination, copy)),
