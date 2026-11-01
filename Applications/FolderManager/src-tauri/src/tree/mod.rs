@@ -10,14 +10,9 @@ use crate::error::R;
 use crate::fs_safe::StorageLock;
 use crate::index::footprint::{self, Copies};
 use crate::index::search_index;
-use crate::mutations;
 use tree_node::{build_tree, fill_children, TreeSnapshot};
 
 pub fn snapshot(root: &Path, mode: Copies) -> R<TreeSnapshot> {
-    if root.join(crate::config::TRASH_DIR).is_dir() {
-        let _lock = StorageLock::acquire(root)?;
-        mutations::recover_trashed(root)?;
-    }
     let mut data = tree_store::load(root)?;
     let mut changed = tree_store::sync(root, &mut data)?;
     let mut copies = Vec::new();

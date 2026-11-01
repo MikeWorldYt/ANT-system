@@ -1,7 +1,7 @@
 // Win32 write of one folder as CF_HDROP plus the "Preferred DropEffect", so Explorer can paste or move it.
 use std::io::Error;
 use std::os::windows::ffi::OsStrExt;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use windows_sys::Win32::Foundation::{GlobalFree, HGLOBAL};
 use windows_sys::Win32::System::DataExchange::{EmptyClipboard, SetClipboardData};
@@ -73,9 +73,9 @@ pub(crate) fn hdrop_bytes(paths: &[PathBuf]) -> Vec<u8> {
     bytes
 }
 
-pub fn write(path: &Path, effect: u32) -> R<()> {
+pub fn write(paths: &[PathBuf], effect: u32) -> R<()> {
     let format = drop_effect_format()?;
-    let files = Global::with(&hdrop_bytes(&[path.to_path_buf()]))?;
+    let files = Global::with(&hdrop_bytes(paths))?;
     let effect = Global::with(&effect.to_ne_bytes())?;
     let _open = OpenClipboardGuard::acquire()?;
     // SAFETY: the clipboard is open on this thread.

@@ -12,6 +12,7 @@ use std::path::Path;
 use serde_yaml::Mapping;
 
 use super::{child_rel, ensure_free, finish, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation};
+use crate::ant_core::names::with_next_slot;
 use crate::ant_core::tree_types::child_entries;
 use crate::error::{FmError, R};
 use crate::fs_safe::{Journal, StorageLock};
@@ -32,8 +33,12 @@ pub fn move_folder(root: &Path, source: &[String], destination: &[String], copy:
     rules::check_destination(destination, &to)?;
     rules::check_not_inside(source, destination)?;
     let (source_name, parent) = split(source)?;
-    // A copy takes the next free "(n)" name, as dropped files do, instead of refusing a taken one.
-    let owned_name = if copy { copy_name(&to.abs, get_node(&data, destination), source_name)? } else { source_name.to_string() };
+    // A move takes the lowest free slot of its new level; a copy keeps its id and takes the next free "(n)" name.
+    let owned_name = if copy {
+        copy_name(&to.abs, get_node(&data, destination), source_name)?
+    } else {
+        with_next_slot(source_name, &siblings_of(&data, destination))
+    };
     let name = owned_name.as_str();
     if !copy && parent == destination {
         return Err(rules::refuse(source, format!("the folder is already in {}", destination.join("/"))));
@@ -63,7 +68,7 @@ pub fn move_folder(root: &Path, source: &[String], destination: &[String], copy:
     let before = subtrees(&data, &[source.to_vec()]);
     let mut journal = Journal::new();
     journal.rename(&from.abs, &new_abs)?;
-    delete_key(&mut data, parent, name);
+    delete_key(&mut data, parent, source_name);
     if let Err(e) = insert(root, &mut data, &new_rel, entry, limit) {
         return Err(journal.abort("move folder", e));
     }
@@ -83,6 +88,10 @@ fn insert(root: &Path, data: &mut Mapping, rel: &[String], mut entry: Mapping, l
     let slot = get_node_mut(data, destination).ok_or_else(|| FmError::NotFound { rel_parts: destination.to_vec() })?;
     slot.insert(name.clone().into(), entry.into());
     Ok(())
+}
+
+fn siblings_of(data: &Mapping, destination: &[String]) -> Vec<String> {
+    get_node(data, destination).map(|node| child_entries(node).map(|(key, _)| key.to_string()).collect()).unwrap_or_default()
 }
 
 // A copy that meets a same-named folder takes the next free "name (n)", the way Explorer names copies.

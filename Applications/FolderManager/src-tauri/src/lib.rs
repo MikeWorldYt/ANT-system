@@ -102,7 +102,7 @@ pub fn run() {
             commands::file_image,
             commands::rename_file,
             commands::delete_file,
-            commands::copy_file,
+            commands::copy_items,
             commands::move_files_in,
             commands::create_file_shortcut_in,
             commands::set_review_filter,
@@ -146,7 +146,6 @@ pub fn run() {
             commands::acknowledge_intake,
             commands::drop_files,
             commands::paste_files,
-            commands::copy_folder,
             commands::start_drag_out,
             commands::create_shortcut_in,
         ])

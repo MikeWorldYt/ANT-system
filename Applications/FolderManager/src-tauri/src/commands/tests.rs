@@ -8,8 +8,8 @@ use super::tree::refresh_flow;
 use super::update::{skip_path, skipped_for};
 use super::*;
 use crate::ant_core::search::parse_query;
-use crate::config::{EditableType, NewKind, WkbStatus, TRASH_DIR};
-use crate::mutations::{self, recycle_staged_with, MoveDirection, Mutation};
+use crate::config::{EditableType, NewKind, WkbStatus};
+use crate::mutations::{self, MoveDirection, Mutation};
 use crate::fs_safe::StorageLock;
 use crate::index::{reindex, search_index};
 use crate::storage::db::Store;
@@ -70,7 +70,7 @@ fn delete(
     recycle: impl FnOnce(&Path) -> Result<(), String>,
 ) -> R<Mutation> {
     let emit = probe.emit();
-    delete_flow(storage, &rel(parts), (ghost, true), &emit, no_quick, probe.rebuild(&[]), |p| recycle_staged_with(p, recycle))
+    delete_flow(storage, &rel(parts), (ghost, true), &emit, no_quick, probe.rebuild(&[]), recycle)
 }
 
 #[test]
@@ -133,24 +133,15 @@ fn a_failed_event_and_an_unreadable_db_become_warnings() {
 }
 
 #[test]
-fn delete_rebuilds_before_the_recycle_and_releases_the_lock_for_it() {
-    let dir = work("cmd-delete");
+fn a_failed_recycle_leaves_the_folder_the_tree_and_the_index_alone() {
+    let dir = work("cmd-delete-fail");
     let storage = Storage::resolve(dir.path().to_path_buf());
     let probe = Probe::new();
-    let emit = probe.emit();
-    let rel_b = rel(&["100.WORK", "02.B"]);
-    let flow = delete_flow(&storage, &rel_b, (false, false), &emit, no_quick, probe.rebuild(&["stub"]), |p| {
-        assert_eq!(probe.phases(), ["started", "done"]);
-        assert!(storage.lock.try_lock().is_ok(), "mutex still held during recycle");
-        assert!(StorageLock::acquire(dir.path()).is_ok(), "lock file still held during recycle");
-        recycle_staged_with(p, |_| Err("bin unavailable".to_string()))
-    });
-    let m = flow.unwrap();
-    assert_eq!(m.warnings.len(), 2, "{:?}", m.warnings);
-    assert_eq!(m.warnings[0], "Review index: stub");
-    assert!(m.warnings[1].contains("bin unavailable"));
-    assert!(get_node(&probe.seen_yaml.borrow()[0], &rel_b).is_none());
-    assert_eq!(std::fs::read_dir(dir.path().join(TRASH_DIR)).unwrap().count(), 1);
+    let err = delete(&storage, &probe, &["100.WORK", "02.B"], false, |_| Err("bin unavailable".to_string())).unwrap_err();
+    assert!(matches!(err, FmError::Io { .. }), "{err:?}");
+    assert!(dir.path().join("100.WORK/02.B").is_dir());
+    assert!(probe.phases().is_empty());
+    assert!(get_node(&yaml(dir.path()), &rel(&["100.WORK", "02.B"])).is_some());
 }
 
 #[test]
@@ -160,7 +151,6 @@ fn delete_recycles_cleanly_and_ghost_deletes_skip_the_recycle() {
     let probe = Probe::new();
     let m = delete(&storage, &probe, &["100.WORK", "02.B"], false, ok_recycle).unwrap();
     assert!(m.warnings.is_empty(), "{:?}", m.warnings);
-    assert!(!dir.path().join(TRASH_DIR).exists());
     let ghost = delete(&storage, &probe, &["100.WORK", "03.Ghost"], true, |_| panic!("no disk delete")).unwrap();
     assert!(ghost.warnings.is_empty());
     assert_eq!(probe.phases().len(), 4);
@@ -306,7 +296,7 @@ fn dropped_files_keep_the_search_index_like_a_full_rebuild() {
     let outside = TempDir::new("cmd-inc-drop-src");
     let file = outside.path().join("scan.pdf");
     std::fs::write(&file, "x").unwrap();
-    let m = with_search_index(dir.path(), mutations::drop_files(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), &[file], false).map(|o| o.mutation)).unwrap();
+    let m = with_search_index(dir.path(), mutations::drop_files(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), &[file], false, &[], &|_: &std::path::Path| Ok(())).map(|o| o.mutation)).unwrap();
     assert!(dir.path().join("100.ACADEMIC/01.Math/98.Math/scan.pdf").is_file());
     assert_eq!(m.touched, [rel(&["100.ACADEMIC", "01.Math", "98.Math"])]);
     assert_matches_full_rebuild(&dir, &m);

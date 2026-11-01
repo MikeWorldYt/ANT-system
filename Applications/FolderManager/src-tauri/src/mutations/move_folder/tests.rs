@@ -110,11 +110,11 @@ fn assert_indexes_like_full_rebuild(dir: &TempDir, m: &Mutation) {
 fn a_data_node_moves_into_a_node_with_its_uid_type_and_contents() {
     let dir = ready("mf-data");
     let m = move_folder(dir.path(), &rel(&["100.WORK", "02.Data"]), &rel(&["200.HOME", "01.Garden"]), false).unwrap();
-    let moved = ["200.HOME", "01.Garden", "02.Data"];
+    let moved = ["200.HOME", "01.Garden", "01.Data"];
     assert_eq!(m.select, Some(rel(&moved)));
     assert_eq!(m.levels.iter().map(|l| l.parent.clone()).collect::<Vec<_>>(), [rel(&["100.WORK"]), rel(&["200.HOME", "01.Garden"])]);
     assert!(!dir.path().join("100.WORK/02.Data").exists());
-    assert_eq!(fs::read_to_string(dir.path().join("200.HOME/01.Garden/02.Data/notes.txt")).unwrap(), "keep");
+    assert_eq!(fs::read_to_string(dir.path().join("200.HOME/01.Garden/01.Data/notes.txt")).unwrap(), "keep");
     assert!(get_node(&yaml(dir.path()), &rel(&["100.WORK", "02.Data"])).is_none());
     let node = get_node(&yaml(dir.path()), &rel(&moved)).unwrap().clone();
     assert_eq!(node.get("type").and_then(Value::as_str), Some("NODE-L2"));
@@ -122,6 +122,20 @@ fn a_data_node_moves_into_a_node_with_its_uid_type_and_contents() {
     assert_eq!(uid(&dir, &moved).as_deref(), Some("DATA00000000001"));
     assert!(node.get("98.Data").is_none(), "past the depth limit the 98 folder stays on disk only");
     assert_indexes_like_full_rebuild(&dir, &m);
+}
+
+#[test]
+fn a_moved_node_takes_the_lowest_free_slot_of_its_new_level() {
+    let dir = ready("mf-slot");
+    for taken in ["01.Taken", "02.Taken", "03.Taken"] {
+        dir.mkdir(&format!("200.HOME/01.Garden/{taken}"));
+    }
+    let m = move_folder(dir.path(), &rel(&["100.WORK", "02.Data"]), &rel(&["200.HOME", "01.Garden"]), false).unwrap();
+    assert_eq!(m.select, Some(rel(&["200.HOME", "01.Garden", "04.Data"])));
+    assert!(dir.path().join("200.HOME/01.Garden/04.Data/notes.txt").is_file());
+    let m = move_folder(dir.path(), &rel(&["100.WORK", "03.Target"]), &rel(&["200.HOME", "01.Garden"]), false).unwrap();
+    assert_eq!(m.select, Some(rel(&["200.HOME", "01.Garden", "05.Target"])));
+    assert!(dir.path().join("200.HOME/01.Garden/05.Target").is_dir());
 }
 
 #[test]
@@ -186,8 +200,8 @@ fn a_review_folder_takes_a_data_node_and_a_workboard_but_998_review_does_not() {
     let dir = ready("mf-review");
     let review = ["100.WORK", "98.WORK"];
     let m = move_folder(dir.path(), &rel(&["100.WORK", "02.Data"]), &rel(&review), false).unwrap();
-    assert_eq!(fs::read_to_string(dir.path().join("100.WORK/98.WORK/02.Data/notes.txt")).unwrap(), "keep");
-    assert_eq!(uid(&dir, &["100.WORK", "98.WORK", "02.Data"]).as_deref(), Some("DATA00000000001"));
+    assert_eq!(fs::read_to_string(dir.path().join("100.WORK/98.WORK/01.Data/notes.txt")).unwrap(), "keep");
+    assert_eq!(uid(&dir, &["100.WORK", "98.WORK", "01.Data"]).as_deref(), Some("DATA00000000001"));
     assert_indexes_like_full_rebuild(&dir, &m);
     let web = uid(&dir, &["100.WORK", "PJ.001_Web"]);
     let m = move_folder(dir.path(), &rel(&["100.WORK", "PJ.001_Web"]), &rel(&review), false).unwrap();

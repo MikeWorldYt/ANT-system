@@ -10,13 +10,17 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use super::{exactly_on_disk, finish, load_synced_at, locate, Mutation};
-use crate::ant_core::tree_types::child_entries;
+use super::recycle::move_to_bin;
+use super::{child_rel, exactly_on_disk, finish, load_synced_at, locate, register_ids, Mutation};
+use crate::ant_core::names::{compose_name, free_track, is_workboard_name, name_parts};
+use crate::ant_core::tree_types::{child_entries, type_base};
 use crate::config::{is_hidden_dir, SETTINGS_FOLDER};
 use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, resolve, Journal, StorageLock};
-use crate::index::review_index;
-use crate::tree::tree_store::{self, get_node};
+use crate::fs_safe::{io_err, join_rel, redirects, resolve, Journal, StorageLock};
+use crate::index::{footprint, review_index};
+
+use crate::tree::tree_store::{self, delete_key, get_node};
+use serde_yaml::{Mapping, Value};
 pub(crate) use naming::free_name;
 use target::destination;
 
@@ -32,6 +36,16 @@ struct Place<'a> {
 pub struct DropOutcome {
     pub mutation: Mutation,
     pub placed: Vec<PlacedFile>,
+    pub conflicts: Vec<WorkboardConflict>,
+}
+
+// A workboard that is already in the storage under the same id; nothing is placed until the user chooses to replace it.
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkboardConflict {
+    pub name: String,
+    pub source: PathBuf,
+    pub existing: Vec<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -47,11 +61,19 @@ enum Outcome {
     Skipped(String),
 }
 
-pub fn drop_files(root: &Path, target: &[String], paths: &[PathBuf], copy: bool) -> R<DropOutcome> {
+// `replace` lists the workboards the user agreed to swap for the one already in the storage.
+pub fn drop_files(
+    root: &Path,
+    target: &[String],
+    paths: &[PathBuf],
+    copy: bool,
+    replace: &[PathBuf],
+    recycle: &dyn Fn(&Path) -> Result<(), String>,
+) -> R<DropOutcome> {
     let _lock = StorageLock::acquire(root)?;
     let owner = review_index::linked_owner(root, &tree_store::load(root)?, target)?;
     let target = owner.as_deref().unwrap_or(target);
-    let (data, synced) = load_synced_at(root, target)?;
+    let (mut data, mut synced) = load_synced_at(root, target)?;
     if locate(root, &data, target)?.ghost {
         return Err(FmError::GhostNotAllowed { op: "drop files into".to_string() });
     }
@@ -64,17 +86,46 @@ pub fn drop_files(root: &Path, target: &[String], paths: &[PathBuf], copy: bool)
     if synced {
         tree_store::save(root, &data)?;
     }
+    let storage = fs::canonicalize(root).map_err(|e| io_err("resolve storage", root, &e))?;
+    let source_folders: Vec<Vec<String>> = if copy { Vec::new() } else { paths.iter().filter_map(|src| folder_of(&storage, src)).collect() };
+    let mut journal = Journal::new();
+    let mut warnings = Vec::new();
+    let mut placed = Vec::new();
+    let mut conflicts = Vec::new();
+    // Workboards go first, since placing one changes the yaml that the files are placed by.
+    let (folders, files): (Vec<&PathBuf>, Vec<&PathBuf>) = paths.iter().partition(|src| is_folder(src));
+    let mut moved_workboard = false;
+    if !folders.is_empty() && !matches!(type_base(&tree_store::get_type(&data, target)), "NODE" | "WKB") {
+        return Err(FmError::InvalidPath { rel_parts: target.to_vec(), reason: "workboards go into a node or another workboard".to_string() });
+    }
+    // A workboard sits directly in the node it was dropped on, unlike files, which go to its review folder.
+    let node_dir = resolve(root, target)?;
+    for src in folders {
+        match place_workboard(root, &mut data, target, &node_dir, src, copy, replace.contains(src), recycle, &mut journal) {
+            Ok(Workboard::Placed(name, note)) => {
+                moved_workboard = true;
+                if let Some(note) = note {
+                    warnings.push(format!("{}: {note}", src.display()));
+                }
+                placed.push(PlacedFile { name, folder: target.to_vec(), copied: false });
+            }
+            Ok(Workboard::Taken(conflict)) => conflicts.push(conflict),
+            Err(why) => warnings.push(format!("{}: not placed, {why}", src.display())),
+        }
+    }
+    if moved_workboard {
+        synced |= tree_store::sync_branch(root, &mut data, target)?;
+        synced |= register_ids(root, &mut data, &mut warnings);
+        tree_store::save(root, &data)?;
+    }
     let place = Place {
-        storage: fs::canonicalize(root).map_err(|e| io_err("resolve storage", root, &e))?,
+        storage,
         dest: &dest,
         dest_real: fs::canonicalize(&dest).map_err(|e| io_err("resolve path", &dest, &e))?,
         tree_names: get_node(&data, &dest_rel).map(|n| child_entries(n).map(|(k, _)| k).collect()).unwrap_or_default(),
         copy,
     };
-    let mut journal = Journal::new();
-    let mut warnings = Vec::new();
-    let mut placed = Vec::new();
-    for src in paths {
+    for src in files {
         match place.one(&mut journal, src) {
             Ok(Outcome::Placed(name, note)) => {
                 if let Some(note) = note {
@@ -88,8 +139,159 @@ pub fn drop_files(root: &Path, target: &[String], paths: &[PathBuf], copy: bool)
     }
     // Each file stands alone: one that cannot be placed is reported and never undoes the others.
     journal.commit();
-    let mutation = finish(root, &data, synced, None, warnings, vec![dest_rel]);
-    Ok(DropOutcome { mutation, placed })
+    let mut touched = vec![dest_rel];
+    for folder in source_folders {
+        if !touched.contains(&folder) {
+            touched.push(folder);
+        }
+    }
+    let mutation = finish(root, &data, synced, None, warnings, touched);
+    Ok(DropOutcome { mutation, placed, conflicts })
+}
+
+enum Workboard {
+    // The note is set when the original could not be removed after a copy across drives.
+    Placed(String, Option<String>),
+    Taken(WorkboardConflict),
+}
+
+fn is_folder(src: &Path) -> bool {
+    fs::symlink_metadata(src).is_ok_and(|meta| meta.is_dir())
+}
+
+// A workboard moves in with its folder and id; a track its new folder already uses is renumbered.
+fn place_workboard(
+    root: &Path,
+    data: &mut Mapping,
+    dest_rel: &[String],
+    dest: &Path,
+    src: &Path,
+    copy: bool,
+    replace: bool,
+    recycle: &dyn Fn(&Path) -> Result<(), String>,
+    journal: &mut Journal,
+) -> Result<Workboard, String> {
+    let real = fs::canonicalize(src).map_err(|e| io_err("resolve path", src, &e).to_string())?;
+    let storage = fs::canonicalize(root).map_err(|e| io_err("resolve storage", root, &e).to_string())?;
+    let name = real.file_name().map(|n| n.to_string_lossy().into_owned()).ok_or("the path has no file name")?;
+    if !is_workboard_name(&name) {
+        return Err("folders cannot be dropped yet, only files and workboards".to_string());
+    }
+    if copy {
+        return copy_workboard(root, data, dest_rel, dest, &real, &name);
+    }
+    if real.starts_with(&storage) {
+        return Err("it is already in the storage; drag it inside the app to move it".to_string());
+    }
+    // A replacement keeps the track of the workboard it replaces, so the number a project is known by stays.
+    let mut replaced_track = None;
+    if let Some(owner) = footprint::read_id(&real).and_then(|id| owner_of(data, &id)) {
+        if !replace {
+            return Ok(Workboard::Taken(WorkboardConflict { name, source: src.to_path_buf(), existing: owner }));
+        }
+        move_to_bin(&join_rel(root, &owner), recycle).map_err(|e| e.to_string())?;
+        if let Some((last, parent)) = owner.split_last() {
+            delete_key(data, parent, last);
+            replaced_track = Some(name_parts(last, true).0);
+        }
+    }
+    let siblings: Vec<String> = get_node(data, dest_rel).map(|n| child_entries(n).map(|(k, _)| k.to_string()).collect()).unwrap_or_default();
+    let free = match replaced_track {
+        Some(track) => compose_name(&track, &name_parts(&name, true).1, true),
+        None => free_track(&name, &siblings),
+    };
+    let to = dest.join(&free);
+    if to.exists() {
+        return Err(format!("a folder named {free} already exists"));
+    }
+    match journal.rename(&real, &to) {
+        Ok(()) => Ok(Workboard::Placed(free, None)),
+        Err(FmError::Io { os_code: Some(code), .. }) if crosses_devices(code) => {
+            let note = move_across(&real, &to)?;
+            Ok(Workboard::Placed(free, note))
+        }
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+// A copy takes its own track and its own id, so the original and the copy never share either.
+fn copy_workboard(root: &Path, data: &mut Mapping, dest_rel: &[String], dest: &Path, real: &Path, name: &str) -> Result<Workboard, String> {
+    let dest_real = fs::canonicalize(dest).map_err(|e| io_err("resolve path", dest, &e).to_string())?;
+    if dest_real.starts_with(real) {
+        return Err("a workboard cannot be copied into itself".to_string());
+    }
+    let siblings: Vec<String> = get_node(data, dest_rel).map(|n| child_entries(n).map(|(k, _)| k.to_string()).collect()).unwrap_or_default();
+    let free = free_track(name, &siblings);
+    let to = dest.join(&free);
+    if to.exists() {
+        return Err(format!("a folder named {free} already exists"));
+    }
+    copy_whole(real, &to)?;
+    let new_rel = child_rel(dest_rel, &free);
+    tree_store::sync_branch(root, data, dest_rel).map_err(|e| e.to_string())?;
+    footprint::tail_copy(root, data, &new_rel).map_err(|e| e.to_string())?;
+    Ok(Workboard::Placed(free, None))
+}
+
+// Across drives a folder is copied and then removed from its place, as files are; links inside stop the copy before it starts.
+fn move_across(from: &Path, to: &Path) -> Result<Option<String>, String> {
+    copy_whole(from, to)?;
+    Ok(fs::remove_dir_all(from).err().map(|e| format!("copied as {}, but the original could not be removed: {e}", to.display())))
+}
+
+// A folder copied in part is removed again, so a failed copy leaves nothing behind.
+fn copy_whole(from: &Path, to: &Path) -> Result<(), String> {
+    if let Err(why) = copy_tree(from, to) {
+        return match fs::remove_dir_all(to) {
+            Ok(()) => Err(why),
+            Err(r) => Err(format!("{why}; the partial copy {} could not be removed: {r}", to.display())),
+        };
+    }
+    Ok(())
+}
+
+fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
+    fs::create_dir(to).map_err(|e| io_err("create folder", to, &e).to_string())?;
+    for entry in fs::read_dir(from).map_err(|e| io_err("list folder", from, &e).to_string())? {
+        let entry = entry.map_err(|e| io_err("list folder", from, &e).to_string())?;
+        let path = entry.path();
+        let meta = fs::symlink_metadata(&path).map_err(|e| io_err("inspect path", &path, &e).to_string())?;
+        if redirects(&path, &meta).map_err(|e| e.to_string())? {
+            return Err(format!("{} is a link, which cannot be moved across drives", path.display()));
+        }
+        let copy_to = to.join(entry.file_name());
+        if meta.is_dir() {
+            copy_tree(&path, &copy_to)?;
+        } else {
+            fs::copy(&path, &copy_to).map_err(|e| io_err("copy file", &path, &e).to_string())?;
+        }
+    }
+    Ok(())
+}
+
+// The tree path of the node whose uid is `id`, if the storage already holds it.
+fn owner_of(data: &Mapping, id: &str) -> Option<Vec<String>> {
+    fn walk(node: &Mapping, path: &mut Vec<String>, id: &str) -> Option<Vec<String>> {
+        for (name, child) in child_entries(node) {
+            path.push(name.to_string());
+            if child.get("uid").and_then(Value::as_str) == Some(id) {
+                return Some(path.clone());
+            }
+            if let Some(found) = walk(child, path, id) {
+                return Some(found);
+            }
+            path.pop();
+        }
+        None
+    }
+    walk(data, &mut Vec::new(), id)
+}
+
+// The storage folder a file sits in before it moves, so that folder's listing refreshes as well.
+fn folder_of(storage: &Path, src: &Path) -> Option<Vec<String>> {
+    let real = fs::canonicalize(src).ok()?;
+    let inner = real.parent()?.strip_prefix(storage).ok()?;
+    Some(inner.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect())
 }
 
 impl Place<'_> {

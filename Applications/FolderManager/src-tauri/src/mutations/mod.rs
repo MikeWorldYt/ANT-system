@@ -43,7 +43,7 @@ pub use file_drop::{drop_files, DropOutcome};
 pub(crate) use file_drop::free_name;
 pub use move_folder::{move_folder, move_to_review};
 pub use user_flags::set_user_flag;
-pub use recycle::{recover_trashed, recycle_staged, PendingRecycle};
+pub(crate) use recycle::send_to_recycle_bin;
 pub use rename::rename_node;
 pub use reorder::{move_node, MoveDirection};
 pub use result::LevelPatch;
@@ -51,8 +51,6 @@ pub(crate) use result::finish;
 pub use resolve::{preview_names, resolve_invalid, Pending, Resolution};
 pub use retype::{set_details, set_node_type};
 pub use review_filter::set_review_filter;
-#[cfg(test)]
-pub(crate) use recycle::recycle_staged_with;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -100,7 +98,7 @@ pub(crate) struct Target {
 }
 
 // New .ant folders get their id now; true means a folder moved outside the app was re-keyed, which is not a local change.
-fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) -> bool {
+pub(crate) fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) -> bool {
     let shape = node_paths(data);
     match footprint::plan(root, data, Copies::Ignore).map(|plan| plan.changed) {
         Ok(true) => {

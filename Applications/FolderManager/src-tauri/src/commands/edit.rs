@@ -7,7 +7,7 @@ use tauri::{AppHandle, Manager};
 use super::{locked, review_emitter, run_locked, Storage};
 use crate::ant_core::shortcuts::create_shortcuts;
 use crate::config::{EditableType, NewKind, WkbStatus};
-use crate::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation, PendingRecycle};
+use crate::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
 use crate::error::{FmError, R};
 use crate::index::{reindex, reindex_paths, review_index, search_index, Emit};
 use crate::tree::tree_store;
@@ -50,7 +50,6 @@ pub(super) fn with_search_index(root: &Path, result: R<Mutation>) -> R<Mutation>
     Ok(m)
 }
 
-// The recycle runs after the storage lock is released so a slow Recycle Bin never blocks other commands.
 pub(super) fn delete_flow(
     storage: &Storage,
     rel: &[String],
@@ -58,16 +57,12 @@ pub(super) fn delete_flow(
     emit: Emit,
     create: impl FnOnce(&[(PathBuf, PathBuf)]) -> Vec<String>,
     rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>,
-    recycle: impl FnOnce(PendingRecycle) -> Vec<String>,
+    recycle: impl FnOnce(&Path) -> Result<(), String>,
 ) -> R<Mutation> {
-    let (mut m, pending) = locked(storage, |root| {
-        let (m, pending) = mutations::delete_node(root, rel, flags.0, flags.1)?;
-        Ok((with_index(root, Ok(m), emit, create, rebuild)?, pending))
-    })?;
-    if let Some(pending) = pending {
-        m.warnings.extend(recycle(pending));
-    }
-    Ok(m)
+    locked(storage, |root| {
+        let m = mutations::delete_node(root, rel, flags.0, flags.1, recycle)?;
+        with_index(root, Ok(m), emit, create, rebuild)
+    })
 }
 
 #[tauri::command]
@@ -85,14 +80,11 @@ pub async fn rename_file(app: AppHandle, rel_parts: Vec<String>, new_name: Strin
     run_locked(app, move |root| mutations::rename_file(root, &rel_parts, &new_name)).await
 }
 
-// The file goes to the Recycle Bin after the storage lock is released, as folders do.
 #[tauri::command]
 pub async fn delete_file(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
     tauri::async_runtime::spawn_blocking(move || {
         let storage = app.state::<Storage>();
-        let (mut m, pending) = locked(&storage, |root| mutations::delete_file(root, &rel_parts))?;
-        m.warnings.extend(mutations::recycle_staged(pending));
-        Ok(m)
+        locked(&storage, |root| mutations::delete_file(root, &rel_parts, mutations::send_to_recycle_bin))
     })
     .await
     .map_err(|e| FmError::Internal { message: e.to_string() })?
@@ -215,7 +207,7 @@ pub async fn delete_node(
         let flags = (expect_ghost, confirm_non_empty);
         let emit = review_emitter(&app);
         let storage = app.state::<Storage>();
-        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, mutations::recycle_staged)
+        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, mutations::send_to_recycle_bin)
     })
     .await
     .map_err(|e| FmError::Internal { message: e.to_string() })?

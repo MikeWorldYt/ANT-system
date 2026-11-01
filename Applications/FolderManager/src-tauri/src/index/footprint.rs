@@ -280,7 +280,7 @@ fn walk(rel: &mut Vec<String>, dir: &Path, out: &mut Vec<Live>, limit: usize) ->
 }
 
 // An unreadable or malformed file counts as no id, so a new one replaces it.
-fn read_id(folder: &Path) -> Option<String> {
+pub(crate) fn read_id(folder: &Path) -> Option<String> {
     let text = fs::read_to_string(folder.join(DATA_DIR).join(FOOTPRINT_FILENAME)).ok()?;
     match serde_yaml::from_str::<Value>(&text).ok()? {
         Value::Mapping(m) => m.get("id").and_then(Value::as_str).filter(|id| !id.is_empty() && !id.contains(char::is_whitespace)).map(str::to_string),

@@ -2,12 +2,11 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::delete::stage_in_trash;
-use super::recycle::{PendingRecycle, IN_FLIGHT};
+use super::recycle::move_to_bin;
 use super::{finish, load_synced_at, parent_of, Mutation};
 
 use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, join_rel, validate_component, Journal, StorageLock};
+use crate::fs_safe::{io_err, join_rel, validate_component, StorageLock};
 use crate::tree::tree_node::lists_files;
 
 // The file a review folder lists; folders, links and missing paths are refused.
@@ -39,25 +38,19 @@ pub fn rename_file(root: &Path, rel: &[String], new_name: &str) -> R<Mutation> {
     Ok(finish(root, &data, synced, Some(renamed), Vec::new(), vec![parent]))
 }
 
-// The file goes to .ant-trash now and to the Recycle Bin after the storage lock is released.
-pub fn delete_file(root: &Path, rel: &[String]) -> R<(Mutation, PendingRecycle)> {
+// The Recycle Bin takes the file from its own folder under the lock, as it takes folders.
+pub fn delete_file(root: &Path, rel: &[String], recycle: impl FnOnce(&Path) -> Result<(), String>) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let abs = file_path(root, rel)?;
     let parent = parent_of(rel).to_vec();
     let (data, synced) = load_synced_at(root, &parent)?;
-    let name = rel.last().cloned().unwrap_or_default();
-    let mut journal = Journal::new();
-    let staged = stage_in_trash(root, &mut journal, &abs, &name)?;
-    journal.commit();
-    IN_FLIGHT.lock().unwrap_or_else(|p| p.into_inner()).push(staged.clone());
-    let pending = PendingRecycle { root: root.to_path_buf(), staged, name };
-    Ok((finish(root, &data, synced, None, Vec::new(), vec![parent]), pending))
+    move_to_bin(&abs, recycle)?;
+    Ok(finish(root, &data, synced, None, Vec::new(), vec![parent]))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::TRASH_DIR;
     use crate::test_support::{rel, storage};
 
     fn review_with_file(tag: &str) -> crate::test_support::TempDir {
@@ -82,15 +75,20 @@ mod tests {
         assert!(rename_file(dir.path(), &rel(&["100.A", "readme.txt"]), "x.txt").is_ok());
         assert!(dir.path().join("100.A/x.txt").is_file());
         assert!(rename_file(dir.path(), &rel(&["100.A", "missing.txt"]), "y.txt").is_err());
-        assert!(delete_file(dir.path(), &rel(&["100.A", "98.A"])).is_err());
+        assert!(delete_file(dir.path(), &rel(&["100.A", "98.A"]), |_| Ok(())).is_err());
     }
 
     #[test]
-    fn a_deleted_review_file_leaves_its_folder_and_waits_in_the_trash() {
+    fn a_deleted_review_file_is_sent_from_its_own_folder() {
         let dir = review_with_file("file-delete");
-        let (_, pending) = delete_file(dir.path(), &rel(&["100.A", "98.A", "notes.txt"])).unwrap();
-        assert!(!dir.path().join("100.A/98.A/notes.txt").exists());
-        assert!(pending.staged.starts_with(dir.path().join(TRASH_DIR)));
-        assert!(pending.staged.is_file());
+        let mut sent = Vec::new();
+        let m = delete_file(dir.path(), &rel(&["100.A", "98.A", "notes.txt"]), |p| {
+            sent.push(p.to_path_buf());
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(sent, [dir.path().join("100.A/98.A/notes.txt")]);
+        assert!(m.warnings.is_empty());
+        assert!(dir.path().join("100.A/98.A").is_dir());
     }
 }

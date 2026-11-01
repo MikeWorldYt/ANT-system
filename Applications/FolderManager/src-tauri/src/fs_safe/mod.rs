@@ -14,7 +14,7 @@ pub(crate) use lock::{StorageLock, LOCK_FILE};
 #[cfg(windows)]
 pub(crate) use powershell::{run_powershell, CREATE_NO_WINDOW};
 pub(crate) use validate::{
-    is_link, join_rel, redirects, resolve, same_name, validate_component, FORBIDDEN, MAX_NAME_UNITS,
+    is_link, join_rel, redirects, resolve, same_name, validate_component, FORBIDDEN,
 };
 
 static TMP_COUNTER: AtomicUsize = AtomicUsize::new(0);

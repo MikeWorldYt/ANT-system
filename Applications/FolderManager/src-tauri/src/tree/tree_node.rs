@@ -1,5 +1,6 @@
 // Tree rows sent to the UI: disk folders merged with tree entries, plus the per-node action rules.
 use std::collections::BTreeSet;
+use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 
@@ -289,7 +290,7 @@ fn disk_files(dir: &Path) -> R<Vec<String>> {
     for entry in fs::read_dir(dir).map_err(|e| io_err("read the folder", dir, &e))? {
         let entry = entry.map_err(|e| io_err("read the folder", dir, &e))?;
         let name = entry.file_name().to_string_lossy().into_owned();
-        if name.starts_with('.') || name.eq_ignore_ascii_case("desktop.ini") {
+        if name.starts_with('.') || name.eq_ignore_ascii_case("desktop.ini") || is_running_app(dir, &entry.file_name()) {
             continue;
         }
         if entry.file_type().map_err(|e| io_err("read the folder", dir, &e))?.is_file() {
@@ -297,6 +298,13 @@ fn disk_files(dir: &Path) -> R<Vec<String>> {
         }
     }
     Ok(files)
+}
+
+// The app can sit inside the storage it manages; listing its own executable would show the app inside itself.
+fn is_running_app(dir: &Path, name: &OsStr) -> bool {
+    let Ok(exe) = std::env::current_exe() else { return false };
+    exe.file_name().is_some_and(|exe_name| exe_name.eq_ignore_ascii_case(name))
+        && exe.parent().is_some_and(|parent| fs::canonicalize(parent).ok() == fs::canonicalize(dir).ok())
 }
 
 fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit: usize) -> R<TreeNode> {

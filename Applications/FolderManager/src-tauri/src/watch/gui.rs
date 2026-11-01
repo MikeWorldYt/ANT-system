@@ -18,9 +18,9 @@ pub struct StorageChanged {
     pub full: bool,
 }
 
-// Our own mutations wake the watcher too; only a batch that saved the tree is news to the window.
+// Our own writes are filtered out before this point, so any remaining path is news; files alone save no yaml.
 fn changed_event(report: &ApplyReport) -> Option<StorageChanged> {
-    report.saved.then_some(StorageChanged { paths: report.paths, full: report.full })
+    (report.saved || report.paths > 0).then_some(StorageChanged { paths: report.paths, full: report.full })
 }
 
 struct Running {
@@ -118,10 +118,12 @@ mod tests {
     use std::cell::RefCell;
 
     #[test]
-    fn only_a_saved_batch_reaches_the_window() {
-        let report = ApplyReport { paths: 2, full: false, skipped: 1, saved: false };
-        assert_eq!(changed_event(&report), None);
-        let saved = ApplyReport { saved: true, full: true, ..report };
+    fn only_a_batch_that_changed_something_reaches_the_window() {
+        let quiet = ApplyReport { paths: 0, full: false, skipped: 3, saved: false };
+        assert_eq!(changed_event(&quiet), None);
+        let files = ApplyReport { paths: 2, full: false, skipped: 1, saved: false };
+        assert_eq!(changed_event(&files), Some(StorageChanged { paths: 2, full: false }));
+        let saved = ApplyReport { saved: true, full: true, ..files };
         assert_eq!(changed_event(&saved), Some(StorageChanged { paths: 2, full: true }));
     }
 

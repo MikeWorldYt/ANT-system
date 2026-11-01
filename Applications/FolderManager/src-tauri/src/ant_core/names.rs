@@ -33,6 +33,36 @@ pub fn next_available_id(siblings: &[String]) -> u32 {
         .unwrap_or(LAST_SLOT)
 }
 
+// A moved node takes the lowest free slot of its new level, so the ids stay in sequence; other names are kept as they are.
+pub fn with_next_slot(name: &str, siblings: &[String]) -> String {
+    if has_node_id(name) {
+        format!("{:02}.{}", next_available_id(siblings), &name[3..])
+    } else {
+        name.to_string()
+    }
+}
+
+// A workboard whose track another sibling already uses takes the lowest free number of that tracker, at the same width.
+pub fn free_track(name: &str, siblings: &[String]) -> String {
+    let head = name.split('_').next().unwrap_or(name);
+    let Some(dot) = head.find('.') else { return name.to_string() };
+    let letters = &head[..=dot];
+    let used: Vec<u32> = siblings.iter().filter_map(|s| track_number(s.split('_').next().unwrap_or(s), letters)).collect();
+    if !track_number(head, letters).is_some_and(|n| used.contains(&n)) {
+        return name.to_string();
+    }
+    let width = head.len() - letters.len();
+    let free = (1..).find(|n| !used.contains(n)).unwrap_or(1);
+    format!("{letters}{free:0width$}{}", &name[head.len()..])
+}
+
+// The number after a tracker's letters ("PJ.") when the head is that tracker, else None.
+fn track_number(head: &str, letters: &str) -> Option<u32> {
+    let same_letters = head.get(..letters.len())?.eq_ignore_ascii_case(letters);
+    let number = head.get(letters.len()..)?;
+    (same_letters && !number.is_empty() && number.bytes().all(|b| b.is_ascii_digit())).then(|| number.parse().ok()).flatten()
+}
+
 pub fn next_main_category_id(siblings: &[String]) -> u32 {
     (FIRST_MAIN_ID..=LAST_MAIN_ID)
         .step_by(MAIN_ID_STEP as usize)
@@ -242,6 +272,16 @@ mod tests {
         assert_eq!(name_parts("PJ.145_(25-11-14) Plans_DOC", true).1, "(25-11-14) Plans_DOC");
         assert_eq!(compose_name("PJ.001_", "Name", true), "PJ.001_Name");
         assert_eq!(compose_name("PJ.001_", "", true), "PJ.001");
+    }
+
+    #[test]
+    fn a_taken_track_takes_the_lowest_free_number_of_its_tracker() {
+        let siblings: Vec<String> = ["PJ.001_Fabi-web", "PJ.009_Phospo", "PJ.010_Cangrebot", "PR.002_Other"].map(String::from).to_vec();
+        assert_eq!(free_track("PJ.009_Test", &siblings), "PJ.002_Test");
+        assert_eq!(free_track("PJ.005_Free", &siblings), "PJ.005_Free");
+        assert_eq!(free_track("PJ.009", &siblings), "PJ.002");
+        assert_eq!(free_track("PR.002_Mine", &siblings), "PR.001_Mine");
+        assert_eq!(free_track("PJ.0009_Wide", &["PJ.0009_X".to_string()]), "PJ.0001_Wide");
     }
 
     #[test]

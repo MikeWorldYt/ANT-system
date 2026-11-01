@@ -1,4 +1,4 @@
-// Drags a storage folder or file out to Explorer or the desktop, offered as a move, a copy or a shortcut.
+// Drags storage folders and files out to Explorer or the desktop, offered only as a move.
 #[cfg(windows)]
 mod com;
 #[cfg(test)]
@@ -19,18 +19,20 @@ use crate::mutations::{self, locate, Target};
 use crate::tree::tree_node::is_reserved;
 use crate::tree::tree_store::{self, get_node};
 
-const DROPEFFECT_COPY: u32 = 1;
 const DROPEFFECT_MOVE: u32 = 2;
-const DROPEFFECT_LINK: u32 = 4;
-// Explorer moves on one drive by default; Ctrl turns the drop into a copy.
-const ALLOWED_EFFECTS: u32 = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK;
+// Only a move: Explorer would otherwise default to copy across drives and leave the original behind.
+const ALLOWED_EFFECTS: u32 = DROPEFFECT_MOVE;
 
 #[tauri::command]
-pub async fn start_drag_out(app: AppHandle, target: Vec<String>) -> R<()> {
-    let path = run_locked(app.clone(), move |root| drag_plan(root, &tree_store::load(root)?, &target)).await?;
+pub async fn start_drag_out(app: AppHandle, targets: Vec<Vec<String>>) -> R<u32> {
+    let paths = run_locked(app.clone(), move |root| {
+        let data = tree_store::load(root)?;
+        targets.iter().map(|target| drag_plan(root, &data, target)).collect::<R<Vec<PathBuf>>>()
+    })
+    .await?;
     let (tx, rx) = mpsc::channel();
     app.run_on_main_thread(move || {
-        if tx.send(drag_folders(&[path])).is_err() {
+        if tx.send(drag_folders(&paths)).is_err() {
             eprintln!("The drag finished after its command was dropped");
         }
     })
@@ -40,7 +42,7 @@ pub async fn start_drag_out(app: AppHandle, target: Vec<String>) -> R<()> {
         .await
         .map_err(|e| FmError::Internal { message: e.to_string() })?
         .map_err(|_| FmError::Internal { message: "The drag ended without a result".to_string() })?;
-    effect.map(|_| ())
+    effect
 }
 
 pub(super) fn drag_plan(root: &Path, data: &Mapping, target: &[String]) -> R<PathBuf> {

@@ -27,7 +27,8 @@ pub fn update_paths(root: &Path, subtrees: &[&TreeNode], paths: &[Vec<String>]) 
     for node in subtrees {
         collect(std::slice::from_ref(*node), &mut docs);
     }
-    let prefixes: Vec<String> = paths.iter().map(|p| p.join("/")).collect();
+    // The storage root is not a node, so it has no rows to drop; an empty prefix would match them all.
+    let prefixes: Vec<String> = paths.iter().filter(|p| !p.is_empty()).map(|p| p.join("/")).collect();
     Store::open_or_create(root)?.update_paths(&prefixes, &docs)
 }
 
