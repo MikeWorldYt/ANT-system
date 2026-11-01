@@ -114,6 +114,7 @@ pub fn run() {
             commands::check_update,
             commands::start_update,
             commands::search_nodes,
+            commands::search_disk,
             commands::suggest_search,
             commands::start_debug_log,
             commands::stop_debug_log,

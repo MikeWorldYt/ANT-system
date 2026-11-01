@@ -1,9 +1,10 @@
-// Search commands, answered from the index in ant.db instead of walking the folders.
-use tauri::AppHandle;
+// Search commands, answered from the index in ant.db; the slow pass walks the folders on disk.
+use tauri::{AppHandle, Manager};
 
-use super::run_locked;
+use super::{run_locked, Storage};
 use crate::ant_core::search::{canonical_key, parse_query};
-use crate::error::R;
+use crate::error::{FmError, R};
+use crate::index::disk_search;
 use crate::storage::db::{Store, Suggestion};
 
 #[tauri::command]
@@ -13,6 +14,17 @@ pub async fn search_nodes(app: AppHandle, query: String) -> R<Vec<Vec<String>>> 
         store.search(&parse_query(&query))
     })
     .await
+}
+
+// Runs off the storage lock: a broad walk must not hold up edits.
+#[tauri::command]
+pub async fn search_disk(app: AppHandle, query: String) -> R<Vec<Vec<String>>> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = app.state::<Storage>().root()?;
+        disk_search::search_disk(&root, &parse_query(&query))
+    })
+    .await
+    .map_err(|e| FmError::Internal { message: e.to_string() })?
 }
 
 #[tauri::command]

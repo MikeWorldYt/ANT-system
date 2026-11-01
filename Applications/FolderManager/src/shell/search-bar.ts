@@ -1,5 +1,5 @@
 // Search box of the navigation bar: filter chips, completions for `key:` and a results list.
-import { describeError, searchNodes, suggestSearch, type Suggestion } from "../ipc/api";
+import { describeError, searchDisk, searchNodes, suggestSearch, type Suggestion } from "../ipc/api";
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { findNode, reveal } from "../store/state";
@@ -14,6 +14,8 @@ interface Item {
 
 const LIMIT = 50;
 const DELAY_MS = 200;
+// Walking the whole storage can be heavy, so it waits until typing has been idle this long.
+const REST_DELAY_MS = 5_000;
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export function createSearchBar(): { element: HTMLElement; focus(): void } {
@@ -41,12 +43,18 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
 
   const chips: Chip[] = [];
   let focused = false;
+  // Database matches come first in hits, then the rest of the storage from the slow pass.
   let hits: string[][] = [];
+  let dbCount = 0;
+  let restPending = false;
   let items: Item[] = [];
+  // Index of the first slow-pass item, where the divider goes; -1 when there is none.
+  let divider = -1;
   let lastSuggest: { key: string; prefix: string; found: Suggestion[] } | null = null;
   let active = 0;
   let latest = 0;
   let timer: number | undefined;
+  let restTimer: number | undefined;
 
   // The input stays focusable while collapsed so Tab and Ctrl+F reach it and expand the box.
   const sync = () => element.classList.toggle("collapsed", !focused && input.value === "" && chips.length === 0);
@@ -59,6 +67,7 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
   };
 
   function close(): void {
+    window.clearTimeout(restTimer);
     list.hidden = true;
     input.setAttribute("aria-expanded", "false");
     input.removeAttribute("aria-activedescendant");
@@ -75,10 +84,10 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
   }
 
   function show(extra: string[] = []): void {
-    const rows = items.map((item, i) => {
+    const rows = items.flatMap((item, i) => {
       const li = el("li", { class: "search-hit", role: "option", id: `search-hit-${i}` }, el("span", { class: "hit-name" }, item.label), el("span", { class: "hit-path" }, item.hint));
       li.addEventListener("click", item.pick);
-      return li;
+      return i === divider ? [el("li", { class: "search-divider", role: "separator" }), li] : [li];
     });
     const notes = items.length === 0 ? ["No matches", ...extra] : extra;
     rows.push(...notes.map((text) => el("li", { class: "search-empty", role: "presentation" }, text)));
@@ -99,18 +108,57 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     void run();
   }
 
+  const queryText = (): string => [...chips.map(chipQuery), input.value.trim()].filter(Boolean).join(" ");
+
   async function suggest(key: string, before: string, partial: string, mine: number): Promise<boolean> {
     const found = await suggestSearch(key, partial);
     if (mine !== latest) return true;
     lastSuggest = { key, prefix: partial, found };
     if (found.length === 0) return false;
     items = found.map((s) => ({ label: s.label, hint: s.hint, pick: () => pickSuggestion(key, before, s) }));
+    divider = -1;
     show();
     return true;
   }
 
+  // Database matches first, then the rest of the storage below a divider, each capped at LIMIT.
+  function renderHits(): void {
+    const dbShown = Math.min(dbCount, LIMIT);
+    const restShown = Math.min(hits.length - dbCount, LIMIT);
+    const picks = hits.map((_, at) => at).filter((at) => at < dbShown || (at >= dbCount && at < dbCount + restShown));
+    items = picks.map((at) => {
+      const parts = hits[at] ?? [];
+      return { label: parts[parts.length - 1] ?? "", hint: parts.slice(0, -1).join(" › "), pick: () => void open(at) };
+    });
+    const notes: string[] = [];
+    if (dbCount > LIMIT) notes.push(`${dbCount - LIMIT} more, narrow the search`);
+    if (restPending) notes.push("Searching the rest of the storage…");
+    divider = dbShown > 0 && restShown > 0 ? dbShown : -1;
+    show(notes);
+  }
+
+  async function searchRest(): Promise<void> {
+    if (!focused || list.hidden) return;
+    const mine = latest;
+    restPending = true;
+    renderHits();
+    let rest: string[][] = [];
+    try {
+      rest = await searchDisk(queryText());
+    } catch (e) {
+      if (mine === latest) setStatus("error", describeError(e));
+    }
+    if (mine !== latest) return;
+    restPending = false;
+    const known = new Set(hits.slice(0, dbCount).map((parts) => parts.join("/")));
+    hits = [...hits.slice(0, dbCount), ...rest.filter((parts) => !known.has(parts.join("/")))];
+    renderHits();
+  }
+
   async function run(): Promise<void> {
     const mine = ++latest;
+    window.clearTimeout(restTimer);
+    restPending = false;
     const text = input.value.trim();
     if (!text && chips.length === 0) {
       close();
@@ -119,15 +167,12 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     try {
       const token = splitToken(input.value);
       if (token && (await suggest(token.key, token.before, token.partial, mine))) return;
-      const found = await searchNodes([...chips.map(chipQuery), text].filter(Boolean).join(" "));
+      const found = await searchNodes(queryText());
       if (mine !== latest) return;
       hits = found;
-      items = found.slice(0, LIMIT).map((parts, i) => ({
-        label: parts[parts.length - 1] ?? "",
-        hint: parts.slice(0, -1).join(" › "),
-        pick: () => void open(i),
-      }));
-      show(found.length > LIMIT ? [`${found.length - LIMIT} more, narrow the search`] : []);
+      dbCount = found.length;
+      renderHits();
+      restTimer = window.setTimeout(() => void searchRest(), REST_DELAY_MS);
     } catch (e) {
       if (mine !== latest) return;
       close();
