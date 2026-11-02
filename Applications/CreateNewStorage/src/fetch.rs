@@ -1,7 +1,13 @@
 // Downloads through the system curl, kept to https and a short list of GitHub hosts.
 use std::process::Command;
 
-pub const GITHUB_HOSTS: [&str; 4] = ["github.com", "raw.githubusercontent.com", "objects.githubusercontent.com", "api.github.com"];
+pub const GITHUB_HOSTS: [&str; 5] = [
+    "github.com",
+    "raw.githubusercontent.com",
+    "objects.githubusercontent.com",
+    "release-assets.githubusercontent.com",
+    "api.github.com",
+];
 pub const MAX_TEXT_BYTES: u64 = 5 * 1024 * 1024;
 pub const MAX_EXE_BYTES: u64 = 100 * 1024 * 1024;
 const MAX_URL_CHARS: usize = 2048;
@@ -96,6 +102,27 @@ pub fn core_file_list(listing: &str) -> Result<Vec<(String, String)>, String> {
     Ok(files)
 }
 
+// Highest stable `<prefix>X.Y.Z` tag in a releases listing (pre-releases like `-rc1` are skipped). The text is scanned
+// for "tag_name" instead of parsed, because release notes can hold characters the YAML reader rejects.
+pub fn latest_release_tag(listing: &str, prefix: &str) -> Option<String> {
+    let mut best: Option<((u64, u64, u64), String)> = None;
+    for part in listing.split("\"tag_name\"").skip(1) {
+        let Some(value) = part.trim_start().strip_prefix(':').map(str::trim_start).and_then(|v| v.strip_prefix('"')) else { continue };
+        let Some(tag) = value.split('"').next() else { continue };
+        let Some(version) = tag.strip_prefix(prefix).and_then(parse_version) else { continue };
+        if best.as_ref().map_or(true, |(top, _)| version > *top) {
+            best = Some((version, tag.to_string()));
+        }
+    }
+    best.map(|(_, tag)| tag)
+}
+
+fn parse_version(text: &str) -> Option<(u64, u64, u64)> {
+    let mut parts = text.split('.').map(|p| p.parse::<u64>().ok());
+    let version = (parts.next()??, parts.next()??, parts.next()??);
+    parts.next().is_none().then_some(version)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -113,5 +140,18 @@ mod tests {
         let json = r#"[{"name":"Tree.yaml","type":"file","download_url":"https://x/1"},{"name":"d","type":"dir","download_url":null}]"#;
         assert_eq!(core_file_list(json).unwrap(), vec![("Tree.yaml".to_string(), "https://x/1".to_string())]);
         assert!(core_file_list(r#"[{"name":"../a","type":"file","download_url":"u"}]"#).is_err());
+    }
+
+    #[test]
+    fn release_assets_hosts_are_allowed() {
+        assert!(allowed_url("https://release-assets.githubusercontent.com/github-production-release-asset/1"));
+    }
+
+    #[test]
+    fn latest_tag_picks_the_highest_stable_version_of_the_prefix() {
+        let json = r#"[{"tag_name":"core-v9.0.0"},{"tag_name":"folder-manager-v2.4.0","body":"say \"tag_name\" \ud83d\ude00"},{"tag_name":"folder-manager-v2.10.1"},{"tag_name":"folder-manager-v3.0.0-rc1"},{"tag_name":"folder-manager-v2.9.9"}]"#;
+        assert_eq!(latest_release_tag(json, "folder-manager-v").as_deref(), Some("folder-manager-v2.10.1"));
+        assert_eq!(latest_release_tag("[]", "folder-manager-v"), None);
+        assert_eq!(latest_release_tag(r#"[{"tag_name": "folder-manager-v1.2.3"}]"#, "folder-manager-v").as_deref(), Some("folder-manager-v1.2.3"));
     }
 }
