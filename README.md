@@ -7,7 +7,7 @@
 [![CLI Install](https://img.shields.io/github/v/release/MikeWorldYt/ANT-system?filter=create-new-storage-*&label=CLI-Install&color=00b386)](https://github.com/MikeWorldYt/ANT-system/releases?q=create-new-storage)
 [![FolderManager](https://img.shields.io/github/v/release/MikeWorldYt/ANT-system?filter=folder-manager-*&label=FolderManager&color=00b386)](https://github.com/MikeWorldYt/ANT-system/releases?q=folder-manager)
 
-[![Docs](https://img.shields.io/badge/docs-ant-.mikeworld.dev-4f8cff)](https://ant.mikeworld.dev/en/introduction/what-is-ant/)
+[![Docs](https://img.shields.io/badge/docs-ant-ant.mikeworld.dev-4f8cff)](https://ant.mikeworld.dev/en/introduction/what-is-ant/)
 [![Build apps](https://img.shields.io/github/actions/workflow/status/MikeWorldYt/ANT-system/build-apps.yml?branch=main&label=builds)](https://github.com/MikeWorldYt/ANT-system/actions/workflows/build-apps.yml)
 
 
