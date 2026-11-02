@@ -2,12 +2,14 @@
 
 # ANT System
 
-**Archive Nesting Technique** is a method and a toolkit for keeping files and folders consistent, searchable and automation-friendly, however large they grow.
+**Archive Nesting Technique** is a method system tolkit for keeping files and folders with consistent, searchable and automation-friendly structure, however large they grow.
 
-[![CreateNewStorage](https://img.shields.io/github/v/release/MikeWorldYt/ANT-system?filter=create-new-storage-*&label=CreateNewStorage&color=00b386)](https://github.com/MikeWorldYt/ANT-system/releases?q=create-new-storage)
+[![CLI Install](https://img.shields.io/github/v/release/MikeWorldYt/ANT-system?filter=create-new-storage-*&label=CreateNewStorage&color=00b386)](https://github.com/MikeWorldYt/ANT-system/releases?q=create-new-storage)
 [![FolderManager](https://img.shields.io/github/v/release/MikeWorldYt/ANT-system?filter=folder-manager-*&label=FolderManager&color=00b386)](https://github.com/MikeWorldYt/ANT-system/releases?q=folder-manager)
-[![Build apps](https://img.shields.io/github/actions/workflow/status/MikeWorldYt/ANT-system/build-apps.yml?branch=main&label=build)](https://github.com/MikeWorldYt/ANT-system/actions/workflows/build-apps.yml)
+
 [![Docs](https://img.shields.io/badge/docs-ant--ant.mikeworld.dev-4f8cff)](https://ant.mikeworld.dev/en/introduction/what-is-ant/)
+[![Build apps](https://img.shields.io/github/actions/workflow/status/MikeWorldYt/ANT-system/build-apps.yml?branch=main&label=build)](https://github.com/MikeWorldYt/ANT-system/actions/workflows/build-apps.yml)
+
 
 [Documentation](https://ant.mikeworld.dev/en/introduction/what-is-ant/) ·
 [Quick start](#quick-start) ·
