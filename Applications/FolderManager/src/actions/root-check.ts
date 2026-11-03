@@ -7,7 +7,7 @@ import { state } from "../store/state";
 import { folderMoveActive } from "./folder-move";
 import type { InvalidFolder, Resolution } from "../ipc/types";
 
-type ResolveInvalid = (relParts: string[], resolution: Resolution) => Promise<unknown>;
+type ResolveInvalid = (relParts: string[], resolution: Resolution) => Promise<boolean>;
 
 let checking = false;
 // Later and Escape give the user this long before the dialog and its announcement come back.
@@ -34,7 +34,17 @@ export async function checkRootFolders(resolve: ResolveInvalid): Promise<void> {
     for (const folder of invalid) {
       await announce(folder);
     }
-    const decisions = await invalidDialog(invalid, (relParts) => void api.openNode(relParts).catch((e: unknown) => setStatus("warning", api.describeError(e))), previewNames);
+    const applyOne = async (decision: Decision): Promise<boolean> => {
+      const resolution = resolutionOf(decision);
+      if (!resolution) return true;
+      try {
+        return await resolve(decision.relParts, resolution);
+      } catch (e) {
+        setStatus("warning", api.describeError(e));
+        return false;
+      }
+    };
+    const decisions = await invalidDialog(invalid, (relParts) => void api.openNode(relParts).catch((e: unknown) => setStatus("warning", api.describeError(e))), previewNames, applyOne);
     if (decisions === null) snoozedUntil = Date.now() + SNOOZE_MS;
     // Deepest first, so renaming or moving a parent never changes the path of a row still waiting.
     const ordered = [...(decisions ?? [])].sort((a, b) => b.relParts.length - a.relParts.length);

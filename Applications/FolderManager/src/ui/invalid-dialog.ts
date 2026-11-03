@@ -25,11 +25,40 @@ const TRACKERS = ["PJ", "PR", "HW", "CR", "TK"];
 // Matches --name-cycle in invalid-dialog.css.
 const NAME_CYCLE_MS = 8000;
 
-// Resolves to every row's decision, or null when the dialog is left with Later or Escape.
-export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: string[]) => void, preview: PreviewNames): Promise<Decision[] | null> {
+// Settles one row at once and says whether it went through.
+export type ApplyOne = (decision: Decision) => Promise<boolean>;
+
+const isInside = (child: string[], parent: string[]): boolean => child.length > parent.length && parent.every((part, i) => part === child[i]);
+
+// Resolves to the decisions of the rows still waiting, or null when the dialog is left with Later or Escape.
+export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: string[]) => void, preview: PreviewNames, applyOne: ApplyOne): Promise<Decision[] | null> {
   return new Promise((resolve) => {
     const rows = folders.map((folder, i) => row(folder, i, openFolder));
     let latest = 0;
+    let working = false;
+    // A folder with others inside it waits for them, as renaming or moving it would change their paths.
+    const refreshApply = (): void => {
+      for (const r of rows) r.setBlocked(working || rows.some((o) => o !== r && isInside(o.relParts, r.relParts)));
+      later.disabled = apply.disabled = working;
+    };
+    const applyRow = async (r: Row): Promise<void> => {
+      working = true;
+      refreshApply();
+      const done = await applyOne(r.decision());
+      working = false;
+      if (!done) {
+        refreshApply();
+        return;
+      }
+      rows.splice(rows.indexOf(r), 1);
+      r.element.remove();
+      if (rows.length === 0) {
+        dialog.close("ok");
+        return;
+      }
+      refreshApply();
+      void showPreview();
+    };
     const showPreview = async (): Promise<void> => {
       const turn = ++latest;
       const pending = rows.flatMap((r, index) => {
@@ -44,7 +73,7 @@ export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: s
     const table = el(
       "table",
       { class: "invalid-table", "aria-label": "Folders outside the id format" },
-      el("thead", {}, el("tr", {}, el("th", { scope: "col" }, "Path"), ...ACTIONS.map(([, lines]) => el("th", { scope: "col" }, ...lineBreaks(lines))))),
+      el("thead", {}, el("tr", {}, el("th", { scope: "col" }, "Path"), ...ACTIONS.map(([, lines]) => el("th", { scope: "col" }, ...lineBreaks(lines))), el("th", { scope: "col", "aria-label": "Apply this folder only" }))),
       el("tbody", {}, ...rows.map((r) => r.element)),
     );
     const later = el("button", { type: "submit", class: "btn", value: "cancel" }, "Later");
@@ -59,6 +88,8 @@ export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: s
     );
     const dialog = el("dialog", { class: "confirm invalid-dialog", "aria-labelledby": "invalid-title" }, form);
 
+    for (const r of rows) r.applyButton.addEventListener("click", () => void applyRow(r));
+    refreshApply();
     form.addEventListener("change", () => void showPreview());
     dialog.addEventListener("close", () => {
       resolve(dialog.returnValue === "ok" ? rows.map((r) => r.decision()) : null);
@@ -74,6 +105,8 @@ export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: s
 interface Row {
   element: HTMLElement;
   relParts: string[];
+  applyButton: HTMLButtonElement;
+  setBlocked: (blocked: boolean) => void;
   decision: () => Decision;
   resolution: () => Resolution | null;
   showName: (name: string | null) => void;
@@ -117,10 +150,15 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
       el("span", { class: "invalid-name-new", style }, next),
     );
   };
-  const element = el("tr", {}, el("th", { scope: "row" }, pathButton(rel, shown, openFolder)), ...cells);
+  const applyButton = el("button", { type: "button", class: "btn invalid-apply", "aria-label": `Apply only ${label}` }, "Apply");
+  const element = el("tr", {}, el("th", { scope: "row" }, pathButton(rel, shown, openFolder)), ...cells, el("td", {}, applyButton));
   return {
     element,
     relParts: rel,
+    applyButton,
+    setBlocked: (blocked) => {
+      applyButton.disabled = blocked;
+    },
     decision: () => {
       const choice = current();
       const destination = choice === "review" ? (folder.review[Number(reviewPick?.value ?? 0)] ?? null) : null;
