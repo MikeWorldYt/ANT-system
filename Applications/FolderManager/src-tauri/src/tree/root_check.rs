@@ -4,7 +4,7 @@ use std::path::Path;
 use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::names::{has_node_id, is_main_category, is_track_name, is_valid_root_name, is_workboard_name, list_subdirs};
+use crate::ant_core::names::{has_node_id, is_main_category, is_track_name, is_valid_root_name, list_subdirs};
 use crate::ant_core::tree_types::{flags_in, type_base};
 use crate::config::{TypeBase, DATA_DIR, HIDDEN_FLAG, INFO_FILENAME, WKB_IDENTIFIERS};
 use crate::error::R;
@@ -66,8 +66,9 @@ fn walk(root: &Path, dir: &Path, node: Option<&Mapping>, rel: &mut Vec<String>, 
         };
         rel.push(name.clone());
         if !valid {
-            let workboard = base == "WKB" || is_workboard_name(&name) || has_info(&dir.join(&name));
-            let tracker = WKB_IDENTIFIERS.iter().find(|t| name.starts_with(**t)).map(|t| t.trim_end_matches('.').to_string());
+            let tracker = tracker_of(&name);
+            let workboard = base == "WKB" || tracker.is_some() || has_info(&dir.join(&name));
+            let tracker = tracker.map(|t| t.trim_end_matches('.').to_string());
             out.push(Invalid { rel_parts: rel.clone(), review: review_for(root, dir, rel)?, workboard, tracker });
         }
         if base == "NODE" && rel.len() < limit {
@@ -76,6 +77,11 @@ fn walk(root: &Path, dir: &Path, node: Option<&Mapping>, rel: &mut Vec<String>, 
         rel.pop();
     }
     Ok(())
+}
+
+// Matched without regard to case, so "Pj.154_Name" still reads as a workboard of tracker PJ.
+fn tracker_of(name: &str) -> Option<&'static str> {
+    WKB_IDENTIFIERS.iter().find(|t| name.get(..t.len()).is_some_and(|head| head.eq_ignore_ascii_case(t))).copied()
 }
 
 fn has_info(folder: &Path) -> bool {
@@ -127,6 +133,19 @@ mod tests {
         assert!(check.invalid[0].workboard && check.invalid[0].tracker.is_none());
         assert!(check.invalid[1].workboard);
         assert_eq!(check.invalid[1].tracker.as_deref(), Some("PJ"));
+    }
+
+    #[test]
+    fn a_tracker_in_the_wrong_case_is_still_detected_as_a_workboard() {
+        let dir = storage(
+            "root-check-wkb-case",
+            &["100.WORK/Pj.254_f0d172a"],
+            "100.WORK:\n  type: NODE-L1\n  Pj.254_f0d172a: {type: NODE-L2}\n",
+        );
+        let check = check_root(dir.path()).unwrap();
+        assert_eq!(check.invalid.len(), 1);
+        assert!(check.invalid[0].workboard);
+        assert_eq!(check.invalid[0].tracker.as_deref(), Some("PJ"));
     }
 
     #[test]
