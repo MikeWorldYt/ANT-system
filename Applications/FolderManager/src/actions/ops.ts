@@ -296,7 +296,7 @@ export async function setDetails(node: TreeNode, status: WkbStatus | null, owner
   const reopening = status !== null && status !== "done" && current.status === "done";
   let delivery: Delivery | null = null;
   if (finishing && outputOf(current) === null) {
-    const choice = await choiceDialog("Hmmm, no encontre el entregable.", "Que deseas hacer?", [
+    const choice = await choiceDialog("Hmmm, Where is the final file?", "Output dir is invalid or missing. What do you want to do?", [
       ["file", "Choose a file"],
       ["folder", "Choose a folder"],
       ["all", "Move everything"],
