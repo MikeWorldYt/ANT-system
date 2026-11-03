@@ -58,6 +58,7 @@ export function createColumnsView(): ViewMode {
   const loading = new Set<string>();
   let openKey: string | null = null;
   let built: ManageSnapshot | null = null;
+  let revealed: string | null = null;
 
   function isOpen(n: TreeNode): boolean {
     const key = keyOf(n.relParts);
@@ -249,10 +250,25 @@ export function createColumnsView(): ViewMode {
       if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
       const path = state.selectedKey?.split("/") ?? [];
+      // Rebuilding the columns resets every scroll offset, so each one is kept by its folder key.
+      const offsets = new Map(Array.from(root.querySelectorAll<HTMLElement>(".column[data-key]"), (c): [string, number] => [c.dataset.key ?? "", c.scrollTop]));
+      const left = root.scrollLeft;
       root.replaceChildren(...buildColumns(openKey).map((c, i) => buildColumn(c, i, path, path[i - 1] ?? "storage")));
       built = manageSnapshot();
-      root.querySelectorAll(".col-item.on-path, .col-item.selected").forEach((e) => e.scrollIntoView({ block: "nearest", inline: "nearest" }));
-      root.lastElementChild?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      root.scrollLeft = left;
+      root.querySelectorAll<HTMLElement>(".column[data-key]").forEach((c) => {
+        c.scrollTop = offsets.get(c.dataset.key ?? "") ?? 0;
+      });
+      // Only a move of the path or a new column scrolls; any other render must not fight the user's scrolling.
+      const reveal = `${state.selectedKey}|${openKey}|${root.childElementCount}`;
+      if (reveal !== revealed) {
+        revealed = reveal;
+        root.querySelectorAll<HTMLElement>(".col-item.on-path, .col-item.selected").forEach((e) => {
+          // A multi-selection marks many rows; only the path's own row is followed.
+          if (!e.classList.contains("selected") || e.dataset.key === state.selectedKey) e.scrollIntoView({ block: "nearest", inline: "nearest" });
+        });
+        root.lastElementChild?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
       if (hadFocus) root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });
       loadSelectedChildren();
     },
@@ -260,6 +276,7 @@ export function createColumnsView(): ViewMode {
       root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus();
     },
     destroy() {
+      revealed = null;
       root.remove();
     },
   };
