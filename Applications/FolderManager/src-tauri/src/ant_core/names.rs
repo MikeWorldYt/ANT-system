@@ -107,6 +107,35 @@ pub fn title_of(name: &str) -> &str {
     }
 }
 
+// The text after a tracker such as "PJ." in any letter case, or None when the name does not start with it.
+fn after_tracker<'a>(name: &'a str, tracker: &str) -> Option<&'a str> {
+    name.get(..tracker.len()).filter(|head| head.eq_ignore_ascii_case(tracker)).map(|_| &name[tracker.len()..])
+}
+
+// The number a name already carries for that tracker in any letter case ("Pj.154_Name" with "PJ." gives 154).
+pub fn tracker_number(name: &str, tracker: &str) -> Option<u32> {
+    let rest = after_tracker(name, tracker)?;
+    rest[..rest.bytes().take_while(|b| b.is_ascii_digit()).count()].parse().ok()
+}
+
+// A trailing hash is a separator and 6 to 40 hex digits that mix letters and digits, so "Plan-2024" and "Face-decade" stay.
+fn without_hash_suffix(title: &str) -> &str {
+    let Some((head, tail)) = title.rsplit_once('-') else { return title };
+    let hex = (6..=40).contains(&tail.len()) && tail.bytes().all(|b| b.is_ascii_hexdigit());
+    let mixed = tail.bytes().any(|b| b.is_ascii_digit()) && tail.bytes().any(|b| b.is_ascii_alphabetic());
+    if hex && mixed && !head.is_empty() { head } else { title }
+}
+
+// The title a folder keeps when it becomes a workboard: no tracker or number in any letter case, no trailing hash.
+pub fn workboard_title(name: &str) -> String {
+    let rest = match WKB_IDENTIFIERS.iter().find_map(|tracker| after_tracker(name, tracker)) {
+        Some(rest) => rest.trim_start_matches(|c: char| c.is_ascii_digit()).trim_start_matches('_'),
+        None => title_of(name),
+    };
+    let dashed = rest.replace('_', "-");
+    without_hash_suffix(&dashed).to_string()
+}
+
 // The root takes only category or app ids; deeper folders take a node id or a workboard tracker.
 pub fn has_valid_id(rel: &[String]) -> bool {
     match rel {
@@ -305,6 +334,19 @@ mod tests {
         assert_eq!(title_of("01.New-Node"), "New-Node");
         assert_eq!(title_of("Prueba 4"), "Prueba 4");
         assert_eq!(title_of("PJ.001"), "");
+    }
+
+    #[test]
+    fn a_workboard_title_drops_the_tracker_the_number_and_a_trailing_hash() {
+        assert_eq!(workboard_title("Pj.154_Google-Labs_Agent-9f0d172a"), "Google-Labs-Agent");
+        assert_eq!(workboard_title("01.New-Node"), "New-Node");
+        assert_eq!(workboard_title("Thesis"), "Thesis");
+        assert_eq!(workboard_title("Plan-2024"), "Plan-2024");
+        assert_eq!(workboard_title("Plan-123456"), "Plan-123456");
+        assert_eq!(workboard_title("Face-decade"), "Face-decade");
+        assert_eq!(tracker_number("Pj.154_X", "PJ."), Some(154));
+        assert_eq!(tracker_number("PR.7_X", "PJ."), None);
+        assert_eq!(tracker_number("Pj.Name", "PJ."), None);
     }
 
     #[test]

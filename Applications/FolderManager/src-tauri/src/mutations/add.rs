@@ -161,6 +161,13 @@ pub(super) fn lowest_free_track(data: &Mapping, tracker: &str) -> u32 {
     (1u32..).find(|n| !used.contains(n)).unwrap_or(1)
 }
 
+// The wanted number when it is a real one nobody uses, else the lowest free one.
+pub(super) fn track_or_lowest(data: &Mapping, tracker: &str, wanted: Option<u32>) -> u32 {
+    let mut used = BTreeSet::new();
+    collect_tracks(data, &format!("{tracker}."), &mut used);
+    wanted.filter(|n| *n >= 1 && !used.contains(n)).unwrap_or_else(|| lowest_free_track(data, tracker))
+}
+
 fn collect_tracks(node: &Mapping, prefix: &str, used: &mut BTreeSet<u32>) {
     for (name, child) in child_entries(node) {
         let digits = name.strip_prefix(prefix).map(|rest| rest.split(|c: char| !c.is_ascii_digit()).next().unwrap_or(""));

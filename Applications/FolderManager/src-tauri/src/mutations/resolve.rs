@@ -4,9 +4,9 @@ use std::path::Path;
 use serde::Deserialize;
 use serde_yaml::{Mapping, Value};
 
-use super::add::{lowest_free_track, mark_workboard};
+use super::add::{mark_workboard, track_or_lowest};
 use super::{child_rel, ensure_free, finish, load_synced, move_to_review, persist, split, subtrees, Mutation};
-use crate::ant_core::names::{has_node_id, is_track_name, is_valid_root_name, list_subdirs, next_available_id, next_main_category_id, sanitize_train_case, title_of};
+use crate::ant_core::names::{has_node_id, is_track_name, is_valid_root_name, list_subdirs, next_available_id, next_main_category_id, sanitize_train_case, title_of, tracker_number, workboard_title};
 use crate::ant_core::tree_types::{child_entries, type_base};
 use crate::config::{DATA_FLAG, WKB_IDENTIFIERS};
 use crate::error::{FmError, R};
@@ -50,7 +50,7 @@ pub fn preview_names(root: &Path, rows: &[Pending]) -> R<Vec<String>> {
             Resolution::Node => node_name(root, &data, rel)?,
             Resolution::Workboard { tracker } => {
                 delete_key(&mut data, parent, rel.last().map_or("", String::as_str));
-                workboard_name(&data, rel, tracker)
+                workboard_name(&data, rel, &tracker.to_ascii_uppercase())
             }
         };
         // The name is held in the tree so the next row sees it as taken.
@@ -74,10 +74,11 @@ fn node_name(root: &Path, data: &Mapping, rel: &[String]) -> R<String> {
     })
 }
 
-// Takes the lowest free track of its tracker and keeps the title the folder already has.
+// Keeps the number the folder already has for that tracker when it is free, else takes the lowest free one; the title loses its tracker and hash.
 fn workboard_name(data: &Mapping, rel: &[String], tracker: &str) -> String {
-    let title = sanitize_train_case(&title_of(rel.last().map_or("", String::as_str)).replace('_', "-"));
-    let id = lowest_free_track(data, tracker);
+    let name = rel.last().map_or("", String::as_str);
+    let title = sanitize_train_case(&workboard_title(name));
+    let id = track_or_lowest(data, tracker, tracker_number(name, &format!("{tracker}.")));
     if title.is_empty() { format!("{tracker}.{id:03}") } else { format!("{tracker}.{id:03}_{title}") }
 }
 
@@ -105,6 +106,8 @@ fn become_workboard(root: &Path, rel: &[String], tracker: &str) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced(root)?;
     let (old, parent) = split(rel)?;
+    let tracker = tracker.to_ascii_uppercase();
+    let tracker = tracker.as_str();
     if parent.is_empty() {
         return Err(refuse(rel, "workboards cannot be created at the storage root"));
     }
@@ -249,7 +252,28 @@ mod tests {
         assert_eq!(field_of(&read_info(&folder).unwrap(), &["status"]), Some("in-progress"));
         let pj = Resolution::Workboard { tracker: "PJ".to_string() };
         resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "PJ.1007_Prueba-7"]), pj).unwrap();
-        assert!(dir.path().join("100.ACADEMIC/PJ.003_Prueba-7").is_dir());
+        assert!(dir.path().join("100.ACADEMIC/PJ.1007_Prueba-7").is_dir());
+    }
+
+    #[test]
+    fn a_tracker_in_the_wrong_case_is_normalized_and_its_hash_is_dropped() {
+        let old = "Pj.154_Google-Labs_Agent-9f0d172a";
+        let tree = format!("100.ACADEMIC:\n  type: NODE-L1\n  {old}: {{type: NODE-L2}}\n");
+        let dir = storage("resolve-case", &[&format!("100.ACADEMIC/{old}")], &tree);
+        let pj = || Resolution::Workboard { tracker: "Pj".to_string() };
+        let row = Pending { rel_parts: rel(&["100.ACADEMIC", old]), resolution: pj() };
+        assert_eq!(preview_names(dir.path(), &[row]).unwrap(), ["PJ.154_Google-Labs-Agent"]);
+        resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", old]), pj()).unwrap();
+        assert!(dir.path().join("100.ACADEMIC/PJ.154_Google-Labs-Agent").is_dir());
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "PJ.154_Google-Labs-Agent"]), "WKB-L2");
+    }
+
+    #[test]
+    fn a_number_another_workboard_uses_gives_way_to_the_lowest_free_one() {
+        let tree = "100.ACADEMIC:\n  type: NODE-L1\n  PJ.154_Other: {type: WKB-L2}\n  Pj.154_Mine: {type: NODE-L2}\n";
+        let dir = storage("resolve-taken", &["100.ACADEMIC/PJ.154_Other", "100.ACADEMIC/Pj.154_Mine"], tree);
+        resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "Pj.154_Mine"]), Resolution::Workboard { tracker: "PJ".to_string() }).unwrap();
+        assert!(dir.path().join("100.ACADEMIC/PJ.001_Mine").is_dir());
     }
 
     #[test]
