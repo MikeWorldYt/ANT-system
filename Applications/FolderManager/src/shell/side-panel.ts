@@ -1,7 +1,8 @@
 // Right column: quick actions, details and order of the selected node, collapsible to an icon rail.
 import { el } from "../ui/dom";
 import { iconButton } from "../ui/icon-button";
-import { hideNode, move, remove, setFavorite, setReviewFilter } from "../actions/ops";
+import { canActOn, deleteActed, favoriteActed, hideActed, moveActed } from "../actions/acted-nodes";
+import { setReviewFilter } from "../actions/ops";
 import { readPref, savePref } from "../store/prefs";
 import { favoritesShown, hiddenCategories, isMainCategory, isReviewRoot, nameWithoutIdentifier } from "../store/node-info";
 import { quickActionsShown, railLayout, type RailId } from "../store/side-layout";
@@ -29,15 +30,8 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   // Set when the rail pencil expanded the panel, so the end of that edit returns to the rail.
   let collapseAfterEdit = false;
 
-  const act = (fn: (n: TreeNode) => void) => () => {
-    const n = selectedNode();
-    if (n) fn(n);
-  };
-  const toggleFavorite = act((n) => void setFavorite(n, !n.favorite));
-  const moveUp = act((n) => void move(n, "up"));
-  const moveDown = act((n) => void move(n, "down"));
-  const del = act((n) => void remove(n));
-  const hide = act((n) => void hideNode(n));
+  const moveUp = () => moveActed("up");
+  const moveDown = () => moveActed("down");
 
   const details = createDetailsPanel(() => {
     if (!collapseAfterEdit) return;
@@ -58,13 +52,13 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   const head = el("div", { class: "side-head" }, title, settings, collapse);
 
   const open = sideAction("Open", null, openSelected, "");
-  const favorite = sideAction(favoriteLabel(null), "starred", toggleFavorite);
+  const favorite = sideAction(favoriteLabel(null), "starred", favoriteActed);
   const quick = section("side-quick", "Quick actions", open.button, favorite.button);
   const up = sideAction("Move up", "moveUp", moveUp, "accent");
   const down = sideAction("Move down", "moveDown", moveDown, "accent");
   const order = section("side-order", "Order", up.button, down.button);
-  const hideButton = sideAction("Hide element", "hide", hide);
-  const remover = sideAction("Delete", "trash", del, "danger");
+  const hideButton = sideAction("Hide element", "hide", hideActed);
+  const remover = sideAction("Delete", "trash", deleteActed, "danger");
   const foot = el("div", { class: "side-foot" }, hideButton.button, remover.button);
   const categories = el("div", { class: "side-categories" });
   const hideLinks = el("a", { href: "#", class: "side-link" }, "Select elements to hide");
@@ -81,11 +75,11 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     collapse.focus();
   });
   railExpand.classList.add("side-rail-expand");
-  const railFavorite = iconButton(favoriteLabel(null), "starred", toggleFavorite);
+  const railFavorite = iconButton(favoriteLabel(null), "starred", favoriteActed);
   const railEdit = iconButton("Edit details", "pencil", editDetails);
   const railUp = iconButton("Move up", "moveUp", moveUp);
   const railDown = iconButton("Move down", "moveDown", moveDown);
-  const railDelete = iconButton("Delete", "trash", del);
+  const railDelete = iconButton("Delete", "trash", deleteActed);
   railDelete.classList.add("danger");
   const about = iconButton("About", "pageAbout", () => void openSettings("about"));
   about.classList.add("side-rail-end");
@@ -183,7 +177,6 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     details.render();
     layoutRail();
     const n = selectedNode();
-    const a = n?.actions;
     const idle = !state.busy;
     title.textContent = n ? nameWithoutIdentifier(n) : "Details";
     // The review root keeps its filter but no details; its links show the same filter above their details.
@@ -204,18 +197,18 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     railFavorite.title = favoriteLabel(n);
     const available: [HTMLButtonElement[], boolean][] = [
       [[open.button], n !== null],
-      [[favorite.button, railFavorite], !!a?.favorite],
+      [[favorite.button, railFavorite], canActOn("favorite")],
       [[railEdit], n !== null && canEdit(n)],
-      [[up.button, railUp], !!a?.moveUp],
-      [[down.button, railDown], !!a?.moveDown],
-      [[remover.button, railDelete], !!a?.delete],
-      [[hideButton.button], !!a?.hide],
+      [[up.button, railUp], canActOn("moveUp")],
+      [[down.button, railDown], canActOn("moveDown")],
+      [[remover.button, railDelete], canActOn("delete")],
+      [[hideButton.button], canActOn("hide")],
     ];
     // An action the node does not offer is removed, not greyed out.
     for (const [buttons, on] of available) for (const b of buttons) b.hidden = !on;
     for (const b of [up.button, railUp, down.button, railDown]) setDisabled(b, !idle);
-    order.hidden ||= !(a?.moveUp || a?.moveDown);
-    foot.hidden ||= !(a?.delete || a?.hide);
+    order.hidden ||= !(canActOn("moveUp") || canActOn("moveDown"));
+    foot.hidden ||= !(canActOn("delete") || canActOn("hide"));
   }
 
   layoutRail();

@@ -1,6 +1,7 @@
 // Every global keyboard shortcut in one table, so adding or changing one never means hunting through the views.
 import { actedNodes, selectedNode, state, type KeyCombo } from "../store/state";
-import { addNext, move, remove, removeMany, setFavorite } from "./ops";
+import { deleteActed, favoriteActed, moveActed } from "./acted-nodes";
+import { addNext } from "./ops";
 import { pasteHere } from "./paste-target";
 import { putOnClipboard } from "./folder-share";
 
@@ -75,8 +76,8 @@ function bindings(go: ShortcutTargets): Binding[] {
     ...go,
     newNode: withSelected((n) => n.actions.addNext && void addNext(n, "node")),
     newWorkboard: withSelected((n) => n.actions.addNext && n.relParts.length > 1 && void addNext(n, "workboard")),
-    moveDown: withSelected((n) => n.actions.moveDown && !state.busy && void move(n, "down")),
-    toggleFavorite: withSelected((n) => n.actions.favorite && void setFavorite(n, !n.favorite)),
+    moveDown: () => moveActed("down"),
+    toggleFavorite: favoriteActed,
   };
   return [
     ...EDITABLE_SHORTCUTS.map((s) => ({ ...comboOf(s.id), plain: false, inFields: !NOT_IN_FIELDS.has(s.id), run: runs[s.id]! })),
@@ -86,11 +87,7 @@ function bindings(go: ShortcutTargets): Binding[] {
       alt: false,
       plain: true,
       inFields: false,
-      run: () => {
-        const nodes = actedNodes();
-        if (nodes.length > 1) void removeMany(nodes);
-        else if (nodes[0]?.actions.delete) void remove(nodes[0]);
-      },
+      run: deleteActed,
     },
     { code: "KeyO", mod: true, alt: false, plain: false, inFields: false, run: go.openSelected },
     { code: "KeyV", mod: true, alt: false, plain: false, inFields: false, run: pasteHere },
