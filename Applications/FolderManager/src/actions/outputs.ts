@@ -2,8 +2,8 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import type { TreeNode } from "../ipc/types";
 
-export type Delivery = "file" | "folder" | "all";
-export const DELIVERIES: readonly Delivery[] = ["file", "folder", "all"];
+export type Delivery = "file" | "folder" | "all" | "none";
+export const DELIVERIES: readonly Delivery[] = ["file", "folder", "all", "none"];
 export const isDelivery = (value: string): value is Delivery => (DELIVERIES as readonly string[]).includes(value);
 
 // Folders are named by the local date as yy-mm-dd.

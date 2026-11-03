@@ -289,7 +289,7 @@ export async function setChildHidden(name: string, on: boolean): Promise<boolean
 export const setOutput = (node: TreeNode, output: string | null) =>
   run(async () => applyMutation(await api.setNodeOutput(node.relParts, output), node.relParts));
 
-// Finishing a workboard delivers its output, asking first when none is set; reopening it brings the delivery back.
+// Finishing a workboard delivers its output, asking first when none is set (where nothing is a valid answer); reopening it brings the delivery back.
 export async function setDetails(node: TreeNode, status: WkbStatus | null, owner: string | null): Promise<boolean> {
   const current = findNode(node.relParts) ?? node;
   const finishing = status === "done" && current.status !== "done";
@@ -300,6 +300,7 @@ export async function setDetails(node: TreeNode, status: WkbStatus | null, owner
       ["file", "Choose a file"],
       ["folder", "Choose a folder"],
       ["all", "Move everything"],
+      ["none", "Do nothing"],
     ]);
     if (!isDelivery(choice)) return false;
     delivery = choice;
@@ -315,7 +316,7 @@ export async function setDetails(node: TreeNode, status: WkbStatus | null, owner
   }
   const saved = await run(async () => applyMutation(await api.setNodeDetails(current.relParts, status, owner), current.relParts));
   if (!saved) return false;
-  if (finishing) await run(async () => applyMutation(await api.deliverOutput(current.relParts, todayStamp(), delivery === "all"), current.relParts));
+  if (finishing && delivery !== "none") await run(async () => applyMutation(await api.deliverOutput(current.relParts, todayStamp(), delivery === "all"), current.relParts));
   else if (reopening) await run(async () => applyMutation(await api.restoreOutput(current.relParts), current.relParts));
   return true;
 }
