@@ -132,6 +132,11 @@ pub async fn set_node_details(app: AppHandle, rel_parts: Vec<String>, status: Op
 }
 
 #[tauri::command]
+pub async fn set_board(app: AppHandle, cards: Vec<mutations::BoardCard>) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_board(root, &cards))).await
+}
+
+#[tauri::command]
 pub async fn set_node_output(app: AppHandle, rel_parts: Vec<String>, output: Option<String>) -> R<Mutation> {
     run_locked(app, move |root| with_search_index(root, mutations::set_output(root, &rel_parts, output.as_deref()))).await
 }

@@ -2,6 +2,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isFmError } from "./types";
 import type {
+  BoardCard,
   CopyAnswer,
   HiddenChoice,
   DeletePreview,
@@ -121,6 +122,8 @@ export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonE
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
 export const listFavorites = () => call<string[][]>("list_favorites");
+export const listWorkboards = () => call<string[][]>("list_workboards");
+export const setBoard = (cards: BoardCard[]) => call<Mutation>("set_board", { cards });
 export const searchDisk = (query: string) => call<string[][]>("search_disk", { query });
 export interface Suggestion {
   value: string;

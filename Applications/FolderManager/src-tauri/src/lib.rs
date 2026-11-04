@@ -121,6 +121,8 @@ pub fn run() {
             commands::start_update,
             commands::search_nodes,
             commands::list_favorites,
+            commands::list_workboards,
+            commands::set_board,
             commands::search_disk,
             commands::suggest_search,
             commands::start_debug_log,

@@ -14,6 +14,7 @@ export interface VirtualEntry {
 
 export const VIRTUAL_ENTRIES: VirtualEntry[] = [
   { id: "favorites", label: "FAVORITES", icon: "starred", hint: "Every favorite folder in the Storage", empty: "No favorites yet" },
+  { id: "board", label: "BOARD", icon: "layout", hint: "Task board of every workboard in the Storage", empty: "No workboards yet" },
 ];
 
 export const openEntry = (): VirtualEntry | null => VIRTUAL_ENTRIES.find((e) => e.id === state.virtual) ?? null;

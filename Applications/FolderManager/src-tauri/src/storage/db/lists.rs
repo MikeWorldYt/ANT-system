@@ -7,6 +7,11 @@ impl Store {
         self.paths_where("favorite", "true")
     }
 
+    // The raw type keeps its level, as in "WKB-L2".
+    pub fn workboards(&self) -> R<Vec<Vec<String>>> {
+        self.paths_where("type", "WKB%")
+    }
+
     // LIKE is case-insensitive for ASCII, so "true" and "True" both count.
     fn paths_where(&self, key: &str, like: &str) -> R<Vec<Vec<String>>> {
         let fail = |e: rusqlite::Error| db_err("search ant.db", &self.path, &e);
@@ -42,5 +47,21 @@ mod tests {
         let store = Store::open_or_create(dir.path()).unwrap();
         let found: Vec<String> = store.favorites().unwrap().iter().map(|p| p.join("/")).collect();
         assert_eq!(found, ["100.A/01.Deep", "200.B"]);
+    }
+
+    #[test]
+    fn workboards_are_every_wkb_type_outside_the_review_folder() {
+        let dir = TempDir::new("lists-workboards");
+        for folder in ["100.A/PJ.001_One", "100.A/02.Node", "200.B/PJ.002_Two"] {
+            dir.mkdir(folder);
+        }
+        let data: Mapping = serde_yaml::from_str(
+            "100.A:\n  type: NODE-L1\n  PJ.001_One: {type: WKB-L2, status: hold}\n  02.Node: {type: NODE-L2}\n200.B:\n  type: NODE-L1\n  PJ.002_Two: {type: WKB-L2}\n",
+        )
+        .unwrap();
+        search_index::rebuild(dir.path(), &data).unwrap();
+        let store = Store::open_or_create(dir.path()).unwrap();
+        let found: Vec<String> = store.workboards().unwrap().iter().map(|p| p.join("/")).collect();
+        assert_eq!(found, ["100.A/PJ.001_One", "200.B/PJ.002_Two"]);
     }
 }

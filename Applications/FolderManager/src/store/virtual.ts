@@ -1,9 +1,9 @@
 // Virtual root entries list real folders from the whole Storage; their nodes are loaded into the tree without expanding it.
-import { listChildren, listFavorites } from "../ipc/api";
+import { listChildren, listFavorites, listWorkboards } from "../ipc/api";
 import { findNode, keyOf, state, type VirtualId } from "./state";
 import type { TreeNode } from "../ipc/types";
 
-const SOURCES: Record<VirtualId, () => Promise<string[][]>> = { favorites: listFavorites };
+const SOURCES: Record<VirtualId, () => Promise<string[][]>> = { favorites: listFavorites, board: listWorkboards };
 
 // Loads every level above the folder, so findNode, the details panel and the actions reach it like any shown folder.
 async function loadPath(parts: string[]): Promise<void> {

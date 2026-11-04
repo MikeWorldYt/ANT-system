@@ -27,7 +27,7 @@ interface State {
   virtualKeys: string[];
 }
 
-export type VirtualId = "favorites";
+export type VirtualId = "favorites" | "board";
 
 export interface KeyCombo {
   code: string;

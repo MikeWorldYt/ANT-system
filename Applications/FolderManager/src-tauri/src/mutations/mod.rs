@@ -1,5 +1,6 @@
 // Rename, retype and add nodes, keeping disk folders, linked 90./98. folders and the tree in step.
 mod add;
+mod board;
 mod copy_answer;
 mod delete;
 mod favorite;
@@ -36,6 +37,7 @@ use crate::tree::tree_node::{is_reserved, TreeNode, TreeSnapshot};
 use crate::tree::tree_store::{self, get_node, get_type, is_locked_type};
 
 pub use add::{add_next, add_node};
+pub use board::{set_board, BoardCard};
 pub use copy_answer::{answer_copy, CopyAnswer};
 pub use delete::{delete_node, inspect_delete, DeletePreview};
 pub use favorite::set_favorite;

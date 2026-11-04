@@ -13,7 +13,7 @@ import { loadVirtual } from "../store/virtual";
 import { outputOf } from "../store/node-info";
 import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
 import { isFmError } from "../ipc/types";
-import type { Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
+import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
   const tree = snapshot ?? (await api.refresh());
@@ -326,6 +326,9 @@ export async function setDetails(node: TreeNode, status: WkbStatus | null, owner
 
 export const setFavorite = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setFavorite(node.relParts, on), node.relParts));
+
+// Placing cards never moves the selection, so the board keeps the card the user is on.
+export const placeOnBoard = (cards: BoardCard[]) => run(async () => applyMutation(await api.setBoard(cards)));
 
 export const setLinkHidden = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setLinkHidden(node.relParts, on), node.relParts));

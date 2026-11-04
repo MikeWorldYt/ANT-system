@@ -94,6 +94,8 @@ export function nodeDetails(n: TreeNode): [string, string][] {
     if (wkb && (f.key.toLowerCase() === "status" || f.key.toLowerCase() === "output" || OWNER_KEYS.includes(f.key.toLowerCase()))) continue;
     // Favorite is toggled from the quick actions, never edited as a field.
     if (f.key.toLowerCase() === "favorite") continue;
+    // The board placement changes by moving the card, never as a field.
+    if (["board", "boardorder", "boardstatus"].includes(f.key.toLowerCase())) continue;
     // The review filter has its own checkboxes, so its stored values are not detail rows.
     if (isReviewRoot(n) && (f.key.toLowerCase() === "hidden" || f.key.toLowerCase() === "favorites")) continue;
     rows.push([f.key.charAt(0).toUpperCase() + f.key.slice(1), f.value]);
