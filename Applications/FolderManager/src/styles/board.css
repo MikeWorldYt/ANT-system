@@ -1,8 +1,5 @@
 .board { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--tree-bg); border-radius: var(--radius-md); overflow: hidden; }
 .board[hidden], .tree-host[hidden] { display: none; }
-.board-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px 0; }
-.board-head .icon-btn { width: 28px; height: 28px; background: transparent; }
-.board-title { margin: 0; font-size: 11pt; color: var(--title); }
 .board-columns { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 10px; padding: 12px; overflow-x: auto; }
 .board-col { display: flex; flex-direction: column; min-height: 0; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); }
 .board-col-title { display: flex; align-items: center; justify-content: space-between; margin: 0; padding: 8px 10px; font-size: 10pt; font-weight: 600; }
@@ -14,8 +11,14 @@
 .board-card:focus-visible { outline-offset: -2px; }
 .board-card-head { display: flex; align-items: center; gap: 6px; }
 .board-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.board-path { color: var(--muted); font-size: 8.5pt; overflow-wrap: anywhere; }
-.board-card-head .board-move { flex: none; width: 20px; height: 20px; background: transparent; }
-.board-card-head .board-move .gui-icon { width: 12px; height: 12px; }
+.board-card-head .board-toggle { flex: none; width: 20px; height: 20px; background: transparent; }
+.board-card-head .board-toggle .gui-icon { width: 12px; height: 12px; transition: transform 0.15s; }
+.board-toggle[aria-expanded="true"] .gui-icon { transform: rotate(180deg); }
+.board-details { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; border-top: 1px solid var(--border); }
+.board-details[hidden] { display: none; }
+.board-facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; font-size: 8.5pt; }
+.board-facts dt { color: var(--muted); }
+.board-facts dd { margin: 0; overflow-wrap: anywhere; }
+.board-explorer { align-self: flex-start; }
 .board-empty { padding: 8px 2px; color: var(--muted); font-size: 9pt; text-align: center; }
 .board-slot { height: 3px; flex: none; background: var(--accent); border-radius: 2px; }

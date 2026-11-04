@@ -68,7 +68,7 @@ export function nodeMenuFromKey(host: Element, node: TreeNode, anchor: Element |
   dispatch(host, { node, nodes, x: r.left + 24, y: r.bottom });
 }
 
-async function copyPath(node: TreeNode): Promise<void> {
+export async function copyPath(node: TreeNode): Promise<void> {
   try {
     await navigator.clipboard.writeText(node.absPath);
     setStatus("info", `Path copied: ${node.absPath}`);
@@ -77,7 +77,7 @@ async function copyPath(node: TreeNode): Promise<void> {
   }
 }
 
-async function openFolder(node: TreeNode): Promise<void> {
+export async function openFolder(node: TreeNode): Promise<void> {
   try {
     await openNode(node.relParts);
   } catch (e) {
@@ -225,13 +225,17 @@ function selectionMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
 }
 
 function openMenu({ node, nodes, x, y, folderOnly }: MenuRequest, restoreFocus: () => void, views: ViewPicker): void {
+  const group = nodes !== undefined && nodes.length > 1 ? nodes : null;
+  const label = group ? `Actions for ${group.length} items` : `Actions for ${node.name}`;
+  openMenuWith((close) => (folderOnly ? boardMenu(node, views, close) : group ? selectionMenu(group, close) : nodeMenu(node, close)), label, x, y, restoreFocus);
+}
+
+export function openMenuWith(build: (close: (restore?: boolean) => void) => MenuParts, label: string, x: number, y: number, restoreFocus: () => void): void {
   dismissOpen?.();
-  const marked = nodes !== undefined && nodes.length > 1;
-  const { items, subs, content } = folderOnly ? boardMenu(node, views, close) : marked ? selectionMenu(nodes, close) : nodeMenu(node, close);
+  const { items, subs, content } = build(close);
   const closeSubs = () => subs.filter((s) => !s.element.contains(document.activeElement)).forEach((s) => s.close());
   items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
   subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));
-  const label = marked ? `Actions for ${nodes.length} items` : `Actions for ${node.name}`;
   const menu = el("div", { class: "ctx-menu ctx-node", role: "menu", "aria-label": label }, ...content);
   menu.addEventListener("mouseleave", closeSubs);
 

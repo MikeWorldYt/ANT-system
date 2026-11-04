@@ -64,7 +64,7 @@ const openSelected = () => {
 };
 const panel = createSidePanel(openSelected);
 // The board stands beside the views, outside the host, so their drag, drop and marquee never reach its cards.
-const board = createBoardView(host);
+const board = createBoardView(host, panel.editDetails);
 const main = el("main", { class: "app-main" }, host, board.element, ...panel.elements);
 app.append(navigator.element, main, createStatusLine());
 installContextMenu(host, () => views.current().focus(), viewPicker);

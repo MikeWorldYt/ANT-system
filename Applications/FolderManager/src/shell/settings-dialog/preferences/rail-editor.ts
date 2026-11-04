@@ -7,6 +7,7 @@ import { switchControl } from "../page";
 
 const ROWS: Record<RailId, { label: string; icon: GuiIcon }> = {
   settings: { label: "Settings", icon: "settings" },
+  board: { label: "Board", icon: "layout" },
   favorite: { label: "Favorite", icon: "starred" },
   edit: { label: "Edit details", icon: "pencil" },
   moveUp: { label: "Move up", icon: "moveUp" },
