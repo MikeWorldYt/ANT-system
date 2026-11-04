@@ -1,7 +1,7 @@
 {
   "name": "folder-manager",
   "private": true,
-  "version": "2.4.1",
+  "version": "2.4.2-beta",
   "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {

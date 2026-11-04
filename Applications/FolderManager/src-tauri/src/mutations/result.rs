@@ -6,7 +6,6 @@ use serde_yaml::Mapping;
 
 use super::{exactly_on_disk, parent_of, Mutation};
 use crate::error::R;
-use crate::tree::depth;
 use crate::tree::tree_node::{build_children, build_tree, fill_children, TreeNode, TreeSnapshot};
 use crate::tree::tree_store::{self, get_node};
 
@@ -57,9 +56,8 @@ fn subtree_drift(root: &Path, data: &Mapping, touched: &[Vec<String>]) -> R<bool
     Ok(false)
 }
 
-// Mirrors the snapshot's rules: a ghost parent or one on the last level shows no children.
+// Mirrors the snapshot's rules: a ghost parent shows no children.
 fn patch_levels(root: &Path, data: &Mapping, touched: &[Vec<String>]) -> R<Vec<LevelPatch>> {
-    let limit = depth::limit(root)?;
     let mut levels: Vec<LevelPatch> = Vec::new();
     for rel in touched {
         let parent = parent_of(rel);
@@ -67,7 +65,7 @@ fn patch_levels(root: &Path, data: &Mapping, touched: &[Vec<String>]) -> R<Vec<L
             continue;
         }
         let mut children = build_children(root, data, parent)?;
-        let has_children = parent.is_empty() || (parent.len() < limit && !children.is_empty() && exactly_on_disk(root, parent)?);
+        let has_children = parent.is_empty() || exactly_on_disk(root, parent)?;
         if !has_children {
             children.clear();
         }

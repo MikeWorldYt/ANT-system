@@ -2,6 +2,8 @@
 import "./styles/theme.css";
 import "./styles/themes.css";
 import "./styles/invalid-dialog.css";
+import "./styles/virtual.css";
+import "./styles/board.css";
 import { describeError } from "./ipc/api";
 import { createColumnsView } from "./views/columns-view";
 import { createGridView } from "./views/grid-view";
@@ -11,6 +13,7 @@ import { createNavigator } from "./shell/navigator";
 import { createSearchBar } from "./shell/search-bar";
 import { onFileDrag, onReviewIndex, onStorageChanged, onWindowFocus } from "./ipc/events";
 import { init, refresh } from "./actions/ops";
+import { autoRefresh } from "./actions/auto-refresh";
 import { handleFileDrag } from "./actions/file-drop";
 import { installShortcuts } from "./actions/shortcuts";
 import { restoreFocus, trackFieldFocus } from "./actions/focus-return";
@@ -30,6 +33,7 @@ import { startExtensions } from "./extensions/host";
 import { installDebugLog, startDebugLog } from "./actions/debug-log";
 import { applyAppearance } from "./ui/appearance";
 import { createViewSwitcher } from "./views/view-switch";
+import { createBoardView } from "./views/board-view";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
@@ -59,7 +63,9 @@ const openSelected = () => {
   document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
 };
 const panel = createSidePanel(openSelected);
-const main = el("main", { class: "app-main" }, host, ...panel.elements);
+// The board stands beside the views, outside the host, so their drag, drop and marquee never reach its cards.
+const board = createBoardView(host, panel.editDetails);
+const main = el("main", { class: "app-main" }, host, board.element, ...panel.elements);
 app.append(navigator.element, main, createStatusLine());
 installContextMenu(host, () => views.current().focus(), viewPicker);
 installShortcuts({
@@ -76,6 +82,7 @@ subscribe(() => {
   toolbar.render();
   navigator.render();
   views.current().render();
+  board.render();
   panel.render();
   rememberSelection();
   applyAppearance();
@@ -100,27 +107,9 @@ onReviewIndex((e) => {
   }
 }).catch((e) => setStatus("warning", `Review index updates unavailable: ${describeError(e)}`));
 trackFieldFocus();
-onWindowFocus(() => void refresh().finally(() => restoreFocus(() => views.current().focus()))).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
+onWindowFocus(() => void autoRefresh(refresh).finally(() => restoreFocus(() => views.current().focus()))).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
 
-// Watcher batches can arrive while a refresh runs; one pending rerun covers them all.
-let refreshing = false;
-let pending = false;
-async function refreshForWatcher(): Promise<void> {
-  if (refreshing) {
-    pending = true;
-    return;
-  }
-  refreshing = true;
-  try {
-    do {
-      pending = false;
-      await refresh();
-    } while (pending);
-  } finally {
-    refreshing = false;
-  }
-}
-onStorageChanged(() => void refreshForWatcher()).catch((e) =>
+onStorageChanged(() => void autoRefresh(refresh)).catch((e) =>
   setStatus("warning", `Live storage updates unavailable: ${describeError(e)}`),
 );
 

@@ -16,6 +16,16 @@ pub async fn search_nodes(app: AppHandle, query: String) -> R<Vec<Vec<String>>> 
     .await
 }
 
+#[tauri::command]
+pub async fn list_favorites(app: AppHandle) -> R<Vec<Vec<String>>> {
+    run_locked(app, |root| Store::open_or_create(root)?.favorites()).await
+}
+
+#[tauri::command]
+pub async fn list_workboards(app: AppHandle) -> R<Vec<Vec<String>>> {
+    run_locked(app, |root| Store::open_or_create(root)?.workboards()).await
+}
+
 // Runs off the storage lock: a broad walk must not hold up edits.
 #[tauri::command]
 pub async fn search_disk(app: AppHandle, query: String) -> R<Vec<Vec<String>>> {

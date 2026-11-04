@@ -4,6 +4,7 @@ export type EditableType = "NODE" | "WKB";
 export type NewKind = "node" | "workboard";
 export type WkbStatus = "in-progress" | "for-review" | "hold" | "done";
 export type MoveDirection = "up" | "down";
+export type BoardColumn = "backlog" | "todo" | "progress" | "done";
 
 export interface NodeType {
   raw: string;
@@ -33,6 +34,7 @@ export interface NodeActions {
   copyPath: boolean;
   open: boolean;
   favorite: boolean;
+  important: boolean;
   editDetails: boolean;
   editFlags: boolean;
   hideLink: boolean;
@@ -58,6 +60,7 @@ export interface TreeNode {
   fixedPrefix: string;
   editableName: string;
   favorite: boolean;
+  important: boolean;
   hidden: boolean;
   file: boolean;
   info: NodeInfo | null;
@@ -103,6 +106,12 @@ export interface Mutation {
   levels: LevelPatch[];
   select: string[] | null;
   warnings: string[];
+}
+
+export interface BoardCard {
+  relParts: string[];
+  column: BoardColumn;
+  order: number;
 }
 
 export interface PlacedFile {

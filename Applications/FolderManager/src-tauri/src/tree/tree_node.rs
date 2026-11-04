@@ -41,6 +41,7 @@ pub struct NodeActions {
     pub copy_path: bool,
     pub open: bool,
     pub favorite: bool,
+    pub important: bool,
     pub edit_details: bool,
     pub edit_flags: bool,
     pub hide_link: bool,
@@ -68,6 +69,7 @@ pub struct TreeNode {
     pub fixed_prefix: String,
     pub editable_name: String,
     pub favorite: bool,
+    pub important: bool,
     pub hidden: bool,
     pub file: bool,
     pub info: Option<NodeInfo>,
@@ -150,7 +152,7 @@ fn children_at(root: &Path, data: &Mapping, parent: &[String], limit: usize) -> 
 // Below the limit the children load when their folder opens, so the disk is not walked to the bottom.
 fn fill_at(root: &Path, data: &Mapping, nodes: &mut [TreeNode], limit: usize) -> R<()> {
     for node in nodes {
-        if node.has_children && node.depth < limit {
+        if node.has_children && node.depth + 1 < limit {
             let mut kids = children_at(root, data, &node.rel_parts, limit)?;
             fill_at(root, data, &mut kids, limit)?;
             node.children = Some(kids);
@@ -162,11 +164,6 @@ fn fill_at(root: &Path, data: &Mapping, nodes: &mut [TreeNode], limit: usize) ->
 // A folder on disk with no database entry, and not a review link.
 fn is_unmanaged(entry: &Entry) -> bool {
     entry.on_disk && !entry.in_yaml && entry.link.is_none() && !entry.file
-}
-
-// Below a review folder past the limit the database has no entries, so its unmanaged folders are only browsed.
-fn under_review_past_limit(data: &Mapping, rel: &[String], limit: usize) -> bool {
-    (limit..rel.len()).any(|k| type_base(&get_type(data, &rel[..k])) == "REV")
 }
 
 fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>> {
@@ -263,7 +260,7 @@ fn is_linked_folder(name: &str) -> bool {
 const GIT_MARKERS: [&str; 3] = [".git", ".github", ".gitignore"];
 
 // Review folders and workboards hold files, so they open even when empty.
-pub(crate) fn holds_files(data: &Mapping, rel: &[String]) -> bool {
+fn holds_files(data: &Mapping, rel: &[String]) -> bool {
     matches!(type_base(&get_type(data, rel)), "REV" | "WKB")
 }
 
@@ -295,6 +292,7 @@ fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
         fixed_prefix: String::new(),
         editable_name: name.clone(),
         favorite: false,
+        important: false,
         hidden: false,
         file: true,
         info: None,
@@ -310,6 +308,7 @@ fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
             copy_path: true,
             open: true,
             favorite: false,
+            important: false,
             edit_details: false,
             edit_flags: false,
             hide_link: false,
@@ -373,13 +372,8 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
 
     let locked = is_locked_type(raw_type);
     let reserved = is_reserved(&rel_parts);
-    // Folders on the last tree level show no children, so the views offer nothing to open below them.
-    // The review root stays a container even when its filter hides every link, so its empty list can say why.
-    let review_root = depth == 0 && entry.name.eq_ignore_ascii_case(REVIEW_FOLDER);
-    // A review folder always opens, even when empty, so its files and the Empty legend can show.
-    let content_folder = !ghost && !linked && matches!(type_base(raw_type), "REV" | "WKB" | "OUT");
-    let browsable = is_unmanaged(&entry) && under_review_past_limit(data, &rel_parts, limit);
-    let has_children = !ghost && (review_root || content_folder || (!linked && (depth + 1 < limit || browsable) && !level_entries(root, data, &rel_parts)?.is_empty()));
+    // Every real folder opens, even when empty or past the depth limit, where its children are read from disk on demand.
+    let has_children = !ghost && !linked;
     let is_git = !ghost && !linked && GIT_MARKERS.iter().any(|m| abs_path.join(m).exists());
 
     let info_broken = info.as_ref().is_some_and(|i| i.error.is_some());
@@ -405,6 +399,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
         fixed_prefix,
         editable_name,
         favorite: entry.favorite || info.as_ref().and_then(|i| field_of(i, &["favorite"])).is_some_and(|v| v.eq_ignore_ascii_case("true")),
+        important: is_wkb && info.as_ref().and_then(|i| field_of(i, &["important"])).is_some_and(|v| v.eq_ignore_ascii_case("true")),
         hidden: entry.hidden,
         file: false,
         info,
@@ -426,6 +421,7 @@ fn link_actions() -> NodeActions {
         copy_path: true,
         open: true,
         favorite: true,
+        important: false,
         edit_details: false,
         edit_flags: false,
         hide_link: true,
@@ -454,6 +450,7 @@ fn compute_actions(depth: usize, limit: usize, ghost: bool, raw_type: &str, rese
         open: !ghost,
         // A broken info.json is never overwritten, so neither edit can be saved into it.
         favorite: !reserved && !ghost && !info_broken && !outcome,
+        important: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
         edit_details: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
         edit_flags: !frozen && !ghost && depth > 0 && type_base(raw_type) == "NODE",
         hide_link: false,
@@ -829,7 +826,7 @@ mod tests {
         let a = &l4[0].actions;
         assert_eq!(l4[0].depth, crate::config::MAX_DEPTH);
         assert!(!a.change_type && !a.add_next && a.rename && a.copy_path);
-        assert!(!l4[0].has_children);
+        assert!(l4[0].has_children);
     }
 
     #[test]
@@ -843,7 +840,7 @@ mod tests {
         assert!(l3.has_children && l3.actions.change_type && l3.actions.add_next);
         let l4 = child(&l3);
         assert_eq!((l4.name.as_str(), l4.depth), ("01.D", 3));
-        assert!(!l4.has_children && l4.actions.change_type && l4.actions.add_next);
+        assert!(l4.has_children && l4.actions.change_type && l4.actions.add_next);
         let data = crate::tree::tree_store::load(dir.path()).unwrap();
         assert_eq!(crate::tree::tree_store::get_type(&data, &rel(&["01.A", "01.B", "01.C", "01.D"])), "NODE-L4");
         assert!(get_node(&data, &rel(&["01.A", "01.B", "01.C", "01.D", "01.E"])).is_none());
@@ -858,8 +855,8 @@ mod tests {
         let alpha = find(&tree.nodes, "01.Alpha");
         let sub = find(alpha.children.as_ref().unwrap(), "01.Sub");
         let deep = find(sub.children.as_ref().unwrap(), "01.Deep");
-        assert!(!deep.has_children && deep.children.is_none());
-        assert!(find(&tree.nodes, "02.Beta").children.is_none());
+        assert!(deep.has_children && deep.children.is_none());
+        assert!(find(&tree.nodes, "02.Beta").children.as_ref().is_some_and(Vec::is_empty));
     }
 
     #[test]
@@ -872,6 +869,7 @@ mod tests {
             let a = &find(&tree.nodes, n).actions;
             (a.favorite, a.edit_details)
         };
+        assert!(find(&tree.nodes, "04.Wkb").actions.important && !find(&tree.nodes, "02.Beta").actions.important && !find(&tree.nodes, "03.Gamma").actions.important);
         assert_eq!(acts("04.Wkb"), (true, true));
         assert_eq!(acts("02.Beta"), (true, false));
         assert_eq!(acts("03.Gamma"), (false, false));
@@ -880,7 +878,7 @@ mod tests {
         std::fs::write(dir.path().join("04.Wkb/.ant/info.json"), "[1]").unwrap();
         let tree = build_tree(dir.path(), &data, false).unwrap();
         let a = &find(&tree.nodes, "04.Wkb").actions;
-        assert!(!a.favorite && !a.edit_details);
+        assert!(!a.favorite && !a.edit_details && !a.important);
         assert!(!find(&tree.nodes, "02.Beta").actions.edit_flags && !find(&tree.nodes, "04.Wkb").actions.edit_flags);
     }
 

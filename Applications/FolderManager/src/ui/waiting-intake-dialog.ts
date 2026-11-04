@@ -1,5 +1,7 @@
 // Asks before intake moves loose files out of a node the app has never managed: continue, or keep them with the data flag.
 import { el } from "./dom";
+import { dialogButton, openDialog } from "./dialog/shell";
+import { colHeader, dialogTable } from "./dialog/table";
 import type { WaitingNode } from "../ipc/types";
 
 export type WaitingChoice = "continue" | "data";
@@ -10,39 +12,18 @@ export interface WaitingDecision {
 }
 
 // Resolves to every node's decision, or null when the dialog is left with Later or Escape.
-export function waitingIntakeDialog(nodes: WaitingNode[]): Promise<WaitingDecision[] | null> {
-  return new Promise((resolve) => {
-    const rows = nodes.map((node, i) => row(node, i));
-    const table = el(
-      "table",
-      { class: "invalid-table", "aria-label": "Folders with loose files" },
-      el(
-        "thead",
-        {},
-        el("tr", {}, el("th", { scope: "col" }, "Folder"), el("th", { scope: "col" }, "Files"), el("th", { scope: "col" }, "Continue"), el("th", { scope: "col" }, "Set data flag")),
-      ),
-      el("tbody", {}, ...rows.map((r) => r.element)),
-    );
-    const later = el("button", { type: "submit", class: "btn", value: "cancel" }, "Later");
-    const apply = el("button", { type: "submit", class: "btn btn-primary", value: "ok" }, "Apply");
-    const form = el(
-      "form",
-      { method: "dialog" },
-      el("h2", { id: "waiting-title" }, "Loose files in new folders"),
-      el("p", { class: "dialog-text" }, "From now on the loose files of these folders move to their 98.* review folder. Set the data flag to keep them where they are, or continue to let the automation run."),
-      el("div", { class: "invalid-scroll" }, table),
-      el("div", { class: "dialog-buttons" }, later, apply),
-    );
-    const dialog = el("dialog", { class: "confirm invalid-dialog", "aria-labelledby": "waiting-title" }, form);
-
-    dialog.addEventListener("close", () => {
-      resolve(dialog.returnValue === "ok" ? rows.map((r) => r.decision()) : null);
-      dialog.remove();
-    });
-    document.body.append(dialog);
-    dialog.showModal();
-    table.querySelector<HTMLInputElement>('input[type="radio"]')?.focus();
+export async function waitingIntakeDialog(nodes: WaitingNode[]): Promise<WaitingDecision[] | null> {
+  const rows = nodes.map((node, i) => row(node, i));
+  const headers = ["Folder", "Files", "Continue", "Set data flag"].map((label) => colHeader([label]));
+  const { table, view } = dialogTable("Folders with loose files", headers, rows.map((r) => r.element));
+  const { closed } = openDialog({
+    title: "Loose files in new folders",
+    wide: true,
+    body: [el("p", { class: "dialog-text" }, "From now on the loose files of these folders move to their 98.* review folder. Set the data flag to keep them where they are, or continue to let the automation run."), view],
+    buttons: [dialogButton("Later", "cancel"), dialogButton("Apply", "ok", "primary")],
   });
+  table.querySelector<HTMLInputElement>('input[type="radio"]')?.focus();
+  return (await closed) === "ok" ? rows.map((r) => r.decision()) : null;
 }
 
 function row(node: WaitingNode, index: number): { element: HTMLElement; decision: () => WaitingDecision } {

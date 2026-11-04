@@ -2,6 +2,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isFmError } from "./types";
 import type {
+  BoardCard,
   CopyAnswer,
   HiddenChoice,
   DeletePreview,
@@ -45,6 +46,7 @@ export const setNodeType = (relParts: string[], typeBase: EditableType, status: 
   call<Mutation>("set_node_type", { relParts, typeBase, status });
 export const openNode = (relParts: string[]) => call<void>("open_node", { relParts });
 export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("set_favorite", { relParts, on });
+export const setImportant = (relParts: string[], on: boolean) => call<Mutation>("set_important", { relParts, on });
 export const fileImage = (relParts: string[], large: boolean) => call<string | null>("file_image", { relParts, large });
 export const setLinkHidden =(relParts: string[], on: boolean) => call<Mutation>("set_link_hidden", { relParts, on });
 export const setReviewFilter = (hidden: string[], favorites: boolean) => call<Mutation>("set_review_filter", { hidden, favorites });
@@ -120,6 +122,9 @@ export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect
 export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonEmpty: boolean) =>
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
+export const listFavorites = () => call<string[][]>("list_favorites");
+export const listWorkboards = () => call<string[][]>("list_workboards");
+export const setBoard = (cards: BoardCard[]) => call<Mutation>("set_board", { cards });
 export const searchDisk = (query: string) => call<string[][]>("search_disk", { query });
 export interface Suggestion {
   value: string;

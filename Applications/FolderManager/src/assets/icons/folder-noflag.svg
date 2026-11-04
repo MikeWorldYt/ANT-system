@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_1" data-name="Capa 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 69.74 49.7">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #3f51b5;
+        opacity: .5;
+      }
+
+      .cls-2 {
+        fill: none;
+      }
+
+      .cls-3 {
+        fill: #7d3de2;
+      }
+
+      .cls-4 {
+        fill: url(#Nueva_muestra_de_motivo_2);
+      }
+
+      .cls-5 {
+        fill: #7e54d1;
+      }
+
+      .cls-6 {
+        clip-path: url(#clippath);
+      }
+    </style>
+    <clipPath id="clippath">
+      <path class="cls-2" d="M67.63,6.85c0-.1,0-.2-.02-.3-.14-1.11-1.12-1.99-2.35-1.98-8.59,0-17.18,0-25.78,0h-1.79s0,0,0,0c-.69,0-1.38,0-2.07,0-.69,0-1.38,0-2.07,0,0,0,0,0,0,0h-1.79c-8.59,0-17.18,0-25.78,0-1.23,0-2.21.88-2.35,1.98-.01.1-.02.2-.02.3,0,12.64,0,25.28,0,37.92q0,.22.26.22h63.5q.26,0,.26-.22c0-12.64,0-25.28,0-37.92Z"/>
+    </clipPath>
+    <pattern id="Nueva_muestra_de_motivo_2" data-name="Nueva muestra de motivo 2" x="0" y="0" width="97.97" height="88.52" patternTransform="translate(2911.51 1366.71)" patternUnits="userSpaceOnUse" viewBox="0 0 97.97 88.52">
+      <g>
+        <rect class="cls-2" y="0" width="97.97" height="88.52"/>
+        <rect class="cls-5" x="0" y="0" width="97.97" height="88.52"/>
+      </g>
+    </pattern>
+  </defs>
+  <path class="cls-3" d="M35.61,44.99c-10.57,0-21.14,0-31.7,0-.38,0-.31.03-.31-.31,0-11.53,0-23.07,0-34.6,0-2.59,0-5.17,0-7.76,0-1.13.73-2.03,1.82-2.27.17-.04.35-.06.53-.06,6.94,0,13.88,0,20.82,0,1.28,0,2.4.44,3.31,1.35,1.01,1.01,2.02,2.01,3.02,3.02.13.13.26.19.45.19,10.57,0,21.14,0,31.7,0,1.23,0,2.21.88,2.35,1.98.01.1.02.2.02.3,0,12.64,0,25.28,0,37.92q0,.22-.26.22c-10.59,0-21.17,0-31.76,0Z"/>
+  <g class="cls-6">
+    <rect class="cls-4" y="3.65" width="69.74" height="41.35"/>
+    <rect class="cls-1" x="3.61" y="33.73" width="64.02" height="15.97" rx="3" ry="3"/>
+  </g>
+</svg>
