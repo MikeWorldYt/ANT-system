@@ -9,6 +9,8 @@ mod extensions;
 mod fs_safe;
 mod index;
 mod intake;
+#[cfg(test)]
+mod ipc_parity_tests;
 mod mutations;
 mod preview;
 mod scheduler;
