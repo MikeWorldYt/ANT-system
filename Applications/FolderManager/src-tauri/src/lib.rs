@@ -5,6 +5,7 @@ mod backup;
 mod commands;
 mod config;
 mod debug_log;
+mod domain;
 mod error;
 mod extensions;
 mod fs_safe;

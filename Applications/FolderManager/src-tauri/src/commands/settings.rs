@@ -6,6 +6,7 @@ use serde::Deserialize;
 use tauri::AppHandle;
 
 use crate::commands::run_locked;
+pub(crate) use crate::domain::validation::valid_backup_folder;
 use crate::index::review_index;
 use crate::storage::db::Store;
 use crate::tree::depth;
@@ -26,7 +27,6 @@ const THEME_VALUES: [&str; 3] = ["system", "light", "dark"];
 const ACCENT_VALUES: [&str; 5] = ["green", "blue", "purple", "coral", "gold"];
 const TEXT_SIZE_VALUES: [&str; 3] = ["small", "medium", "large"];
 const BACKUP_FREQUENCIES: [&str; 3] = ["day", "week", "month"];
-const MAX_BACKUP_FOLDER_CHARS: usize = 400;
 const SHORTCUT_ACTIONS: [&str; 10] =
     ["focusSearch", "editPath", "newNode", "newWorkboard", "openSettings", "goUp", "toggleSidePanel", "moveDown", "toggleFavorite", "editDetails"];
 // Keys the folder views own, so a shortcut can never take them: (code, mod, alt).
@@ -72,16 +72,6 @@ fn shortcuts_valid(value: &str) -> bool {
             && !FIXED_KEYS.contains(&(c.code.as_str(), c.r#mod, c.alt))
             && seen.insert((c.code.clone(), c.r#mod, c.alt))
     })
-}
-
-// Empty means the default folder inside the storage.
-pub(crate) fn valid_backup_folder(value: &str) -> bool {
-    let path = std::path::Path::new(value);
-    value.is_empty()
-        || (value.chars().count() <= MAX_BACKUP_FOLDER_CHARS
-            && !value.chars().any(char::is_control)
-            && path.is_absolute()
-            && !path.components().any(|c| c == std::path::Component::ParentDir))
 }
 
 fn check(key: &str, value: &str) -> R<()> {

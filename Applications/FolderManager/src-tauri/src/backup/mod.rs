@@ -15,9 +15,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
-use crate::commands::settings::valid_backup_folder;
 use crate::config::SETTINGS_FOLDER;
 use crate::debug_log::valid_stamp;
+use crate::domain::validation::valid_backup_folder;
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, is_link, StorageLock};
 use crate::storage::db::Store;

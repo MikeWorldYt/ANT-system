@@ -26,3 +26,7 @@ pub fn revert_target(root: &Path) -> R<String> {
         _ => Err(FmError::Internal { message: "The last Storage rename cannot be undone".to_string() }),
     }
 }
+
+#[cfg(test)]
+#[path = "rename_tests.rs"]
+mod tests;

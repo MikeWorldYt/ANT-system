@@ -65,19 +65,3 @@ fn bad_names_and_stamps_are_refused() {
     assert!(check_stamp("nope").is_err());
     assert!(root.is_dir());
 }
-
-#[test]
-fn rename_and_revert_round_trip() {
-    let dir = TempDir::new("rename-trip");
-    let storage = crate::commands::Storage::resolve(storage_in(&dir, "A"));
-    let renamed = crate::commands::rename_flow(&storage, STAMP, |_| Ok("B".to_string())).unwrap();
-    assert_eq!(renamed, dir.path().join("B"));
-    assert_eq!(storage.root().unwrap(), renamed);
-    assert!(!dir.path().join("A").exists());
-    let back = crate::commands::rename_flow(&storage, STAMP, crate::commands::revert_target).unwrap();
-    assert_eq!(back, dir.path().join("A"));
-    assert_eq!(status(&back), Some(RenameStatus { old: "B".into(), new: "A".into(), revertible: true }));
-    assert!(crate::commands::rename_flow(&storage, "bad", |_| Ok("C".to_string())).is_err());
-    let again = crate::commands::rename_flow(&storage, STAMP, crate::commands::revert_target).unwrap();
-    assert_eq!(again, dir.path().join("B"));
-}
