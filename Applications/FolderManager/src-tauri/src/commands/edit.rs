@@ -4,13 +4,15 @@ use std::path::{Path, PathBuf};
 use serde_yaml::Mapping;
 use tauri::{AppHandle, Manager};
 
-use super::{locked, review_emitter, run_locked, Storage};
-use crate::ant_core::shortcuts::create_shortcuts;
-use crate::config::{EditableType, NewKind, WkbStatus};
-use crate::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
-use crate::error::{FmError, R};
-use crate::index::{reindex, reindex_paths, review_index, search_index, Emit};
-use crate::tree::tree_store;
+use super::{locked, off_thread, review_emitter, run_locked};
+use crate::app::storage_session::Storage;
+use crate::platform::recycle::send_to_recycle_bin;
+use crate::platform::shortcuts::create_shortcuts;
+use crate::domain::config::{EditableType, NewKind, WkbStatus};
+use crate::services::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
+use crate::domain::error::R;
+use crate::services::index::{reindex, reindex_paths, review_index, search_index, Emit};
+use crate::services::tree::tree_store;
 
 pub(super) fn with_index(
     root: &Path,
@@ -50,6 +52,25 @@ pub(super) fn with_search_index(root: &Path, result: R<Mutation>) -> R<Mutation>
     Ok(m)
 }
 
+// Mutations that can add, move or drop 998.Review links rebuild that index along with the search fields.
+async fn run_indexed<F>(app: AppHandle, f: F) -> R<Mutation>
+where
+    F: FnOnce(&Path) -> R<Mutation> + Send + 'static,
+{
+    let emitter = app.clone();
+    run_locked(app, move |root| {
+        with_index(root, f(root), &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
+    })
+    .await
+}
+
+async fn run_search_indexed<F>(app: AppHandle, f: F) -> R<Mutation>
+where
+    F: FnOnce(&Path) -> R<Mutation> + Send + 'static,
+{
+    run_locked(app, move |root| with_search_index(root, f(root))).await
+}
+
 pub(super) fn delete_flow(
     storage: &Storage,
     rel: &[String],
@@ -67,12 +88,7 @@ pub(super) fn delete_flow(
 
 #[tauri::command]
 pub async fn rename_node(app: AppHandle, rel_parts: Vec<String>, new_editable: String) -> R<Mutation> {
-    let emitter = app.clone();
-    run_locked(app, move |root| {
-        let result = mutations::rename_node(root, &rel_parts, &new_editable);
-        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
-    })
-    .await
+    run_indexed(app, move |root| mutations::rename_node(root, &rel_parts, &new_editable)).await
 }
 
 #[tauri::command]
@@ -82,12 +98,11 @@ pub async fn rename_file(app: AppHandle, rel_parts: Vec<String>, new_name: Strin
 
 #[tauri::command]
 pub async fn delete_file(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
-    tauri::async_runtime::spawn_blocking(move || {
+    off_thread(move || {
         let storage = app.state::<Storage>();
-        locked(&storage, |root| mutations::delete_file(root, &rel_parts, mutations::send_to_recycle_bin))
+        locked(&storage, |root| mutations::delete_file(root, &rel_parts, send_to_recycle_bin))
     })
-    .await
-    .map_err(|e| FmError::Internal { message: e.to_string() })?
+    .await?
 }
 
 #[tauri::command]
@@ -97,73 +112,67 @@ pub async fn set_node_type(
     type_base: EditableType,
     status: Option<WkbStatus>,
 ) -> R<Mutation> {
-    run_locked(app, move |root| {
-        with_search_index(root, mutations::set_node_type(root, &rel_parts, type_base, status))
-    })
-    .await
+    run_search_indexed(app, move |root| mutations::set_node_type(root, &rel_parts, type_base, status)).await
 }
 
 #[tauri::command]
 pub async fn set_favorite(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
-    run_locked(app, move |root| with_search_index(root, mutations::set_favorite(root, &rel_parts, on))).await
+    run_search_indexed(app, move |root| mutations::set_favorite(root, &rel_parts, on)).await
 }
 
 #[tauri::command]
 pub async fn set_important(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
-    run_locked(app, move |root| with_search_index(root, mutations::set_important(root, &rel_parts, on))).await
+    run_search_indexed(app, move |root| mutations::set_important(root, &rel_parts, on)).await
 }
 
 #[tauri::command]
 pub async fn set_link_hidden(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
-    run_locked(app, move |root| with_search_index(root, mutations::set_link_hidden(root, &rel_parts, on))).await
+    run_search_indexed(app, move |root| mutations::set_link_hidden(root, &rel_parts, on)).await
 }
 
 #[tauri::command]
 pub async fn set_review_filter(app: AppHandle, hidden: Vec<String>, favorites: bool) -> R<Mutation> {
-    run_locked(app, move |root| with_search_index(root, mutations::set_review_filter(root, &hidden, favorites))).await
+    run_search_indexed(app, move |root| mutations::set_review_filter(root, &hidden, favorites)).await
 }
 
 #[tauri::command]
 pub async fn set_user_flag(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
-    run_locked(app, move |root| with_search_index(root, mutations::set_user_flag(root, &rel_parts, on))).await
+    run_search_indexed(app, move |root| mutations::set_user_flag(root, &rel_parts, on)).await
 }
 
 #[tauri::command]
 pub async fn set_node_details(app: AppHandle, rel_parts: Vec<String>, status: Option<WkbStatus>, owner: Option<String>) -> R<Mutation> {
-    run_locked(app, move |root| {
-        with_search_index(root, mutations::set_details(root, &rel_parts, status, owner.as_deref()))
-    })
-    .await
+    run_search_indexed(app, move |root| mutations::set_details(root, &rel_parts, status, owner.as_deref())).await
 }
 
 #[tauri::command]
 pub async fn set_board(app: AppHandle, cards: Vec<mutations::BoardCard>) -> R<Mutation> {
-    run_locked(app, move |root| with_search_index(root, mutations::set_board(root, &cards))).await
+    run_search_indexed(app, move |root| mutations::set_board(root, &cards)).await
 }
 
 #[tauri::command]
 pub async fn set_node_output(app: AppHandle, rel_parts: Vec<String>, output: Option<String>) -> R<Mutation> {
-    run_locked(app, move |root| with_search_index(root, mutations::set_output(root, &rel_parts, output.as_deref()))).await
+    run_search_indexed(app, move |root| mutations::set_output(root, &rel_parts, output.as_deref())).await
 }
 
 #[tauri::command]
 pub async fn deliver_output(app: AppHandle, rel_parts: Vec<String>, date: String, all: bool) -> R<Mutation> {
-    run_locked(app, move |root| with_search_index(root, mutations::deliver(root, &rel_parts, &date, all))).await
+    run_search_indexed(app, move |root| mutations::deliver(root, &rel_parts, &date, all)).await
 }
 
 #[tauri::command]
 pub async fn restore_output(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
-    run_locked(app, move |root| with_search_index(root, mutations::restore(root, &rel_parts))).await
+    run_search_indexed(app, move |root| mutations::restore(root, &rel_parts)).await
 }
 
 #[tauri::command]
 pub async fn set_node_hidden(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
-    run_locked(app, move |root| with_search_index(root, mutations::set_hidden(root, &rel_parts, on))).await
+    run_search_indexed(app, move |root| mutations::set_hidden(root, &rel_parts, on)).await
 }
 
 #[tauri::command]
 pub async fn set_hidden_nodes(app: AppHandle, parent: Vec<String>, hidden: Vec<String>) -> R<Mutation> {
-    run_locked(app, move |root| with_search_index(root, mutations::set_hidden_children(root, &parent, &hidden))).await
+    run_search_indexed(app, move |root| mutations::set_hidden_children(root, &parent, &hidden)).await
 }
 
 #[tauri::command]
@@ -178,42 +187,22 @@ pub async fn answer_copy(app: AppHandle, rel_parts: Vec<String>, answer: CopyAns
 
 #[tauri::command]
 pub async fn add_node(app: AppHandle, rel_parts: Vec<String>, kind: NewKind) -> R<Mutation> {
-    let emitter = app.clone();
-    run_locked(app, move |root| {
-        let result = mutations::add_next(root, &rel_parts, kind);
-        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
-    })
-    .await
+    run_indexed(app, move |root| mutations::add_next(root, &rel_parts, kind)).await
 }
 
 #[tauri::command]
 pub async fn add_child(app: AppHandle, rel_parts: Vec<String>, kind: NewKind) -> R<Mutation> {
-    let emitter = app.clone();
-    run_locked(app, move |root| {
-        let result = mutations::add_node(root, &rel_parts, kind);
-        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
-    })
-    .await
+    run_indexed(app, move |root| mutations::add_node(root, &rel_parts, kind)).await
 }
 
 #[tauri::command]
 pub async fn move_node(app: AppHandle, rel_parts: Vec<String>, direction: MoveDirection) -> R<Mutation> {
-    let emitter = app.clone();
-    run_locked(app, move |root| {
-        let result = mutations::move_node(root, &rel_parts, direction);
-        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
-    })
-    .await
+    run_indexed(app, move |root| mutations::move_node(root, &rel_parts, direction)).await
 }
 
 #[tauri::command]
 pub async fn move_folder(app: AppHandle, source: Vec<String>, destination: Vec<String>, copy: bool) -> R<Mutation> {
-    let emitter = app.clone();
-    run_locked(app, move |root| {
-        let result = mutations::move_folder(root, &source, &destination, copy);
-        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
-    })
-    .await
+    run_indexed(app, move |root| mutations::move_folder(root, &source, &destination, copy)).await
 }
 
 #[tauri::command]
@@ -223,12 +212,7 @@ pub async fn preview_invalid(app: AppHandle, rows: Vec<mutations::Pending>) -> R
 
 #[tauri::command]
 pub async fn resolve_invalid(app: AppHandle, rel_parts: Vec<String>, resolution: mutations::Resolution) -> R<Mutation> {
-    let emitter = app.clone();
-    run_locked(app, move |root| {
-        let result = mutations::resolve_invalid(root, &rel_parts, resolution);
-        with_index(root, result, &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
-    })
-    .await
+    run_indexed(app, move |root| mutations::resolve_invalid(root, &rel_parts, resolution)).await
 }
 
 #[tauri::command]
@@ -243,12 +227,11 @@ pub async fn delete_node(
     expect_ghost: bool,
     confirm_non_empty: bool,
 ) -> R<Mutation> {
-    tauri::async_runtime::spawn_blocking(move || {
+    off_thread(move || {
         let flags = (expect_ghost, confirm_non_empty);
         let emit = review_emitter(&app);
         let storage = app.state::<Storage>();
-        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, mutations::send_to_recycle_bin)
+        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, send_to_recycle_bin)
     })
-    .await
-    .map_err(|e| FmError::Internal { message: e.to_string() })?
+    .await?
 }

@@ -3,11 +3,14 @@ use std::path::{Path, PathBuf};
 
 use tauri::AppHandle;
 
-use super::clipboard::{self, Paste};
 use super::edit::with_search_index;
 use super::run_locked;
-use crate::error::R;
-use crate::mutations::{self, DropOutcome};
+use crate::domain::error::R;
+use crate::platform::clipboard::{self, Paste};
+use crate::platform::recycle::send_to_recycle_bin;
+use crate::services::mutations::{self, DropOutcome};
+#[cfg(windows)]
+use crate::platform::windows::input::ctrl_held;
 
 // `replace` names the workboards the user chose to swap for the one already in the storage.
 #[tauri::command]
@@ -32,16 +35,8 @@ pub async fn paste_files(app: AppHandle, target: Vec<String>) -> R<DropOutcome> 
 }
 
 fn place(root: &Path, target: &[String], paths: &[PathBuf], copy: bool, replace: &[PathBuf]) -> R<DropOutcome> {
-    let DropOutcome { mutation, placed, conflicts } = mutations::drop_files(root, target, paths, copy, replace, &mutations::send_to_recycle_bin)?;
+    let DropOutcome { mutation, placed, conflicts } = mutations::drop_files(root, target, paths, copy, replace, &send_to_recycle_bin)?;
     Ok(DropOutcome { mutation: with_search_index(root, Ok(mutation))?, placed, conflicts })
-}
-
-// Tauri's drop event carries no modifier keys, so the Ctrl state is read when the command arrives.
-#[cfg(windows)]
-fn ctrl_held() -> bool {
-    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_CONTROL};
-    // SAFETY: GetAsyncKeyState only reads the keyboard state; the high bit is set while the key is down.
-    unsafe { GetAsyncKeyState(i32::from(VK_CONTROL)) < 0 }
 }
 
 #[cfg(not(windows))]

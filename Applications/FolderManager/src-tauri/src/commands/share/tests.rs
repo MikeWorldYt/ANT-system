@@ -1,7 +1,7 @@
 use std::fs;
 
 use super::shortcut_plan;
-use crate::error::FmError;
+use crate::domain::error::FmError;
 use crate::test_support::{academic, rel, yaml, TempDir};
 
 #[test]

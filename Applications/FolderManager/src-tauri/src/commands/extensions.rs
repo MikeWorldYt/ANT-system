@@ -1,13 +1,9 @@
 // Commands of the Extensions settings page; downloads run outside the storage lock so a slow network never blocks the tree.
 use tauri::AppHandle;
 
-use super::run_locked;
-use crate::error::{FmError, R};
-use crate::extensions::{self, ExtensionInfo, ExtensionPreview, RegistryEntry};
-
-async fn blocking<T: Send + 'static>(f: impl FnOnce() -> R<T> + Send + 'static) -> R<T> {
-    tauri::async_runtime::spawn_blocking(f).await.map_err(|e| FmError::Internal { message: e.to_string() })?
-}
+use super::{off_thread, run_locked};
+use crate::domain::error::{FmError, R};
+use crate::services::extensions::{self, ExtensionInfo, ExtensionPreview, RegistryEntry};
 
 #[tauri::command]
 pub async fn list_extensions(app: AppHandle) -> R<Vec<ExtensionInfo>> {
@@ -31,14 +27,14 @@ pub async fn remove_extension(app: AppHandle, id: String) -> R<()> {
 
 #[tauri::command]
 pub async fn list_registry(app: AppHandle) -> R<Vec<RegistryEntry>> {
-    let items = blocking(extensions::fetch_registry).await?;
+    let items = off_thread(extensions::fetch_registry).await??;
     run_locked(app, move |root| Ok(extensions::entries(root, items))).await
 }
 
 #[tauri::command]
 pub async fn install_registry_extension(app: AppHandle, id: String) -> R<ExtensionInfo> {
     extensions::check_id(&id)?;
-    let (item, bytes) = blocking(move || {
+    let (item, bytes) = off_thread(move || {
         let item = extensions::fetch_registry()?
             .into_iter()
             .find(|i| i.id == id)
@@ -46,7 +42,7 @@ pub async fn install_registry_extension(app: AppHandle, id: String) -> R<Extensi
         let bytes = extensions::archive(&item)?;
         Ok((item, bytes))
     })
-    .await?;
+    .await??;
     run_locked(app, move |root| extensions::from_registry(root, &item, &bytes)).await
 }
 
@@ -56,7 +52,7 @@ pub async fn inspect_extension_repo(app: AppHandle, url: String) -> R<ExtensionP
         message: "Paste a GitHub address like https://github.com/owner/repo".to_string(),
     })?;
     let canonical = extensions::repo_url(&owner, &repo);
-    let bytes = blocking(move || extensions::repo_zip(&owner, &repo)).await?;
+    let bytes = off_thread(move || extensions::repo_zip(&owner, &repo)).await??;
     run_locked(app, move |root| extensions::stage_repo(root, &canonical, &bytes)).await
 }
 

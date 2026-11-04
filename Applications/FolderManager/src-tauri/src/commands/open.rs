@@ -1,24 +1,20 @@
 // Opens a folder of the storage in the file manager the operating system uses by default.
+#[cfg(not(windows))]
 use std::path::Path;
+#[cfg(not(windows))]
 use std::process::Command;
 
 use tauri::AppHandle;
 
 use super::run_locked;
-use crate::error::{FmError, R};
-use crate::fs_safe::{join_rel, validate_component};
-use crate::index::review_index;
-use crate::tree::tree_store;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{join_rel, validate_component};
+use crate::services::tree::review_links;
+use crate::services::tree::tree_store;
 
 // Each system has its own launcher for its default file manager.
 #[cfg(windows)]
-pub(super) fn launcher(dir: &Path) -> Command {
-    use std::os::windows::process::CommandExt;
-    let mut cmd = Command::new("explorer");
-    // Explorer falls back to Documents when the path mixes forward slashes.
-    cmd.arg(dir.to_string_lossy().replace('/', "\\")).creation_flags(crate::fs_safe::CREATE_NO_WINDOW);
-    cmd
-}
+pub(super) use crate::platform::windows::file_manager::launcher;
 
 #[cfg(target_os = "macos")]
 pub(super) fn launcher(dir: &Path) -> Command {
@@ -38,7 +34,7 @@ pub(super) fn launcher(dir: &Path) -> Command {
 pub async fn open_node(app: AppHandle, rel_parts: Vec<String>) -> R<()> {
     run_locked(app, move |root| {
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
-        let dir = match review_index::link_folder(root, &tree_store::load(root)?, &rel_parts)? {
+        let dir = match review_links::link_folder(root, &tree_store::load(root)?, &rel_parts)? {
             Some(dir) => dir,
             None => join_rel(root, &rel_parts),
         };

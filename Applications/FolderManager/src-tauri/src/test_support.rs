@@ -5,9 +5,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde_yaml::Mapping;
 
-use crate::error::R;
-use crate::mutations::{delete_node, Mutation};
-use crate::tree::tree_store::{get_type, load, save};
+use crate::domain::error::R;
+use crate::services::mutations::{delete_node, Mutation};
+use crate::services::tree::tree_store::{get_type, load, save, sync};
 
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -41,6 +41,13 @@ pub fn rel(parts: &[&str]) -> Vec<String> {
     parts.iter().map(|s| s.to_string()).collect()
 }
 
+// A storage root inside `dir`, recognised by its 999.Settings folder.
+pub fn storage_in(dir: &TempDir, name: &str) -> PathBuf {
+    let root = dir.path().join(name);
+    fs::create_dir_all(root.join("999.Settings")).unwrap();
+    root
+}
+
 pub fn storage(tag: &str, dirs: &[&str], yaml: &str) -> TempDir {
     let dir = TempDir::new(tag);
     dir.mkdir("999.Settings/00.Core");
@@ -64,6 +71,14 @@ pub fn yaml(dir: &Path) -> Mapping {
     load(dir).unwrap()
 }
 
+// The stored tree after a sync with the folders on disk, saved back as a refresh would.
+pub fn synced_yaml(dir: &Path) -> Mapping {
+    let mut data = yaml(dir);
+    sync(dir, &mut data).unwrap();
+    save(dir, &data).unwrap();
+    data
+}
+
 pub fn yaml_type(dir: &Path, parts: &[&str]) -> String {
     get_type(&yaml(dir), &rel(parts))
 }
@@ -73,7 +88,7 @@ pub fn yaml_type(dir: &Path, parts: &[&str]) -> String {
 pub fn break_tree_save(dir: &Path) -> fs::File {
     use std::os::windows::fs::OpenOptionsExt;
     const FILE_SHARE_READ: u32 = 0x1;
-    fs::OpenOptions::new().read(true).share_mode(FILE_SHARE_READ).open(crate::storage::db::db_path(dir)).unwrap()
+    fs::OpenOptions::new().read(true).share_mode(FILE_SHARE_READ).open(crate::infra::storage::db::db_path(dir)).unwrap()
 }
 
 const ACADEMIC: &str = "100.ACADEMIC:\n  type: NODE-L1\n  01.Math:\n    type: NODE-L2\n    status: done\n    \

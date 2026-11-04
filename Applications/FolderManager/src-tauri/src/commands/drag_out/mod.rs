@@ -1,6 +1,4 @@
 // Drags storage folders and files out to Explorer or the desktop, offered only as a move.
-#[cfg(windows)]
-mod com;
 #[cfg(test)]
 mod tests;
 
@@ -10,18 +8,15 @@ use std::sync::mpsc;
 use serde_yaml::Mapping;
 use tauri::AppHandle;
 
-use super::run_locked;
-use crate::error::{FmError, R};
-use crate::ant_core::tree_types::flags_in;
-use crate::config::MAIN_FLAG;
-use crate::fs_safe::join_rel;
-use crate::mutations::{self, locate, Target};
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::{self, get_node};
-
-const DROPEFFECT_MOVE: u32 = 2;
-// Only a move: Explorer would otherwise default to copy across drives and leave the original behind.
-const ALLOWED_EFFECTS: u32 = DROPEFFECT_MOVE;
+use super::{off_thread, run_locked};
+use crate::domain::error::{FmError, R};
+use crate::domain::tree_types::flags_in;
+use crate::domain::config::MAIN_FLAG;
+use crate::infra::fs_safe::join_rel;
+use crate::services::mutations::{self, locate, Target};
+use crate::platform::drag_out::drag_folders;
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::{self, get_node};
 
 #[tauri::command]
 pub async fn start_drag_out(app: AppHandle, targets: Vec<Vec<String>>) -> R<u32> {
@@ -38,9 +33,8 @@ pub async fn start_drag_out(app: AppHandle, targets: Vec<Vec<String>>) -> R<u32>
     })
     .map_err(|e| FmError::Internal { message: format!("Could not start the drag: {e}") })?;
     // The drag runs a modal loop on the UI thread, so the result is awaited off the async runtime.
-    let effect = tauri::async_runtime::spawn_blocking(move || rx.recv())
-        .await
-        .map_err(|e| FmError::Internal { message: e.to_string() })?
+    let effect = off_thread(move || rx.recv())
+        .await?
         .map_err(|_| FmError::Internal { message: "The drag ended without a result".to_string() })?;
     effect
 }
@@ -63,12 +57,4 @@ pub(super) fn drag_plan(root: &Path, data: &Mapping, target: &[String]) -> R<Pat
         return Err(FmError::NotFound { rel_parts: target.to_vec() });
     }
     Ok(abs)
-}
-
-#[cfg(windows)]
-use com::drag_folders;
-
-#[cfg(not(windows))]
-fn drag_folders(_paths: &[PathBuf]) -> R<u32> {
-    Err(FmError::Internal { message: "Drag out is only available on Windows for now".to_string() })
 }

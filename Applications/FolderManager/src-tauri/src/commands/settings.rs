@@ -1,17 +1,19 @@
 // User preferences kept in ant.db, and the links the settings window opens in the default browser or mail app.
 use std::collections::{HashMap, HashSet};
+#[cfg(not(windows))]
 use std::process::Command;
 
 use serde::Deserialize;
 use tauri::AppHandle;
 
 use crate::commands::run_locked;
-use crate::index::review_index;
-use crate::storage::db::Store;
-use crate::tree::depth;
-use crate::tree::tree_store;
-use crate::error::{FmError, R};
-use crate::updater::CURRENT_VERSION;
+use crate::domain::validation::valid_backup_folder;
+use crate::services::index::review_index;
+use crate::infra::storage::db::Store;
+use crate::services::tree::depth;
+use crate::services::tree::tree_store;
+use crate::domain::error::{FmError, R};
+use crate::services::updater::CURRENT_VERSION;
 
 const ISSUES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/issues/new";
 const RELEASES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/tag";
@@ -26,7 +28,6 @@ const THEME_VALUES: [&str; 3] = ["system", "light", "dark"];
 const ACCENT_VALUES: [&str; 5] = ["green", "blue", "purple", "coral", "gold"];
 const TEXT_SIZE_VALUES: [&str; 3] = ["small", "medium", "large"];
 const BACKUP_FREQUENCIES: [&str; 3] = ["day", "week", "month"];
-const MAX_BACKUP_FOLDER_CHARS: usize = 400;
 const SHORTCUT_ACTIONS: [&str; 10] =
     ["focusSearch", "editPath", "newNode", "newWorkboard", "openSettings", "goUp", "toggleSidePanel", "moveDown", "toggleFavorite", "editDetails"];
 // Keys the folder views own, so a shortcut can never take them: (code, mod, alt).
@@ -72,16 +73,6 @@ fn shortcuts_valid(value: &str) -> bool {
             && !FIXED_KEYS.contains(&(c.code.as_str(), c.r#mod, c.alt))
             && seen.insert((c.code.clone(), c.r#mod, c.alt))
     })
-}
-
-// Empty means the default folder inside the storage.
-pub(crate) fn valid_backup_folder(value: &str) -> bool {
-    let path = std::path::Path::new(value);
-    value.is_empty()
-        || (value.chars().count() <= MAX_BACKUP_FOLDER_CHARS
-            && !value.chars().any(char::is_control)
-            && path.is_absolute()
-            && !path.components().any(|c| c == std::path::Component::ParentDir))
 }
 
 fn check(key: &str, value: &str) -> R<()> {
@@ -140,12 +131,7 @@ pub async fn reset_settings(app: AppHandle) -> R<()> {
 }
 
 #[cfg(windows)]
-fn launcher() -> Command {
-    use std::os::windows::process::CommandExt;
-    let mut cmd = Command::new("rundll32");
-    cmd.arg("url.dll,FileProtocolHandler").creation_flags(crate::fs_safe::CREATE_NO_WINDOW);
-    cmd
-}
+use crate::platform::windows::url_handler::launcher;
 
 #[cfg(target_os = "macos")]
 fn launcher() -> Command {

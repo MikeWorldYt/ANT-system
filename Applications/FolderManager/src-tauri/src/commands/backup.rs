@@ -2,8 +2,8 @@
 use tauri::AppHandle;
 
 use super::run_locked;
-use crate::backup::{self, schedule, BackupEntry, DEFAULT_FREQUENCY};
-use crate::error::R;
+use crate::services::backup::{self, schedule, BackupEntry, DEFAULT_FREQUENCY};
+use crate::domain::error::R;
 
 #[tauri::command]
 pub async fn backup_now(app: AppHandle, stamp: String) -> R<String> {

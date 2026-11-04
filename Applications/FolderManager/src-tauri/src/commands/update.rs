@@ -4,11 +4,11 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 use tauri::AppHandle;
 
-use super::run_locked;
-use crate::config::{CORE_FOLDER, SETTINGS_FOLDER};
-use crate::error::{FmError, R};
-use crate::fs_safe::io_err;
-use crate::updater;
+use super::{off_thread, run_locked};
+use crate::domain::config::{CORE_FOLDER, SETTINGS_FOLDER};
+use crate::domain::error::R;
+use crate::infra::fs_safe::io_err;
+use crate::services::updater;
 
 const SKIP_FILE: &str = ".skip_version";
 
@@ -42,9 +42,7 @@ pub struct UpdateInfo {
 // The download runs outside the storage lock so a slow network never blocks the tree.
 #[tauri::command]
 pub async fn check_update(app: AppHandle, manual: bool) -> R<Option<UpdateInfo>> {
-    let latest = tauri::async_runtime::spawn_blocking(updater::latest_version)
-        .await
-        .map_err(|e| FmError::Internal { message: e.to_string() })?;
+    let latest = off_thread(updater::latest_version).await?;
     let Some(latest) = latest.filter(|v| updater::is_newer(v, updater::CURRENT_VERSION)) else { return Ok(None) };
     let skipped = run_locked(app, move |root| skipped_for(root, manual)).await?;
     Ok((latest != skipped).then(|| UpdateInfo { current: updater::CURRENT_VERSION.to_string(), latest }))
