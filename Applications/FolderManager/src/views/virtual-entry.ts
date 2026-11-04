@@ -17,6 +17,9 @@ export const VIRTUAL_ENTRIES: VirtualEntry[] = [
   { id: "board", label: "BOARD", icon: "layout", hint: "Task board of every workboard in the Storage", empty: "No workboards yet" },
 ];
 
+// The board opens from the side panel, so only FAVORITES heads the root listing.
+export const ROOT_ENTRIES = VIRTUAL_ENTRIES.filter((e) => e.id !== "board");
+
 export const openEntry = (): VirtualEntry | null => VIRTUAL_ENTRIES.find((e) => e.id === state.virtual) ?? null;
 
 // `toggle` lets a second activation close the entry, as a tree row folds.
@@ -46,4 +49,4 @@ export function virtualEntry(entry: VirtualEntry, cls: string, role: string, tog
   return item;
 }
 
-export const virtualEntries = (cls: string, role: string, toggle = false): HTMLElement[] => VIRTUAL_ENTRIES.map((e) => virtualEntry(e, cls, role, toggle));
+export const virtualEntries = (cls: string, role: string, toggle = false): HTMLElement[] => ROOT_ENTRIES.map((e) => virtualEntry(e, cls, role, toggle));

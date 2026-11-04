@@ -25,6 +25,8 @@ interface State {
   // The open virtual root entry and the real folders it lists, gathered from the whole Storage.
   virtual: VirtualId | null;
   virtualKeys: string[];
+  // The listed entry the selection went through; inside FAVORITES the path stays symbolic below it.
+  via: string | null;
 }
 
 export type VirtualId = "favorites" | "board";
@@ -100,6 +102,7 @@ export const state: State = {
   settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
   virtual: null,
   virtualKeys: [],
+  via: null,
 };
 
 const listeners = new Set<() => void>();
@@ -162,15 +165,15 @@ const inSelectedPath = (n: TreeNode): boolean => {
   return state.selectedKey === key || (state.selectedKey?.startsWith(`${key}/`) ?? false);
 };
 
-export function visibleRows(): TreeNode[] {
+export function visibleRows(nodes: TreeNode[] = state.tree?.nodes ?? []): TreeNode[] {
   const rows: TreeNode[] = [];
-  const walk = (nodes: TreeNode[]) => {
-    for (const n of foldersFirst(favoritesFirst(listed(nodes), state.settings.pinFavorites))) {
+  const walk = (level: TreeNode[]) => {
+    for (const n of foldersFirst(favoritesFirst(listed(level), state.settings.pinFavorites))) {
       rows.push(n);
       if (state.expanded.has(keyOf(n.relParts)) && n.children) walk(n.children);
     }
   };
-  walk(state.tree?.nodes ?? []);
+  walk(nodes);
   return rows;
 }
 
@@ -246,14 +249,35 @@ function inManagedScope(key: string | null): boolean {
   return key === managed || (at < 0 ? "" : key.slice(0, at)) === managed;
 }
 
+export function leaveVirtual(): void {
+  state.virtual = null;
+  state.virtualKeys = [];
+  state.via = null;
+}
+
+// A virtual list stays open while one of its entries, or in FAVORITES something below the one entered, is selected.
+function keepVirtual(key: string | null): boolean {
+  if (key === null) return false;
+  if (state.virtual === "favorites" && state.via !== null && key.startsWith(`${state.via}/`)) return true;
+  if (!state.virtualKeys.includes(key)) return false;
+  state.via = key;
+  return true;
+}
+
+// Opens a virtual root entry with nothing selected, in one step so history sees a single move.
+export function selectVirtual(id: VirtualId): void {
+  if (state.virtual !== id) state.virtualKeys = [];
+  state.virtual = id;
+  state.via = null;
+  state.selectedKey = null;
+  state.selectedKeys = [];
+  notify();
+}
+
 export function select(parts: string[] | null): void {
   state.selectedKey = parts ? keyOf(parts) : null;
   state.selectedKeys = state.selectedKey === null ? [] : [state.selectedKey];
-  // A virtual list stays open only while one of its entries is selected.
-  if (state.virtual !== null && !state.virtualKeys.includes(state.selectedKey ?? "")) {
-    state.virtual = null;
-    state.virtualKeys = [];
-  }
+  if (state.virtual !== null && !keepVirtual(state.selectedKey)) leaveVirtual();
   if (!inManagedScope(state.selectedKey)) {
     state.managing = null;
     state.hiddenChoices = [];
@@ -349,6 +373,7 @@ export function pruneSelection(): void {
   if (state.editing && !findNode(state.editing.key.split("/"))) state.editing = null;
   state.selectedKeys = [...new Set(state.selectedKeys.map(followKey).filter((key): key is string => key !== null))];
   if (state.selectedKey !== null) state.selectedKey = followKey(state.selectedKey) ?? state.selectedKeys.at(-1) ?? null;
+  if (state.via !== null) state.via = followKey(state.via);
 }
 
 // Swaps in each parent's new children, keeping the loaded subtrees of untouched siblings; null when a parent is not loaded.

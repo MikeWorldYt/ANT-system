@@ -12,7 +12,6 @@ import { expand } from "../actions/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "./manage-row";
 import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import { virtualNodes } from "../store/virtual";
-import { goToReal } from "../actions/virtual-nav";
 import { openEntry, virtualEntries, virtualEntry } from "./virtual-entry";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
@@ -26,12 +25,8 @@ export function createGridView(): ViewMode {
   // Selecting inside the folder keeps it; any other selection (breadcrumb, back, search) moves the grid there.
   function syncFolder(): void {
     const key = state.selectedKey;
-    // An open virtual list is shown instead of any folder.
-    if (state.virtual !== null) {
-      folder = null;
-      return;
-    }
-    if (key === null) {
+    // An open virtual list is shown until one of its entries is entered; below it the grid moves as in any folder.
+    if (key === null || (state.virtual !== null && folder === null && state.virtualKeys.includes(key))) {
       folder = null;
       return;
     }
@@ -48,7 +43,7 @@ export function createGridView(): ViewMode {
   }
 
   function shownNodes(): TreeNode[] {
-    if (state.virtual !== null) return virtualNodes();
+    if (state.virtual !== null && folder === null) return virtualNodes();
     const open = folderNode();
     const base = folder === null ? (state.tree?.nodes ?? []) : (open?.children ?? []);
     return (isManagedFolder(folder ?? "") ? managedNodes() : null) ?? sortedForColumns(listed(base), sortOf(folder ?? ""), state.settings.pinFavorites);
@@ -65,7 +60,6 @@ export function createGridView(): ViewMode {
 
   function enter(n: TreeNode): void {
     if (!n.hasChildren) return;
-    if (state.virtual !== null) return void goToReal(n.relParts);
     folder = keyOf(n.relParts);
     select(n.relParts);
   }
@@ -172,7 +166,7 @@ export function createGridView(): ViewMode {
     },
     render() {
       syncFolder();
-      const listing = openEntry();
+      const listing = folder === null ? openEntry() : null;
       // The background is a drop target for the folder shown; a virtual list is no folder.
       if (listing) delete root.dataset.key;
       else root.dataset.key = folder ?? "";

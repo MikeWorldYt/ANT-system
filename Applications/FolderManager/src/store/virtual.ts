@@ -6,7 +6,7 @@ import type { TreeNode } from "../ipc/types";
 const SOURCES: Record<VirtualId, () => Promise<string[][]>> = { favorites: listFavorites, board: listWorkboards };
 
 // Loads every level above the folder, so findNode, the details panel and the actions reach it like any shown folder.
-async function loadPath(parts: string[]): Promise<void> {
+export async function loadPath(parts: string[]): Promise<void> {
   let level = state.tree?.nodes ?? [];
   for (const part of parts.slice(0, -1)) {
     const n = level.find((x) => x.name === part);

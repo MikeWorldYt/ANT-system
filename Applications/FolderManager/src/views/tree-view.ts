@@ -8,30 +8,37 @@ import { statusMark } from "../ui/status-mark";
 import { hideBox, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
 import { toggleExpand } from "../actions/ops";
-import { clickSelect, isSelected, keyOf, select, startEdit, state, visibleRows } from "../store/state";
+import { clickSelect, isSelected, keyOf, leaveVirtual, select, startEdit, state, visibleRows } from "../store/state";
 import { virtualNodes } from "../store/virtual";
-import { goToReal, openVirtual } from "../actions/virtual-nav";
-import { virtualEntry, VIRTUAL_ENTRIES } from "./virtual-entry";
+import { openVirtual } from "../actions/virtual-nav";
+import { ROOT_ENTRIES, virtualEntry } from "./virtual-entry";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
 export function createTreeView(): ViewMode {
   const tree = el("div", { class: "tree", role: "tree", tabindex: "0", "aria-label": "Storage folders" });
   let rows: TreeNode[] = [];
-  // Rows of an open virtual list come first in `rows`; they stand for folders that live elsewhere.
+  // Rows of an open virtual list, with what unfolds under them, come first in `rows`; they stand for folders that live elsewhere.
   let listCount = 0;
+  let listDepths: number[] = [];
 
   const indexOfSelected = () => rows.findIndex((n) => keyOf(n.relParts) === state.selectedKey);
+  // The same folder may also show in the real tree below the list; acting there leaves the list.
+  const leaveAt = (i: number) => {
+    if (i >= listCount) leaveVirtual();
+  };
   const pick = (i: number) => {
-    const n = rows[Math.max(0, Math.min(rows.length - 1, i))];
-    if (n) select(n.relParts);
+    const at = Math.max(0, Math.min(rows.length - 1, i));
+    const n = rows[at];
+    if (!n) return;
+    leaveAt(at);
+    select(n.relParts);
   };
 
   function buildRow(n: TreeNode, i: number): HTMLElement {
     const key = keyOf(n.relParts);
-    // A listed folder does not unfold in the list; Enter takes the tree to where it lives.
-    const folds = n.hasChildren && i >= listCount;
-    const depth = i < listCount ? 1 : n.depth;
+    const folds = n.hasChildren;
+    const depth = listDepths[i] ?? n.depth;
     const expanded = state.expanded.has(key);
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(folds ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
     const icon = folderIcon(n, expanded && folds);
@@ -53,13 +60,14 @@ export function createTreeView(): ViewMode {
     if (n.status && !isWorkboard(n)) row.append(statusMark(n.status));
     row.title = nodeSummary(n);
     toggle?.addEventListener("click", () => {
+      leaveAt(i);
       select(n.relParts);
       void toggleExpand(n);
     });
     row.addEventListener("click", (ev) => {
       if (fromToggle(ev)) return;
       if (ev.ctrlKey || ev.shiftKey) clickSelect(n.relParts, rows.map((r) => keyOf(r.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
-      else select(n.relParts);
+      else pick(i);
     });
     row.addEventListener("dblclick", (ev) => {
       if (!fromToggle(ev)) startEdit(n.relParts);
@@ -69,10 +77,10 @@ export function createTreeView(): ViewMode {
   }
 
   // An opened folder with nothing in it gets a line under its row, so the row does not look unfinished.
-  function emptyLegend(n: TreeNode): HTMLElement[] {
+  function emptyLegend(n: TreeNode, depth: number): HTMLElement[] {
     if (n.children?.length !== 0 || !state.expanded.has(keyOf(n.relParts))) return [];
     const legend = el("div", { class: "tree-legend" }, "Empty");
-    legend.style.setProperty("--depth", String(n.depth + 1));
+    legend.style.setProperty("--depth", String(depth + 1));
     return [legend];
   }
 
@@ -107,18 +115,20 @@ export function createTreeView(): ViewMode {
         pick(rows.length - 1);
         break;
       case "ArrowRight":
-        if (n && i < listCount) void goToReal(n.relParts);
-        else if (n && n.hasChildren && !open) void toggleExpand(n);
+        if (n && n.hasChildren && !open) void toggleExpand(n);
         else if (open) pick(i + 1);
         break;
       case "ArrowLeft":
-        if (i >= 0 && i < listCount && state.virtual !== null) void openVirtual(state.virtual);
-        else if (n && open) void toggleExpand(n);
-        else if (n && n.relParts.length > 1) select(n.relParts.slice(0, -1));
+        if (n && open) void toggleExpand(n);
+        // A listed entry steps back to its virtual list, not to the real folder it lives in.
+        else if (i >= 0 && listDepths[i] === 1 && state.virtual !== null) void openVirtual(state.virtual);
+        else if (n && n.relParts.length > 1) {
+          leaveAt(i);
+          select(n.relParts.slice(0, -1));
+        }
         break;
       case "Enter":
-        if (n && i < listCount) void goToReal(n.relParts);
-        else if (n) void toggleExpand(n);
+        if (n) void toggleExpand(n);
         break;
       case "F2":
         if (n) startEdit(n.relParts);
@@ -137,18 +147,24 @@ export function createTreeView(): ViewMode {
       host.append(tree);
     },
     render() {
-      const list = state.virtual !== null ? virtualNodes() : [];
+      const list: TreeNode[] = [];
+      listDepths = [];
+      for (const n of state.virtual !== null ? virtualNodes() : []) {
+        const below = state.expanded.has(keyOf(n.relParts)) && n.children ? visibleRows(n.children) : [];
+        list.push(n, ...below);
+        listDepths.push(1, ...below.map((b) => 1 + b.depth - n.depth));
+      }
       listCount = list.length;
       rows = [...list, ...visibleRows()];
-      const listRows = list.map((n, i) => buildRow(n, i));
-      const entries = VIRTUAL_ENTRIES.flatMap((e) => {
+      const listRows = list.flatMap((n, i) => [buildRow(n, i), ...emptyLegend(n, listDepths[i] ?? 1)]);
+      const entries = ROOT_ENTRIES.flatMap((e) => {
         const open = state.virtual === e.id;
         const entry = virtualEntry(e, "row", "treeitem", true);
         entry.setAttribute("aria-expanded", String(open));
         if (!open) return [entry];
         return [entry, ...(listRows.length > 0 ? listRows : [listLegend(e.empty)])];
       });
-      tree.replaceChildren(...entries, ...rows.slice(listCount).flatMap((n, i) => [buildRow(n, i + listCount), ...emptyLegend(n)]));
+      tree.replaceChildren(...entries, ...rows.slice(listCount).flatMap((n, i) => [buildRow(n, i + listCount), ...emptyLegend(n, n.depth)]));
       const i = indexOfSelected();
       if (i >= 0) {
         tree.setAttribute("aria-activedescendant", `row-${i}`);
