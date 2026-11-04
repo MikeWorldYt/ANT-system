@@ -9,14 +9,14 @@ use serde_yaml::Mapping;
 use tauri::AppHandle;
 
 use super::run_locked;
-use crate::error::{FmError, R};
-use crate::ant_core::tree_types::flags_in;
-use crate::config::MAIN_FLAG;
-use crate::fs_safe::join_rel;
-use crate::mutations::{self, locate, Target};
+use crate::domain::error::{FmError, R};
+use crate::domain::tree_types::flags_in;
+use crate::domain::config::MAIN_FLAG;
+use crate::infra::fs_safe::join_rel;
+use crate::services::mutations::{self, locate, Target};
 use crate::platform::drag_out::drag_folders;
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::{self, get_node};
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::{self, get_node};
 
 #[tauri::command]
 pub async fn start_drag_out(app: AppHandle, targets: Vec<Vec<String>>) -> R<u32> {

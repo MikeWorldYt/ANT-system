@@ -3,8 +3,8 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
 
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, same_name, validate_component};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, same_name, validate_component};
 
 const MAX_SUFFIX: u32 = 9_999;
 

@@ -7,7 +7,8 @@ use std::time::{Duration, Instant};
 use crate::domain::config::{CORE_FOLDER, EXE_DOWNLOAD_URL, SETTINGS_FOLDER, UPDATER_SCRIPT, UPDATER_SCRIPT_URL, VERSION_URL};
 use crate::domain::error::{FmError, R};
 use crate::domain::version::parse_file_version;
-use crate::infra::fs_safe::{io_err, run_powershell, write_atomic, CREATE_NO_WINDOW};
+use crate::infra::fs_safe::{io_err, write_atomic};
+use crate::platform::windows::powershell::{run_powershell, CREATE_NO_WINDOW};
 
 // Same grace period the Python app used: an updater that dies sooner than this has failed.
 const EARLY_EXIT: Duration = Duration::from_millis(1500);

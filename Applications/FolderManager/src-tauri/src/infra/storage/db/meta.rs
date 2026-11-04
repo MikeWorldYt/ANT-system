@@ -5,7 +5,7 @@ use std::path::Path;
 use rusqlite::params;
 
 use super::{db_err, Store};
-use crate::error::R;
+use crate::domain::error::R;
 
 impl Store {
     // Settings share the meta table under a prefix, so they need no schema change.

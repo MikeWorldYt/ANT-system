@@ -5,17 +5,18 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use super::{child_rel, ensure_free, finish, guard_frozen, load_synced, load_synced_at, locate, persist, register_ids, Mutation};
-use crate::ant_core::names::{editable_part, list_subdirs, next_available_id, next_main_category_id};
-use crate::ant_core::tree_types::child_entries;
-use crate::backup::stamp::local_date;
-use crate::config::{NewKind, DATA_DIR, DATA_FLAG};
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, Journal, StorageLock};
-use crate::storage::db::hide;
-use crate::storage::info::{field_of, read_info, write_info, OWNER_KEYS};
-use crate::tree::depth;
-use crate::tree::tree_store::{get_node, get_node_mut};
+use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, persist, register_ids, Mutation};
+use crate::domain::names::{editable_part, next_available_id, next_main_category_id};
+use crate::infra::scan::list_subdirs;
+use crate::domain::tree_types::child_entries;
+use crate::services::backup::stamp::local_date;
+use crate::domain::config::{NewKind, DATA_DIR, DATA_FLAG, OWNER_KEYS};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, Journal, StorageLock};
+use crate::infra::storage::db::hide;
+use crate::infra::storage::info::{field_of, read_info, write_info};
+use crate::services::tree::depth;
+use crate::services::tree::tree_store::{get_node, get_node_mut, load_synced};
 
 // A selected Level 1 node creates a sibling category at the Storage root.
 pub fn add_next(root: &Path, rel: &[String], kind: NewKind) -> R<Mutation> {
@@ -239,8 +240,8 @@ mod tests {
     fn a_workboard_made_outside_the_app_in_another_branch_keeps_its_tracker() {
         let dir = academic("add-wkb-outside");
         let mut data = yaml(dir.path());
-        crate::tree::tree_store::sync(dir.path(), &mut data).unwrap();
-        crate::tree::tree_store::save(dir.path(), &data).unwrap();
+        crate::services::tree::tree_store::sync(dir.path(), &mut data).unwrap();
+        crate::services::tree::tree_store::save(dir.path(), &data).unwrap();
         dir.mkdir("100.ACADEMIC/01.Math/PJ.007_Outside");
         let m = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
         assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "PJ.008_New-Workboard"])));
@@ -275,7 +276,7 @@ PJ.1000_Next: {type: WKB-L1}
     #[test]
     fn a_raised_depth_limit_moves_the_last_level_down() {
         let dir = academic("add-deeper");
-        crate::storage::db::Store::open_or_create(dir.path()).unwrap().set_setting(depth::DEPTH_KEY, "4").unwrap();
+        crate::infra::storage::db::Store::open_or_create(dir.path()).unwrap().set_setting(depth::DEPTH_KEY, "4").unwrap();
         add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), NewKind::Node).unwrap();
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "02.New-Node", "98.New-Node"]), "REV-L3");
         let m = add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "01.Algebra"]), NewKind::Node).unwrap();

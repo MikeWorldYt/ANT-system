@@ -13,7 +13,7 @@ pub(crate) fn send_to_recycle_bin(path: &Path) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mutations::{delete_file, delete_node};
+    use crate::services::mutations::{delete_file, delete_node};
     use crate::test_support::*;
     use std::fs;
 

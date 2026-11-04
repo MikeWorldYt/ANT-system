@@ -4,10 +4,10 @@ mod tests;
 
 use std::path::PathBuf;
 
-use crate::ant_core::tree_types::type_base;
-use crate::config::DATA_FLAG;
-use crate::error::{FmError, R};
-use crate::tree::tree_node::is_reserved;
+use crate::domain::tree_types::type_base;
+use crate::domain::config::DATA_FLAG;
+use crate::domain::error::{FmError, R};
+use crate::services::tree::tree_node::is_reserved;
 
 // Explorer writes this "Preferred DropEffect" value on Ctrl+X; Ctrl+C writes copy or link.
 const DROPEFFECT_MOVE: u32 = 2;

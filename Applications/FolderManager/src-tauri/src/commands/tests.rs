@@ -9,14 +9,14 @@ use super::edit::{delete_flow, with_index, with_search_index};
 use super::tree::refresh_flow;
 use super::update::{skip_path, skipped_for};
 use super::*;
-use crate::ant_core::search::parse_query;
-use crate::config::{EditableType, NewKind, WkbStatus};
-use crate::mutations::{self, MoveDirection, Mutation};
-use crate::fs_safe::StorageLock;
-use crate::index::{reindex, search_index};
-use crate::storage::db::Store;
+use crate::domain::search::parse_query;
+use crate::domain::config::{EditableType, NewKind, WkbStatus};
+use crate::services::mutations::{self, MoveDirection, Mutation};
+use crate::infra::fs_safe::StorageLock;
+use crate::services::index::{reindex, search_index};
+use crate::infra::storage::db::Store;
 use crate::test_support::{academic, rel, storage, yaml};
-use crate::tree::tree_store::{self, get_node};
+use crate::services::tree::tree_store::{self, get_node};
 use crate::test_support::TempDir;
 
 const TREE: &str = "100.WORK:\n  type: NODE-L1\n  01.A: {type: NODE-L2}\n  02.B: {type: NODE-L2}\n  03.Ghost: {type: NODE-L2}\n";
@@ -126,7 +126,7 @@ fn a_failed_event_and_an_unreadable_db_become_warnings() {
     assert_eq!(m.warnings.len(), 2, "{:?}", m.warnings);
     assert!(m.warnings[0].contains("window closed"));
 
-    std::fs::write(crate::storage::db::db_path(dir.path()), "not a database, just text that sqlite cannot open").unwrap();
+    std::fs::write(crate::infra::storage::db::db_path(dir.path()), "not a database, just text that sqlite cannot open").unwrap();
     let probe = Probe::new();
     let emit = probe.emit();
     let failures = reindex(dir.path(), &emit, |_, _| panic!("no yaml, no rebuild"));
@@ -312,7 +312,7 @@ fn dropped_files_keep_the_search_index_like_a_full_rebuild() {
 fn a_failed_quick_update_falls_back_to_a_full_rebuild_and_says_so() {
     let dir = indexed("cmd-inc-fallback");
     // Only the quick update deletes the digest row; the full rebuild replaces it, which fires no delete trigger.
-    let conn = rusqlite::Connection::open(crate::storage::db::db_path(dir.path())).unwrap();
+    let conn = rusqlite::Connection::open(crate::infra::storage::db::db_path(dir.path())).unwrap();
     conn.execute_batch("CREATE TRIGGER fail_quick BEFORE DELETE ON meta BEGIN SELECT RAISE(ABORT, 'boom'); END;").unwrap();
     drop(conn);
     let m = with_search_index(dir.path(), mutations::add_node(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node)).unwrap();

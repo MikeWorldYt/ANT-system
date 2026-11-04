@@ -8,7 +8,7 @@ use super::fail;
 use super::fetch::{allowed_url, download, valid_sha256, MAX_ZIP_BYTES, REGISTRY_HOSTS};
 use super::manifest::check_info;
 use super::store;
-use crate::error::R;
+use crate::domain::error::R;
 
 const REGISTRY_URL: &str = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Applications/FolderManager/registry.json";
 const MAX_REGISTRY_BYTES: u64 = 1024 * 1024;

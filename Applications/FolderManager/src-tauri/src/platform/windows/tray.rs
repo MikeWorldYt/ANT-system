@@ -11,8 +11,8 @@ use std::time::Duration;
 use tray_icon::menu::{Menu, MenuEvent, MenuItem};
 use tray_icon::{Icon, TrayIconBuilder, TrayIconEvent};
 
-use crate::watch::log;
-use crate::watch::tray::{path_label, tooltip, OPEN_LABEL, STOP_LABEL};
+use crate::services::watch::log;
+use crate::services::watch::tray::{path_label, tooltip, OPEN_LABEL, STOP_LABEL};
 
 // tauri-build embeds the app icon under this id, so the exe needs no icon file beside it.
 const APP_ICON: u16 = 32512;

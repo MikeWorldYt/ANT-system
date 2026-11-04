@@ -1,11 +1,12 @@
 // Search commands, answered from the index in ant.db; the slow pass walks the folders on disk.
 use tauri::{AppHandle, Manager};
 
-use super::{run_locked, Storage};
-use crate::ant_core::search::{canonical_key, parse_query};
-use crate::error::{FmError, R};
-use crate::index::disk_search;
-use crate::storage::db::{Store, Suggestion};
+use super::run_locked;
+use crate::app::storage_session::Storage;
+use crate::domain::search::{canonical_key, parse_query};
+use crate::domain::error::{FmError, R};
+use crate::services::index::disk_search;
+use crate::infra::storage::db::{Store, Suggestion};
 
 #[tauri::command]
 pub async fn search_nodes(app: AppHandle, query: String) -> R<Vec<Vec<String>>> {

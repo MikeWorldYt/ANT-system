@@ -12,12 +12,12 @@ use std::path::Path;
 use serde_yaml::Mapping;
 
 use super::{child_rel, ensure_free, finish, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation};
-use crate::ant_core::names::with_next_slot;
-use crate::ant_core::tree_types::child_entries;
-use crate::error::{FmError, R};
-use crate::fs_safe::{Journal, StorageLock};
-use crate::tree::depth;
-use crate::tree::tree_store::{self, delete_key, get_node, get_node_mut};
+use crate::domain::names::with_next_slot;
+use crate::domain::tree_types::child_entries;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{Journal, StorageLock};
+use crate::services::tree::depth;
+use crate::services::tree::tree_store::{self, delete_key, get_node, get_node_mut};
 
 pub fn move_folder(root: &Path, source: &[String], destination: &[String], copy: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;

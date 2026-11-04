@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use notify::{Event, EventKind, RecursiveMode, Watcher};
 
 use super::{apply, apply_batch, log, ApplyReport};
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 
 const QUIET: Duration = Duration::from_secs(2);
 const POLL: Duration = Duration::from_millis(200);
@@ -84,7 +84,7 @@ pub fn watch(root: &Path, stop: &AtomicBool, on_applied: &mut dyn FnMut(&ApplyRe
 mod tests {
     use super::*;
     use crate::test_support::{rel, work, yaml};
-    use crate::tree::tree_store;
+    use crate::services::tree::tree_store;
 
     #[test]
     fn an_error_or_too_many_paths_turn_the_batch_into_a_rescan() {

@@ -8,19 +8,17 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{child_entries, flags_in, type_base, META_KEYS};
-use crate::config::{DATA_DIR, HIDDEN_FLAG};
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, join_rel};
-use crate::ant_core::names::list_subdirs;
+use crate::domain::tree_types::{child_entries, flags_in, type_base, META_KEYS};
+use crate::domain::config::{DATA_DIR, HIDDEN_FLAG};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, join_rel};
+use crate::infra::scan::list_subdirs;
 use crate::domain::model::{Copied, Copies};
-use crate::infra::footprint_file::replace_id;
-pub use crate::infra::footprint_file::{mirror_flags, mirror_hidden};
-pub(crate) use crate::infra::footprint_file::read_id;
-use crate::storage::db::hide;
-use crate::tree::depth;
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::{delete_key, get_node, get_node_mut};
+use crate::infra::footprint_file::{read_id, replace_id};
+use crate::infra::storage::db::hide;
+use crate::services::tree::depth;
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::{delete_key, get_node, get_node_mut};
 
 const ALPHABET: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const ID_LEN: usize = 15;
@@ -80,7 +78,7 @@ fn unmarked(root: &Path, nodes: &[(String, &Mapping)]) -> R<Vec<String>> {
         }
         let rel = rel_of(path);
         let dir = join_rel(root, &rel);
-        if dir.is_dir() && !dir.join(DATA_DIR).exists() && crate::intake::waiting_files(&dir, &rel, node)? == 0 {
+        if dir.is_dir() && !dir.join(DATA_DIR).exists() && crate::services::intake::waiting_files(&dir, &rel, node)? == 0 {
             out.push(path.clone());
         }
     }
@@ -325,7 +323,7 @@ mod tests {
     use super::*;
     use crate::infra::footprint_file::read_flags;
     use crate::test_support::TempDir;
-    use crate::tree::tree_store::sync;
+    use crate::services::tree::tree_store::sync;
 
     fn rel(parts: &[&str]) -> Vec<String> {
         parts.iter().map(|s| s.to_string()).collect()

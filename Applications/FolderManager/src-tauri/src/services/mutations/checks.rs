@@ -4,12 +4,12 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::META_KEYS;
-use crate::config::is_hidden_dir;
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, same_name};
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::is_locked_type;
+use crate::domain::tree_types::META_KEYS;
+use crate::domain::config::is_hidden_dir;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, same_name};
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::is_locked_type;
 
 pub(crate) fn guard_frozen(rel: &[String], node_type: &str) -> R<()> {
     if is_reserved(rel) {

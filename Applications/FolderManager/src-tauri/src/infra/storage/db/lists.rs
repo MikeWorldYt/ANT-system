@@ -1,6 +1,6 @@
 // Storage-wide lists behind the virtual root entries, read from the search index; 998.* is left out.
 use super::{db_err, Store};
-use crate::error::R;
+use crate::domain::error::R;
 
 impl Store {
     pub fn favorites(&self) -> R<Vec<Vec<String>>> {
@@ -31,7 +31,7 @@ mod tests {
     use serde_yaml::Mapping;
 
     use super::*;
-    use crate::index::search_index;
+    use crate::services::index::search_index;
     use crate::test_support::TempDir;
 
     #[test]

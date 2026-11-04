@@ -2,14 +2,14 @@
 use std::path::Path;
 
 use super::{insert, rules};
-use crate::ant_core::names::has_valid_id;
-use crate::ant_core::tree_types::type_base;
-use crate::config::is_hidden_dir;
-use crate::error::{FmError, R};
-use crate::fs_safe::{Journal, StorageLock};
-use crate::mutations::{child_rel, ensure_free, finish, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation};
-use crate::tree::depth;
-use crate::tree::tree_store::{self, delete_key, get_node, get_node_mut, infer_type};
+use crate::domain::names::has_valid_id;
+use crate::domain::tree_types::type_base;
+use crate::domain::config::is_hidden_dir;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{Journal, StorageLock};
+use crate::services::mutations::{child_rel, ensure_free, finish, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation};
+use crate::services::tree::depth;
+use crate::services::tree::tree_store::{self, delete_key, get_node, get_node_mut, infer_type};
 
 pub fn move_to_review(root: &Path, source: &[String], destination: &[String]) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;

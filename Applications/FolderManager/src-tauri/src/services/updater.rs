@@ -3,12 +3,12 @@
 use std::path::Path;
 
 #[cfg(not(windows))]
-use crate::ant_core::version::parse_file_version;
-use crate::ant_core::version::parse_version;
+use crate::domain::version::parse_file_version;
+use crate::domain::version::parse_version;
 #[cfg(not(windows))]
-use crate::config::VERSION_URL;
+use crate::domain::config::VERSION_URL;
 #[cfg(not(windows))]
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 #[cfg(windows)]
 pub use crate::platform::windows::updater::{latest_version, launch_updater};
 

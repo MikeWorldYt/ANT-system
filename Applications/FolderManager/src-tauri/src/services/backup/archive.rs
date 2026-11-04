@@ -1,7 +1,7 @@
 // Zips a staged backup and expands one back, with the tools each system already ships.
 use std::path::Path;
 
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 
 fn fail(op: &str, detail: String) -> FmError {
     FmError::Internal { message: format!("Could not {op} the backup: {detail}") }
@@ -18,7 +18,7 @@ const EXPAND: &str = "$ErrorActionPreference = 'Stop'; Add-Type -AssemblyName Sy
 #[cfg(windows)]
 fn run(op: &str, script: &str, stage: &Path, zip: &Path) -> R<()> {
     let env = [("FM_STAGE", stage.as_os_str()), ("FM_ZIP", zip.as_os_str())];
-    crate::fs_safe::run_powershell(script, &env, None, std::time::Duration::from_secs(120))
+    crate::platform::windows::powershell::run_powershell(script, &env, None, std::time::Duration::from_secs(120))
         .map(|_| ())
         .map_err(|e| fail(op, e))
 }

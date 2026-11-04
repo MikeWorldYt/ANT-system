@@ -2,8 +2,8 @@
 use rusqlite::{params, OptionalExtension};
 
 use super::{db_err, hash, Store};
-use crate::error::R;
-use crate::ant_core::search::Query;
+use crate::domain::error::R;
+use crate::domain::search::Query;
 
 const FIELDS_HASH: &str = "fields_hash";
 

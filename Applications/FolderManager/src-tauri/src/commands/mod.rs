@@ -21,12 +21,12 @@ use std::path::Path;
 
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::config::{DEPTH_CEILING, MAX_DEPTH};
-use crate::platform::clipboard;
-use crate::error::{FmError, R};
-use crate::index::ReviewIndexEvent;
-use crate::tree::depth;
-use crate::updater;
+use crate::domain::config::{DEPTH_CEILING, MAX_DEPTH};
+use crate::app::storage_session::{Storage, StorageInfo};
+use crate::domain::error::{FmError, R};
+use crate::services::index::ReviewIndexEvent;
+use crate::services::tree::depth;
+use crate::services::updater;
 
 pub use backup::*;
 pub use debug::*;
@@ -43,7 +43,6 @@ pub use storage::*;
 pub use tree::*;
 pub use update::*;
 
-pub use crate::app::storage_session::{Storage, StorageInfo};
 
 const REVIEW_EVENT: &str = "fm://review-index";
 
@@ -64,7 +63,7 @@ where
     .map_err(|e| FmError::Internal { message: e.to_string() })?;
     if let Err(err) = &result {
         // The command's own error matters more to the caller than a failed log write.
-        if let Err(log) = crate::debug_log::line("error", &err.to_string()) {
+        if let Err(log) = crate::services::debug_log::line("error", &err.to_string()) {
             eprintln!("{log}");
         }
     }

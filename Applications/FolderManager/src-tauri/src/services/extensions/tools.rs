@@ -3,7 +3,7 @@ use std::path::Path;
 
 use super::fail;
 use super::fetch::valid_sha256;
-use crate::error::R;
+use crate::domain::error::R;
 
 pub fn hash_from(output: &str) -> R<String> {
     let hash = output.split_whitespace().next().unwrap_or_default().to_ascii_lowercase();
@@ -16,7 +16,7 @@ pub fn hash_from(output: &str) -> R<String> {
 #[cfg(windows)]
 pub fn sha256_file(file: &Path) -> R<String> {
     let script = "$ErrorActionPreference = 'Stop'; (Get-FileHash -Algorithm SHA256 -LiteralPath $env:FM_FILE).Hash";
-    let out = crate::fs_safe::run_powershell(script, &[("FM_FILE", file.as_os_str())], None, std::time::Duration::from_secs(60))
+    let out = crate::platform::windows::powershell::run_powershell(script, &[("FM_FILE", file.as_os_str())], None, std::time::Duration::from_secs(60))
         .map_err(|e| fail(format!("Could not compute the sha256: {e}")))?;
     hash_from(&out)
 }
@@ -40,7 +40,7 @@ pub fn expand(zip: &Path, dest: &Path) -> R<()> {
     let script = "$ErrorActionPreference = 'Stop'; Add-Type -AssemblyName System.IO.Compression.FileSystem; \
         [IO.Compression.ZipFile]::ExtractToDirectory($env:FM_ZIP, $env:FM_DEST)";
     let env = [("FM_ZIP", zip.as_os_str()), ("FM_DEST", dest.as_os_str())];
-    crate::fs_safe::run_powershell(script, &env, None, std::time::Duration::from_secs(120))
+    crate::platform::windows::powershell::run_powershell(script, &env, None, std::time::Duration::from_secs(120))
         .map(|_| ())
         .map_err(|e| fail(format!("Could not expand the extension: {e}")))
 }

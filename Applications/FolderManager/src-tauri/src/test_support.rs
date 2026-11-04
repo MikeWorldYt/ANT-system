@@ -5,9 +5,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde_yaml::Mapping;
 
-use crate::error::R;
-use crate::mutations::{delete_node, Mutation};
-use crate::tree::tree_store::{get_type, load, save};
+use crate::domain::error::R;
+use crate::services::mutations::{delete_node, Mutation};
+use crate::services::tree::tree_store::{get_type, load, save};
 
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -73,7 +73,7 @@ pub fn yaml_type(dir: &Path, parts: &[&str]) -> String {
 pub fn break_tree_save(dir: &Path) -> fs::File {
     use std::os::windows::fs::OpenOptionsExt;
     const FILE_SHARE_READ: u32 = 0x1;
-    fs::OpenOptions::new().read(true).share_mode(FILE_SHARE_READ).open(crate::storage::db::db_path(dir)).unwrap()
+    fs::OpenOptions::new().read(true).share_mode(FILE_SHARE_READ).open(crate::infra::storage::db::db_path(dir)).unwrap()
 }
 
 const ACADEMIC: &str = "100.ACADEMIC:\n  type: NODE-L1\n  01.Math:\n    type: NODE-L2\n    status: done\n    \

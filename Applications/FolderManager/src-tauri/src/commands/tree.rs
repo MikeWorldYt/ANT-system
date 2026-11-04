@@ -4,15 +4,16 @@ use std::path::Path;
 use serde_yaml::Mapping;
 use tauri::{AppHandle, Manager};
 
-use super::{review_emitter, run_locked, Storage};
+use super::{review_emitter, run_locked};
+use crate::app::storage_session::Storage;
 use crate::domain::model::Copies;
-use crate::error::{FmError, R};
-use crate::fs_safe::{join_rel, validate_component};
-use crate::index::{node_names, reindex, review_folders, review_index, Emit};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{join_rel, validate_component};
+use crate::services::index::{node_names, reindex, review_folders, review_index, Emit};
 use crate::services::snapshot::snapshot;
-use crate::tree::root_check::{self, RootCheck};
-use crate::tree::tree_node::{build_children, fill_children, lists_files, TreeNode, TreeSnapshot};
-use crate::tree::tree_store;
+use crate::services::tree::root_check::{self, RootCheck};
+use crate::services::tree::tree_node::{build_children, fill_children, lists_files, TreeNode, TreeSnapshot};
+use crate::services::tree::tree_store;
 
 pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>) -> R<TreeSnapshot> {
     node_names::tidy(root)?;
@@ -65,7 +66,7 @@ pub async fn file_image(app: AppHandle, rel_parts: Vec<String>, large: bool) -> 
         if !lists_files(parent) {
             return Ok(None);
         }
-        crate::preview::file_image(&join_rel(&root, &rel_parts), large)
+        crate::services::preview::file_image(&join_rel(&root, &rel_parts), large)
     })
     .await
     .map_err(|e| FmError::Internal { message: e.to_string() })?

@@ -5,13 +5,15 @@ use serde::Deserialize;
 use serde_yaml::{Mapping, Value};
 
 use super::add::{mark_workboard, track_or_lowest};
-use super::{child_rel, ensure_free, finish, load_synced, move_to_review, persist, split, subtrees, Mutation};
-use crate::ant_core::names::{has_node_id, is_track_name, is_valid_root_name, list_subdirs, next_available_id, next_main_category_id, sanitize_train_case, title_of, tracker_number, workboard_title};
-use crate::ant_core::tree_types::{child_entries, type_base};
-use crate::config::{DATA_FLAG, WKB_IDENTIFIERS};
-use crate::error::{FmError, R};
-use crate::fs_safe::{join_rel, Journal, StorageLock};
-use crate::tree::tree_store::{self, delete_key, get_node, get_node_mut};
+use super::{child_rel, ensure_free, finish, move_to_review, persist, split, subtrees, Mutation};
+use crate::services::tree::tree_store::load_synced;
+use crate::domain::names::{has_node_id, is_track_name, is_valid_root_name, next_available_id, next_main_category_id, sanitize_train_case, title_of, tracker_number, workboard_title};
+use crate::infra::scan::list_subdirs;
+use crate::domain::tree_types::{child_entries, type_base};
+use crate::domain::config::{DATA_FLAG, WKB_IDENTIFIERS};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{join_rel, Journal, StorageLock};
+use crate::services::tree::tree_store::{self, delete_key, get_node, get_node_mut};
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -190,9 +192,9 @@ fn reidentify(root: &Path, data: &mut Mapping, rel: &[String], new_rel: &[String
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage::info::{field_of, read_info};
+    use crate::infra::storage::info::{field_of, read_info};
     use crate::test_support::{rel, storage, yaml, yaml_type};
-    use crate::tree::tree_store::get_node;
+    use crate::services::tree::tree_store::get_node;
     use serde_yaml::Value;
 
     const TREE: &str = "100.ACADEMIC:\n  type: NODE-L1\n  01.Math: {type: NODE-L2, Deep: {type: NODE-L3}}\n";
@@ -219,7 +221,7 @@ mod tests {
         resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "PJ.1007_Prueba-7"]), Resolution::Node).unwrap();
         assert!(dir.path().join("100.ACADEMIC/01.Prueba-7").is_dir());
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "02.New-Node"]), "NODE-L2");
-        assert!(crate::tree::root_check::check_root(dir.path()).unwrap().invalid.is_empty());
+        assert!(crate::services::tree::root_check::check_root(dir.path()).unwrap().invalid.is_empty());
     }
 
     #[test]

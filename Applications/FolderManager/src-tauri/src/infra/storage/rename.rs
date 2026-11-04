@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use crate::debug_log::{logs_dir, valid_stamp};
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, validate_component};
+use crate::services::debug_log::{logs_dir, valid_stamp};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, validate_component};
 
 const SUFFIX: &str = "_ANT-fm-storage-renamed";
 const IN_USE: &str = "The Storage folder could not be renamed because a program is using a file inside it. \

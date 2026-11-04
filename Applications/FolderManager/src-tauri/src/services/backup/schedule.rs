@@ -1,8 +1,8 @@
 // When an automatic backup is due, and the Windows scheduled task that runs it while the app is closed.
 use std::path::Path;
 
-use crate::error::{FmError, R};
-use crate::scheduler::{self, Task};
+use crate::domain::error::{FmError, R};
+use crate::services::scheduler::{self, Task};
 
 const TASK_NAME: &str = "ANT System Manager Backup";
 const TASK: Task = Task { name: TASK_NAME, flag: "--backup", start: "12:00", what: "backup" };

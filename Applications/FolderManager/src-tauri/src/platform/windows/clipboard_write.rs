@@ -10,7 +10,7 @@ use windows_sys::Win32::System::Ole::CF_HDROP;
 use windows_sys::Win32::UI::Shell::DROPFILES;
 
 use super::clipboard_read::{drop_effect_format, failure, OpenClipboardGuard};
-use crate::error::R;
+use crate::domain::error::R;
 
 // Owns a moveable global block until the clipboard or a drop target takes it.
 pub(crate) struct Global(HGLOBAL);

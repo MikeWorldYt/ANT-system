@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 use super::recycle::move_to_bin;
 use super::{finish, load_synced_at, parent_of, Mutation};
 
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, join_rel, validate_component, StorageLock};
-use crate::tree::tree_node::lists_files;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, join_rel, validate_component, StorageLock};
+use crate::services::tree::tree_node::lists_files;
 
 // The file a review folder lists; folders, links and missing paths are refused.
 pub fn file_path(root: &Path, rel: &[String]) -> R<PathBuf> {

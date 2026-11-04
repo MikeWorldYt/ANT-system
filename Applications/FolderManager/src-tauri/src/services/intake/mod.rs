@@ -10,14 +10,16 @@ use std::path::Path;
 use serde::Serialize;
 use serde_yaml::Mapping;
 
-use crate::ant_core::names::list_subdirs;
-use crate::ant_core::tree_types::{child_entries, flags_in};
-use crate::config::{DATA_DIR, HIDDEN_FLAG};
-use crate::error::R;
-use crate::fs_safe::{io_err, join_rel, Journal, StorageLock};
-use crate::index::review_folders;
-use crate::mutations::{child_rel, free_name, load_synced};
-use crate::storage::db::hide;
+use crate::infra::scan::list_subdirs;
+use crate::domain::tree_types::{child_entries, flags_in};
+use crate::domain::config::{DATA_DIR, HIDDEN_FLAG};
+use crate::domain::error::R;
+use crate::infra::fs_safe::{io_err, join_rel, Journal, StorageLock};
+use crate::services::index::review_folders;
+use crate::infra::naming::free_name;
+use crate::services::mutations::child_rel;
+use crate::services::tree::tree_store::load_synced;
+use crate::infra::storage::db::hide;
 use rules::{is_root_exempt_file, is_skipped_file, rule, Rule};
 pub(crate) use rules::{node_type, review_child};
 

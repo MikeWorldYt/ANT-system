@@ -2,8 +2,8 @@
 use tauri::AppHandle;
 
 use super::run_locked;
-use crate::error::{FmError, R};
-use crate::extensions::{self, ExtensionInfo, ExtensionPreview, RegistryEntry};
+use crate::domain::error::{FmError, R};
+use crate::services::extensions::{self, ExtensionInfo, ExtensionPreview, RegistryEntry};
 
 async fn blocking<T: Send + 'static>(f: impl FnOnce() -> R<T> + Send + 'static) -> R<T> {
     tauri::async_runtime::spawn_blocking(f).await.map_err(|e| FmError::Internal { message: e.to_string() })?

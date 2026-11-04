@@ -5,10 +5,10 @@ use serde::Serialize;
 use tauri::AppHandle;
 
 use super::run_locked;
-use crate::config::{CORE_FOLDER, SETTINGS_FOLDER};
-use crate::error::{FmError, R};
-use crate::fs_safe::io_err;
-use crate::updater;
+use crate::domain::config::{CORE_FOLDER, SETTINGS_FOLDER};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::io_err;
+use crate::services::updater;
 
 const SKIP_FILE: &str = ".skip_version";
 

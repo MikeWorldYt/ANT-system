@@ -4,10 +4,11 @@ use std::path::Path;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
-use super::{run_locked, Storage};
-use crate::backup::{self, LatestBackup};
-use crate::error::{FmError, R};
-use crate::storage::recovery::{self, db_state, DbState};
+use super::run_locked;
+use crate::app::storage_session::Storage;
+use crate::services::backup::{self, LatestBackup};
+use crate::domain::error::{FmError, R};
+use crate::infra::storage::recovery::{self, db_state, DbState};
 
 #[derive(Debug, PartialEq, Serialize)]
 #[serde(tag = "state", rename_all = "camelCase")]
@@ -56,8 +57,8 @@ mod tests {
     use std::fs;
 
     use super::*;
-    use crate::config::DATA_DIR;
-    use crate::storage::db::{db_path, Store};
+    use crate::domain::config::DATA_DIR;
+    use crate::infra::storage::db::{db_path, Store};
     use crate::test_support::TempDir;
 
     #[test]

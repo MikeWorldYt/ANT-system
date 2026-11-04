@@ -11,9 +11,9 @@ use crate::domain::shortcut_names::review_shortcut_name;
 use crate::domain::tree_types::child_entries;
 use crate::infra::fs_safe::{is_link, join_rel};
 use crate::infra::storage::info::{field_of, read_info};
-use crate::tree::depth;
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::is_locked_type;
+use crate::services::tree::depth;
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::is_locked_type;
 
 pub(crate) fn review_dir(root: &Path) -> Result<Option<PathBuf>, String> {
     let review_dir = root.join(REVIEW_FOLDER);

@@ -17,7 +17,7 @@ pub(crate) fn schtasks(args: &[String]) -> R<std::process::Output> {
         .unwrap_or_else(|| "schtasks.exe".into());
     std::process::Command::new(exe)
         .args(args)
-        .creation_flags(crate::fs_safe::CREATE_NO_WINDOW)
+        .creation_flags(crate::platform::windows::powershell::CREATE_NO_WINDOW)
         .output()
         .map_err(|e| FmError::Internal { message: format!("Could not start schtasks: {e}") })
 }

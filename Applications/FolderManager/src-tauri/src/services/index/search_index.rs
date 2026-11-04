@@ -3,11 +3,11 @@ use std::path::Path;
 
 use serde_yaml::Mapping;
 
-use crate::storage::db::{Doc, Store};
-use crate::error::R;
-use crate::ant_core::search::canonical_key;
-use crate::tree::depth;
-use crate::tree::tree_node::{build_children, fill_children, TreeNode};
+use crate::infra::storage::db::{Doc, Store};
+use crate::domain::error::R;
+use crate::domain::search::canonical_key;
+use crate::services::tree::depth;
+use crate::services::tree::tree_node::{build_children, fill_children, TreeNode};
 
 pub fn rebuild(root: &Path, data: &Mapping) -> R<()> {
     let mut nodes = build_children(root, data, &[])?;
@@ -63,7 +63,7 @@ mod tests {
     use std::fs;
 
     use super::*;
-    use crate::ant_core::search::parse_query;
+    use crate::domain::search::parse_query;
     use crate::test_support::TempDir;
 
     fn storage() -> TempDir {

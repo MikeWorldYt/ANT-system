@@ -11,8 +11,8 @@ use super::registry::RegistryItem;
 use super::staging::{self, ARCHIVE_FILE};
 use super::store::{self, ExtensionInfo, SOURCE_FILE};
 use super::tools::sha256_file;
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, write_atomic};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, write_atomic};
 
 const URL_FILE: &str = "source.url";
 

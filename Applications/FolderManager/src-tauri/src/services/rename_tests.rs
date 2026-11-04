@@ -1,7 +1,7 @@
 use std::fs;
 
 use super::*;
-use crate::storage::rename::{status, RenameStatus};
+use crate::infra::storage::rename::{status, RenameStatus};
 use crate::test_support::TempDir;
 
 const STAMP: &str = "26-10-24-09-05";

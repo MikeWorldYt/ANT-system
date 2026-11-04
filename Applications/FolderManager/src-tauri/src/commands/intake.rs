@@ -2,20 +2,20 @@
 use tauri::AppHandle;
 
 use super::run_locked;
-use crate::error::R;
-use crate::fs_safe::validate_component;
-use crate::intake::IntakeReport;
+use crate::domain::error::R;
+use crate::infra::fs_safe::validate_component;
+use crate::services::intake::IntakeReport;
 
 #[tauri::command]
 pub async fn run_intake(app: AppHandle) -> R<IntakeReport> {
-    run_locked(app, |root| crate::intake::run(root)).await
+    run_locked(app, |root| crate::services::intake::run(root)).await
 }
 
 #[tauri::command]
 pub async fn acknowledge_intake(app: AppHandle, rel_parts: Vec<String>) -> R<()> {
     run_locked(app, move |root| {
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
-        crate::intake::acknowledge(root, &rel_parts)
+        crate::services::intake::acknowledge(root, &rel_parts)
     })
     .await
 }

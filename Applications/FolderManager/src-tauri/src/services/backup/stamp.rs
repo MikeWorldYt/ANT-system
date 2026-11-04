@@ -55,7 +55,7 @@ pub fn local_date() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::debug_log::valid_stamp;
+    use crate::services::debug_log::valid_stamp;
 
     #[test]
     fn stamps_use_two_digit_groups() {

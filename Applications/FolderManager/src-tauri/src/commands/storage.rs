@@ -3,12 +3,13 @@ use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager, WebviewWindow};
 
-use super::{run_locked, Storage};
-pub use crate::services::rename::{rename_flow, revert_target};
-use crate::error::{FmError, R};
-use crate::storage::rename::{self, RenameStatus};
-use crate::storage::{location, pointer};
-use crate::{sync, updater};
+use super::run_locked;
+use crate::app::storage_session::Storage;
+use crate::services::rename::{rename_flow, revert_target};
+use crate::domain::error::{FmError, R};
+use crate::infra::storage::rename::{self, RenameStatus};
+use crate::infra::storage::{location, pointer};
+use crate::services::{sync, updater};
 
 pub fn window_title(name: &str) -> String {
     format!("ANT System Manager v.{} ({name})", updater::CURRENT_VERSION)

@@ -1,8 +1,8 @@
 // Decides which changed paths matter: our own writes are dropped so a sync never triggers the next one.
 use std::path::{Component, Path};
 
-use crate::config::{is_hidden_dir, DB_FILENAME, REVIEW_FOLDER};
-use crate::fs_safe::LOCK_FILE;
+use crate::domain::config::{is_hidden_dir, DB_FILENAME, REVIEW_FOLDER};
+use crate::infra::fs_safe::LOCK_FILE;
 
 pub(super) const FULL_SYNC_AFTER: usize = 200;
 const TREE_MIRROR: &str = "Tree.yaml";

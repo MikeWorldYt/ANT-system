@@ -3,10 +3,10 @@ use std::fs;
 use std::path::Path;
 
 use super::db::{db_path, Store};
-use crate::config::DB_FILENAME;
-use crate::debug_log::valid_stamp;
-use crate::error::{FmError, R};
-use crate::fs_safe::io_err;
+use crate::domain::config::DB_FILENAME;
+use crate::services::debug_log::valid_stamp;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::io_err;
 
 #[derive(Debug, PartialEq)]
 pub enum DbState {
@@ -55,7 +55,7 @@ pub fn prepare_scan(root: &Path, stamp: &str) -> R<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::DATA_DIR;
+    use crate::domain::config::DATA_DIR;
     use crate::test_support::TempDir;
 
     const STAMP: &str = "26-10-24-09-05";

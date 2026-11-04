@@ -1,10 +1,10 @@
 // Decides, per tree node, what intake does with the files dropped directly inside its folder.
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{child_entries, flags_in, type_base};
-use crate::config::DATA_FLAG;
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::is_locked_type;
+use crate::domain::tree_types::{child_entries, flags_in, type_base};
+use crate::domain::config::DATA_FLAG;
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::is_locked_type;
 
 const REVIEW_PREFIX: &str = "98.";
 const SYSTEM_FILES: [&str; 2] = ["desktop.ini", "Thumbs.db"];

@@ -1,7 +1,7 @@
 // Windows scheduled tasks that rerun the app headless (`--backup`, `--sync`, `--watch`) while it is closed.
 use std::path::Path;
 
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 #[cfg(windows)]
 use crate::platform::windows::schtasks::{current_user, schtasks};
 

@@ -1,7 +1,7 @@
 // File images for the file icons and the grid: the Windows shell on Windows, and plain image files elsewhere.
 use std::path::Path;
 
-use crate::error::R;
+use crate::domain::error::R;
 
 #[cfg(windows)]
 mod shell;
@@ -21,7 +21,7 @@ pub fn file_image(path: &Path, large: bool) -> R<Option<String>> {
         return Ok(None);
     }
     let Some(mime) = image_mime(path) else { return external::thumbnail(path) };
-    let bytes = std::fs::read(path).map_err(|e| crate::fs_safe::io_err("read the image", path, &e))?;
+    let bytes = std::fs::read(path).map_err(|e| crate::infra::fs_safe::io_err("read the image", path, &e))?;
     Ok(Some(format!("data:{mime};base64,{}", base64(&bytes))))
 }
 

@@ -7,19 +7,20 @@ use std::path::Path;
 use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{child_entries, flags_in, type_base, type_level, META_KEYS};
-use crate::config::{
+use crate::domain::tree_types::{child_entries, flags_in, type_base, type_level, META_KEYS};
+use crate::domain::config::{
     HIDDEN_FLAG, LINK_FAVORITES_FILENAME, LINK_HIDDEN_FILENAME, LINKED_PREFIXES, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::domain::model::Copied;
-use crate::error::R;
-use crate::fs_safe::{io_err, join_rel};
+use crate::domain::error::R;
+use crate::infra::fs_safe::{io_err, join_rel};
 use crate::infra::link_list;
-use crate::tree::review_links;
-use crate::storage::info::{field_of, read_info, NodeInfo};
-use crate::ant_core::names::{name_parts, is_movable_node, is_system_root_name, list_subdirs, numeric_id};
-use crate::tree::depth;
-use crate::tree::tree_store::{get_node, get_type, is_locked_type};
+use crate::services::tree::review_links;
+use crate::infra::storage::info::{field_of, read_info, NodeInfo};
+use crate::domain::names::{name_parts, is_movable_node, is_system_root_name, numeric_id};
+use crate::infra::scan::list_subdirs;
+use crate::services::tree::depth;
+use crate::services::tree::tree_store::{get_node, get_type, is_locked_type};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -640,7 +641,7 @@ mod tests {
         let (dir, data) = fixture();
         dir.mkdir("01.Alpha/98.Real");
         let mut data = data;
-        let alpha = crate::tree::tree_store::get_node_mut(&mut data, &rel(&["01.Alpha"])).unwrap();
+        let alpha = crate::services::tree::tree_store::get_node_mut(&mut data, &rel(&["01.Alpha"])).unwrap();
         alpha.insert("98.Real".into(), serde_yaml::from_str("type: REV-L2").unwrap());
         let kids = build_children(dir.path(), &data, &rel(&["01.Alpha"])).unwrap();
         let a = &find(&kids, "98.Real").actions;
@@ -682,7 +683,7 @@ mod tests {
         let dir = TempDir::new("tree-outcome");
         dir.mkdir("100.WORK/02.Beta/00.Outcomes");
         let mut data = Mapping::new();
-        crate::tree::tree_store::sync(dir.path(), &mut data).unwrap();
+        crate::services::tree::tree_store::sync(dir.path(), &mut data).unwrap();
         let kids = build_children(dir.path(), &data, &rel(&["100.WORK", "02.Beta"])).unwrap();
         let out = find(&kids, "00.Outcomes");
         assert!(out.has_children);
@@ -825,7 +826,7 @@ mod tests {
         assert!(l3[0].actions.change_type && l3[0].actions.add_next);
         let l4 = build_children(dir.path(), &data, &rel(&["01.A", "01.B", "01.C"])).unwrap();
         let a = &l4[0].actions;
-        assert_eq!(l4[0].depth, crate::config::MAX_DEPTH);
+        assert_eq!(l4[0].depth, crate::domain::config::MAX_DEPTH);
         assert!(!a.change_type && !a.add_next && a.rename && a.copy_path);
         assert!(l4[0].has_children);
     }

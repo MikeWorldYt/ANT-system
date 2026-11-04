@@ -4,13 +4,14 @@ use std::path::Path;
 use serde_yaml::Value;
 
 use super::{finish, load_synced_at, locate, parent_of, register_ids, Mutation};
-use crate::error::{FmError, R};
-use crate::fs_safe::StorageLock;
-use crate::config::LINK_FAVORITES_FILENAME;
-use crate::index::{link_list, review_index};
-use crate::storage::info::write_info;
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::StorageLock;
+use crate::domain::config::LINK_FAVORITES_FILENAME;
+use crate::infra::link_list;
+use crate::services::tree::review_links;
+use crate::infra::storage::info::write_info;
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store;
 
 // A favorite is a flag in the folder's own info.json, so it travels with the folder and is searchable.
 pub fn set_favorite(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
@@ -18,7 +19,7 @@ pub fn set_favorite(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     // A review link has no folder of its own, so its star lives in the app's data folder.
     if let [_, link] = rel {
-        if review_index::linked_owner(root, &data, rel)?.is_some() {
+        if review_links::linked_owner(root, &data, rel)?.is_some() {
             link_list::set(root, LINK_FAVORITES_FILENAME, link, on)?;
             return Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new(), vec![rel.to_vec()]));
         }

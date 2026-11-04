@@ -3,7 +3,7 @@
 use std::process::Command;
 
 use super::fail;
-use crate::error::R;
+use crate::domain::error::R;
 
 pub const REGISTRY_HOSTS: [&str; 3] = ["github.com", "raw.githubusercontent.com", "objects.githubusercontent.com"];
 // The zipball API answers on api.github.com and redirects to codeload.github.com.

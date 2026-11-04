@@ -4,8 +4,8 @@ use std::path::Path;
 use serde::Serialize;
 
 use super::{default_dir, entries, fail, restore_from, SUFFIX};
-use crate::debug_log::valid_stamp;
-use crate::error::R;
+use crate::services::debug_log::valid_stamp;
+use crate::domain::error::R;
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct LatestBackup {

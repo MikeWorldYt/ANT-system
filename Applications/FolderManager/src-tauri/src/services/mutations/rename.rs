@@ -4,12 +4,13 @@ use std::path::Path;
 use serde_yaml::{Mapping, Value};
 
 use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, persist, split, subtrees, Mutation};
-use crate::ant_core::names::{compose_name, editable_part, list_subdirs, name_parts, sanitize_train_case, sanitize_upper};
-use crate::ant_core::tree_types::type_base;
-use crate::config::LINKED_PREFIXES;
-use crate::error::{FmError, R};
-use crate::fs_safe::{join_rel, same_name, validate_component, Journal, StorageLock};
-use crate::tree::tree_store::{self, get_node, get_node_mut, rename_key};
+use crate::domain::names::{compose_name, editable_part, name_parts, sanitize_train_case, sanitize_upper};
+use crate::infra::scan::list_subdirs;
+use crate::domain::tree_types::type_base;
+use crate::domain::config::LINKED_PREFIXES;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{join_rel, same_name, validate_component, Journal, StorageLock};
+use crate::services::tree::tree_store::{self, get_node, get_node_mut, rename_key};
 
 pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;

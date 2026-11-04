@@ -4,10 +4,10 @@ use std::path::Path;
 use serde::Deserialize;
 
 use super::locate;
-use crate::error::{FmError, R};
-use crate::fs_safe::StorageLock;
-use crate::index::footprint;
-use crate::tree::tree_store;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::StorageLock;
+use crate::services::index::footprint;
+use crate::services::tree::tree_store;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -38,9 +38,9 @@ mod tests {
 
     use super::*;
     use crate::domain::model::Copies;
-    use crate::index::footprint::plan;
+    use crate::services::index::footprint::plan;
     use crate::test_support::{rel, TempDir};
-    use crate::tree::tree_store::{get_node, sync};
+    use crate::services::tree::tree_store::{get_node, sync};
 
     const ORIGINAL: &str = "100.A/PJ.001";
     const COPY: &str = "100.A/PJ.002";

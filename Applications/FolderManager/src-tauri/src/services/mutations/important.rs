@@ -4,11 +4,11 @@ use std::path::Path;
 use serde_yaml::Value;
 
 use super::{finish, guard_frozen, load_synced_at, locate, parent_of, register_ids, Mutation};
-use crate::ant_core::tree_types::type_base;
-use crate::error::{FmError, R};
-use crate::fs_safe::StorageLock;
-use crate::storage::info::write_info;
-use crate::tree::tree_store;
+use crate::domain::tree_types::type_base;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::StorageLock;
+use crate::infra::storage::info::write_info;
+use crate::services::tree::tree_store;
 
 pub fn set_important(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
@@ -31,8 +31,8 @@ pub fn set_important(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::EditableType;
-    use crate::mutations::set_node_type;
+    use crate::domain::config::EditableType;
+    use crate::services::mutations::set_node_type;
     use crate::test_support::*;
 
     #[test]

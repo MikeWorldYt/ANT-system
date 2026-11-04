@@ -10,8 +10,8 @@ use super::fail;
 use super::manifest::has_manifest;
 use super::store::extensions_dir;
 use super::tools;
-use crate::error::R;
-use crate::fs_safe::{io_err, is_link};
+use crate::domain::error::R;
+use crate::infra::fs_safe::{io_err, is_link};
 
 const STAGING_DIR: &str = ".staging";
 pub const ARCHIVE_FILE: &str = "archive.zip";
@@ -62,7 +62,7 @@ pub fn clear_old(root: &Path) -> R<()> {
 pub fn discard(dir: &Path) {
     if let Err(e) = fs::remove_dir_all(dir) {
         if e.kind() != std::io::ErrorKind::NotFound {
-            if let Err(log) = crate::debug_log::line("error", &io_err("delete folder", dir, &e).to_string()) {
+            if let Err(log) = crate::services::debug_log::line("error", &io_err("delete folder", dir, &e).to_string()) {
                 eprintln!("{log}");
             }
         }

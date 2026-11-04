@@ -51,7 +51,7 @@ pub fn collect() -> SysInfo {
         $p = @(Get-CimInstance Win32_Processor); $g = @(Get-CimInstance Win32_VideoController | ForEach-Object { $_.Name }) -join '; '; \
         \"Caption=$($o.Caption)\"; \"Version=$($o.Version)\"; \"Memory=$($c.TotalPhysicalMemory)\"; \
         \"Cpu=$($p[0].Name)\"; \"Cores=$(($p | Measure-Object NumberOfLogicalProcessors -Sum).Sum)\"; \"Gpu=$g\"";
-    let text = crate::fs_safe::run_powershell(SCRIPT, &[], None, std::time::Duration::from_secs(15)).unwrap_or_default();
+    let text = crate::platform::windows::powershell::run_powershell(SCRIPT, &[], None, std::time::Duration::from_secs(15)).unwrap_or_default();
     parse_windows(&text)
 }
 

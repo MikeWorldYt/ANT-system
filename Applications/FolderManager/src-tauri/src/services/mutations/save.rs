@@ -4,12 +4,12 @@ use std::path::Path;
 
 use serde_yaml::Mapping;
 
-use crate::ant_core::tree_types::child_entries;
+use crate::domain::tree_types::child_entries;
 use crate::domain::model::Copies;
-use crate::error::R;
-use crate::fs_safe::Journal;
-use crate::index::footprint;
-use crate::tree::tree_store;
+use crate::domain::error::R;
+use crate::infra::fs_safe::Journal;
+use crate::services::index::footprint;
+use crate::services::tree::tree_store;
 
 // New .ant folders get their id now; true means a folder moved outside the app was re-keyed, which is not a local change.
 pub(crate) fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) -> bool {

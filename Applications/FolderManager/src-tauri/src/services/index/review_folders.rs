@@ -4,14 +4,16 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::names::{editable_part, list_subdirs};
-use crate::ant_core::tree_types::{child_entries, type_base};
+use crate::domain::names::editable_part;
+
+use crate::infra::scan::list_subdirs;
+use crate::domain::tree_types::{child_entries, type_base};
 use crate::infra::naming::free_name;
-use crate::error::R;
-use crate::fs_safe::{io_err, join_rel, StorageLock};
-use crate::tree::depth;
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::{self, delete_key, get_node};
+use crate::domain::error::R;
+use crate::infra::fs_safe::{io_err, join_rel, StorageLock};
+use crate::services::tree::depth;
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::{self, delete_key, get_node};
 
 // Returns whether anything changed, so the caller reloads the tree.
 pub fn restore(root: &Path) -> R<bool> {

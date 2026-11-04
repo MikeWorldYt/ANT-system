@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use super::{drop_effect, folder_effect, paste_plan, ClipboardFiles, Paste, CUT_REFUSED, DROPEFFECT_COPY, DROPEFFECT_MOVE};
-use crate::error::FmError;
+use crate::domain::error::FmError;
 use crate::test_support::rel;
 
 fn files(effect: Option<u32>) -> ClipboardFiles {

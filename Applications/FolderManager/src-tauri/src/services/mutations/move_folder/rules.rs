@@ -1,13 +1,13 @@
 // Which folders an internal drag may pick up, where it may put them down and how deep they may land.
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{child_entries, flags_in, type_base};
-use crate::config::MAIN_FLAG;
-use crate::error::{FmError, R};
-use crate::intake::node_type;
-use crate::mutations::Target;
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::is_locked_type;
+use crate::domain::tree_types::{child_entries, flags_in, type_base};
+use crate::domain::config::MAIN_FLAG;
+use crate::domain::error::{FmError, R};
+use crate::services::intake::node_type;
+use crate::services::mutations::Target;
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::is_locked_type;
 
 pub(super) fn refuse(rel: &[String], reason: impl Into<String>) -> FmError {
     FmError::InvalidPath { rel_parts: rel.to_vec(), reason: reason.into() }

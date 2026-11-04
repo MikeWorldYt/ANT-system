@@ -5,13 +5,13 @@ use std::path::Path;
 use serde_yaml::{Mapping, Value};
 
 use super::insert;
-use crate::ant_core::tree_types::META_KEYS;
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, redirects};
-use crate::index::footprint;
-use crate::mutations::{finish, register_ids, Mutation};
-use crate::tree::depth;
-use crate::tree::tree_store;
+use crate::domain::tree_types::META_KEYS;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, redirects};
+use crate::services::index::footprint;
+use crate::services::mutations::{finish, register_ids, Mutation};
+use crate::services::tree::depth;
+use crate::services::tree::tree_store;
 
 pub(super) fn copy_folder(
     root: &Path,

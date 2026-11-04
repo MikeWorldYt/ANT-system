@@ -10,7 +10,7 @@ mod store;
 mod tests;
 mod tools;
 
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 
 pub use fetch::{parse_repo_url, repo_url, repo_zip};
 pub use install::{from_registry, from_staging, stage_repo, ExtensionPreview};

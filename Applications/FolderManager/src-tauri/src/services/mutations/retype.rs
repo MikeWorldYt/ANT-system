@@ -5,13 +5,13 @@ use serde_yaml::Value;
 
 use super::add::mark_workboard;
 use super::{finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
-use crate::ant_core::tree_types::{type_base, type_level};
-use crate::config::{EditableType, WkbStatus};
-use crate::error::{FmError, R};
-use crate::fs_safe::StorageLock;
-use crate::storage::info::{field_of, read_info, write_info, OWNER_KEYS};
-use crate::tree::depth;
-use crate::tree::tree_store::{self, get_node, get_node_mut};
+use crate::domain::tree_types::{type_base, type_level};
+use crate::domain::config::{EditableType, WkbStatus, OWNER_KEYS};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::StorageLock;
+use crate::infra::storage::info::{field_of, read_info, write_info};
+use crate::services::tree::depth;
+use crate::services::tree::tree_store::{self, get_node, get_node_mut};
 
 pub fn set_node_type(
     root: &Path,
@@ -142,7 +142,7 @@ mod tests {
         dir.mkdir("100.ACADEMIC/01.Math/01.Algebra/01.Rings");
         let p = rel(&["100.ACADEMIC", "01.Math", "01.Algebra", "01.Rings"]);
         assert!(matches!(set_node_type(dir.path(), &p, EditableType::Wkb, None), Err(FmError::DepthLimit)));
-        let mut store = crate::storage::db::Store::open_or_create(dir.path()).unwrap();
+        let mut store = crate::infra::storage::db::Store::open_or_create(dir.path()).unwrap();
         store.set_setting(depth::DEPTH_KEY, "4").unwrap();
         set_node_type(dir.path(), &p, EditableType::Wkb, Some(WkbStatus::Hold)).unwrap();
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "01.Algebra", "01.Rings"]), "WKB-L4");

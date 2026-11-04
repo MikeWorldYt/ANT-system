@@ -33,11 +33,8 @@ pub use important::set_important;
 pub use file_ops::{delete_file, file_path, rename_file};
 pub use link_hidden::set_link_hidden;
 pub use file_drop::{drop_files, DropOutcome};
-pub(crate) use crate::infra::naming::free_name;
-pub(crate) use crate::tree::tree_store::load_synced;
 pub use move_folder::{move_folder, move_to_review};
 pub use user_flags::set_user_flag;
-pub(crate) use crate::platform::recycle::send_to_recycle_bin;
 pub use rename::rename_node;
 pub use reorder::{move_node, MoveDirection};
 pub use result::LevelPatch;
@@ -59,11 +56,11 @@ mod tests {
     use serde_yaml::{Mapping, Value};
 
     use super::*;
-    use crate::config::{EditableType, NewKind};
-    use crate::error::{FmError, R};
-    use crate::fs_safe::StorageLock;
+    use crate::domain::config::{EditableType, NewKind};
+    use crate::domain::error::{FmError, R};
+    use crate::infra::fs_safe::StorageLock;
     use crate::test_support::*;
-    use crate::tree::tree_store::get_node;
+    use crate::services::tree::tree_store::get_node;
 
     #[test]
     fn meta_key_folders_are_refused_and_the_parent_type_survives() {

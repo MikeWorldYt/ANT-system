@@ -3,14 +3,15 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::{flags_in, type_base, META_KEYS};
-use crate::config::{DATA_FLAG, HIDDEN_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, SPECIAL_TYPES, WKB_IDENTIFIERS};
-use crate::storage::db::{db_path, Store};
-use crate::error::R;
-use crate::fs_safe::{io_err, join_rel};
+use crate::domain::tree_types::{flags_in, type_base, META_KEYS};
+use crate::domain::config::{DATA_FLAG, HIDDEN_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, SPECIAL_TYPES, WKB_IDENTIFIERS};
+use crate::infra::storage::db::{db_path, Store};
+use crate::domain::error::R;
+use crate::infra::fs_safe::{io_err, join_rel};
 use crate::infra::footprint_file;
-use crate::ant_core::names::{is_system_root_name, list_subdirs};
-use crate::tree::depth;
+use crate::domain::names::is_system_root_name;
+use crate::infra::scan::list_subdirs;
+use crate::services::tree::depth;
 
 pub fn load(root: &Path) -> R<Mapping> {
     match Store::open_existing(root)? {
@@ -516,7 +517,7 @@ mod tests {
         let dir = TempDir::new("db-failed-write");
         let before = parse("one: {type: NODE-L1}\n");
         save(dir.path(), &before).unwrap();
-        let _held = std::fs::OpenOptions::new().read(true).share_mode(0x1).open(crate::storage::db::db_path(dir.path())).unwrap();
+        let _held = std::fs::OpenOptions::new().read(true).share_mode(0x1).open(crate::infra::storage::db::db_path(dir.path())).unwrap();
         assert!(save(dir.path(), &parse("two: {type: NODE-L1}\n")).is_err());
         assert_eq!(load(dir.path()).unwrap(), before);
     }

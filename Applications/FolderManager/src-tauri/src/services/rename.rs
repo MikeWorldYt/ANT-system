@@ -2,8 +2,8 @@
 use std::path::{Path, PathBuf};
 
 use crate::app::storage_session::Storage;
-use crate::error::{FmError, R};
-use crate::storage::rename;
+use crate::domain::error::{FmError, R};
+use crate::infra::storage::rename;
 
 // Only the in-process lock is held: an open StorageLock file inside the folder would block its own rename.
 pub fn rename_flow(storage: &Storage, stamp: &str, target: impl FnOnce(&Path) -> R<String>) -> R<PathBuf> {

@@ -7,9 +7,9 @@ use serde_yaml::Mapping;
 use super::filter::{is_own_write, needs_full, relative};
 use super::targets::targets;
 use super::{log, ApplyReport};
-use crate::error::R;
-use crate::fs_safe::StorageLock;
-use crate::tree::tree_store;
+use crate::domain::error::R;
+use crate::infra::fs_safe::StorageLock;
+use crate::services::tree::tree_store;
 
 pub(super) fn apply(root: &Path, changed: &[PathBuf], rescan: Option<&str>) -> R<ApplyReport> {
     let mut rels = BTreeSet::new();
@@ -65,9 +65,9 @@ fn sync(root: &Path, data: &mut Mapping, rels: &[Vec<String>], full: bool) -> R<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage::db::db_path;
+    use crate::infra::storage::db::db_path;
     use crate::test_support::{rel, work, yaml};
-    use crate::watch::apply_batch;
+    use crate::services::watch::apply_batch;
 
     #[test]
     fn a_new_folder_under_a_node_reaches_the_tree_and_ant_db() {

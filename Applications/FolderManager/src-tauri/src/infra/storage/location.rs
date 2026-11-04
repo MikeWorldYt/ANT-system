@@ -1,8 +1,8 @@
 // Where the Storage is looked for at launch and which typed paths are accepted as a new Storage.
 use std::path::{Path, PathBuf};
 
-use crate::ant_core::names::find_root;
-use crate::error::{FmError, R};
+use crate::infra::scan::find_root;
+use crate::domain::error::{FmError, R};
 
 // A remembered path that is gone is kept as the start so the health check can report it.
 pub fn launch_start(arg: Option<PathBuf>, remembered: Option<PathBuf>, cwd: PathBuf, exe_dir: Option<PathBuf>) -> PathBuf {

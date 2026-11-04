@@ -2,9 +2,9 @@
 use std::fs::{File, OpenOptions, TryLockError};
 use std::path::{Path, PathBuf};
 
-use crate::error::{FmError, R};
-use crate::fs_safe::io_err;
-use crate::storage::db::hash;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::io_err;
+use crate::infra::storage::db::hash;
 
 // Must match `identifier` in tauri.conf.json, so the guard sits in the same folder as the app's local data.
 const APP_ID: &str = "com.mikeworldyt.foldermanager";

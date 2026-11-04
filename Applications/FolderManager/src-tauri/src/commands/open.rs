@@ -7,10 +7,10 @@ use std::process::Command;
 use tauri::AppHandle;
 
 use super::run_locked;
-use crate::error::{FmError, R};
-use crate::fs_safe::{join_rel, validate_component};
-use crate::index::review_index;
-use crate::tree::tree_store;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{join_rel, validate_component};
+use crate::services::tree::review_links;
+use crate::services::tree::tree_store;
 
 // Each system has its own launcher for its default file manager.
 #[cfg(windows)]
@@ -34,7 +34,7 @@ pub(super) fn launcher(dir: &Path) -> Command {
 pub async fn open_node(app: AppHandle, rel_parts: Vec<String>) -> R<()> {
     run_locked(app, move |root| {
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
-        let dir = match review_index::link_folder(root, &tree_store::load(root)?, &rel_parts)? {
+        let dir = match review_links::link_folder(root, &tree_store::load(root)?, &rel_parts)? {
             Some(dir) => dir,
             None => join_rel(root, &rel_parts),
         };

@@ -2,16 +2,17 @@
 use std::path::Path;
 
 use super::{finish, load_synced_at, parent_of, Mutation};
-use crate::config::LINK_HIDDEN_FILENAME;
-use crate::error::{FmError, R};
-use crate::fs_safe::StorageLock;
-use crate::index::{link_list, review_index};
+use crate::domain::config::LINK_HIDDEN_FILENAME;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::StorageLock;
+use crate::infra::link_list;
+use crate::services::tree::review_links;
 
 pub fn set_link_hidden(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (data, synced) = load_synced_at(root, parent_of(rel))?;
     let link = match rel {
-        [_, link] if review_index::linked_owner(root, &data, rel)?.is_some() => link,
+        [_, link] if review_links::linked_owner(root, &data, rel)?.is_some() => link,
         _ => return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only review links can be hidden".to_string() }),
     };
     link_list::set(root, LINK_HIDDEN_FILENAME, link, on)?;
@@ -29,9 +30,9 @@ mod tests {
         std::fs::write(dir.path().join("998.Review/100.A.lnk"), "").unwrap();
         let link = rel(&["998.Review", "100.A"]);
         set_link_hidden(dir.path(), &link, true).unwrap();
-        assert_eq!(crate::index::link_list::read(dir.path(), LINK_HIDDEN_FILENAME).unwrap(), ["100.A"]);
+        assert_eq!(crate::infra::link_list::read(dir.path(), LINK_HIDDEN_FILENAME).unwrap(), ["100.A"]);
         set_link_hidden(dir.path(), &link, false).unwrap();
-        assert!(crate::index::link_list::read(dir.path(), LINK_HIDDEN_FILENAME).unwrap().is_empty());
+        assert!(crate::infra::link_list::read(dir.path(), LINK_HIDDEN_FILENAME).unwrap().is_empty());
     }
 
     #[test]

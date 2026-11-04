@@ -1,13 +1,13 @@
 // Decides which folder receives files dropped on a tree node, following the intake rules for loose files.
 use serde_yaml::Mapping;
 
-use crate::ant_core::tree_types::{flags_in, type_base};
-use crate::config::DATA_FLAG;
-use crate::error::{FmError, R};
-use crate::intake::{node_type, review_child};
-use crate::mutations::child_rel;
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::is_locked_type;
+use crate::domain::tree_types::{flags_in, type_base};
+use crate::domain::config::DATA_FLAG;
+use crate::domain::error::{FmError, R};
+use crate::services::intake::{node_type, review_child};
+use crate::services::mutations::child_rel;
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::is_locked_type;
 
 pub(crate) fn destination(rel: &[String], node: &Mapping) -> R<Vec<String>> {
     let refuse = |reason: &str| FmError::InvalidPath { rel_parts: rel.to_vec(), reason: reason.to_string() };

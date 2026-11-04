@@ -7,10 +7,10 @@ use serde::{Deserialize, Serialize};
 
 use super::fail;
 use super::manifest::{self, Manifest, MAX_JSON_BYTES, MAX_MAIN_BYTES};
-use crate::config::DATA_DIR;
-use crate::error::R;
-use crate::fs_safe::{io_err, is_link};
-use crate::storage::db::Store;
+use crate::domain::config::DATA_DIR;
+use crate::domain::error::R;
+use crate::infra::fs_safe::{io_err, is_link};
+use crate::infra::storage::db::Store;
 
 const EXTENSIONS_DIR: &str = "extensions";
 const STATE_KEY: &str = "extensions";

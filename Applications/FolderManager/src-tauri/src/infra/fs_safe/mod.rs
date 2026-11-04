@@ -5,12 +5,10 @@ mod validate;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 
 pub(crate) use journal::Journal;
 pub(crate) use lock::{StorageLock, LOCK_FILE};
-#[cfg(windows)]
-pub(crate) use crate::platform::windows::powershell::{run_powershell, CREATE_NO_WINDOW};
 pub(crate) use validate::{
     is_link, join_rel, redirects, resolve, same_name, validate_component,
 };

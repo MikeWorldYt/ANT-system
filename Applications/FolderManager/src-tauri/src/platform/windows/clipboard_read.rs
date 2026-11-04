@@ -13,7 +13,7 @@ use windows_sys::Win32::System::Ole::CF_HDROP;
 use windows_sys::Win32::UI::Shell::{DragQueryFileW, HDROP};
 
 use crate::platform::clipboard::ClipboardFiles;
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 
 // Another program can hold the clipboard for a moment, so opening it is retried briefly.
 const OPEN_TRIES: u32 = 10;

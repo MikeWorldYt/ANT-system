@@ -4,10 +4,11 @@ use std::path::Path;
 use serde::Deserialize;
 
 use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation};
-use crate::ant_core::names::{editable_part, is_movable_node, list_subdirs, numeric_id};
-use crate::error::{FmError, R};
-use crate::fs_safe::{join_rel, same_name, validate_component, Journal, StorageLock};
-use crate::tree::tree_store::{get_node, get_node_mut, get_type};
+use crate::domain::names::{editable_part, is_movable_node, numeric_id};
+use crate::infra::scan::list_subdirs;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{join_rel, same_name, validate_component, Journal, StorageLock};
+use crate::services::tree::tree_store::{get_node, get_node_mut, get_type};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]

@@ -9,15 +9,16 @@ use serde::Serialize;
 use serde_yaml::Mapping;
 use tauri::AppHandle;
 
-use super::clipboard;
 use super::run_locked;
-use crate::ant_core::shortcuts::create_shortcuts;
-use crate::ant_core::tree_types::flags_in;
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, join_rel};
-use crate::mutations::{self, free_name, locate, Target};
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::{self, get_node};
+use crate::platform::shortcuts::create_shortcuts;
+use crate::domain::tree_types::flags_in;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, join_rel};
+use crate::infra::naming::free_name;
+use crate::platform::clipboard;
+use crate::services::mutations::{self, locate, Target};
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::{self, get_node};
 
 #[cfg(windows)]
 const LINK_EXT: &str = ".lnk";
@@ -69,7 +70,7 @@ pub async fn create_shortcut_in(app: AppHandle, target: Vec<String>, folder: Str
 #[tauri::command]
 pub async fn create_file_shortcut_in(app: AppHandle, target: Vec<String>, folder: String) -> R<ShortcutCreated> {
     run_locked(app, move |root| {
-        let abs = crate::mutations::file_path(root, &target)?;
+        let abs = crate::services::mutations::file_path(root, &target)?;
         let (abs, link) = link_in(root, abs, Path::new(&folder))?;
         let failures = create_shortcuts(&[(abs, link.clone())]);
         if !failures.is_empty() {

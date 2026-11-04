@@ -51,5 +51,5 @@ const RECYCLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300)
 
 pub(crate) fn send_to_recycle_bin(path: &Path) -> Result<(), String> {
     let env = [("ANT_RECYCLE_PATH", path.as_os_str()), ("ANT_RECYCLE_TYPE", std::ffi::OsStr::new(RECYCLE_TYPE))];
-    crate::fs_safe::run_powershell(RECYCLE_SCRIPT, &env, None, RECYCLE_TIMEOUT).map(|_| ())
+    crate::platform::windows::powershell::run_powershell(RECYCLE_SCRIPT, &env, None, RECYCLE_TIMEOUT).map(|_| ())
 }

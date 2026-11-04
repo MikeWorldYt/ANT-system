@@ -3,9 +3,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::io_err;
-use crate::config::is_hidden_dir;
+use crate::domain::config::is_hidden_dir;
 use crate::domain::names::FORBIDDEN;
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 
 // NTFS limits a name to 255 UTF-16 code units, not bytes.
 pub(crate) const MAX_NAME_UNITS: usize = 255;

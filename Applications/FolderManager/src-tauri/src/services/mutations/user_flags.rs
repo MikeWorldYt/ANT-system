@@ -2,12 +2,12 @@
 use std::path::Path;
 
 use super::{finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
-use crate::ant_core::tree_types::{flags_in, type_base};
-use crate::config::{DATA_FLAG, FOOTPRINT_FILENAME};
-use crate::error::{FmError, R};
-use crate::fs_safe::StorageLock;
-use crate::index::footprint::mirror_flags;
-use crate::tree::tree_store::{self, get_node_mut};
+use crate::domain::tree_types::{flags_in, type_base};
+use crate::domain::config::{DATA_FLAG, FOOTPRINT_FILENAME};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::StorageLock;
+use crate::infra::footprint_file::mirror_flags;
+use crate::services::tree::tree_store::{self, get_node_mut};
 
 pub fn set_user_flag(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
@@ -47,7 +47,7 @@ pub fn set_user_flag(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
 mod tests {
     use super::*;
     use crate::test_support::*;
-    use crate::tree::tree_store::get_node;
+    use crate::services::tree::tree_store::get_node;
 
     fn flags_of(dir: &Path, p: &[String]) -> Option<String> {
         get_node(&yaml(dir), p).unwrap().get("flags").and_then(|v| v.as_str()).map(str::to_string)

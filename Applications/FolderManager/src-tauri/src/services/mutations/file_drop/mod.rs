@@ -11,15 +11,17 @@ use serde::Serialize;
 
 use super::recycle::move_to_bin;
 use super::{child_rel, exactly_on_disk, finish, load_synced_at, locate, register_ids, Mutation};
-use crate::ant_core::names::{compose_name, free_track, is_workboard_name, name_parts};
-use crate::ant_core::tree_types::{child_entries, type_base};
-use crate::config::{is_hidden_dir, SETTINGS_FOLDER};
+use crate::domain::names::{compose_name, free_track, is_workboard_name, name_parts};
+use crate::domain::tree_types::{child_entries, type_base};
+use crate::domain::config::{is_hidden_dir, SETTINGS_FOLDER};
 use crate::infra::naming::free_name;
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, join_rel, redirects, resolve, Journal, StorageLock};
-use crate::index::{footprint, review_index};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, join_rel, redirects, resolve, Journal, StorageLock};
+use crate::infra::footprint_file;
+use crate::services::index::footprint;
+use crate::services::tree::review_links;
 
-use crate::tree::tree_store::{self, delete_key, get_node};
+use crate::services::tree::tree_store::{self, delete_key, get_node};
 use serde_yaml::{Mapping, Value};
 use target::destination;
 
@@ -70,7 +72,7 @@ pub fn drop_files(
     recycle: &dyn Fn(&Path) -> Result<(), String>,
 ) -> R<DropOutcome> {
     let _lock = StorageLock::acquire(root)?;
-    let owner = review_index::linked_owner(root, &tree_store::load(root)?, target)?;
+    let owner = review_links::linked_owner(root, &tree_store::load(root)?, target)?;
     let target = owner.as_deref().unwrap_or(target);
     let (mut data, mut synced) = load_synced_at(root, target)?;
     if locate(root, &data, target)?.ghost {
@@ -184,7 +186,7 @@ fn place_workboard(
     }
     // A replacement keeps the track of the workboard it replaces, so the number a project is known by stays.
     let mut replaced_track = None;
-    if let Some(owner) = footprint::read_id(&real).and_then(|id| owner_of(data, &id)) {
+    if let Some(owner) = footprint_file::read_id(&real).and_then(|id| owner_of(data, &id)) {
         if !replace {
             return Ok(Workboard::Taken(WorkboardConflict { name, source: src.to_path_buf(), existing: owner }));
         }

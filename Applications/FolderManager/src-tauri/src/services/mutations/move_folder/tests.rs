@@ -4,12 +4,12 @@ use std::path::{Path, PathBuf};
 use serde_yaml::Value;
 
 use super::*;
-use crate::ant_core::search::parse_query;
+use crate::domain::search::parse_query;
 use crate::domain::model::Copies;
-use crate::index::footprint::{plan, scan};
-use crate::index::review_index::rebuild_with;
-use crate::index::{reindex_paths, search_index, ReviewIndexEvent};
-use crate::storage::db::Store;
+use crate::services::index::footprint::{plan, scan};
+use crate::services::index::review_index::rebuild_with;
+use crate::services::index::{reindex_paths, search_index, ReviewIndexEvent};
+use crate::infra::storage::db::Store;
 use crate::test_support::{names, rel, storage, yaml, TempDir};
 
 const TREE: &str = "100.WORK:\n  type: NODE-L1\n  01.Plain: {type: NODE-L2, 98.Plain: {type: REV-L2}}\n  \
@@ -34,7 +34,7 @@ fn fake_create(pairs: &[(PathBuf, PathBuf)]) -> Vec<String> {
 
 #[cfg(not(windows))]
 fn fake_create(pairs: &[(PathBuf, PathBuf)]) -> Vec<String> {
-    crate::ant_core::shortcuts::create_shortcuts(pairs)
+    crate::platform::shortcuts::create_shortcuts(pairs)
 }
 
 // Startup state: synced yaml with ids, a full search index and a fully built 998.Review.

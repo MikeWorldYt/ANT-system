@@ -8,6 +8,6 @@ pub(crate) fn curl() -> Command {
         .map(|r| std::path::PathBuf::from(r).join(r"System32\curl.exe"))
         .unwrap_or_else(|| std::path::PathBuf::from("curl.exe"));
     let mut cmd = Command::new(exe);
-    cmd.creation_flags(crate::fs_safe::CREATE_NO_WINDOW);
+    cmd.creation_flags(crate::platform::windows::powershell::CREATE_NO_WINDOW);
     cmd
 }

@@ -7,14 +7,12 @@ pub mod review_index;
 pub mod review_update;
 pub mod search_index;
 
-pub use crate::infra::link_list;
-
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use serde_yaml::Mapping;
 
-use crate::tree::tree_store;
+use crate::services::tree::tree_store;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ReviewIndexEvent {
@@ -45,7 +43,7 @@ pub(crate) fn reindex_paths(
             Ok(data) => data,
             Err(e) => return vec![e.to_string()],
         };
-        let quick = match review_index::review_dir(root) {
+        let quick = match crate::services::tree::review_links::review_dir(root) {
             Ok(Some(dir)) => review_update::update_with(root, &dir, &data, before, touched, create),
             // The full rebuild owns the report for a missing or linked 998.Review, and does no work then.
             _ => return rebuild(root, &data),

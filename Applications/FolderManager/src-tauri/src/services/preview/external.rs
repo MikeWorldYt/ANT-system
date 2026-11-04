@@ -4,8 +4,8 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use super::base64;
-use crate::error::R;
-use crate::fs_safe::io_err;
+use crate::domain::error::R;
+use crate::infra::fs_safe::io_err;
 
 const PIXELS: &str = "128";
 static NEXT_FOLDER: AtomicU64 = AtomicU64::new(0);

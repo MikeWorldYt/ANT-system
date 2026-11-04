@@ -7,13 +7,13 @@ use serde::Deserialize;
 use tauri::AppHandle;
 
 use crate::commands::run_locked;
-pub(crate) use crate::domain::validation::valid_backup_folder;
-use crate::index::review_index;
-use crate::storage::db::Store;
-use crate::tree::depth;
-use crate::tree::tree_store;
-use crate::error::{FmError, R};
-use crate::updater::CURRENT_VERSION;
+use crate::domain::validation::valid_backup_folder;
+use crate::services::index::review_index;
+use crate::infra::storage::db::Store;
+use crate::services::tree::depth;
+use crate::services::tree::tree_store;
+use crate::domain::error::{FmError, R};
+use crate::services::updater::CURRENT_VERSION;
 
 const ISSUES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/issues/new";
 const RELEASES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/tag";

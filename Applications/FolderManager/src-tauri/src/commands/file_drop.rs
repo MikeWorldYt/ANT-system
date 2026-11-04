@@ -3,11 +3,12 @@ use std::path::{Path, PathBuf};
 
 use tauri::AppHandle;
 
-use super::clipboard::{self, Paste};
 use super::edit::with_search_index;
 use super::run_locked;
-use crate::error::R;
-use crate::mutations::{self, DropOutcome};
+use crate::domain::error::R;
+use crate::platform::clipboard::{self, Paste};
+use crate::platform::recycle::send_to_recycle_bin;
+use crate::services::mutations::{self, DropOutcome};
 #[cfg(windows)]
 use crate::platform::windows::input::ctrl_held;
 
@@ -34,7 +35,7 @@ pub async fn paste_files(app: AppHandle, target: Vec<String>) -> R<DropOutcome> 
 }
 
 fn place(root: &Path, target: &[String], paths: &[PathBuf], copy: bool, replace: &[PathBuf]) -> R<DropOutcome> {
-    let DropOutcome { mutation, placed, conflicts } = mutations::drop_files(root, target, paths, copy, replace, &mutations::send_to_recycle_bin)?;
+    let DropOutcome { mutation, placed, conflicts } = mutations::drop_files(root, target, paths, copy, replace, &send_to_recycle_bin)?;
     Ok(DropOutcome { mutation: with_search_index(root, Ok(mutation))?, placed, conflicts })
 }
 

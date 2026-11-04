@@ -7,11 +7,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Instant;
 
-use crate::config::DATA_DIR;
-use crate::error::{FmError, R};
-use crate::storage::db::db_path;
-use crate::tree::depth;
-use crate::updater::CURRENT_VERSION;
+use crate::domain::config::DATA_DIR;
+use crate::domain::error::{FmError, R};
+use crate::infra::storage::db::db_path;
+use crate::services::tree::depth;
+use crate::services::updater::CURRENT_VERSION;
 use sysinfo::SysInfo;
 
 const MAX_MESSAGE_CHARS: usize = 2000;

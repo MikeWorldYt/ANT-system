@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
-use crate::fs_safe::{is_link, validate_component};
+use crate::infra::fs_safe::{is_link, validate_component};
 
 pub const PERMISSIONS: [&str; 4] = ["tree:read", "menu:context", "panel:own", "details:field"];
 pub const MAX_MAIN_BYTES: u64 = 1024 * 1024;

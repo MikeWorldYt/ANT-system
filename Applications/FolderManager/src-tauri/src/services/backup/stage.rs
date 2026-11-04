@@ -2,11 +2,11 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::config::{is_hidden_dir, CORE_FOLDER, DATA_DIR, DB_FILENAME, SETTINGS_FOLDER};
-use crate::error::R;
-use crate::fs_safe::{io_err, is_link, LOCK_FILE};
-use crate::storage::db::{db_path, hide, Store};
-use crate::tree::depth;
+use crate::domain::config::{is_hidden_dir, CORE_FOLDER, DATA_DIR, DB_FILENAME, SETTINGS_FOLDER};
+use crate::domain::error::R;
+use crate::infra::fs_safe::{io_err, is_link, LOCK_FILE};
+use crate::infra::storage::db::{db_path, hide, Store};
+use crate::services::tree::depth;
 
 struct Entry {
     name: String,

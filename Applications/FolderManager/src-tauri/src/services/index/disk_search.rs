@@ -3,13 +3,13 @@ use std::path::Path;
 
 use serde_yaml::Mapping;
 
-use crate::ant_core::names::list_subdirs;
-use crate::ant_core::search::{canonical_key, Query};
-use crate::ant_core::tree_types::flags_in;
-use crate::config::HIDDEN_FLAG;
-use crate::error::R;
-use crate::storage::info::read_info;
-use crate::tree::tree_store::{self, get_node};
+use crate::infra::scan::list_subdirs;
+use crate::domain::search::{canonical_key, Query};
+use crate::domain::tree_types::flags_in;
+use crate::domain::config::HIDDEN_FLAG;
+use crate::domain::error::R;
+use crate::infra::storage::info::read_info;
+use crate::services::tree::tree_store::{self, get_node};
 
 // Past this many matches the walk stops, so a broad search cannot grow the list without bound.
 const CAP: usize = 300;
@@ -86,7 +86,7 @@ fn contains(text: &str, part: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ant_core::search::parse_query;
+    use crate::domain::search::parse_query;
     use crate::test_support::TempDir;
 
     fn paths(found: Vec<Vec<String>>) -> Vec<String> {

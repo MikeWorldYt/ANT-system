@@ -12,7 +12,7 @@ use windows::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_APARTME
 use windows::Win32::UI::Shell::{IShellItemImageFactory, SHCreateItemFromParsingName, SIIGBF, SIIGBF_ICONONLY};
 
 use super::png_data_url;
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 
 const THUMBNAIL_PIXELS: i32 = 128;
 const ICON_PIXELS: i32 = 16;

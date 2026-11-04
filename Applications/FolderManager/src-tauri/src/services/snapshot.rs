@@ -2,12 +2,12 @@
 use std::path::Path;
 
 use crate::domain::model::Copies;
-use crate::error::R;
-use crate::fs_safe::StorageLock;
-use crate::index::footprint;
-use crate::index::search_index;
-use crate::tree::tree_node::{build_tree, fill_children, TreeSnapshot};
-use crate::tree::tree_store;
+use crate::domain::error::R;
+use crate::infra::fs_safe::StorageLock;
+use crate::services::index::footprint;
+use crate::services::index::search_index;
+use crate::services::tree::tree_node::{build_tree, fill_children, TreeSnapshot};
+use crate::services::tree::tree_store;
 
 pub fn snapshot(root: &Path, mode: Copies) -> R<TreeSnapshot> {
     let mut data = tree_store::load(root)?;
@@ -45,15 +45,15 @@ pub fn snapshot(root: &Path, mode: Copies) -> R<TreeSnapshot> {
 mod tests {
     use super::*;
     use crate::test_support::{rel, TempDir};
-    use crate::tree::depth;
-    use crate::tree::tree_node::TreeNode;
-    use crate::tree::tree_store::get_node;
+    use crate::services::tree::depth;
+    use crate::services::tree::tree_node::TreeNode;
+    use crate::services::tree::tree_store::get_node;
 
     #[test]
     fn a_raised_depth_limit_loads_and_opens_the_next_level() {
         let dir = TempDir::new("raised-depth");
         dir.mkdir("01.A/01.B/01.C/01.D/01.E");
-        crate::storage::db::Store::open_or_create(dir.path()).unwrap().set_setting(depth::DEPTH_KEY, "4").unwrap();
+        crate::infra::storage::db::Store::open_or_create(dir.path()).unwrap().set_setting(depth::DEPTH_KEY, "4").unwrap();
         let tree = snapshot(dir.path(), Copies::Tail).unwrap();
         let child = |n: &TreeNode| n.children.as_ref().map(|k| k[0].clone()).unwrap();
         let l3 = child(&child(&tree.nodes[0]));

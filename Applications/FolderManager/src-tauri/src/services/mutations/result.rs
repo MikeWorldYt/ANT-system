@@ -5,9 +5,9 @@ use serde::Serialize;
 use serde_yaml::Mapping;
 
 use super::{exactly_on_disk, parent_of, Mutation};
-use crate::error::R;
-use crate::tree::tree_node::{build_children, build_tree, fill_children, TreeNode, TreeSnapshot};
-use crate::tree::tree_store::{self, get_node};
+use crate::domain::error::R;
+use crate::services::tree::tree_node::{build_children, build_tree, fill_children, TreeNode, TreeSnapshot};
+use crate::services::tree::tree_store::{self, get_node};
 
 // One parent's children as they are now; touched children carry their filled subtree, the others none.
 #[derive(Debug, Serialize)]
@@ -95,8 +95,8 @@ pub(super) fn after_commit(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::FmError;
-    use crate::mutations::rename_node;
+    use crate::domain::error::FmError;
+    use crate::services::mutations::rename_node;
     use crate::test_support::*;
 
     #[test]

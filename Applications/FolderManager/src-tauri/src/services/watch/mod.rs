@@ -10,8 +10,8 @@ mod watcher;
 
 use std::path::{Path, PathBuf};
 
-use crate::debug_log;
-use crate::error::R;
+use crate::services::debug_log;
+use crate::domain::error::R;
 
 pub use gui::GuiWatch;
 pub use headless::run_headless;

@@ -1,9 +1,9 @@
 // The tree depth limit is a per-storage setting in ant.db; every walk of the tree reads it here.
 use std::path::Path;
 
-use crate::config::{DEPTH_CEILING, MAX_DEPTH};
-use crate::error::R;
-use crate::storage::db::Store;
+use crate::domain::config::{DEPTH_CEILING, MAX_DEPTH};
+use crate::domain::error::R;
+use crate::infra::storage::db::Store;
 
 pub const DEPTH_KEY: &str = "treeDepth";
 

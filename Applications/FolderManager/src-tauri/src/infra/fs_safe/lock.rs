@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use super::io_err;
-use crate::config::{CORE_FOLDER, SETTINGS_FOLDER};
-use crate::error::{FmError, R};
+use crate::domain::config::{CORE_FOLDER, SETTINGS_FOLDER};
+use crate::domain::error::{FmError, R};
 
 pub(crate) const LOCK_FILE: &str = ".FolderManager.lock";
 const STALE_LOCK: Duration = Duration::from_secs(120);

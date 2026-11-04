@@ -1,6 +1,6 @@
 use super::drag_plan;
 use crate::platform::drag_out::ALLOWED_EFFECTS;
-use crate::error::FmError;
+use crate::domain::error::FmError;
 use crate::test_support::{academic, rel, yaml};
 
 #[test]

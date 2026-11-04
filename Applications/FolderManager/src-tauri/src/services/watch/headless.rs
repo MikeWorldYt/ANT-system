@@ -6,8 +6,8 @@ use std::sync::Arc;
 use std::thread;
 
 use super::{guard, log, tray, watch};
-use crate::backup::stamp::local_stamp;
-use crate::debug_log::{self, sysinfo};
+use crate::services::backup::stamp::local_stamp;
+use crate::services::debug_log::{self, sysinfo};
 
 // A storage that was moved or deleted is left alone; its logon task is stale, not broken.
 pub fn run_headless(start: Option<OsString>) -> i32 {
@@ -18,7 +18,7 @@ pub fn run_headless(start: Option<OsString>) -> i32 {
     if !path.is_dir() {
         return 0;
     }
-    let Some(root) = crate::ant_core::names::find_root(&path) else {
+    let Some(root) = crate::infra::scan::find_root(&path) else {
         eprintln!("{} is not an ANT storage", path.display());
         return 1;
     };

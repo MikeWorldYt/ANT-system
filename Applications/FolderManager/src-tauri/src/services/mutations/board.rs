@@ -5,11 +5,11 @@ use serde::Deserialize;
 use serde_yaml::Value;
 
 use super::{finish, guard_frozen, load_synced_at, locate, Mutation};
-use crate::ant_core::tree_types::type_base;
-use crate::error::{FmError, R};
-use crate::fs_safe::StorageLock;
-use crate::storage::info::{field_of, read_info, write_info};
-use crate::tree::tree_store::{self, get_node};
+use crate::domain::tree_types::type_base;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::StorageLock;
+use crate::infra::storage::info::{field_of, read_info, write_info};
+use crate::services::tree::tree_store::{self, get_node};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -82,8 +82,8 @@ pub fn set_board(root: &Path, cards: &[BoardCard]) -> R<Mutation> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{EditableType, WkbStatus};
-    use crate::mutations::set_node_type;
+    use crate::domain::config::{EditableType, WkbStatus};
+    use crate::services::mutations::set_node_type;
     use crate::test_support::*;
 
     fn card(rel_parts: &[String], column: BoardColumn, order: u32) -> BoardCard {

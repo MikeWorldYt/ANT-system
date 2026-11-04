@@ -8,7 +8,7 @@ use super::registry;
 use super::staging::{expired, new_token, pick_root, valid_token};
 use super::store::{self, parse_state, prune, state_json};
 use super::tools::hash_from;
-use crate::storage::db::Store;
+use crate::infra::storage::db::Store;
 use crate::test_support::TempDir;
 
 const OK: &str = r#"{"id":"word-count","name":"Word count","version":"1.2.3","description":"Counts",

@@ -3,11 +3,11 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use crate::domain::model::Copies;
-use crate::error::R;
-use crate::index::review_index;
-use crate::scheduler::{self, Task};
+use crate::domain::error::R;
+use crate::services::index::review_index;
+use crate::services::scheduler::{self, Task};
 use crate::services::snapshot::snapshot;
-use crate::tree::tree_store;
+use crate::services::tree::tree_store;
 
 const TASK: Task = Task { name: "ANT System Manager Sync", flag: "--sync", start: "12:30", what: "sync" };
 
@@ -37,7 +37,7 @@ pub fn run_headless(start: Option<OsString>) -> i32 {
     if !path.is_dir() {
         return 0;
     }
-    let Some(root) = crate::ant_core::names::find_root(&path) else {
+    let Some(root) = crate::infra::scan::find_root(&path) else {
         eprintln!("{} is not an ANT storage", path.display());
         return 1;
     };

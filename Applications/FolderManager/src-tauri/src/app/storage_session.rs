@@ -4,7 +4,7 @@ use std::sync::{Mutex, RwLock};
 
 use serde::Serialize;
 
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 
 pub struct Storage {
     pub start: RwLock<PathBuf>,
@@ -14,7 +14,7 @@ pub struct Storage {
 
 impl Storage {
     pub fn resolve(start: PathBuf) -> Self {
-        let root = crate::ant_core::names::find_root(&start);
+        let root = crate::infra::scan::find_root(&start);
         Self { start: RwLock::new(start), root: RwLock::new(root), lock: Mutex::new(()) }
     }
 
@@ -35,7 +35,7 @@ impl Storage {
     }
 
     pub fn reset(&self, start: PathBuf) {
-        *self.root.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = crate::ant_core::names::find_root(&start);
+        *self.root.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = crate::infra::scan::find_root(&start);
         self.set_start(start);
     }
 

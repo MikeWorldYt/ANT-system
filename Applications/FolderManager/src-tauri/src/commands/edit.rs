@@ -4,13 +4,15 @@ use std::path::{Path, PathBuf};
 use serde_yaml::Mapping;
 use tauri::{AppHandle, Manager};
 
-use super::{locked, review_emitter, run_locked, Storage};
-use crate::ant_core::shortcuts::create_shortcuts;
-use crate::config::{EditableType, NewKind, WkbStatus};
-use crate::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
-use crate::error::{FmError, R};
-use crate::index::{reindex, reindex_paths, review_index, search_index, Emit};
-use crate::tree::tree_store;
+use super::{locked, review_emitter, run_locked};
+use crate::app::storage_session::Storage;
+use crate::platform::recycle::send_to_recycle_bin;
+use crate::platform::shortcuts::create_shortcuts;
+use crate::domain::config::{EditableType, NewKind, WkbStatus};
+use crate::services::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
+use crate::domain::error::{FmError, R};
+use crate::services::index::{reindex, reindex_paths, review_index, search_index, Emit};
+use crate::services::tree::tree_store;
 
 pub(super) fn with_index(
     root: &Path,
@@ -84,7 +86,7 @@ pub async fn rename_file(app: AppHandle, rel_parts: Vec<String>, new_name: Strin
 pub async fn delete_file(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
     tauri::async_runtime::spawn_blocking(move || {
         let storage = app.state::<Storage>();
-        locked(&storage, |root| mutations::delete_file(root, &rel_parts, mutations::send_to_recycle_bin))
+        locked(&storage, |root| mutations::delete_file(root, &rel_parts, send_to_recycle_bin))
     })
     .await
     .map_err(|e| FmError::Internal { message: e.to_string() })?
@@ -247,7 +249,7 @@ pub async fn delete_node(
         let flags = (expect_ghost, confirm_non_empty);
         let emit = review_emitter(&app);
         let storage = app.state::<Storage>();
-        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, mutations::send_to_recycle_bin)
+        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, send_to_recycle_bin)
     })
     .await
     .map_err(|e| FmError::Internal { message: e.to_string() })?

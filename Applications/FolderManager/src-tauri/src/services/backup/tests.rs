@@ -1,8 +1,8 @@
 use std::fs;
 
 use super::*;
-use crate::config::{DATA_DIR, DB_FILENAME};
-use crate::fs_safe::LOCK_FILE;
+use crate::domain::config::{DATA_DIR, DB_FILENAME};
+use crate::infra::fs_safe::LOCK_FILE;
 use crate::test_support::{academic, TempDir};
 
 const STAMP: &str = "26-10-24-09-05";

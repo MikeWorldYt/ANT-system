@@ -1,60 +1,58 @@
 // Library root so the app builds as both a desktop binary and a Tauri library.
-mod ant_core;
 mod app;
 mod commands;
 mod domain;
 mod infra;
 #[cfg(test)]
 mod ipc_parity_tests;
+#[cfg(test)]
+mod layer_tests;
 mod platform;
 mod services;
 #[cfg(test)]
 mod test_support;
 
+use app::storage_session::Storage;
 use app::window_state;
-use domain::{config, error};
-use infra::{fs_safe, storage};
-use services::{backup, debug_log, extensions, index, intake, mutations, preview, scheduler, sync, tree, updater, watch};
-
 use commands::settings;
 
 const STORAGE_CHANGED: &str = "storage-changed";
 
 pub fn run() {
     if std::env::args_os().nth(1).is_some_and(|a| a == "--backup") {
-        std::process::exit(backup::run_headless(std::env::args_os().nth(2)));
+        std::process::exit(services::backup::run_headless(std::env::args_os().nth(2)));
     }
     if std::env::args_os().nth(1).is_some_and(|a| a == "--sync") {
-        std::process::exit(sync::run_headless(std::env::args_os().nth(2)));
+        std::process::exit(services::sync::run_headless(std::env::args_os().nth(2)));
     }
     if std::env::args_os().nth(1).is_some_and(|a| a == "--watch") {
-        std::process::exit(watch::run_headless(std::env::args_os().nth(2)));
+        std::process::exit(services::watch::run_headless(std::env::args_os().nth(2)));
     }
     let arg = std::env::args_os().nth(1).map(std::path::PathBuf::from);
     let cwd = std::env::current_dir().unwrap_or_default();
-    let storage = commands::Storage::resolve(cwd.clone());
+    let storage = Storage::resolve(cwd.clone());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(storage)
-        .register_uri_scheme_protocol(extensions::sandbox_page::SCHEME, |_ctx, _request| extensions::sandbox_page::response())
+        .register_uri_scheme_protocol(services::extensions::sandbox_page::SCHEME, |_ctx, _request| services::extensions::sandbox_page::response())
         .setup(move |app| {
             use tauri::Manager;
-            let remembered = storage::pointer::app_file(app.handle()).ok().and_then(|f| storage::pointer::read(&f));
+            let remembered = infra::storage::pointer::app_file(app.handle()).ok().and_then(|f| infra::storage::pointer::read(&f));
             let exe_dir = std::env::current_exe().ok().and_then(|e| e.parent().map(std::path::Path::to_path_buf));
-            let state = app.state::<commands::Storage>();
-            state.reset(storage::location::launch_start(arg, remembered, cwd, exe_dir));
+            let state = app.state::<Storage>();
+            state.reset(infra::storage::location::launch_start(arg, remembered, cwd, exe_dir));
             if let Ok(root) = state.root() {
-                storage::pointer::remember(app.handle(), &root);
+                infra::storage::pointer::remember(app.handle(), &root);
                 if let Some(window) = app.get_webview_window("main") {
-                    window.set_title(&commands::window_title(&storage::rename::folder_name(&root)))?;
+                    window.set_title(&commands::window_title(&infra::storage::rename::folder_name(&root)))?;
                 }
             }
             let handle = app.handle().clone();
             let emitter = app.handle().clone();
-            app.manage(watch::GuiWatch::start(
-                move || handle.state::<commands::Storage>().root().ok(),
+            app.manage(services::watch::GuiWatch::start(
+                move || handle.state::<Storage>().root().ok(),
                 move |event| {
                     use tauri::Emitter;
                     if let Err(e) = emitter.emit(STORAGE_CHANGED, event) {
@@ -160,7 +158,7 @@ pub fn run() {
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
                 use tauri::Manager;
-                if let Some(watcher) = app.try_state::<watch::GuiWatch>() {
+                if let Some(watcher) = app.try_state::<services::watch::GuiWatch>() {
                     watcher.shutdown();
                 }
             }

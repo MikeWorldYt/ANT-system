@@ -4,13 +4,15 @@ use std::path::Path;
 use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::names::{has_node_id, is_main_category, is_track_name, is_valid_root_name, list_subdirs};
-use crate::ant_core::tree_types::{flags_in, type_base};
-use crate::config::{TypeBase, DATA_DIR, HIDDEN_FLAG, INFO_FILENAME, WKB_IDENTIFIERS};
-use crate::error::R;
-use crate::tree::depth;
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::{self, infer_type};
+use crate::domain::names::{has_node_id, is_main_category, is_track_name, is_valid_root_name};
+
+use crate::infra::scan::list_subdirs;
+use crate::domain::tree_types::{flags_in, type_base};
+use crate::domain::config::{TypeBase, DATA_DIR, HIDDEN_FLAG, INFO_FILENAME, WKB_IDENTIFIERS};
+use crate::domain::error::R;
+use crate::services::tree::depth;
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::{self, infer_type};
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]

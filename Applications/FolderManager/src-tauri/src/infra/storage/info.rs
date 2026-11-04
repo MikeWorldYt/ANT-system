@@ -5,10 +5,10 @@ use std::path::Path;
 use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use crate::config::{DATA_DIR, INFO_FILENAME};
-use crate::storage::db::hide;
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, write_atomic};
+use crate::domain::config::{DATA_DIR, INFO_FILENAME};
+use crate::infra::storage::db::hide;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, write_atomic};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -66,7 +66,6 @@ fn scalar_text(v: &Value) -> Option<String> {
     }
 }
 
-pub use crate::domain::config::OWNER_KEYS;
 
 // The first scalar stored under any of the keys, compared case-insensitively.
 pub fn field_of<'a>(info: &'a NodeInfo, keys: &[&str]) -> Option<&'a str> {
@@ -145,6 +144,7 @@ pub(crate) fn json_string(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::config::OWNER_KEYS;
     use crate::test_support::TempDir;
 
     fn text(s: &str) -> Option<Value> {

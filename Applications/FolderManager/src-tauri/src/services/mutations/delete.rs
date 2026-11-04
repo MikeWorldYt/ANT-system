@@ -6,10 +6,10 @@ use serde::Serialize;
 
 use super::recycle::move_to_bin;
 use super::{finish, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation, Target};
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, redirects, Journal, StorageLock};
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store::{self, delete_key, is_locked_type};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, redirects, Journal, StorageLock};
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store::{self, delete_key, is_locked_type};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -100,9 +100,9 @@ fn count_contents(dir: &Path) -> R<(usize, usize)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::TRASH_DIR;
+    use crate::domain::config::TRASH_DIR;
     use crate::test_support::*;
-    use crate::tree::tree_store::get_node;
+    use crate::services::tree::tree_store::get_node;
 
     #[test]
     fn delete_ghost_only_touches_yaml_and_checks_expectation() {
@@ -183,7 +183,7 @@ mod tests {
         let dir = work("delete-case");
         let mut data = yaml(dir.path());
         data.insert("100.work".into(), serde_yaml::from_str("02.B: {type: NODE-L2}").unwrap());
-        crate::tree::tree_store::save(dir.path(), &data).unwrap();
+        crate::services::tree::tree_store::save(dir.path(), &data).unwrap();
         let p = rel(&["100.work", "02.B"]);
         assert!(matches!(delete_with(dir.path(), &p, false, true, ok_recycle), Err(FmError::Stale { .. })));
         delete_with(dir.path(), &p, true, false, |_| panic!("no disk delete")).unwrap();

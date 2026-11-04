@@ -6,13 +6,14 @@ use serde_yaml::Value;
 
 use super::file_drop::copy_tree;
 use super::{child_rel, finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
-use crate::ant_core::names::{list_subdirs, title_of};
-use crate::ant_core::shortcuts::create_shortcuts;
-use crate::ant_core::tree_types::type_base;
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, join_rel, Journal, StorageLock};
-use crate::storage::info::{field_of, read_info, write_info};
-use crate::tree::tree_store::{self, delete_key, get_type};
+use crate::domain::names::title_of;
+use crate::infra::scan::list_subdirs;
+use crate::platform::shortcuts::create_shortcuts;
+use crate::domain::tree_types::type_base;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, join_rel, Journal, StorageLock};
+use crate::infra::storage::info::{field_of, read_info, write_info};
+use crate::services::tree::tree_store::{self, delete_key, get_type};
 
 const OUTPUT_KEY: &str = "output";
 const LINK_EXTENSION: &str = ".lnk";

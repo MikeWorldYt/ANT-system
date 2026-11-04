@@ -6,11 +6,12 @@ use std::path::{Path, PathBuf};
 
 use serde_yaml::Mapping;
 
-use super::review_index::{branch_owners, rev_folder};
-use crate::ant_core::shortcuts::review_shortcut_name;
-use crate::ant_core::tree_types::child_entries;
-use crate::tree::depth;
-use crate::tree::tree_store::get_node;
+use super::review_index::branch_owners;
+use crate::services::tree::review_links::rev_folder;
+use crate::domain::shortcut_names::review_shortcut_name;
+use crate::domain::tree_types::child_entries;
+use crate::services::tree::depth;
+use crate::services::tree::tree_store::get_node;
 
 pub(crate) fn update_with(
     root: &Path,
@@ -121,12 +122,12 @@ mod tests {
     use std::cell::Cell;
 
     use super::*;
-    use crate::config::NewKind;
-    use crate::index::review_index::rebuild_with;
-    use crate::index::{reindex_paths, ReviewIndexEvent};
-    use crate::mutations::{self, MoveDirection, Mutation};
+    use crate::domain::config::NewKind;
+    use crate::services::index::review_index::rebuild_with;
+    use crate::services::index::{reindex_paths, ReviewIndexEvent};
+    use crate::services::mutations::{self, MoveDirection, Mutation};
     use crate::test_support::{delete_with, ok_recycle, rel, storage, yaml, TempDir};
-    use crate::tree::tree_store;
+    use crate::services::tree::tree_store;
 
     const TREE: &str = "100.ACADEMIC:\n  type: NODE-L1\n  01.Math:\n    type: NODE-L2\n    01.Algebra: {type: NODE-L3}\n  \
         02.Bio: {type: NODE-L2}\n200.HOME:\n  type: NODE-L1\n  01.Garden: {type: NODE-L2}\n";
@@ -151,7 +152,7 @@ mod tests {
 
     #[cfg(not(windows))]
     fn fake_create(pairs: &[(PathBuf, PathBuf)]) -> Vec<String> {
-        crate::ant_core::shortcuts::create_shortcuts(pairs)
+        crate::platform::shortcuts::create_shortcuts(pairs)
     }
 
     // A synced, saved yaml and a fully built 998.Review, as after startup.

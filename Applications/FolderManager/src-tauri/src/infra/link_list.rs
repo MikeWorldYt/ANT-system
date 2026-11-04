@@ -2,10 +2,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::config::DATA_DIR;
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, write_atomic};
-use crate::storage::info::json_string;
+use crate::domain::config::DATA_DIR;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, write_atomic};
+use crate::infra::storage::info::json_string;
 
 fn file(root: &Path, file_name: &str) -> PathBuf {
     root.join(DATA_DIR).join(file_name)
@@ -43,7 +43,7 @@ pub(crate) fn set(root: &Path, file_name: &str, link: &str, on: bool) -> R<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{LINK_FAVORITES_FILENAME, LINK_HIDDEN_FILENAME};
+    use crate::domain::config::{LINK_FAVORITES_FILENAME, LINK_HIDDEN_FILENAME};
     use crate::test_support::TempDir;
 
     #[test]

@@ -4,11 +4,12 @@ use std::path::{Component, Path, PathBuf};
 
 use serde_yaml::Mapping;
 
-use crate::ant_core::shortcuts::{create_shortcuts, review_shortcut_name};
-use crate::tree::depth;
-use crate::tree::tree_store::get_node;
-use crate::tree::review_links::{is_locked, owners};
-pub(crate) use crate::tree::review_links::{link_folder, linked_owner, review_dir, rev_folder};
+use crate::domain::shortcut_names::review_shortcut_name;
+
+use crate::platform::shortcuts::create_shortcuts;
+use crate::services::tree::depth;
+use crate::services::tree::tree_store::get_node;
+use crate::services::tree::review_links::{is_locked, owners, review_dir, rev_folder};
 
 pub fn rebuild(root: &Path, data: &Mapping) -> Vec<String> {
     rebuild_with(root, data, create_shortcuts)

@@ -4,10 +4,10 @@ use std::path::Path;
 use serde_yaml::Value;
 
 use super::{finish, load_synced_at, Mutation};
-use crate::config::REVIEW_FOLDER;
-use crate::error::{FmError, R};
-use crate::fs_safe::{validate_component, StorageLock};
-use crate::storage::info::write_info;
+use crate::domain::config::REVIEW_FOLDER;
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{validate_component, StorageLock};
+use crate::infra::storage::info::write_info;
 
 pub fn set_review_filter(root: &Path, hidden: &[String], favorites: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
@@ -32,9 +32,9 @@ pub fn set_review_filter(root: &Path, hidden: &[String], favorites: bool) -> R<M
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tree::review_links::hidden_categories;
+    use crate::services::tree::review_links::hidden_categories;
     use crate::test_support::{names, storage};
-    use crate::tree::tree_node::build_children;
+    use crate::services::tree::tree_node::build_children;
 
     #[test]
     fn a_hidden_category_takes_its_links_off_the_review_list_until_it_is_shown_again() {
@@ -66,9 +66,9 @@ mod tests {
             "200.B:\n  type: NODE-L1\n  03.C:\n    type: NODE-L2\n",
         );
         std::fs::write(dir.path().join("998.Review/200.B.lnk"), "").unwrap();
-        let child = crate::ant_core::shortcuts::review_shortcut_name(&["200.B".to_string(), "03.C".to_string()], 3).unwrap();
+        let child = crate::domain::shortcut_names::review_shortcut_name(&["200.B".to_string(), "03.C".to_string()], 3).unwrap();
         std::fs::write(dir.path().join(format!("998.Review/{child}.lnk")), "").unwrap();
-        crate::index::link_list::set(dir.path(), crate::config::LINK_FAVORITES_FILENAME, &child, true).unwrap();
+        crate::infra::link_list::set(dir.path(), crate::domain::config::LINK_FAVORITES_FILENAME, &child, true).unwrap();
         let data = crate::test_support::yaml(dir.path());
         let review = ["998.Review".to_string()];
         set_review_filter(dir.path(), &["200.B".to_string()], true).unwrap();
@@ -85,7 +85,7 @@ mod tests {
         );
         std::fs::write(dir.path().join("998.Review/100.A.lnk"), "").unwrap();
         std::fs::write(dir.path().join("998.Review/200.B.lnk"), "").unwrap();
-        crate::index::link_list::set(dir.path(), crate::config::LINK_FAVORITES_FILENAME, "200.B", true).unwrap();
+        crate::infra::link_list::set(dir.path(), crate::domain::config::LINK_FAVORITES_FILENAME, "200.B", true).unwrap();
         let data = crate::test_support::yaml(dir.path());
         let review = ["998.Review".to_string()];
         set_review_filter(dir.path(), &["200.B".to_string()], true).unwrap();

@@ -1,7 +1,7 @@
 // Maps changed paths to the tree nodes whose subtree sync picks the change up.
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::tree_types::META_KEYS;
+use crate::domain::tree_types::META_KEYS;
 
 // A folder not yet in the tree maps to its nearest known ancestor, whose subtree sync adds it.
 pub(super) fn nearest_node(data: &Mapping, rel: &[String]) -> Vec<String> {

@@ -5,16 +5,17 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use crate::ant_core::names::{has_node_id, is_workboard_name, sanitize_train_case};
-use crate::ant_core::tree_types::type_base;
-use crate::backup::stamp::local_date;
-use crate::debug_log::logs_dir;
-use crate::error::R;
-use crate::fs_safe::{io_err, Journal, StorageLock};
-use crate::storage::info::{field_of, read_info, write_info, OWNER_KEYS};
-use crate::tree::depth;
-use crate::tree::tree_node::is_reserved;
-use crate::tree::tree_store;
+use crate::domain::names::{has_node_id, is_workboard_name, sanitize_train_case};
+use crate::domain::tree_types::type_base;
+use crate::services::backup::stamp::local_date;
+use crate::services::debug_log::logs_dir;
+use crate::domain::config::OWNER_KEYS;
+use crate::domain::error::R;
+use crate::infra::fs_safe::{io_err, Journal, StorageLock};
+use crate::infra::storage::info::{field_of, read_info, write_info};
+use crate::services::tree::depth;
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store;
 
 struct Rename {
     parent: String,
@@ -203,9 +204,9 @@ mod tests {
     use std::fs;
 
     use super::*;
-    use crate::ant_core::names::list_subdirs;
+    use crate::infra::scan::list_subdirs;
     use crate::test_support::{rel, storage, yaml, TempDir};
-    use crate::tree::tree_store::get_node;
+    use crate::services::tree::tree_store::get_node;
 
     fn log_text(dir: &TempDir) -> String {
         let path = logs_dir(dir.path()).join(format!("{}_ANT-fm-renamed.log", local_date()));

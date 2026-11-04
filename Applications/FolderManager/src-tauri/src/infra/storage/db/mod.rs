@@ -9,9 +9,9 @@ use std::time::Duration;
 
 use rusqlite::Connection;
 
-use crate::config::{DATA_DIR, DB_FILENAME};
-use crate::error::{FmError, R};
-use crate::fs_safe::io_err;
+use crate::domain::config::{DATA_DIR, DB_FILENAME};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::io_err;
 
 pub(crate) use query::{Doc, Suggestion};
 

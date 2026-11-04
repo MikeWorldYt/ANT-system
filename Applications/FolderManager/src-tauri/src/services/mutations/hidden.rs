@@ -5,14 +5,14 @@ use serde::Serialize;
 use serde_yaml::Mapping;
 
 use super::{child_rel, finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
-use crate::index::footprint;
-use crate::ant_core::names::list_subdirs;
-use crate::ant_core::tree_types::{flags_in, META_KEYS};
-use crate::config::{is_hidden_dir, FOOTPRINT_FILENAME, HIDDEN_FLAG};
-use crate::error::{FmError, R};
-use crate::fs_safe::StorageLock;
-use crate::tree::tree_node::{is_reserved, managed_children, TreeNode};
-use crate::tree::tree_store::{self, get_node_mut, get_type, is_locked_type, set_flag};
+use crate::infra::footprint_file;
+use crate::infra::scan::list_subdirs;
+use crate::domain::tree_types::{flags_in, META_KEYS};
+use crate::domain::config::{is_hidden_dir, FOOTPRINT_FILENAME, HIDDEN_FLAG};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::StorageLock;
+use crate::services::tree::tree_node::{is_reserved, managed_children, TreeNode};
+use crate::services::tree::tree_store::{self, get_node_mut, get_type, is_locked_type, set_flag};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -93,7 +93,7 @@ fn is_fixed(data: &Mapping, rel: &[String]) -> bool {
 
 // The folder's dragpath.json follows the database; a failure is reported, the database change stands.
 fn mirror(folder: &Path, on: bool) -> Vec<String> {
-    match footprint::mirror_hidden(folder, on) {
+    match footprint_file::mirror_hidden(folder, on) {
         Ok(()) => Vec::new(),
         Err(e) => vec![format!("Could not update {FOOTPRINT_FILENAME}: {e}")],
     }

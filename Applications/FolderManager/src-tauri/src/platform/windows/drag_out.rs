@@ -13,7 +13,7 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTT
 
 use crate::platform::clipboard::{hdrop_bytes, Global};
 use crate::platform::drag_out::ALLOWED_EFFECTS;
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 
 fn hdrop_format() -> FORMATETC {
     FORMATETC { cfFormat: CF_HDROP.0, ptd: std::ptr::null_mut(), dwAspect: DVASPECT_CONTENT.0, lindex: -1, tymed: TYMED_HGLOBAL.0 as u32 }

@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::{io_err, same_name};
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 
 enum Step {
     Renamed { from: PathBuf, to: PathBuf },

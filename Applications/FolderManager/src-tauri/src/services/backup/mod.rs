@@ -15,13 +15,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
-use crate::config::SETTINGS_FOLDER;
-use crate::debug_log::valid_stamp;
+use crate::domain::config::SETTINGS_FOLDER;
+use crate::services::debug_log::valid_stamp;
 use crate::domain::validation::valid_backup_folder;
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, is_link, StorageLock};
-use crate::storage::db::Store;
-use crate::storage::recovery::{db_state, set_aside, DbState};
+use crate::domain::error::{FmError, R};
+use crate::infra::fs_safe::{io_err, is_link, StorageLock};
+use crate::infra::storage::db::Store;
+use crate::infra::storage::recovery::{db_state, set_aside, DbState};
 
 pub use latest::{newest_default, restore_latest, LatestBackup};
 
@@ -179,7 +179,7 @@ fn restore_from(root: &Path, dir: &Path, name: &str, stamp: &str) -> R<()> {
 }
 
 pub fn run_headless(start: Option<OsString>) -> i32 {
-    let Some(root) = start.map(PathBuf::from).and_then(|p| crate::ant_core::names::find_root(&p)) else {
+    let Some(root) = start.map(PathBuf::from).and_then(|p| crate::infra::scan::find_root(&p)) else {
         eprintln!("--backup needs the path of an ANT storage");
         return 1;
     };

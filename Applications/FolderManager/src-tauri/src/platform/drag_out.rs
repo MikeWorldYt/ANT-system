@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 #[cfg(not(windows))]
-use crate::error::{FmError, R};
+use crate::domain::error::{FmError, R};
 
 const DROPEFFECT_MOVE: u32 = 2;
 // Only a move: Explorer would otherwise default to copy across drives and leave the original behind.
