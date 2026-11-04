@@ -18,10 +18,8 @@ mod tests;
 mod tree;
 mod update;
 
-use std::path::{Path, PathBuf};
-use std::sync::{Mutex, RwLock};
+use std::path::Path;
 
-use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::config::{DEPTH_CEILING, MAX_DEPTH};
@@ -45,55 +43,9 @@ pub use storage::*;
 pub use tree::*;
 pub use update::*;
 
+pub use crate::app::storage_session::{Storage, StorageInfo};
+
 const REVIEW_EVENT: &str = "fm://review-index";
-
-pub struct Storage {
-    pub start: RwLock<PathBuf>,
-    pub root: RwLock<Option<PathBuf>>,
-    pub lock: Mutex<()>,
-}
-
-impl Storage {
-    pub fn resolve(start: PathBuf) -> Self {
-        let root = crate::ant_core::names::find_root(&start);
-        Self { start: RwLock::new(start), root: RwLock::new(root), lock: Mutex::new(()) }
-    }
-
-    pub fn root(&self) -> R<PathBuf> {
-        self.root
-            .read()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
-            .ok_or_else(|| FmError::StorageNotFound { start: self.start().display().to_string() })
-    }
-
-    pub fn start(&self) -> PathBuf {
-        self.start.read().unwrap_or_else(|poisoned| poisoned.into_inner()).clone()
-    }
-
-    pub fn set_start(&self, start: PathBuf) {
-        *self.start.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = start;
-    }
-
-    pub fn reset(&self, start: PathBuf) {
-        *self.root.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = crate::ant_core::names::find_root(&start);
-        self.set_start(start);
-    }
-
-    pub fn set_root(&self, root: PathBuf) {
-        *self.root.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(root);
-    }
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct StorageInfo {
-    root: String,
-    app_version: String,
-    max_depth: usize,
-    depth_options: Vec<usize>,
-    depth_warning: Option<String>,
-}
 
 pub fn locked<T>(storage: &Storage, f: impl FnOnce(&Path) -> R<T>) -> R<T> {
     let _guard = storage.lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());

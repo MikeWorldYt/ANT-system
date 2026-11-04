@@ -1,5 +1,6 @@
 // Library root so the app builds as both a desktop binary and a Tauri library.
 mod ant_core;
+mod app;
 mod backup;
 mod commands;
 mod config;
@@ -14,6 +15,7 @@ mod ipc_parity_tests;
 mod mutations;
 mod preview;
 mod scheduler;
+mod services;
 mod storage;
 mod sync;
 #[cfg(test)]

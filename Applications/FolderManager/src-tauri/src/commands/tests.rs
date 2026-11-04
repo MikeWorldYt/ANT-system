@@ -1,5 +1,7 @@
 // Command-layer flows checked without a running app: index rebuilds, events, locks and the recycle hand-off.
 use std::cell::RefCell;
+use std::path::PathBuf;
+use std::sync::{Mutex, RwLock};
 
 use serde_yaml::Mapping;
 
