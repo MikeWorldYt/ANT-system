@@ -165,7 +165,7 @@ export async function refresh(): Promise<boolean> {
   });
   if (ok) {
     void runIntake(reload);
-    void checkRootFolders(resolveInvalid);
+    void checkRootFolders(resolveInvalid, deleteInvalid);
   }
   return ok;
 }
@@ -242,7 +242,7 @@ export async function setType(node: TreeNode, base: EditableType, status: WkbSta
     await applyMutation(await api.setNodeType(node.relParts, base, base === "WKB" ? status : null), node.relParts);
   });
   // A workboard with a name outside the track format is announced now, since the check only runs on refresh.
-  if (ok && base === "WKB") void checkRootFolders(resolveInvalid);
+  if (ok && base === "WKB") void checkRootFolders(resolveInvalid, deleteInvalid);
 }
 
 // The nearest folder that stays listed takes the selection, so the columns do not close.
@@ -450,6 +450,24 @@ export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
     async () => applyMutation(await api.resolveInvalid(relParts, resolution)),
     `Fixing "${relParts[relParts.length - 1]}"…`,
   );
+
+// The invalid folder may not be in the loaded tree, so the backend inspects it and the dialog asks like a tree delete does.
+export async function deleteInvalid(relParts: string[]): Promise<boolean> {
+  const name = relParts[relParts.length - 1] ?? "";
+  let deleted = false;
+  const ok = await run(async () => {
+    const preview = await api.inspectDelete(relParts);
+    const nonEmpty = preview.files + preview.dirs > 0;
+    if (state.settings.confirmDelete && !preview.ghost) {
+      const what = nonEmpty ? `contains ${preview.files} files and ${preview.dirs} folders. They go` : "goes";
+      if (!(await warningConfirmDialog("Delete folder", [`"${name}" ${what} to the Recycle Bin`], "Delete", "danger"))) return;
+    }
+    beginOperationStatus(`Deleting "${name}"…`);
+    await applyMutation(await api.deleteNode(relParts, preview.ghost, nonEmpty));
+    deleted = true;
+  }, "Waiting for user decision…");
+  return ok && deleted;
+}
 
 // The folder after it in its column as the user sees it, else the one before; null when it is the only one shown.
 // The folder after it in its column as the user sees it, else the one before; items that are leaving are skipped.

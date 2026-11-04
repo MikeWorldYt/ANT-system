@@ -8,6 +8,7 @@ import { folderMoveActive } from "./folder-move";
 import type { InvalidFolder, Resolution } from "../ipc/types";
 
 type ResolveInvalid = (relParts: string[], resolution: Resolution) => Promise<boolean>;
+type DeleteInvalid = (relParts: string[]) => Promise<boolean>;
 
 let checking = false;
 // Later and Escape give the user this long before the dialog and its announcement come back.
@@ -23,7 +24,7 @@ function resolutionOf(decision: Decision): Resolution | null {
   return null;
 }
 
-export async function checkRootFolders(resolve: ResolveInvalid): Promise<void> {
+export async function checkRootFolders(resolve: ResolveInvalid, remove: DeleteInvalid): Promise<void> {
   // An open dialog or a running drag or operation would stack a second modal; the next focus or refresh checks again.
   if (checking || dialogOpen() || folderMoveActive() || state.busy || currentOperationStatus() !== null) return;
   if (Date.now() < snoozedUntil) return;
@@ -44,7 +45,7 @@ export async function checkRootFolders(resolve: ResolveInvalid): Promise<void> {
         return false;
       }
     };
-    const decisions = await invalidDialog(invalid, (relParts) => void api.openNode(relParts).catch((e: unknown) => setStatus("warning", api.describeError(e))), previewNames, applyOne);
+    const decisions = await invalidDialog(invalid, (relParts) => void api.openNode(relParts).catch((e: unknown) => setStatus("warning", api.describeError(e))), previewNames, applyOne, remove);
     if (decisions === null) snoozedUntil = Date.now() + SNOOZE_MS;
     // Deepest first, so renaming or moving a parent never changes the path of a row still waiting.
     const ordered = [...(decisions ?? [])].sort((a, b) => b.relParts.length - a.relParts.length);

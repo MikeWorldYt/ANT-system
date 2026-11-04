@@ -1,5 +1,8 @@
 // One table settles every folder that breaks the id format: a radio per action on each row.
 import { el } from "./dom";
+import { guiIcon } from "./gui-icons";
+import { dialogButton, openDialog } from "./dialog/shell";
+import { colHeader, dialogTable } from "./dialog/table";
 import type { InvalidFolder, Resolution } from "../ipc/types";
 
 export type Choice = "ignore" | "review" | "node" | "workboard";
@@ -28,10 +31,13 @@ const NAME_CYCLE_MS = 8000;
 // Settles one row at once and says whether it went through.
 export type ApplyOne = (decision: Decision) => Promise<boolean>;
 
+// Sends one folder to the Recycle Bin after asking, and says whether it went.
+export type DeleteOne = (relParts: string[]) => Promise<boolean>;
+
 const isInside = (child: string[], parent: string[]): boolean => child.length > parent.length && parent.every((part, i) => part === child[i]);
 
 // Resolves to the decisions of the rows still waiting, or null when the dialog is left with Later or Escape.
-export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: string[]) => void, preview: PreviewNames, applyOne: ApplyOne): Promise<Decision[] | null> {
+export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: string[]) => void, preview: PreviewNames, applyOne: ApplyOne, deleteOne: DeleteOne): Promise<Decision[] | null> {
   return new Promise((resolve) => {
     const rows = folders.map((folder, i) => row(folder, i, openFolder));
     let latest = 0;
@@ -41,10 +47,10 @@ export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: s
       for (const r of rows) r.setBlocked(working || rows.some((o) => o !== r && isInside(o.relParts, r.relParts)));
       later.disabled = apply.disabled = working;
     };
-    const applyRow = async (r: Row): Promise<void> => {
+    const settleRow = async (r: Row, act: () => Promise<boolean>): Promise<void> => {
       working = true;
       refreshApply();
-      const done = await applyOne(r.decision());
+      const done = await act();
       working = false;
       if (!done) {
         refreshApply();
@@ -59,6 +65,8 @@ export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: s
       refreshApply();
       void showPreview();
     };
+    const applyRow = (r: Row): Promise<void> => settleRow(r, () => applyOne(r.decision()));
+    const deleteRow = (r: Row): Promise<void> => settleRow(r, () => deleteOne(r.relParts));
     const showPreview = async (): Promise<void> => {
       const turn = ++latest;
       const pending = rows.flatMap((r, index) => {
@@ -70,33 +78,24 @@ export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: s
       const renamed = new Map<number, string | null>(pending.map((p, k): [number, string | null] => [p.index, names[k] ?? null]));
       rows.forEach((r, i) => r.showName(renamed.get(i) ?? null));
     };
-    const table = el(
-      "table",
-      { class: "invalid-table", "aria-label": "Folders outside the id format" },
-      el("thead", {}, el("tr", {}, el("th", { scope: "col" }, "Path"), ...ACTIONS.map(([, lines]) => el("th", { scope: "col" }, ...lineBreaks(lines))), el("th", { scope: "col", "aria-label": "Apply this folder only" }))),
-      el("tbody", {}, ...rows.map((r) => r.element)),
-    );
-    const later = el("button", { type: "submit", class: "btn", value: "cancel" }, "Later");
-    const apply = el("button", { type: "submit", class: "btn btn-primary", value: "ok" }, "Apply");
-    const form = el(
-      "form",
-      { method: "dialog" },
-      el("h2", { id: "invalid-title" }, "Format validations"),
-      el("p", { class: "dialog-text" }, "ANT detects some invalid formats that have reached your storage. Choose what each one become."),
-      el("div", { class: "invalid-scroll" }, table),
-      el("div", { class: "dialog-buttons" }, later, apply),
-    );
-    const dialog = el("dialog", { class: "confirm invalid-dialog", "aria-labelledby": "invalid-title" }, form);
+    const headers = [colHeader(["Path"]), ...ACTIONS.map(([, lines]) => colHeader(lineBreaks(lines))), colHeader([], { "aria-label": "Delete or apply this folder only" })];
+    const { table, view } = dialogTable("Folders outside the id format", headers, rows.map((r) => r.element));
+    const later = dialogButton("Later", "cancel");
+    const apply = dialogButton("Apply", "ok", "primary");
+    const { dialog, form, closed } = openDialog({
+      title: "Format validations",
+      wide: true,
+      body: [el("p", { class: "dialog-text" }, "ANT detects some invalid formats that have reached your storage. Choose what each one become."), view],
+      buttons: [later, apply],
+    });
 
-    for (const r of rows) r.applyButton.addEventListener("click", () => void applyRow(r));
+    for (const r of rows) {
+      r.applyButton.addEventListener("click", () => void applyRow(r));
+      r.deleteButton.addEventListener("click", () => void deleteRow(r));
+    }
     refreshApply();
     form.addEventListener("change", () => void showPreview());
-    dialog.addEventListener("close", () => {
-      resolve(dialog.returnValue === "ok" ? rows.map((r) => r.decision()) : null);
-      dialog.remove();
-    });
-    document.body.append(dialog);
-    dialog.showModal();
+    void closed.then((value) => resolve(value === "ok" ? rows.map((r) => r.decision()) : null));
     void showPreview();
     table.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.focus();
   });
@@ -106,6 +105,7 @@ interface Row {
   element: HTMLElement;
   relParts: string[];
   applyButton: HTMLButtonElement;
+  deleteButton: HTMLButtonElement;
   setBlocked: (blocked: boolean) => void;
   decision: () => Decision;
   resolution: () => Resolution | null;
@@ -151,13 +151,15 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
     );
   };
   const applyButton = el("button", { type: "button", class: "btn invalid-apply", "aria-label": `Apply only ${label}` }, "Apply");
-  const element = el("tr", {}, el("th", { scope: "row" }, pathButton(rel, shown, openFolder)), ...cells, el("td", {}, applyButton));
+  const deleteButton = el("button", { type: "button", class: "invalid-delete", "aria-label": `Delete ${original}`, title: `Delete ${original}` }, guiIcon("trash"));
+  const element = el("tr", {}, el("th", { scope: "row" }, pathButton(rel, shown, openFolder)), ...cells, el("td", {}, deleteButton, applyButton));
   return {
     element,
     relParts: rel,
     applyButton,
+    deleteButton,
     setBlocked: (blocked) => {
-      applyButton.disabled = blocked;
+      applyButton.disabled = deleteButton.disabled = blocked;
     },
     decision: () => {
       const choice = current();
