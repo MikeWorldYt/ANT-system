@@ -1,10 +1,10 @@
 // Search commands, answered from the index in ant.db; the slow pass walks the folders on disk.
 use tauri::{AppHandle, Manager};
 
-use super::run_locked;
+use super::{off_thread, run_locked};
 use crate::app::storage_session::Storage;
 use crate::domain::search::{canonical_key, parse_query};
-use crate::domain::error::{FmError, R};
+use crate::domain::error::R;
 use crate::services::index::disk_search;
 use crate::infra::storage::db::{Store, Suggestion};
 
@@ -30,12 +30,11 @@ pub async fn list_workboards(app: AppHandle) -> R<Vec<Vec<String>>> {
 // Runs off the storage lock: a broad walk must not hold up edits.
 #[tauri::command]
 pub async fn search_disk(app: AppHandle, query: String) -> R<Vec<Vec<String>>> {
-    tauri::async_runtime::spawn_blocking(move || {
+    off_thread(move || {
         let root = app.state::<Storage>().root()?;
         disk_search::search_disk(&root, &parse_query(&query))
     })
-    .await
-    .map_err(|e| FmError::Internal { message: e.to_string() })?
+    .await?
 }
 
 #[tauri::command]

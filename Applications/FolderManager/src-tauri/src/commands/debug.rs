@@ -2,21 +2,20 @@
 use tauri::{AppHandle, Manager};
 
 use super::open::launcher;
-use super::{locked, run_locked};
+use super::{locked, off_thread, run_locked};
 use crate::app::storage_session::Storage;
 use crate::services::debug_log::{self, sysinfo};
 use crate::domain::error::{FmError, R};
 
 #[tauri::command]
 pub async fn start_debug_log(app: AppHandle, stamp: String) -> R<String> {
-    tauri::async_runtime::spawn_blocking(move || {
+    off_thread(move || {
         // The probes take about a second, so they run before the storage lock is taken.
         let info = sysinfo::collect();
         let root = locked(&app.state::<Storage>(), |root| Ok(root.to_path_buf()))?;
         debug_log::start(&stamp, &root, &info).map(|path| path.to_string_lossy().into_owned())
     })
-    .await
-    .map_err(|e| FmError::Internal { message: e.to_string() })?
+    .await?
 }
 
 #[tauri::command]

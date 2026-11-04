@@ -4,7 +4,7 @@ use std::path::Path;
 use serde::Serialize;
 use serde_yaml::Mapping;
 
-use super::{child_rel, finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
+use super::{child_rel, editable_target, finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
 use crate::infra::footprint_file;
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{flags_in, META_KEYS};
@@ -25,11 +25,7 @@ pub struct HiddenChoice {
 pub fn set_hidden(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, _) = load_synced_at(root, parent_of(rel))?;
-    let target = locate(root, &data, rel)?;
-    guard_frozen(rel, &target.node_type)?;
-    if target.ghost {
-        return Err(FmError::GhostNotAllowed { op: "hide".to_string() });
-    }
+    let target = editable_target(root, &data, rel, "hide")?;
     if rel.len() < 2 {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "root folders cannot be hidden".to_string() });
     }

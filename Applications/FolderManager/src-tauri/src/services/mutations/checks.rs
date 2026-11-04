@@ -1,15 +1,25 @@
 // Refusals shared by the mutations: frozen nodes and names already taken in the target folder.
-use std::fs;
 use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
 use crate::domain::tree_types::META_KEYS;
+use super::target::{locate, Target};
 use crate::domain::config::is_hidden_dir;
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{io_err, same_name};
+use crate::infra::fs_safe::{dir_entries, same_name};
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::is_locked_type;
+
+// Most edits need a real folder that is neither reserved nor locked; a ghost exists only in the tree.
+pub(crate) fn editable_target(root: &Path, data: &Mapping, rel: &[String], op: &str) -> R<Target> {
+    let target = locate(root, data, rel)?;
+    guard_frozen(rel, &target.node_type)?;
+    if target.ghost {
+        return Err(FmError::GhostNotAllowed { op: op.to_string() });
+    }
+    Ok(target)
+}
 
 pub(crate) fn guard_frozen(rel: &[String], node_type: &str) -> R<()> {
     if is_reserved(rel) {
@@ -36,9 +46,8 @@ pub(crate) fn ensure_free(
     if parent_yaml.is_some_and(|m| m.keys().filter_map(Value::as_str).any(clashes)) {
         return Err(taken);
     }
-    let entries = fs::read_dir(parent_abs).map_err(|e| io_err("list folder", parent_abs, &e))?;
-    for entry in entries {
-        let entry = entry.map_err(|e| io_err("list folder", parent_abs, &e))?;
+    for entry in dir_entries(parent_abs, "list folder")? {
+        let entry = entry?;
         if clashes(&entry.file_name().to_string_lossy()) {
             return Err(taken);
         }

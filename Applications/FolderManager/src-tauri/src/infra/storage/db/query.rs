@@ -1,5 +1,5 @@
 // The search index: per-node fields, the filtered search over them and typing suggestions.
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{params, OptionalExtension, Transaction};
 
 use super::{db_err, hash, Store};
 use crate::domain::error::R;
@@ -20,6 +20,16 @@ pub struct Doc {
     pub fields: Vec<(String, String)>,
 }
 
+fn insert_fields(tx: &Transaction, docs: &[Doc]) -> rusqlite::Result<()> {
+    let mut insert = tx.prepare("INSERT OR REPLACE INTO node_fields (path, key, value) VALUES (?1, ?2, ?3)")?;
+    for doc in docs {
+        for (key, value) in &doc.fields {
+            insert.execute(params![doc.path, key, value])?;
+        }
+    }
+    Ok(())
+}
+
 impl Store {
     // Skips the write when nothing changed, so a window-focus refresh costs one read of the info files.
     pub fn replace_fields(&mut self, docs: &[Doc]) -> R<()> {
@@ -33,14 +43,7 @@ impl Store {
         }
         let tx = self.conn.transaction().map_err(fail)?;
         tx.execute("DELETE FROM node_fields", []).map_err(fail)?;
-        {
-            let mut insert = tx.prepare("INSERT OR REPLACE INTO node_fields (path, key, value) VALUES (?1, ?2, ?3)").map_err(fail)?;
-            for doc in docs {
-                for (key, value) in &doc.fields {
-                    insert.execute(params![doc.path, key, value]).map_err(fail)?;
-                }
-            }
-        }
+        insert_fields(&tx, docs).map_err(fail)?;
         tx.execute("INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)", params![FIELDS_HASH, digest]).map_err(fail)?;
         tx.commit().map_err(fail)
     }
@@ -58,13 +61,8 @@ impl Store {
             for prefix in prefixes {
                 drop.execute([prefix]).map_err(fail)?;
             }
-            let mut insert = tx.prepare("INSERT OR REPLACE INTO node_fields (path, key, value) VALUES (?1, ?2, ?3)").map_err(fail)?;
-            for doc in docs {
-                for (key, value) in &doc.fields {
-                    insert.execute(params![doc.path, key, value]).map_err(fail)?;
-                }
-            }
         }
+        insert_fields(&tx, docs).map_err(fail)?;
         // The stored digest no longer describes the rows, so the next full rebuild must not skip its write.
         tx.execute("DELETE FROM meta WHERE key = ?1", [FIELDS_HASH]).map_err(fail)?;
         tx.commit().map_err(fail)

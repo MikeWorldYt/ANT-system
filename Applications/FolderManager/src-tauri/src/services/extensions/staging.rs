@@ -11,7 +11,7 @@ use super::manifest::has_manifest;
 use super::store::extensions_dir;
 use super::tools;
 use crate::domain::error::R;
-use crate::infra::fs_safe::{io_err, is_link};
+use crate::infra::fs_safe::{dir_entries, io_err, is_link};
 
 const STAGING_DIR: &str = ".staging";
 pub const ARCHIVE_FILE: &str = "archive.zip";
@@ -47,8 +47,8 @@ pub fn clear_old(root: &Path) -> R<()> {
         return Ok(());
     }
     let now = SystemTime::now();
-    for entry in fs::read_dir(&dir).map_err(|e| io_err("read folder", &dir, &e))? {
-        let entry = entry.map_err(|e| io_err("read folder", &dir, &e))?;
+    for entry in dir_entries(&dir, "read folder")? {
+        let entry = entry?;
         let meta = fs::symlink_metadata(entry.path()).map_err(|e| io_err("inspect path", &entry.path(), &e))?;
         let old = meta.modified().is_ok_and(|m| expired(m, now));
         if old && meta.is_dir() && !is_link(&meta) && valid_token(&entry.file_name().to_string_lossy()) {
@@ -71,8 +71,8 @@ pub fn discard(dir: &Path) {
 
 // .NET and unzip already refuse entries outside the target; this checks the result anyway.
 pub fn check_tree(dir: &Path, inside: &Path) -> R<()> {
-    for entry in fs::read_dir(dir).map_err(|e| io_err("read folder", dir, &e))? {
-        let path = entry.map_err(|e| io_err("read folder", dir, &e))?.path();
+    for entry in dir_entries(dir, "read folder")? {
+        let path = entry?.path();
         let meta = fs::symlink_metadata(&path).map_err(|e| io_err("inspect path", &path, &e))?;
         let real = fs::canonicalize(&path).map_err(|e| io_err("resolve path", &path, &e))?;
         if is_link(&meta) || !real.starts_with(inside) {
@@ -126,8 +126,8 @@ pub fn pick_root(entries: &[(String, bool)], root_has_manifest: bool) -> Option<
 pub fn manifest_dir(staged: &Path) -> R<PathBuf> {
     let files = staged.join(FILES_DIR);
     let mut entries = Vec::new();
-    for entry in fs::read_dir(&files).map_err(|e| io_err("read folder", &files, &e))? {
-        let entry = entry.map_err(|e| io_err("read folder", &files, &e))?;
+    for entry in dir_entries(&files, "read folder")? {
+        let entry = entry?;
         let is_dir = fs::symlink_metadata(entry.path()).is_ok_and(|m| m.is_dir() && !is_link(&m));
         entries.push((entry.file_name().to_string_lossy().into_owned(), is_dir));
     }

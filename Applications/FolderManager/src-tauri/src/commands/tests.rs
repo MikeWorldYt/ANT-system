@@ -15,8 +15,8 @@ use crate::services::mutations::{self, MoveDirection, Mutation};
 use crate::infra::fs_safe::StorageLock;
 use crate::services::index::{reindex, search_index};
 use crate::infra::storage::db::Store;
-use crate::test_support::{academic, rel, storage, yaml};
-use crate::services::tree::tree_store::{self, get_node};
+use crate::test_support::{academic, rel, storage, synced_yaml, yaml};
+use crate::services::tree::tree_store::get_node;
 use crate::test_support::TempDir;
 
 const TREE: &str = "100.WORK:\n  type: NODE-L1\n  01.A: {type: NODE-L2}\n  02.B: {type: NODE-L2}\n  03.Ghost: {type: NODE-L2}\n";
@@ -204,9 +204,7 @@ fn indexed(tag: &str) -> TempDir {
     let dir = academic(tag);
     dir.mkdir("100.ACADEMIC/01.Math/.ant");
     std::fs::write(dir.path().join("100.ACADEMIC/01.Math/.ant/info.json"), r#"{"owner": "Mike"}"#).unwrap();
-    let mut data = yaml(dir.path());
-    tree_store::sync(dir.path(), &mut data).unwrap();
-    tree_store::save(dir.path(), &data).unwrap();
+    let data = synced_yaml(dir.path());
     search_index::rebuild(dir.path(), &data).unwrap();
     dir
 }

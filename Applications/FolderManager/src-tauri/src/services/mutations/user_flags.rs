@@ -1,7 +1,7 @@
 // Adds or removes the user flag "data" on a Node folder, the only flag a user can set.
 use std::path::Path;
 
-use super::{finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
+use super::{editable_target, finish, load_synced_at, parent_of, Mutation};
 use crate::domain::tree_types::{flags_in, type_base};
 use crate::domain::config::{DATA_FLAG, FOOTPRINT_FILENAME};
 use crate::domain::error::{FmError, R};
@@ -12,11 +12,7 @@ use crate::services::tree::tree_store::{self, get_node_mut};
 pub fn set_user_flag(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
-    let target = locate(root, &data, rel)?;
-    guard_frozen(rel, &target.node_type)?;
-    if target.ghost {
-        return Err(FmError::GhostNotAllowed { op: "set flag".to_string() });
-    }
+    let target = editable_target(root, &data, rel, "set flag")?;
     if rel.len() == 1 {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "root folders are always main".to_string() });
     }

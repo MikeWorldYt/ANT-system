@@ -9,7 +9,7 @@ use super::fail;
 use super::manifest::{self, Manifest, MAX_JSON_BYTES, MAX_MAIN_BYTES};
 use crate::domain::config::DATA_DIR;
 use crate::domain::error::R;
-use crate::infra::fs_safe::{io_err, is_link};
+use crate::infra::fs_safe::{dir_entries, io_err, is_link};
 use crate::infra::storage::db::Store;
 
 const EXTENSIONS_DIR: &str = "extensions";
@@ -135,8 +135,8 @@ fn child_dirs(dir: &Path) -> R<Vec<(String, PathBuf)>> {
         return Ok(Vec::new());
     }
     let mut out = Vec::new();
-    for entry in fs::read_dir(dir).map_err(|e| io_err("read folder", dir, &e))? {
-        let entry = entry.map_err(|e| io_err("read folder", dir, &e))?;
+    for entry in dir_entries(dir, "read folder")? {
+        let entry = entry?;
         let name = entry.file_name().to_string_lossy().into_owned();
         let plain_dir = fs::symlink_metadata(entry.path()).is_ok_and(|m| m.is_dir() && !is_link(&m));
         if plain_dir && !name.starts_with('.') {

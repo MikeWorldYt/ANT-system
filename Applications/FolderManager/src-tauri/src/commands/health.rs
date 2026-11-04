@@ -4,10 +4,10 @@ use std::path::Path;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
-use super::run_locked;
+use super::{off_thread, run_locked};
 use crate::app::storage_session::Storage;
 use crate::services::backup::{self, LatestBackup};
-use crate::domain::error::{FmError, R};
+use crate::domain::error::R;
 use crate::infra::storage::recovery::{self, db_state, DbState};
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -34,12 +34,11 @@ pub fn health(start: &Path, root: Option<&Path>) -> StorageHealth {
 // The storage lock is not taken: the check also runs when there is no Storage to lock.
 #[tauri::command]
 pub async fn storage_health(app: AppHandle) -> R<StorageHealth> {
-    tauri::async_runtime::spawn_blocking(move || {
+    off_thread(move || {
         let storage = app.state::<Storage>();
         health(&storage.start(), storage.root().ok().as_deref())
     })
     .await
-    .map_err(|e| FmError::Internal { message: e.to_string() })
 }
 
 #[tauri::command]

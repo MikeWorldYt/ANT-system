@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, persist, split, subtrees, Mutation};
+use super::{child_rel, editable_target, ensure_free, finish, load_synced_at, persist, split, subtrees, Mutation};
 use crate::domain::names::{compose_name, editable_part, name_parts, sanitize_train_case, sanitize_upper};
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::type_base;
@@ -16,11 +16,7 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
     let _lock = StorageLock::acquire(root)?;
     // The node's own level is synced too, so a linked folder made outside the app is renamed with it.
     let (mut data, synced) = load_synced_at(root, rel)?;
-    let target = locate(root, &data, rel)?;
-    guard_frozen(rel, &target.node_type)?;
-    if target.ghost {
-        return Err(FmError::GhostNotAllowed { op: "rename".to_string() });
-    }
+    let target = editable_target(root, &data, rel, "rename")?;
     let (old_name, parent) = split(rel)?;
     let workboard = type_base(&target.node_type) == "WKB";
     let editable =

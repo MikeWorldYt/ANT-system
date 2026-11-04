@@ -102,9 +102,7 @@ mod tests {
     #[test]
     fn a_local_mutation_returns_only_the_parent_level_with_the_touched_subtree_filled() {
         let dir = academic("finish-depth");
-        let mut data = yaml(dir.path());
-        tree_store::sync(dir.path(), &mut data).unwrap();
-        tree_store::save(dir.path(), &data).unwrap();
+        synced_yaml(dir.path());
         let m = rename_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), "Calc").unwrap();
         assert!(m.tree.is_none());
         assert_eq!(m.levels.len(), 1);

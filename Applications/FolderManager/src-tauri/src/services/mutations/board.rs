@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use serde_yaml::Value;
 
-use super::{finish, guard_frozen, load_synced_at, locate, Mutation};
+use super::{editable_target, finish, load_synced_at, Mutation};
 use crate::domain::tree_types::type_base;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::StorageLock;
@@ -50,11 +50,7 @@ pub fn set_board(root: &Path, cards: &[BoardCard]) -> R<Mutation> {
     let mut placed: Vec<(&BoardCard, PathBuf, Option<String>)> = Vec::new();
     for card in cards {
         let rel = &card.rel_parts;
-        let target = locate(root, &data, rel)?;
-        guard_frozen(rel, &target.node_type)?;
-        if target.ghost {
-            return Err(FmError::GhostNotAllowed { op: "place on the board".to_string() });
-        }
+        let target = editable_target(root, &data, rel, "place on the board")?;
         if type_base(&target.node_type) != "WKB" {
             return Err(FmError::InvalidPath { rel_parts: rel.clone(), reason: "only workboards are on the board".to_string() });
         }

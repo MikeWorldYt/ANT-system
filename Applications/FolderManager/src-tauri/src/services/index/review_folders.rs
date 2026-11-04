@@ -10,7 +10,7 @@ use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{child_entries, type_base};
 use crate::infra::naming::free_name;
 use crate::domain::error::R;
-use crate::infra::fs_safe::{io_err, join_rel, StorageLock};
+use crate::infra::fs_safe::{dir_entries, io_err, join_rel, StorageLock};
 use crate::services::tree::depth;
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::{self, delete_key, get_node};
@@ -83,8 +83,8 @@ fn merge_extra_reviews(data: &mut Mapping, owner: &[String], dir: &Path, keep: &
     let extras: Vec<String> = list_subdirs(dir)?.into_iter().filter(|name| name != keep && name.starts_with("98.")).collect();
     for extra in &extras {
         let from = dir.join(extra);
-        for entry in fs::read_dir(&from).map_err(|e| io_err("list folder", &from, &e))? {
-            let entry = entry.map_err(|e| io_err("list folder", &from, &e))?;
+        for entry in dir_entries(&from, "list folder")? {
+            let entry = entry?;
             let name = entry.file_name().to_string_lossy().into_owned();
             let landing = free_name(&target, &name, &[])?;
             fs::rename(entry.path(), target.join(&landing)).map_err(|e| io_err("move file", &entry.path(), &e))?;

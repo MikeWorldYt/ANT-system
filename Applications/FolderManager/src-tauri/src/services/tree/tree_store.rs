@@ -306,13 +306,10 @@ fn sort_value(v: &Value) -> Value {
 mod tests {
     use crate::test_support::TempDir;
     use super::*;
+    use crate::test_support::rel;
 
     fn parse(s: &str) -> Mapping {
         serde_yaml::from_str(s).unwrap()
-    }
-
-    fn rel(parts: &[&str]) -> Vec<String> {
-        parts.iter().map(|s| s.to_string()).collect()
     }
 
     #[test]

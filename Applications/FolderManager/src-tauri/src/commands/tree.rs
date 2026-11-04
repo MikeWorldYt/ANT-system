@@ -4,10 +4,10 @@ use std::path::Path;
 use serde_yaml::Mapping;
 use tauri::{AppHandle, Manager};
 
-use super::{review_emitter, run_locked};
+use super::{off_thread, review_emitter, run_locked};
 use crate::app::storage_session::Storage;
 use crate::domain::model::Copies;
-use crate::domain::error::{FmError, R};
+use crate::domain::error::R;
 use crate::infra::fs_safe::{join_rel, validate_component};
 use crate::services::index::{node_names, reindex, review_folders, review_index, Emit};
 use crate::services::snapshot::snapshot;
@@ -59,7 +59,7 @@ pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<Tree
 // Reads without the storage lock, so a slow shell thumbnail never holds up a change.
 #[tauri::command]
 pub async fn file_image(app: AppHandle, rel_parts: Vec<String>, large: bool) -> R<Option<String>> {
-    tauri::async_runtime::spawn_blocking(move || {
+    off_thread(move || {
         let root = app.state::<Storage>().root()?;
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
         let parent = &rel_parts[..rel_parts.len().saturating_sub(1)];
@@ -68,6 +68,5 @@ pub async fn file_image(app: AppHandle, rel_parts: Vec<String>, large: bool) -> 
         }
         crate::services::preview::file_image(&join_rel(&root, &rel_parts), large)
     })
-    .await
-    .map_err(|e| FmError::Internal { message: e.to_string() })?
+    .await?
 }

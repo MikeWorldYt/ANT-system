@@ -88,11 +88,7 @@ fn is_case_only_change(from: &Path, to: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::TempDir;
-
-    fn rel(parts: &[&str]) -> Vec<String> {
-        parts.iter().map(|s| s.to_string()).collect()
-    }
+    use crate::test_support::{rel, TempDir};
 
     #[test]
     fn journal_rollback_undoes_renames_and_created_folders() {

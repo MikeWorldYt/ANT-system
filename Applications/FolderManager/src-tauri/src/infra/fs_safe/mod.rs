@@ -24,6 +24,12 @@ pub fn io_err(op: &str, path: &std::path::Path, e: &std::io::Error) -> FmError {
     }
 }
 
+// Lists a folder lazily; the folder and each of its entries report a failure under the same operation.
+pub fn dir_entries<'a>(dir: &'a std::path::Path, op: &'a str) -> R<impl Iterator<Item = R<std::fs::DirEntry>> + 'a> {
+    let entries = std::fs::read_dir(dir).map_err(|e| io_err(op, dir, &e))?;
+    Ok(entries.map(move |entry| entry.map_err(|e| io_err(op, dir, &e))))
+}
+
 pub fn write_atomic(path: &std::path::Path, bytes: &[u8]) -> R<()> {
     use std::io::Write;
     let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();

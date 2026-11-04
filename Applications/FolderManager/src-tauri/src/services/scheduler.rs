@@ -68,7 +68,7 @@ pub fn apply_logon(task: &Task, on: bool, root: &Path) -> R<()> {
     if !on {
         return apply(task, None, root);
     }
-    let exe = std::env::current_exe().map_err(|e| FmError::Internal { message: format!("Could not find the app: {e}") })?;
+    let exe = app_exe()?;
     let user = current_user()?;
     // Task Scheduler reads a UTF-16 file with a byte order mark.
     let bytes: Vec<u8> = std::iter::once(0xFEFF_u16).chain(logon_xml(task, &user, &exe, root).encode_utf16()).flat_map(u16::to_le_bytes).collect();
@@ -79,28 +79,37 @@ pub fn apply_logon(task: &Task, on: bool, root: &Path) -> R<()> {
     if let Err(e) = std::fs::remove_file(&file) {
         eprintln!("Could not remove the task file: {e}");
     }
-    let out = out?;
-    if out.status.success() {
-        return Ok(());
-    }
-    let detail = String::from_utf8_lossy(&out.stderr).trim().to_string();
-    Err(FmError::Internal { message: format!("Could not update the scheduled {}: {detail}", task.what) })
+    task_result(task, &out?)
 }
 
 #[cfg(not(windows))]
 pub fn apply_logon(task: &Task, _on: bool, _root: &Path) -> R<()> {
-    Err(FmError::Internal { message: format!("Scheduled {} is only available on Windows for now", task.what) })
+    Err(windows_only(task))
 }
 
 #[cfg(windows)]
 pub fn apply(task: &Task, schedule: Option<&str>, root: &Path) -> R<()> {
-    let exe = std::env::current_exe().map_err(|e| FmError::Internal { message: format!("Could not find the app: {e}") })?;
+    let exe = app_exe()?;
     let args = args(task, schedule, &exe, root);
     // Querying first makes a missing task a success without parsing localized error text.
     if schedule.is_none() && !schtasks(&["/Query".into(), "/TN".into(), task.name.into()])?.status.success() {
         return Ok(());
     }
-    let out = schtasks(&args)?;
+    task_result(task, &schtasks(&args)?)
+}
+
+#[cfg(not(windows))]
+pub fn apply(task: &Task, _schedule: Option<&str>, _root: &Path) -> R<()> {
+    Err(windows_only(task))
+}
+
+#[cfg(windows)]
+fn app_exe() -> R<std::path::PathBuf> {
+    std::env::current_exe().map_err(|e| FmError::Internal { message: format!("Could not find the app: {e}") })
+}
+
+#[cfg(windows)]
+fn task_result(task: &Task, out: &std::process::Output) -> R<()> {
     if out.status.success() {
         return Ok(());
     }
@@ -109,6 +118,6 @@ pub fn apply(task: &Task, schedule: Option<&str>, root: &Path) -> R<()> {
 }
 
 #[cfg(not(windows))]
-pub fn apply(task: &Task, _schedule: Option<&str>, _root: &Path) -> R<()> {
-    Err(FmError::Internal { message: format!("Scheduled {} is only available on Windows for now", task.what) })
+fn windows_only(task: &Task) -> FmError {
+    FmError::Internal { message: format!("Scheduled {} is only available on Windows for now", task.what) }
 }

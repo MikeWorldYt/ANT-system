@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde::Deserialize;
 
-use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation};
+use super::{child_rel, editable_target, ensure_free, finish, load_synced_at, parent_of, persist, split, subtrees, Mutation};
 use crate::domain::names::{editable_part, is_movable_node, numeric_id};
 use crate::infra::scan::list_subdirs;
 use crate::domain::error::{FmError, R};
@@ -20,11 +20,7 @@ pub enum MoveDirection {
 pub fn move_node(root: &Path, rel: &[String], dir: MoveDirection) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
-    let target = locate(root, &data, rel)?;
-    guard_frozen(rel, &target.node_type)?;
-    if target.ghost {
-        return Err(FmError::GhostNotAllowed { op: "move".to_string() });
-    }
+    let target = editable_target(root, &data, rel, "move")?;
     let (name, parent) = split(rel)?;
     if !is_movable_node(name, &target.node_type) {
         return Err(FmError::NotMovable);

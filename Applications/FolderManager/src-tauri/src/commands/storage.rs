@@ -3,10 +3,10 @@ use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager, WebviewWindow};
 
-use super::run_locked;
+use super::{off_thread, run_locked};
 use crate::app::storage_session::Storage;
 use crate::services::rename::{rename_flow, revert_target};
-use crate::domain::error::{FmError, R};
+use crate::domain::error::R;
 use crate::infra::storage::rename::{self, RenameStatus};
 use crate::infra::storage::{location, pointer};
 use crate::services::{sync, updater};
@@ -19,11 +19,17 @@ async fn renamed<F>(window: WebviewWindow, stamp: String, target: F) -> R<String
 where
     F: FnOnce(&Path) -> R<String> + Send + 'static,
 {
+    switched(window, move |storage| rename_flow(storage, &stamp, target)).await
+}
+
+// Both a rename and a path change leave the window on a new root, which it then names and remembers.
+async fn switched<F>(window: WebviewWindow, flow: F) -> R<String>
+where
+    F: FnOnce(&Storage) -> R<PathBuf> + Send + 'static,
+{
     let app = window.app_handle().clone();
-    let new_root = tauri::async_runtime::spawn_blocking(move || rename_flow(&app.state::<Storage>(), &stamp, target))
-        .await
-        .map_err(|e| FmError::Internal { message: e.to_string() })??;
-    Ok(adopt(&window, &new_root))
+    let root = off_thread(move || flow(&app.state::<Storage>())).await??;
+    Ok(adopt(&window, &root))
 }
 
 fn adopt(window: &WebviewWindow, root: &Path) -> String {
@@ -37,7 +43,7 @@ fn adopt(window: &WebviewWindow, root: &Path) -> String {
 pub fn change_flow(storage: &Storage, text: &str) -> R<PathBuf> {
     let path = location::clean_path(text)?;
     let root = location::storage_root(&path)?;
-    let _guard = storage.lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = storage.guard();
     storage.set_root(root.clone());
     storage.set_start(path);
     Ok(root)
@@ -45,11 +51,7 @@ pub fn change_flow(storage: &Storage, text: &str) -> R<PathBuf> {
 
 #[tauri::command]
 pub async fn change_storage_path(window: WebviewWindow, path: String) -> R<String> {
-    let app = window.app_handle().clone();
-    let root = tauri::async_runtime::spawn_blocking(move || change_flow(&app.state::<Storage>(), &path))
-        .await
-        .map_err(|e| FmError::Internal { message: e.to_string() })??;
-    Ok(adopt(&window, &root))
+    switched(window, move |storage| change_flow(storage, &path)).await
 }
 
 #[tauri::command]

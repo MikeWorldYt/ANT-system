@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::domain::config::{is_hidden_dir, CORE_FOLDER, DATA_DIR, DB_FILENAME, SETTINGS_FOLDER};
 use crate::domain::error::R;
-use crate::infra::fs_safe::{io_err, is_link, LOCK_FILE};
+use crate::infra::fs_safe::{dir_entries, io_err, is_link, LOCK_FILE};
 use crate::infra::storage::db::{db_path, hide, Store};
 use crate::services::tree::depth;
 
@@ -16,8 +16,8 @@ struct Entry {
 
 fn entries(dir: &Path) -> R<Vec<Entry>> {
     let mut out = Vec::new();
-    for entry in fs::read_dir(dir).map_err(|e| io_err("read folder", dir, &e))? {
-        let entry = entry.map_err(|e| io_err("read folder", dir, &e))?;
+    for entry in dir_entries(dir, "read folder")? {
+        let entry = entry?;
         let path = entry.path();
         let meta = fs::symlink_metadata(&path).map_err(|e| io_err("read folder", &path, &e))?;
         if !is_link(&meta) {

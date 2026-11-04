@@ -7,7 +7,7 @@ use serde_yaml::{Mapping, Value};
 use super::insert;
 use crate::domain::tree_types::META_KEYS;
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{io_err, redirects};
+use crate::infra::fs_safe::{dir_entries, io_err, redirects};
 use crate::services::index::footprint;
 use crate::services::mutations::{finish, register_ids, Mutation};
 use crate::services::tree::depth;
@@ -52,8 +52,8 @@ fn strip_uids(node: &mut Mapping) {
 
 // Links and junctions are skipped, not followed, so a copy never pulls in folders from outside the storage.
 fn copy_contents(from: &Path, to: &Path, warnings: &mut Vec<String>) -> R<()> {
-    for entry in fs::read_dir(from).map_err(|e| io_err("list folder", from, &e))? {
-        let path = entry.map_err(|e| io_err("list folder", from, &e))?.path();
+    for entry in dir_entries(from, "list folder")? {
+        let path = entry?.path();
         let meta = fs::symlink_metadata(&path).map_err(|e| io_err("inspect path", &path, &e))?;
         let Some(name) = path.file_name() else { continue };
         let target = to.join(name);

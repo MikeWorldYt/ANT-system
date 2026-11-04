@@ -126,8 +126,7 @@ mod tests {
     use crate::services::index::review_index::rebuild_with;
     use crate::services::index::{reindex_paths, ReviewIndexEvent};
     use crate::services::mutations::{self, MoveDirection, Mutation};
-    use crate::test_support::{delete_with, ok_recycle, rel, storage, yaml, TempDir};
-    use crate::services::tree::tree_store;
+    use crate::test_support::{delete_with, ok_recycle, rel, storage, synced_yaml, yaml, TempDir};
 
     const TREE: &str = "100.ACADEMIC:\n  type: NODE-L1\n  01.Math:\n    type: NODE-L2\n    01.Algebra: {type: NODE-L3}\n  \
         02.Bio: {type: NODE-L2}\n200.HOME:\n  type: NODE-L1\n  01.Garden: {type: NODE-L2}\n";
@@ -158,9 +157,7 @@ mod tests {
     // A synced, saved yaml and a fully built 998.Review, as after startup.
     fn reviewed(tag: &str) -> TempDir {
         let dir = storage(tag, DIRS, TREE);
-        let mut data = yaml(dir.path());
-        tree_store::sync(dir.path(), &mut data).unwrap();
-        tree_store::save(dir.path(), &data).unwrap();
+        let data = synced_yaml(dir.path());
         assert!(rebuild_with(dir.path(), &data, fake_create).is_empty());
         dir
     }
@@ -266,9 +263,7 @@ mod tests {
     fn a_shortcut_name_shared_by_two_folders_is_a_mismatch() {
         let dir = reviewed("rev-inc-shared");
         dir.mkdir("150.SPORT/01.Garden/98.Garden");
-        let mut data = yaml(dir.path());
-        tree_store::sync(dir.path(), &mut data).unwrap();
-        tree_store::save(dir.path(), &data).unwrap();
+        synced_yaml(dir.path());
         let review = dir.path().join("998.Review");
         let m = mutations::rename_node(dir.path(), &rel(&["200.HOME", "01.Garden"]), "Yard").unwrap();
         let other_letter = update_with(dir.path(), &review, &yaml(dir.path()), &m.before, &m.touched, fake_create);

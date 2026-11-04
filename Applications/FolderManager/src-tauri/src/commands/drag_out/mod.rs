@@ -8,7 +8,7 @@ use std::sync::mpsc;
 use serde_yaml::Mapping;
 use tauri::AppHandle;
 
-use super::run_locked;
+use super::{off_thread, run_locked};
 use crate::domain::error::{FmError, R};
 use crate::domain::tree_types::flags_in;
 use crate::domain::config::MAIN_FLAG;
@@ -33,9 +33,8 @@ pub async fn start_drag_out(app: AppHandle, targets: Vec<Vec<String>>) -> R<u32>
     })
     .map_err(|e| FmError::Internal { message: format!("Could not start the drag: {e}") })?;
     // The drag runs a modal loop on the UI thread, so the result is awaited off the async runtime.
-    let effect = tauri::async_runtime::spawn_blocking(move || rx.recv())
-        .await
-        .map_err(|e| FmError::Internal { message: e.to_string() })?
+    let effect = off_thread(move || rx.recv())
+        .await?
         .map_err(|_| FmError::Internal { message: "The drag ended without a result".to_string() })?;
     effect
 }

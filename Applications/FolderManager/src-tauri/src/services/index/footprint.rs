@@ -322,12 +322,8 @@ fn random_word(salt: u64) -> u64 {
 mod tests {
     use super::*;
     use crate::infra::footprint_file::read_flags;
-    use crate::test_support::TempDir;
+    use crate::test_support::{rel, TempDir};
     use crate::services::tree::tree_store::sync;
-
-    fn rel(parts: &[&str]) -> Vec<String> {
-        parts.iter().map(|s| s.to_string()).collect()
-    }
 
     fn storage() -> (TempDir, Mapping) {
         let dir = TempDir::new("footprint");

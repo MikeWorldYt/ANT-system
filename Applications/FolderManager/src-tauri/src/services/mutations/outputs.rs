@@ -5,13 +5,13 @@ use std::path::{Path, PathBuf};
 use serde_yaml::Value;
 
 use super::file_drop::copy_tree;
-use super::{child_rel, finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
+use super::{child_rel, editable_target, finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
 use crate::domain::names::title_of;
 use crate::infra::scan::list_subdirs;
 use crate::platform::shortcuts::create_shortcuts;
 use crate::domain::tree_types::type_base;
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{io_err, join_rel, Journal, StorageLock};
+use crate::infra::fs_safe::{dir_entries, io_err, join_rel, Journal, StorageLock};
 use crate::infra::storage::info::{field_of, read_info, write_info};
 use crate::services::tree::tree_store::{self, delete_key, get_type};
 
@@ -21,11 +21,7 @@ const LINK_EXTENSION: &str = ".lnk";
 pub fn set_output(root: &Path, rel: &[String], output: Option<&str>) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (data, synced) = load_synced_at(root, parent_of(rel))?;
-    let target = locate(root, &data, rel)?;
-    guard_frozen(rel, &target.node_type)?;
-    if target.ghost {
-        return Err(FmError::GhostNotAllowed { op: "edit".to_string() });
-    }
+    let target = editable_target(root, &data, rel, "edit")?;
     if type_base(&target.node_type) != "WKB" {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only workboards have an output".to_string() });
     }
@@ -180,8 +176,8 @@ fn children_of(dir: &Path) -> R<Vec<PathBuf>> {
 // Links in the workboard that name a delivery folder in the Outcomes folder.
 fn delivery_links(workboard: &Path, outcomes: &Path) -> R<Vec<String>> {
     let mut links = Vec::new();
-    for entry in fs::read_dir(workboard).map_err(|e| io_err("list folder", workboard, &e))? {
-        let name = entry.map_err(|e| io_err("list folder", workboard, &e))?.file_name().to_string_lossy().into_owned();
+    for entry in dir_entries(workboard, "list folder")? {
+        let name = entry?.file_name().to_string_lossy().into_owned();
         let Some(stem) = name.strip_suffix(LINK_EXTENSION).map(str::to_string) else { continue };
         if outcomes.join(&stem).is_dir() {
             links.push(name);

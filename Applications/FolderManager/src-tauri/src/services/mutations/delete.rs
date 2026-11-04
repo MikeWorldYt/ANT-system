@@ -7,7 +7,7 @@ use serde::Serialize;
 use super::recycle::move_to_bin;
 use super::{finish, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation, Target};
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{io_err, redirects, Journal, StorageLock};
+use crate::infra::fs_safe::{dir_entries, io_err, redirects, Journal, StorageLock};
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::{self, delete_key, is_locked_type};
 
@@ -80,9 +80,8 @@ fn count_contents(dir: &Path) -> R<(usize, usize)> {
     let (mut files, mut dirs) = (0, 0);
     let mut pending = vec![dir.to_path_buf()];
     while let Some(current) = pending.pop() {
-        let entries = fs::read_dir(&current).map_err(|e| io_err("list folder", &current, &e))?;
-        for entry in entries {
-            let path = entry.map_err(|e| io_err("list folder", &current, &e))?.path();
+        for entry in dir_entries(&current, "list folder")? {
+            let path = entry?.path();
             let meta = fs::symlink_metadata(&path).map_err(|e| io_err("inspect path", &path, &e))?;
             if meta.is_dir() {
                 dirs += 1;

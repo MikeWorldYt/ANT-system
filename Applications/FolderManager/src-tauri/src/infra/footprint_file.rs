@@ -1,20 +1,29 @@
 // Reads and writes a folder's .ant/dragpath.json: its lasting id, its user flags and its hidden mark.
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use serde_yaml::Value;
+use serde_yaml::{Mapping, Value};
 
 use crate::domain::config::{DATA_DIR, FOOTPRINT_FILENAME};
 use crate::domain::error::R;
 use crate::infra::fs_safe::write_atomic;
 
-// An unreadable or malformed file counts as no id, so a new one replaces it.
-pub(crate) fn read_id(folder: &Path) -> Option<String> {
-    let text = fs::read_to_string(folder.join(DATA_DIR).join(FOOTPRINT_FILENAME)).ok()?;
+fn footprint_path(folder: &Path) -> PathBuf {
+    folder.join(DATA_DIR).join(FOOTPRINT_FILENAME)
+}
+
+// A missing, unreadable or non-object file reads as no footprint at all.
+fn footprint(folder: &Path) -> Option<Mapping> {
+    let text = fs::read_to_string(footprint_path(folder)).ok()?;
     match serde_yaml::from_str::<Value>(&text).ok()? {
-        Value::Mapping(m) => m.get("id").and_then(Value::as_str).filter(|id| !id.is_empty() && !id.contains(char::is_whitespace)).map(str::to_string),
+        Value::Mapping(m) => Some(m),
         _ => None,
     }
+}
+
+// An unreadable or malformed file counts as no id, so a new one replaces it.
+pub(crate) fn read_id(folder: &Path) -> Option<String> {
+    footprint(folder)?.get("id").and_then(Value::as_str).filter(|id| !id.is_empty() && !id.contains(char::is_whitespace)).map(str::to_string)
 }
 
 // The flags stay, so tailing or detaching a copy keeps what the user set on it.
@@ -35,18 +44,16 @@ pub fn mirror_hidden(folder: &Path, hidden: bool) -> R<()> {
 }
 
 pub(crate) fn read_flags(folder: &Path) -> Vec<String> {
-    let Ok(text) = fs::read_to_string(folder.join(DATA_DIR).join(FOOTPRINT_FILENAME)) else { return Vec::new() };
-    let Ok(Value::Mapping(m)) = serde_yaml::from_str::<Value>(&text) else { return Vec::new() };
+    let Some(m) = footprint(folder) else { return Vec::new() };
     m.get("flags").and_then(Value::as_sequence).map_or_else(Vec::new, |list| list.iter().filter_map(Value::as_str).map(str::to_string).collect())
 }
 
 pub fn read_hidden(folder: &Path) -> bool {
-    let Ok(text) = fs::read_to_string(folder.join(DATA_DIR).join(FOOTPRINT_FILENAME)) else { return false };
-    matches!(serde_yaml::from_str::<Value>(&text), Ok(Value::Mapping(m)) if m.get("hidden") == Some(&Value::Bool(true)))
+    footprint(folder).is_some_and(|m| m.get("hidden") == Some(&Value::Bool(true)))
 }
 
 fn write_footprint(folder: &Path, id: &str, flags: &[String], hidden: bool) -> R<()> {
-    write_atomic(&folder.join(DATA_DIR).join(FOOTPRINT_FILENAME), footprint_text(id, flags, hidden).as_bytes())
+    write_atomic(&footprint_path(folder), footprint_text(id, flags, hidden).as_bytes())
 }
 
 fn footprint_text(id: &str, flags: &[String], hidden: bool) -> String {

@@ -4,7 +4,7 @@ use std::path::Path;
 use serde_yaml::Value;
 
 use super::add::mark_workboard;
-use super::{finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
+use super::{editable_target, finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
 use crate::domain::tree_types::{type_base, type_level};
 use crate::domain::config::{EditableType, WkbStatus, OWNER_KEYS};
 use crate::domain::error::{FmError, R};
@@ -61,11 +61,7 @@ pub fn set_node_type(
 pub fn set_details(root: &Path, rel: &[String], status: Option<WkbStatus>, owner: Option<&str>) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (data, synced) = load_synced_at(root, parent_of(rel))?;
-    let target = locate(root, &data, rel)?;
-    guard_frozen(rel, &target.node_type)?;
-    if target.ghost {
-        return Err(FmError::GhostNotAllowed { op: "edit".to_string() });
-    }
+    let target = editable_target(root, &data, rel, "edit")?;
     if type_base(&target.node_type) != "WKB" {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only workboards have status and owner".to_string() });
     }

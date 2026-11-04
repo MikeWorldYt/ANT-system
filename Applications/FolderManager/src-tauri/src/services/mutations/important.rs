@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde_yaml::Value;
 
-use super::{finish, guard_frozen, load_synced_at, locate, parent_of, register_ids, Mutation};
+use super::{editable_target, finish, load_synced_at, parent_of, register_ids, Mutation};
 use crate::domain::tree_types::type_base;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::StorageLock;
@@ -13,11 +13,7 @@ use crate::services::tree::tree_store;
 pub fn set_important(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
-    let target = locate(root, &data, rel)?;
-    guard_frozen(rel, &target.node_type)?;
-    if target.ghost {
-        return Err(FmError::GhostNotAllowed { op: "mark as important".to_string() });
-    }
+    let target = editable_target(root, &data, rel, "mark as important")?;
     if type_base(&target.node_type) != "WKB" {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only workboards can be marked as important".to_string() });
     }

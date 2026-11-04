@@ -1,13 +1,7 @@
 use super::*;
-use crate::test_support::TempDir;
+use crate::test_support::{storage_in, TempDir};
 
 const STAMP: &str = "26-10-24-09-05";
-
-fn storage_in(dir: &TempDir, name: &str) -> PathBuf {
-    let root = dir.path().join(name);
-    fs::create_dir_all(root.join("999.Settings")).unwrap();
-    root
-}
 
 #[test]
 fn the_log_holds_only_the_two_names() {

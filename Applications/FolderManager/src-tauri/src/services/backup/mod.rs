@@ -19,7 +19,7 @@ use crate::domain::config::SETTINGS_FOLDER;
 use crate::services::debug_log::valid_stamp;
 use crate::domain::validation::valid_backup_folder;
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{io_err, is_link, StorageLock};
+use crate::infra::fs_safe::{dir_entries, io_err, is_link, StorageLock};
 use crate::infra::storage::db::Store;
 use crate::infra::storage::recovery::{db_state, set_aside, DbState};
 
@@ -126,8 +126,8 @@ fn entries(dir: &Path) -> R<Vec<BackupEntry>> {
         return Ok(Vec::new());
     }
     let mut out = Vec::new();
-    for entry in fs::read_dir(dir).map_err(|e| io_err("read folder", dir, &e))? {
-        let entry = entry.map_err(|e| io_err("read folder", dir, &e))?;
+    for entry in dir_entries(dir, "read folder")? {
+        let entry = entry?;
         let name = entry.file_name().to_string_lossy().into_owned();
         let file = fs::symlink_metadata(entry.path()).is_ok_and(|m| m.is_file() && !is_link(&m));
         if file && valid_name(&name) {

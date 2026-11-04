@@ -57,12 +57,7 @@ pub async fn create_shortcut_in(app: AppHandle, target: Vec<String>, folder: Str
     run_locked(app, move |root| {
         let data = tree_store::load(root)?;
         let (abs, link) = shortcut_plan(root, &data, &target, Path::new(&folder))?;
-        let failures = create_shortcuts(&[(abs, link.clone())]);
-        if !failures.is_empty() {
-            return Err(FmError::Internal { message: failures.join("; ") });
-        }
-        let name = link.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        Ok(ShortcutCreated { name, folder })
+        place_link(abs, &link, folder)
     })
     .await
 }
@@ -72,14 +67,18 @@ pub async fn create_file_shortcut_in(app: AppHandle, target: Vec<String>, folder
     run_locked(app, move |root| {
         let abs = crate::services::mutations::file_path(root, &target)?;
         let (abs, link) = link_in(root, abs, Path::new(&folder))?;
-        let failures = create_shortcuts(&[(abs, link.clone())]);
-        if !failures.is_empty() {
-            return Err(FmError::Internal { message: failures.join("; ") });
-        }
-        let name = link.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        Ok(ShortcutCreated { name, folder })
+        place_link(abs, &link, folder)
     })
     .await
+}
+
+fn place_link(abs: PathBuf, link: &Path, folder: String) -> R<ShortcutCreated> {
+    let failures = create_shortcuts(&[(abs, link.to_path_buf())]);
+    if !failures.is_empty() {
+        return Err(FmError::Internal { message: failures.join("; ") });
+    }
+    let name = link.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    Ok(ShortcutCreated { name, folder })
 }
 
 // The link path comes without its extension, because create_shortcuts appends it.

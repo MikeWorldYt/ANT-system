@@ -46,7 +46,7 @@ pub use retype::{set_details, set_node_type};
 pub use review_filter::set_review_filter;
 pub use mutation::Mutation;
 pub(crate) use mutation::subtrees;
-pub(crate) use checks::{ensure_free, guard_frozen};
+pub(crate) use checks::{editable_target, ensure_free, guard_frozen};
 pub(crate) use save::{load_synced_at, persist, register_ids};
 pub(crate) use target::{child_rel, locate, parent_of, split, Target};
 use target::exactly_on_disk;

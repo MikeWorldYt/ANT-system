@@ -1,6 +1,6 @@
 // The storage the app has open: its root, the start path it was found from and the in-process lock.
 use std::path::PathBuf;
-use std::sync::{Mutex, RwLock};
+use std::sync::{Mutex, MutexGuard, RwLock};
 
 use serde::Serialize;
 
@@ -19,29 +19,38 @@ impl Storage {
     }
 
     pub fn root(&self) -> R<PathBuf> {
-        self.root
-            .read()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
-            .ok_or_else(|| FmError::StorageNotFound { start: self.start().display().to_string() })
+        read(&self.root).ok_or_else(|| FmError::StorageNotFound { start: self.start().display().to_string() })
     }
 
     pub fn start(&self) -> PathBuf {
-        self.start.read().unwrap_or_else(|poisoned| poisoned.into_inner()).clone()
+        read(&self.start)
     }
 
     pub fn set_start(&self, start: PathBuf) {
-        *self.start.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = start;
+        write(&self.start, start);
     }
 
     pub fn reset(&self, start: PathBuf) {
-        *self.root.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = crate::infra::scan::find_root(&start);
+        write(&self.root, crate::infra::scan::find_root(&start));
         self.set_start(start);
     }
 
     pub fn set_root(&self, root: PathBuf) {
-        *self.root.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(root);
+        write(&self.root, Some(root));
     }
+
+    pub fn guard(&self) -> MutexGuard<'_, ()> {
+        self.lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+// A panic while a path was held leaves it intact, so the lock is used as is.
+fn read<T: Clone>(lock: &RwLock<T>) -> T {
+    lock.read().unwrap_or_else(|poisoned| poisoned.into_inner()).clone()
+}
+
+fn write<T>(lock: &RwLock<T>, value: T) {
+    *lock.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = value;
 }
 
 #[derive(Serialize)]

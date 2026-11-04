@@ -13,7 +13,7 @@ use crate::domain::config::{
 };
 use crate::domain::model::Copied;
 use crate::domain::error::R;
-use crate::infra::fs_safe::{io_err, join_rel};
+use crate::infra::fs_safe::{dir_entries, io_err, join_rel};
 use crate::infra::link_list;
 use crate::services::tree::review_links;
 use crate::infra::storage::info::{field_of, read_info, NodeInfo};
@@ -326,8 +326,8 @@ fn disk_files(dir: &Path) -> R<Vec<String>> {
         return Ok(Vec::new());
     }
     let mut files = Vec::new();
-    for entry in fs::read_dir(dir).map_err(|e| io_err("read the folder", dir, &e))? {
-        let entry = entry.map_err(|e| io_err("read the folder", dir, &e))?;
+    for entry in dir_entries(dir, "read the folder")? {
+        let entry = entry?;
         let name = entry.file_name().to_string_lossy().into_owned();
         if name.starts_with('.') || name.eq_ignore_ascii_case("desktop.ini") || is_running_app(dir, &entry.file_name()) {
             continue;
@@ -512,11 +512,7 @@ pub(crate) fn parse_status(raw: &str) -> Option<WkbStatus> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::{storage, TempDir};
-
-    fn rel(parts: &[&str]) -> Vec<String> {
-        parts.iter().map(|s| s.to_string()).collect()
-    }
+    use crate::test_support::{rel, storage, TempDir};
 
     fn names(nodes: &[TreeNode]) -> Vec<&str> {
         nodes.iter().map(|n| n.name.as_str()).collect()

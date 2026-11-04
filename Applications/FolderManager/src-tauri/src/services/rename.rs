@@ -8,7 +8,7 @@ use crate::infra::storage::rename;
 // Only the in-process lock is held: an open StorageLock file inside the folder would block its own rename.
 pub fn rename_flow(storage: &Storage, stamp: &str, target: impl FnOnce(&Path) -> R<String>) -> R<PathBuf> {
     rename::check_stamp(stamp)?;
-    let _guard = storage.lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = storage.guard();
     let root = storage.root()?;
     let new_name = target(&root)?;
     let new_root = rename::rename_root(&root, &new_name)?;
