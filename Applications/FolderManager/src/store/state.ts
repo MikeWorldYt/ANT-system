@@ -56,6 +56,7 @@ export interface Settings {
   autoOpenColumns: boolean;
   theme: Theme;
   accent: AccentId;
+  iconColor: AccentId;
   textSize: TextSize;
   backupFrequency: BackupFrequency;
   // Empty means the default folder inside the Storage.
@@ -99,7 +100,7 @@ export const state: State = {
   hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
   virtual: null,
   virtualKeys: [],
   via: null,
@@ -202,6 +203,7 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.autoOpenColumns = saved.autoOpenColumns === "true";
   state.settings.theme = saved.theme === "light" || saved.theme === "system" ? saved.theme : "dark";
   state.settings.accent = ["blue", "purple", "coral", "gold"].includes(saved.accent ?? "") ? (saved.accent as AccentId) : "green";
+  state.settings.iconColor = ["green", "blue", "coral", "gold"].includes(saved.iconColor ?? "") ? (saved.iconColor as AccentId) : "purple";
   state.settings.textSize = saved.textSize === "medium" || saved.textSize === "large" ? saved.textSize : "small";
   state.settings.backupFrequency = saved.backupFrequency === "week" || saved.backupFrequency === "month" ? saved.backupFrequency : "day";
   state.settings.backupFolder = saved.backupFolder ?? "";

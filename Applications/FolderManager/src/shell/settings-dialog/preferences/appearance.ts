@@ -32,6 +32,11 @@ export const appearancePage: SettingsPage = {
       control: () => dotsControl<AccentId>("Accent color", ACCENTS, state.settings.accent, (value) => void changeSetting("accent", value)),
     },
     {
+      title: "Icon color",
+      description: "Used for folder and project icons.",
+      control: () => dotsControl<AccentId>("Icon color", ACCENTS, state.settings.iconColor, (value) => void changeSetting("iconColor", value)),
+    },
+    {
       title: "Text size",
       control: () =>
         selectControl<TextSize>(
