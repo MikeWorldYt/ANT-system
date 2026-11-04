@@ -1,6 +1,8 @@
 // Name column of a row: plain text, or the in-place editor when this node is being renamed.
-import { el } from "../dom";
+import { el, keepClicks } from "../dom";
 import { guiIcon } from "../atoms/gui-icons";
+import { hideCheckbox } from "../atoms/checkbox";
+import { textInput } from "../atoms/text-input";
 import { renameTo, setLinkHidden } from "../../hooks/ops";
 import { keyOf, state, stopEdit } from "../../services/store/state";
 import type { TreeNode } from "../../services/ipc/types";
@@ -13,9 +15,7 @@ export const importantMark = () => el("span", { class: "imp-mark", title: "Impor
 // Checked means the link is hidden; the box sits beside the icon and keeps its clicks from selecting the row.
 export function hideBox(n: TreeNode): HTMLElement[] {
   if (!state.hidingLinks || !n.linked) return [];
-  const box = el("input", { type: "checkbox", class: "hide-box", "aria-label": `Hide ${n.name}` });
-  box.checked = n.hidden;
-  for (const type of ["click", "dblclick", "pointerdown"]) box.addEventListener(type, (ev) => ev.stopPropagation());
+  const box = hideCheckbox(n.name, n.hidden);
   box.addEventListener("change", () => void setLinkHidden(n, box.checked));
   return [box];
 }
@@ -29,7 +29,7 @@ export function nameCell(n: TreeNode, inlineStar = true, staircase = false): HTM
     return el("span", { class: isTopLink(n) ? "name top-link" : "name" }, el("span", { class: "name-text" }, text), ...(n.favorite && inlineStar ? [favoriteMark()] : []), ...(n.important && inlineStar ? [importantMark()] : []));
   }
 
-  const input = el("input", { class: "name-input", type: "text", spellcheck: "false", autocomplete: "off", "aria-label": `Rename ${n.name}` });
+  const input = textInput({ class: "name-input", "aria-label": `Rename ${n.name}` });
   input.value = edit.draft;
   const finish = (commit: boolean) => {
     if (state.editing?.key !== key) return;
@@ -53,7 +53,7 @@ export function nameCell(n: TreeNode, inlineStar = true, staircase = false): HTM
       if (!document.activeElement?.classList.contains("name-input")) finish(true);
     }),
   );
-  for (const type of ["click", "dblclick", "pointerdown"]) input.addEventListener(type, (ev) => ev.stopPropagation());
+  keepClicks(input);
   queueMicrotask(() => {
     input.focus();
     if (edit.focused) input.setSelectionRange(input.value.length, input.value.length);

@@ -1,0 +1,13 @@
+/* Name of a row, its in-place editor and its favorite and important marks. */
+.fav-mark { display: inline-flex; flex: none; color: var(--st-progress); }
+.fav-mark .gui-icon { width: 12px; height: 12px; }
+.imp-mark { display: inline-flex; flex: none; color: var(--accent); }
+.imp-mark .gui-icon { width: 12px; height: 12px; }
+.name { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.name.editing { display: flex; align-items: center; flex: 1; min-width: 0; }
+.name-fixed { color: var(--muted); white-space: pre; }
+.name-input {
+  flex: 1; min-width: 0; padding: 0 4px; font: inherit; color: var(--text); background: var(--field-bg);
+  border: 1px solid var(--button); border-radius: 3px; outline: none; box-shadow: 0 0 0 1px var(--button);
+}

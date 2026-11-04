@@ -1,6 +1,8 @@
 // Manage mode: rows of the managed folder get a checkbox that hides them, and a header row confirms the mode.
 import { setChildHidden, stopManaging } from "../../hooks/ops";
 import { el } from "../dom";
+import { textButton } from "../atoms/button";
+import { hideCheckbox } from "../atoms/checkbox";
 import { sortedForColumns } from "../../services/store/sort";
 import { keyOf, sortOf, state } from "../../services/store/state";
 import type { HiddenChoice, TreeNode } from "../../services/ipc/types";
@@ -30,11 +32,9 @@ export const sameManage = (built: ManageSnapshot | null): boolean =>
 export function manageBox(n: TreeNode, row: HTMLElement): HTMLElement[] {
   if (state.managing === null || keyOf(n.relParts.slice(0, -1)) !== keyOf(state.managing)) return [];
   const choice = state.hiddenChoices.find((c) => c.node.name === n.name);
-  const box = el("input", { type: "checkbox", class: "hide-box", "aria-label": `Hide ${n.name}` });
-  box.checked = isHiddenChild(n);
+  const box = hideCheckbox(n.name, isHiddenChild(n));
   box.disabled = choice?.fixed ?? false;
   row.classList.toggle("is-hidden", box.checked);
-  for (const type of ["click", "dblclick", "pointerdown"]) box.addEventListener(type, (ev) => ev.stopPropagation());
   box.addEventListener("change", async () => {
     const on = box.checked;
     row.classList.toggle("is-hidden", on);
@@ -47,7 +47,5 @@ export function manageBox(n: TreeNode, row: HTMLElement): HTMLElement[] {
 }
 
 export function manageHeader(className: string): HTMLElement {
-  const done = el("button", { type: "button", class: "btn manage-done" }, "Done");
-  done.addEventListener("click", stopManaging);
-  return el("div", { class: `manage-header ${className}` }, el("span", { class: "manage-name" }, "Manage hidden nodes"), done);
+  return el("div", { class: `manage-header ${className}` }, el("span", { class: "manage-name" }, "Manage hidden nodes"), textButton("Done", "manage-done", stopManaging));
 }

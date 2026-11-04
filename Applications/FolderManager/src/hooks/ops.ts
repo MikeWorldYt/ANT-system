@@ -2,7 +2,7 @@
 import * as api from "../services/ipc/api";
 import { choiceDialog, warningConfirmDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
 import { el } from "../components/dom";
-import { beginOperationStatus, clearStatus, endOperationStatus, setStatus } from "../components/organisms/bars/status-line";
+import { beginOperationStatus, clearStatus, endOperationStatus, setStatus, reportError } from "../components/organisms/bars/status-line";
 import { markRefreshed } from "./auto-refresh";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
@@ -14,6 +14,7 @@ import { loadVirtual } from "../services/store/virtual";
 import { outputOf } from "../services/store/node-info";
 import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
 import { isFmError } from "../services/ipc/types";
+import { plural } from "../services/plural";
 import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../services/ipc/types";
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
@@ -72,12 +73,12 @@ async function run(fn: () => Promise<void>, progress?: string): Promise<boolean>
     return true;
   } catch (e) {
     // An empty clipboard is a user slip, not a failure.
-    setStatus(isFmError(e) && e.kind === "clipboardEmpty" ? "warning" : "error", api.describeError(e));
+    reportError(isFmError(e) && e.kind === "clipboardEmpty" ? "warning" : "error", e);
     if (isFmError(e) && (e.kind === "stale" || e.kind === "notFound")) {
       try {
         await reload();
       } catch (reloadError) {
-        setStatus("error", api.describeError(reloadError));
+        reportError("error", reloadError);
       }
     }
     return false;
@@ -108,13 +109,13 @@ export function init(): Promise<boolean> {
     try {
       applySettings(await api.getSettings());
     } catch (e) {
-      setStatus("warning", `Settings: ${api.describeError(e)}`);
+      reportError("warning", e, "Settings");
     }
     try {
       const { depthWarning } = await api.getStorage();
       if (depthWarning) setStatus("warning", depthWarning);
     } catch (e) {
-      setStatus("warning", `Storage info: ${api.describeError(e)}`);
+      reportError("warning", e, "Storage info");
     }
     await reload(await api.loadTree());
     const last = state.settings.onLaunch === "continue" ? lastSelection() : null;
@@ -178,7 +179,7 @@ export async function expand(node: TreeNode): Promise<void> {
     await hydrate();
   } catch (e) {
     state.expanded.delete(key);
-    setStatus("error", api.describeError(e));
+    reportError("error", e);
   }
   notify();
 }
@@ -377,7 +378,7 @@ export const dropFiles = (target: string[], paths: string[]) =>
         const location = el("a", { href: "#" }, conflict.existing.join("/"));
         location.addEventListener("click", (ev) => {
           ev.preventDefault();
-          void api.openNode(conflict.existing).catch((e) => setStatus("warning", api.describeError(e)));
+          void api.openNode(conflict.existing).catch((e) => reportError("warning", e));
         });
         // Replacing lands the new one where it was dropped, which is a new path unless that is the folder it already holds.
         const newPath = conflict.existing.slice(0, -1).join("/") !== target.join("/");
@@ -399,7 +400,7 @@ export const dropFiles = (target: string[], paths: string[]) =>
         doneNotice = dropNotice([...placed, ...swapped.placed], swapped.mutation.warnings);
       }
     },
-    `Placing ${paths.length} ${paths.length === 1 ? "file" : "files"} in "${target[target.length - 1]}"…`,
+    `Placing ${plural(paths.length, "file")} in "${target[target.length - 1]}"…`,
   );
 
 export const pasteFiles = (target: string[]) =>

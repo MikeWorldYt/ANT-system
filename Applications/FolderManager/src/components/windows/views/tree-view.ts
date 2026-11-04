@@ -1,5 +1,5 @@
 // Tree view: indented expandable rows with keyboard navigation.
-import { isWorkboard, nodeSummary } from "../../../services/store/node-info";
+import { isWorkboard } from "../../../services/store/node-info";
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "../../organisms/menus/context-menu";
 import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
@@ -8,10 +8,11 @@ import { statusMark } from "../../atoms/status-mark";
 import { hideBox, nameCell } from "../../molecules/name-cell";
 import { fromToggle, nodeToggle } from "../../atoms/node-toggle";
 import { toggleExpand } from "../../../hooks/ops";
-import { clickSelect, isSelected, keyOf, leaveVirtual, select, startEdit, state, visibleRows } from "../../../services/store/state";
+import { keyOf, leaveVirtual, select, startEdit, state, visibleRows } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { ROOT_ENTRIES, virtualEntry } from "../../molecules/virtual-entry";
+import { markNodeItem, onItemClick } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -45,30 +46,15 @@ export function createTreeView(): ViewMode {
     const toggle = folds ? nodeToggle(`${expanded ? "Collapse" : "Expand"} ${n.name}`, expanded, caret, icon) : null;
     const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorkboard(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
     row.style.setProperty("--depth", String(depth));
-    row.dataset.key = key;
-    row.setAttribute("aria-selected", String(isSelected(key)));
+    markNodeItem(row, n);
     if (folds) row.setAttribute("aria-expanded", String(expanded));
-    if (isSelected(key)) row.classList.add("selected");
-    if (n.ghost) row.classList.add("ghost");
-    if (n.locked) {
-      row.classList.add("locked");
-      row.setAttribute("aria-disabled", "true");
-    }
-    row.classList.toggle("reserved", n.reserved);
-    row.classList.toggle("rev", n.nodeType?.base === "REV");
-    if (n.ghost) row.setAttribute("aria-label", `${n.name} (missing on disk)`);
     if (n.status && !isWorkboard(n)) row.append(statusMark(n.status));
-    row.title = nodeSummary(n);
     toggle?.addEventListener("click", () => {
       leaveAt(i);
       select(n.relParts);
       void toggleExpand(n);
     });
-    row.addEventListener("click", (ev) => {
-      if (fromToggle(ev)) return;
-      if (ev.ctrlKey || ev.shiftKey) clickSelect(n.relParts, rows.map((r) => keyOf(r.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
-      else pick(i);
-    });
+    onItemClick(row, n, () => rows.map((r) => keyOf(r.relParts)), () => pick(i), fromToggle);
     row.addEventListener("dblclick", (ev) => {
       if (!fromToggle(ev)) startEdit(n.relParts);
     });

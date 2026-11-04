@@ -1,12 +1,10 @@
 // Entry point: mounts the main window, then wires the store, backend events, shortcuts and startup work.
-import "./styles/theme.css";
-import "./styles/themes.css";
+import "./styles/index.css";
 import { createMainWindow } from "./components/windows/main-window";
 import { openSettings } from "./components/windows/settings";
-import { describeError } from "./services/ipc/api";
 import { onFileDrag, onReviewIndex, onStorageChanged, onWindowFocus } from "./services/ipc/events";
 import { rememberSelection, state, subscribe } from "./services/store/state";
-import { clearStatus, currentOperationStatus, setStatus } from "./components/organisms/bars/status-line";
+import { clearStatus, currentOperationStatus, setStatus, reportError } from "./components/organisms/bars/status-line";
 import { init, refresh } from "./hooks/ops";
 import { autoRefresh } from "./hooks/auto-refresh";
 import { handleFileDrag } from "./hooks/file-drop";
@@ -17,6 +15,7 @@ import { startBackups } from "./hooks/backups";
 import { installDebugLog, startDebugLog } from "./hooks/debug-log";
 import { applyAppearance } from "./hooks/appearance";
 import { startExtensions } from "./extensions/host";
+import { plural } from "./services/plural";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
@@ -42,7 +41,6 @@ subscribe(() => {
   applyAppearance();
 });
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 let indexing = false;
 onReviewIndex((e) => {
@@ -59,15 +57,15 @@ onReviewIndex((e) => {
     if (operation) setStatus("info", operation);
     else clearStatus();
   }
-}).catch((e) => setStatus("warning", `Review index updates unavailable: ${describeError(e)}`));
+}).catch((e) => reportError("warning", e, "Review index updates unavailable"));
 trackFieldFocus();
-onWindowFocus(() => void autoRefresh(refresh).finally(() => restoreFocus(() => views.current().focus()))).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
+onWindowFocus(() => void autoRefresh(refresh).finally(() => restoreFocus(() => views.current().focus()))).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
 
 onStorageChanged(() => void autoRefresh(refresh)).catch((e) =>
-  setStatus("warning", `Live storage updates unavailable: ${describeError(e)}`),
+  reportError("warning", e, "Live storage updates unavailable"),
 );
 
-onFileDrag(handleFileDrag).catch((e) => setStatus("warning", `File drop unavailable: ${describeError(e)}`));
+onFileDrag(handleFileDrag).catch((e) => reportError("warning", e, "File drop unavailable"));
 
 installDebugLog();
 

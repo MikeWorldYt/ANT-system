@@ -1,7 +1,7 @@
 // Offers a newer published version, at launch or on demand; failures only reach the status line.
-import { checkUpdate, describeError, skipVersion, startUpdate } from "../services/ipc/api";
+import { checkUpdate, skipVersion, startUpdate } from "../services/ipc/api";
 import { choiceDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
-import { setStatus } from "../components/organisms/bars/status-line";
+import { setStatus, reportError } from "../components/organisms/bars/status-line";
 
 export type UpdateOutcome = "latest" | "offered" | "failed";
 
@@ -21,7 +21,7 @@ export async function checkForUpdates(announceCurrent = false): Promise<UpdateOu
     else if (choice === "skip") await skipVersion(info.latest);
     return "offered";
   } catch (e) {
-    setStatus("warning", `Update check: ${describeError(e)}`);
+    reportError("warning", e, "Update check");
     return "failed";
   }
 }

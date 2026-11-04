@@ -1,6 +1,7 @@
 // Right column: quick actions, details and order of the selected node, collapsible to an icon rail.
-import { el } from "../../dom";
+import { el, setDisabled } from "../../dom";
 import { iconButton } from "../../atoms/icon-button";
+import { checkbox } from "../../atoms/checkbox";
 import { allImportant, canActOn, canMarkImportant, deleteActed, favoriteActed, hideActed, importantActed, moveActed } from "../../../hooks/acted-nodes";
 import { setReviewFilter } from "../../../hooks/ops";
 import { readPref, savePref } from "../../../services/store/prefs";
@@ -8,14 +9,18 @@ import { favoritesShown, hiddenCategories, importantLabel, isMainCategory, isRev
 import { quickActionsShown, railLayout, type RailId } from "../../../services/store/side-layout";
 import { selectedNode, state, toggleHidingLinks } from "../../../services/store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
-import { openSettings } from "../../windows/settings";
 import { toggleBoard } from "../../../hooks/virtual-nav";
-import { setDisabled, sideAction } from "../../molecules/side-action";
+import { sideAction } from "../../molecules/side-action";
 import type { TreeNode } from "../../../services/ipc/types";
 
 const PANEL_PREF = "fm.details";
 // Function groups of the collapsed rail: view settings, item state, ordering, removal.
 const RAIL_GROUP: Record<RailId, number> = { settings: 0, board: 0, favorite: 1, edit: 1, moveUp: 2, moveDown: 2, delete: 3 };
+
+export interface SidePanelActions {
+  openSelected(): void;
+  openSettings(pageId?: string): void;
+}
 
 export interface SidePanel {
   elements: HTMLElement[];
@@ -26,7 +31,7 @@ export interface SidePanel {
 
 const favoriteLabel = (n: TreeNode | null) => (n?.favorite ? "Remove from favorites" : "Add to favorites");
 
-export function createSidePanel(openSelected: () => void): SidePanel {
+export function createSidePanel({ openSelected, openSettings }: SidePanelActions): SidePanel {
   let collapsed = readPref(PANEL_PREF) === "hidden";
   // Set when the rail pencil expanded the panel, so the end of that edit returns to the rail.
   let collapseAfterEdit = false;
@@ -44,7 +49,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
 
   // ─────────♦ EXPANDED PANEL ───────────────────────────────────────────────────
   const title = el("h2", { class: "side-title" });
-  const settings = iconButton("Settings", "settings", () => void openSettings());
+  const settings = iconButton("Settings", "settings", () => openSettings());
   const board = iconButton("Board", "layout", () => void toggleBoard());
   const collapse = iconButton("Collapse side panel", "chevronsRight", () => {
     setCollapsed(true);
@@ -85,10 +90,10 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   const railBoard = iconButton("Board", "layout", () => void toggleBoard());
   const railDelete = iconButton("Delete", "trash", deleteActed);
   railDelete.classList.add("danger");
-  const about = iconButton("About", "pageAbout", () => void openSettings("about"));
+  const about = iconButton("About", "pageAbout", () => openSettings("about"));
   about.classList.add("side-rail-end");
   const railButtons: Record<RailId, HTMLButtonElement> = {
-    settings: iconButton("Settings", "settings", () => void openSettings()),
+    settings: iconButton("Settings", "settings", () => openSettings()),
     board: railBoard,
     favorite: railFavorite,
     edit: railEdit,
@@ -125,7 +130,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   // Rebuilt only when the category set changes, so the box that was clicked keeps its focus.
   let categoryKey = "";
   let categoryInputs: HTMLInputElement[] = [];
-  const favoritesInput = el("input", { type: "checkbox" });
+  const favoritesInput = checkbox();
   favoritesInput.addEventListener("change", applyFilters);
   const favoritesRow = el("label", { class: "side-category" }, favoritesInput, "Favorites");
 
@@ -141,7 +146,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     const key = names.join(",");
     if (key !== categoryKey) {
       categoryKey = key;
-      categoryInputs = names.map((name) => el("input", { type: "checkbox", value: name }));
+      categoryInputs = names.map((name) => checkbox({ value: name }));
       for (const input of categoryInputs) input.addEventListener("change", applyFilters);
       categories.replaceChildren(favoritesRow, ...categoryInputs.map((input, i) => el("label", { class: "side-category" }, input, nameWithoutIdentifier(mains[i]))));
     }

@@ -1,9 +1,9 @@
 // About page: app and storage info, the update check, the changelog and the ways to report a bug.
 import { changeSetting } from "../../../../hooks/ops";
 import { checkForUpdates, type UpdateOutcome } from "../../../../hooks/updates";
-import { describeError, openLink } from "../../../../services/ipc/api";
+import { openLink } from "../../../../services/ipc/api";
 import { state } from "../../../../services/store/state";
-import { setStatus } from "../../../organisms/bars/status-line";
+import { reportError } from "../../../organisms/bars/status-line";
 import { buttonControl } from "../../../atoms/button";
 import { pathControl, valueControl } from "../../../atoms/label";
 import { switchControl } from "../../../atoms/switch";
@@ -23,7 +23,7 @@ async function openOrReport(link: "issues" | "mail" | "changelog" | "docs"): Pro
   try {
     await openLink(link);
   } catch (e) {
-    setStatus("warning", describeError(e));
+    reportError("warning", e);
   }
 }
 

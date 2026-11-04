@@ -1,10 +1,10 @@
 // Typed-path editing for the navigation bar: turns the breadcrumb into an input and goes to the place it names.
-import { describeError, listChildren, listFavorites } from "../../../services/ipc/api";
-import { el } from "../../dom";
+import { listChildren, listFavorites } from "../../../services/ipc/api";
 import { findNode, keyOf, state, type VirtualId } from "../../../services/store/state";
 import { loadPath } from "../../../services/store/virtual";
 import type { Place } from "../../../services/store/place";
-import { clearStatus, setStatus } from "./status-line";
+import { clearStatus, setStatus, reportError } from "./status-line";
+import { textInput } from "../../atoms/text-input";
 import type { TreeNode } from "../../../services/ipc/types";
 
 const VIRTUAL_IDS: VirtualId[] = ["favorites", "board"];
@@ -75,7 +75,7 @@ export function createPathInput(path: HTMLElement, render: () => void, visit: (p
     if (editing || !state.tree) return;
     editing = true;
     path.classList.add("editing");
-    const input = el("input", { class: "path-input", type: "text", spellcheck: "false", autocomplete: "off", "aria-label": "Path" });
+    const input = textInput({ class: "path-input", "aria-label": "Path" });
     input.value = currentPath(state.tree.root);
     input.addEventListener("keydown", (ev) => {
       if (ev.key === "Escape") {
@@ -122,7 +122,7 @@ export function createPathInput(path: HTMLElement, render: () => void, visit: (p
     try {
       await visit(target);
     } catch (e) {
-      setStatus("error", describeError(e));
+      reportError("error", e);
     }
     render();
   }

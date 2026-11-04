@@ -1,4 +1,5 @@
 // Footer status line for errors, warnings and review-index progress.
+import { describeError } from "../../../services/ipc/api";
 import { el } from "../../dom";
 
 type Level = "info" | "warning" | "error";
@@ -42,4 +43,9 @@ export function endOperationStatus(): void {
   if (text === null) return;
   activeOperation = null;
   if (line.dataset.level === "info" && line.textContent.startsWith(text)) clearStatus();
+}
+
+// A failed call in the status line, after what was being tried when a prefix names it.
+export function reportError(level: "warning" | "error", e: unknown, prefix?: string): void {
+  setStatus(level, prefix ? `${prefix}: ${describeError(e)}` : describeError(e));
 }

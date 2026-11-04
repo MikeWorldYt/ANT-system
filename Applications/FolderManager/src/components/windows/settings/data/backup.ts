@@ -4,7 +4,7 @@ import { changeSetting, restoreBackupNamed } from "../../../../hooks/ops";
 import { backupNow, backupSchedule, describeError, listBackups } from "../../../../services/ipc/api";
 import { state, type BackupFrequency } from "../../../../services/store/state";
 import { promptDialog, selectDialog } from "../../../organisms/dialogs/action-dialog/form-dialog";
-import { setStatus } from "../../../organisms/bars/status-line";
+import { reportError } from "../../../organisms/bars/status-line";
 import { buttonControl } from "../../../atoms/button";
 import { pathControl } from "../../../atoms/label";
 import { selectControl } from "../../../atoms/select";
@@ -19,7 +19,7 @@ async function report(fn: () => Promise<void>): Promise<void> {
   try {
     await fn();
   } catch (e) {
-    setStatus("warning", describeError(e));
+    reportError("warning", e);
   }
 }
 

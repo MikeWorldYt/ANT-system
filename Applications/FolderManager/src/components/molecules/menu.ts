@@ -1,4 +1,4 @@
-// Building blocks shared by the anchored dropdown and the node context menu.
+// Building blocks shared by the anchored dropdown, the status picker, the view popup and the node context menu.
 import { el } from "../dom";
 import { guiIcon } from "../atoms/gui-icons";
 
@@ -36,6 +36,13 @@ export function place(menu: HTMLElement, x: number, y: number): void {
   const { width, height } = menu.getBoundingClientRect();
   menu.style.left = `${Math.max(EDGE, Math.min(x, window.innerWidth - width - EDGE))}px`;
   menu.style.top = `${Math.max(EDGE, Math.min(y, window.innerHeight - height - EDGE))}px`;
+}
+
+// Under the anchor when it fits, else above it as long as that stays on screen.
+export function placeUnder(popup: HTMLElement, anchor: DOMRect): void {
+  const { height } = popup.getBoundingClientRect();
+  const below = anchor.bottom + EDGE;
+  place(popup, anchor.left, below + height <= window.innerHeight || anchor.top - EDGE - height < EDGE ? below : anchor.top - EDGE - height);
 }
 
 export function autoDismiss(inside: (target: Node) => boolean, dismiss: (restore: boolean) => void, onBlur = false): () => void {
@@ -94,4 +101,37 @@ export function submenu(label: string, choices: HTMLButtonElement[], enabled: bo
     ev.stopPropagation();
   }
   return { element, trigger, choices, open, close, onKey };
+}
+
+// Shows a popup that belongs to its anchor; the returned close runs once, and an outside press or a resize also calls it.
+export function openPopup(anchor: HTMLElement, popup: HTMLElement, position: () => void, onClose: () => void): (restore?: boolean) => void {
+  document.body.append(popup);
+  position();
+  let open = true;
+  const close = (restore = true): void => {
+    if (!open) return;
+    open = false;
+    onClose();
+    popup.remove();
+    stopWatching();
+    anchor.setAttribute("aria-expanded", "false");
+    if (restore) anchor.focus();
+  };
+  const stopWatching = autoDismiss((t) => popup.contains(t) || anchor.contains(t), close);
+  anchor.setAttribute("aria-expanded", "true");
+  return close;
+}
+
+// A click toggles the popup; the given keys open it from the anchor.
+export function popupTrigger(anchor: HTMLElement, keys: string[], closer: () => ((restore?: boolean) => void) | null, open: () => void): void {
+  anchor.addEventListener("click", () => {
+    const close = closer();
+    if (close) close();
+    else open();
+  });
+  anchor.addEventListener("keydown", (ev) => {
+    if (!keys.includes(ev.key) || closer()) return;
+    ev.preventDefault();
+    open();
+  });
 }

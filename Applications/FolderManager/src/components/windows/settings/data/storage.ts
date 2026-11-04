@@ -6,7 +6,7 @@ import { backupSchedule, describeError, renameStorage, revertStorageRename, stor
 import { state } from "../../../../services/store/state";
 import { confirmDialog } from "../../../organisms/dialogs/info-dialog/info-dialog";
 import { promptDialog } from "../../../organisms/dialogs/action-dialog/form-dialog";
-import { setStatus } from "../../../organisms/bars/status-line";
+import { reportError } from "../../../organisms/bars/status-line";
 import type { StorageInfo } from "../../../../services/ipc/types";
 import { buttonControl } from "../../../atoms/button";
 import { pathControl, valueControl } from "../../../atoms/label";
@@ -26,7 +26,7 @@ async function toggleWatch(on: boolean): Promise<boolean> {
   try {
     await syncSchedule(on);
   } catch (e) {
-    setStatus("warning", describeError(e));
+    reportError("warning", e);
   }
   return true;
 }
@@ -37,7 +37,7 @@ async function followNewPath(): Promise<void> {
     if (state.settings.backupAuto) await backupSchedule(true);
     if (state.settings.watchExternal) await syncSchedule(true);
   } catch (e) {
-    setStatus("warning", `Scheduled tasks: ${describeError(e)}`);
+    reportError("warning", e, "Scheduled tasks");
   }
   if (state.settings.debugLogging) await startDebugLog();
 }

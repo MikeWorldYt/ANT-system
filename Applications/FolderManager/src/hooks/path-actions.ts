@@ -1,6 +1,6 @@
 // Copying a node's path and opening it in Explorer, shared by the node menus and the board cards.
-import { describeError, openNode } from "../services/ipc/api";
-import { setStatus } from "../components/organisms/bars/status-line";
+import { openNode } from "../services/ipc/api";
+import { setStatus, reportError } from "../components/organisms/bars/status-line";
 import type { TreeNode } from "../services/ipc/types";
 
 export async function copyPath(node: TreeNode): Promise<void> {
@@ -16,6 +16,6 @@ export async function openFolder(node: TreeNode): Promise<void> {
   try {
     await openNode(node.relParts);
   } catch (e) {
-    setStatus("warning", describeError(e));
+    reportError("warning", e);
   }
 }

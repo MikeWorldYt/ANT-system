@@ -2,14 +2,14 @@
 import { describeError, logDebug as writeLog, startDebugLog as startLog } from "../services/ipc/api";
 import { state } from "../services/store/state";
 import { localStamp } from "../services/stamp";
-import { onStatus, setStatus } from "../components/organisms/bars/status-line";
+import { onStatus, reportError } from "../components/organisms/bars/status-line";
 
 export async function startDebugLog(): Promise<boolean> {
   try {
     await startLog(localStamp());
     return true;
   } catch (e) {
-    setStatus("warning", `Debug log: ${describeError(e)}`);
+    reportError("warning", e, "Debug log");
     return false;
   }
 }

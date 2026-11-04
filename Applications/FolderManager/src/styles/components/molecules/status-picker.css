@@ -1,0 +1,4 @@
+/* Status field of the details form. */
+.status-picker { display: flex; align-items: center; gap: 6px; text-align: left; cursor: pointer; }
+.status-picker .gui-icon { width: 16px; height: 16px; flex: none; }
+.status-picker .gui-icon:last-child { width: 12px; height: 12px; margin-left: auto; color: var(--disabled-text); }

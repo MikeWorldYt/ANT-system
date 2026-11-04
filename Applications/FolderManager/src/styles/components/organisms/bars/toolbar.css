@@ -1,0 +1,17 @@
+/* Sort and view pickers of the toolbar and the view popup. */
+.view-picker {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: 4px;
+  background: var(--input-bg); color: var(--text); font: inherit; cursor: pointer;
+}
+.view-picker:hover { background: var(--field-bg); }
+.view-picker .gui-icon { width: 16px; height: 16px; }
+.view-picker[hidden] { display: none; }
+.icon-btn[aria-pressed="true"], .icon-btn[aria-pressed="true"]:hover { background: var(--highlight); color: var(--title); }
+.toolbar-divider { align-self: stretch; width: 1px; margin: 4px 2px; background: var(--border); }
+.toolbar-end { margin-left: auto; }
+.view-segment {
+  position: fixed; top: 0; left: 0; z-index: 1000; display: inline-flex; gap: 2px; padding: 4px;
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-pop);
+}
+.view-segment .icon-btn { width: 28px; height: 28px; background: transparent; }
+.sort-btn[data-dir="desc"] .gui-icon:last-child { transform: rotate(180deg); }

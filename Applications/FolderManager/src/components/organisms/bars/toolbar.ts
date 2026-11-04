@@ -1,9 +1,9 @@
 // Tree actions (add, sort, view, refresh) that share the navigation row.
-import { el } from "../../dom";
+import { el, setDisabled } from "../../dom";
 import { guiIcon, type GuiIcon } from "../../atoms/gui-icons";
 import { iconButton } from "../../atoms/icon-button";
 import { attachMenu } from "../menus/anchored-menu";
-import { EDGE, autoDismiss, place } from "../../molecules/menu";
+import { EDGE, openPopup, place, popupTrigger } from "../../molecules/menu";
 import { addNext, refresh } from "../../../hooks/ops";
 import { activeColumnKey, selectedNode, setColumnSort, sortOf, state, type SortBy } from "../../../services/store/state";
 import type { TreeNode } from "../../../services/ipc/types";
@@ -49,7 +49,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
   });
 
   const VIEW_ICONS: Record<string, GuiIcon> = { tree: "viewTree", columns: "viewColumns", grid: "viewGrid" };
-  let closeViewPopup: ((restore: boolean) => void) | null = null;
+  let closeViewPopup: ((restore?: boolean) => void) | null = null;
   const modeButtons = orderedModes(views).map((m): [string, HTMLButtonElement] => [m.id, iconButton(`${m.label} view`, VIEW_ICONS[m.id] ?? "layout", () => {
     views.onSelect(m.id);
     closeViewPopup?.(true);
@@ -59,29 +59,18 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
 
   function openViewPopup(): void {
     const popup = el("div", { class: "view-segment", role: "group", "aria-label": "View" }, ...modeButtons.map(([, b]) => b));
-    const close = (restore: boolean) => {
-      closeViewPopup = null;
-      popup.remove();
-      stopWatching();
-      viewBtn.setAttribute("aria-expanded", "false");
-      if (restore) viewBtn.focus();
-    };
     popup.addEventListener("keydown", (ev) => {
       if (ev.key !== "Escape") return;
       ev.preventDefault();
-      close(true);
+      closeViewPopup?.(true);
     });
     // Keeps a press on the popup from moving focus away before the click lands.
     popup.addEventListener("mousedown", (ev) => ev.preventDefault());
     const r = viewBtn.getBoundingClientRect();
-    document.body.append(popup);
-    place(popup, r.left, r.bottom + EDGE);
-    const stopWatching = autoDismiss((t) => popup.contains(t) || viewBtn.contains(t), close);
-    viewBtn.setAttribute("aria-expanded", "true");
-    closeViewPopup = close;
+    closeViewPopup = openPopup(viewBtn, popup, () => place(popup, r.left, r.bottom + EDGE), () => (closeViewPopup = null));
     modeButtons.find(([id]) => id === views.active())?.[1].focus();
   }
-  viewBtn.addEventListener("click", () => (closeViewPopup ? closeViewPopup(true) : openViewPopup()));
+  popupTrigger(viewBtn, [], () => closeViewPopup, openViewPopup);
 
   // ─────────♦ REFRESH ────────────────────────────────────────────────────────────
   const reload = iconButton("Refresh", "refresh", () => void refresh());
@@ -94,7 +83,6 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     render() {
       const a = selectedNode()?.actions;
       const idle = !state.busy;
-      const setDisabled = (b: HTMLButtonElement, disabled: boolean) => b.setAttribute("aria-disabled", String(disabled));
       setDisabled(add, !(a?.addNext && idle));
       setDisabled(reload, !idle);
       sortBtn.hidden = views.active() === "tree" || state.virtual === "board";

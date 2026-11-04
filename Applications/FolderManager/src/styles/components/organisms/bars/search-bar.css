@@ -1,0 +1,29 @@
+/* Search box of the navigation bar and its results list. */
+.search-box { position: relative; width: var(--panel-w); flex: none; transition: width 0.15s ease; }
+.search-box.collapsed { width: 32px; }
+.search-box.collapsed .search-field { gap: 0; padding: 2px 7px; cursor: pointer; }
+.search-box.collapsed .search-field:hover { background: var(--field-bg); }
+.search-box.collapsed .search-field .gui-icon { color: var(--accent); }
+.search-box.collapsed .search-input { flex: none; width: 0; min-width: 0; padding: 0; opacity: 0; }
+.search-field {
+  display: flex; align-items: center; gap: 4px; min-height: 32px; padding: 2px 8px; background: var(--input-bg);
+  border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;
+}
+.search-field .gui-icon { flex: none; width: 16px; height: 16px; color: var(--disabled-text); }
+.search-field:focus-within { border-color: var(--button); box-shadow: 0 0 0 1px var(--button); }
+.search-input { flex: 1; min-width: 60px; padding: 3px 4px; font: inherit; color: var(--text); background: transparent; border: 0; outline: none; }
+.search-results {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 900; width: max-content; min-width: 100%; max-width: 420px; max-height: 320px; overflow-y: auto;
+  margin: 0; padding: 4px 0; list-style: none; background: var(--input-bg); border: 1px solid var(--border);
+  box-shadow: var(--shadow-pop);
+}
+.search-results[hidden] { display: none; }
+.search-hit { display: flex; align-items: baseline; gap: 8px; padding: 4px 12px; cursor: default; }
+.search-hit[aria-selected="true"], .search-hit:hover { background: var(--highlight); }
+.hit-name { white-space: nowrap; }
+.hit-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 9pt; }
+.search-empty { padding: 4px 12px; color: var(--muted); }
+.search-divider { height: 0; margin: 4px 12px; border-top: 1px solid var(--border); list-style: none; }
+@media (prefers-reduced-motion: reduce) {
+  .search-box { transition: none; }
+}

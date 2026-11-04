@@ -1,0 +1,34 @@
+/* Menus built from the shared menu parts: dropdowns, flyouts, the node menu and the status list. */
+.ctx-menu {
+  position: fixed; top: 0; left: 0; z-index: 1000; min-width: 190px; max-height: calc(100vh - 8px);
+  overflow-y: auto; padding: 4px 0; background: var(--input-bg); border: 1px solid var(--border);
+  box-shadow: var(--shadow-pop);
+}
+.ctx-node, .ctx-node .ctx-flyout { border-radius: 3px; }
+/* Room on the left of the node menu for an icon, kept free on rows without one so the labels line up. */
+.ctx-node > .ctx-item, .ctx-node > .ctx-sub > .ctx-item { padding-left: 34px; }
+.ctx-node > .ctx-item > .gui-icon { position: absolute; left: 10px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); }
+.ctx-node > .ctx-item.ctx-favorite-add > .gui-icon { color: var(--st-progress); }
+.ctx-node > .ctx-item.ctx-important-add > .gui-icon { color: var(--accent); }
+.ctx-item {
+  display: block; position: relative; width: 100%; padding: 6px 14px; border: 0; background: transparent;
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.ctx-item:focus-visible { outline-offset: -2px; }
+.ctx-item:hover, .ctx-item:focus-visible { background: var(--highlight); }
+.ctx-item.danger { color: var(--delete-hover); }
+.ctx-item[aria-disabled="true"] { color: var(--disabled-text); cursor: default; background: transparent; }
+.ctx-group .ctx-item, .ctx-flyout .ctx-item { padding-left: 30px; }
+.ctx-flyout[hidden] { display: none; }
+.ctx-sub-trigger { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.ctx-sub-trigger[aria-expanded="true"] { background: var(--highlight); }
+.ctx-sub-trigger .gui-icon { width: 12px; height: 12px; color: var(--disabled-text); }
+.ctx-item[aria-checked="true"]::before { content: "✓"; position: absolute; left: 12px; color: var(--accent); }
+.ctx-menu:not(.ctx-node) .ctx-item[aria-checked="true"]:not(.ctx-status)::before { content: "●"; left: 13px; top: 50%; font-size: 8pt; transform: translateY(-50%); }
+.ctx-menu:not(.ctx-node) .ctx-item[aria-checked="true"]:not(.ctx-status) { background: var(--highlight); }
+.ctx-item.ctx-status { display: flex; align-items: center; gap: 8px; padding-left: 10px; }
+.ctx-status .gui-icon { width: 16px; height: 16px; flex: none; }
+.ctx-status[aria-checked="true"]::before { content: none; }
+.ctx-status[aria-checked="true"] { background: var(--highlight); box-shadow: inset 3px 0 0 var(--st); font-weight: 600; }
+.ctx-menu[role="listbox"] .ctx-item[aria-disabled="true"] { padding-left: 10px; }
+.ctx-sep { height: 1px; margin: 4px 0; background: var(--border); }

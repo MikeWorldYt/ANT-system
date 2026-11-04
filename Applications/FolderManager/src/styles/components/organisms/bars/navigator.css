@@ -1,0 +1,19 @@
+/* Navigation bar row and its breadcrumb or typed path. */
+.nav-bar { display: flex; align-items: center; gap: 6px; padding: 12px 12px 10px; }
+.nav-bar .icon-btn { width: 30px; height: 30px; background: transparent; }
+.nav-bar .nav-add { background: var(--accent); color: var(--bg); }
+.breadcrumb {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 5px 12px;
+  overflow-x: auto; white-space: nowrap; scrollbar-width: none; background: var(--input-bg);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.breadcrumb.editing { padding: 0; }
+.path-input { flex: 1; min-width: 0; padding: 5px 12px; border: 0; background: transparent; color: var(--text); font: inherit; outline: none; }
+.breadcrumb:has(.path-input:focus) { border-color: var(--button); box-shadow: 0 0 0 1px var(--button); }
+.path-input[aria-invalid="true"] { color: var(--delete-hover); }
+.crumb { color: var(--text); }
+.crumb-root { color: var(--title); }
+.crumb-sep { color: var(--disabled-text); }
+.crumb-btn { border: 0; background: transparent; padding: 0 2px; font: inherit; cursor: pointer; border-radius: 3px; }
+.crumb-btn:hover { background: var(--field-bg); }
+.crumb-btn.current { font-weight: 600; }

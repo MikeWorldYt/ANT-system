@@ -1,13 +1,12 @@
 // Folders and files dragged inside the window move onto a folder, or copy with Ctrl; HTML5 drag events never reach the webview.
 import { moveFiles, moveFolders } from "./ops";
-import { dragSources, ITEM, LEFT_BUTTON, leftWindow, pastThreshold, type Point } from "./drag-out";
-import { el } from "../components/dom";
+import { dragSources, ITEM } from "./drag-out";
+import { cancelOnEscape, dragGhost, leftWindow, modsOf, mousePress, moveGhost, pastThreshold, pointOf, released, type Mods, type Point } from "./pointer";
 import { warningConfirmDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
 import { findNode, keyOf, outermost } from "../services/store/state";
 import type { TreeNode } from "../services/ipc/types";
 
 const HIGHLIGHT = "drop-target";
-const GHOST_OFFSET_PX = 12;
 
 type Movable = Pick<TreeNode, "nodeType" | "reserved" | "ghost" | "locked" | "flags" | "file">;
 
@@ -55,7 +54,7 @@ const partsOf = (key: string | undefined): string[] | null => (key ? key.split("
 
 interface Drag {
   key: string;
-  mods: { ctrl: boolean; shift: boolean };
+  mods: Mods;
   sources: string[][];
   start: Point;
   ghost: HTMLElement | null;
@@ -82,11 +81,6 @@ function retarget(d: Drag, next: Drag["target"]): void {
   d.target = next;
 }
 
-function place(ghost: HTMLElement, { x, y }: Point): void {
-  ghost.style.left = `${x + GHOST_OFFSET_PX}px`;
-  ghost.style.top = `${y + GHOST_OFFSET_PX}px`;
-}
-
 function cancel(): void {
   if (!drag) return;
   drag.target?.el.classList.remove(HIGHLIGHT);
@@ -97,27 +91,26 @@ function cancel(): void {
 export function installFolderMove(host: HTMLElement): void {
   host.addEventListener("pointerdown", (ev) => {
     cancel();
-    if (ev.button !== 0 || ev.pointerType !== "mouse" || !(ev.target instanceof Element)) return;
-    if (ev.target.closest("input, textarea")) return;
-    const item = ev.target.closest<HTMLElement>(ITEM);
+    const target = mousePress(ev);
+    if (!target || target.closest("input, textarea")) return;
+    const item = target.closest<HTMLElement>(ITEM);
     const parts = partsOf(item?.dataset.key);
     if (!item || !parts || !canMove(findNode(parts))) return;
-    drag = { key: keyOf(parts), mods: { ctrl: ev.ctrlKey, shift: ev.shiftKey }, sources: [], start: { x: ev.clientX, y: ev.clientY }, ghost: null, target: null };
+    drag = { key: keyOf(parts), mods: modsOf(ev), sources: [], start: pointOf(ev), ghost: null, target: null };
   });
   host.addEventListener("pointermove", (ev) => {
     if (!drag) return;
-    const now = { x: ev.clientX, y: ev.clientY };
+    const now = pointOf(ev);
     // Leaving the window hands the gesture to the native drag-out.
-    if ((ev.buttons & LEFT_BUTTON) === 0 || leftWindow(now, window.innerWidth, window.innerHeight)) return cancel();
+    if (released(ev) || leftWindow(now, window.innerWidth, window.innerHeight)) return cancel();
     if (!drag.ghost) {
       if (!pastThreshold(drag.start, now)) return;
       drag.sources = dragSources(drag.key, drag.mods).map((key) => key.split("/")).filter((parts) => canMove(findNode(parts)));
       const label = drag.sources.length === 1 ? (findNode(drag.sources[0])?.name ?? "") : `${drag.sources.length} items`;
-      drag.ghost = el("div", { class: "drag-ghost", "aria-hidden": "true" }, label);
-      document.body.append(drag.ghost);
+      drag.ghost = dragGhost(label);
       if (!host.hasPointerCapture(ev.pointerId)) host.setPointerCapture(ev.pointerId);
     }
-    place(drag.ghost, now);
+    moveGhost(drag.ghost, now);
     retarget(drag, targetAt(now));
   });
   host.addEventListener("pointerup", (ev) => {
@@ -127,15 +120,5 @@ export function installFolderMove(host: HTMLElement): void {
     if (done && target) void moveDragged(done.sources, target.parts, ev.ctrlKey);
   });
   host.addEventListener("pointercancel", cancel);
-  window.addEventListener(
-    "keydown",
-    (ev) => {
-      if (ev.key !== "Escape" || !folderMoveActive()) return;
-      ev.stopPropagation();
-      ev.preventDefault();
-      cancel();
-    },
-    true,
-  );
-  window.addEventListener("blur", cancel);
+  cancelOnEscape(folderMoveActive, cancel);
 }

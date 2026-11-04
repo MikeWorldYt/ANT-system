@@ -1,29 +1,17 @@
 // Dragging a folder or file row out of the window hands it to Explorer as a move through the backend's native drag.
-import { describeError, startDragOut } from "../services/ipc/api";
+import { startDragOut } from "../services/ipc/api";
 import { forgetMoved, refresh } from "./ops";
 import { findNode, isSelected, select, state } from "../services/store/state";
-import { setStatus } from "../components/organisms/bars/status-line";
+import { leftWindow, modsOf, mousePress, pastThreshold, pointOf, released, type Mods, type Point } from "./pointer";
+import { setStatus, reportError } from "../components/organisms/bars/status-line";
 
-const THRESHOLD_PX = 6;
 // Explorer's drop effect for a move.
 const DROPEFFECT_MOVE = 2;
 export const ITEM = ".row, .col-item, .grid-item";
-export const LEFT_BUTTON = 1;
 const onWindows = navigator.userAgent.includes("Windows");
 
-export interface Point {
-  x: number;
-  y: number;
-}
-
-export const pastThreshold = (start: Point, now: Point, threshold = THRESHOLD_PX): boolean =>
-  Math.hypot(now.x - start.x, now.y - start.y) > threshold;
-
-export const leftWindow = ({ x, y }: Point, width: number, height: number): boolean =>
-  x < 0 || y < 0 || x >= width || y >= height;
-
 // A pick inside the selection drags all of it; any other item drags alone and becomes the selection.
-export function dragSources(key: string, mods: { ctrl: boolean; shift: boolean }): string[] {
+export function dragSources(key: string, mods: Mods): string[] {
   if (isSelected(key)) return [...state.selectedKeys];
   if (!mods.ctrl && !mods.shift) select(key.split("/"));
   return [key];
@@ -47,28 +35,29 @@ async function dragOut(sources: string[][]): Promise<void> {
     await refresh();
     if (effect === DROPEFFECT_MOVE) await forgetMoved(sources);
   } catch (e) {
-    setStatus("warning", describeError(e));
+    reportError("warning", e);
   }
 }
 
 export function installDragOut(host: HTMLElement): void {
   if (!onWindows) return;
-  let gesture: { key: string; mods: { ctrl: boolean; shift: boolean }; start: Point } | null = null;
+  let gesture: { key: string; mods: Mods; start: Point } | null = null;
   host.addEventListener("pointerdown", (ev) => {
     gesture = null;
-    if (ev.button !== 0 || ev.pointerType !== "mouse" || !(ev.target instanceof Element)) return;
-    const item = ev.target.closest<HTMLElement>(ITEM);
+    const target = mousePress(ev);
+    if (!target) return;
+    const item = target.closest<HTMLElement>(ITEM);
     const key = item?.dataset.key;
     if (!item || !key || item.matches(".reserved, .ghost") || findNode(key.split("/"))?.flags.includes("main")) return;
-    gesture = { key, mods: { ctrl: ev.ctrlKey, shift: ev.shiftKey }, start: { x: ev.clientX, y: ev.clientY } };
+    gesture = { key, mods: modsOf(ev), start: pointOf(ev) };
   });
   host.addEventListener("pointermove", (ev) => {
     if (!gesture) return;
-    if ((ev.buttons & LEFT_BUTTON) === 0) {
+    if (released(ev)) {
       gesture = null;
       return;
     }
-    const now = { x: ev.clientX, y: ev.clientY };
+    const now = pointOf(ev);
     // Captured after the threshold so the moves keep reaching the host once the pointer is outside the window.
     if (pastThreshold(gesture.start, now) && !host.hasPointerCapture(ev.pointerId)) host.setPointerCapture(ev.pointerId);
     if (!leftWindow(now, window.innerWidth, window.innerHeight)) return;

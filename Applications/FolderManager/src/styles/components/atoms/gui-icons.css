@@ -1,0 +1,2 @@
+/* Inline interface icons take the text size and color around them. */
+.gui-icon { width: 1em; height: 1em; display: block; }

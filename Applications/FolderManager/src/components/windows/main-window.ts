@@ -11,6 +11,7 @@ import { installFolderMove } from "../../hooks/folder-move";
 import { installMarquee } from "../../hooks/marquee";
 import { trackPasteTarget } from "../../hooks/paste-target";
 import { createViewSwitcher } from "../../hooks/view-switch";
+import { openSettings } from "./settings";
 import { createBoardView } from "./views/board-view";
 import { createColumnsView } from "./views/columns-view";
 import { createGridView } from "./views/grid-view";
@@ -41,7 +42,7 @@ export function createMainWindow(app: HTMLElement) {
     views.current().focus();
     document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
   };
-  const panel = createSidePanel(openSelected);
+  const panel = createSidePanel({ openSelected, openSettings: (pageId) => void openSettings(pageId) });
   // The board stands beside the views, outside the host, so their drag, drop and marquee never reach its cards.
   const board = createBoardView(host, panel.editDetails);
   const main = el("main", { class: "app-main" }, host, board.element, ...panel.elements);

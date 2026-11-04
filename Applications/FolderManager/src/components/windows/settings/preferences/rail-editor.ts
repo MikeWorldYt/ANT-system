@@ -1,5 +1,5 @@
 // Editor for the collapsed side panel: which rail buttons show and in what order; HTML5 drag events never reach the webview.
-import { LEFT_BUTTON, pastThreshold, type Point } from "../../../../hooks/drag-out";
+import { countAbove, pastThreshold, pointOf, released, type Point } from "../../../../hooks/pointer";
 import { el } from "../../../dom";
 import { guiIcon, type GuiIcon } from "../../../atoms/gui-icons";
 import { railLayout, setRailLayout, type RailId, type RailItem } from "../../../../services/store/side-layout";
@@ -56,10 +56,7 @@ export function railEditor(): HTMLElement {
 
   // The gap under the pointer, counted in rows above it; both edges of the dragged row leave it in place.
   function slotAt(d: Drag, y: number): number | null {
-    const slot = rows().filter((r) => {
-      const box = r.getBoundingClientRect();
-      return box.top + box.height / 2 < y;
-    }).length;
+    const slot = countAbove(rows(), y);
     return slot === d.from || slot === d.from + 1 ? null : slot;
   }
 
@@ -94,13 +91,13 @@ export function railEditor(): HTMLElement {
     if (ev.button !== 0 || !(ev.target instanceof Element) || ev.target.closest(".sw-switch")) return;
     const row = rowOf(ev.target);
     if (!row) return;
-    drag = { row, from: rows().indexOf(row), start: { x: ev.clientX, y: ev.clientY }, lifted: false, slot: null };
+    drag = { row, from: rows().indexOf(row), start: pointOf(ev), lifted: false, slot: null };
   });
   list.addEventListener("pointermove", (ev) => {
     if (!drag) return;
-    if ((ev.buttons & LEFT_BUTTON) === 0) return end();
+    if (released(ev)) return end();
     if (!drag.lifted) {
-      if (!pastThreshold(drag.start, { x: ev.clientX, y: ev.clientY })) return;
+      if (!pastThreshold(drag.start, pointOf(ev))) return;
       drag.lifted = true;
       drag.row.classList.add(LIFTED);
       list.classList.add(SORTING);

@@ -1,10 +1,12 @@
 // Search box of the navigation bar: filter chips, completions for `key:` and a results list.
-import { describeError, searchDisk, searchNodes, suggestSearch, type Suggestion } from "../../../services/ipc/api";
+import { searchDisk, searchNodes, suggestSearch, type Suggestion } from "../../../services/ipc/api";
 import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
 import { findNode, reveal } from "../../../services/store/state";
-import { setStatus } from "./status-line";
+import { setStatus, reportError } from "./status-line";
 import { chipQuery, renderChips, splitToken, type Chip } from "../../molecules/search-chips";
+import { plural } from "../../../services/plural";
+import { textInput } from "../../atoms/text-input";
 
 interface Item {
   label: string;
@@ -16,12 +18,10 @@ const LIMIT = 50;
 const DELAY_MS = 200;
 // Walking the whole storage can be heavy, so it waits until typing has been idle this long.
 const REST_DELAY_MS = 5_000;
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export function createSearchBar(): { element: HTMLElement; focus(): void } {
-  const input = el("input", {
+  const input = textInput({
     class: "search-input",
-    type: "text",
     placeholder: "Search",
     "aria-label": "Search folders",
     title: "Filter with in:folder and status:name, then pick a suggestion to make a chip. Ctrl+F focuses the search.",
@@ -30,8 +30,6 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     "aria-controls": "search-results",
     "aria-haspopup": "listbox",
     "aria-autocomplete": "list",
-    spellcheck: "false",
-    autocomplete: "off",
   });
   const field = el("div", { class: "search-field" }, input, guiIcon("search"));
   const list = el("ul", { class: "search-results", id: "search-results", role: "listbox", "aria-label": "Search results" });
@@ -146,7 +144,7 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     try {
       rest = await searchDisk(queryText());
     } catch (e) {
-      if (mine === latest) setStatus("error", describeError(e));
+      if (mine === latest) reportError("error", e);
     }
     if (mine !== latest) return;
     restPending = false;
@@ -176,7 +174,7 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     } catch (e) {
       if (mine !== latest) return;
       close();
-      setStatus("error", describeError(e));
+      reportError("error", e);
     }
   }
 
@@ -187,7 +185,7 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     try {
       await reveal(parts);
     } catch (e) {
-      setStatus("error", describeError(e));
+      reportError("error", e);
       return;
     }
     if (!findNode(parts)) setStatus("warning", "That folder is no longer there. Refresh and search again");

@@ -1,5 +1,4 @@
 // Navigation bar: back/forward/up over the folders visited plus a breadcrumb of the selected path.
-import { describeError } from "../../../services/ipc/api";
 import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
 import { iconButton } from "../../atoms/icon-button";
@@ -8,7 +7,7 @@ import { currentPlace, folderOf, samePlace, type Place } from "../../../services
 import { findNode, select, selectedNode, state } from "../../../services/store/state";
 import { goToPlace, openVirtual } from "../../../hooks/virtual-nav";
 import { openEntry } from "../../molecules/virtual-entry";
-import { setStatus } from "./status-line";
+import { reportError } from "./status-line";
 
 interface Crumb {
   label: string;
@@ -49,7 +48,7 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
     try {
       await restore(place);
     } catch (e) {
-      setStatus("error", describeError(e));
+      reportError("error", e);
       return;
     }
     at = index;
@@ -57,7 +56,7 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
       history.splice(index, 1);
       at = previous >= index ? previous - 1 : previous;
       // The missing folder was selected, so the selection goes back to the entry now current.
-      await restore(history[at]).catch((e: unknown) => setStatus("error", describeError(e)));
+      await restore(history[at]).catch((e: unknown) => reportError("error", e));
     }
     // A place may come back changed (a favorite removed meanwhile), so the entry takes what was reached.
     if (history[at]) history[at] = currentPlace();

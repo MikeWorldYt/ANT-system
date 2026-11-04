@@ -1,16 +1,15 @@
 // Opening a virtual root entry, going back to a place in one, and leaving it for the real folder one of its entries stands for.
-import { describeError } from "../services/ipc/api";
 import { loadVirtual } from "../services/store/virtual";
 import { leaveVirtual, notify, reveal, select, selectVirtual, state, type VirtualId } from "../services/store/state";
 import { currentPlace, type Place } from "../services/store/place";
-import { setStatus } from "../components/organisms/bars/status-line";
+import { reportError } from "../components/organisms/bars/status-line";
 
 export async function openVirtual(id: VirtualId): Promise<void> {
   selectVirtual(id);
   try {
     await loadVirtual();
   } catch (e) {
-    setStatus("error", describeError(e));
+    reportError("error", e);
   }
   notify();
 }
@@ -26,7 +25,7 @@ export async function toggleBoard(): Promise<void> {
   const back = beforeBoard;
   beforeBoard = null;
   if (back === null || back.virtual === "board") return select(null);
-  await goToPlace(back).catch((e: unknown) => setStatus("error", describeError(e)));
+  await goToPlace(back).catch((e: unknown) => reportError("error", e));
 }
 
 // The entry goes first, so `via` is set before the selection below it is revealed.
@@ -43,6 +42,6 @@ export async function goToReal(parts: string[]): Promise<void> {
   try {
     await reveal(parts);
   } catch (e) {
-    setStatus("error", describeError(e));
+    reportError("error", e);
   }
 }

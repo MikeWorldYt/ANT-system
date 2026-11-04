@@ -1,0 +1,15 @@
+/* Labelled action rows of the side panel. */
+.side-action {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 6px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text); font: inherit; font-size: 9pt; text-align: left; cursor: pointer;
+}
+.side-action:hover:not([aria-disabled="true"]) { background: var(--field-bg); }
+.side-action-icon { display: inline-flex; width: 16px; flex: none; }
+.side-action-icon .gui-icon { width: 16px; height: 16px; }
+.side-action-label { flex: 1; min-width: 0; }
+.side-action.accent { color: var(--accent); }
+.side-action.is-favorite .side-action-icon { color: var(--st-progress); }
+.side-action.is-important .side-action-icon { color: var(--accent); }
+.side-action.danger { color: var(--delete-hover); }
+.side-action[aria-disabled="true"] { color: var(--disabled-text); cursor: default; }
+.side-action[hidden] { display: none; }

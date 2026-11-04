@@ -1,10 +1,11 @@
 // Settings window: sidebar with search, one page at a time, built from the pages in preferences/ and system/.
-import "../../../styles/components/windows/settings.css";
-import { describeError, getStorage } from "../../../services/ipc/api";
+import { getStorage } from "../../../services/ipc/api";
 import type { StorageInfo } from "../../../services/ipc/types";
 import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
-import { setStatus } from "../../organisms/bars/status-line";
+import { textButton } from "../../atoms/button";
+import { showModal } from "../../organisms/dialogs/dialog-shell";
+import { reportError } from "../../organisms/bars/status-line";
 import { renderRow, type SettingRow } from "../../molecules/setting-row";
 import type { PageContext, SettingsPage } from "./page";
 import { generalPage } from "./preferences/general";
@@ -34,7 +35,7 @@ export async function openSettings(pageId?: string): Promise<void> {
   try {
     storage = await getStorage();
   } catch (e) {
-    setStatus("warning", `Storage info: ${describeError(e)}`);
+    reportError("warning", e, "Storage info");
   }
 
   let currentId = PAGES.find((p) => p.id === pageId)?.id ?? PAGES[0]!.id;
@@ -51,7 +52,7 @@ export async function openSettings(pageId?: string): Promise<void> {
           ctx.storage = info;
           show(currentId);
         },
-        (e) => setStatus("warning", `Storage info: ${describeError(e)}`),
+        (e) => reportError("warning", e, "Storage info"),
       );
     },
   };
@@ -103,13 +104,10 @@ export async function openSettings(pageId?: string): Promise<void> {
 
   search.addEventListener("input", () => (search.value.trim() ? find(search.value.trim()) : show(currentId)));
 
-  const close = el("button", { type: "button", class: "btn btn-primary" }, "Close");
+  const close = textButton("Close", "btn-primary", () => dialog.close());
   const main = el("section", { class: "sw-main" }, el("div", { class: "sw-head" }, title, close), body);
   const dialog = el("dialog", { class: "settings-window", "aria-labelledby": "settings-title" }, side, main);
-  close.addEventListener("click", () => dialog.close());
-  dialog.addEventListener("close", () => dialog.remove());
-  document.body.append(dialog);
   show(currentId);
-  dialog.showModal();
+  void showModal(dialog);
   search.focus();
 }

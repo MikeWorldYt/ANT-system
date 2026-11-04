@@ -2,7 +2,7 @@
 import * as api from "../services/ipc/api";
 import { invalidDialog, type Decision } from "../components/organisms/dialogs/action-dialog/invalid-dialog";
 import { notifyDesktop } from "../services/desktop-notify";
-import { currentOperationStatus, setStatus } from "../components/organisms/bars/status-line";
+import { currentOperationStatus, reportError } from "../components/organisms/bars/status-line";
 import { state } from "../services/store/state";
 import { folderMoveActive } from "./folder-move";
 import type { InvalidFolder, Resolution } from "../services/ipc/types";
@@ -41,11 +41,11 @@ export async function checkRootFolders(resolve: ResolveInvalid, remove: DeleteIn
       try {
         return await resolve(decision.relParts, resolution);
       } catch (e) {
-        setStatus("warning", api.describeError(e));
+        reportError("warning", e);
         return false;
       }
     };
-    const decisions = await invalidDialog(invalid, (relParts) => void api.openNode(relParts).catch((e: unknown) => setStatus("warning", api.describeError(e))), previewNames, applyOne, remove);
+    const decisions = await invalidDialog(invalid, (relParts) => void api.openNode(relParts).catch((e: unknown) => reportError("warning", e)), previewNames, applyOne, remove);
     if (decisions === null) snoozedUntil = Date.now() + SNOOZE_MS;
     // Deepest first, so renaming or moving a parent never changes the path of a row still waiting.
     const ordered = [...(decisions ?? [])].sort((a, b) => b.relParts.length - a.relParts.length);
@@ -55,11 +55,11 @@ export async function checkRootFolders(resolve: ResolveInvalid, remove: DeleteIn
       try {
         await resolve(decision.relParts, resolution);
       } catch (e) {
-        setStatus("warning", api.describeError(e));
+        reportError("warning", e);
       }
     }
   } catch (e) {
-    setStatus("warning", `Storage check: ${api.describeError(e)}`);
+    reportError("warning", e, "Storage check");
   } finally {
     checking = false;
   }
@@ -70,7 +70,7 @@ async function previewNames(rows: { relParts: string[]; resolution: Resolution }
   try {
     return await api.previewInvalid(rows);
   } catch (e) {
-    setStatus("warning", `Preview: ${api.describeError(e)}`);
+    reportError("warning", e, "Preview");
     return rows.map(() => null);
   }
 }
@@ -80,6 +80,6 @@ async function announce({ relParts }: InvalidFolder): Promise<void> {
   try {
     await notifyDesktop(`Invalid directory in your Storage found in ${name} (level ${relParts.length})`);
   } catch (e) {
-    setStatus("warning", `Notification: ${api.describeError(e)}`);
+    reportError("warning", e, "Notification");
   }
 }

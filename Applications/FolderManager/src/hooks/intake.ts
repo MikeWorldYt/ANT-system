@@ -1,8 +1,9 @@
 // Runs the backend intake after a refresh and reports loose and moved files to the user.
 import * as api from "../services/ipc/api";
 import { notifyDesktop } from "../services/desktop-notify";
-import { setStatus } from "../components/organisms/bars/status-line";
+import { setStatus, reportError } from "../components/organisms/bars/status-line";
 import { waitingIntakeDialog } from "../components/organisms/dialogs/action-dialog/waiting-intake-dialog";
+import { plural } from "../services/plural";
 import type { Moved, WaitingNode } from "../services/ipc/types";
 
 // Focus and manual refreshes can overlap; a second intake would repeat the same report.
@@ -12,7 +13,7 @@ let looseNotified = false;
 
 async function notifyMoved(moved: Moved[]): Promise<void> {
   for (const m of moved) {
-    const files = `${m.count} file${m.count === 1 ? "" : "s"}`;
+    const files = plural(m.count, "file");
     await notifyDesktop(`${files} from ${m.name} moved to ${m.review} for review.`);
   }
 }
@@ -39,7 +40,7 @@ async function answerWaiting(nodes: WaitingNode[], reload: () => Promise<void>):
       else await api.acknowledgeIntake(relParts);
       applied = true;
     } catch (e) {
-      setStatus("warning", api.describeError(e));
+      reportError("warning", e);
     }
   }
   if (applied) await reload();
@@ -64,7 +65,7 @@ export async function runIntake(reload: () => Promise<void>): Promise<void> {
     }
     await notifyMoved(report.moved);
   } catch (e) {
-    setStatus("warning", api.describeError(e));
+    reportError("warning", e);
   } finally {
     running = false;
   }

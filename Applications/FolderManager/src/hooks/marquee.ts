@@ -1,7 +1,8 @@
 // Dragging on empty space draws a band that selects every item it touches, as in Explorer.
 import { el } from "../components/dom";
 import { selectKeys, state } from "../services/store/state";
-import { ITEM, LEFT_BUTTON, pastThreshold, type Point } from "./drag-out";
+import { ITEM } from "./drag-out";
+import { mousePress, pastThreshold, pointOf, released, type Point } from "./pointer";
 
 interface Band {
   start: Point;
@@ -49,14 +50,14 @@ export function installMarquee(host: HTMLElement): void {
   host.addEventListener("pointerdown", (ev) => {
     band = null;
     swallowClick = false;
-    if (ev.button !== 0 || ev.pointerType !== "mouse" || !(ev.target instanceof Element)) return;
-    if (ev.target.closest(NOT_EMPTY)) return;
-    band = { start: { x: ev.clientX, y: ev.clientY }, base: ev.ctrlKey ? [...state.selectedKeys] : [], box: null };
+    const target = mousePress(ev);
+    if (!target || target.closest(NOT_EMPTY)) return;
+    band = { start: pointOf(ev), base: ev.ctrlKey ? [...state.selectedKeys] : [], box: null };
   });
   host.addEventListener("pointermove", (ev) => {
     if (!band) return;
-    if ((ev.buttons & LEFT_BUTTON) === 0) return end();
-    const now = { x: ev.clientX, y: ev.clientY };
+    if (released(ev)) return end();
+    const now = pointOf(ev);
     if (!band.box) {
       if (!pastThreshold(band.start, now)) return;
       band.box = el("div", { class: "marquee", "aria-hidden": "true" });

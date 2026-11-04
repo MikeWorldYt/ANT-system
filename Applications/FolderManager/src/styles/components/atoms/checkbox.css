@@ -1,0 +1,2 @@
+/* Hide box shown beside a row in manage and hide-links modes. */
+.hide-box { flex: none; margin: 0 6px 0 0; accent-color: var(--accent); }

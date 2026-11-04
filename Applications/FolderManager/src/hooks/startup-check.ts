@@ -2,7 +2,7 @@
 import * as api from "../services/ipc/api";
 import { choiceDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
 import { promptDialog } from "../components/organisms/dialogs/action-dialog/form-dialog";
-import { setStatus } from "../components/organisms/bars/status-line";
+import { setStatus, reportError } from "../components/organisms/bars/status-line";
 import { localStamp } from "../services/stamp";
 
 async function changePath(current: string): Promise<void> {
@@ -11,7 +11,7 @@ async function changePath(current: string): Promise<void> {
   try {
     await api.changeStoragePath(typed);
   } catch (e) {
-    setStatus("error", api.describeError(e));
+    reportError("error", e);
   }
 }
 
@@ -20,7 +20,7 @@ async function scan(): Promise<boolean> {
     await api.prepareScan(localStamp());
     return true;
   } catch (e) {
-    setStatus("error", api.describeError(e));
+    reportError("error", e);
     return false;
   }
 }
@@ -29,7 +29,7 @@ async function useBackup(): Promise<void> {
   try {
     await api.useLatestBackup(localStamp());
   } catch (e) {
-    setStatus("error", api.describeError(e));
+    reportError("error", e);
   }
 }
 

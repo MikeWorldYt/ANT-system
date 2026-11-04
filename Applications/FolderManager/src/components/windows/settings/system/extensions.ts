@@ -14,7 +14,7 @@ import {
 import { reloadExtensions } from "../../../../extensions/host";
 import { describePermission } from "../../../../extensions/protocol";
 import { confirmDialog } from "../../../organisms/dialogs/info-dialog/info-dialog";
-import { setStatus } from "../../../organisms/bars/status-line";
+import { reportError } from "../../../organisms/bars/status-line";
 import { buttonControl } from "../../../atoms/button";
 import { valueControl } from "../../../atoms/label";
 import { switchControl } from "../../../atoms/switch";
@@ -96,7 +96,7 @@ function installedRow(ext: ExtensionInfo, ctx: PageContext): SettingRow {
       reloadExtensions();
       return true;
     } catch (e) {
-      setStatus("warning", `Extension ${ext.name}: ${describeError(e)}`);
+      reportError("warning", e, `Extension ${ext.name}`);
       return false;
     }
   };

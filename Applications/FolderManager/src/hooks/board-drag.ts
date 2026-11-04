@@ -1,6 +1,6 @@
 // Cards move between and within the board columns with the pointer; HTML5 drag events never reach the webview.
 import { el } from "../components/dom";
-import { LEFT_BUTTON, pastThreshold, type Point } from "./drag-out";
+import { cancelOnEscape, countAbove, dragGhost, moveGhost, pastThreshold, pointOf, released, type Point } from "./pointer";
 import { BOARD_COLUMNS } from "../services/store/board";
 import type { BoardColumn } from "../services/ipc/types";
 
@@ -17,8 +17,6 @@ interface Drag {
   slot: Slot | null;
 }
 
-const GHOST_OFFSET_PX = 12;
-
 const othersIn = (list: HTMLElement, key: string): HTMLElement[] =>
   [...list.querySelectorAll<HTMLElement>(".board-card")].filter((c) => c.dataset.card !== key);
 
@@ -28,11 +26,7 @@ function slotAt({ x, y }: Point, key: string): Slot | null {
   const list = col?.querySelector<HTMLElement>(".board-list");
   const column = BOARD_COLUMNS.find(([id]) => id === col?.dataset.column)?.[0];
   if (!list || !column) return null;
-  const index = othersIn(list, key).filter((c) => {
-    const r = c.getBoundingClientRect();
-    return r.top + r.height / 2 < y;
-  }).length;
-  return { list, column, index };
+  return { list, column, index: countAbove(othersIn(list, key), y) };
 }
 
 function mark(slot: Slot | null, key: string): void {
@@ -55,21 +49,19 @@ export function installBoardDrag(root: HTMLElement, drop: (key: string, column: 
     cancel();
     if (ev.button !== 0 || !(ev.target instanceof Element) || ev.target.closest("button")) return;
     const key = ev.target.closest<HTMLElement>(".board-card")?.dataset.card;
-    if (key) drag = { key, start: { x: ev.clientX, y: ev.clientY }, ghost: null, slot: null };
+    if (key) drag = { key, start: pointOf(ev), ghost: null, slot: null };
   });
   root.addEventListener("pointermove", (ev) => {
     if (!drag) return;
-    if ((ev.buttons & LEFT_BUTTON) === 0) return cancel();
-    const now = { x: ev.clientX, y: ev.clientY };
+    if (released(ev)) return cancel();
+    const now = pointOf(ev);
     if (!drag.ghost) {
       if (!pastThreshold(drag.start, now)) return;
       const name = root.querySelector(`[data-card="${CSS.escape(drag.key)}"] .board-name`)?.textContent ?? "";
-      drag.ghost = el("div", { class: "drag-ghost", "aria-hidden": "true" }, name);
-      document.body.append(drag.ghost);
+      drag.ghost = dragGhost(name);
       root.setPointerCapture(ev.pointerId);
     }
-    drag.ghost.style.left = `${now.x + GHOST_OFFSET_PX}px`;
-    drag.ghost.style.top = `${now.y + GHOST_OFFSET_PX}px`;
+    moveGhost(drag.ghost, now);
     drag.slot = slotAt(now, drag.key);
     mark(drag.slot, drag.key);
   });
@@ -79,15 +71,5 @@ export function installBoardDrag(root: HTMLElement, drop: (key: string, column: 
     if (done?.ghost && done.slot) drop(done.key, done.slot.column, done.slot.index);
   });
   root.addEventListener("pointercancel", cancel);
-  window.addEventListener(
-    "keydown",
-    (ev) => {
-      if (ev.key !== "Escape" || !drag?.ghost) return;
-      ev.stopPropagation();
-      ev.preventDefault();
-      cancel();
-    },
-    true,
-  );
-  window.addEventListener("blur", cancel);
+  cancelOnEscape(() => !!drag?.ghost, cancel);
 }

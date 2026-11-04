@@ -1,5 +1,4 @@
 // Rows for the virtual root entries; without a data-key no move, drop or paste ever lands on them.
-import "../../styles/components/molecules/virtual-entry.css";
 import { el } from "../dom";
 import { guiIcon, type GuiIcon } from "../atoms/gui-icons";
 import { nodeToggle } from "../atoms/node-toggle";

@@ -1,7 +1,7 @@
 // Status field of the details form; a native select cannot show the coloured status icons.
 import { el } from "../dom";
 import { guiIcon } from "../atoms/gui-icons";
-import { EDGE, autoDismiss, focusInitial, menuItem, place, rove } from "./menu";
+import { focusInitial, menuItem, openPopup, placeUnder, popupTrigger, rove } from "./menu";
 import { statusIcon } from "../atoms/status-mark";
 import { STATUSES, statusLabel, UNKNOWN } from "../../services/store/node-info";
 import type { WkbStatus } from "../../services/ipc/types";
@@ -18,6 +18,7 @@ export function statusPicker(current: WkbStatus | null, attrs: Record<string, st
   const button = el("button", { type: "button", ...attrs, "aria-haspopup": "listbox", "aria-expanded": "false", "aria-controls": listId });
   let value: WkbStatus | null = current;
   let closeList: ((restore?: boolean) => void) | null = null;
+  const close = (restore = true) => closeList?.(restore);
 
   const paint = () => {
     button.className = `details-input status-picker${value ? ` st-${value}` : ""}`;
@@ -41,14 +42,6 @@ export function statusPicker(current: WkbStatus | null, attrs: Record<string, st
     const labelledBy = attrs["aria-labelledby"];
     const list = el("div", { id: listId, class: "ctx-menu", role: "listbox", ...(labelledBy ? { "aria-labelledby": labelledBy } : {}) }, ...unknown, ...options);
 
-    function close(restore = true): void {
-      if (closeList === null) return;
-      closeList = null;
-      list.remove();
-      stopWatching();
-      button.setAttribute("aria-expanded", "false");
-      if (restore) button.focus();
-    }
     list.addEventListener("keydown", (ev) => {
       if (ev.key === "Escape" || ev.key === "Tab") {
         close();
@@ -61,22 +54,11 @@ export function statusPicker(current: WkbStatus | null, attrs: Record<string, st
 
     const r = button.getBoundingClientRect();
     list.style.minWidth = `${r.width}px`;
-    document.body.append(list);
-    const { height } = list.getBoundingClientRect();
-    const below = r.bottom + EDGE;
-    place(list, r.left, below + height <= window.innerHeight || r.top - EDGE - height < EDGE ? below : r.top - EDGE - height);
-    const stopWatching = autoDismiss((t) => list.contains(t) || button.contains(t), close);
-    button.setAttribute("aria-expanded", "true");
-    closeList = close;
+    closeList = openPopup(button, list, () => placeUnder(list, r), () => (closeList = null));
     focusInitial(options);
   }
 
-  button.addEventListener("click", () => (closeList ? closeList() : open()));
-  button.addEventListener("keydown", (ev) => {
-    if ((ev.key !== "ArrowDown" && ev.key !== "ArrowUp") || closeList) return;
-    ev.preventDefault();
-    open();
-  });
+  popupTrigger(button, ["ArrowDown", "ArrowUp"], () => closeList, open);
   paint();
   return {
     button,

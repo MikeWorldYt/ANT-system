@@ -1,0 +1,10 @@
+/* Status colors and the status icon, alone or with its label. */
+.st-in-progress { --st: var(--st-progress); }
+.st-hold { --st: var(--st-hold); }
+.st-for-review { --st: var(--st-review); }
+.st-done { --st: var(--st-done); }
+.status-mark { display: inline-flex; flex: none; color: var(--st); }
+.status-mark .gui-icon { width: 16px; height: 16px; }
+.ctx-item[class*="st-"], .details dd[class*="st-"], .status-picker[class*="st-"] { color: var(--st); }
+.status-labeled { display: inline-flex; align-items: center; gap: 6px; }
+.status-labeled .gui-icon { width: 16px; height: 16px; flex: none; }

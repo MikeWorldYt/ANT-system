@@ -1,6 +1,9 @@
 // Details of the selected node; its name, and the status and owner of a workboard, are edited here.
 import { el } from "../../dom";
-import { guiIcon } from "../../atoms/gui-icons";
+import { textButton } from "../../atoms/button";
+import { checkbox } from "../../atoms/checkbox";
+import { iconButton } from "../../atoms/icon-button";
+import { textInput } from "../../atoms/text-input";
 import { statusLabeled } from "../../atoms/status-mark";
 import { isWorkboard, nodeDetails, outputOf, ownerOf, UNKNOWN } from "../../../services/store/node-info";
 import { renameTo, setDetails, setOutput, setUserFlag } from "../../../hooks/ops";
@@ -31,7 +34,7 @@ export interface DetailsSection {
 
 export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
   const list = el("dl", { class: "details" });
-  const edit = el("button", { type: "button", class: "icon-btn", "aria-label": "Edit details", title: "Edit details" }, guiIcon("pencil"));
+  const edit = iconButton("Edit details", "pencil", () => startEdit());
   const head = el("div", { class: "details-head" }, el("h3", { id: "details-title", class: "side-label" }, "Details"), edit);
   const empty = el("p", { class: "details-empty" }, "Select a folder to see its details.");
   const element = el("section", { class: "side-section", "aria-labelledby": "details-title" }, head, list, empty, extensionArea());
@@ -55,28 +58,27 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     let files: HTMLInputElement | null = null;
 
     if (n.actions.rename) {
-      name = el("input", { class: "details-input", type: "text", ...labelled("Name"), spellcheck: "false", autocomplete: "off" });
+      name = textInput({ class: "details-input", ...labelled("Name") });
       name.value = n.editableName;
       inputs.Name = el("div", { class: "details-name" }, el("span", { class: "name-fixed" }, n.fixedPrefix), name);
       first = name;
     }
     if (n.actions.editFlags) {
-      files = el("input", { type: "checkbox", ...labelled("Allow files") });
+      files = checkbox(labelled("Allow files"));
       files.checked = n.flags.includes("data");
       inputs["Allow files"] = files;
       first ??= files;
     }
     if (canEditFields(n)) {
       status = statusPicker(n.status ?? null, labelled("Status"));
-      owner = el("input", { class: "details-input", type: "text", ...labelled("Owner"), placeholder: UNKNOWN, spellcheck: "false", autocomplete: "off" });
+      owner = textInput({ class: "details-input", ...labelled("Owner"), placeholder: UNKNOWN });
       owner.value = ownerOf(n) ?? "";
       inputs.Status = status.button;
       inputs.Owner = owner;
       first ??= owner;
-      const outputField = el("input", { class: "details-input", type: "text", ...labelled("Output"), placeholder: UNKNOWN, spellcheck: "false", autocomplete: "off" });
+      const outputField = textInput({ class: "details-input", ...labelled("Output"), placeholder: UNKNOWN });
       outputField.value = outputOf(n) ?? "";
-      const pick = el("button", { type: "button", class: "icon-btn", "aria-label": "Choose the output folder", title: "Choose the output folder" }, guiIcon("link"));
-      pick.addEventListener("click", async () => {
+      const pick = iconButton("Choose the output folder", "link", async () => {
         const picked = await pickInside(n, true);
         if (!picked) return;
         if (picked.relative === null) setStatus("warning", "Pick a folder inside the workboard");
@@ -86,9 +88,8 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
       inputs.Output = el("div", { class: "details-name" }, outputField, pick);
     }
 
-    const save = el("button", { type: "button", class: "btn btn-primary" }, "Save");
-    const cancel = el("button", { type: "button", class: "btn" }, "Cancel");
-    save.addEventListener("click", async () => {
+    const cancel = textButton("Cancel", undefined, stop);
+    const save = textButton("Save", "btn-primary", async () => {
       // The store may have refreshed the node since the form was built.
       const current = selectedNode();
       stop();
@@ -101,7 +102,6 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
       const fresh = selectedNode();
       if (name && fresh && name.value.trim() !== fresh.editableName) await renameTo(fresh, name.value);
     });
-    cancel.addEventListener("click", stop);
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") stop();
       else if (ev.key === "Enter" && ev.target !== status?.button) save.click();
@@ -136,9 +136,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
         const value = el("dd", {}, f.value);
         if (f.action && n) {
           const { id } = f.action;
-          const button = el("button", { type: "button", class: "btn ext-action" }, f.action.label);
-          button.addEventListener("click", () => runDetailsAction(ext.extId, id, n));
-          value.append(button);
+          value.append(textButton(f.action.label, "ext-action", () => runDetailsAction(ext.extId, id, n)));
         }
         rows.push(detailField(term, value));
       }
@@ -157,8 +155,6 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     render();
     return true;
   }
-
-  edit.addEventListener("click", startEdit);
 
   onDetailsChange(render);
   return { element, render, startEdit };

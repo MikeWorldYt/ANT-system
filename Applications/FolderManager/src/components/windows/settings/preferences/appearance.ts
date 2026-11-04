@@ -3,10 +3,9 @@ import { changeSetting } from "../../../../hooks/ops";
 import { quickActionsShown, setQuickActionsShown } from "../../../../services/store/side-layout";
 import { state, type AccentId, type TextSize, type Theme } from "../../../../services/store/state";
 import { ACCENTS } from "../../../../hooks/appearance";
-import { dotsControl } from "../../../atoms/dots";
 import { selectControl } from "../../../atoms/select";
 import { switchControl } from "../../../atoms/switch";
-import { segControl } from "../../../molecules/segmented";
+import { dotsControl, segControl } from "../../../molecules/choice-group";
 import type { SettingsPage } from "../page";
 import { railEditor } from "./rail-editor";
 

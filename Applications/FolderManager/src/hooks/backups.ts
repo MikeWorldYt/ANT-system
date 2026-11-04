@@ -1,8 +1,8 @@
 // Automatic backups while the app is open: one check at launch, then one every hour.
-import { backupIfDue, describeError } from "../services/ipc/api";
+import { backupIfDue } from "../services/ipc/api";
 import { state } from "../services/store/state";
 import { notifyDesktop } from "../services/desktop-notify";
-import { setStatus } from "../components/organisms/bars/status-line";
+import { reportError } from "../components/organisms/bars/status-line";
 import { localStamp } from "../services/stamp";
 
 const HOUR_MS = 3_600_000;
@@ -13,7 +13,7 @@ async function runIfDue(): Promise<void> {
     const saved = await backupIfDue(localStamp());
     if (saved) await notifyDesktop(`Backup saved: ${saved.split(/[\\/]/).pop()}`);
   } catch (e) {
-    setStatus("warning", `Backup: ${describeError(e)}`);
+    reportError("warning", e, "Backup");
   }
 }
 

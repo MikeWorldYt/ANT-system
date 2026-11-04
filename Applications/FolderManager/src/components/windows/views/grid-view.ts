@@ -6,14 +6,14 @@ import { nativeImage } from "../../../services/file-images";
 import { statusMark } from "../../atoms/status-mark";
 import { favoriteMark, hideBox, importantMark, nameCell } from "../../molecules/name-cell";
 import { nodeToggle } from "../../atoms/node-toggle";
-import { nodeSummary } from "../../../services/store/node-info";
 import { sortedForColumns } from "../../../services/store/sort";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
-import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
+import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { openEntry, ROOT_ENTRIES, virtualEntries, virtualEntry, type VirtualEntry } from "../../molecules/virtual-entry";
+import { markNodeItem, onItemClick } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -72,7 +72,6 @@ export function createGridView(): ViewMode {
   }
 
   function buildItem(n: TreeNode, tabbable: boolean): HTMLElement {
-    const selected = isSelected(keyOf(n.relParts));
     const icon = n.file ? previewIcon(n) : folderIcon(n);
     const art = n.hasChildren ? nodeToggle(`Open ${n.name}`, null, folderIcon(n)) : el("span", {}, icon);
     art.classList.add("grid-art");
@@ -80,25 +79,9 @@ export function createGridView(): ViewMode {
     if (n.important) art.append(importantMark());
     if (n.status) art.append(statusMark(n.status));
     const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, nameCell(n, false));
-    item.dataset.key = keyOf(n.relParts);
+    markNodeItem(item, n);
     item.prepend(...manageBox(n, item));
-    item.setAttribute("aria-selected", String(selected));
-    if (selected) item.classList.add("selected");
-    if (n.ghost) {
-      item.classList.add("ghost");
-      item.setAttribute("aria-label", `${n.name} (missing on disk)`);
-    }
-    if (n.locked) {
-      item.classList.add("locked");
-      item.setAttribute("aria-disabled", "true");
-    }
-    item.classList.toggle("reserved", n.reserved);
-    item.classList.toggle("rev", n.nodeType?.base === "REV");
-    item.title = nodeSummary(n);
-    item.addEventListener("click", (ev) => {
-      if (ev.ctrlKey || ev.shiftKey) clickSelect(n.relParts, shownNodes().map((s) => keyOf(s.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
-      else select(n.relParts);
-    });
+    onItemClick(item, n, () => shownNodes().map((s) => keyOf(s.relParts)), () => select(n.relParts));
     // As in Explorer, the name renames and the rest of the tile opens.
     item.addEventListener("dblclick", (ev) => (ev.target instanceof Element && ev.target.closest(".name") ? startEdit(n.relParts) : enter(n)));
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));

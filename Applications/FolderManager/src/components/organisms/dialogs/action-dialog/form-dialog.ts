@@ -1,22 +1,21 @@
 // Action dialogs with a single field: a typed name or a picked option.
 import { el } from "../../../dom";
 import { dialogButton } from "../../../atoms/button";
-import { openDialog } from "../dialog-shell";
+import { selectBox } from "../../../atoms/select";
+import { textInput } from "../../../atoms/text-input";
+import { dialogText } from "../dialog-shell";
+import { fieldDialog } from "./action-dialog";
 
 // Resolves to the typed text, or null when cancelled.
 export async function promptDialog(title: string, label: string, initial: string, confirmLabel: string): Promise<string | null> {
-  const input = el("input", { type: "text", class: "dialog-input", "aria-label": label, value: initial });
-  const cancel = dialogButton("Cancel", "cancel");
-  cancel.formNoValidate = true;
-  const { closed } = openDialog({ title, body: [el("p", {}, label), input], buttons: [cancel, dialogButton(confirmLabel, "ok", "primary")] });
-  input.select();
-  return (await closed) === "ok" ? input.value.trim() : null;
+  const input = textInput({ class: "dialog-input", "aria-label": label, value: initial }, true);
+  const ok = await fieldDialog(title, el("p", {}, label), input, dialogButton(confirmLabel, "ok", "primary"), () => input.select());
+  return ok ? input.value.trim() : null;
 }
 
 // Resolves to the chosen value, or null when cancelled.
 export async function selectDialog(title: string, message: string, options: [value: string, label: string][], confirmLabel: string): Promise<string | null> {
-  const select = el("select", { class: "dialog-input", "aria-label": title }, ...options.map(([value, label]) => el("option", { value }, label)));
-  const { closed } = openDialog({ title, body: [el("p", { class: "dialog-text" }, message), select], buttons: [dialogButton("Cancel", "cancel"), dialogButton(confirmLabel, "ok", "danger")] });
-  select.focus();
-  return (await closed) === "ok" ? select.value : null;
+  const select = selectBox(title, options, "dialog-input");
+  const ok = await fieldDialog(title, dialogText(message), select, dialogButton(confirmLabel, "ok", "danger"), () => select.focus());
+  return ok ? select.value : null;
 }

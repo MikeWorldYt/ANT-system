@@ -1,0 +1,2 @@
+/* Right-aligned button group at the end of a row. */
+.sw-actions { display: flex; flex: 0 1 auto; max-width: 100%; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }

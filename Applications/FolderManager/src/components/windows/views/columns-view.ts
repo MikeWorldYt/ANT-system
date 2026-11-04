@@ -7,15 +7,16 @@ import { statusMark } from "../../atoms/status-mark";
 import { columnSortToggle } from "../../atoms/column-sort";
 import { favoriteMark, hideBox, importantMark, nameCell } from "../../molecules/name-cell";
 import { fromToggle, nodeToggle } from "../../atoms/node-toggle";
-import { hiddenCategories, isReviewRoot, isWorkboard, linkCategory, nodeSummary } from "../../../services/store/node-info";
+import { hiddenCategories, isReviewRoot, isWorkboard, linkCategory } from "../../../services/store/node-info";
 import { sortedForColumns } from "../../../services/store/sort";
 import { buildColumns, type Column } from "../../../hooks/column-model";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
-import { clickSelect, findNode, isSelected, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
+import { findNode, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { openEntry, ROOT_ENTRIES, virtualEntries } from "../../molecules/virtual-entry";
+import { markNodeItem, onItemClick } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -50,30 +51,18 @@ export function createColumnsView(): ViewMode {
   }
 
   function buildItem(n: TreeNode, onPath: boolean, tabbable: boolean, siblings: string[]): HTMLElement {
-    const selected = isSelected(keyOf(n.relParts));
     const open = isOpen(n);
     const icon = folderIcon(n, open);
     const lead = n.hasChildren ? nodeToggle(`${open ? "Close" : "Open"} ${n.name}`, open, icon) : icon;
     // A workboard shows its status before its name; other rows keep the status after the star.
     const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), lead, ...(isWorkboard(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, false, true));
-    item.dataset.key = keyOf(n.relParts);
+    markNodeItem(item, n);
     item.prepend(...manageBox(n, item));
-    item.setAttribute("aria-selected", String(selected));
-    if (selected) item.classList.add("selected");
-    else if (onPath) item.classList.add("on-path");
-    if (n.ghost) item.classList.add("ghost");
-    if (n.locked) {
-      item.classList.add("locked");
-      item.setAttribute("aria-disabled", "true");
-    }
-    item.classList.toggle("reserved", n.reserved);
-    item.classList.toggle("rev", n.nodeType?.base === "REV");
-    if (n.ghost) item.setAttribute("aria-label", `${n.name} (missing on disk)`);
+    if (onPath && !item.classList.contains("selected")) item.classList.add("on-path");
     // Without a status the star takes the icon's place at the end of the row.
     if (n.favorite) item.append(favoriteMark());
     if (n.important) item.append(importantMark());
     if (n.status && !isWorkboard(n)) item.append(statusMark(n.status));
-    item.title = nodeSummary(n);
     if (n.hasChildren) {
       lead.addEventListener("dblclick", () => openColumn(n));
       const chevron = nodeToggle(`Show contents of ${n.name}`, null, guiIcon("chevronRight"));
@@ -81,7 +70,7 @@ export function createColumnsView(): ViewMode {
       chevron.addEventListener("dblclick", () => openColumn(n));
       item.append(chevron);
     }
-    item.addEventListener("click", (ev) => (ev.ctrlKey || ev.shiftKey ? clickSelect(n.relParts, siblings, { ctrl: ev.ctrlKey, shift: ev.shiftKey }) : pick(n)));
+    onItemClick(item, n, () => siblings, () => pick(n));
     item.addEventListener("dblclick", (ev) => {
       if (!fromToggle(ev)) startEdit(n.relParts);
     });

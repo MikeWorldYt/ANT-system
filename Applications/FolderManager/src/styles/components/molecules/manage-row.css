@@ -1,0 +1,6 @@
+/* Manage mode header and the rows it hides. */
+.manage-header { display: flex; align-items: center; gap: 8px; }
+.manage-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.manage-done { padding: 1px 10px; font-size: 9pt; }
+.manage-bar { grid-column: 1 / -1; justify-content: space-between; padding: 6px 8px; }
+.col-item.is-hidden, .grid-item.is-hidden { opacity: 0.55; }

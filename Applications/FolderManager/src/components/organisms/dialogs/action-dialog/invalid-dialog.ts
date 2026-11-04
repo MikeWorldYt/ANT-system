@@ -1,10 +1,10 @@
 // One table settles every folder that breaks the id format: a radio per action on each row.
-import "../../../../styles/components/organisms/dialogs/invalid-dialog.css";
 import { el } from "../../../dom";
 import { guiIcon } from "../../../atoms/gui-icons";
-import { dialogButton } from "../../../atoms/button";
-import { openDialog } from "../dialog-shell";
-import { colHeader, dialogTable } from "./action-dialog";
+import { textButton } from "../../../atoms/button";
+import { radio } from "../../../atoms/checkbox";
+import { selectBox } from "../../../atoms/select";
+import { actionDialog, colHeader, dialogTable } from "./action-dialog";
 import type { InvalidFolder, Resolution } from "../../../../services/ipc/types";
 
 export type Choice = "ignore" | "review" | "node" | "workboard";
@@ -82,14 +82,7 @@ export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: s
     };
     const headers = [colHeader(["Path"]), ...ACTIONS.map(([, lines]) => colHeader(lineBreaks(lines))), colHeader([], { "aria-label": "Delete or apply this folder only" })];
     const { table, view } = dialogTable("Folders outside the id format", headers, rows.map((r) => r.element));
-    const later = dialogButton("Later", "cancel");
-    const apply = dialogButton("Apply", "ok", "primary");
-    const { dialog, form, closed } = openDialog({
-      title: "Format validations",
-      wide: true,
-      body: [el("p", { class: "dialog-text" }, "ANT detects some invalid formats that have reached your storage. Choose what each one become."), view],
-      buttons: [later, apply],
-    });
+    const { dialog, form, closed, later, apply } = actionDialog("Format validations", "ANT detects some invalid formats that have reached your storage. Choose what each one become.", view);
 
     for (const r of rows) {
       r.applyButton.addEventListener("click", () => void applyRow(r));
@@ -120,16 +113,15 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
   const label = rel.join("/");
   const original = rel[rel.length - 1] ?? "";
   const hasReview = folder.review.length > 0;
-  const reviewPick = folder.review.length > 1 ? el("select", { class: "dialog-input invalid-pick", "aria-label": `Review folder for ${label}` }, ...folder.review.map((parts, i) => el("option", { value: String(i) }, parts.join("/")))) : null;
-  const trackerPick = el("select", { class: "dialog-input invalid-pick", "aria-label": `Tracker for ${label}` }, ...TRACKERS.map((t) => el("option", { value: t }, t)));
+  const reviewPick = folder.review.length > 1 ? selectBox(`Review folder for ${label}`, folder.review.map((parts, i) => [String(i), parts.join("/")]), "dialog-input invalid-pick") : null;
+  const trackerPick = selectBox(`Tracker for ${label}`, TRACKERS.map((t) => [t, t]), "dialog-input invalid-pick");
   trackerPick.value = folder.tracker ?? "PJ";
   const radios = new Map<Choice, HTMLInputElement>();
 
   const cells = ACTIONS.map(([choice, action]) => {
     const enabled = choice === "ignore" || choice === "node" || (choice === "review" && hasReview) || (choice === "workboard" && rel.length >= 2);
-    const attrs: Record<string, string> = { type: "radio", name, value: choice, "aria-label": `${action.join(" ")} ${label}` };
-    if (!enabled) attrs.disabled = "";
-    const input = el("input", attrs);
+    const input = radio({ name, value: choice, "aria-label": `${action.join(" ")} ${label}` });
+    input.disabled = !enabled;
     radios.set(choice, input);
     const extra = choice === "review" ? reviewPick : choice === "workboard" ? trackerPick : null;
     return el("td", {}, input, ...(extra ? [extra] : []));
@@ -152,7 +144,8 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
       el("span", { class: "invalid-name-new", style }, next),
     );
   };
-  const applyButton = el("button", { type: "button", class: "btn invalid-apply", "aria-label": `Apply only ${label}` }, "Apply");
+  const applyButton = textButton("Apply", "invalid-apply");
+  applyButton.setAttribute("aria-label", `Apply only ${label}`);
   const deleteButton = el("button", { type: "button", class: "invalid-delete", "aria-label": `Delete ${original}`, title: `Delete ${original}` }, guiIcon("trash"));
   const element = el("tr", {}, el("th", { scope: "row" }, pathButton(rel, shown, openFolder)), ...cells, el("td", {}, deleteButton, applyButton));
   return {

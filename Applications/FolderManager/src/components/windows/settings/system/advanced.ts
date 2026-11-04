@@ -1,10 +1,10 @@
 // Advanced page: the developer debug log, its folder, the webview console and the way back to default preferences.
 import { resetPreferences, changeSetting } from "../../../../hooks/ops";
 import { startDebugLog } from "../../../../hooks/debug-log";
-import { describeError, openDevtools, openLogsFolder, stopDebugLog } from "../../../../services/ipc/api";
+import { openDevtools, openLogsFolder, stopDebugLog } from "../../../../services/ipc/api";
 import { state } from "../../../../services/store/state";
 import { confirmDialog } from "../../../organisms/dialogs/info-dialog/info-dialog";
-import { setStatus } from "../../../organisms/bars/status-line";
+import { reportError } from "../../../organisms/bars/status-line";
 import { buttonControl } from "../../../atoms/button";
 import { switchControl } from "../../../atoms/switch";
 import type { SettingsPage } from "../page";
@@ -13,7 +13,7 @@ async function report(fn: () => Promise<void>): Promise<void> {
   try {
     await fn();
   } catch (e) {
-    setStatus("warning", describeError(e));
+    reportError("warning", e);
   }
 }
 

@@ -1,5 +1,4 @@
 // Task board of every workboard, shown for the virtual BOARD entry in place of whichever view is active.
-import "../../../styles/components/windows/board-view.css";
 import { el } from "../../dom";
 import { statusMark } from "../../atoms/status-mark";
 import { importantMark } from "../../molecules/name-cell";
@@ -11,6 +10,7 @@ import { goToReal } from "../../../hooks/virtual-nav";
 import { moveCard } from "../../../hooks/board";
 import { installBoardDrag } from "../../../hooks/board-drag";
 import { cardDetails } from "../../molecules/board-card";
+import { openFolder } from "../../../hooks/path-actions";
 import { boardCardMenu } from "../../organisms/menus/board-card-menu";
 import { isMenuKey, openMenuWith } from "../../organisms/menus/context-menu";
 import type { BoardColumn, TreeNode } from "../../../services/ipc/types";
@@ -47,7 +47,7 @@ export function createBoardView(host: HTMLElement, editDetails: () => void): { e
     const key = keyOf(n.relParts);
     const parent = n.relParts.slice(0, -1).join(" › ");
     const name = displayNodeName(n);
-    const { toggle, panel } = cardDetails(n, name, `board-details-${at}-${index}`, expanded.has(key), (open) => (open ? expanded.add(key) : expanded.delete(key)));
+    const { toggle, panel } = cardDetails(n, name, `board-details-${at}-${index}`, expanded.has(key), (open) => (open ? expanded.add(key) : expanded.delete(key)), (node) => void openFolder(node));
     const label = [name, n.important ? "important" : null, n.status ? statusLabel(n.status) : null, `in ${parent}`].filter(Boolean).join(", ");
     const head = el("div", { class: "board-card-head" }, ...(n.status ? [statusMark(n.status)] : []), el("span", { class: "board-name" }, name), ...(n.important ? [importantMark()] : []), toggle);
     const card = el("li", { class: "board-card", tabindex: "0", "aria-label": label, title: n.relParts.join("/") }, head, panel);
