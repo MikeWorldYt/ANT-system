@@ -7,7 +7,7 @@
 [![CLI Install](https://img.shields.io/github/v/release/MikeWorldYt/ANT-system?filter=create-new-storage-*&label=CLI-Install&color=00b386)](https://github.com/MikeWorldYt/ANT-system/releases?q=create-new-storage)
 [![FolderManager](https://img.shields.io/github/v/release/MikeWorldYt/ANT-system?filter=folder-manager-*&label=FolderManager&color=00b386)](https://github.com/MikeWorldYt/ANT-system/releases?q=folder-manager)
 
-[![Docs](https://img.shields.io/badge/docs-ant-ant.mikeworld.dev-4f8cff)](https://ant.mikeworld.dev/en/introduction/what-is-ant/)
+[![Docs](https://img.shields.io/badge/docs-ant.mikeworld.dev-4f8cff)](https://ant.mikeworld.dev/en/introduction/what-is-ant/)
 [![Build apps](https://img.shields.io/github/actions/workflow/status/MikeWorldYt/ANT-system/build-apps.yml?branch=main&label=builds)](https://github.com/MikeWorldYt/ANT-system/actions/workflows/build-apps.yml)
 
 
@@ -21,24 +21,24 @@
 
 ---
 
-## Why ANT?
+## Why use ANT?
 
-Folders rot. Names drift, structure depends on whoever made it, and finding something three years later means remembering how you thought back then. ANT fixes this with a small set of strict rules that stay readable at ten files or ten million:
+> How many times have you saved something as `Final report updated UPDATED (2).docx` and told yourself ye I'd order it later?... (Later never comes).
 
-- **Predictable names.** Files and folders follow a naming format (Block, Chill and Control naming), so they sort correctly and can be found with any operating system's search.
-- **A fixed shape.** Numbered top-level categories and a DAG-adapted tree give every item one obvious home.
-- **Tools that enforce it.** Small utilities create, maintain and rename a storage so the rules cost you nothing to follow.
+> How many times spend time digging amoung thousands of files and folders looking for this same file?
 
-```
-400.ACADEMIC / PJ.033__Thesis-Draft
-                │ { 
-                │  "id": "03ASGTVCK1H8M6D"
-                │  "owner": "Mike Diaz",
-                │  "created": "26-10-26",
-                │  "status": "in-progress"
-                │ }
-                └ 
-```
+Let's be honest, You often pile up **"important files"** on the `Desktop`, in a folder with the name's client or company, or directly in your `Downloads`. You and ​<u>more than 83% of computer users make it</u>.
+
+Whether you are in a Hurry or don't have idea how name it, You end up saving it as a generic name as `"my project"` in whatever folder opened.
+
+The main app **FolderManager**, tho looks like another File explorer, **it's an automation tool based on ANT System**, a nested, hierarchical categorization rules backed by a `Local Database`;
+
+* **Built-in automation:** the app takes over the tedious work of naming, structuring and sorting, keeping manual work to a minimum.
+* **Standardization:** you always know exactly what a file is called and where it lives.
+* **Project management:** every project carries a status (in progress, on hold, done) and appears on a built-in Kanban board, so you can review them all in one place without browsing through folders.
+* ***AI-ready* architecture:** because your files follow clean, logical rules, your storage becomes a CMS that AI agents can read, process and work with without mistakes.
+
+> A clear digital workspace no requiered paid plan, Whit this **foundations rules for working or studying** without the fatigue of searching for what you already made. It's by far, the smartest way to simplify your day.
 
 ## Quick start
 
@@ -123,6 +123,17 @@ Each package is independent, with its own dependencies and no root workspace. Ex
 ## Documentation
 
 Everything about the method lives at **[ant-system.vercel.app](https://ant-system.vercel.app/en/introduction/what-is-ant/)**, in English and Spanish: the naming format, the storage rules, migration plans and how each tool works.
+
+```
+400.ACADEMIC / PJ.033__Thesis-Draft
+                │ { 
+                │  "id": "03ASGTVCK1H8M6D"
+                │  "owner": "Mike Diaz",
+                │  "created": "26-10-26",
+                │  "status": "in-progress"
+                │ }
+                └ 
+```
 
 ## Contributing
 
