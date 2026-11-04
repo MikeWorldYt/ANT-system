@@ -5,12 +5,12 @@ use serde_yaml::Mapping;
 use tauri::{AppHandle, Manager};
 
 use super::{review_emitter, run_locked, Storage};
+use crate::domain::model::Copies;
 use crate::error::{FmError, R};
 use crate::fs_safe::{join_rel, validate_component};
-use crate::index::footprint::Copies;
 use crate::index::{node_names, reindex, review_folders, review_index, Emit};
+use crate::services::snapshot::snapshot;
 use crate::tree::root_check::{self, RootCheck};
-use crate::tree::snapshot;
 use crate::tree::tree_node::{build_children, fill_children, lists_files, TreeNode, TreeSnapshot};
 use crate::tree::tree_store;
 

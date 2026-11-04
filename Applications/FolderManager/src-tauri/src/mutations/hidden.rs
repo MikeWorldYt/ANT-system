@@ -108,11 +108,11 @@ fn parent_selection(rel: &[String]) -> Option<Vec<String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::index::footprint::Copies;
+    use crate::domain::model::Copies;
     use crate::test_support::*;
 
     fn listed_under_root_child(dir: &Path) -> Vec<String> {
-        let tree = crate::tree::snapshot(dir, Copies::Tail).unwrap();
+        let tree = crate::services::snapshot::snapshot(dir, Copies::Tail).unwrap();
         tree.nodes[0].children.as_ref().unwrap().iter().map(|n| n.name.clone()).collect()
     }
 

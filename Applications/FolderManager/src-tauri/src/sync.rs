@@ -2,11 +2,12 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
+use crate::domain::model::Copies;
 use crate::error::R;
-use crate::index::footprint::Copies;
 use crate::index::review_index;
 use crate::scheduler::{self, Task};
-use crate::tree::{snapshot, tree_store};
+use crate::services::snapshot::snapshot;
+use crate::tree::tree_store;
 
 const TASK: Task = Task { name: "ANT System Manager Sync", flag: "--sync", start: "12:30", what: "sync" };
 

@@ -6,7 +6,6 @@ use std::hash::{BuildHasher, Hasher};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, flags_in, type_base, META_KEYS};
@@ -14,6 +13,7 @@ use crate::config::{DATA_DIR, FOOTPRINT_FILENAME, HIDDEN_FLAG};
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, join_rel, write_atomic};
 use crate::ant_core::names::list_subdirs;
+use crate::domain::model::{Copied, Copies};
 use crate::storage::db::hide;
 use crate::tree::depth;
 use crate::tree::tree_node::is_reserved;
@@ -99,20 +99,6 @@ fn create_markers(root: &Path, paths: &[String]) -> Vec<String> {
 
 fn rel_of(path: &str) -> Vec<String> {
     path.split('/').map(str::to_string).collect()
-}
-
-// Only a refresh the user sees tails copies, because each tailed copy must reach the question exactly once.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Copies {
-    Ignore,
-    Tail,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Copied {
-    pub rel_parts: Vec<String>,
-    pub original: Vec<String>,
 }
 
 pub struct Plan {

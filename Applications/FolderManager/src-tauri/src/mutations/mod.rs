@@ -31,9 +31,10 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::tree_types::{child_entries, META_KEYS};
 use crate::config::is_hidden_dir;
+use crate::domain::model::Copies;
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, resolve, same_name, Journal};
-use crate::index::footprint::{self, Copies};
+use crate::index::footprint;
 use crate::tree::tree_node::{is_reserved, TreeNode, TreeSnapshot};
 use crate::tree::tree_store::{self, get_node, get_type, is_locked_type};
 

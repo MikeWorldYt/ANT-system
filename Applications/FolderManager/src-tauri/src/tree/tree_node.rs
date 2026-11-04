@@ -11,9 +11,9 @@ use crate::ant_core::tree_types::{child_entries, flags_in, type_base, type_level
 use crate::config::{
     HIDDEN_FLAG, LINK_FAVORITES_FILENAME, LINK_HIDDEN_FILENAME, LINKED_PREFIXES, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
+use crate::domain::model::Copied;
 use crate::error::R;
 use crate::fs_safe::{io_err, join_rel};
-use crate::index::footprint::Copied;
 use crate::index::{link_list, review_index};
 use crate::storage::info::{field_of, read_info, NodeInfo};
 use crate::ant_core::names::{name_parts, is_movable_node, is_system_root_name, list_subdirs, numeric_id};
@@ -827,23 +827,6 @@ mod tests {
         assert_eq!(l4[0].depth, crate::config::MAX_DEPTH);
         assert!(!a.change_type && !a.add_next && a.rename && a.copy_path);
         assert!(l4[0].has_children);
-    }
-
-    #[test]
-    fn a_raised_depth_limit_loads_and_opens_the_next_level() {
-        let dir = TempDir::new("raised-depth");
-        dir.mkdir("01.A/01.B/01.C/01.D/01.E");
-        crate::storage::db::Store::open_or_create(dir.path()).unwrap().set_setting(depth::DEPTH_KEY, "4").unwrap();
-        let tree = crate::tree::snapshot(dir.path(), crate::index::footprint::Copies::Tail).unwrap();
-        let child = |n: &TreeNode| n.children.as_ref().map(|k| k[0].clone()).unwrap();
-        let l3 = child(&child(&tree.nodes[0]));
-        assert!(l3.has_children && l3.actions.change_type && l3.actions.add_next);
-        let l4 = child(&l3);
-        assert_eq!((l4.name.as_str(), l4.depth), ("01.D", 3));
-        assert!(l4.has_children && l4.actions.change_type && l4.actions.add_next);
-        let data = crate::tree::tree_store::load(dir.path()).unwrap();
-        assert_eq!(crate::tree::tree_store::get_type(&data, &rel(&["01.A", "01.B", "01.C", "01.D"])), "NODE-L4");
-        assert!(get_node(&data, &rel(&["01.A", "01.B", "01.C", "01.D", "01.E"])).is_none());
     }
 
     #[test]

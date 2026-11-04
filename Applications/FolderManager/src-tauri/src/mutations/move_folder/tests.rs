@@ -5,7 +5,8 @@ use serde_yaml::Value;
 
 use super::*;
 use crate::ant_core::search::parse_query;
-use crate::index::footprint::{plan, scan, Copies};
+use crate::domain::model::Copies;
+use crate::index::footprint::{plan, scan};
 use crate::index::review_index::rebuild_with;
 use crate::index::{reindex_paths, search_index, ReviewIndexEvent};
 use crate::storage::db::Store;

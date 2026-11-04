@@ -37,7 +37,8 @@ mod tests {
     use serde_yaml::{Mapping, Value};
 
     use super::*;
-    use crate::index::footprint::{plan, Copies};
+    use crate::domain::model::Copies;
+    use crate::index::footprint::plan;
     use crate::test_support::{rel, TempDir};
     use crate::tree::tree_store::{get_node, sync};
 
@@ -103,7 +104,7 @@ mod tests {
     fn a_dismissed_question_keeps_the_tail_and_is_not_asked_again() {
         let dir = tailed_copy("answer-dismissed");
         let tail = id_of(&dir, COPY);
-        let tree = crate::tree::snapshot(dir.path(), Copies::Tail).unwrap();
+        let tree = crate::services::snapshot::snapshot(dir.path(), Copies::Tail).unwrap();
         assert!(tree.copies.is_empty());
         assert_eq!(id_of(&dir, COPY), tail);
         assert_eq!(stored_uid(&dir, COPY), Some(tail));
