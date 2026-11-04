@@ -6,7 +6,7 @@ import { nativeImage } from "../ui/file-images";
 import { statusMark } from "../ui/status-mark";
 import { favoriteMark, hideBox, nameCell } from "./name-cell";
 import { nodeToggle } from "./node-toggle";
-import { holdsFiles, nodeSummary } from "../store/node-info";
+import { nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "./manage-row";
@@ -181,7 +181,7 @@ export function createGridView(): ViewMode {
       const nodes = shownNodes();
       const tabbable = nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0];
       const open = folderNode();
-      const empty = nodes.length === 0 && open !== null && open.children !== null && holdsFiles(open);
+      const empty = nodes.length === 0 && open !== null && open.children !== null;
       const legend = listing && nodes.length === 0 ? listing.empty : empty ? "Empty" : null;
       const header = isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : [];
       // The open entry heads its own list, so the grid tells where it is.

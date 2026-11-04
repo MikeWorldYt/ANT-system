@@ -7,7 +7,7 @@ import { statusMark } from "../ui/status-mark";
 import { columnSortToggle } from "./column-sort";
 import { favoriteMark, hideBox, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
-import { hiddenCategories, holdsFiles, isReviewRoot, isWorkboard, linkCategory, nodeSummary } from "../store/node-info";
+import { hiddenCategories, isReviewRoot, isWorkboard, linkCategory, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "./manage-row";
@@ -23,11 +23,11 @@ interface Column {
   loading: boolean;
 }
 
-// Why an empty column is empty: a filter hides the review list, or a review folder has no content yet.
+// Why an empty column is empty: a filter hides the review list, or the folder has no content.
 function emptyLegend(parent: TreeNode | null): string | null {
   if (parent === null) return null;
   if (isReviewRoot(parent)) return hiddenCategories(parent).length > 0 ? "No active filters" : null;
-  return holdsFiles(parent) ? "Empty" : null;
+  return "Empty";
 }
 
 // `opened` is the selected folder whose child column the user opened; selecting alone shows none.
@@ -50,7 +50,7 @@ function buildColumns(opened: string | null): Column[] {
       break;
     }
     if (open.children.length === 0) {
-      if (isReviewRoot(open) || holdsFiles(open)) cols.push({ nodes: [], loading: false });
+      cols.push({ nodes: [], loading: false });
       break;
     }
     nodes = open.children;

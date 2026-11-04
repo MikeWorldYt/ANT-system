@@ -1,5 +1,5 @@
 // Tree view: indented expandable rows with keyboard navigation.
-import { holdsFiles, isWorkboard, nodeSummary } from "../store/node-info";
+import { isWorkboard, nodeSummary } from "../store/node-info";
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "./context-menu";
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
@@ -68,9 +68,9 @@ export function createTreeView(): ViewMode {
     return row;
   }
 
-  // An opened review folder with nothing in it gets a line under its row, so the row does not look unfinished.
+  // An opened folder with nothing in it gets a line under its row, so the row does not look unfinished.
   function emptyLegend(n: TreeNode): HTMLElement[] {
-    if (!holdsFiles(n) || n.children?.length !== 0 || !state.expanded.has(keyOf(n.relParts))) return [];
+    if (n.children?.length !== 0 || !state.expanded.has(keyOf(n.relParts))) return [];
     const legend = el("div", { class: "tree-legend" }, "Empty");
     legend.style.setProperty("--depth", String(n.depth + 1));
     return [legend];
