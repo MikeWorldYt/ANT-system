@@ -3,6 +3,7 @@ import * as api from "../ipc/api";
 import { choiceDialog, warningConfirmDialog } from "../ui/dialogs";
 import { el } from "../ui/dom";
 import { beginOperationStatus, clearStatus, endOperationStatus, setStatus } from "../ui/status";
+import { markRefreshed } from "./auto-refresh";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
@@ -16,6 +17,7 @@ import { isFmError } from "../ipc/types";
 import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
+  markRefreshed();
   const tree = snapshot ?? (await api.refresh());
   setTree(tree);
   if (tree.warnings.length > 0) setStatus("warning", tree.warnings.join(". "));

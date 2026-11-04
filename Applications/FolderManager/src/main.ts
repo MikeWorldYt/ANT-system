@@ -13,6 +13,7 @@ import { createNavigator } from "./shell/navigator";
 import { createSearchBar } from "./shell/search-bar";
 import { onFileDrag, onReviewIndex, onStorageChanged, onWindowFocus } from "./ipc/events";
 import { init, refresh } from "./actions/ops";
+import { autoRefresh } from "./actions/auto-refresh";
 import { handleFileDrag } from "./actions/file-drop";
 import { installShortcuts } from "./actions/shortcuts";
 import { restoreFocus, trackFieldFocus } from "./actions/focus-return";
@@ -106,27 +107,9 @@ onReviewIndex((e) => {
   }
 }).catch((e) => setStatus("warning", `Review index updates unavailable: ${describeError(e)}`));
 trackFieldFocus();
-onWindowFocus(() => void refresh().finally(() => restoreFocus(() => views.current().focus()))).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
+onWindowFocus(() => void autoRefresh(refresh).finally(() => restoreFocus(() => views.current().focus()))).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
 
-// Watcher batches can arrive while a refresh runs; one pending rerun covers them all.
-let refreshing = false;
-let pending = false;
-async function refreshForWatcher(): Promise<void> {
-  if (refreshing) {
-    pending = true;
-    return;
-  }
-  refreshing = true;
-  try {
-    do {
-      pending = false;
-      await refresh();
-    } while (pending);
-  } finally {
-    refreshing = false;
-  }
-}
-onStorageChanged(() => void refreshForWatcher()).catch((e) =>
+onStorageChanged(() => void autoRefresh(refresh)).catch((e) =>
   setStatus("warning", `Live storage updates unavailable: ${describeError(e)}`),
 );
 
