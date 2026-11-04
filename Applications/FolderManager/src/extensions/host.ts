@@ -1,8 +1,8 @@
 // Starts the enabled extensions, answers their permission-checked requests and owns their menu items.
-import { describeError, listExtensions, readExtensionEntry, type ExtensionInfo } from "../ipc/api";
-import type { TreeNode } from "../ipc/types";
-import { state } from "../store/state";
-import { setStatus } from "../ui/status";
+import { describeError, listExtensions, readExtensionEntry, type ExtensionInfo } from "../services/ipc/api";
+import type { TreeNode } from "../services/ipc/types";
+import { state } from "../services/store/state";
+import { setStatus } from "../components/organisms/bars/status-line";
 import { clearProviders, provide, receive } from "./details";
 import { addSection, type PanelSection } from "./panel";
 import { MAX_MENU_ITEMS, NEEDS, parseIncoming, parseMenuItem, summarize, type Op } from "./protocol";

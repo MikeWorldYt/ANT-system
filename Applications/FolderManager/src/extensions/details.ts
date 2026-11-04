@@ -1,7 +1,7 @@
 // Extension fields for the selected folder: asks every provider, keeps only the latest timely answer.
-import type { TreeNode } from "../ipc/types";
-import { keyOf } from "../store/state";
-import { setStatus } from "../ui/status";
+import type { TreeNode } from "../services/ipc/types";
+import { keyOf } from "../services/store/state";
+import { setStatus } from "../components/organisms/bars/status-line";
 import { parseFields, summarizeOne, type DetailField } from "./protocol";
 
 export interface DetailsClient {

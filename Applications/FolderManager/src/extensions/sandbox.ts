@@ -1,6 +1,6 @@
 // Builds the isolated iframe one extension runs in: opaque origin, strict CSP, postMessage only.
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { el } from "../ui/dom";
+import { el } from "../components/dom";
 
 export const SANDBOX_SCHEME = "extsandbox";
 

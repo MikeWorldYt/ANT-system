@@ -1,0 +1,212 @@
+// Grid view: large icons for the contents of one folder, entered with double click or Enter.
+import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "../../organisms/menus/context-menu";
+import { el } from "../../dom";
+import { folderIcon } from "../../atoms/icons";
+import { nativeImage } from "../../../services/file-images";
+import { statusMark } from "../../atoms/status-mark";
+import { favoriteMark, hideBox, importantMark, nameCell } from "../../molecules/name-cell";
+import { nodeToggle } from "../../atoms/node-toggle";
+import { nodeSummary } from "../../../services/store/node-info";
+import { sortedForColumns } from "../../../services/store/sort";
+import { expand } from "../../../hooks/ops";
+import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
+import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
+import { virtualNodes } from "../../../services/store/virtual";
+import { openVirtual } from "../../../hooks/virtual-nav";
+import { openEntry, ROOT_ENTRIES, virtualEntries, virtualEntry, type VirtualEntry } from "../../molecules/virtual-entry";
+import type { TreeNode } from "../../../services/ipc/types";
+import type { ViewMode } from "./view-mode";
+
+export function createGridView(): ViewMode {
+  const root = el("div", { class: "grid", role: "listbox", "aria-label": "Folder contents" });
+  const loading = new Set<string>();
+  // Key of the folder being shown; null is the Storage root.
+  let folder: string | null = null;
+
+  // Selecting inside the folder keeps it; any other selection (breadcrumb, back, search) moves the grid there.
+  function syncFolder(): void {
+    const key = state.selectedKey;
+    // An open virtual list is shown until one of its entries is entered; below it the grid moves as in any folder.
+    if (key === null || (state.virtual !== null && folder === null && state.virtualKeys.includes(key))) {
+      folder = null;
+      return;
+    }
+    const parts = key.split("/");
+    const parent = parts.length > 1 ? parts.slice(0, -1).join("/") : null;
+    if (key === folder || parent === folder) return;
+    folder = selectedNode()?.hasChildren ? key : parent;
+  }
+
+  let built: ManageSnapshot | null = null;
+
+  function folderNode(): TreeNode | null {
+    return folder === null ? null : findNode(folder.split("/"));
+  }
+
+  function shownNodes(): TreeNode[] {
+    if (state.virtual !== null && folder === null) return virtualNodes();
+    const open = folderNode();
+    const base = folder === null ? (state.tree?.nodes ?? []) : (open?.children ?? []);
+    return (isManagedFolder(folder ?? "") ? managedNodes() : null) ?? sortedForColumns(listed(base), sortOf(folder ?? ""), state.settings.pinFavorites);
+  }
+
+  // The snapshot only carries the first level, so the folder's children are fetched when it is shown.
+  function loadChildren(): void {
+    const open = folderNode();
+    if (!open || !open.hasChildren || open.children !== null || folder === null || loading.has(folder)) return;
+    const key = folder;
+    loading.add(key);
+    void expand(open).finally(() => loading.delete(key));
+  }
+
+  function enter(n: TreeNode): void {
+    if (!n.hasChildren) return;
+    folder = keyOf(n.relParts);
+    select(n.relParts);
+  }
+
+  // A file's thumbnail replaces its icon once the shell has drawn it.
+  function previewIcon(n: TreeNode): HTMLElement {
+    const src = nativeImage(n, true);
+    return src ? el("img", { class: "thumb", src, alt: "" }) : folderIcon(n);
+  }
+
+  function buildItem(n: TreeNode, tabbable: boolean): HTMLElement {
+    const selected = isSelected(keyOf(n.relParts));
+    const icon = n.file ? previewIcon(n) : folderIcon(n);
+    const art = n.hasChildren ? nodeToggle(`Open ${n.name}`, null, folderIcon(n)) : el("span", {}, icon);
+    art.classList.add("grid-art");
+    if (n.favorite) art.append(favoriteMark());
+    if (n.important) art.append(importantMark());
+    if (n.status) art.append(statusMark(n.status));
+    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, nameCell(n, false));
+    item.dataset.key = keyOf(n.relParts);
+    item.prepend(...manageBox(n, item));
+    item.setAttribute("aria-selected", String(selected));
+    if (selected) item.classList.add("selected");
+    if (n.ghost) {
+      item.classList.add("ghost");
+      item.setAttribute("aria-label", `${n.name} (missing on disk)`);
+    }
+    if (n.locked) {
+      item.classList.add("locked");
+      item.setAttribute("aria-disabled", "true");
+    }
+    item.classList.toggle("reserved", n.reserved);
+    item.classList.toggle("rev", n.nodeType?.base === "REV");
+    item.title = nodeSummary(n);
+    item.addEventListener("click", (ev) => {
+      if (ev.ctrlKey || ev.shiftKey) clickSelect(n.relParts, shownNodes().map((s) => keyOf(s.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
+      else select(n.relParts);
+    });
+    // As in Explorer, the name renames and the rest of the tile opens.
+    item.addEventListener("dblclick", (ev) => (ev.target instanceof Element && ev.target.closest(".name") ? startEdit(n.relParts) : enter(n)));
+    item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
+    return item;
+  }
+
+  // The open entry heads its own list; in the root grid FAVORITES leads. Inside a folder there is none.
+  const headEntry = (): VirtualEntry | undefined => (folder === null ? (openEntry() ?? ROOT_ENTRIES[0]) : undefined);
+
+  function perRow(): number {
+    const items = [...root.querySelectorAll<HTMLElement>(".grid-item")];
+    const top = items[0]?.offsetTop;
+    return Math.max(1, items.filter((i) => i.offsetTop === top).length);
+  }
+
+  function onKey(ev: KeyboardEvent): void {
+    // Modified arrows belong to the global shortcuts (Ctrl+Right, Alt+Down, Alt+Up).
+    if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
+    const n = selectedNode();
+    if (isMenuKey(ev)) {
+      if (n) nodeMenuFromKey(root, n, root.querySelector(".grid-item.selected"));
+      ev.preventDefault();
+      return;
+    }
+    const nodes = shownNodes();
+    // The entry tile comes first in the arrow order, so every folder tile sits one place after its index.
+    const head = headEntry();
+    const lead = head ? 1 : 0;
+    const idx = n ? nodes.indexOf(n) : -1;
+    const i = idx >= 0 ? idx + lead : head && !n ? 0 : -1;
+    const go = (j: number) => {
+      const at = Math.max(0, Math.min(nodes.length + lead - 1, j));
+      if (at === i) return;
+      if (head && at === 0) return void openVirtual(head.id);
+      const target = nodes[at - lead];
+      if (target) select(target.relParts);
+    };
+    switch (ev.key) {
+      case "ArrowRight":
+        go(i + 1);
+        break;
+      case "ArrowLeft":
+        go(i < 0 ? 0 : i - 1);
+        break;
+      case "ArrowDown":
+        go(i < 0 ? 0 : i + perRow());
+        break;
+      case "ArrowUp":
+        go(i < 0 ? 0 : i - perRow());
+        break;
+      case "Home":
+        go(0);
+        break;
+      case "End":
+        go(nodes.length + lead - 1);
+        break;
+      case "F2":
+        if (n) startEdit(n.relParts);
+        break;
+      case "Enter":
+        if (i < 0) go(0);
+        else if (n) enter(n);
+        break;
+      default:
+        return;
+    }
+    ev.preventDefault();
+  }
+
+  return {
+    id: "grid",
+    label: "Grid",
+    mount(host) {
+      root.addEventListener("keydown", onKey);
+      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, folderNode(), root));
+      host.append(root);
+    },
+    render() {
+      syncFolder();
+      const listing = folder === null ? openEntry() : null;
+      // The background is a drop target for the folder shown; a virtual list is no folder.
+      if (listing) delete root.dataset.key;
+      else root.dataset.key = folder ?? "";
+      if (sameManage(built)) return;
+      const hadFocus = root.contains(document.activeElement);
+      const nodes = shownNodes();
+      const head = headEntry();
+      // With nothing selected the entry tile leads the roving focus.
+      const entryTabbable = head !== undefined && state.selectedKey === null;
+      const tabbable = entryTabbable ? undefined : (nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0]);
+      const open = folderNode();
+      const empty = nodes.length === 0 && open !== null && open.children !== null;
+      const legend = listing && nodes.length === 0 ? listing.empty : empty ? "Empty" : null;
+      const header = isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : [];
+      // The open entry heads its own list, so the grid tells where it is.
+      const entryOptions = { tabbable: entryTabbable };
+      const entries = listing ? [virtualEntry(listing, "grid-item", "option", entryOptions)] : folder === null ? virtualEntries("grid-item", "option", entryOptions) : [];
+      root.replaceChildren(...header, ...entries, ...nodes.map((n) => buildItem(n, n === tabbable)), ...(legend ? [el("p", { class: "grid-legend" }, legend)] : []));
+      built = manageSnapshot();
+      root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
+      if (hadFocus) root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus({ preventScroll: true });
+      loadChildren();
+    },
+    focus() {
+      root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus();
+    },
+    destroy() {
+      root.remove();
+    },
+  };
+}

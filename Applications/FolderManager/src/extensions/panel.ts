@@ -1,5 +1,5 @@
 // Collapsible "Extensions" area of the details panel; each running extension owns one section in it.
-import { el } from "../ui/dom";
+import { el } from "../components/dom";
 
 const list = el("div", { class: "ext-sections" });
 const area = el("details", { class: "ext-area" }, el("summary", {}, "Extensions"), list);

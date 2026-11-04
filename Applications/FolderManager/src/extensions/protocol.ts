@@ -1,6 +1,6 @@
 // Message shapes between a sandboxed extension and the host, and the checks every request passes.
-import type { ExtensionPermission } from "../ipc/api";
-import type { TreeNode } from "../ipc/types";
+import type { ExtensionPermission } from "../services/ipc/api";
+import type { TreeNode } from "../services/ipc/types";
 
 export const MAX_MESSAGE = 64 * 1024;
 export const MAX_MENU_ITEMS = 20;
