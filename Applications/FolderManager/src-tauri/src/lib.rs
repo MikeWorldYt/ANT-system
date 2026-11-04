@@ -1,30 +1,20 @@
 // Library root so the app builds as both a desktop binary and a Tauri library.
 mod ant_core;
 mod app;
-mod backup;
 mod commands;
-mod config;
-mod debug_log;
 mod domain;
-mod error;
-mod extensions;
-mod fs_safe;
-mod index;
-mod intake;
+mod infra;
 #[cfg(test)]
 mod ipc_parity_tests;
-mod mutations;
-mod preview;
-mod scheduler;
+mod platform;
 mod services;
-mod storage;
-mod sync;
 #[cfg(test)]
 mod test_support;
-mod tree;
-mod updater;
-mod watch;
-mod window_state;
+
+use app::window_state;
+use domain::{config, error};
+use infra::{fs_safe, storage};
+use services::{backup, debug_log, extensions, index, intake, mutations, preview, scheduler, sync, tree, updater, watch};
 
 use commands::settings;
 

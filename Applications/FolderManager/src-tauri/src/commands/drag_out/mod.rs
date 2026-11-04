@@ -1,6 +1,4 @@
 // Drags storage folders and files out to Explorer or the desktop, offered only as a move.
-#[cfg(windows)]
-mod com;
 #[cfg(test)]
 mod tests;
 
@@ -16,12 +14,9 @@ use crate::ant_core::tree_types::flags_in;
 use crate::config::MAIN_FLAG;
 use crate::fs_safe::join_rel;
 use crate::mutations::{self, locate, Target};
+use crate::platform::drag_out::drag_folders;
 use crate::tree::tree_node::is_reserved;
 use crate::tree::tree_store::{self, get_node};
-
-const DROPEFFECT_MOVE: u32 = 2;
-// Only a move: Explorer would otherwise default to copy across drives and leave the original behind.
-const ALLOWED_EFFECTS: u32 = DROPEFFECT_MOVE;
 
 #[tauri::command]
 pub async fn start_drag_out(app: AppHandle, targets: Vec<Vec<String>>) -> R<u32> {
@@ -63,12 +58,4 @@ pub(super) fn drag_plan(root: &Path, data: &Mapping, target: &[String]) -> R<Pat
         return Err(FmError::NotFound { rel_parts: target.to_vec() });
     }
     Ok(abs)
-}
-
-#[cfg(windows)]
-use com::drag_folders;
-
-#[cfg(not(windows))]
-fn drag_folders(_paths: &[PathBuf]) -> R<u32> {
-    Err(FmError::Internal { message: "Drag out is only available on Windows for now".to_string() })
 }

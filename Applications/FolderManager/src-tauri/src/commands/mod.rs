@@ -1,6 +1,5 @@
 // Tauri command layer: runs the pure core under the storage lock off the UI thread.
 mod backup;
-mod clipboard;
 mod debug;
 mod drag_out;
 mod edit;
@@ -23,6 +22,7 @@ use std::path::Path;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::config::{DEPTH_CEILING, MAX_DEPTH};
+use crate::platform::clipboard;
 use crate::error::{FmError, R};
 use crate::index::ReviewIndexEvent;
 use crate::tree::depth;

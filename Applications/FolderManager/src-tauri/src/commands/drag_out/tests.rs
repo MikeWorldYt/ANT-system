@@ -1,4 +1,5 @@
-use super::{drag_plan, ALLOWED_EFFECTS};
+use super::drag_plan;
+use crate::platform::drag_out::ALLOWED_EFFECTS;
 use crate::error::FmError;
 use crate::test_support::{academic, rel, yaml};
 
@@ -36,7 +37,7 @@ fn the_dropfiles_block_lists_wide_paths_after_its_header() {
     use std::path::PathBuf;
     use windows_sys::Win32::UI::Shell::DROPFILES;
 
-    use crate::commands::clipboard::hdrop_bytes;
+    use crate::platform::clipboard::hdrop_bytes;
 
     let paths = [PathBuf::from(r"C:\a"), PathBuf::from(r"D:\bé")];
     let bytes = hdrop_bytes(&paths);
