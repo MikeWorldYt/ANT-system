@@ -12,6 +12,9 @@ import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "./manage-row";
 import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { virtualNodes } from "../store/virtual";
+import { goToReal, openVirtual } from "../actions/virtual-nav";
+import { openEntry, virtualEntries } from "./virtual-entry";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -32,6 +35,8 @@ function buildColumns(opened: string | null): Column[] {
   const cols: Column[] = [];
   const path = state.selectedKey?.split("/") ?? [];
   let nodes: TreeNode[] = state.tree?.nodes ?? [];
+  // An open virtual entry lists its folders beside the root, wherever they live.
+  if (state.virtual !== null) return [{ nodes: sortedForColumns(listed(nodes), sortOf(""), state.settings.pinFavorites), loading: false }, { nodes: virtualNodes(), loading: false }];
   for (let depth = 0; ; depth++) {
     const shown = sortedForColumns(listed(nodes), sortOf(path.slice(0, depth).join("/")), state.settings.pinFavorites);
     cols.push({ nodes: shown, loading: false });
@@ -67,12 +72,14 @@ export function createColumnsView(): ViewMode {
   }
 
   function openColumn(n: TreeNode): void {
+    // Opening a listed folder takes the columns to where it really lives.
+    if (state.virtual !== null) return void goToReal(n.relParts).then(() => openColumn(n));
     openKey = keyOf(n.relParts);
     select(n.relParts);
   }
 
   function pick(n: TreeNode): void {
-    if (n.hasChildren && state.settings.autoOpenColumns) openColumn(n);
+    if (n.hasChildren && state.settings.autoOpenColumns && state.virtual === null) openColumn(n);
     else select(n.relParts);
   }
 
@@ -120,16 +127,17 @@ export function createColumnsView(): ViewMode {
 
   function buildColumn(col: Column, index: number, path: string[], parent: string): HTMLElement {
     if (col.loading) return el("div", { class: "column loading", "aria-busy": "true" }, "Loading…");
-    const column = el("div", { class: "column", role: "listbox", "aria-label": `Contents of ${parent}` });
-    const parentNode = parentOf(path, index);
+    const listing = state.virtual !== null && index === 1 ? openEntry() : null;
+    const column = el("div", { class: "column", role: "listbox", "aria-label": listing ? listing.label : `Contents of ${parent}` });
+    const parentNode = listing ? null : parentOf(path, index);
     // The review list holds long link names, so it gets twice the width of an ordinary column.
     column.classList.toggle("review-list", parentNode !== null && isReviewRoot(parentNode));
-    // The empty area of a column is a drop target for the folder it lists; "" is the storage root.
-    column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
+    // The empty area of a column is a drop target for the folder it lists; "" is the storage root. A virtual list is no folder.
+    if (!listing) column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
     column.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentNode, root));
-    const managed = isManagedFolder(column.dataset.key ?? "");
+    const managed = !listing && isManagedFolder(column.dataset.key ?? "");
     const nodes = managed ? (managedNodes() ?? col.nodes) : col.nodes;
-    const onPath = index < path.length - 1 ? nodes.find((n) => n.name === path[index]) : undefined;
+    const onPath = state.virtual === null && index < path.length - 1 ? nodes.find((n) => n.name === path[index]) : undefined;
     // The empty area of a column steps back to its row on the selected path.
     column.addEventListener("click", (ev) => {
       if (!onPath || (ev.target instanceof Element && ev.target.closest(".col-item"))) return;
@@ -140,7 +148,7 @@ export function createColumnsView(): ViewMode {
     const first = nodes[0];
     const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
     // Not an item, so it cannot be selected; it only tells why the review list is empty.
-    const legend = nodes.length === 0 ? emptyLegend(parentNode) : null;
+    const legend = nodes.length === 0 ? (listing?.empty ?? emptyLegend(parentNode)) : null;
     const siblings = nodes.map((n) => keyOf(n.relParts));
     const rows = nodes.flatMap((n, i) => {
       const prev = nodes[i - 1];
@@ -150,8 +158,9 @@ export function createColumnsView(): ViewMode {
       return groupStart ? [el("div", { class: "col-sep", role: "separator" }), item] : [item];
     });
     column.append(
-      columnSortToggle(path.slice(0, index).join("/")),
+      ...(listing ? [] : [columnSortToggle(path.slice(0, index).join("/"))]),
       ...(managed ? [manageHeader("col-item")] : []),
+      ...(index === 0 ? virtualEntries("col-item", "option") : []),
       ...rows,
       ...(legend ? [el("p", { class: "column-legend" }, legend)] : []),
     );
@@ -176,7 +185,7 @@ export function createColumnsView(): ViewMode {
       return;
     }
     const cols = buildColumns(openKey);
-    const siblings = (n ? cols[n.relParts.length - 1]?.nodes : cols[0]?.nodes) ?? [];
+    const siblings = cols[state.virtual !== null ? 1 : n ? n.relParts.length - 1 : 0]?.nodes ?? [];
     const i = n ? siblings.indexOf(n) : -1;
     const at = (j: number): TreeNode | undefined => siblings[Math.max(0, Math.min(siblings.length - 1, j))];
     const go = (j: number) => {
@@ -204,6 +213,10 @@ export function createColumnsView(): ViewMode {
         if (n?.hasChildren) void enterChildren(n);
         break;
       case "ArrowLeft": {
+        if (state.virtual !== null) {
+          void openVirtual(state.virtual);
+          break;
+        }
         const parent = n && n.relParts.length > 1 ? findNode(n.relParts.slice(0, -1)) : null;
         // The column just left stays visible beside its folder.
         if (parent) openColumn(parent);

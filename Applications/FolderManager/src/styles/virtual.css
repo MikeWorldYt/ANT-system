@@ -1,0 +1,8 @@
+.virtual-entry .name-text { color: var(--title); font-weight: 600; }
+.virtual-entry:focus-visible { outline-offset: -2px; }
+.virtual-icon { display: inline-flex; flex: none; color: var(--st-progress); }
+.virtual-icon .gui-icon { width: 16px; height: 16px; }
+/* Lines the icon up with the folder icons, which sit after a caret. */
+.row.virtual-entry { padding-left: 28px; }
+.row.on-path, .grid-item.on-path { background: var(--input-bg); }
+.grid-item .virtual-icon .gui-icon { width: 56px; height: 56px; }

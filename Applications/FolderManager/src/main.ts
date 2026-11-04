@@ -2,6 +2,7 @@
 import "./styles/theme.css";
 import "./styles/themes.css";
 import "./styles/invalid-dialog.css";
+import "./styles/virtual.css";
 import { describeError } from "./ipc/api";
 import { createColumnsView } from "./views/columns-view";
 import { createGridView } from "./views/grid-view";

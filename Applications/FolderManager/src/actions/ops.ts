@@ -9,6 +9,7 @@ import { checkRootFolders } from "./root-check";
 import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, followExpanded, hydrate, keyOf, lastSelection, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
 import { sortedForColumns } from "../store/sort";
+import { loadVirtual } from "../store/virtual";
 import { outputOf } from "../store/node-info";
 import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
 import { isFmError } from "../ipc/types";
@@ -20,6 +21,7 @@ async function reload(snapshot?: TreeSnapshot): Promise<void> {
   if (tree.warnings.length > 0) setStatus("warning", tree.warnings.join(". "));
   followExpanded();
   await hydrate();
+  await loadVirtual();
   pruneSelection();
   await askAboutCopies(tree.copies);
 }
@@ -48,6 +50,7 @@ async function patch(levels: LevelPatch[]): Promise<void> {
   const patched = patchLevels(levels);
   if (!patched) return reload();
   for (const nodes of patched) await hydrate(nodes);
+  await loadVirtual();
   pruneSelection();
 }
 

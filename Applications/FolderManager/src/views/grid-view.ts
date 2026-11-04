@@ -11,6 +11,9 @@ import { sortedForColumns } from "../store/sort";
 import { expand } from "../actions/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "./manage-row";
 import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { virtualNodes } from "../store/virtual";
+import { goToReal } from "../actions/virtual-nav";
+import { openEntry, virtualEntries, virtualEntry } from "./virtual-entry";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -23,6 +26,11 @@ export function createGridView(): ViewMode {
   // Selecting inside the folder keeps it; any other selection (breadcrumb, back, search) moves the grid there.
   function syncFolder(): void {
     const key = state.selectedKey;
+    // An open virtual list is shown instead of any folder.
+    if (state.virtual !== null) {
+      folder = null;
+      return;
+    }
     if (key === null) {
       folder = null;
       return;
@@ -40,6 +48,7 @@ export function createGridView(): ViewMode {
   }
 
   function shownNodes(): TreeNode[] {
+    if (state.virtual !== null) return virtualNodes();
     const open = folderNode();
     const base = folder === null ? (state.tree?.nodes ?? []) : (open?.children ?? []);
     return (isManagedFolder(folder ?? "") ? managedNodes() : null) ?? sortedForColumns(listed(base), sortOf(folder ?? ""), state.settings.pinFavorites);
@@ -56,6 +65,7 @@ export function createGridView(): ViewMode {
 
   function enter(n: TreeNode): void {
     if (!n.hasChildren) return;
+    if (state.virtual !== null) return void goToReal(n.relParts);
     folder = keyOf(n.relParts);
     select(n.relParts);
   }
@@ -162,15 +172,21 @@ export function createGridView(): ViewMode {
     },
     render() {
       syncFolder();
-      root.dataset.key = folder ?? "";
+      const listing = openEntry();
+      // The background is a drop target for the folder shown; a virtual list is no folder.
+      if (listing) delete root.dataset.key;
+      else root.dataset.key = folder ?? "";
       if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
       const nodes = shownNodes();
       const tabbable = nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0];
       const open = folderNode();
       const empty = nodes.length === 0 && open !== null && open.children !== null && holdsFiles(open);
+      const legend = listing && nodes.length === 0 ? listing.empty : empty ? "Empty" : null;
       const header = isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : [];
-      root.replaceChildren(...header, ...nodes.map((n) => buildItem(n, n === tabbable)), ...(empty ? [el("p", { class: "grid-legend" }, "Empty")] : []));
+      // The open entry heads its own list, so the grid tells where it is.
+      const entries = listing ? [virtualEntry(listing, "grid-item", "option")] : folder === null ? virtualEntries("grid-item", "option") : [];
+      root.replaceChildren(...header, ...entries, ...nodes.map((n) => buildItem(n, n === tabbable)), ...(legend ? [el("p", { class: "grid-legend" }, legend)] : []));
       built = manageSnapshot();
       root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus({ preventScroll: true });

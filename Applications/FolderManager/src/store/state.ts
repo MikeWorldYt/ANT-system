@@ -22,7 +22,12 @@ interface State {
   // Order of each column, keyed by its parent's path ("" for the first one); the tree view has its own.
   sorts: Record<string, ColumnSort>;
   settings: Settings;
+  // The open virtual root entry and the real folders it lists, gathered from the whole Storage.
+  virtual: VirtualId | null;
+  virtualKeys: string[];
 }
+
+export type VirtualId = "favorites";
 
 export interface KeyCombo {
   code: string;
@@ -93,6 +98,8 @@ export const state: State = {
   editing: null,
   sorts: readSorts(),
   settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, theme: "dark", accent: "green", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
+  virtual: null,
+  virtualKeys: [],
 };
 
 const listeners = new Set<() => void>();
@@ -242,6 +249,11 @@ function inManagedScope(key: string | null): boolean {
 export function select(parts: string[] | null): void {
   state.selectedKey = parts ? keyOf(parts) : null;
   state.selectedKeys = state.selectedKey === null ? [] : [state.selectedKey];
+  // A virtual list stays open only while one of its entries is selected.
+  if (state.virtual !== null && !state.virtualKeys.includes(state.selectedKey ?? "")) {
+    state.virtual = null;
+    state.virtualKeys = [];
+  }
   if (!inManagedScope(state.selectedKey)) {
     state.managing = null;
     state.hiddenChoices = [];

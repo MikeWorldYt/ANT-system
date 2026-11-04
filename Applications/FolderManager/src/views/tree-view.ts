@@ -9,12 +9,17 @@ import { hideBox, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
 import { toggleExpand } from "../actions/ops";
 import { clickSelect, isSelected, keyOf, select, startEdit, state, visibleRows } from "../store/state";
+import { virtualNodes } from "../store/virtual";
+import { goToReal, openVirtual } from "../actions/virtual-nav";
+import { virtualEntry, VIRTUAL_ENTRIES } from "./virtual-entry";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
 export function createTreeView(): ViewMode {
   const tree = el("div", { class: "tree", role: "tree", tabindex: "0", "aria-label": "Storage folders" });
   let rows: TreeNode[] = [];
+  // Rows of an open virtual list come first in `rows`; they stand for folders that live elsewhere.
+  let listCount = 0;
 
   const indexOfSelected = () => rows.findIndex((n) => keyOf(n.relParts) === state.selectedKey);
   const pick = (i: number) => {
@@ -24,15 +29,18 @@ export function createTreeView(): ViewMode {
 
   function buildRow(n: TreeNode, i: number): HTMLElement {
     const key = keyOf(n.relParts);
+    // A listed folder does not unfold in the list; Enter takes the tree to where it lives.
+    const folds = n.hasChildren && i >= listCount;
+    const depth = i < listCount ? 1 : n.depth;
     const expanded = state.expanded.has(key);
-    const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(n.hasChildren ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
-    const icon = folderIcon(n, expanded && n.hasChildren);
-    const toggle = n.hasChildren ? nodeToggle(`${expanded ? "Collapse" : "Expand"} ${n.name}`, expanded, caret, icon) : null;
-    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(n.depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorkboard(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
-    row.style.setProperty("--depth", String(n.depth));
+    const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(folds ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
+    const icon = folderIcon(n, expanded && folds);
+    const toggle = folds ? nodeToggle(`${expanded ? "Collapse" : "Expand"} ${n.name}`, expanded, caret, icon) : null;
+    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorkboard(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
+    row.style.setProperty("--depth", String(depth));
     row.dataset.key = key;
     row.setAttribute("aria-selected", String(isSelected(key)));
-    if (n.hasChildren) row.setAttribute("aria-expanded", String(expanded));
+    if (folds) row.setAttribute("aria-expanded", String(expanded));
     if (isSelected(key)) row.classList.add("selected");
     if (n.ghost) row.classList.add("ghost");
     if (n.locked) {
@@ -68,6 +76,12 @@ export function createTreeView(): ViewMode {
     return [legend];
   }
 
+  function listLegend(text: string): HTMLElement {
+    const legend = el("div", { class: "tree-legend" }, text);
+    legend.style.setProperty("--depth", "1");
+    return legend;
+  }
+
   function onKey(ev: KeyboardEvent): void {
     // Modified arrows belong to the global shortcuts (Ctrl+Right, Alt+Down, Alt+Up).
     if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
@@ -93,15 +107,18 @@ export function createTreeView(): ViewMode {
         pick(rows.length - 1);
         break;
       case "ArrowRight":
-        if (n && n.hasChildren && !open) void toggleExpand(n);
+        if (n && i < listCount) void goToReal(n.relParts);
+        else if (n && n.hasChildren && !open) void toggleExpand(n);
         else if (open) pick(i + 1);
         break;
       case "ArrowLeft":
-        if (n && open) void toggleExpand(n);
+        if (i >= 0 && i < listCount && state.virtual !== null) void openVirtual(state.virtual);
+        else if (n && open) void toggleExpand(n);
         else if (n && n.relParts.length > 1) select(n.relParts.slice(0, -1));
         break;
       case "Enter":
-        if (n) void toggleExpand(n);
+        if (n && i < listCount) void goToReal(n.relParts);
+        else if (n) void toggleExpand(n);
         break;
       case "F2":
         if (n) startEdit(n.relParts);
@@ -120,8 +137,18 @@ export function createTreeView(): ViewMode {
       host.append(tree);
     },
     render() {
-      rows = visibleRows();
-      tree.replaceChildren(...rows.flatMap((n, i) => [buildRow(n, i), ...emptyLegend(n)]));
+      const list = state.virtual !== null ? virtualNodes() : [];
+      listCount = list.length;
+      rows = [...list, ...visibleRows()];
+      const listRows = list.map((n, i) => buildRow(n, i));
+      const entries = VIRTUAL_ENTRIES.flatMap((e) => {
+        const open = state.virtual === e.id;
+        const entry = virtualEntry(e, "row", "treeitem", true);
+        entry.setAttribute("aria-expanded", String(open));
+        if (!open) return [entry];
+        return [entry, ...(listRows.length > 0 ? listRows : [listLegend(e.empty)])];
+      });
+      tree.replaceChildren(...entries, ...rows.slice(listCount).flatMap((n, i) => [buildRow(n, i + listCount), ...emptyLegend(n)]));
       const i = indexOfSelected();
       if (i >= 0) {
         tree.setAttribute("aria-activedescendant", `row-${i}`);

@@ -120,6 +120,7 @@ pub fn run() {
             commands::check_update,
             commands::start_update,
             commands::search_nodes,
+            commands::list_favorites,
             commands::search_disk,
             commands::suggest_search,
             commands::start_debug_log,

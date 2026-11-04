@@ -120,6 +120,7 @@ export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect
 export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonEmpty: boolean) =>
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
+export const listFavorites = () => call<string[][]>("list_favorites");
 export const searchDisk = (query: string) => call<string[][]>("search_disk", { query });
 export interface Suggestion {
   value: string;
