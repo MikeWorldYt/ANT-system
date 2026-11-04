@@ -5,16 +5,17 @@ import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
 import { columnSortToggle } from "./column-sort";
-import { favoriteMark, hideBox, nameCell } from "./name-cell";
+import { favoriteMark, hideBox, importantMark, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
 import { hiddenCategories, isReviewRoot, isWorkboard, linkCategory, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
 import { buildColumns, type Column } from "./column-model";
 import { expand } from "../actions/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "./manage-row";
-import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { clickSelect, findNode, isSelected, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { virtualNodes } from "../store/virtual";
 import { openVirtual } from "../actions/virtual-nav";
-import { openEntry, virtualEntries } from "./virtual-entry";
+import { openEntry, ROOT_ENTRIES, virtualEntries } from "./virtual-entry";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -70,6 +71,7 @@ export function createColumnsView(): ViewMode {
     if (n.ghost) item.setAttribute("aria-label", `${n.name} (missing on disk)`);
     // Without a status the star takes the icon's place at the end of the row.
     if (n.favorite) item.append(favoriteMark());
+    if (n.important) item.append(importantMark());
     if (n.status && !isWorkboard(n)) item.append(statusMark(n.status));
     item.title = nodeSummary(n);
     if (n.hasChildren) {
@@ -107,8 +109,8 @@ export function createColumnsView(): ViewMode {
       // The column background cannot take focus, so keys go back to the row that now holds it.
       root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });
     });
-    const first = nodes[0];
-    const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
+    // With nothing selected the FAVORITES row heading the root column holds the roving focus.
+    const tabbableKey = state.selectedKey;
     // Not an item, so it cannot be selected; it only tells why the review list is empty.
     const legend = nodes.length === 0 ? (listing?.empty ?? emptyLegend(parentNode)) : null;
     const siblings = nodes.map((n) => keyOf(n.relParts));
@@ -122,7 +124,7 @@ export function createColumnsView(): ViewMode {
     column.append(
       ...(listing ? [] : [columnSortToggle(column.dataset.key ?? "")]),
       ...(managed ? [manageHeader("col-item")] : []),
-      ...(index === 0 ? virtualEntries("col-item", "option") : []),
+      ...(index === 0 ? virtualEntries("col-item", "option", { tabbable: state.selectedKey === null, marker: "chevron" }) : []),
       ...rows,
       ...(legend ? [el("p", { class: "column-legend" }, legend)] : []),
     );
@@ -147,7 +149,31 @@ export function createColumnsView(): ViewMode {
       return;
     }
     const cols = buildColumns(openKey);
-    const siblings = (n ? cols.find((c) => c.nodes.includes(n)) : cols[cols.length - 1])?.nodes ?? [];
+    const head = ROOT_ENTRIES[0];
+    // FAVORITES heads the root column, so with nothing selected the arrows start from it.
+    if (n === null && head && state.virtual !== "board") {
+      const first = cols[0]?.nodes[0];
+      switch (ev.key) {
+        case "ArrowDown":
+          if (first) {
+            leaveVirtual();
+            pick(first);
+          }
+          break;
+        case "ArrowRight": {
+          const favorite = state.virtual === head.id ? virtualNodes()[0] : undefined;
+          if (favorite) select(favorite.relParts);
+          else void openVirtual(head.id);
+          break;
+        }
+        default:
+          return;
+      }
+      ev.preventDefault();
+      return;
+    }
+    // A folder listed by a virtual entry also sits in its real column, so the later column is the one the selection is in.
+    const siblings = (n ? [...cols].reverse().find((c) => c.nodes.includes(n)) : cols[cols.length - 1])?.nodes ?? [];
     const i = n ? siblings.indexOf(n) : -1;
     const at = (j: number): TreeNode | undefined => siblings[Math.max(0, Math.min(siblings.length - 1, j))];
     const go = (j: number) => {
@@ -163,7 +189,8 @@ export function createColumnsView(): ViewMode {
         move(i + 1);
         break;
       case "ArrowUp":
-        move(i < 0 ? 0 : i - 1);
+        if (head && i === 0 && siblings === cols[0]?.nodes) void openVirtual(head.id);
+        else move(i < 0 ? 0 : i - 1);
         break;
       case "Home":
         move(0);

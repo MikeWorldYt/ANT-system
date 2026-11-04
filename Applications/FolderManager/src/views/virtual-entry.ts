@@ -1,6 +1,7 @@
 // Rows for the virtual root entries; without a data-key no move, drop or paste ever lands on them.
 import { el } from "../ui/dom";
 import { guiIcon, type GuiIcon } from "../ui/gui-icons";
+import { nodeToggle } from "./node-toggle";
 import { openVirtual } from "../actions/virtual-nav";
 import { select, state, type VirtualId } from "../store/state";
 
@@ -22,15 +23,29 @@ export const ROOT_ENTRIES = VIRTUAL_ENTRIES.filter((e) => e.id !== "board");
 
 export const openEntry = (): VirtualEntry | null => VIRTUAL_ENTRIES.find((e) => e.id === state.virtual) ?? null;
 
-// `toggle` lets a second activation close the entry, as a tree row folds.
-export function virtualEntry(entry: VirtualEntry, cls: string, role: string, toggle = false): HTMLElement {
+interface EntryOptions {
+  toggle?: boolean;
+  tabbable?: boolean;
+  marker?: "caret" | "chevron";
+}
+
+// `toggle` lets a second activation close the entry, as a tree row folds; without `tabbable` the view's own container holds the focus.
+export function virtualEntry(entry: VirtualEntry, cls: string, role: string, { toggle = false, tabbable = false, marker }: EntryOptions = {}): HTMLElement {
   const open = state.virtual === entry.id;
+  const icon = el("span", { class: "virtual-icon", "aria-hidden": "true" }, guiIcon(entry.icon));
+  const lead = marker === "caret" ? [nodeToggle(`${open ? "Collapse" : "Expand"} ${entry.label}`, open, el("span", { class: "caret", "aria-hidden": "true" }, guiIcon(open ? "chevronDown" : "chevronRight")), icon)] : [icon];
   const item = el(
     "div",
-    { class: `${cls} virtual-entry`, role, tabindex: "0", title: entry.hint, "aria-selected": String(open && state.selectedKey === null) },
-    el("span", { class: "virtual-icon", "aria-hidden": "true" }, guiIcon(entry.icon)),
+    { class: `${cls} virtual-entry`, role, title: entry.hint, "aria-selected": String(open && state.selectedKey === null) },
+    ...lead,
     el("span", { class: "name" }, el("span", { class: "name-text" }, entry.label)),
   );
+  if (tabbable !== undefined) item.tabIndex = tabbable ? 0 : -1;
+  if (marker === "chevron") {
+    const chevron = nodeToggle(`Show contents of ${entry.label}`, null, guiIcon("chevronRight"));
+    chevron.classList.add("chevron");
+    item.append(chevron);
+  }
   if (open) item.classList.add(state.selectedKey === null ? "selected" : "on-path");
   const activate = () => (toggle && open ? select(null) : void openVirtual(entry.id));
   item.addEventListener("click", activate);
@@ -49,4 +64,4 @@ export function virtualEntry(entry: VirtualEntry, cls: string, role: string, tog
   return item;
 }
 
-export const virtualEntries = (cls: string, role: string, toggle = false): HTMLElement[] => ROOT_ENTRIES.map((e) => virtualEntry(e, cls, role, toggle));
+export const virtualEntries = (cls: string, role: string, options: EntryOptions = {}): HTMLElement[] => ROOT_ENTRIES.map((e) => virtualEntry(e, cls, role, options));

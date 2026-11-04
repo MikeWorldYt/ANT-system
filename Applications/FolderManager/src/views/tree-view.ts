@@ -96,6 +96,10 @@ export function createTreeView(): ViewMode {
     const i = indexOfSelected();
     const n = rows[i];
     const open = n !== undefined && state.expanded.has(keyOf(n.relParts));
+    const head = ROOT_ENTRIES[0];
+    // The FAVORITES row precedes every other row, so with nothing selected the keys act on it.
+    const onHead = head !== undefined && n === undefined && state.selectedKey === null && state.virtual !== "board";
+    const headOpen = head !== undefined && state.virtual === head.id;
     if (isMenuKey(ev)) {
       if (n) nodeMenuFromKey(tree, n, tree.querySelector(`#row-${i}`));
       ev.preventDefault();
@@ -106,7 +110,8 @@ export function createTreeView(): ViewMode {
         pick(i + 1);
         break;
       case "ArrowUp":
-        pick(i < 0 ? 0 : i - 1);
+        if (head && i === 0) void openVirtual(head.id);
+        else if (!onHead) pick(i < 0 ? 0 : i - 1);
         break;
       case "Home":
         pick(0);
@@ -115,11 +120,16 @@ export function createTreeView(): ViewMode {
         pick(rows.length - 1);
         break;
       case "ArrowRight":
-        if (n && n.hasChildren && !open) void toggleExpand(n);
+        if (head && onHead) {
+          if (!headOpen) void openVirtual(head.id);
+          else if (listCount > 0) pick(0);
+        } else if (n && n.hasChildren && !open) void toggleExpand(n);
         else if (open) pick(i + 1);
         break;
       case "ArrowLeft":
-        if (n && open) void toggleExpand(n);
+        if (onHead) {
+          if (headOpen) select(null);
+        } else if (n && open) void toggleExpand(n);
         // A listed entry steps back to its virtual list, not to the real folder it lives in.
         else if (i >= 0 && listDepths[i] === 1 && state.virtual !== null) void openVirtual(state.virtual);
         else if (n && n.relParts.length > 1) {
@@ -129,6 +139,7 @@ export function createTreeView(): ViewMode {
         break;
       case "Enter":
         if (n) void toggleExpand(n);
+        else if (head && onHead) void (headOpen ? select(null) : openVirtual(head.id));
         break;
       case "F2":
         if (n) startEdit(n.relParts);
@@ -159,16 +170,21 @@ export function createTreeView(): ViewMode {
       const listRows = list.flatMap((n, i) => [buildRow(n, i), ...emptyLegend(n, listDepths[i] ?? 1)]);
       const entries = ROOT_ENTRIES.flatMap((e) => {
         const open = state.virtual === e.id;
-        const entry = virtualEntry(e, "row", "treeitem", true);
+        const entry = virtualEntry(e, "row", "treeitem", { toggle: true, marker: "caret" });
+        entry.id = `row-${e.id}`;
         entry.setAttribute("aria-expanded", String(open));
         if (!open) return [entry];
         return [entry, ...(listRows.length > 0 ? listRows : [listLegend(e.empty)])];
       });
       tree.replaceChildren(...entries, ...rows.slice(listCount).flatMap((n, i) => [buildRow(n, i + listCount), ...emptyLegend(n, n.depth)]));
       const i = indexOfSelected();
+      const head = ROOT_ENTRIES.find((e) => state.virtual === e.id);
       if (i >= 0) {
         tree.setAttribute("aria-activedescendant", `row-${i}`);
         tree.querySelector(`#row-${i}`)?.scrollIntoView({ block: "nearest" });
+      } else if (head && state.selectedKey === null) {
+        tree.setAttribute("aria-activedescendant", `row-${head.id}`);
+        tree.querySelector(`#row-${head.id}`)?.scrollIntoView({ block: "nearest" });
       } else {
         tree.removeAttribute("aria-activedescendant");
       }

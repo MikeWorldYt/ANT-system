@@ -4,7 +4,7 @@ import { el } from "../ui/dom";
 import { folderIcon } from "../ui/icons";
 import { nativeImage } from "../ui/file-images";
 import { statusMark } from "../ui/status-mark";
-import { favoriteMark, hideBox, nameCell } from "./name-cell";
+import { favoriteMark, hideBox, importantMark, nameCell } from "./name-cell";
 import { nodeToggle } from "./node-toggle";
 import { nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
@@ -12,7 +12,8 @@ import { expand } from "../actions/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "./manage-row";
 import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
 import { virtualNodes } from "../store/virtual";
-import { openEntry, virtualEntries, virtualEntry } from "./virtual-entry";
+import { openVirtual } from "../actions/virtual-nav";
+import { openEntry, ROOT_ENTRIES, virtualEntries, virtualEntry, type VirtualEntry } from "./virtual-entry";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -76,6 +77,7 @@ export function createGridView(): ViewMode {
     const art = n.hasChildren ? nodeToggle(`Open ${n.name}`, null, folderIcon(n)) : el("span", {}, icon);
     art.classList.add("grid-art");
     if (n.favorite) art.append(favoriteMark());
+    if (n.important) art.append(importantMark());
     if (n.status) art.append(statusMark(n.status));
     const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, nameCell(n, false));
     item.dataset.key = keyOf(n.relParts);
@@ -103,6 +105,9 @@ export function createGridView(): ViewMode {
     return item;
   }
 
+  // The open entry heads its own list; in the root grid FAVORITES leads. Inside a folder there is none.
+  const headEntry = (): VirtualEntry | undefined => (folder === null ? (openEntry() ?? ROOT_ENTRIES[0]) : undefined);
+
   function perRow(): number {
     const items = [...root.querySelectorAll<HTMLElement>(".grid-item")];
     const top = items[0]?.offsetTop;
@@ -119,9 +124,16 @@ export function createGridView(): ViewMode {
       return;
     }
     const nodes = shownNodes();
-    const i = n ? nodes.indexOf(n) : -1;
+    // The entry tile comes first in the arrow order, so every folder tile sits one place after its index.
+    const head = headEntry();
+    const lead = head ? 1 : 0;
+    const idx = n ? nodes.indexOf(n) : -1;
+    const i = idx >= 0 ? idx + lead : head && !n ? 0 : -1;
     const go = (j: number) => {
-      const target = nodes[Math.max(0, Math.min(nodes.length - 1, j))];
+      const at = Math.max(0, Math.min(nodes.length + lead - 1, j));
+      if (at === i) return;
+      if (head && at === 0) return void openVirtual(head.id);
+      const target = nodes[at - lead];
       if (target) select(target.relParts);
     };
     switch (ev.key) {
@@ -141,7 +153,7 @@ export function createGridView(): ViewMode {
         go(0);
         break;
       case "End":
-        go(nodes.length - 1);
+        go(nodes.length + lead - 1);
         break;
       case "F2":
         if (n) startEdit(n.relParts);
@@ -173,13 +185,17 @@ export function createGridView(): ViewMode {
       if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
       const nodes = shownNodes();
-      const tabbable = nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0];
+      const head = headEntry();
+      // With nothing selected the entry tile leads the roving focus.
+      const entryTabbable = head !== undefined && state.selectedKey === null;
+      const tabbable = entryTabbable ? undefined : (nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0]);
       const open = folderNode();
       const empty = nodes.length === 0 && open !== null && open.children !== null;
       const legend = listing && nodes.length === 0 ? listing.empty : empty ? "Empty" : null;
       const header = isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : [];
       // The open entry heads its own list, so the grid tells where it is.
-      const entries = listing ? [virtualEntry(listing, "grid-item", "option")] : folder === null ? virtualEntries("grid-item", "option") : [];
+      const entryOptions = { tabbable: entryTabbable };
+      const entries = listing ? [virtualEntry(listing, "grid-item", "option", entryOptions)] : folder === null ? virtualEntries("grid-item", "option", entryOptions) : [];
       root.replaceChildren(...header, ...entries, ...nodes.map((n) => buildItem(n, n === tabbable)), ...(legend ? [el("p", { class: "grid-legend" }, legend)] : []));
       built = manageSnapshot();
       root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
