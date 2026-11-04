@@ -10,8 +10,8 @@ use crate::fs_safe::{join_rel, validate_component};
 use crate::index::footprint::Copies;
 use crate::index::{node_names, reindex, review_folders, review_index, Emit};
 use crate::tree::root_check::{self, RootCheck};
-use crate::tree::{depth, snapshot};
-use crate::tree::tree_node::{build_children, fill_children, holds_files, lists_files, TreeNode, TreeSnapshot};
+use crate::tree::snapshot;
+use crate::tree::tree_node::{build_children, fill_children, lists_files, TreeNode, TreeSnapshot};
 use crate::tree::tree_store;
 
 pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>) -> R<TreeSnapshot> {
@@ -48,10 +48,6 @@ pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<Tree
     run_locked(app, move |root| {
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
         let data = tree_store::load(root)?;
-        // A review folder past the depth limit still lists its files, so only other folders stop here.
-        if rel_parts.len() >= depth::limit(root)? && !holds_files(&data, &rel_parts) {
-            return Ok(Vec::new());
-        }
         let mut kids = build_children(root, &data, &rel_parts)?;
         fill_children(root, &data, &mut kids)?;
         Ok(kids)

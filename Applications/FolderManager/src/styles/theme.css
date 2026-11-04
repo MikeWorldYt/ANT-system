@@ -137,6 +137,8 @@ body {
 .ctx-item[class*="st-"], .details dd[class*="st-"], .status-picker[class*="st-"] { color: var(--st); }
 .fav-mark { display: inline-flex; flex: none; color: var(--st-progress); }
 .fav-mark .gui-icon { width: 12px; height: 12px; }
+.imp-mark { display: inline-flex; flex: none; color: var(--accent); }
+.imp-mark .gui-icon { width: 12px; height: 12px; }
 
 .details-panel {
   width: var(--panel-w); flex: none; display: flex; flex-direction: column; gap: 14px;
@@ -166,6 +168,7 @@ body {
 .side-action-label { flex: 1; min-width: 0; }
 .side-action.accent { color: var(--accent); }
 .side-action.is-favorite .side-action-icon { color: var(--st-progress); }
+.side-action.is-important .side-action-icon { color: var(--accent); }
 .side-action.danger, .side-rail .danger:not([aria-disabled="true"]) { color: var(--delete-hover); }
 .side-action[aria-disabled="true"] { color: var(--disabled-text); cursor: default; }
 .side-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
@@ -197,7 +200,6 @@ body {
   flex: 1; min-width: 0; padding: 0 4px; font: inherit; color: var(--text); background: var(--field-bg);
   border: 1px solid var(--button); border-radius: 3px; outline: none; box-shadow: 0 0 0 1px var(--button);
 }
-.dialog-text { white-space: pre-line; }
 .btn {
   padding: 8px; border: 0; border-radius: var(--radius-sm); font: inherit; font-weight: bold; cursor: pointer;
   background: var(--field-bg); color: var(--text);
@@ -215,33 +217,6 @@ body {
 .status-line[data-level="error"] { color: var(--delete-hover); }
 .status-line[data-level="warning"]::before { content: "Warning: "; }
 .status-line[data-level="error"]::before { content: "Error: "; }
-
-dialog.confirm {
-  max-width: 380px; padding: 16px; border: 1px solid var(--border);
-  background: var(--input-bg); color: var(--text);
-}
-dialog.confirm::backdrop { background: rgb(0 0 0 / 0.6); }
-dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
-dialog.warning-confirm {
-  position: relative; overflow: visible; width: calc(100vw - 48px); max-width: 460px; padding: 24px;
-  border-radius: 12px;
-}
-dialog.warning-confirm form { position: relative; }
-.warning-confirm-icon {
-  position: absolute; top: -36px; left: -36px; z-index: 1;
-  display: block; width: 72px; height: 68px;
-  filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.65));
-}
-.warning-confirm-icon .gui-icon { width: 100%; height: 100%; }
-.warning-confirm h2 { padding-left: 40px; }
-.warning-confirm form > h2 { margin-bottom: 16px; }
-.warning-confirm-copy { display: grid; gap: 16px; }
-.warning-confirm-copy p { margin: 0; line-height: 1.45; }
-.warning-confirm-copy a { color: var(--st-review); text-underline-offset: 2px; }
-.warning-confirm .btn { border-radius: 6px; }
-.warning-confirm .dialog-buttons { margin-top: 24px; }
-.dialog-input { width: 100%; padding: 8px; font: inherit; color: var(--text); background: var(--field-bg); border: 1px solid transparent; border-radius: var(--radius-sm); }
-.dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
 .view-picker {
   display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: 4px;
@@ -307,6 +282,7 @@ dialog.warning-confirm form { position: relative; }
 .grid-art .icon { width: 56px; height: 56px; }
 .grid-art .status-mark { position: absolute; right: -6px; bottom: -4px; }
 .grid-art .fav-mark { position: absolute; left: -6px; top: -4px; }
+.grid-art .imp-mark { position: absolute; right: -6px; top: -4px; }
 .grid-item .name { max-width: 100%; justify-content: center; }
 .grid-item .name-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: normal; overflow-wrap: anywhere; text-align: center; }
 .chevron { color: var(--accent); }
@@ -321,6 +297,7 @@ dialog.warning-confirm form { position: relative; }
 .ctx-node > .ctx-item, .ctx-node > .ctx-sub > .ctx-item { padding-left: 34px; }
 .ctx-node > .ctx-item > .gui-icon { position: absolute; left: 10px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); }
 .ctx-node > .ctx-item.ctx-favorite-add > .gui-icon { color: var(--st-progress); }
+.ctx-node > .ctx-item.ctx-important-add > .gui-icon { color: var(--accent); }
 .ctx-item {
   display: block; position: relative; width: 100%; padding: 6px 14px; border: 0; background: transparent;
   color: var(--text); font: inherit; text-align: left; cursor: pointer;

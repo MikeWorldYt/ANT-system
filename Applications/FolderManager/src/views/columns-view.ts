@@ -5,52 +5,25 @@ import { guiIcon } from "../ui/gui-icons";
 import { folderIcon } from "../ui/icons";
 import { statusMark } from "../ui/status-mark";
 import { columnSortToggle } from "./column-sort";
-import { favoriteMark, hideBox, nameCell } from "./name-cell";
+import { favoriteMark, hideBox, importantMark, nameCell } from "./name-cell";
 import { fromToggle, nodeToggle } from "./node-toggle";
-import { hiddenCategories, holdsFiles, isReviewRoot, isWorkboard, linkCategory, nodeSummary } from "../store/node-info";
+import { hiddenCategories, isReviewRoot, isWorkboard, linkCategory, nodeSummary } from "../store/node-info";
 import { sortedForColumns } from "../store/sort";
+import { buildColumns, type Column } from "./column-model";
 import { expand } from "../actions/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "./manage-row";
-import { clickSelect, findNode, isSelected, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { clickSelect, findNode, isSelected, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, startEdit, state } from "../store/state";
+import { virtualNodes } from "../store/virtual";
+import { openVirtual } from "../actions/virtual-nav";
+import { openEntry, ROOT_ENTRIES, virtualEntries } from "./virtual-entry";
 import type { TreeNode } from "../ipc/types";
 import type { ViewMode } from "./view-mode";
 
-interface Column {
-  nodes: TreeNode[];
-  loading: boolean;
-}
-
-// Why an empty column is empty: a filter hides the review list, or a review folder has no content yet.
+// Why an empty column is empty: a filter hides the review list, or the folder has no content.
 function emptyLegend(parent: TreeNode | null): string | null {
   if (parent === null) return null;
   if (isReviewRoot(parent)) return hiddenCategories(parent).length > 0 ? "No active filters" : null;
-  return holdsFiles(parent) ? "Empty" : null;
-}
-
-// `opened` is the selected folder whose child column the user opened; selecting alone shows none.
-function buildColumns(opened: string | null): Column[] {
-  const cols: Column[] = [];
-  const path = state.selectedKey?.split("/") ?? [];
-  let nodes: TreeNode[] = state.tree?.nodes ?? [];
-  for (let depth = 0; ; depth++) {
-    const shown = sortedForColumns(listed(nodes), sortOf(path.slice(0, depth).join("/")), state.settings.pinFavorites);
-    cols.push({ nodes: shown, loading: false });
-    const open = nodes.find((n) => n.name === path[depth]);
-    if (!open || !open.hasChildren) break;
-    const key = keyOf(open.relParts);
-    // The review folder's list stays open while it is selected, so its filter legend has a column to sit in.
-    if (key === state.selectedKey && key !== opened && !isReviewRoot(open)) break;
-    if (open.children === null) {
-      cols.push({ nodes: [], loading: true });
-      break;
-    }
-    if (open.children.length === 0) {
-      if (isReviewRoot(open) || holdsFiles(open)) cols.push({ nodes: [], loading: false });
-      break;
-    }
-    nodes = open.children;
-  }
-  return cols;
+  return "Empty";
 }
 
 export function createColumnsView(): ViewMode {
@@ -98,6 +71,7 @@ export function createColumnsView(): ViewMode {
     if (n.ghost) item.setAttribute("aria-label", `${n.name} (missing on disk)`);
     // Without a status the star takes the icon's place at the end of the row.
     if (n.favorite) item.append(favoriteMark());
+    if (n.important) item.append(importantMark());
     if (n.status && !isWorkboard(n)) item.append(statusMark(n.status));
     item.title = nodeSummary(n);
     if (n.hasChildren) {
@@ -115,21 +89,19 @@ export function createColumnsView(): ViewMode {
     return item;
   }
 
-  // The folder whose children fill the column; the first column is the storage root.
-  const parentOf = (path: string[], index: number): TreeNode | null => (index === 0 ? null : findNode(path.slice(0, index)));
-
-  function buildColumn(col: Column, index: number, path: string[], parent: string): HTMLElement {
+  function buildColumn(col: Column, index: number): HTMLElement {
     if (col.loading) return el("div", { class: "column loading", "aria-busy": "true" }, "Loading…");
-    const column = el("div", { class: "column", role: "listbox", "aria-label": `Contents of ${parent}` });
-    const parentNode = parentOf(path, index);
+    const listing = col.listing ? openEntry() : null;
+    const column = el("div", { class: "column", role: "listbox", "aria-label": listing ? listing.label : `Contents of ${col.parent?.name ?? "storage"}` });
+    const parentNode = col.parent;
     // The review list holds long link names, so it gets twice the width of an ordinary column.
     column.classList.toggle("review-list", parentNode !== null && isReviewRoot(parentNode));
-    // The empty area of a column is a drop target for the folder it lists; "" is the storage root.
-    column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
+    // The empty area of a column is a drop target for the folder it lists; "" is the storage root. A virtual list is no folder.
+    if (!listing) column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
     column.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentNode, root));
-    const managed = isManagedFolder(column.dataset.key ?? "");
+    const managed = !listing && isManagedFolder(column.dataset.key ?? "");
     const nodes = managed ? (managedNodes() ?? col.nodes) : col.nodes;
-    const onPath = index < path.length - 1 ? nodes.find((n) => n.name === path[index]) : undefined;
+    const onPath = col.pathKey !== state.selectedKey ? nodes.find((n) => keyOf(n.relParts) === col.pathKey) : undefined;
     // The empty area of a column steps back to its row on the selected path.
     column.addEventListener("click", (ev) => {
       if (!onPath || (ev.target instanceof Element && ev.target.closest(".col-item"))) return;
@@ -137,10 +109,10 @@ export function createColumnsView(): ViewMode {
       // The column background cannot take focus, so keys go back to the row that now holds it.
       root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });
     });
-    const first = nodes[0];
-    const tabbableKey = state.selectedKey ?? (index === 0 && first ? keyOf(first.relParts) : null);
+    // With nothing selected the FAVORITES row heading the root column holds the roving focus.
+    const tabbableKey = state.selectedKey;
     // Not an item, so it cannot be selected; it only tells why the review list is empty.
-    const legend = nodes.length === 0 ? emptyLegend(parentNode) : null;
+    const legend = nodes.length === 0 ? (listing?.empty ?? emptyLegend(parentNode)) : null;
     const siblings = nodes.map((n) => keyOf(n.relParts));
     const rows = nodes.flatMap((n, i) => {
       const prev = nodes[i - 1];
@@ -150,8 +122,9 @@ export function createColumnsView(): ViewMode {
       return groupStart ? [el("div", { class: "col-sep", role: "separator" }), item] : [item];
     });
     column.append(
-      columnSortToggle(path.slice(0, index).join("/")),
+      ...(listing ? [] : [columnSortToggle(column.dataset.key ?? "")]),
       ...(managed ? [manageHeader("col-item")] : []),
+      ...(index === 0 ? virtualEntries("col-item", "option", { tabbable: state.selectedKey === null, marker: "chevron" }) : []),
       ...rows,
       ...(legend ? [el("p", { class: "column-legend" }, legend)] : []),
     );
@@ -176,7 +149,31 @@ export function createColumnsView(): ViewMode {
       return;
     }
     const cols = buildColumns(openKey);
-    const siblings = (n ? cols[n.relParts.length - 1]?.nodes : cols[0]?.nodes) ?? [];
+    const head = ROOT_ENTRIES[0];
+    // FAVORITES heads the root column, so with nothing selected the arrows start from it.
+    if (n === null && head && state.virtual !== "board") {
+      const first = cols[0]?.nodes[0];
+      switch (ev.key) {
+        case "ArrowDown":
+          if (first) {
+            leaveVirtual();
+            pick(first);
+          }
+          break;
+        case "ArrowRight": {
+          const favorite = state.virtual === head.id ? virtualNodes()[0] : undefined;
+          if (favorite) select(favorite.relParts);
+          else void openVirtual(head.id);
+          break;
+        }
+        default:
+          return;
+      }
+      ev.preventDefault();
+      return;
+    }
+    // A folder listed by a virtual entry also sits in its real column, so the later column is the one the selection is in.
+    const siblings = (n ? [...cols].reverse().find((c) => c.nodes.includes(n)) : cols[cols.length - 1])?.nodes ?? [];
     const i = n ? siblings.indexOf(n) : -1;
     const at = (j: number): TreeNode | undefined => siblings[Math.max(0, Math.min(siblings.length - 1, j))];
     const go = (j: number) => {
@@ -192,7 +189,8 @@ export function createColumnsView(): ViewMode {
         move(i + 1);
         break;
       case "ArrowUp":
-        move(i < 0 ? 0 : i - 1);
+        if (head && i === 0 && siblings === cols[0]?.nodes) void openVirtual(head.id);
+        else move(i < 0 ? 0 : i - 1);
         break;
       case "Home":
         move(0);
@@ -204,6 +202,11 @@ export function createColumnsView(): ViewMode {
         if (n?.hasChildren) void enterChildren(n);
         break;
       case "ArrowLeft": {
+        // A listed entry steps back to its virtual list, not to the real folder it lives in.
+        if (state.virtual !== null && (n === null || keyOf(n.relParts) === state.via)) {
+          void openVirtual(state.virtual);
+          break;
+        }
         const parent = n && n.relParts.length > 1 ? findNode(n.relParts.slice(0, -1)) : null;
         // The column just left stays visible beside its folder.
         if (parent) openColumn(parent);
@@ -241,7 +244,7 @@ export function createColumnsView(): ViewMode {
     mount(host) {
       root.addEventListener("keydown", onKey);
       // Space beside the columns belongs to the deepest one.
-      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentOf(state.selectedKey?.split("/") ?? [], buildColumns(openKey).length - 1), root));
+      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, buildColumns(openKey).at(-1)?.parent ?? null, root));
       host.append(root);
     },
     render() {
@@ -249,11 +252,10 @@ export function createColumnsView(): ViewMode {
       if (openKey !== state.selectedKey) openKey = null;
       if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
-      const path = state.selectedKey?.split("/") ?? [];
       // Rebuilding the columns resets every scroll offset, so each one is kept by its folder key.
       const offsets = new Map(Array.from(root.querySelectorAll<HTMLElement>(".column[data-key]"), (c): [string, number] => [c.dataset.key ?? "", c.scrollTop]));
       const left = root.scrollLeft;
-      root.replaceChildren(...buildColumns(openKey).map((c, i) => buildColumn(c, i, path, path[i - 1] ?? "storage")));
+      root.replaceChildren(...buildColumns(openKey).map(buildColumn));
       built = manageSnapshot();
       root.scrollLeft = left;
       root.querySelectorAll<HTMLElement>(".column[data-key]").forEach((c) => {

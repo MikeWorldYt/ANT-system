@@ -1,20 +1,21 @@
 // Right column: quick actions, details and order of the selected node, collapsible to an icon rail.
 import { el } from "../ui/dom";
 import { iconButton } from "../ui/icon-button";
-import { canActOn, deleteActed, favoriteActed, hideActed, moveActed } from "../actions/acted-nodes";
+import { allImportant, canActOn, canMarkImportant, deleteActed, favoriteActed, hideActed, importantActed, moveActed } from "../actions/acted-nodes";
 import { setReviewFilter } from "../actions/ops";
 import { readPref, savePref } from "../store/prefs";
-import { favoritesShown, hiddenCategories, isMainCategory, isReviewRoot, nameWithoutIdentifier } from "../store/node-info";
+import { favoritesShown, hiddenCategories, importantLabel, isMainCategory, isReviewRoot, nameWithoutIdentifier } from "../store/node-info";
 import { quickActionsShown, railLayout, type RailId } from "../store/side-layout";
 import { selectedNode, state, toggleHidingLinks } from "../store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
 import { openSettings } from "./settings-dialog";
+import { toggleBoard } from "../actions/virtual-nav";
 import { setDisabled, sideAction } from "./side-action";
 import type { TreeNode } from "../ipc/types";
 
 const PANEL_PREF = "fm.details";
 // Function groups of the collapsed rail: view settings, item state, ordering, removal.
-const RAIL_GROUP: Record<RailId, number> = { settings: 0, favorite: 1, edit: 1, moveUp: 2, moveDown: 2, delete: 3 };
+const RAIL_GROUP: Record<RailId, number> = { settings: 0, board: 0, favorite: 1, edit: 1, moveUp: 2, moveDown: 2, delete: 3 };
 
 export interface SidePanel {
   elements: HTMLElement[];
@@ -44,16 +45,18 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   // ─────────♦ EXPANDED PANEL ───────────────────────────────────────────────────
   const title = el("h2", { class: "side-title" });
   const settings = iconButton("Settings", "settings", () => void openSettings());
+  const board = iconButton("Board", "layout", () => void toggleBoard());
   const collapse = iconButton("Collapse side panel", "chevronsRight", () => {
     setCollapsed(true);
     railExpand.focus();
   });
   collapse.classList.add("side-collapse");
-  const head = el("div", { class: "side-head" }, title, settings, collapse);
+  const head = el("div", { class: "side-head" }, title, board, settings, collapse);
 
   const open = sideAction("Open", null, openSelected, "");
   const favorite = sideAction(favoriteLabel(null), "starred", favoriteActed);
-  const quick = section("side-quick", "Quick actions", open.button, favorite.button);
+  const important = sideAction(importantLabel(false), "important", importantActed);
+  const quick = section("side-quick", "Quick actions", open.button, favorite.button, important.button);
   const up = sideAction("Move up", "moveUp", moveUp, "accent");
   const down = sideAction("Move down", "moveDown", moveDown, "accent");
   const order = section("side-order", "Order", up.button, down.button);
@@ -79,12 +82,14 @@ export function createSidePanel(openSelected: () => void): SidePanel {
   const railEdit = iconButton("Edit details", "pencil", editDetails);
   const railUp = iconButton("Move up", "moveUp", moveUp);
   const railDown = iconButton("Move down", "moveDown", moveDown);
+  const railBoard = iconButton("Board", "layout", () => void toggleBoard());
   const railDelete = iconButton("Delete", "trash", deleteActed);
   railDelete.classList.add("danger");
   const about = iconButton("About", "pageAbout", () => void openSettings("about"));
   about.classList.add("side-rail-end");
   const railButtons: Record<RailId, HTMLButtonElement> = {
     settings: iconButton("Settings", "settings", () => void openSettings()),
+    board: railBoard,
     favorite: railFavorite,
     edit: railEdit,
     moveUp: railUp,
@@ -179,6 +184,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     const n = selectedNode();
     const idle = !state.busy;
     title.textContent = n ? nameWithoutIdentifier(n) : "Details";
+    for (const b of [board, railBoard]) b.setAttribute("aria-pressed", String(state.virtual === "board"));
     // The review root keeps its filter but no details; its links show the same filter above their details.
     const review = n !== null && isReviewRoot(n);
     const reviewRoot = state.tree?.nodes.find(isReviewRoot) ?? null;
@@ -191,6 +197,9 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     order.hidden = foot.hidden = n === null || review || n.linked;
     quick.hidden = n === null || !quickActionsShown();
     favorite.setLabel(favoriteLabel(n));
+    const marked = allImportant();
+    important.setLabel(importantLabel(marked));
+    important.button.classList.toggle("is-important", marked);
     favorite.button.classList.toggle("is-favorite", !!n?.favorite);
     railFavorite.classList.toggle("is-favorite", !!n?.favorite);
     railFavorite.setAttribute("aria-label", favoriteLabel(n));
@@ -198,6 +207,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     const available: [HTMLButtonElement[], boolean][] = [
       [[open.button], n !== null],
       [[favorite.button, railFavorite], canActOn("favorite")],
+      [[important.button], canMarkImportant()],
       [[railEdit], n !== null && canEdit(n)],
       [[up.button, railUp], canActOn("moveUp")],
       [[down.button, railDown], canActOn("moveDown")],

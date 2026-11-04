@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24">
+  <!-- Generator: Adobe Illustrator 29.1.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 142)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: url(#SVGID_1_);
+      }
+
+      .st1 {
+        fill: none;
+      }
+
+      .st2 {
+        fill: #7d3de2;
+      }
+
+      .st3 {
+        fill: #7e54d1;
+      }
+    </style>
+    <pattern id="SVGID_1_" data-name="SVGID 1 " x="0" y="0" width="98" height="88.5" patternTransform="translate(-10272.1 -5356.4) scale(.4 -.4)" patternUnits="userSpaceOnUse" viewBox="0 0 98 88.5">
+      <g>
+        <rect class="st1" width="98" height="88.5"/>
+        <g>
+          <rect class="st1" width="98" height="88.5"/>
+          <rect class="st3" width="98" height="88.5"/>
+        </g>
+      </g>
+    </pattern>
+  </defs>
+  <path class="st2" d="M12,19.7H1.3q0,0,0,0V5.2c0-.4.3-.7.6-.7h7.2c.5,0,.8.2,1.1.5.4.4.6.6,1,1,0,0,0,0,.2,0h10.7c.5,0,.7.3.8.6h0v13q0,0,0,0c-3.6,0-7.1,0-10.8,0Z"/>
+  <path class="st0" d="M22.9,6.8h0c0-.5-.4-.7-.8-.7H1.9c-.5,0-.7.3-.8.6h0v13q0,0,0,0h21.4q0,0,0,0c.2-4.3.2-8.6.2-12.9Z"/>
+  <rect fill="#fff" x="7.2" y="9.2" width="3.8" height="8.6" rx="1"/>
+  <rect fill="#fff" x="12.9" y="9.2" width="3.8" height="5.4" rx="1"/>
+</svg>

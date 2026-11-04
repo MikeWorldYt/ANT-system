@@ -89,7 +89,7 @@ fn check(key: &str, value: &str) -> R<()> {
         "onLaunch" => ON_LAUNCH_VALUES.contains(&value),
         "startView" => START_VIEW_VALUES.contains(&value),
         "theme" => THEME_VALUES.contains(&value),
-        "accent" => ACCENT_VALUES.contains(&value),
+        "accent" | "iconColor" => ACCENT_VALUES.contains(&value),
         "textSize" => TEXT_SIZE_VALUES.contains(&value),
         "shortcuts" => shortcuts_valid(value),
         "backupFrequency" => BACKUP_FREQUENCIES.contains(&value),

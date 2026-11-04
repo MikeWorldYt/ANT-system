@@ -1,23 +1,25 @@
-// Typed-path editing for the navigation bar: turns the breadcrumb into an input and reveals the node it names.
-import { describeError, listChildren } from "../ipc/api";
+// Typed-path editing for the navigation bar: turns the breadcrumb into an input and goes to the place it names.
+import { describeError, listChildren, listFavorites } from "../ipc/api";
 import { el } from "../ui/dom";
-import { reveal, state } from "../store/state";
+import { findNode, keyOf, state, type VirtualId } from "../store/state";
+import { loadPath } from "../store/virtual";
+import type { Place } from "../store/place";
 import { clearStatus, setStatus } from "../ui/status";
 import type { TreeNode } from "../ipc/types";
 
-const splitPath = (text: string): string[] => text.trim().replace(/^"+|"+$/g, "").split(/[\\/]/).filter(Boolean);
+const VIRTUAL_IDS: VirtualId[] = ["favorites", "board"];
+
+const cleaned = (text: string): string => text.trim().replace(/^"+|"+$/g, "");
+const splitPath = (text: string): string[] => cleaned(text).split(/[\\/]/).filter(Boolean);
 
 export const rootName = (root: string | undefined): string => splitPath(root ?? "").pop() ?? "";
 
-// Maps a typed absolute path to the canonical relParts of an existing node, or null.
-async function resolveTyped(text: string): Promise<string[] | null | undefined> {
-  const root = splitPath(state.tree?.root ?? "");
-  const typed = splitPath(text);
-  const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-  if (typed.length < root.length || !root.every((p, i) => same(p, typed[i] ?? ""))) return undefined;
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+// Canonical names of the typed folders below `level`, loading each one on the way; null when one is missing.
+async function walk(level: TreeNode[], typed: string[]): Promise<string[] | null> {
   const found: string[] = [];
-  let level: TreeNode[] = state.tree?.nodes ?? [];
-  for (const part of typed.slice(root.length)) {
+  for (const part of typed) {
     const node = level.find((n) => same(n.name, part));
     if (!node) return null;
     found.push(node.name);
@@ -27,7 +29,40 @@ async function resolveTyped(text: string): Promise<string[] | null | undefined> 
   return found;
 }
 
-export function createPathInput(path: HTMLElement, render: () => void): { editing(): boolean; start(): void } {
+// `/favorites/<favorite>/...` and `/board` name the virtual root entries, which live in no folder on disk.
+async function resolveVirtual(id: VirtualId, rest: string[]): Promise<Place | null> {
+  const [name, ...below] = rest;
+  if (name === undefined) return { virtual: id, via: null, key: null };
+  if (id === "board") return null;
+  const favorite = (await listFavorites()).find((p) => same(p.at(-1) ?? "", name));
+  if (!favorite) return null;
+  await loadPath(favorite);
+  const node = findNode(favorite);
+  const found = node ? await walk([node], [node.name, ...below]) : null;
+  if (found === null) return null;
+  return { virtual: id, via: keyOf(favorite), key: keyOf([...favorite.slice(0, -1), ...found]) };
+}
+
+// Maps a typed path to an existing place: inside the storage or a virtual entry; undefined when outside the storage.
+async function resolveTyped(text: string): Promise<Place | null | undefined> {
+  const typed = splitPath(text);
+  const id = VIRTUAL_IDS.find((v) => same(v, typed[0] ?? ""));
+  if (id && /^[\\/]/.test(cleaned(text))) return resolveVirtual(id, typed.slice(1));
+  const root = splitPath(state.tree?.root ?? "");
+  if (typed.includes("..") || typed.length < root.length || !root.every((p, i) => same(p, typed[i] ?? ""))) return undefined;
+  const found = await walk(state.tree?.nodes ?? [], typed.slice(root.length));
+  return found && { virtual: null, via: null, key: found.length > 0 ? keyOf(found) : null };
+}
+
+// Inside a virtual entry the typed form is its symbolic path, so Enter comes back to the same place.
+function currentPath(root: string): string {
+  const parts = state.selectedKey?.split("/") ?? [];
+  if (state.virtual === null) return [root.replace(/[\\/]+$/, ""), ...parts].join("\\");
+  const below = state.via === null ? [] : parts.slice(state.via.split("/").length - 1);
+  return ["", state.virtual.toUpperCase(), ...below].join("\\");
+}
+
+export function createPathInput(path: HTMLElement, render: () => void, visit: (place: Place) => Promise<void>): { editing(): boolean; start(): void } {
   let editing = false;
 
   function stopEditing(): void {
@@ -40,9 +75,8 @@ export function createPathInput(path: HTMLElement, render: () => void): { editin
     if (editing || !state.tree) return;
     editing = true;
     path.classList.add("editing");
-    const parts = state.selectedKey?.split("/") ?? [];
     const input = el("input", { class: "path-input", type: "text", spellcheck: "false", autocomplete: "off", "aria-label": "Path" });
-    input.value = [state.tree.root.replace(/[\\/]+$/, ""), ...parts].join("\\");
+    input.value = currentPath(state.tree.root);
     input.addEventListener("keydown", (ev) => {
       if (ev.key === "Escape") {
         ev.stopPropagation();
@@ -63,23 +97,30 @@ export function createPathInput(path: HTMLElement, render: () => void): { editin
   }
 
   async function submit(input: HTMLInputElement): Promise<void> {
-    let target: string[] | null | undefined;
+    let target: Place | null | undefined;
     try {
       target = await resolveTyped(input.value);
     } catch (e) {
       target = null;
       console.warn("Path lookup failed", e);
     }
-    if (target === undefined || target === null) {
+    if (target === undefined) {
+      input.removeAttribute("aria-invalid");
+      input.value = currentPath(state.tree?.root ?? "");
+      input.select();
+      setStatus("error", "You can only browse inside your storage");
+      return;
+    }
+    if (target === null) {
       input.setAttribute("aria-invalid", "true");
-      setStatus("error", target === undefined ? "That path is outside the storage root" : "That folder does not exist in the storage");
+      setStatus("error", "That folder does not exist in the storage");
       return;
     }
     clearStatus();
     editing = false;
     path.classList.remove("editing");
     try {
-      await reveal(target);
+      await visit(target);
     } catch (e) {
       setStatus("error", describeError(e));
     }

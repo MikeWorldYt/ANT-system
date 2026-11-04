@@ -109,6 +109,11 @@ pub async fn set_favorite(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R
 }
 
 #[tauri::command]
+pub async fn set_important(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_important(root, &rel_parts, on))).await
+}
+
+#[tauri::command]
 pub async fn set_link_hidden(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
     run_locked(app, move |root| with_search_index(root, mutations::set_link_hidden(root, &rel_parts, on))).await
 }
@@ -129,6 +134,11 @@ pub async fn set_node_details(app: AppHandle, rel_parts: Vec<String>, status: Op
         with_search_index(root, mutations::set_details(root, &rel_parts, status, owner.as_deref()))
     })
     .await
+}
+
+#[tauri::command]
+pub async fn set_board(app: AppHandle, cards: Vec<mutations::BoardCard>) -> R<Mutation> {
+    run_locked(app, move |root| with_search_index(root, mutations::set_board(root, &cards))).await
 }
 
 #[tauri::command]

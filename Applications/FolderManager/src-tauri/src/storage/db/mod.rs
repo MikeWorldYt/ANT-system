@@ -1,4 +1,5 @@
 // SQLite store of the tree and its search fields under <root>/.ant; the only copy of the tree.
+mod lists;
 mod meta;
 mod query;
 mod tree;

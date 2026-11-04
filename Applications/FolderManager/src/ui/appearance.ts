@@ -1,5 +1,6 @@
 // Puts the theme, accent color and text size from the settings onto the page.
 import { state, type AccentId, type TextSize } from "../store/state";
+import { setIconColor } from "./icons";
 
 export const ACCENTS: { value: AccentId; label: string; color: string }[] = [
   { value: "green", label: "Green", color: "#00b386" },
@@ -14,11 +15,13 @@ const TEXT_ZOOM: Record<TextSize, string> = { small: "1", medium: "1.1", large: 
 
 export function applyAppearance(): void {
   const root = document.documentElement;
-  const { theme, accent, textSize } = state.settings;
+  const { theme, accent, iconColor, textSize } = state.settings;
   const color = ACCENTS.find((a) => a.value === accent)?.color ?? "#00b386";
   root.dataset.theme = theme;
   root.style.setProperty("--title", color);
   root.style.setProperty("--button", color);
   root.style.setProperty("--accent", color);
+  // Purple is the color the icons were drawn in, so it keeps their original shading.
+  setIconColor(iconColor === "purple" ? null : (ACCENTS.find((a) => a.value === iconColor)?.color ?? null));
   root.style.zoom = TEXT_ZOOM[textSize];
 }

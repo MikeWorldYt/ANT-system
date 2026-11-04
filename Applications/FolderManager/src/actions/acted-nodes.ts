@@ -1,6 +1,6 @@
 // Commands on the marked items, shared by the side panel and the shortcuts so both read a selection the same way.
 import { actedNodes, state } from "../store/state";
-import { hideNode, move, remove, removeMany, setFavorite } from "./ops";
+import { hideNode, move, remove, removeMany, setFavorite, setImportant } from "./ops";
 import type { MoveDirection, NodeActions } from "../ipc/types";
 
 // Only delete has a batch form so far; every other command needs exactly one item.
@@ -13,6 +13,20 @@ export function canActOn(action: keyof NodeActions): boolean {
 export function favoriteActed(): void {
   const node = actedNodes()[0];
   if (node && canActOn("favorite")) void setFavorite(node, !node.favorite);
+}
+
+export const canMarkImportant = (): boolean => {
+  const nodes = actedNodes();
+  return nodes.length > 0 && nodes.every((n) => n.actions.important);
+};
+
+export const allImportant = (): boolean => {
+  const nodes = actedNodes();
+  return nodes.length > 0 && nodes.every((n) => n.important);
+};
+
+export function importantActed(): void {
+  if (canMarkImportant()) void setImportant(actedNodes(), !allImportant());
 }
 
 export function moveActed(dir: MoveDirection): void {

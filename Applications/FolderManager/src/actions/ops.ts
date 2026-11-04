@@ -3,23 +3,27 @@ import * as api from "../ipc/api";
 import { choiceDialog, warningConfirmDialog } from "../ui/dialogs";
 import { el } from "../ui/dom";
 import { beginOperationStatus, clearStatus, endOperationStatus, setStatus } from "../ui/status";
+import { markRefreshed } from "./auto-refresh";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
 import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, followExpanded, hydrate, keyOf, lastSelection, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../store/state";
 import { sortedForColumns } from "../store/sort";
+import { loadVirtual } from "../store/virtual";
 import { outputOf } from "../store/node-info";
 import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
 import { isFmError } from "../ipc/types";
-import type { Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
+import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../ipc/types";
 
 async function reload(snapshot?: TreeSnapshot): Promise<void> {
+  markRefreshed();
   const tree = snapshot ?? (await api.refresh());
   setTree(tree);
   if (tree.warnings.length > 0) setStatus("warning", tree.warnings.join(". "));
   followExpanded();
   await hydrate();
+  await loadVirtual();
   pruneSelection();
   await askAboutCopies(tree.copies);
 }
@@ -48,6 +52,7 @@ async function patch(levels: LevelPatch[]): Promise<void> {
   const patched = patchLevels(levels);
   if (!patched) return reload();
   for (const nodes of patched) await hydrate(nodes);
+  await loadVirtual();
   pruneSelection();
 }
 
@@ -160,7 +165,7 @@ export async function refresh(): Promise<boolean> {
   });
   if (ok) {
     void runIntake(reload);
-    void checkRootFolders(resolveInvalid);
+    void checkRootFolders(resolveInvalid, deleteInvalid);
   }
   return ok;
 }
@@ -237,7 +242,7 @@ export async function setType(node: TreeNode, base: EditableType, status: WkbSta
     await applyMutation(await api.setNodeType(node.relParts, base, base === "WKB" ? status : null), node.relParts);
   });
   // A workboard with a name outside the track format is announced now, since the check only runs on refresh.
-  if (ok && base === "WKB") void checkRootFolders(resolveInvalid);
+  if (ok && base === "WKB") void checkRootFolders(resolveInvalid, deleteInvalid);
 }
 
 // The nearest folder that stays listed takes the selection, so the columns do not close.
@@ -323,6 +328,15 @@ export async function setDetails(node: TreeNode, status: WkbStatus | null, owner
 
 export const setFavorite = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setFavorite(node.relParts, on), node.relParts));
+
+// Several marked workboards are flagged in one go; a lone one is also selected, like a favorite.
+export const setImportant = (nodes: TreeNode[], on: boolean) =>
+  run(async () => {
+    for (const node of nodes.filter((n) => n.important !== on)) await applyMutation(await api.setImportant(node.relParts, on), node.relParts, nodes.length === 1);
+  });
+
+// Placing cards never moves the selection, so the board keeps the card the user is on.
+export const placeOnBoard = (cards: BoardCard[]) => run(async () => applyMutation(await api.setBoard(cards)));
 
 export const setLinkHidden = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setLinkHidden(node.relParts, on), node.relParts));
@@ -442,6 +456,24 @@ export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
     async () => applyMutation(await api.resolveInvalid(relParts, resolution)),
     `Fixing "${relParts[relParts.length - 1]}"…`,
   );
+
+// The invalid folder may not be in the loaded tree, so the backend inspects it and the dialog asks like a tree delete does.
+export async function deleteInvalid(relParts: string[]): Promise<boolean> {
+  const name = relParts[relParts.length - 1] ?? "";
+  let deleted = false;
+  const ok = await run(async () => {
+    const preview = await api.inspectDelete(relParts);
+    const nonEmpty = preview.files + preview.dirs > 0;
+    if (state.settings.confirmDelete && !preview.ghost) {
+      const what = nonEmpty ? `contains ${preview.files} files and ${preview.dirs} folders. They go` : "goes";
+      if (!(await warningConfirmDialog("Delete folder", [`"${name}" ${what} to the Recycle Bin`], "Delete", "danger"))) return;
+    }
+    beginOperationStatus(`Deleting "${name}"…`);
+    await applyMutation(await api.deleteNode(relParts, preview.ghost, nonEmpty));
+    deleted = true;
+  }, "Waiting for user decision…");
+  return ok && deleted;
+}
 
 // The folder after it in its column as the user sees it, else the one before; null when it is the only one shown.
 // The folder after it in its column as the user sees it, else the one before; items that are leaving are skipped.

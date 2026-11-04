@@ -8,6 +8,8 @@ import { displayNodeName, isTopLink, linkDashes } from "../store/node-info";
 
 export const favoriteMark = () => el("span", { class: "fav-mark", title: "Favorite" }, guiIcon("starred"));
 
+export const importantMark = () => el("span", { class: "imp-mark", title: "Important" }, guiIcon("important"), el("span", { class: "sr-only" }, "Important"));
+
 // Checked means the link is hidden; the box sits beside the icon and keeps its clicks from selecting the row.
 export function hideBox(n: TreeNode): HTMLElement[] {
   if (!state.hidingLinks || !n.linked) return [];
@@ -24,7 +26,7 @@ export function nameCell(n: TreeNode, inlineStar = true, staircase = false): HTM
   const edit = state.editing;
   if (!edit || edit.key !== key) {
     const text = (staircase ? linkDashes(n) : "") + displayNodeName(n);
-    return el("span", { class: isTopLink(n) ? "name top-link" : "name" }, el("span", { class: "name-text" }, text), ...(n.favorite && inlineStar ? [favoriteMark()] : []));
+    return el("span", { class: isTopLink(n) ? "name top-link" : "name" }, el("span", { class: "name-text" }, text), ...(n.favorite && inlineStar ? [favoriteMark()] : []), ...(n.important && inlineStar ? [importantMark()] : []));
   }
 
   const input = el("input", { class: "name-input", type: "text", spellcheck: "false", autocomplete: "off", "aria-label": `Rename ${n.name}` });
