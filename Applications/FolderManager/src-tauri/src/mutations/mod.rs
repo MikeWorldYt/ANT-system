@@ -47,7 +47,8 @@ pub use important::set_important;
 pub use file_ops::{delete_file, file_path, rename_file};
 pub use link_hidden::set_link_hidden;
 pub use file_drop::{drop_files, DropOutcome};
-pub(crate) use file_drop::free_name;
+pub(crate) use crate::domain::naming::free_name;
+pub(crate) use crate::tree::tree_store::load_synced;
 pub use move_folder::{move_folder, move_to_review};
 pub use user_flags::set_user_flag;
 pub(crate) use recycle::send_to_recycle_bin;
@@ -136,13 +137,6 @@ fn node_paths(data: &Mapping) -> BTreeSet<Vec<String>> {
     let mut out = BTreeSet::new();
     walk(data, &mut Vec::new(), &mut out);
     out
-}
-
-// Folders added on disk since the last refresh get their yaml entry before any check runs.
-pub(crate) fn load_synced(root: &Path) -> R<(Mapping, bool)> {
-    let mut data = tree_store::load(root)?;
-    let changed = tree_store::sync(root, &mut data)?;
-    Ok((data, changed))
 }
 
 // Ordinary mutations list only the levels down to `dir`; drift found there re-syncs everything, as the change is then not local.

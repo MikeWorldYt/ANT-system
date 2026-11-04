@@ -1,5 +1,4 @@
 // Places files dropped from Explorer into a storage folder, moved by default or copied when Ctrl is held.
-mod naming;
 mod target;
 #[cfg(test)]
 mod tests;
@@ -15,13 +14,13 @@ use super::{child_rel, exactly_on_disk, finish, load_synced_at, locate, register
 use crate::ant_core::names::{compose_name, free_track, is_workboard_name, name_parts};
 use crate::ant_core::tree_types::{child_entries, type_base};
 use crate::config::{is_hidden_dir, SETTINGS_FOLDER};
+use crate::domain::naming::free_name;
 use crate::error::{FmError, R};
 use crate::fs_safe::{io_err, join_rel, redirects, resolve, Journal, StorageLock};
 use crate::index::{footprint, review_index};
 
 use crate::tree::tree_store::{self, delete_key, get_node};
 use serde_yaml::{Mapping, Value};
-pub(crate) use naming::free_name;
 use target::destination;
 
 struct Place<'a> {
@@ -301,7 +300,7 @@ impl Place<'_> {
             return Ok(Outcome::Skipped("already in this folder".to_string()));
         }
         let name = real.file_name().map(|n| n.to_string_lossy().into_owned()).ok_or("the path has no file name")?;
-        let free = naming::free_name(self.dest, &name, &self.tree_names).map_err(|e| e.to_string())?;
+        let free = free_name(self.dest, &name, &self.tree_names).map_err(|e| e.to_string())?;
         let to = self.dest.join(&free);
         if self.copy {
             return copy_new(&real, &to).map(|()| Outcome::Placed(free, None));

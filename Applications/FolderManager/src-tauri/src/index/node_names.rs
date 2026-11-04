@@ -11,7 +11,6 @@ use crate::backup::stamp::local_date;
 use crate::debug_log::logs_dir;
 use crate::error::R;
 use crate::fs_safe::{io_err, Journal, StorageLock};
-use crate::mutations::load_synced;
 use crate::storage::info::{field_of, read_info, write_info, OWNER_KEYS};
 use crate::tree::depth;
 use crate::tree::tree_node::is_reserved;
@@ -33,7 +32,7 @@ struct Meta {
 
 pub fn tidy(root: &Path) -> R<()> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, _) = load_synced(root)?;
+    let (mut data, _) = tree_store::load_synced(root)?;
     let limit = depth::limit(root)?;
     let mut journal = Journal::new();
     let mut renames = Vec::new();

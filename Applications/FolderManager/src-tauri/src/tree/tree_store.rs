@@ -23,6 +23,13 @@ pub fn save(root: &Path, data: &Mapping) -> R<()> {
     Store::open_or_create(root)?.replace(&sort_mapping(data))
 }
 
+// Folders added on disk since the last refresh get their yaml entry before any check runs.
+pub(crate) fn load_synced(root: &Path) -> R<(Mapping, bool)> {
+    let mut data = load(root)?;
+    let changed = sync(root, &mut data)?;
+    Ok((data, changed))
+}
+
 pub fn infer_type(name: &str, depth: usize) -> String {
     let basename = name.rsplit(['/', '\\']).next().unwrap_or(name);
     if basename.starts_with("00.") {

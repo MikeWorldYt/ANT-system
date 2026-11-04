@@ -1,4 +1,4 @@
-// Picks a free name for a dropped file, numbering duplicates the way Explorer does.
+// Picks a free name for a new file or folder, numbering duplicates the way Explorer does.
 use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
@@ -8,7 +8,7 @@ use crate::fs_safe::{io_err, same_name, validate_component};
 
 const MAX_SUFFIX: u32 = 9_999;
 
-pub(super) fn numbered(name: &str, n: u32) -> String {
+fn numbered(name: &str, n: u32) -> String {
     // A leading dot starts a hidden name, not an extension.
     match name.rfind('.').filter(|&i| i > 0) {
         Some(i) => format!("{} ({n}){}", &name[..i], &name[i..]),

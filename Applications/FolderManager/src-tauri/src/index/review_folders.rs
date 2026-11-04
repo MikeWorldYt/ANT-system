@@ -6,8 +6,8 @@ use serde_yaml::{Mapping, Value};
 
 use crate::ant_core::names::{editable_part, list_subdirs};
 use crate::ant_core::tree_types::{child_entries, type_base};
+use crate::domain::naming::free_name;
 use crate::error::R;
-use crate::mutations::free_name;
 use crate::fs_safe::{io_err, join_rel, StorageLock};
 use crate::tree::depth;
 use crate::tree::tree_node::is_reserved;
