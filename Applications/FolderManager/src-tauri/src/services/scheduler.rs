@@ -2,6 +2,8 @@
 use std::path::Path;
 
 use crate::error::{FmError, R};
+#[cfg(windows)]
+use crate::platform::windows::schtasks::{current_user, schtasks};
 
 pub struct Task {
     pub name: &'static str,
@@ -62,15 +64,6 @@ pub fn logon_xml(task: &Task, user: &str, exe: &Path, root: &Path) -> String {
 }
 
 #[cfg(windows)]
-fn current_user() -> R<String> {
-    let name = std::env::var("USERNAME").map_err(|e| FmError::Internal { message: format!("Could not read the Windows user name: {e}") })?;
-    Ok(match std::env::var("USERDOMAIN") {
-        Ok(domain) if !domain.is_empty() => format!("{domain}\\{name}"),
-        _ => name,
-    })
-}
-
-#[cfg(windows)]
 pub fn apply_logon(task: &Task, on: bool, root: &Path) -> R<()> {
     if !on {
         return apply(task, None, root);
@@ -97,20 +90,6 @@ pub fn apply_logon(task: &Task, on: bool, root: &Path) -> R<()> {
 #[cfg(not(windows))]
 pub fn apply_logon(task: &Task, _on: bool, _root: &Path) -> R<()> {
     Err(FmError::Internal { message: format!("Scheduled {} is only available on Windows for now", task.what) })
-}
-
-#[cfg(windows)]
-fn schtasks(args: &[String]) -> R<std::process::Output> {
-    use std::os::windows::process::CommandExt;
-    // An absolute path keeps a schtasks.exe planted next to the app or on PATH from running.
-    let exe = std::env::var_os("SystemRoot")
-        .map(|r| std::path::PathBuf::from(r).join(r"System32\schtasks.exe"))
-        .unwrap_or_else(|| "schtasks.exe".into());
-    std::process::Command::new(exe)
-        .args(args)
-        .creation_flags(crate::fs_safe::CREATE_NO_WINDOW)
-        .output()
-        .map_err(|e| FmError::Internal { message: format!("Could not start schtasks: {e}") })
 }
 
 #[cfg(windows)]

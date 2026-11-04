@@ -88,23 +88,7 @@ fn check_unshared(root: &Path, data: &Mapping, stale: &[String], fresh: &[(Strin
 }
 
 #[cfg(windows)]
-fn with_lnk(link: &Path) -> PathBuf {
-    let mut path = link.as_os_str().to_owned();
-    path.push(".lnk");
-    PathBuf::from(path)
-}
-
-// Mirrors the full rebuild's clearing rule: on Windows any .lnk file is ours.
-#[cfg(windows)]
-fn remove_owned(_root: &Path, _review_dir: &Path, link: &Path) -> Result<(), String> {
-    let file = with_lnk(link);
-    match fs::symlink_metadata(&file) {
-        Ok(meta) if meta.is_file() => fs::remove_file(&file).map_err(|e| format!("Could not remove {}: {e}", file.display())),
-        Ok(_) => Ok(()),
-        Err(e) if e.kind() == ErrorKind::NotFound => Ok(()),
-        Err(e) => Err(format!("Could not inspect {}: {e}", file.display())),
-    }
-}
+use crate::platform::windows::review_links::{remove_owned, with_lnk};
 
 #[cfg(not(windows))]
 fn remove_owned(root: &Path, review_dir: &Path, link: &Path) -> Result<(), String> {

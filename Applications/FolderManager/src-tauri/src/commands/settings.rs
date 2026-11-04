@@ -1,5 +1,6 @@
 // User preferences kept in ant.db, and the links the settings window opens in the default browser or mail app.
 use std::collections::{HashMap, HashSet};
+#[cfg(not(windows))]
 use std::process::Command;
 
 use serde::Deserialize;
@@ -130,12 +131,7 @@ pub async fn reset_settings(app: AppHandle) -> R<()> {
 }
 
 #[cfg(windows)]
-fn launcher() -> Command {
-    use std::os::windows::process::CommandExt;
-    let mut cmd = Command::new("rundll32");
-    cmd.arg("url.dll,FileProtocolHandler").creation_flags(crate::fs_safe::CREATE_NO_WINDOW);
-    cmd
-}
+use crate::platform::windows::url_handler::launcher;
 
 #[cfg(target_os = "macos")]
 fn launcher() -> Command {

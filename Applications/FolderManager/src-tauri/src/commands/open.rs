@@ -1,5 +1,7 @@
 // Opens a folder of the storage in the file manager the operating system uses by default.
+#[cfg(not(windows))]
 use std::path::Path;
+#[cfg(not(windows))]
 use std::process::Command;
 
 use tauri::AppHandle;
@@ -12,13 +14,7 @@ use crate::tree::tree_store;
 
 // Each system has its own launcher for its default file manager.
 #[cfg(windows)]
-pub(super) fn launcher(dir: &Path) -> Command {
-    use std::os::windows::process::CommandExt;
-    let mut cmd = Command::new("explorer");
-    // Explorer falls back to Documents when the path mixes forward slashes.
-    cmd.arg(dir.to_string_lossy().replace('/', "\\")).creation_flags(crate::fs_safe::CREATE_NO_WINDOW);
-    cmd
-}
+pub(super) use crate::platform::windows::file_manager::launcher;
 
 #[cfg(target_os = "macos")]
 pub(super) fn launcher(dir: &Path) -> Command {

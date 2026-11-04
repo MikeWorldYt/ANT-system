@@ -1,4 +1,5 @@
 // Downloads through curl, kept to https and a short list of GitHub hosts.
+#[cfg(not(windows))]
 use std::process::Command;
 
 use super::fail;
@@ -65,17 +66,8 @@ pub fn split_effective(out: &[u8]) -> Option<(&[u8], &str)> {
     Some((&out[..at], std::str::from_utf8(&out[at + 1..]).ok()?))
 }
 
-// An absolute path keeps a curl.exe planted next to the app or on PATH from running.
 #[cfg(windows)]
-fn curl() -> Command {
-    use std::os::windows::process::CommandExt;
-    let exe = std::env::var_os("SystemRoot")
-        .map(|r| std::path::PathBuf::from(r).join(r"System32\curl.exe"))
-        .unwrap_or_else(|| std::path::PathBuf::from("curl.exe"));
-    let mut cmd = Command::new(exe);
-    cmd.creation_flags(crate::fs_safe::CREATE_NO_WINDOW);
-    cmd
-}
+use crate::platform::windows::curl::curl;
 
 #[cfg(not(windows))]
 fn curl() -> Command {
