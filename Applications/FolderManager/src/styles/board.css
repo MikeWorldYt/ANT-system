@@ -8,6 +8,7 @@
 .board-card { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: grab; user-select: none; }
 .board-card:hover { border-color: var(--field-bg); }
 .board-card.selected { background: var(--highlight); border-color: var(--button); }
+.board-card.important { border-left: 3px solid var(--accent); }
 .board-card:focus-visible { outline-offset: -2px; }
 .board-card-head { display: flex; align-items: center; gap: 6px; }
 .board-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }

@@ -1,7 +1,8 @@
 // Right-click menu of a board card; its Move to submenu is the keyboard way to change a card's column.
-import { hideNode, remove } from "../actions/ops";
+import { hideNode, remove, setImportant } from "../actions/ops";
 import { goToReal } from "../actions/virtual-nav";
 import { BOARD_COLUMNS } from "../store/board";
+import { importantLabel } from "../store/node-info";
 import { guiIcon } from "../ui/gui-icons";
 import { menuItem, separator, submenu } from "../ui/menu";
 import { copyPath } from "./context-menu";
@@ -27,6 +28,12 @@ export function boardCardMenu(node: TreeNode, at: BoardColumn, act: CardActions,
     close(false);
     act.edit();
   });
+  const important = menuItem(importantLabel(node.important), "menuitem", a.important, () => {
+    close();
+    void setImportant([node], !node.important);
+  });
+  important.prepend(guiIcon("important"));
+  important.classList.toggle("ctx-important-add", !node.important);
   const columns = BOARD_COLUMNS.map(([id, label]) =>
     menuItem(label, "menuitemradio", id !== at, () => {
       close();
@@ -45,8 +52,8 @@ export function boardCardMenu(node: TreeNode, at: BoardColumn, act: CardActions,
   }, "ctx-item danger");
   del.prepend(guiIcon("trash"));
   return {
-    items: [open, copy, edit, move.trigger, hide, del],
+    items: [open, copy, edit, important, move.trigger, hide, del],
     subs: [move],
-    content: [open, copy, edit, move.element, separator(), hide, del],
+    content: [open, copy, edit, important, move.element, separator(), hide, del],
   };
 }

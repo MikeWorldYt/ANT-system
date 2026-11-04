@@ -34,6 +34,7 @@ export interface NodeActions {
   copyPath: boolean;
   open: boolean;
   favorite: boolean;
+  important: boolean;
   editDetails: boolean;
   editFlags: boolean;
   hideLink: boolean;
@@ -59,6 +60,7 @@ export interface TreeNode {
   fixedPrefix: string;
   editableName: string;
   favorite: boolean;
+  important: boolean;
   hidden: boolean;
   file: boolean;
   info: NodeInfo | null;

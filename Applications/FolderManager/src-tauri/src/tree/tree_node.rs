@@ -41,6 +41,7 @@ pub struct NodeActions {
     pub copy_path: bool,
     pub open: bool,
     pub favorite: bool,
+    pub important: bool,
     pub edit_details: bool,
     pub edit_flags: bool,
     pub hide_link: bool,
@@ -68,6 +69,7 @@ pub struct TreeNode {
     pub fixed_prefix: String,
     pub editable_name: String,
     pub favorite: bool,
+    pub important: bool,
     pub hidden: bool,
     pub file: bool,
     pub info: Option<NodeInfo>,
@@ -290,6 +292,7 @@ fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
         fixed_prefix: String::new(),
         editable_name: name.clone(),
         favorite: false,
+        important: false,
         hidden: false,
         file: true,
         info: None,
@@ -305,6 +308,7 @@ fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
             copy_path: true,
             open: true,
             favorite: false,
+            important: false,
             edit_details: false,
             edit_flags: false,
             hide_link: false,
@@ -395,6 +399,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
         fixed_prefix,
         editable_name,
         favorite: entry.favorite || info.as_ref().and_then(|i| field_of(i, &["favorite"])).is_some_and(|v| v.eq_ignore_ascii_case("true")),
+        important: is_wkb && info.as_ref().and_then(|i| field_of(i, &["important"])).is_some_and(|v| v.eq_ignore_ascii_case("true")),
         hidden: entry.hidden,
         file: false,
         info,
@@ -416,6 +421,7 @@ fn link_actions() -> NodeActions {
         copy_path: true,
         open: true,
         favorite: true,
+        important: false,
         edit_details: false,
         edit_flags: false,
         hide_link: true,
@@ -444,6 +450,7 @@ fn compute_actions(depth: usize, limit: usize, ghost: bool, raw_type: &str, rese
         open: !ghost,
         // A broken info.json is never overwritten, so neither edit can be saved into it.
         favorite: !reserved && !ghost && !info_broken && !outcome,
+        important: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
         edit_details: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
         edit_flags: !frozen && !ghost && depth > 0 && type_base(raw_type) == "NODE",
         hide_link: false,
@@ -862,6 +869,7 @@ mod tests {
             let a = &find(&tree.nodes, n).actions;
             (a.favorite, a.edit_details)
         };
+        assert!(find(&tree.nodes, "04.Wkb").actions.important && !find(&tree.nodes, "02.Beta").actions.important && !find(&tree.nodes, "03.Gamma").actions.important);
         assert_eq!(acts("04.Wkb"), (true, true));
         assert_eq!(acts("02.Beta"), (true, false));
         assert_eq!(acts("03.Gamma"), (false, false));
@@ -870,7 +878,7 @@ mod tests {
         std::fs::write(dir.path().join("04.Wkb/.ant/info.json"), "[1]").unwrap();
         let tree = build_tree(dir.path(), &data, false).unwrap();
         let a = &find(&tree.nodes, "04.Wkb").actions;
-        assert!(!a.favorite && !a.edit_details);
+        assert!(!a.favorite && !a.edit_details && !a.important);
         assert!(!find(&tree.nodes, "02.Beta").actions.edit_flags && !find(&tree.nodes, "04.Wkb").actions.edit_flags);
     }
 

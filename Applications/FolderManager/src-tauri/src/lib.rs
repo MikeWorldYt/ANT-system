@@ -104,6 +104,7 @@ pub fn run() {
             commands::set_hidden_nodes,
             commands::list_hidden_choices,
             commands::set_favorite,
+            commands::set_important,
             commands::set_link_hidden,
             commands::file_image,
             commands::rename_file,

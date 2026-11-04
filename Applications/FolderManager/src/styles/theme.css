@@ -137,6 +137,8 @@ body {
 .ctx-item[class*="st-"], .details dd[class*="st-"], .status-picker[class*="st-"] { color: var(--st); }
 .fav-mark { display: inline-flex; flex: none; color: var(--st-progress); }
 .fav-mark .gui-icon { width: 12px; height: 12px; }
+.imp-mark { display: inline-flex; flex: none; color: var(--accent); }
+.imp-mark .gui-icon { width: 12px; height: 12px; }
 
 .details-panel {
   width: var(--panel-w); flex: none; display: flex; flex-direction: column; gap: 14px;
@@ -166,6 +168,7 @@ body {
 .side-action-label { flex: 1; min-width: 0; }
 .side-action.accent { color: var(--accent); }
 .side-action.is-favorite .side-action-icon { color: var(--st-progress); }
+.side-action.is-important .side-action-icon { color: var(--accent); }
 .side-action.danger, .side-rail .danger:not([aria-disabled="true"]) { color: var(--delete-hover); }
 .side-action[aria-disabled="true"] { color: var(--disabled-text); cursor: default; }
 .side-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
@@ -279,6 +282,7 @@ body {
 .grid-art .icon { width: 56px; height: 56px; }
 .grid-art .status-mark { position: absolute; right: -6px; bottom: -4px; }
 .grid-art .fav-mark { position: absolute; left: -6px; top: -4px; }
+.grid-art .imp-mark { position: absolute; right: -6px; top: -4px; }
 .grid-item .name { max-width: 100%; justify-content: center; }
 .grid-item .name-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: normal; overflow-wrap: anywhere; text-align: center; }
 .chevron { color: var(--accent); }
@@ -293,6 +297,7 @@ body {
 .ctx-node > .ctx-item, .ctx-node > .ctx-sub > .ctx-item { padding-left: 34px; }
 .ctx-node > .ctx-item > .gui-icon { position: absolute; left: 10px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); }
 .ctx-node > .ctx-item.ctx-favorite-add > .gui-icon { color: var(--st-progress); }
+.ctx-node > .ctx-item.ctx-important-add > .gui-icon { color: var(--accent); }
 .ctx-item {
   display: block; position: relative; width: 100%; padding: 6px 14px; border: 0; background: transparent;
   color: var(--text); font: inherit; text-align: left; cursor: pointer;

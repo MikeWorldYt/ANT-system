@@ -329,6 +329,12 @@ export async function setDetails(node: TreeNode, status: WkbStatus | null, owner
 export const setFavorite = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setFavorite(node.relParts, on), node.relParts));
 
+// Several marked workboards are flagged in one go; a lone one is also selected, like a favorite.
+export const setImportant = (nodes: TreeNode[], on: boolean) =>
+  run(async () => {
+    for (const node of nodes.filter((n) => n.important !== on)) await applyMutation(await api.setImportant(node.relParts, on), node.relParts, nodes.length === 1);
+  });
+
 // Placing cards never moves the selection, so the board keeps the card the user is on.
 export const placeOnBoard = (cards: BoardCard[]) => run(async () => applyMutation(await api.setBoard(cards)));
 

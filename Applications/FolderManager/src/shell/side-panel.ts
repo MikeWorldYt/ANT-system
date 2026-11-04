@@ -1,10 +1,10 @@
 // Right column: quick actions, details and order of the selected node, collapsible to an icon rail.
 import { el } from "../ui/dom";
 import { iconButton } from "../ui/icon-button";
-import { canActOn, deleteActed, favoriteActed, hideActed, moveActed } from "../actions/acted-nodes";
+import { allImportant, canActOn, canMarkImportant, deleteActed, favoriteActed, hideActed, importantActed, moveActed } from "../actions/acted-nodes";
 import { setReviewFilter } from "../actions/ops";
 import { readPref, savePref } from "../store/prefs";
-import { favoritesShown, hiddenCategories, isMainCategory, isReviewRoot, nameWithoutIdentifier } from "../store/node-info";
+import { favoritesShown, hiddenCategories, importantLabel, isMainCategory, isReviewRoot, nameWithoutIdentifier } from "../store/node-info";
 import { quickActionsShown, railLayout, type RailId } from "../store/side-layout";
 import { selectedNode, state, toggleHidingLinks } from "../store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
@@ -55,7 +55,8 @@ export function createSidePanel(openSelected: () => void): SidePanel {
 
   const open = sideAction("Open", null, openSelected, "");
   const favorite = sideAction(favoriteLabel(null), "starred", favoriteActed);
-  const quick = section("side-quick", "Quick actions", open.button, favorite.button);
+  const important = sideAction(importantLabel(false), "important", importantActed);
+  const quick = section("side-quick", "Quick actions", open.button, favorite.button, important.button);
   const up = sideAction("Move up", "moveUp", moveUp, "accent");
   const down = sideAction("Move down", "moveDown", moveDown, "accent");
   const order = section("side-order", "Order", up.button, down.button);
@@ -196,6 +197,9 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     order.hidden = foot.hidden = n === null || review || n.linked;
     quick.hidden = n === null || !quickActionsShown();
     favorite.setLabel(favoriteLabel(n));
+    const marked = allImportant();
+    important.setLabel(importantLabel(marked));
+    important.button.classList.toggle("is-important", marked);
     favorite.button.classList.toggle("is-favorite", !!n?.favorite);
     railFavorite.classList.toggle("is-favorite", !!n?.favorite);
     railFavorite.setAttribute("aria-label", favoriteLabel(n));
@@ -203,6 +207,7 @@ export function createSidePanel(openSelected: () => void): SidePanel {
     const available: [HTMLButtonElement[], boolean][] = [
       [[open.button], n !== null],
       [[favorite.button, railFavorite], canActOn("favorite")],
+      [[important.button], canMarkImportant()],
       [[railEdit], n !== null && canEdit(n)],
       [[up.button, railUp], canActOn("moveUp")],
       [[down.button, railDown], canActOn("moveDown")],

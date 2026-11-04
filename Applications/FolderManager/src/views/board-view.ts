@@ -1,6 +1,7 @@
 // Task board of every workboard, shown for the virtual BOARD entry in place of whichever view is active.
 import { el } from "../ui/dom";
 import { statusMark } from "../ui/status-mark";
+import { importantMark } from "./name-cell";
 import { displayNodeName, statusLabel } from "../store/node-info";
 import { BOARD_COLUMNS, boardLists, type BoardLists } from "../store/board";
 import { virtualNodes } from "../store/virtual";
@@ -46,10 +47,11 @@ export function createBoardView(host: HTMLElement, editDetails: () => void): { e
     const parent = n.relParts.slice(0, -1).join(" › ");
     const name = displayNodeName(n);
     const { toggle, panel } = cardDetails(n, name, `board-details-${at}-${index}`, expanded.has(key), (open) => (open ? expanded.add(key) : expanded.delete(key)));
-    const label = [name, n.status ? statusLabel(n.status) : null, `in ${parent}`].filter(Boolean).join(", ");
-    const head = el("div", { class: "board-card-head" }, ...(n.status ? [statusMark(n.status)] : []), el("span", { class: "board-name" }, name), toggle);
+    const label = [name, n.important ? "important" : null, n.status ? statusLabel(n.status) : null, `in ${parent}`].filter(Boolean).join(", ");
+    const head = el("div", { class: "board-card-head" }, ...(n.status ? [statusMark(n.status)] : []), el("span", { class: "board-name" }, name), ...(n.important ? [importantMark()] : []), toggle);
     const card = el("li", { class: "board-card", tabindex: "0", "aria-label": label, title: n.relParts.join("/") }, head, panel);
     card.dataset.card = key;
+    card.classList.toggle("important", n.important);
     if (isSelected(key)) {
       card.classList.add("selected");
       card.setAttribute("aria-current", "true");

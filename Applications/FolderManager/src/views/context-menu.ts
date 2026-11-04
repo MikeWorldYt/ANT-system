@@ -3,8 +3,8 @@ import { describeError, openNode } from "../ipc/api";
 import { el } from "../ui/dom";
 import { guiIcon } from "../ui/gui-icons";
 import { statusIcon } from "../ui/status-mark";
-import { STATUSES, TYPES } from "../store/node-info";
-import { addChild, hideNode, pasteFiles, remove, removeMany, setDetails, setFavorite, setLinkHidden, setType, setUserFlag } from "../actions/ops";
+import { importantLabel, isWorkboard, STATUSES, TYPES } from "../store/node-info";
+import { addChild, hideNode, pasteFiles, remove, removeMany, setDetails, setFavorite, setImportant, setLinkHidden, setType, setUserFlag } from "../actions/ops";
 import { createShortcut, putOnClipboard } from "../actions/folder-share";
 import { isSelected, keyOf, selectedNodes, startEdit, state } from "../store/state";
 import { setStatus } from "../ui/status";
@@ -102,6 +102,14 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   });
   favorite.prepend(guiIcon("starred"));
   favorite.classList.toggle("ctx-favorite-add", !node.favorite);
+  const important = menuItem(importantLabel(node.important), "menuitem", a.important, () => {
+    close();
+    void setImportant([node], !node.important);
+  });
+  important.prepend(guiIcon("important"));
+  important.classList.toggle("ctx-important-add", !node.important);
+  // Only workboards are placed on the board, so the item is left out for other folders.
+  const importantItems = isWorkboard(node) ? [important] : [];
   const hide = menuItem(node.hidden ? "Show element" : "Hide element", "menuitem", a.hideLink, () => {
     close();
     void setLinkHidden(node, !node.hidden);
@@ -194,10 +202,10 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [open, copyPathItem, favorite, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, hideElement, del, ...extras],
+    items: [open, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, hideElement, del, ...extras],
     subs,
     content: [
-      open, copyPathItem, favorite, ...hideItems, separator(),
+      open, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
       rename, copy, cut, ...shareItems, separator(),
       ...subs.map((s) => s.element), ...fileItems, separator(),
       newNode, newWorkboard, separator(),

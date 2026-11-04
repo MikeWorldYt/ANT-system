@@ -286,6 +286,8 @@ fn field_edits_update_the_search_index_like_a_full_rebuild() {
     assert_matches_full_rebuild(&dir, &m);
     let m = with_search_index(dir.path(), mutations::set_favorite(dir.path(), &math, true)).unwrap();
     assert_matches_full_rebuild(&dir, &m);
+    let m = with_search_index(dir.path(), mutations::set_important(dir.path(), &bio, true)).unwrap();
+    assert_matches_full_rebuild(&dir, &m);
     let m = with_search_index(dir.path(), mutations::set_user_flag(dir.path(), &math, true)).unwrap();
     assert_matches_full_rebuild(&dir, &m);
 }

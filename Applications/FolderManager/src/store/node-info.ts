@@ -13,6 +13,8 @@ export const STATUSES: [WkbStatus, string][] = [
 
 export const statusLabel = (status: WkbStatus): string => STATUSES.find(([v]) => v === status)?.[1] ?? status;
 
+export const importantLabel = (important: boolean): string => (important ? "Is not important" : "Is important");
+
 export const UNKNOWN = "unknown";
 export const nameWithoutIdentifier = (n: TreeNode): string => {
   // A review link's name carries its owner's id slots, so it shows the owner folder's own name instead.
@@ -91,6 +93,8 @@ export function nodeDetails(n: TreeNode): [string, string][] {
     if (wkb && (f.key.toLowerCase() === "status" || f.key.toLowerCase() === "output" || OWNER_KEYS.includes(f.key.toLowerCase()))) continue;
     // Favorite is toggled from the quick actions, never edited as a field.
     if (f.key.toLowerCase() === "favorite") continue;
+    // Important is toggled from the quick actions, like favorite.
+    if (f.key.toLowerCase() === "important") continue;
     // The board placement changes by moving the card, never as a field.
     if (["board", "boardorder", "boardstatus"].includes(f.key.toLowerCase())) continue;
     // The review filter has its own checkboxes, so its stored values are not detail rows.
