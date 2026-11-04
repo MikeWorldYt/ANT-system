@@ -14,7 +14,7 @@ async function resolveTyped(text: string): Promise<string[] | null | undefined> 
   const root = splitPath(state.tree?.root ?? "");
   const typed = splitPath(text);
   const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-  if (typed.length < root.length || !root.every((p, i) => same(p, typed[i] ?? ""))) return undefined;
+  if (typed.includes("..") || typed.length < root.length || !root.every((p, i) => same(p, typed[i] ?? ""))) return undefined;
   const found: string[] = [];
   let level: TreeNode[] = state.tree?.nodes ?? [];
   for (const part of typed.slice(root.length)) {
@@ -26,6 +26,8 @@ async function resolveTyped(text: string): Promise<string[] | null | undefined> 
   }
   return found;
 }
+
+const currentPath = (root: string): string => [root.replace(/[\\/]+$/, ""), ...(state.selectedKey?.split("/") ?? [])].join("\\");
 
 export function createPathInput(path: HTMLElement, render: () => void): { editing(): boolean; start(): void } {
   let editing = false;
@@ -40,9 +42,8 @@ export function createPathInput(path: HTMLElement, render: () => void): { editin
     if (editing || !state.tree) return;
     editing = true;
     path.classList.add("editing");
-    const parts = state.selectedKey?.split("/") ?? [];
     const input = el("input", { class: "path-input", type: "text", spellcheck: "false", autocomplete: "off", "aria-label": "Path" });
-    input.value = [state.tree.root.replace(/[\\/]+$/, ""), ...parts].join("\\");
+    input.value = currentPath(state.tree.root);
     input.addEventListener("keydown", (ev) => {
       if (ev.key === "Escape") {
         ev.stopPropagation();
@@ -70,9 +71,16 @@ export function createPathInput(path: HTMLElement, render: () => void): { editin
       target = null;
       console.warn("Path lookup failed", e);
     }
-    if (target === undefined || target === null) {
+    if (target === undefined) {
+      input.removeAttribute("aria-invalid");
+      input.value = currentPath(state.tree?.root ?? "");
+      input.select();
+      setStatus("error", "You can only browse inside your storage");
+      return;
+    }
+    if (target === null) {
       input.setAttribute("aria-invalid", "true");
-      setStatus("error", target === undefined ? "That path is outside the storage root" : "That folder does not exist in the storage");
+      setStatus("error", "That folder does not exist in the storage");
       return;
     }
     clearStatus();
