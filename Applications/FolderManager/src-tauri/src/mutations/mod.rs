@@ -1,6 +1,7 @@
 // Rename, retype and add nodes, keeping disk folders, linked 90./98. folders and the tree in step.
 mod add;
 mod board;
+mod checks;
 mod copy_answer;
 mod delete;
 mod favorite;
@@ -11,6 +12,7 @@ mod file_ops;
 mod link_hidden;
 mod outputs;
 mod move_folder;
+mod mutation;
 mod user_flags;
 mod recycle;
 mod rename;
@@ -19,24 +21,10 @@ mod result;
 mod resolve;
 mod retype;
 mod review_filter;
+mod save;
+mod target;
 #[cfg(not(windows))]
 mod unix_trash;
-
-use std::collections::BTreeSet;
-use std::fs;
-use std::path::{Path, PathBuf};
-
-use serde::Serialize;
-use serde_yaml::{Mapping, Value};
-
-use crate::ant_core::tree_types::{child_entries, META_KEYS};
-use crate::config::is_hidden_dir;
-use crate::domain::model::Copies;
-use crate::error::{FmError, R};
-use crate::fs_safe::{io_err, resolve, same_name, Journal};
-use crate::index::footprint;
-use crate::tree::tree_node::{is_reserved, TreeNode, TreeSnapshot};
-use crate::tree::tree_store::{self, get_node, get_type, is_locked_type};
 
 pub use add::{add_next, add_node};
 pub use board::{set_board, BoardCard};
@@ -61,204 +49,23 @@ pub use hidden::{hidden_choices, set_hidden, set_hidden_children, HiddenChoice};
 pub use outputs::{deliver, restore, set_output};
 pub use retype::{set_details, set_node_type};
 pub use review_filter::set_review_filter;
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Mutation {
-    // Only set when the change is not local (a re-synced yaml, an unknown scope or a failed patch).
-    pub tree: Option<TreeSnapshot>,
-    pub levels: Vec<LevelPatch>,
-    pub select: Option<Vec<String>>,
-    pub warnings: Vec<String>,
-    // Subtrees whose search docs changed, before and after; empty means unknown and forces a full rebuild.
-    #[serde(skip)]
-    pub touched: Vec<Vec<String>>,
-    // Pre-mutation yaml of the touched paths that existed, so data derived from removed paths can be found.
-    #[serde(skip)]
-    pub before: Vec<(Vec<String>, Mapping)>,
-}
-
-impl Mutation {
-    pub(crate) fn replacing(mut self, before: Vec<(Vec<String>, Mapping)>) -> Self {
-        self.before = before;
-        self
-    }
-
-    pub(crate) fn touched_nodes(&self) -> Vec<&TreeNode> {
-        self.touched
-            .iter()
-            .filter_map(|rel| {
-                let (_, parent) = rel.split_last()?;
-                let level = self.levels.iter().find(|l| l.parent == parent)?;
-                level.children.iter().find(|n| n.rel_parts == *rel)
-            })
-            .collect()
-    }
-}
-
-// Clones only the given subtrees, so a mutation never keeps a copy of the whole old yaml.
-pub(crate) fn subtrees(data: &Mapping, paths: &[Vec<String>]) -> Vec<(Vec<String>, Mapping)> {
-    paths.iter().filter_map(|p| get_node(data, p).map(|node| (p.clone(), node.clone()))).collect()
-}
-
-pub(crate) struct Target {
-    pub abs: PathBuf,
-    pub ghost: bool,
-    pub node_type: String,
-}
-
-// New .ant folders get their id now; true means a folder moved outside the app was re-keyed, which is not a local change.
-pub(crate) fn register_ids(root: &Path, data: &mut Mapping, warnings: &mut Vec<String>) -> bool {
-    let shape = node_paths(data);
-    match footprint::plan(root, data, Copies::Ignore).map(|plan| plan.changed) {
-        Ok(true) => {
-            if let Err(e) = tree_store::save(root, data) {
-                warnings.push(format!("Could not save moved folders: {e}"));
-            }
-            node_paths(data) != shape
-        }
-        Ok(false) => false,
-        Err(e) => {
-            warnings.push(format!("Could not assign folder ids: {e}"));
-            false
-        }
-    }
-}
-
-fn node_paths(data: &Mapping) -> BTreeSet<Vec<String>> {
-    fn walk(node: &Mapping, rel: &mut Vec<String>, out: &mut BTreeSet<Vec<String>>) {
-        for (name, child) in child_entries(node) {
-            rel.push(name.to_string());
-            out.insert(rel.clone());
-            walk(child, rel, out);
-            rel.pop();
-        }
-    }
-    let mut out = BTreeSet::new();
-    walk(data, &mut Vec::new(), &mut out);
-    out
-}
-
-// Ordinary mutations list only the levels down to `dir`; drift found there re-syncs everything, as the change is then not local.
-pub(crate) fn load_synced_at(root: &Path, dir: &[String]) -> R<(Mapping, bool)> {
-    let mut data = tree_store::load(root)?;
-    let changed = tree_store::sync_branch(root, &mut data, dir)?;
-    if changed {
-        tree_store::sync(root, &mut data)?;
-    }
-    Ok((data, changed))
-}
-
-pub(crate) fn parent_of(rel: &[String]) -> &[String] {
-    rel.split_last().map_or(&[], |(_, parent)| parent)
-}
-
-pub(crate) fn split(rel: &[String]) -> R<(&String, &[String])> {
-    rel.split_last().ok_or_else(|| FmError::InvalidPath {
-        rel_parts: Vec::new(),
-        reason: "the storage root is not a node".to_string(),
-    })
-}
-
-pub(crate) fn child_rel(parent: &[String], name: &str) -> Vec<String> {
-    let mut rel = parent.to_vec();
-    rel.push(name.to_string());
-    rel
-}
-
-pub(crate) fn locate(root: &Path, data: &Mapping, rel: &[String]) -> R<Target> {
-    split(rel)?;
-    // A folder named like a meta key would make its parent's type or status look like a node.
-    if let Some(meta) = rel.iter().find(|p| META_KEYS.contains(&p.as_str())) {
-        return Err(FmError::InvalidName { name: meta.clone(), reason: "reserved name".to_string() });
-    }
-    let abs = resolve(root, rel)?;
-    let on_disk = exactly_on_disk(root, rel)?;
-    if !on_disk && get_node(data, rel).is_none() {
-        return Err(FmError::NotFound { rel_parts: rel.to_vec() });
-    }
-    Ok(Target { abs, ghost: !on_disk, node_type: get_type(data, rel) })
-}
-
-fn exactly_on_disk(root: &Path, rel: &[String]) -> R<bool> {
-    let mut dir = root.to_path_buf();
-    for part in rel {
-        if !has_exact_dir(&dir, part)? {
-            return Ok(false);
-        }
-        dir.push(part);
-    }
-    Ok(true)
-}
-
-// Exact match, because Windows would also open "01.math" for a yaml key "01.Math".
-fn has_exact_dir(dir: &Path, name: &str) -> R<bool> {
-    let entries = match fs::read_dir(dir) {
-        Ok(entries) => entries,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
-        Err(e) => return Err(io_err("list folder", dir, &e)),
-    };
-    for entry in entries {
-        let entry = entry.map_err(|e| io_err("list folder", dir, &e))?;
-        if entry.file_name() == name {
-            let kind = entry.file_type().map_err(|e| io_err("inspect path", &entry.path(), &e))?;
-            return Ok(kind.is_dir());
-        }
-    }
-    Ok(false)
-}
-
-pub(crate) fn guard_frozen(rel: &[String], node_type: &str) -> R<()> {
-    if is_reserved(rel) {
-        return Err(FmError::Reserved { rel_parts: rel.to_vec() });
-    }
-    if is_locked_type(node_type) {
-        return Err(FmError::Locked { rel_parts: rel.to_vec(), node_type: node_type.to_string() });
-    }
-    Ok(())
-}
-
-pub(crate) fn ensure_free(
-    parent_abs: &Path,
-    parent_yaml: Option<&Mapping>,
-    name: &str,
-    ignore: &[&str],
-) -> R<()> {
-    // A folder named like a meta key would overwrite its parent's type or status in the yaml.
-    if META_KEYS.iter().any(|k| same_name(k, name)) || is_hidden_dir(name) {
-        return Err(FmError::InvalidName { name: name.to_string(), reason: "reserved name".to_string() });
-    }
-    let clashes = |other: &str| same_name(other, name) && !ignore.contains(&other);
-    let taken = FmError::AlreadyExists { name: name.to_string() };
-    if parent_yaml.is_some_and(|m| m.keys().filter_map(Value::as_str).any(clashes)) {
-        return Err(taken);
-    }
-    let entries = fs::read_dir(parent_abs).map_err(|e| io_err("list folder", parent_abs, &e))?;
-    for entry in entries {
-        let entry = entry.map_err(|e| io_err("list folder", parent_abs, &e))?;
-        if clashes(&entry.file_name().to_string_lossy()) {
-            return Err(taken);
-        }
-    }
-    Ok(())
-}
-
-pub(crate) fn persist(root: &Path, data: &Mapping, journal: Journal, op: &str) -> R<()> {
-    match tree_store::save(root, data) {
-        Ok(()) => {
-            journal.commit();
-            Ok(())
-        }
-        Err(e) => Err(journal.abort(op, e)),
-    }
-}
+pub use mutation::Mutation;
+pub(crate) use mutation::subtrees;
+pub(crate) use checks::{ensure_free, guard_frozen};
+pub(crate) use save::{load_synced_at, persist, register_ids};
+pub(crate) use target::{child_rel, locate, parent_of, split, Target};
+use target::exactly_on_disk;
 
 #[cfg(test)]
 mod tests {
+    use serde_yaml::{Mapping, Value};
+
     use super::*;
     use crate::config::{EditableType, NewKind};
+    use crate::error::{FmError, R};
     use crate::fs_safe::StorageLock;
     use crate::test_support::*;
+    use crate::tree::tree_store::get_node;
 
     #[test]
     fn meta_key_folders_are_refused_and_the_parent_type_survives() {
