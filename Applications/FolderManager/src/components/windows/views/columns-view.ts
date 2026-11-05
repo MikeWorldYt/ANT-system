@@ -174,12 +174,13 @@ export function createColumnsView(): ViewMode {
       if (target) pick(target);
     };
     switch (ev.key) {
+      // The ends wrap around, so the last row leads back to the first and the first to the last.
       case "ArrowDown":
-        move(i + 1);
+        move(i + 1 >= siblings.length ? 0 : i + 1);
         break;
       case "ArrowUp":
         if (head && i === 0 && siblings === cols[0]?.nodes) void openVirtual(head.id);
-        else move(i < 0 ? 0 : i - 1);
+        else move(i < 0 ? 0 : i === 0 ? siblings.length - 1 : i - 1);
         break;
       case "Home":
         move(0);
