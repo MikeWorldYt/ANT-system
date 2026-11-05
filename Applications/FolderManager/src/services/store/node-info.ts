@@ -53,7 +53,12 @@ export const typeLabel = (n: TreeNode): string => {
   return flags.length > 0 ? `${typeName(n)}\n(${flags.join(", ")})` : typeName(n);
 };
 
-export const nodeSummary = (n: TreeNode): string => typeLabel(n);
+// A tooltip is one line in plain words, so the internal type names give way to what the folder is for.
+export const nodeSummary = (n: TreeNode): string => {
+  if (!n.file && n.nodeType?.base === "REV") return "Review Folder";
+  if (!n.file && n.nodeType?.base === "NODE" && n.flags.includes("data") && nodeFlags(n).length === 1) return "Node with free files unsorted";
+  return typeLabel(n).replace(/\s*\n\s*/, " ");
+};
 
 export const isReviewRoot = (n: TreeNode) => n.relParts.length === 1 && n.name.toLowerCase() === "998.review";
 export const isMainCategory = (n: TreeNode) => n.depth === 0 && !n.ghost && /^[1-8]00\./.test(n.name);

@@ -58,7 +58,9 @@ const kindOf = (n: TreeNode, open: boolean): Kind =>
 // Files show the shell's icon for their type, or the generic page where no native icon exists.
 export const folderIcon = (n: TreeNode, open = false) => {
   if (painted === undefined) setIconColor(null);
-  const src = n.file ? (nativeImage(n, false) ?? fileUrl) : urlOf(kindOf(n, open));
+  // Shortcuts get the review-link arrow, which reads better than the shell's blank page for a .lnk.
+  const shortcut = n.file && n.name.toLowerCase().endsWith(".lnk");
+  const src = shortcut ? urlOf("lnk") : n.file ? (nativeImage(n, false) ?? fileUrl) : urlOf(kindOf(n, open));
   const locked = !n.file && !n.linked && n.locked;
   const img = el("img", { class: "icon", src, alt: locked ? LOCKED_LABEL : "", width: "16", height: "16", draggable: "false" });
   if (locked) img.title = LOCKED_LABEL;
