@@ -1,0 +1,13 @@
+/* Text buttons and their primary, danger, outline and danger-text variants. */
+.btn {
+  padding: 8px; border: 0; border-radius: var(--radius-sm); font: inherit; font-weight: bold; cursor: pointer;
+  background: var(--field-bg); color: var(--text);
+}
+.btn:hover:not(:disabled) { background: var(--highlight); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn-primary { background: var(--button); color: var(--on-accent); }
+.btn-primary:hover:not(:disabled) { background: var(--hover-btn); }
+.btn-danger { background: var(--delete-btn); color: var(--text); }
+.btn-danger:hover:not(:disabled) { background: var(--delete-hover); }
+.sw-outline { background: none; box-shadow: inset 0 0 0 2px var(--button); }
+.sw-danger { color: var(--delete-hover); }

@@ -1,0 +1,3 @@
+/* Native select of the settings rows. */
+.sw-select { padding: 6px 10px; font: inherit; color: var(--text); background: var(--field-bg); border: 0; border-radius: 6px; }
+.sw-select:focus-visible { outline: 2px solid var(--button); outline-offset: 2px; }

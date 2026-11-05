@@ -1,0 +1,24 @@
+/* Details block of the side panel and its edit form. */
+.details { margin: 4px 0 0; font-size: 9pt; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.details dt { color: var(--muted); }
+.details dd { margin: 0; word-break: break-word; white-space: pre-line; }
+.details dd.path { word-break: normal; }
+.details dd.path .seg { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+.detail-field { display: flex; flex-direction: column; min-width: 0; }
+.detail-field:first-child, .detail-field:has(> dd.path), .detail-field:has(> #details-term-output), .detail-field:has(> #details-term-status) { grid-column: 1 / -1; }
+.details-head .icon-btn { color: var(--title); }
+.details-head { display: flex; align-items: center; justify-content: space-between; }
+.details-head .side-label { margin: 0; }
+.details[hidden] { display: none; }
+.details-input {
+  box-sizing: border-box; width: 100%; padding: 2px 4px; font: inherit; color: var(--text); background: var(--field-bg);
+  border: 1px solid var(--border); border-radius: 3px; outline: none;
+}
+.details-input:focus { border-color: var(--button); box-shadow: 0 0 0 1px var(--button); }
+.details-name { display: flex; align-items: center; }
+.details-name .details-input { flex: 1; min-width: 0; width: auto; }
+.details-actions { display: flex; gap: 6px; margin-top: 4px; }
+.details-actions .btn { flex: 1; min-width: 0; }
+.details-actions .btn:not(.btn-primary):hover { background: var(--delete-hover); }
+.detail-field:has(> dd > .details-actions) { grid-column: 1 / -1; }
+.details-empty { margin: 0; color: var(--muted); }

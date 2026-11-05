@@ -1,0 +1,6 @@
+/* Open and fold targets of a row, and the caret and chevron markers they hold. */
+.node-toggle { display: inline-flex; flex: none; align-items: center; gap: 6px; }
+.caret .gui-icon, .chevron .gui-icon, .crumb-sep .gui-icon { width: 12px; height: 12px; }
+.caret, .chevron, .crumb-sep { display: inline-flex; align-items: center; justify-content: center; }
+.caret { width: 14px; text-align: center; color: var(--accent); }
+.chevron { color: var(--accent); }

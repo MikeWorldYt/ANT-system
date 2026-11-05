@@ -1,0 +1,75 @@
+// Runs the backend intake after a refresh and reports loose and moved files to the user.
+import * as api from "../services/ipc/api";
+import { notifyDesktop } from "../services/desktop-notify";
+import { setStatus, reportError } from "../components/organisms/bars/status-line";
+import { waitingIntakeDialog, type WaitingDecision } from "../components/organisms/dialogs/action-dialog/waiting-intake-dialog";
+import { plural } from "../services/plural";
+import type { Moved, WaitingNode } from "../services/ipc/types";
+
+// Focus and manual refreshes can overlap; a second intake would repeat the same report.
+let running = false;
+// Refreshes repeat while loose files remain; report once until the Storage is clear again.
+let looseNotified = false;
+
+async function notifyMoved(moved: Moved[]): Promise<void> {
+  for (const m of moved) {
+    const files = plural(m.count, "file");
+    await notifyDesktop(`${files} from ${m.name} moved to ${m.review} for review.`);
+  }
+}
+
+function looseFilesMessage(files: { node: string; file: string }[]): string {
+  const inRoot = files.every(({ node }) => node.length === 0);
+  const shown = files.slice(0, 5).map(({ node, file }) => (node ? `${node}/${file}` : `Storage root/${file}`));
+  const omitted = files.length - shown.length;
+  if (omitted > 0) shown.push(`...and ${omitted} more`);
+  const subject = files.length === 1 ? "file" : "files";
+  const pronoun = files.length === 1 ? "it" : "them";
+  const location = inRoot ? " in Storage root" : " in your Storage";
+  return `I detected ${files.length} unclassified ${subject}${location}. Please move ${pronoun} to a category:\n${shown.join("\n")}`;
+}
+
+// Nodes the app has never managed wait for the answer; returns whether any answer was applied.
+async function answerWaiting(nodes: WaitingNode[], reload: () => Promise<void>): Promise<boolean> {
+  let applied = false;
+  const settle = async ({ relParts, choice }: WaitingDecision): Promise<boolean> => {
+    try {
+      if (choice === "data") await api.setUserFlag(relParts, true);
+      else await api.acknowledgeIntake(relParts);
+      applied = true;
+      return true;
+    } catch (e) {
+      reportError("warning", e);
+      return false;
+    }
+  };
+  const showFolder = (relParts: string[]) => void api.openNode(relParts).catch((e: unknown) => reportError("warning", e));
+  const decisions = await waitingIntakeDialog(nodes, showFolder, settle);
+  for (const decision of decisions ?? []) await settle(decision);
+  if (applied) await reload();
+  return applied;
+}
+
+export async function runIntake(reload: () => Promise<void>): Promise<void> {
+  if (running) return;
+  running = true;
+  try {
+    let report = await api.runIntake();
+    if (report.waiting.length > 0 && (await answerWaiting(report.waiting, reload))) {
+      report = await api.runIntake();
+    }
+    if (report.warnings.length > 0) setStatus("warning", report.warnings.join(". "));
+    if (report.loose.length === 0) {
+      looseNotified = false;
+    } else if (!looseNotified) {
+      looseNotified = true;
+      console.warn("[intake] Unclassified files detected:", report.loose);
+      await notifyDesktop(looseFilesMessage(report.loose));
+    }
+    await notifyMoved(report.moved);
+  } catch (e) {
+    reportError("warning", e);
+  } finally {
+    running = false;
+  }
+}

@@ -1,6 +1,8 @@
 node_modules
 web-dist
 /dist
+GOALS.md
 src-tauri/target
 src-tauri/gen
 desktop.ini
+CLAUDE.md

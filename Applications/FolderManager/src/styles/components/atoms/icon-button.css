@@ -1,0 +1,10 @@
+/* Icon-only buttons; disabled ones stay focusable and only look greyed. */
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+  width: 32px; height: 32px; border: 0; border-radius: var(--radius-sm);
+  background: var(--input-bg); color: var(--accent); font-size: 14pt; cursor: pointer;
+}
+.icon-btn:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--field-bg); }
+.icon-btn .gui-icon { width: 18px; height: 18px; }
+.icon-btn[hidden] { display: none; }
+.icon-btn:disabled, .icon-btn[aria-disabled="true"] { color: var(--disabled-text); cursor: default; }

@@ -1,0 +1,9 @@
+/* Tree view rows, indented by depth, and the legend of an empty folder. */
+.tree { min-height: 100%; outline-offset: -2px; padding: 12px 0; }
+.row { padding: 3px 8px 3px calc(8px + var(--depth, 0) * 18px); }
+.tree:focus-visible .row.selected { outline: 2px solid var(--button); outline-offset: -2px; }
+.row:hover { background: var(--input-bg); }
+.row.selected { background: var(--highlight); }
+.row.ghost .name { color: var(--ghost-text); font-style: italic; }
+.row.locked .name { color: var(--muted); }
+.tree-legend { padding: 3px 8px 3px calc(8px + var(--depth, 0) * 18px); color: var(--muted); font-size: 9pt; }

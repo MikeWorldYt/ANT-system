@@ -1,0 +1,6 @@
+/* Settings row: title, description and its control. */
+.sw-row { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.sw-row:last-child { border-bottom: 0; }
+.sw-text { flex: 1 1 200px; min-width: 0; }
+.sw-title { font-weight: 500; }
+.sw-desc { max-width: 52ch; margin-top: 1px; font-size: 9pt; color: var(--muted); overflow-wrap: anywhere; }

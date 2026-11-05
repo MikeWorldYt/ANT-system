@@ -1,0 +1,6 @@
+/* Read-only value and path labels. */
+.sw-value { font-weight: 500; }
+.sw-path {
+  max-width: 260px; padding: 5px 9px; overflow: hidden; font-size: 9pt; color: var(--muted); text-align: left; text-overflow: ellipsis; white-space: nowrap;
+  direction: rtl; background: var(--field-bg); border-radius: 5px;
+}

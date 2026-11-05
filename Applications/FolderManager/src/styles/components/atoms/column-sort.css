@@ -1,0 +1,8 @@
+/* Sort direction toggle in the top padding of a column. */
+.col-sort {
+  position: absolute; top: 0; left: 50%; display: flex; align-items: center; justify-content: center; width: 24px; height: 12px;
+  padding: 0; transform: translateX(-50%); color: var(--muted); background: transparent; border: 0; border-radius: var(--radius-sm); cursor: pointer;
+}
+.col-sort:hover { color: var(--text); }
+.col-sort:focus-visible { outline-offset: -2px; }
+.col-sort .gui-icon { width: 10px; height: 10px; }

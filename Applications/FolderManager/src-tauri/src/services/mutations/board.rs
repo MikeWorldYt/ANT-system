@@ -50,7 +50,11 @@ pub fn set_board(root: &Path, cards: &[BoardCard]) -> R<Mutation> {
     let mut placed: Vec<(&BoardCard, PathBuf, Option<String>)> = Vec::new();
     for card in cards {
         let rel = &card.rel_parts;
-        let target = editable_target(root, &data, rel, "place on the board")?;
+        // A whole column is sent to keep its order, so a missing folder in it only keeps its place instead of refusing the move.
+        let target = match editable_target(root, &data, rel, "place on the board") {
+            Err(FmError::GhostNotAllowed { .. }) => continue,
+            other => other?,
+        };
         if type_base(&target.node_type) != "WKB" {
             return Err(FmError::InvalidPath { rel_parts: rel.clone(), reason: "only workboards are on the board".to_string() });
         }

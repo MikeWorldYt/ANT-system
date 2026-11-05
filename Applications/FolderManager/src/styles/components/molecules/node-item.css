@@ -1,0 +1,2 @@
+/* Item layout the tree rows and the columns items share. */
+.row, .col-item { display: flex; align-items: center; gap: 6px; cursor: default; user-select: none; }

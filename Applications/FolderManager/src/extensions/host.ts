@@ -1,8 +1,8 @@
 // Starts the enabled extensions, answers their permission-checked requests and owns their menu items.
-import { describeError, listExtensions, readExtensionEntry, type ExtensionInfo } from "../ipc/api";
-import type { TreeNode } from "../ipc/types";
-import { state } from "../store/state";
-import { setStatus } from "../ui/status";
+import { listExtensions, readExtensionEntry, type ExtensionInfo } from "../services/ipc/api";
+import type { TreeNode } from "../services/ipc/types";
+import { state } from "../services/store/state";
+import { setStatus, reportError } from "../components/organisms/bars/status-line";
 import { clearProviders, provide, receive } from "./details";
 import { addSection, type PanelSection } from "./panel";
 import { MAX_MENU_ITEMS, NEEDS, parseIncoming, parseMenuItem, summarize, type Op } from "./protocol";
@@ -86,7 +86,7 @@ async function load(): Promise<void> {
   try {
     list = await listExtensions();
   } catch (e) {
-    setStatus("warning", `Extensions: ${describeError(e)}`);
+    reportError("warning", e, "Extensions");
     return;
   }
   for (const info of list) {
@@ -96,7 +96,7 @@ async function load(): Promise<void> {
       if (gen !== generation) return;
       launch(info, code);
     } catch (e) {
-      setStatus("warning", `Extension ${info.name}: ${describeError(e)}`);
+      reportError("warning", e, `Extension ${info.name}`);
     }
   }
 }

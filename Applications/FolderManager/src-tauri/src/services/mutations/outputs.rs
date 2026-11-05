@@ -68,7 +68,8 @@ pub fn deliver(root: &Path, rel: &[String], date: &str, all: bool) -> R<Mutation
     }
     journal.commit();
     tree_store::save(root, &data)?;
-    let link = target.abs.join(&name);
+    // An output folder keeps its place, so the link waits inside it where the deliverable was.
+    let link = link_dir(rel, &target.abs, all).join(&name);
     let warnings: Vec<String> = create_shortcuts(&[(dest, link)]);
     Ok(finish(root, &data, true, Some(rel.to_vec()), warnings, vec![rel.to_vec()]))
 }
@@ -84,11 +85,16 @@ pub fn restore(root: &Path, rel: &[String]) -> R<Mutation> {
     }
     let outcomes = outcomes_beside(root, &data, rel)?;
     let mut warnings = Vec::new();
-    for link in delivery_links(&target.abs, &outcomes)? {
+    let mut found = delivery_links(&target.abs, &outcomes)?.into_iter().map(|l| (target.abs.clone(), l)).collect::<Vec<_>>();
+    let output_dir = link_dir(rel, &target.abs, false);
+    if output_dir != target.abs && output_dir.is_dir() {
+        found.extend(delivery_links(&output_dir, &outcomes)?.into_iter().map(|l| (output_dir.clone(), l)));
+    }
+    for (dir, link) in found {
         let stem = link.trim_end_matches(LINK_EXTENSION);
         for file in children_of(&outcomes.join(stem))? {
             let Some(name) = file.file_name() else { continue };
-            let to = target.abs.join(name);
+            let to = dir.join(name);
             if to.exists() {
                 warnings.push(format!("{} already exists, the delivered copy was not restored", name.to_string_lossy()));
                 continue;
@@ -99,7 +105,7 @@ pub fn restore(root: &Path, rel: &[String]) -> R<Mutation> {
                 fs::copy(&file, &to).map_err(|e| io_err("restore file", &to, &e))?;
             }
         }
-        let link_path = target.abs.join(&link);
+        let link_path = dir.join(&link);
         fs::remove_file(&link_path).map_err(|e| io_err("remove link", &link_path, &e))?;
     }
     tree_store::sync_branch(root, &mut data, rel)?;
@@ -141,6 +147,15 @@ fn output_sources(rel: &[String], workboard: &Path) -> R<Vec<PathBuf>> {
         children_of(&path)
     } else {
         Ok(vec![path])
+    }
+}
+
+// The output folder when one is set and still a folder, else the workboard itself.
+fn link_dir(rel: &[String], workboard: &Path, all: bool) -> PathBuf {
+    let output = read_info(workboard).and_then(|i| field_of(&i, &[OUTPUT_KEY]).map(str::to_string));
+    match output.and_then(|o| clean_output(rel, &o).ok()).map(|o| workboard.join(o)) {
+        Some(dir) if !all && dir.is_dir() => dir,
+        _ => workboard.to_path_buf(),
     }
 }
 
@@ -206,15 +221,13 @@ mod tests {
     }
 
     #[test]
-    fn delivering_moves_the_contents_of_the_output_folder_and_leaves_a_link() {
+    fn delivering_moves_the_contents_of_the_output_folder_and_leaves_a_link_inside_it() {
         let dir = fixture("out-deliver");
         set_output(dir.path(), &workboard(), Some("/dist")).unwrap();
         deliver(dir.path(), &workboard(), "26-11-01", false).unwrap();
         assert!(dir.path().join(DELIVERED).join("entregable.txt").is_file());
-        assert!(names(&dir.path().join(WKB).join("dist")).is_empty());
-        if cfg!(windows) {
-            assert!(dir.path().join(WKB).join("(26-11-01)_Claude-2.lnk").is_file());
-        }
+        let left: Vec<String> = if cfg!(windows) { vec!["(26-11-01)_Claude-2.lnk".to_string()] } else { Vec::new() };
+        assert_eq!(names(&dir.path().join(WKB).join("dist")), left);
     }
 
     #[cfg(windows)]
@@ -224,9 +237,9 @@ mod tests {
         set_output(dir.path(), &workboard(), Some("dist")).unwrap();
         deliver(dir.path(), &workboard(), "26-11-01", false).unwrap();
         restore(dir.path(), &workboard()).unwrap();
-        assert!(dir.path().join(WKB).join("entregable.txt").is_file());
+        assert!(dir.path().join(WKB).join("dist/entregable.txt").is_file());
         assert!(dir.path().join(DELIVERED).join("entregable.txt").is_file());
-        assert!(!dir.path().join(WKB).join("(26-11-01)_Claude-2.lnk").exists());
+        assert!(!dir.path().join(WKB).join("dist/(26-11-01)_Claude-2.lnk").exists());
     }
 
     #[test]

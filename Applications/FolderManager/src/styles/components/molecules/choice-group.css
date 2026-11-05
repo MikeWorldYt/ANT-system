@@ -1,0 +1,8 @@
+/* Segmented control and color swatches. */
+.sw-seg { display: flex; padding: 2px; background: var(--field-bg); border-radius: 7px; }
+.sw-seg button { padding: 4px 12px; font: inherit; color: var(--muted); background: none; border: 0; border-radius: 5px; cursor: pointer; }
+.sw-seg button[aria-pressed="true"] { color: var(--text); background: var(--highlight); }
+.sw-dots { display: flex; gap: 8px; }
+.sw-dots button { width: 22px; height: 22px; border: 0; border-radius: 50%; cursor: pointer; }
+.sw-dots button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
+.sw-seg button:focus-visible, .sw-dots button:focus-visible { outline: 2px solid var(--button); outline-offset: 2px; }

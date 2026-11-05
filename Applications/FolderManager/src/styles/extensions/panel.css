@@ -1,0 +1,7 @@
+/* Extension fields, actions and frames in the details panel. */
+.ext-source { color: var(--muted); }
+.ext-action { display: block; margin-top: 4px; padding: 3px 10px; font-size: 9pt; }
+.ext-area { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 9pt; }
+.ext-area summary { cursor: pointer; color: var(--title); font-weight: 600; }
+.ext-panel h3 { margin: 10px 0 4px; font-size: 9pt; color: var(--muted); }
+.ext-frame { display: block; width: 100%; height: 220px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); }

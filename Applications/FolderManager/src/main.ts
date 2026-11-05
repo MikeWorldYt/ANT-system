@@ -1,73 +1,26 @@
-// Entry point: assembles the shell and wires store, events and views.
-import "./styles/theme.css";
-import "./styles/themes.css";
-import "./styles/invalid-dialog.css";
-import "./styles/virtual.css";
-import "./styles/board.css";
-import { describeError } from "./ipc/api";
-import { createColumnsView } from "./views/columns-view";
-import { createGridView } from "./views/grid-view";
-import { installContextMenu } from "./views/context-menu";
-import { el } from "./ui/dom";
-import { createNavigator } from "./shell/navigator";
-import { createSearchBar } from "./shell/search-bar";
-import { onFileDrag, onReviewIndex, onStorageChanged, onWindowFocus } from "./ipc/events";
-import { init, refresh } from "./actions/ops";
-import { autoRefresh } from "./actions/auto-refresh";
-import { handleFileDrag } from "./actions/file-drop";
-import { installShortcuts } from "./actions/shortcuts";
-import { restoreFocus, trackFieldFocus } from "./actions/focus-return";
-import { trackPasteTarget } from "./actions/paste-target";
-import { installDragOut } from "./actions/drag-out";
-import { installFolderMove } from "./actions/folder-move";
-import { installMarquee } from "./actions/marquee";
-import { createStatusLine, clearStatus, currentOperationStatus, setStatus } from "./ui/status";
-import { rememberSelection, state, subscribe } from "./store/state";
-import { createSidePanel } from "./shell/side-panel";
-import { createToolbar, type ViewPicker } from "./shell/toolbar";
-import { openSettings } from "./shell/settings-dialog";
-import { createTreeView } from "./views/tree-view";
-import { checkForUpdates } from "./actions/updates";
-import { startBackups } from "./actions/backups";
+// Entry point: mounts the main window, then wires the store, backend events, shortcuts and startup work.
+import "./styles/index.css";
+import { createMainWindow } from "./components/windows/main-window";
+import { openSettings } from "./components/windows/settings";
+import { onFileDrag, onReviewIndex, onStorageChanged, onWindowFocus } from "./services/ipc/events";
+import { rememberSelection, state, subscribe } from "./services/store/state";
+import { clearStatus, currentOperationStatus, setStatus, reportError } from "./components/organisms/bars/status-line";
+import { init, refresh } from "./hooks/ops";
+import { autoRefresh } from "./hooks/auto-refresh";
+import { handleFileDrag } from "./hooks/file-drop";
+import { installShortcuts } from "./hooks/shortcuts";
+import { restoreFocus, trackFieldFocus } from "./hooks/focus-return";
+import { checkForUpdates } from "./hooks/updates";
+import { startBackups } from "./hooks/backups";
+import { installDebugLog, startDebugLog } from "./hooks/debug-log";
+import { applyAppearance } from "./hooks/appearance";
 import { startExtensions } from "./extensions/host";
-import { installDebugLog, startDebugLog } from "./actions/debug-log";
-import { applyAppearance } from "./ui/appearance";
-import { createViewSwitcher } from "./views/view-switch";
-import { createBoardView } from "./views/board-view";
+import { plural } from "./services/plural";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
 
-const host = el("section", { class: "tree-host", "aria-label": "Storage" });
-const views = createViewSwitcher(host, [createTreeView(), createColumnsView(), createGridView()]);
-trackPasteTarget(host);
-installDragOut(host);
-installFolderMove(host);
-installMarquee(host);
-const viewPicker: ViewPicker = {
-  modes: views.modes,
-  active: () => views.current().id,
-  onSelect: (id) => {
-    views.switchTo(id);
-    toolbar.render();
-  },
-};
-const toolbar = createToolbar(viewPicker);
-const navigator = createNavigator();
-const search = createSearchBar();
-navigator.element.prepend(...toolbar.navLead);
-navigator.element.append(search.element, ...toolbar.trailing);
-// The views already open on Enter, so the shortcut hands the key to whichever one is showing.
-const openSelected = () => {
-  views.current().focus();
-  document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
-};
-const panel = createSidePanel(openSelected);
-// The board stands beside the views, outside the host, so their drag, drop and marquee never reach its cards.
-const board = createBoardView(host, panel.editDetails);
-const main = el("main", { class: "app-main" }, host, board.element, ...panel.elements);
-app.append(navigator.element, main, createStatusLine());
-installContextMenu(host, () => views.current().focus(), viewPicker);
+const { views, toolbar, navigator, search, panel, board, openSelected } = createMainWindow(app);
 installShortcuts({
   focusSearch: search.focus,
   editPath: navigator.editPath,
@@ -88,7 +41,6 @@ subscribe(() => {
   applyAppearance();
 });
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 let indexing = false;
 onReviewIndex((e) => {
@@ -105,15 +57,15 @@ onReviewIndex((e) => {
     if (operation) setStatus("info", operation);
     else clearStatus();
   }
-}).catch((e) => setStatus("warning", `Review index updates unavailable: ${describeError(e)}`));
+}).catch((e) => reportError("warning", e, "Review index updates unavailable"));
 trackFieldFocus();
-onWindowFocus(() => void autoRefresh(refresh).finally(() => restoreFocus(() => views.current().focus()))).catch((e) => setStatus("warning", `Refresh on focus unavailable: ${describeError(e)}`));
+onWindowFocus(() => void autoRefresh(refresh).finally(() => restoreFocus(() => views.current().focus()))).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
 
 onStorageChanged(() => void autoRefresh(refresh)).catch((e) =>
-  setStatus("warning", `Live storage updates unavailable: ${describeError(e)}`),
+  reportError("warning", e, "Live storage updates unavailable"),
 );
 
-onFileDrag(handleFileDrag).catch((e) => setStatus("warning", `File drop unavailable: ${describeError(e)}`));
+onFileDrag(handleFileDrag).catch((e) => reportError("warning", e, "File drop unavailable"));
 
 installDebugLog();
 

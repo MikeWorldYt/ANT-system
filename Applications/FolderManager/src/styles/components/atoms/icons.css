@@ -1,0 +1,2 @@
+/* Folder and file icons keep their size in every row. */
+.icon { flex: none; }

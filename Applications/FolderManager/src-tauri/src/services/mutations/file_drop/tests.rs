@@ -189,7 +189,7 @@ fn a_refused_target_changes_nothing_on_disk() {
 }
 
 #[test]
-fn folders_missing_files_and_app_files_are_skipped_and_reported() {
+fn a_plain_folder_lands_whole_while_missing_and_app_files_are_reported() {
     let (dir, src) = fixture("drop-skip");
     src.mkdir("Folder");
     let lock_like = dir.path().join("999.Settings/00.Core/keep.txt");
@@ -197,12 +197,11 @@ fn folders_missing_files_and_app_files_are_skipped_and_reported() {
     let paths = [src.path().join("Folder"), src.path().join("gone.txt"), lock_like.clone(), src.path().join("notes")];
     let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), &paths, false, &[], &never_recycles).unwrap();
     let m = &out.mutation;
-    assert_eq!(out.placed, [placed("notes", &["100.PERSONAL", "04.Data"], false)]);
-    assert_eq!(m.warnings.len(), 3, "{:?}", m.warnings);
-    assert!(m.warnings[0].contains("folders cannot be dropped"), "{:?}", m.warnings);
-    assert!(m.warnings[2].contains("belongs to Folder Manager"), "{:?}", m.warnings);
-    assert!(src.path().join("Folder").is_dir() && lock_like.is_file());
-    assert_eq!(names(&dir.path().join("100.PERSONAL/04.Data")), ["notes"]);
+    assert_eq!(out.placed, [placed("Folder", &["100.PERSONAL", "04.Data"], false), placed("notes", &["100.PERSONAL", "04.Data"], false)]);
+    assert_eq!(m.warnings.len(), 2, "{:?}", m.warnings);
+    assert!(m.warnings[1].contains("belongs to Folder Manager"), "{:?}", m.warnings);
+    assert!(!src.path().join("Folder").exists() && lock_like.is_file());
+    assert_eq!(names(&dir.path().join("100.PERSONAL/04.Data")), ["Folder", "notes"]);
 }
 
 #[test]

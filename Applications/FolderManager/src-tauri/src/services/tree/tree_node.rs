@@ -37,6 +37,7 @@ pub struct NodeActions {
     pub change_type: bool,
     pub add_next: bool,
     pub add_child: bool,
+    pub add_folder: bool,
     pub move_up: bool,
     pub move_down: bool,
     pub delete: bool,
@@ -304,6 +305,7 @@ fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
             change_type: false,
             add_next: false,
             add_child: false,
+            add_folder: false,
             move_up: false,
             move_down: false,
             delete: true,
@@ -417,6 +419,7 @@ fn link_actions() -> NodeActions {
         change_type: false,
         add_next: false,
         add_child: false,
+        add_folder: false,
         move_up: false,
         move_down: false,
         delete: false,
@@ -445,6 +448,8 @@ fn compute_actions(depth: usize, limit: usize, ghost: bool, raw_type: &str, rese
         add_next: !ghost && !reserved && in_tree,
         // Mirrors add_node: the new child sits one level below this node and must stay inside the limit.
         add_child: !ghost && !frozen && depth + 1 < limit,
+        // Past the limit a child is a plain folder or a workboard the database does not track.
+        add_folder: !ghost && !frozen && depth + 1 >= limit,
         move_up: false,
         move_down: false,
         delete: !reserved && (ghost || !locked) && !outcome,
