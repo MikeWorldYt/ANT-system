@@ -1,6 +1,6 @@
 [package]
 name = "folder-manager"
-version = "2.4.2-beta"
+version = "2.4.3-beta"
 license = "GPL-3.0-only"
 edition = "2021"
 
