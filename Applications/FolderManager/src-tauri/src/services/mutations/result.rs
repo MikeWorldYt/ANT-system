@@ -18,7 +18,7 @@ pub struct LevelPatch {
     pub children: Vec<TreeNode>,
 }
 
-// Never fails, as the change is already on disk; a local change sends only the touched paths' parent levels.
+// Never fails, as the change is already on disk; a known scope sends only the touched paths' parent levels, and an empty one the whole tree.
 pub(crate) fn finish(
     root: &Path,
     data: &Mapping,
@@ -27,7 +27,7 @@ pub(crate) fn finish(
     warnings: Vec<String>,
     touched: Vec<Vec<String>>,
 ) -> Mutation {
-    let local = !yaml_changed && !touched.is_empty();
+    let local = !touched.is_empty();
     match local.then(|| subtree_drift(root, data, &touched)) {
         Some(Ok(false)) => match patch_levels(root, data, &touched) {
             Ok(levels) => return Mutation { tree: None, levels, select, warnings, touched, before: Vec::new() },
@@ -36,7 +36,7 @@ pub(crate) fn finish(
         Some(Err(e)) => return after_commit(root, Err(e), select, warnings, touched),
         _ => {}
     }
-    // Reaching here with a local scope means drift was found inside a touched subtree.
+    // Reaching here with a known scope means drift was found inside a touched subtree.
     let tree = build_tree(root, data, yaml_changed || local).and_then(|mut tree| {
         fill_children(root, data, &mut tree.nodes)?;
         Ok(tree)
@@ -116,16 +116,27 @@ mod tests {
     }
 
     #[test]
-    fn drift_found_while_syncing_returns_the_full_snapshot() {
-        let dir = academic("finish-drift");
-        dir.mkdir("100.ACADEMIC/05.Fresh");
-        dir.mkdir("200.ELSEWHERE/01.Deep");
+    fn drift_outside_the_touched_branch_is_left_to_the_watcher() {
+        let dir = academic("finish-drift-outside");
+        synced_yaml(dir.path());
+        dir.mkdir("100.ACADEMIC/01.Math/05.Deep");
         let m = rename_node(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), "Chem").unwrap();
-        let tree = m.tree.expect("a re-synced yaml is not a local change");
-        assert!(tree.yaml_changed && m.levels.is_empty());
-        let academic = tree.nodes.iter().find(|n| n.name == "100.ACADEMIC").and_then(|n| n.children.clone()).unwrap();
-        assert!(academic.iter().any(|n| n.name == "02.Chem") && academic.iter().any(|n| n.name == "05.Fresh"));
-        assert_eq!(yaml_type(dir.path(), &["200.ELSEWHERE", "01.Deep"]), "NODE-L2");
+        assert!(m.tree.is_none() && m.levels.len() == 1);
+        let yaml = yaml(dir.path());
+        assert!(crate::services::tree::tree_store::get_node(&yaml, &rel(&["100.ACADEMIC", "01.Math", "05.Deep"])).is_none());
+    }
+
+    #[test]
+    fn drift_inside_the_touched_branch_is_saved_and_returned_as_levels() {
+        let dir = academic("finish-drift-inside");
+        synced_yaml(dir.path());
+        dir.mkdir("100.ACADEMIC/05.Fresh");
+        let m = rename_node(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), "Chem").unwrap();
+        assert!(m.tree.is_none());
+        let level = m.levels.iter().find(|l| l.parent == rel(&["100.ACADEMIC"])).unwrap();
+        assert!(level.children.iter().any(|n| n.name == "02.Chem") && level.children.iter().any(|n| n.name == "05.Fresh"));
+        assert!(m.touched.contains(&rel(&["100.ACADEMIC", "05.Fresh"])));
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "05.Fresh"]), "NODE-L2");
     }
 
     #[test]

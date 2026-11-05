@@ -32,7 +32,7 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
 
 export const getStorage = () => call<StorageInfo>("get_storage");
 export const loadTree = () => call<TreeSnapshot>("load_tree");
-export const refresh = () => call<TreeSnapshot>("refresh");
+export const refresh = (full: boolean) => call<TreeSnapshot>("refresh", { full });
 export const runIntake = () => call<IntakeReport>("run_intake");
 export const acknowledgeIntake = (relParts: string[]) => call<void>("acknowledge_intake", { relParts });
 export const checkRoot = () => call<RootCheck>("check_root");

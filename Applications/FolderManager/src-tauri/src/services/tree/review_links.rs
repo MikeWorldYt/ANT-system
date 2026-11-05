@@ -55,11 +55,16 @@ pub(crate) fn links(root: &Path, data: &Mapping) -> R<Vec<(String, Vec<String>)>
 
 // The owner folder a 998.Review link opens, so files dropped on the link land in its review folder.
 pub(crate) fn linked_owner(root: &Path, data: &Mapping, rel: &[String]) -> R<Option<Vec<String>>> {
-    let [top, name] = rel else { return Ok(None) };
-    if !top.eq_ignore_ascii_case(REVIEW_FOLDER) {
+    let [_, name] = rel else { return Ok(None) };
+    if !is_link_path(rel) {
         return Ok(None);
     }
     Ok(links(root, data)?.into_iter().find(|(link, _)| link == name).map(|(_, owner)| owner))
+}
+
+// Only a direct child of 998.Review can be a link.
+pub(crate) fn is_link_path(rel: &[String]) -> bool {
+    matches!(rel, [top, _] if top.eq_ignore_ascii_case(REVIEW_FOLDER))
 }
 
 // The review folder a link stands for, which is what opening it shows.

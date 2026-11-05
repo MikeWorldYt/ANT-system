@@ -43,18 +43,65 @@ fn node_paths(data: &Mapping) -> BTreeSet<Vec<String>> {
     out
 }
 
-// Ordinary mutations list only the levels down to `dir`; drift found there re-syncs everything, as the change is then not local.
-pub(crate) fn load_synced_at(root: &Path, dir: &[String]) -> R<(Mapping, bool)> {
-    let mut data = tree_store::load(root)?;
-    let changed = tree_store::sync_branch(root, &mut data, dir)?;
-    if changed {
-        tree_store::sync(root, &mut data)?;
-    }
-    Ok((data, changed))
+// What a sync found out of date on disk; a folder list is a known scope, `unscoped` means rows may differ anywhere.
+#[derive(Debug, Default)]
+pub(crate) struct Drift {
+    paths: Vec<Vec<String>>,
+    unscoped: bool,
 }
 
-pub(crate) fn persist(root: &Path, data: &Mapping, journal: Journal, op: &str) -> R<()> {
-    match tree_store::save(root, data) {
+impl Drift {
+    pub(crate) fn unscoped(on: bool) -> Self {
+        Self { paths: Vec::new(), unscoped: on }
+    }
+
+    pub(crate) fn any(&self) -> bool {
+        self.unscoped || !self.paths.is_empty()
+    }
+
+    pub(crate) fn absorb(&mut self, other: Drift) {
+        self.unscoped |= other.unscoped;
+        self.paths.extend(other.paths);
+    }
+
+    pub(crate) fn or_unscoped(mut self, on: bool) -> Self {
+        self.unscoped |= on;
+        self
+    }
+}
+
+// Ordinary mutations list only the levels down to `dir`; the folders that sync changed are saved with the mutation, and drift elsewhere is left to the watcher.
+pub(crate) fn load_synced_at(root: &Path, dir: &[String]) -> R<(Mapping, Drift)> {
+    sync_loaded_at(root, dir, tree_store::load(root)?)
+}
+
+// For a caller that already holds the tree, so it is not read twice.
+pub(crate) fn sync_loaded_at(root: &Path, dir: &[String], mut data: Mapping) -> R<(Mapping, Drift)> {
+    let drift = sync_branch_drift(root, &mut data, dir)?;
+    Ok((data, drift))
+}
+
+pub(crate) fn sync_branch_drift(root: &Path, data: &mut Mapping, dir: &[String]) -> R<Drift> {
+    let (renamed, paths) = tree_store::sync_branch_paths(root, data, dir)?;
+    Ok(Drift { paths, unscoped: renamed })
+}
+
+// The touched paths plus the folders the sync changed, so they are saved and patched too; unscoped drift empties it (the whole tree).
+pub(crate) fn scope(drift: &Drift, mut touched: Vec<Vec<String>>) -> Vec<Vec<String>> {
+    if drift.unscoped {
+        return Vec::new();
+    }
+    for path in &drift.paths {
+        if !touched.contains(path) {
+            touched.push(path.clone());
+        }
+    }
+    touched
+}
+
+pub(crate) fn persist(root: &Path, data: &Mapping, journal: Journal, op: &str, touched: &[Vec<String>]) -> R<()> {
+    let saved = if touched.is_empty() { tree_store::save(root, data) } else { tree_store::save_paths(root, data, touched) };
+    match saved {
         Ok(()) => {
             journal.commit();
             Ok(())

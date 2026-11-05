@@ -5,7 +5,7 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, persist, register_ids, Mutation};
+use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, persist, register_ids, scope, Drift, Mutation};
 use crate::domain::names::{editable_part, next_available_id, next_main_category_id};
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::child_entries;
@@ -39,7 +39,12 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
         return add_past_limit(root, parent, kind);
     }
     // A tracker must be unique across the Storage, so a workboard counts every branch on disk.
-    let (mut data, synced) = if kind == NewKind::Workboard { load_synced(root)? } else { load_synced_at(root, parent)? };
+    let (mut data, synced) = if kind == NewKind::Workboard {
+        let (data, changed) = load_synced(root)?;
+        (data, Drift::unscoped(changed))
+    } else {
+        load_synced_at(root, parent)?
+    };
     if parent.is_empty() && kind == NewKind::Workboard {
         return Err(FmError::InvalidPath { rel_parts: parent.to_vec(), reason: "workboards cannot be created at the storage root".to_string() });
     }
@@ -103,7 +108,7 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
             return Err(journal.abort("add node", cause));
         }
     }
-    persist(root, &data, journal, "add node")?;
+    persist(root, &data, journal, "add node", &scope(&synced, vec![child_rel(parent, &new_name)]))?;
     // The folder exists now, so a failure here is only reported.
     if let Err(e) = mark_folder(&new_abs, workboard, parent.last().map_or("", String::as_str)) {
         warnings.push(format!("Could not set up {DATA_DIR}: {e}"));
@@ -115,7 +120,7 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     }
     let moved = register_ids(root, &mut data, &mut warnings);
     let new_rel = child_rel(parent, &new_name);
-    Ok(finish(root, &data, synced || moved, Some(new_rel.clone()), warnings, vec![new_rel]))
+    Ok(finish(root, &data, false, Some(new_rel.clone()), warnings, scope(&synced.or_unscoped(moved), vec![new_rel])))
 }
 
 // Past the depth limit the database tracks nothing, so a node is a plain folder and a workboard counts only its own siblings.

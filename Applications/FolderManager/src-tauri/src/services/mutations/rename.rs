@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use super::{child_rel, editable_target, ensure_free, finish, load_synced_at, persist, split, subtrees, Mutation};
+use super::{child_rel, editable_target, ensure_free, finish, load_synced_at, persist, scope, split, subtrees, Mutation};
 use crate::domain::names::{compose_name, editable_part, name_parts, sanitize_train_case, sanitize_upper};
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::type_base;
@@ -33,10 +33,10 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
     let new_rel = child_rel(parent, &new_name);
     let before = subtrees(&data, &[rel.to_vec()]);
     if new_name == *old_name {
-        if synced {
+        if synced.any() {
             tree_store::save(root, &data)?;
         }
-        let m = finish(root, &data, synced, Some(new_rel.clone()), Vec::new(), vec![new_rel]);
+        let m = finish(root, &data, false, Some(new_rel.clone()), Vec::new(), scope(&synced, vec![new_rel]));
         return Ok(m.replacing(before));
     }
     let parent_abs = join_rel(root, parent);
@@ -52,8 +52,8 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
             node.remove("status");
         }
     }
-    persist(root, &data, journal, "rename")?;
-    let m = finish(root, &data, synced, Some(new_rel.clone()), warnings, vec![rel.to_vec(), new_rel]);
+    persist(root, &data, journal, "rename", &scope(&synced, vec![rel.to_vec(), new_rel.clone()]))?;
+    let m = finish(root, &data, false, Some(new_rel.clone()), warnings, scope(&synced, vec![rel.to_vec(), new_rel]));
     Ok(m.replacing(before))
 }
 
@@ -198,9 +198,10 @@ mod tests {
     #[test]
     fn noop_rename_reports_and_saves_the_sync() {
         let dir = academic("rename-noop");
+        synced_yaml(dir.path());
         dir.mkdir("100.ACADEMIC/05.Fresh");
         let m = rename_node(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), "bio").unwrap();
-        assert!(m.tree.is_some_and(|t| t.yaml_changed));
+        assert!(m.tree.is_none() && !m.levels.is_empty());
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "05.Fresh"]), "NODE-L2");
     }
 

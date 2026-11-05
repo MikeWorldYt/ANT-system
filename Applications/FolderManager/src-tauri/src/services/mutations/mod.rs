@@ -31,7 +31,7 @@ pub use copy_answer::{answer_copy, CopyAnswer};
 pub use delete::{delete_node, inspect_delete, DeletePreview};
 pub use favorite::set_favorite;
 pub use important::set_important;
-pub use file_ops::{delete_file, file_path, rename_file};
+pub use file_ops::{delete_file, file_path, rename_file, source_path};
 pub use link_hidden::set_link_hidden;
 pub use file_drop::{drop_files, DropOutcome};
 pub use move_folder::{move_folder, move_to_review};
@@ -49,7 +49,7 @@ pub use review_filter::set_review_filter;
 pub use mutation::Mutation;
 pub(crate) use mutation::subtrees;
 pub(crate) use checks::{editable_target, ensure_free, guard_frozen};
-pub(crate) use save::{load_synced_at, persist, register_ids};
+pub(crate) use save::{load_synced_at, persist, register_ids, scope, sync_branch_drift, sync_loaded_at, Drift};
 pub(crate) use target::{child_rel, locate, parent_of, split, Target};
 use target::exactly_on_disk;
 

@@ -4,7 +4,7 @@ use std::path::Path;
 use serde_yaml::Value;
 
 use super::add::mark_workboard;
-use super::{editable_target, finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
+use super::{editable_target, finish, scope, guard_frozen, load_synced_at, locate, parent_of, Mutation};
 use crate::domain::tree_types::{type_base, type_level};
 use crate::domain::config::{EditableType, WkbStatus, OWNER_KEYS};
 use crate::domain::error::{FmError, R};
@@ -54,7 +54,7 @@ pub fn set_node_type(
         }
     }
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), warnings, vec![rel.to_vec()]))
+    Ok(finish(root, &data, false, Some(rel.to_vec()), warnings, scope(&synced, vec![rel.to_vec()])))
 }
 
 // Status and owner live in the folder's info.json; a value that is missing there is written as "unknown".
@@ -79,7 +79,7 @@ pub fn set_details(root: &Path, rel: &[String], status: Option<WkbStatus>, owner
     };
     write_info(&target.abs, &[(&["status"], "status", Some(status.into())), (&OWNER_KEYS, "owner", Some(owner.into()))])?;
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new(), vec![rel.to_vec()]))
+    Ok(finish(root, &data, false, Some(rel.to_vec()), Vec::new(), scope(&synced, vec![rel.to_vec()])))
 }
 
 #[cfg(test)]

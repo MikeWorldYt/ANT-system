@@ -23,6 +23,7 @@ pub struct ApplyReport {
     pub full: bool,
     pub skipped: usize,
     pub saved: bool,
+    pub folders: Vec<Vec<String>>,
 }
 
 pub fn apply_batch(root: &Path, changed: &[PathBuf]) -> R<ApplyReport> {

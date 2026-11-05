@@ -48,7 +48,7 @@ fn ctrl_held() -> bool {
 #[tauri::command]
 pub async fn move_files_in(app: AppHandle, sources: Vec<Vec<String>>, target: Vec<String>, copy: bool) -> R<DropOutcome> {
     run_locked(app, move |root| {
-        let paths = sources.iter().map(|rel| mutations::file_path(root, rel)).collect::<R<Vec<PathBuf>>>()?;
+        let paths = sources.iter().map(|rel| mutations::source_path(root, rel)).collect::<R<Vec<PathBuf>>>()?;
         place(root, &target, &paths, copy, &[])
     })
     .await

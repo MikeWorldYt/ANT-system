@@ -4,7 +4,7 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use super::{editable_target, finish, load_synced_at, parent_of, Mutation};
+use super::{editable_target, finish, scope, load_synced_at, parent_of, Mutation};
 use crate::domain::config::OWNER_KEYS;
 use crate::domain::error::{FmError, R};
 use crate::domain::tree_types::{child_entries, type_base};
@@ -41,7 +41,7 @@ pub fn set_default(root: &Path, rel: &[String], key: &str, value: Option<&str>) 
         _ => return Err(FmError::Internal { message: format!("unknown automation {key}") }),
     }
     write_info(&target.abs, &[(&[key][..], key, value.map(Value::from))])?;
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new(), vec![rel.to_vec()]))
+    Ok(finish(root, &data, false, Some(rel.to_vec()), Vec::new(), scope(&synced, vec![rel.to_vec()])))
 }
 
 // Fills a new workboard from its node's Outcomes defaults; an unset status keeps the in-progress it was created with.

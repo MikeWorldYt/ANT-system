@@ -1,7 +1,8 @@
 // Commands of the Backup settings page: export, the automatic backup, the list, restore and the OS schedule.
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use super::run_locked;
+use crate::app::storage_session::Storage;
 use crate::services::backup::{self, schedule, BackupEntry, DEFAULT_FREQUENCY};
 use crate::domain::error::R;
 
@@ -22,7 +23,12 @@ pub async fn list_backups(app: AppHandle) -> R<Vec<BackupEntry>> {
 
 #[tauri::command]
 pub async fn restore_backup(app: AppHandle, name: String, stamp: String) -> R<()> {
-    run_locked(app, move |root| backup::restore(root, &name, &stamp)).await
+    let storage = app.clone();
+    run_locked(app, move |root| {
+        storage.state::<Storage>().close_reader();
+        backup::restore(root, &name, &stamp)
+    })
+    .await
 }
 
 #[tauri::command]

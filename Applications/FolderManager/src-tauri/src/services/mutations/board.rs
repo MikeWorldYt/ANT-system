@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use serde_yaml::Value;
 
-use super::{editable_target, finish, load_synced_at, Mutation};
+use super::{editable_target, finish, scope, load_synced_at, Mutation};
 use crate::domain::tree_types::type_base;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::StorageLock;
@@ -73,10 +73,10 @@ pub fn set_board(root: &Path, cards: &[BoardCard]) -> R<Mutation> {
             ],
         )?;
     }
-    if synced {
+    if synced.any() {
         tree_store::save(root, &data)?;
     }
-    Ok(finish(root, &data, synced, None, Vec::new(), cards.iter().map(|c| c.rel_parts.clone()).collect()))
+    Ok(finish(root, &data, false, None, Vec::new(), scope(&synced, cards.iter().map(|c| c.rel_parts.clone()).collect())))
 }
 
 #[cfg(test)]

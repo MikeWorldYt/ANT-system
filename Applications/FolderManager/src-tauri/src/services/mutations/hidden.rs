@@ -4,7 +4,7 @@ use std::path::Path;
 use serde::Serialize;
 use serde_yaml::Mapping;
 
-use super::{child_rel, editable_target, finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
+use super::{child_rel, editable_target, finish, scope, guard_frozen, load_synced_at, locate, parent_of, Mutation};
 use crate::infra::footprint_file;
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{flags_in, META_KEYS};
@@ -24,7 +24,7 @@ pub struct HiddenChoice {
 
 pub fn set_hidden(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, _) = load_synced_at(root, parent_of(rel))?;
+    let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = editable_target(root, &data, rel, "hide")?;
     if rel.len() < 2 {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "root folders cannot be hidden".to_string() });
@@ -33,13 +33,13 @@ pub fn set_hidden(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     set_flag(node, HIDDEN_FLAG, on);
     tree_store::save(root, &data)?;
     let warnings = mirror(&target.abs, on);
-    Ok(finish(root, &data, true, parent_selection(rel), warnings, vec![rel.to_vec()]))
+    Ok(finish(root, &data, true, parent_selection(rel), warnings, scope(&synced, vec![rel.to_vec()])))
 }
 
 // `hidden` names the children of `parent` that stay hidden; the others are shown again. Reserved and locked folders are left as they are.
 pub fn set_hidden_children(root: &Path, parent: &[String], hidden: &[String]) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, _) = load_synced_at(root, parent)?;
+    let (mut data, synced) = load_synced_at(root, parent)?;
     let dir = if parent.is_empty() {
         root.to_path_buf()
     } else {
@@ -63,7 +63,7 @@ pub fn set_hidden_children(root: &Path, parent: &[String], hidden: &[String]) ->
         }
     }
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, true, parent_selection(parent), warnings, vec![parent.to_vec()]))
+    Ok(finish(root, &data, true, parent_selection(parent), warnings, scope(&synced, vec![parent.to_vec()])))
 }
 
 // Every folder a level holds, with whether it is hidden, so the manage dialog can show them all.

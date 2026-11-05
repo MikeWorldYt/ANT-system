@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use super::recycle::move_to_bin;
-use super::{child_rel, exactly_on_disk, finish, load_synced_at, locate, register_ids, Mutation};
+use super::{child_rel, exactly_on_disk, finish, load_synced_at, locate, register_ids, scope, sync_branch_drift, sync_loaded_at, Drift, Mutation};
 use crate::domain::names::{compose_name, free_track, is_workboard_name, name_parts};
 use crate::domain::tree_types::{child_entries, type_base};
 use crate::domain::config::{is_hidden_dir, SETTINGS_FOLDER};
@@ -73,9 +73,17 @@ pub fn drop_files(
     recycle: &dyn Fn(&Path) -> Result<(), String>,
 ) -> R<DropOutcome> {
     let _lock = StorageLock::acquire(root)?;
-    let owner = review_links::linked_owner(root, &tree_store::load(root)?, target)?;
+    // Only a 998.Review link needs the tree before the sync, and then the same load serves both.
+    let loaded = if review_links::is_link_path(target) { Some(tree_store::load(root)?) } else { None };
+    let owner = match &loaded {
+        Some(data) => review_links::linked_owner(root, data, target)?,
+        None => None,
+    };
     let target = owner.as_deref().unwrap_or(target);
-    let (mut data, mut synced) = load_synced_at(root, target)?;
+    let (mut data, mut synced) = match loaded {
+        Some(data) => sync_loaded_at(root, target, data)?,
+        None => load_synced_at(root, target)?,
+    };
     if locate(root, &data, target)?.ghost {
         return Err(FmError::GhostNotAllowed { op: "drop files into".to_string() });
     }
@@ -93,7 +101,7 @@ pub fn drop_files(
     if !exactly_on_disk(root, &dest_rel)? {
         return Err(FmError::NotFound { rel_parts: dest_rel });
     }
-    if synced {
+    if synced.any() {
         tree_store::save(root, &data)?;
     }
     let storage = fs::canonicalize(root).map_err(|e| io_err("resolve storage", root, &e))?;
@@ -137,8 +145,8 @@ pub fn drop_files(
         }
     }
     if moved_workboard {
-        synced |= tree_store::sync_branch(root, &mut data, target)?;
-        synced |= register_ids(root, &mut data, &mut warnings);
+        synced.absorb(sync_branch_drift(root, &mut data, target)?);
+        synced.absorb(Drift::unscoped(register_ids(root, &mut data, &mut warnings)));
         tree_store::save(root, &data)?;
     }
     let place = Place {
@@ -171,7 +179,7 @@ pub fn drop_files(
             touched.push(folder);
         }
     }
-    let mutation = finish(root, &data, synced, None, warnings, touched);
+    let mutation = finish(root, &data, false, None, warnings, scope(&synced, touched));
     Ok(DropOutcome { mutation, placed, conflicts })
 }
 

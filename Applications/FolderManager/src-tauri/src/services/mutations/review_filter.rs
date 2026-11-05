@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde_yaml::Value;
 
-use super::{finish, load_synced_at, Mutation};
+use super::{finish, scope, load_synced_at, Mutation};
 use crate::domain::config::REVIEW_FOLDER;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{validate_component, StorageLock};
@@ -26,7 +26,7 @@ pub fn set_review_filter(root: &Path, hidden: &[String], favorites: bool) -> R<M
     )?;
     let rel = vec![REVIEW_FOLDER.to_string()];
     // No selection: the user keeps the item they are on while the list filters around it.
-    Ok(finish(root, &data, synced, None, Vec::new(), vec![rel]))
+    Ok(finish(root, &data, false, None, Vec::new(), scope(&synced, vec![rel])))
 }
 
 #[cfg(test)]

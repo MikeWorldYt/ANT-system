@@ -31,13 +31,24 @@ impl Mutation {
     pub(crate) fn touched_nodes(&self) -> Vec<&TreeNode> {
         self.touched
             .iter()
-            .filter_map(|rel| {
-                let (_, parent) = rel.split_last()?;
-                let level = self.levels.iter().find(|l| l.parent == parent)?;
-                level.children.iter().find(|n| n.rel_parts == *rel)
+            .filter_map(|rel| match &self.tree {
+                Some(tree) => find_node(&tree.nodes, rel),
+                None => {
+                    let (_, parent) = rel.split_last()?;
+                    let level = self.levels.iter().find(|l| l.parent == parent)?;
+                    level.children.iter().find(|n| n.rel_parts == *rel)
+                }
             })
             .collect()
     }
+}
+
+fn find_node<'a>(nodes: &'a [TreeNode], rel: &[String]) -> Option<&'a TreeNode> {
+    let node = nodes.iter().find(|n| rel.starts_with(&n.rel_parts))?;
+    if node.rel_parts == rel {
+        return Some(node);
+    }
+    find_node(node.children.as_deref()?, rel)
 }
 
 // Clones only the given subtrees, so a mutation never keeps a copy of the whole old yaml.

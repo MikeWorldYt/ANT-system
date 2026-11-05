@@ -188,7 +188,8 @@ export interface ReviewIndexEvent {
 
 export interface StorageChangedEvent {
   paths: number;
-  full: boolean;
+  folders: string[][];
+  rescan: boolean;
 }
 
 export type FmError =

@@ -7,6 +7,7 @@ import { markRefreshed } from "./auto-refresh";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
+import { relist, visibleLevels } from "./relist";
 import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, followExpanded, hydrate, keyOf, lastSelection, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../services/store/state";
 import { sortedForColumns } from "../services/store/sort";
@@ -18,9 +19,9 @@ import { isFmError } from "../services/ipc/types";
 import { plural } from "../services/plural";
 import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../services/ipc/types";
 
-async function reload(snapshot?: TreeSnapshot): Promise<void> {
+async function reload(snapshot?: TreeSnapshot, full = true): Promise<void> {
   markRefreshed();
-  const tree = snapshot ?? (await api.refresh());
+  const tree = snapshot ?? (await api.refresh(full));
   setTree(tree);
   if (tree.warnings.length > 0) setStatus("warning", tree.warnings.join(". "));
   followExpanded();
@@ -160,10 +161,11 @@ export const restoreBackupNamed = (name: string, stamp: string) =>
     clearStatus();
   });
 
-export async function refresh(): Promise<boolean> {
+// Automatic callers pass full=false so only the manual refresh rebuilds the indexes.
+export async function refresh(full = true): Promise<boolean> {
   if (state.busy) return false;
   const ok = await run(async () => {
-    await reload();
+    await reload(undefined, full);
     clearStatus();
   });
   if (ok) {
@@ -171,6 +173,20 @@ export async function refresh(): Promise<boolean> {
     void checkRootFolders(resolveInvalid, deleteInvalid);
   }
   return ok;
+}
+
+// Folders the backend has no say over are listed from disk; the intake checks only run when one actually appeared.
+export async function relistLevels(folders: string[][] | null): Promise<void> {
+  if (state.busy) return;
+  try {
+    const added = await relist(folders ?? visibleLevels());
+    if (added && folders !== null) {
+      void runIntake(reload);
+      void checkRootFolders(resolveInvalid, deleteInvalid);
+    }
+  } catch (e) {
+    reportError("warning", e, "Refresh");
+  }
 }
 
 export async function expand(node: TreeNode): Promise<void> {
@@ -257,6 +273,16 @@ export const hideNode = (node: TreeNode) =>
     await applyMutation({ ...m, select: sibling ?? (parent.length > 0 ? parent : null) }, parent.length > 0 ? parent : null);
   });
 
+// The marked items all leave the view, so the selection falls back to the first one's parent.
+export const hideMany = (nodes: TreeNode[]) =>
+  run(async () => {
+    const parent = nodes[0]?.relParts.slice(0, -1) ?? [];
+    for (const node of nodes) {
+      const m = await api.setNodeHidden(node.relParts, true);
+      await applyMutation({ ...m, select: parent.length > 0 ? parent : null }, parent.length > 0 ? parent : null);
+    }
+  });
+
 // The side panel lists the folder's children with a checkbox each, and every checkbox applies at once.
 export async function manageHidden(parent: string[]): Promise<void> {
   state.managing = parent;
@@ -334,6 +360,16 @@ export async function setDetails(node: TreeNode, status: WkbStatus | null, owner
 
 export const setFavorite = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setFavorite(node.relParts, on), node.relParts));
+
+export const setFavorites = (nodes: TreeNode[], on: boolean) =>
+  run(async () => {
+    for (const node of nodes.filter((n) => n.favorite !== on)) await applyMutation(await api.setFavorite(node.relParts, on), node.relParts, false);
+  });
+
+// Each workboard goes through the single-item path, so finishing one still asks for its output.
+export async function setManyDetails(nodes: TreeNode[], status: WkbStatus | null, owner: string | null): Promise<void> {
+  for (const node of nodes) if (!(await setDetails(node, status, owner))) return;
+}
 
 // Several marked workboards are flagged in one go; a lone one is also selected, like a favorite.
 export const setImportant = (nodes: TreeNode[], on: boolean) =>
@@ -426,7 +462,9 @@ export const pasteFiles = (target: string[]) =>
       doneNotice = dropNotice(placed, mutation.warnings);
     },
     `Pasting files in "${target[target.length - 1]}"…`,
-  );
+  ).then(async (ok) => {
+    if (ok) await revalidate();
+  });
 
 // Files already in the storage move (or copy) into a folder, with the same placement as files dropped from Explorer.
 export const moveFiles = (sources: string[][], target: string[], copy: boolean) =>
@@ -438,7 +476,9 @@ export const moveFiles = (sources: string[][], target: string[], copy: boolean) 
       doneNotice = dropNotice(placed, mutation.warnings);
     },
     `${copy ? "Copying" : "Moving"} files to "${target[target.length - 1]}"…`,
-  );
+  ).then(async (ok) => {
+    if (ok) await revalidate();
+  });
 
 // A folder moved out of the storage on purpose loses its record, instead of staying listed as missing.
 export const forgetMoved = (sources: string[][]) =>
@@ -465,7 +505,9 @@ export const moveFolders = (sources: string[][], destination: string[], copy: bo
       if (failures.length > 0) setStatus("error", failures.join(". "));
     },
     `${copy ? "Copying" : "Moving"} ${sources.length === 1 ? `"${sources[0][sources[0].length - 1]}"` : `${sources.length} folders`} to "${destination[destination.length - 1]}"…`,
-  );
+  ).then(async (ok) => {
+    if (ok) await revalidate();
+  });
 
 export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
   run(

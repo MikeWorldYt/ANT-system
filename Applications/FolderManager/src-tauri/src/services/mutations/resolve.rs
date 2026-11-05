@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_yaml::{Mapping, Value};
 
 use super::add::{mark_workboard, track_or_lowest};
-use super::{child_rel, ensure_free, finish, move_to_review, persist, split, subtrees, Mutation};
+use super::{child_rel, ensure_free, finish, move_to_review, persist, scope, split, subtrees, Drift, Mutation};
 use crate::services::tree::tree_store::load_synced;
 use crate::domain::names::{has_node_id, is_track_name, is_valid_root_name, next_available_id, next_main_category_id, sanitize_train_case, title_of, tracker_number, workboard_title};
 use crate::infra::scan::list_subdirs;
@@ -86,7 +86,8 @@ fn workboard_name(data: &Mapping, rel: &[String], tracker: &str) -> String {
 
 fn become_node(root: &Path, rel: &[String]) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, synced) = load_synced(root)?;
+    let (mut data, changed) = load_synced(root)?;
+    let synced = Drift::unscoped(changed);
     let (_, parent) = split(rel)?;
     refuse_if_node(rel, &node_entry(&data, rel)?)?;
     let new = node_name(root, &data, rel)?;
@@ -99,14 +100,15 @@ fn become_node(root: &Path, rel: &[String]) -> R<Mutation> {
     }
     let new_rel = child_rel(parent, &new);
     let before = subtrees(&data, &[rel.to_vec()]);
-    reidentify(root, &mut data, rel, &new_rel, entry, "make node")?;
-    Ok(finish(root, &data, synced, Some(new_rel.clone()), Vec::new(), vec![rel.to_vec(), new_rel]).replacing(before))
+    reidentify(root, &mut data, (rel, &new_rel), &synced, entry, "make node")?;
+    Ok(finish(root, &data, false, Some(new_rel.clone()), Vec::new(), scope(&synced, vec![rel.to_vec(), new_rel])).replacing(before))
 }
 
 // Takes the lowest free track of its tracker and the usual info.json of a workboard, keeping any values it already has.
 fn become_workboard(root: &Path, rel: &[String], tracker: &str) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, synced) = load_synced(root)?;
+    let (mut data, changed) = load_synced(root)?;
+    let synced = Drift::unscoped(changed);
     let (old, parent) = split(rel)?;
     let tracker = tracker.to_ascii_uppercase();
     let tracker = tracker.as_str();
@@ -127,12 +129,12 @@ fn become_workboard(root: &Path, rel: &[String], tracker: &str) -> R<Mutation> {
     entry.remove("flags");
     let new_rel = child_rel(parent, &new);
     let before = subtrees(&data, &[rel.to_vec()]);
-    reidentify(root, &mut data, rel, &new_rel, entry, "make workboard")?;
+    reidentify(root, &mut data, (rel, &new_rel), &synced, entry, "make workboard")?;
     let mut warnings = Vec::new();
     if let Err(e) = mark_workboard(&join_rel(root, &new_rel), parent.last().map_or("", String::as_str), &status) {
         warnings.push(format!("Could not set up the info file: {e}"));
     }
-    Ok(finish(root, &data, synced, Some(new_rel.clone()), warnings, vec![rel.to_vec(), new_rel]).replacing(before))
+    Ok(finish(root, &data, false, Some(new_rel.clone()), warnings, scope(&synced, vec![rel.to_vec(), new_rel])).replacing(before))
 }
 
 fn refuse(rel: &[String], reason: impl Into<String>) -> FmError {
@@ -173,7 +175,7 @@ fn node_entry(data: &Mapping, rel: &[String]) -> R<Mapping> {
 }
 
 // Renames the folder and moves its tree entry with it; the disk rename is rolled back when the tree cannot be saved.
-fn reidentify(root: &Path, data: &mut Mapping, rel: &[String], new_rel: &[String], entry: Mapping, op: &str) -> R<()> {
+fn reidentify(root: &Path, data: &mut Mapping, (rel, new_rel): (&[String], &[String]), synced: &Drift, entry: Mapping, op: &str) -> R<()> {
     let (old, parent) = split(rel)?;
     let (new, _) = split(new_rel)?;
     ensure_free(&join_rel(root, parent), get_node(data, parent), new, &[old.as_str()])?;
@@ -186,7 +188,7 @@ fn reidentify(root: &Path, data: &mut Mapping, rel: &[String], new_rel: &[String
         }
         None => return Err(journal.abort(op, FmError::NotFound { rel_parts: parent.to_vec() })),
     }
-    persist(root, data, journal, op)
+    persist(root, data, journal, op, &scope(synced, vec![rel.to_vec(), new_rel.to_vec()]))
 }
 
 #[cfg(test)]

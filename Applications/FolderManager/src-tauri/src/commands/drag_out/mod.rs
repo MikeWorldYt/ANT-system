@@ -21,7 +21,7 @@ use crate::services::tree::tree_store::{self, get_node};
 #[tauri::command]
 pub async fn start_drag_out(app: AppHandle, targets: Vec<Vec<String>>) -> R<u32> {
     let paths = run_locked(app.clone(), move |root| {
-        let data = tree_store::load(root)?;
+        let data = tree_store::load_paths(root, &targets)?;
         targets.iter().map(|target| drag_plan(root, &data, target)).collect::<R<Vec<PathBuf>>>()
     })
     .await?;

@@ -1,7 +1,7 @@
 // Hidden review links are listed in the app's data folder like starred ones, so the owner folder is never touched.
 use std::path::Path;
 
-use super::{finish, load_synced_at, parent_of, Mutation};
+use super::{finish, scope, load_synced_at, parent_of, Mutation};
 use crate::domain::config::LINK_HIDDEN_FILENAME;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::StorageLock;
@@ -16,7 +16,7 @@ pub fn set_link_hidden(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
         _ => return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only review links can be hidden".to_string() }),
     };
     link_list::set(root, LINK_HIDDEN_FILENAME, link, on)?;
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new(), vec![rel.to_vec()]))
+    Ok(finish(root, &data, false, Some(rel.to_vec()), Vec::new(), scope(&synced, vec![rel.to_vec()])))
 }
 
 #[cfg(test)]

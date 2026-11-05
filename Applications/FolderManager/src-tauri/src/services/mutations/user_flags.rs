@@ -1,7 +1,7 @@
 // Adds or removes the user flag "data" on a Node folder, the only flag a user can set.
 use std::path::Path;
 
-use super::{editable_target, finish, load_synced_at, parent_of, Mutation};
+use super::{editable_target, finish, scope, load_synced_at, parent_of, Mutation};
 use crate::domain::tree_types::{flags_in, type_base};
 use crate::domain::config::{DATA_FLAG, FOOTPRINT_FILENAME};
 use crate::domain::error::{FmError, R};
@@ -36,7 +36,7 @@ pub fn set_user_flag(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     if let Err(e) = mirror_flags(&target.abs, &flags) {
         warnings.push(format!("Could not update {FOOTPRINT_FILENAME}: {e}"));
     }
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), warnings, vec![rel.to_vec()]))
+    Ok(finish(root, &data, false, Some(rel.to_vec()), warnings, scope(&synced, vec![rel.to_vec()])))
 }
 
 #[cfg(test)]

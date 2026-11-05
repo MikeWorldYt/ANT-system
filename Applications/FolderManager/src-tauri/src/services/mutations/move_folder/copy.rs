@@ -9,7 +9,7 @@ use crate::domain::tree_types::META_KEYS;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{dir_entries, io_err, redirects};
 use crate::services::index::footprint;
-use crate::services::mutations::{finish, register_ids, Mutation};
+use crate::services::mutations::{finish, scope, register_ids, Drift, Mutation};
 use crate::services::tree::depth;
 use crate::services::tree::tree_store;
 
@@ -19,7 +19,7 @@ pub(super) fn copy_folder(
     (from, to): (&Path, &Path),
     (rel, select): (&[String], Vec<String>),
     mut entry: Mapping,
-    (synced, mut warnings): (bool, Vec<String>),
+    (synced, mut warnings): (Drift, Vec<String>),
 ) -> R<Mutation> {
     fs::create_dir(to).map_err(|e| io_err("create folder", to, &e))?;
     if let Err(e) = copy_contents(from, to, &mut warnings) {
@@ -35,7 +35,7 @@ pub(super) fn copy_folder(
     }
     // Folders of the copy that had no .ant folder get theirs, with a fresh id, as after add_node.
     let moved = register_ids(root, &mut data, &mut warnings);
-    Ok(finish(root, &data, synced || moved, Some(select), warnings, vec![rel.to_vec()]))
+    Ok(finish(root, &data, false, Some(select), warnings, scope(&synced.or_unscoped(moved), vec![rel.to_vec()])))
 }
 
 // The copy's tree entry starts without ids; tail_copy then stores the tailed id of every folder that has one.

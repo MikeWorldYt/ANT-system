@@ -169,7 +169,7 @@ fn commands_release_both_locks_and_fail_without_a_storage() {
     locked(&storage, |root| mutations::rename_node(root, &rel(&["100.WORK", "02.B"]), "Bee")).unwrap();
     assert!(storage.lock.try_lock().is_ok());
     assert!(StorageLock::acquire(dir.path()).is_ok());
-    let none = Storage { start: RwLock::new(PathBuf::from("nowhere")), root: RwLock::new(None), lock: Mutex::new(()) };
+    let none = Storage { start: RwLock::new(PathBuf::from("nowhere")), root: RwLock::new(None), lock: Mutex::new(()), reader: Mutex::new(None) };
     assert!(matches!(locked(&none, |_| Ok(())), Err(FmError::StorageNotFound { .. })));
 }
 
@@ -179,7 +179,7 @@ fn refresh_syncs_new_folders_then_rebuilds_the_index() {
     dir.mkdir("100.WORK/05.Fresh");
     let probe = Probe::new();
     let emit = probe.emit();
-    let tree = refresh_flow(dir.path(), &emit, probe.rebuild(&["stub"])).unwrap();
+    let tree = refresh_flow(dir.path(), &emit, probe.rebuild(&["stub"]), true).unwrap();
     assert!(tree.yaml_changed);
     assert_eq!(probe.phases(), ["started", "done"]);
     assert_eq!(probe.events.borrow()[1].failures, ["stub"]);
