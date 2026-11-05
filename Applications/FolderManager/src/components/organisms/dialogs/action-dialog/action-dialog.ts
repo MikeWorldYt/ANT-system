@@ -18,10 +18,10 @@ export function dialogTable(label: string, headers: HTMLTableCellElement[], rows
 }
 
 // A wide dialog around a table: Later leaves every row as it is, Apply settles them.
-export function actionDialog(title: string, intro: string, view: HTMLElement, focus?: () => void): ActionDialog {
+export function actionDialog(title: string, intro: string | HTMLElement[], view: HTMLElement, focus?: () => void): ActionDialog {
   const later = cancelButton("Later");
   const apply = dialogButton("Apply", "ok", "primary");
-  return { ...openDialog({ title, wide: true, body: [dialogText(intro), view], buttons: [later, apply], focus }), later, apply };
+  return { ...openDialog({ title, wide: true, body: [...(typeof intro === "string" ? [dialogText(intro)] : intro), view], buttons: [later, apply], focus }), later, apply };
 }
 
 // One field and its confirm button; Cancel skips the field's validation. Resolves to whether it was confirmed.

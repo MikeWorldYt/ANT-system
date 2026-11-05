@@ -2,7 +2,7 @@
 import * as api from "../services/ipc/api";
 import { notifyDesktop } from "../services/desktop-notify";
 import { setStatus, reportError } from "../components/organisms/bars/status-line";
-import { waitingIntakeDialog } from "../components/organisms/dialogs/action-dialog/waiting-intake-dialog";
+import { waitingIntakeDialog, type WaitingDecision } from "../components/organisms/dialogs/action-dialog/waiting-intake-dialog";
 import { plural } from "../services/plural";
 import type { Moved, WaitingNode } from "../services/ipc/types";
 
@@ -31,18 +31,21 @@ function looseFilesMessage(files: { node: string; file: string }[]): string {
 
 // Nodes the app has never managed wait for the answer; returns whether any answer was applied.
 async function answerWaiting(nodes: WaitingNode[], reload: () => Promise<void>): Promise<boolean> {
-  const decisions = await waitingIntakeDialog(nodes);
-  if (!decisions) return false;
   let applied = false;
-  for (const { relParts, choice } of decisions) {
+  const settle = async ({ relParts, choice }: WaitingDecision): Promise<boolean> => {
     try {
       if (choice === "data") await api.setUserFlag(relParts, true);
       else await api.acknowledgeIntake(relParts);
       applied = true;
+      return true;
     } catch (e) {
       reportError("warning", e);
+      return false;
     }
-  }
+  };
+  const showFolder = (relParts: string[]) => void api.openNode(relParts).catch((e: unknown) => reportError("warning", e));
+  const decisions = await waitingIntakeDialog(nodes, showFolder, settle);
+  for (const decision of decisions ?? []) await settle(decision);
   if (applied) await reload();
   return applied;
 }

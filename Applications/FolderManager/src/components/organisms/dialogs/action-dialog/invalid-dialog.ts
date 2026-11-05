@@ -21,10 +21,10 @@ export type PreviewNames = (rows: { relParts: string[]; resolution: Resolution }
 
 // Two-line headers keep the table narrow.
 const ACTIONS: [Choice, string[]][] = [
-  ["ignore", ["Ignore"]],
   ["review", ["Move to", "Review"]],
   ["node", ["Convert to", "Node"]],
   ["workboard", ["Convert to", "Workboard"]],
+  ["ignore", ["Ignore"]],
 ];
 const TRACKERS = ["PJ", "PR", "HW", "CR", "TK"];
 // Matches --name-cycle in invalid-dialog.css.
@@ -82,7 +82,7 @@ export function invalidDialog(folders: InvalidFolder[], openFolder: (relParts: s
     };
     const headers = [colHeader(["Path"]), ...ACTIONS.map(([, lines]) => colHeader(lineBreaks(lines))), colHeader([], { "aria-label": "Delete or apply this folder only" })];
     const { table, view } = dialogTable("Folders outside the id format", headers, rows.map((r) => r.element));
-    const { dialog, form, closed, later, apply } = actionDialog("Format validations", "ANT detects some invalid formats that have reached your storage. Choose what each one become.", view);
+    const { dialog, form, closed, later, apply } = actionDialog("New folder without tracking", "ANT detects some invalid formats that have reached your storage, please take your time a bit for choose what to do each one become.", view);
 
     for (const r of rows) {
       r.applyButton.addEventListener("click", () => void applyRow(r));
@@ -147,7 +147,7 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
   const applyButton = textButton("Apply", "invalid-apply");
   applyButton.setAttribute("aria-label", `Apply only ${label}`);
   const deleteButton = el("button", { type: "button", class: "invalid-delete", "aria-label": `Delete ${original}`, title: `Delete ${original}` }, guiIcon("trash"));
-  const element = el("tr", {}, el("th", { scope: "row" }, pathButton(rel, shown, openFolder)), ...cells, el("td", {}, deleteButton, applyButton));
+  const element = el("tr", {}, el("th", { scope: "row" }, pathButton(rel, shown, openFolder)), ...cells, el("td", {}, el("div", { class: "invalid-row-actions" }, applyButton, deleteButton)));
   return {
     element,
     relParts: rel,
@@ -183,10 +183,10 @@ function lineBreaks(lines: string[]): (Node | string)[] {
 }
 
 // The parent path shows only its last folder, as "...\<dir>\"; the button opens the folder in the file explorer.
-function pathButton(rel: string[], name: HTMLElement, openFolder: (relParts: string[]) => void): HTMLButtonElement {
+export function pathButton(rel: string[], name: HTMLElement, openFolder: (relParts: string[]) => void): HTMLButtonElement {
   const parents = rel.slice(0, -1);
   const trail = parents.length > 1 ? `...\\${parents[parents.length - 1] ?? ""}\\` : parents.map((part) => `${part}\\`).join("");
-  const button = el("button", { type: "button", class: "invalid-path", title: "Open in Explorer" }, trail, name);
+  const button = el("button", { type: "button", class: "invalid-path", title: "Show in Explorer" }, trail, name);
   button.addEventListener("click", () => openFolder(rel));
   return button;
 }
