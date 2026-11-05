@@ -5,9 +5,7 @@ description: Create your first ANT storage on Windows, Linux or macOS and manage
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import Callout from "/src/components/ui/Callout.astro";
 
-Welcome to the ANT documentation! 🐜
-
-ANT is a organizational methods system designed to streamline the storage, project management and file retrieval.
+![Welcome to ANT on the system Documentation!](https://r2.mikeworld.dev/page/welcome.png)
 
 ## Quick Start
 
@@ -15,33 +13,93 @@ ANT is a organizational methods system designed to streamline the storage, proje
 
 <Tabs syncKey="os">
   <TabItem label="Windows">
+
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="26" height="26" />
+      <h3 style="margin: 0;">windows CLI</h3>
+    </div>
+
+    1.1 DOWNLOAD:
+
     ```powershell
-    # PowerShell
-    Invoke-WebRequest -Uri https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage.exe -OutFile CreateNewStorage.exe
-    .\CreateNewStorage.exe --help
-    .\CreateNewStorage.exe $HOME --name "My-name-storage"   # change the name to yours
+    Invoke-WebRequest -Uri https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.2.0/CreateNewStorage.exe -OutFile CreateNewStorage.exe
     ```
+    [Direct download for Windows](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.2.0/CreateNewStorage.exe)
+
+    1.2. INSTALL AND OPEN:
+
+    ```powershell
+    # Variables
+    $MY_STORAGE = "My-name-storage"       # <-- Change the name to yours e.g. William
+
+    # Install and open
+    .\CreateNewStorage.exe $HOME --name "$MY_STORAGE"
+    explorer "$HOME\$MY_STORAGE"
+    ```
+    <Callout type="warning" title="Attention">
+      Change the variable **MY_STORAGE** to your desired name before running the commands.
+    </Callout>
+
   </TabItem>
   <TabItem label="Linux">
+
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg" width="26" height="26" />
+      <h3 style="margin: 0;">linux CLI</h3>
+    </div>
+    1.1 DOWNLOAD: 
+
     ```bash
-    curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage-linux.tar.gz
-    tar -xzf cns.tar.gz        # extracts the "create-new-storage" executable, already runnable
-    ./create-new-storage --help
-    ./create-new-storage ~ --name "My-name-storage"   # change the name to yours
+    curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.2.0/CreateNewStorage-linux.tar.gz
+    tar -xzf cns.tar.gz        # extracts the CLI executable
     ```
+    [Direct download for Linux](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.2.0/CreateNewStorage-linux.tar.gz)
+
+    1.2. INSTALL AND OPEN:
+
+    ```sh
+    # Variables
+    MY_STORAGE="My-name-storage"       # <-- Change the name to yours e.g. William
+
+    # Install and open
+    ./create-new-storage ~ --name "\$MY_STORAGE"
+    xdg-open ~/"\$MY_STORAGE"
+    ```
+    <Callout type="warning" title="Attention">
+      Change the variable **MY_STORAGE** to your desired name before running the commands.
+    </Callout>
+
   </TabItem>
   <TabItem label="macOS">
+
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apple/apple-original.svg" width="26" height="26" />
+      <h3 style="margin: 0;">macOS CLI</h3>
+    </div>
+    1.1 DOWNLOAD:
+
     ```bash
-    curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage-macos.tar.gz
-    tar -xzf cns.tar.gz        # extracts the "create-new-storage" executable, already runnable
-    ./create-new-storage --help
-    ./create-new-storage ~ --name "My-name-storage"   # change the name to yours
+    curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.2.0/CreateNewStorage-macos.tar.gz
+    tar -xzf cns.tar.gz        # extracts the CLI executable
     ```
+    [Direct download for Mac](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.2.0/CreateNewStorage-macos.tar.gz)
+
+    1.2. INSTALL AND OPEN:
+
+    ```sh
+    # Variables
+    MY_STORAGE="My-name-storage"       # <-- Change the name to yours e.g. William
+
+    # Install and open
+    ./create-new-storage ~ --name "$MY_STORAGE"
+    open ~/"$MY_STORAGE"
+    ```
+    <Callout type="warning" title="Attention">
+      Change the variable **MY_STORAGE** to your desired name before running the commands.
+    </Callout>
+
   </TabItem>
 </Tabs>
-
-The first argument is where the storage goes, and `--name` creates a sanitized subfolder inside it. 
-If you prefer a [direct download](/en/start-here/download).
 
 ### 2. Open FolderManager
 
