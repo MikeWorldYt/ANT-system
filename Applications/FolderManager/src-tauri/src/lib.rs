@@ -76,6 +76,7 @@ pub fn run() {
             commands::load_tree,
             commands::list_children,
             commands::open_node,
+            commands::reveal_node,
             commands::refresh,
             commands::check_root,
             commands::rename_node,

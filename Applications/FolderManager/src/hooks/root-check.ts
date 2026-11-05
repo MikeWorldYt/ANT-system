@@ -45,7 +45,7 @@ export async function checkRootFolders(resolve: ResolveInvalid, remove: DeleteIn
         return false;
       }
     };
-    const decisions = await invalidDialog(invalid, (relParts) => void api.openNode(relParts).catch((e: unknown) => reportError("warning", e)), previewNames, applyOne, remove);
+    const decisions = await invalidDialog(invalid, (relParts) => void api.revealNode(relParts).catch((e: unknown) => reportError("warning", e)), previewNames, applyOne, remove);
     if (decisions === null) snoozedUntil = Date.now() + SNOOZE_MS;
     // Deepest first, so renaming or moving a parent never changes the path of a row still waiting.
     const ordered = [...(decisions ?? [])].sort((a, b) => b.relParts.length - a.relParts.length);

@@ -45,6 +45,7 @@ export const renameNode = (relParts: string[], newEditable: string) =>
 export const setNodeType = (relParts: string[], typeBase: EditableType, status: WkbStatus | null) =>
   call<Mutation>("set_node_type", { relParts, typeBase, status });
 export const openNode = (relParts: string[]) => call<void>("open_node", { relParts });
+export const revealNode = (relParts: string[]) => call<void>("reveal_node", { relParts });
 export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("set_favorite", { relParts, on });
 export const setImportant = (relParts: string[], on: boolean) => call<Mutation>("set_important", { relParts, on });
 export const fileImage = (relParts: string[], large: boolean) => call<string | null>("file_image", { relParts, large });
