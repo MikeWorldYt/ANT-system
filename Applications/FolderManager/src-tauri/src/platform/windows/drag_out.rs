@@ -12,7 +12,6 @@ use windows_core::{implement, Error, Ref, Result, BOOL, HRESULT};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON};
 
 use crate::platform::clipboard::{hdrop_bytes, Global};
-use crate::platform::drag_out::ALLOWED_EFFECTS;
 use crate::domain::error::{FmError, R};
 
 fn hdrop_format() -> FORMATETC {
@@ -111,7 +110,7 @@ fn primary_button_down() -> bool {
 }
 
 // Must run on the UI thread, where tao called OleInitialize when it created the window.
-pub fn drag_folders(paths: &[PathBuf]) -> R<u32> {
+pub fn drag_folders(paths: &[PathBuf], effects: u32) -> R<u32> {
     if !primary_button_down() {
         return Ok(DROPEFFECT_NONE.0);
     }
@@ -119,7 +118,7 @@ pub fn drag_folders(paths: &[PathBuf]) -> R<u32> {
     let source: IDropSource = FolderSource.into();
     let mut effect = DROPEFFECT_NONE;
     // SAFETY: both objects live until DoDragDrop returns, and the caller is on the OLE-initialized UI thread.
-    let result = unsafe { DoDragDrop(&data, &source, DROPEFFECT(ALLOWED_EFFECTS), &mut effect) };
+    let result = unsafe { DoDragDrop(&data, &source, DROPEFFECT(effects), &mut effect) };
     if result == DRAGDROP_S_CANCEL {
         return Ok(DROPEFFECT_NONE.0);
     }

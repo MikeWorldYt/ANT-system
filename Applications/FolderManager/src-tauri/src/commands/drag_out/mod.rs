@@ -14,7 +14,7 @@ use crate::domain::tree_types::flags_in;
 use crate::domain::config::MAIN_FLAG;
 use crate::infra::fs_safe::join_rel;
 use crate::services::mutations::{self, locate, Target};
-use crate::platform::drag_out::drag_folders;
+use crate::platform::drag_out::{drag_folders, ALLOWED_EFFECTS, FILE_EFFECTS};
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::{self, get_node};
 
@@ -25,9 +25,10 @@ pub async fn start_drag_out(app: AppHandle, targets: Vec<Vec<String>>) -> R<u32>
         targets.iter().map(|target| drag_plan(root, &data, target)).collect::<R<Vec<PathBuf>>>()
     })
     .await?;
+    let effects = if paths.iter().all(|p| p.is_file()) { FILE_EFFECTS } else { ALLOWED_EFFECTS };
     let (tx, rx) = mpsc::channel();
     app.run_on_main_thread(move || {
-        if tx.send(drag_folders(&paths)).is_err() {
+        if tx.send(drag_folders(&paths, effects)).is_err() {
             eprintln!("The drag finished after its command was dropped");
         }
     })
