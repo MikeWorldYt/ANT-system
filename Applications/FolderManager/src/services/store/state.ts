@@ -293,6 +293,7 @@ export function clickSelect(parts: string[], siblings: string[], mods: { ctrl: b
   const anchor = state.selectedKey;
   if (mods.shift && anchor !== null && siblings.includes(anchor) && siblings.includes(key)) {
     const a = siblings.indexOf(anchor);
+  rememberPlace();
     const b = siblings.indexOf(key);
     state.selectedKeys = siblings.slice(Math.min(a, b), Math.max(a, b) + 1);
   } else if (mods.ctrl) {
@@ -374,7 +375,8 @@ export function followExpanded(): void {
 export function pruneSelection(): void {
   if (state.editing && !findNode(state.editing.key.split("/"))) state.editing = null;
   state.selectedKeys = [...new Set(state.selectedKeys.map(followKey).filter((key): key is string => key !== null))];
-  if (state.selectedKey !== null) state.selectedKey = followKey(state.selectedKey) ?? state.selectedKeys.at(-1) ?? null;
+  if (state.selectedKey !== null) state.selectedKey = followKey(state.selectedKey) ?? (state.selectedKeys.at(-1) || nearestKey(state.selectedKey));
+  if (state.selectedKeys.length === 0 && state.selectedKey !== null) state.selectedKeys = [state.selectedKey];
   if (state.via !== null) state.via = followKey(state.via);
 }
 
@@ -393,11 +395,40 @@ export function patchLevels(levels: LevelPatch[]): TreeNode[][] | null {
     if (parent) {
       parent.hasChildren = level.hasChildren;
       parent.children = level.hasChildren ? children : null;
+// Where the selected item sat among its siblings, so a rename or delete can land on whatever now holds that place.
+let lastPlace: { key: string; index: number } | null = null;
+
+const siblingsOf = (parts: string[]): TreeNode[] => {
+  const parent = parts.length > 1 ? findNode(parts.slice(0, -1)) : null;
+  return listed(parent ? (parent.children ?? []) : (state.tree?.nodes ?? []));
+};
+
+function rememberPlace(): void {
+  const key = state.selectedKey;
+  const index = key === null ? -1 : siblingsOf(key.split("/")).findIndex((n) => keyOf(n.relParts) === key);
+  lastPlace = key !== null && index >= 0 ? { key, index } : null;
+}
+
+// The item itself when it can be followed, else what took its place among its siblings, else the nearest folder still there.
+function nearestKey(key: string): string | null {
+  const followed = followKey(key);
+  if (followed) return followed;
+  const parts = key.split("/");
+  if (lastPlace?.key === key) {
+    const siblings = siblingsOf(parts);
+    const there = siblings[Math.min(lastPlace.index, siblings.length - 1)];
+    if (there) return keyOf(there.relParts);
+  }
+  for (let i = parts.length - 1; i > 0; i--) if (findNode(parts.slice(0, i))) return keyOf(parts.slice(0, i));
+  return null;
+}
+
     } else {
       state.tree.nodes = children;
     }
     patched.push(children);
   }
+  rememberPlace();
   return patched;
 }
 
