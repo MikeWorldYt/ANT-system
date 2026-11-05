@@ -405,8 +405,8 @@ export function patchLevels(levels: LevelPatch[]): TreeNode[][] | null {
 export async function hydrate(nodes: TreeNode[] = state.tree?.nodes ?? []): Promise<void> {
   const walk = async (level: TreeNode[]): Promise<void> => {
     for (const n of level) {
-      if (!state.expanded.has(keyOf(n.relParts))) continue;
-      if (n.children === null && n.hasChildren) n.children = await listChildren(n.relParts);
+      // Preloaded levels are walked even when collapsed, so a deeper folder opened from the columns view still loads.
+      if (n.children === null && n.hasChildren && state.expanded.has(keyOf(n.relParts))) n.children = await listChildren(n.relParts);
       await walk(n.children ?? []);
     }
   };

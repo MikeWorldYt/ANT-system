@@ -91,10 +91,10 @@ export function createColumnsView(): ViewMode {
     const managed = !listing && isManagedFolder(column.dataset.key ?? "");
     const nodes = managed ? (managedNodes() ?? col.nodes) : col.nodes;
     const onPath = col.pathKey !== state.selectedKey ? nodes.find((n) => keyOf(n.relParts) === col.pathKey) : undefined;
-    // The empty area of a column steps back to its row on the selected path.
+    // The empty area of a column steps back to its row on the selected path, keeping that row's column open.
     column.addEventListener("click", (ev) => {
       if (!onPath || (ev.target instanceof Element && ev.target.closest(".col-item"))) return;
-      pick(onPath);
+      openColumn(onPath);
       // The column background cannot take focus, so keys go back to the row that now holds it.
       root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });
     });
