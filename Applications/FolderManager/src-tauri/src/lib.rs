@@ -92,6 +92,7 @@ pub fn run() {
             commands::skip_version,
             commands::set_node_details,
             commands::set_node_output,
+            commands::set_outcome_default,
             commands::deliver_output,
             commands::restore_output,
             commands::set_node_hidden,

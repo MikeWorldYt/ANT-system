@@ -151,6 +151,11 @@ pub async fn set_board(app: AppHandle, cards: Vec<mutations::BoardCard>) -> R<Mu
 }
 
 #[tauri::command]
+pub async fn set_outcome_default(app: AppHandle, rel_parts: Vec<String>, key: String, value: Option<String>) -> R<Mutation> {
+    run_search_indexed(app, move |root| mutations::set_default(root, &rel_parts, &key, value.as_deref())).await
+}
+
+#[tauri::command]
 pub async fn set_node_output(app: AppHandle, rel_parts: Vec<String>, output: Option<String>) -> R<Mutation> {
     run_search_indexed(app, move |root| mutations::set_output(root, &rel_parts, output.as_deref())).await
 }

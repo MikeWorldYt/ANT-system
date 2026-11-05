@@ -294,6 +294,9 @@ export async function setChildHidden(name: string, on: boolean): Promise<boolean
 
 export const setOutput = (node: TreeNode, output: string | null) =>
   run(async () => applyMutation(await api.setNodeOutput(node.relParts, output), node.relParts));
+export const setOutcomeDefault = (node: TreeNode, key: string, value: string | null) =>
+  run(async () => applyMutation(await api.setOutcomeDefault(node.relParts, key, value), node.relParts));
+
 
 // Finishing a workboard delivers its output, asking first when none is set (where nothing is a valid answer); reopening it brings the delivery back.
 export async function setDetails(node: TreeNode, status: WkbStatus | null, owner: string | null): Promise<boolean> {

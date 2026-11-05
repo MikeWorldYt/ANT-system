@@ -107,6 +107,11 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     // The folder exists now, so a failure here is only reported.
     if let Err(e) = mark_folder(&new_abs, workboard, parent.last().map_or("", String::as_str)) {
         warnings.push(format!("Could not set up {DATA_DIR}: {e}"));
+    } else if workboard {
+        let defaults = get_node(&data, parent).map_or(Ok(()), |node| super::automations::apply_defaults(&target.abs, node, &new_abs));
+        if let Err(e) = defaults {
+            warnings.push(format!("Could not apply the Outcomes defaults: {e}"));
+        }
     }
     let moved = register_ids(root, &mut data, &mut warnings);
     let new_rel = child_rel(parent, &new_name);

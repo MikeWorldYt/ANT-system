@@ -9,6 +9,8 @@ import { favoritesShown, hiddenCategories, importantLabel, isMainCategory, isRev
 import { quickActionsShown, railLayout, type RailId } from "../../../services/store/side-layout";
 import { selectedNode, state, toggleHidingLinks } from "../../../services/store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
+import { createAutomationsPanel } from "./automations-panel";
+import { createReviewAutomations } from "./review-automations";
 import { toggleBoard } from "../../../hooks/virtual-nav";
 import { sideAction } from "../../molecules/side-action";
 import type { TreeNode } from "../../../services/ipc/types";
@@ -39,6 +41,8 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
   const moveUp = () => moveActed("up");
   const moveDown = () => moveActed("down");
 
+  const automations = createAutomationsPanel();
+  const reviewTools = createReviewAutomations();
   const details = createDetailsPanel(() => {
     if (!collapseAfterEdit) return;
     collapseAfterEdit = false;
@@ -75,7 +79,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     toggleHidingLinks();
   });
   const categoriesSection = section("side-categories", "Filters", categories, hideLinks);
-  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, categoriesSection, details.element, order, foot);
+  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, categoriesSection, details.element, automations.element, reviewTools.element, order, foot);
 
   // ─────────♦ COLLAPSED RAIL ───────────────────────────────────────────────────
   const railExpand = iconButton("Expand side panel", "chevronsLeft", () => {
@@ -185,6 +189,8 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
 
   function render(): void {
     details.render();
+    automations.render();
+    reviewTools.render();
     layoutRail();
     const n = selectedNode();
     const idle = !state.busy;
@@ -194,7 +200,8 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     const review = n !== null && isReviewRoot(n);
     const reviewRoot = state.tree?.nodes.find(isReviewRoot) ?? null;
     const filtered = review || !!n?.linked;
-    details.element.hidden = review;
+    // Outcomes and review folders belong to the app: they show their automations instead of details.
+    details.element.hidden = review || n?.nodeType?.base === "OUT" || n?.nodeType?.base === "REV";
     categoriesSection.hidden = !filtered || reviewRoot === null;
     if (filtered && reviewRoot) syncCategories(reviewRoot);
     hideLinks.classList.toggle("is-active", state.hidingLinks);

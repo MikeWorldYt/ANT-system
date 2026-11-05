@@ -1,5 +1,6 @@
 // Rename, retype and add nodes, keeping disk folders, linked 90./98. folders and the tree in step.
 mod add;
+mod automations;
 mod board;
 mod checks;
 mod copy_answer;
@@ -42,6 +43,7 @@ pub(crate) use result::finish;
 pub use resolve::{preview_names, resolve_invalid, Pending, Resolution};
 pub use hidden::{hidden_choices, set_hidden, set_hidden_children, HiddenChoice};
 pub use outputs::{deliver, restore, set_output};
+pub use automations::set_default;
 pub use retype::{set_details, set_node_type};
 pub use review_filter::set_review_filter;
 pub use mutation::Mutation;
