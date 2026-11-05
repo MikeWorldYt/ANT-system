@@ -1,6 +1,6 @@
 /* Drop targets, the drag ghost and the selection band of the views. */
 .row.drop-target, .col-item.drop-target, .grid-item.drop-target { background: var(--accent); color: var(--on-accent); }
-.column.drop-target, .grid.drop-target { outline: 2px solid var(--accent); outline-offset: -2px; }
+.column.drop-target, .grid.drop-target, .board-col.drop-target { outline: 2px solid var(--accent); outline-offset: -2px; }
 .drop-target .name-fixed { color: inherit; }
 .drag-ghost {
   position: fixed; z-index: 1000; max-width: 240px; padding: 4px 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;

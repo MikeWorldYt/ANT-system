@@ -12,7 +12,7 @@ import fileUrl from "../../assets/icons/file.svg?url";
 import { el } from "../dom";
 import { nativeImage } from "../../services/file-images";
 import { isWorkboard } from "../../services/store/node-info";
-import type { TreeNode } from "../../services/ipc/types";
+import { inDownloads, type TreeNode } from "../../services/ipc/types";
 
 // The colors the SVGs were drawn with; the link arrow's blues are not in this list, so they stay.
 const DRAWN_BASE = /#7e54d1/gi;
@@ -52,8 +52,9 @@ export function setIconColor(base: string | null): void {
   urls.clear();
 }
 
+// A folder in Downloads follows no storage rule, so it never gets the barred icon of a node that takes no files.
 const kindOf = (n: TreeNode, open: boolean): Kind =>
-  n.linked ? "lnk" : n.locked ? "locked" : isWorkboard(n) ? (n.isGit ? "wkbGit" : "wkb") : n.isGit ? "git" : n.flags.includes("data") ? (open ? "open" : "folder") : open ? "openNoflag" : "noflag";
+  inDownloads(n.relParts) ? (open ? "open" : "folder") : n.linked ? "lnk" : n.locked ? "locked" : isWorkboard(n) ? (n.isGit ? "wkbGit" : "wkb") : n.isGit ? "git" : n.flags.includes("data") ? (open ? "open" : "folder") : open ? "openNoflag" : "noflag";
 
 // Files show the shell's icon for their type, or the generic page where no native icon exists.
 export const folderIcon = (n: TreeNode, open = false) => {
@@ -66,3 +67,7 @@ export const folderIcon = (n: TreeNode, open = false) => {
   if (locked) img.title = LOCKED_LABEL;
   return img;
 };
+
+// A search hit past the loaded levels has only its name, so the icon is guessed from the naming convention.
+export const nameIcon = (name: string) =>
+  el("img", { class: "icon", src: urlOf(/^[A-Z]{2}\.\d+_/.test(name) ? "wkb" : "folder"), alt: "", width: "16", height: "16", draggable: "false" });

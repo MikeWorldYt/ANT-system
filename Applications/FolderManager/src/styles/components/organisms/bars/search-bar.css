@@ -18,7 +18,7 @@
   box-shadow: var(--shadow-pop);
 }
 .search-results[hidden] { display: none; }
-.search-hit { display: flex; align-items: baseline; gap: 8px; padding: 4px 12px; cursor: default; }
+.search-hit { display: flex; align-items: center; gap: 8px; padding: 4px 12px; cursor: default; }
 .search-hit[aria-selected="true"], .search-hit:hover { background: var(--highlight); }
 .hit-name { white-space: nowrap; }
 .hit-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 9pt; }
@@ -27,3 +27,4 @@
 @media (prefers-reduced-motion: reduce) {
   .search-box { transition: none; }
 }
+.search-hit .icon { flex: none; }

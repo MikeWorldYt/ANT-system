@@ -7,10 +7,12 @@ import { setStatus, reportError } from "./status-line";
 import { chipQuery, renderChips, splitToken, type Chip } from "../../molecules/search-chips";
 import { plural } from "../../../services/plural";
 import { textInput } from "../../atoms/text-input";
+import { hitIcon, installSearchDrag } from "../../../hooks/search-drag";
 
 interface Item {
   label: string;
   hint: string;
+  parts?: string[];
   pick(): void;
 }
 
@@ -83,7 +85,9 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
 
   function show(extra: string[] = []): void {
     const rows = items.flatMap((item, i) => {
-      const li = el("li", { class: "search-hit", role: "option", id: `search-hit-${i}` }, el("span", { class: "hit-name" }, item.label), el("span", { class: "hit-path" }, item.hint));
+      const icon = item.parts ? [hitIcon(item.parts)] : [];
+      const li = el("li", { class: "search-hit", role: "option", id: `search-hit-${i}` }, ...icon, el("span", { class: "hit-name" }, item.label), el("span", { class: "hit-path" }, item.hint));
+      if (item.parts) li.dataset.key = item.parts.join("/");
       li.addEventListener("click", item.pick);
       return i === divider ? [el("li", { class: "search-divider", role: "separator" }), li] : [li];
     });
@@ -126,7 +130,7 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     const picks = hits.map((_, at) => at).filter((at) => at < dbShown || (at >= dbCount && at < dbCount + restShown));
     items = picks.map((at) => {
       const parts = hits[at] ?? [];
-      return { label: parts[parts.length - 1] ?? "", hint: parts.slice(0, -1).join(" › "), pick: () => void open(at) };
+      return { label: parts[parts.length - 1] ?? "", hint: parts.slice(0, -1).join(" › "), parts, pick: () => void open(at) };
     });
     const notes: string[] = [];
     if (dbCount > LIMIT) notes.push(`${dbCount - LIMIT} more, narrow the search`);
@@ -233,6 +237,7 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     // Data may have changed while the box was closed, so the query runs again instead of showing old hits.
     if (input.value.trim() || chips.length > 0) void run();
   });
+  installSearchDrag(list, close);
   // Mousedown on a hit would blur the input first and close the list before the click lands.
   list.addEventListener("mousedown", (ev) => ev.preventDefault());
   input.addEventListener("blur", () => {
