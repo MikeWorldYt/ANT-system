@@ -1,5 +1,8 @@
 // Task board of every workboard, shown for the virtual BOARD entry in place of whichever view is active.
 import { el } from "../../dom";
+import { guiIcon } from "../../atoms/gui-icons";
+import { SORT_KEYS } from "../../organisms/bars/toolbar";
+import { sortedCards, type ColumnSort } from "../../../services/store/sort";
 import { statusMark } from "../../atoms/status-mark";
 import { importantMark } from "../../molecules/name-cell";
 import { displayNodeName, statusLabel } from "../../../services/store/node-info";
@@ -20,6 +23,9 @@ export function createBoardView(host: HTMLElement, editDetails: () => void): { e
   const element = el("section", { class: "board", "aria-label": "Board" }, columns);
   element.hidden = true;
   let lists: BoardLists = boardLists([]);
+  const collapsed = new Set<BoardColumn>();
+  // A column without a sort keeps the order the cards were dragged into.
+  const sorts = new Map<BoardColumn, ColumnSort>();
   let shown = false;
 
   const cardNode = (key: string): TreeNode | undefined => Object.values(lists).flat().find((n) => keyOf(n.relParts) === key);
@@ -102,12 +108,43 @@ export function createBoardView(host: HTMLElement, editDetails: () => void): { e
     return true;
   }
 
+  // Each click on a key steps ascending, descending, then back to the board order.
+  function sortButtons(id: BoardColumn, label: string): HTMLElement[] {
+    const sort = sorts.get(id);
+    return SORT_KEYS.map(([key, text, icon]) => {
+      const on = sort?.by === key;
+      const mode = on ? (sort?.dir === "desc" ? "descending" : "ascending") : "off";
+      const button = el("button", { type: "button", class: `board-col-toggle board-col-sort${on ? " active" : ""}`, "aria-pressed": String(on), "aria-label": `Sort ${label} by ${text}, ${mode}`, title: on ? `${text}, ${mode}` : `Sort by ${text}` }, guiIcon(icon));
+      button.dataset.sort = key;
+      button.addEventListener("click", () => {
+        if (!on) sorts.set(id, { by: key, dir: "asc" });
+        else if (sort?.dir === "asc") sorts.set(id, { by: key, dir: "desc" });
+        else sorts.delete(id);
+        render();
+        columns.querySelector<HTMLElement>(`[data-column="${id}"] [data-sort="${key}"]`)?.focus();
+      });
+      return button;
+    });
+  }
+
   function buildColumn(id: BoardColumn, label: string): HTMLElement {
     const headingId = `board-col-${id}`;
-    const cards = lists[id];
+    const sort = sorts.get(id);
+    const cards = sort ? sortedCards(lists[id], sort) : lists[id];
     const list = el("ul", { class: "board-list", "aria-labelledby": headingId }, ...cards.map((n, i) => buildCard(n, id, i)));
     if (cards.length === 0) list.append(el("li", { class: "board-empty" }, "No cards"));
-    const col = el("section", { class: "board-col", "aria-labelledby": headingId }, el("h3", { id: headingId, class: "board-col-title" }, label, " ", el("span", { class: "board-count" }, String(cards.length))), list);
+    const shut = collapsed.has(id);
+    list.hidden = shut;
+    const toggle = el("button", { type: "button", class: "board-col-toggle", "aria-expanded": String(!shut), "aria-controls": `${headingId}-list`, "aria-label": `${shut ? "Expand" : "Collapse"} ${label}`, title: shut ? "Expand" : "Collapse" }, guiIcon("chevronDown"));
+    list.id = `${headingId}-list`;
+    toggle.addEventListener("click", () => {
+      if (collapsed.has(id)) collapsed.delete(id);
+      else collapsed.add(id);
+      render();
+      columns.querySelector<HTMLElement>(`[data-column="${id}"] .board-col-toggle`)?.focus();
+    });
+    const head = el("h3", { id: headingId, class: "board-col-title" }, label, el("span", { class: "board-col-tools" }, ...sortButtons(id, label), toggle, el("span", { class: "board-count" }, String(cards.length))));
+    const col = el("section", { class: `board-col${shut ? " collapsed" : ""}`, "aria-labelledby": headingId }, head, list);
     col.dataset.column = id;
     return col;
   }

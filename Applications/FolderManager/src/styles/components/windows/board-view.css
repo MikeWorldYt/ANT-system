@@ -4,6 +4,13 @@
 .board-columns { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 10px; padding: 12px; overflow-x: auto; }
 .board-col { display: flex; flex-direction: column; min-height: 0; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); }
 .board-col-title { display: flex; align-items: center; justify-content: space-between; margin: 0; padding: 8px 10px; font-size: 10pt; font-weight: 600; }
+.board-col-tools { display: flex; align-items: center; gap: 6px; }
+.board-col-toggle { display: inline-flex; padding: 2px; color: var(--muted); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+.board-col-toggle:hover { color: var(--accent); }
+.board-col-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.board-col.collapsed { align-self: start; }
+.board-col:not(.collapsed) .board-col-toggle:not(.board-col-sort) .gui-icon { transform: rotate(180deg); }
+.board-list[hidden] { display: none; }
 .board-count { color: var(--muted); font-weight: 400; font-size: 9pt; }
 .board-list { flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 40px; margin: 0; padding: 0 8px 8px; overflow-y: auto; list-style: none; }
 .board-card { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: grab; user-select: none; }
@@ -24,3 +31,4 @@
 .board-explorer { align-self: flex-start; }
 .board-empty { padding: 8px 2px; color: var(--muted); font-size: 9pt; text-align: center; }
 .board-slot { height: 3px; flex: none; background: var(--accent); border-radius: 2px; }
+.board-col-sort.active { color: var(--accent); }
