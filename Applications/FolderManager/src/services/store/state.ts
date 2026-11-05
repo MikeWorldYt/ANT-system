@@ -214,22 +214,36 @@ export function applySettings(saved: Record<string, string>): void {
 
 const LAST_PREF = "fm.last";
 
-export function rememberSelection(): void {
-  if (!state.tree) return;
-  savePref(LAST_PREF, JSON.stringify({ root: state.tree.root, key: state.selectedKey }));
+export interface SavedPlace {
+  key: string | null;
+  virtual: VirtualId | null;
+  via: string | null;
 }
 
-// The folder that was selected when the app closed, if it belongs to the Storage now open.
-export function lastSelection(): string[] | null {
+function readSaved(): (SavedPlace & { root?: string }) | null {
   const raw = readPref(LAST_PREF);
-  if (!raw || !state.tree) return null;
+  if (!raw) return null;
   try {
-    const saved = JSON.parse(raw) as { root?: string; key?: string | null };
-    return saved.root === state.tree.root && saved.key ? saved.key.split("/") : null;
+    return JSON.parse(raw) as SavedPlace & { root?: string };
   } catch (e) {
     console.warn("Saved selection is unreadable", e);
     return null;
   }
+}
+
+// The board selects nothing, so the place it was opened from is kept beside it.
+export function rememberSelection(): void {
+  if (!state.tree) return;
+  const before = state.virtual === "board" ? readSaved() : null;
+  const key = state.virtual === "board" ? (before?.root === state.tree.root ? (before.key ?? null) : null) : state.selectedKey;
+  savePref(LAST_PREF, JSON.stringify({ root: state.tree.root, key, virtual: state.virtual, via: state.virtual === "board" ? null : state.via }));
+}
+
+// Where the user stood when the app closed, if it belongs to the Storage now open.
+export function lastSelection(): SavedPlace | null {
+  const saved = readSaved();
+  if (!saved || !state.tree || saved.root !== state.tree.root) return null;
+  return { key: saved.key ?? null, virtual: saved.virtual ?? null, via: saved.via ?? null };
 }
 
 export const sortOf = (columnKey: string): ColumnSort => state.sorts[columnKey] ?? DEFAULT_SORT;
@@ -279,6 +293,7 @@ export function selectVirtual(id: VirtualId): void {
 export function select(parts: string[] | null): void {
   state.selectedKey = parts ? keyOf(parts) : null;
   state.selectedKeys = state.selectedKey === null ? [] : [state.selectedKey];
+  rememberPlace();
   if (state.virtual !== null && !keepVirtual(state.selectedKey)) leaveVirtual();
   if (!inManagedScope(state.selectedKey)) {
     state.managing = null;
@@ -293,7 +308,6 @@ export function clickSelect(parts: string[], siblings: string[], mods: { ctrl: b
   const anchor = state.selectedKey;
   if (mods.shift && anchor !== null && siblings.includes(anchor) && siblings.includes(key)) {
     const a = siblings.indexOf(anchor);
-  rememberPlace();
     const b = siblings.indexOf(key);
     state.selectedKeys = siblings.slice(Math.min(a, b), Math.max(a, b) + 1);
   } else if (mods.ctrl) {
@@ -332,7 +346,15 @@ export function stopEdit(): void {
 export async function reveal(parts: string[]): Promise<void> {
   for (let i = 1; i < parts.length; i++) state.expanded.add(keyOf(parts.slice(0, i)));
   await hydrate();
-  select(parts.length > 0 ? parts : null);
+  // Folders past the depth limit are only read on demand, so each one on the way is loaded here.
+  for (let i = 1; i < parts.length; i++) {
+    const n = findNode(parts.slice(0, i));
+    if (!n) break;
+    if (n.children === null && n.hasChildren) n.children = await listChildren(n.relParts);
+  }
+  let at = parts.length;
+  while (at > 0 && !findNode(parts.slice(0, at))) at--;
+  select(at > 0 ? parts.slice(0, at) : null);
 }
 
 export function setBusy(busy: boolean): void {
@@ -372,29 +394,6 @@ export function followExpanded(): void {
   state.expanded = new Set([...state.expanded].map((key) => followKey(key) ?? key));
 }
 
-export function pruneSelection(): void {
-  if (state.editing && !findNode(state.editing.key.split("/"))) state.editing = null;
-  state.selectedKeys = [...new Set(state.selectedKeys.map(followKey).filter((key): key is string => key !== null))];
-  if (state.selectedKey !== null) state.selectedKey = followKey(state.selectedKey) ?? (state.selectedKeys.at(-1) || nearestKey(state.selectedKey));
-  if (state.selectedKeys.length === 0 && state.selectedKey !== null) state.selectedKeys = [state.selectedKey];
-  if (state.via !== null) state.via = followKey(state.via);
-}
-
-// Swaps in each parent's new children, keeping the loaded subtrees of untouched siblings; null when a parent is not loaded.
-export function patchLevels(levels: LevelPatch[]): TreeNode[][] | null {
-  if (!state.tree) return null;
-  const patched: TreeNode[][] = [];
-  for (const level of levels) {
-    const parent = level.parent.length > 0 ? findNode(level.parent) : null;
-    if (level.parent.length > 0 && !parent) return null;
-    const old = parent ? (parent.children ?? []) : state.tree.nodes;
-    const children = level.children.map((n) => {
-      if (n.children !== null || !n.hasChildren) return n;
-      return { ...n, children: old.find((o) => o.name === n.name)?.children ?? null };
-    });
-    if (parent) {
-      parent.hasChildren = level.hasChildren;
-      parent.children = level.hasChildren ? children : null;
 // Where the selected item sat among its siblings, so a rename or delete can land on whatever now holds that place.
 let lastPlace: { key: string; index: number } | null = null;
 
@@ -423,12 +422,35 @@ function nearestKey(key: string): string | null {
   return null;
 }
 
+export function pruneSelection(): void {
+  if (state.editing && !findNode(state.editing.key.split("/"))) state.editing = null;
+  state.selectedKeys = [...new Set(state.selectedKeys.map(followKey).filter((key): key is string => key !== null))];
+  if (state.selectedKey !== null) state.selectedKey = followKey(state.selectedKey) ?? (state.selectedKeys.at(-1) || nearestKey(state.selectedKey));
+  if (state.selectedKeys.length === 0 && state.selectedKey !== null) state.selectedKeys = [state.selectedKey];
+  if (state.via !== null) state.via = followKey(state.via);
+  rememberPlace();
+}
+
+// Swaps in each parent's new children, keeping the loaded subtrees of untouched siblings; null when a parent is not loaded.
+export function patchLevels(levels: LevelPatch[]): TreeNode[][] | null {
+  if (!state.tree) return null;
+  const patched: TreeNode[][] = [];
+  for (const level of levels) {
+    const parent = level.parent.length > 0 ? findNode(level.parent) : null;
+    if (level.parent.length > 0 && !parent) return null;
+    const old = parent ? (parent.children ?? []) : state.tree.nodes;
+    const children = level.children.map((n) => {
+      if (n.children !== null || !n.hasChildren) return n;
+      return { ...n, children: old.find((o) => o.name === n.name)?.children ?? null };
+    });
+    if (parent) {
+      parent.hasChildren = level.hasChildren;
+      parent.children = level.hasChildren ? children : null;
     } else {
       state.tree.nodes = children;
     }
     patched.push(children);
   }
-  rememberPlace();
   return patched;
 }
 

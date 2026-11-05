@@ -12,6 +12,7 @@ import { applySettings, findNode, followExpanded, hydrate, keyOf, lastSelection,
 import { sortedForColumns } from "../services/store/sort";
 import { loadVirtual } from "../services/store/virtual";
 import { outputOf } from "../services/store/node-info";
+import { goToPlace, toggleBoard } from "./virtual-nav";
 import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
 import { isFmError } from "../services/ipc/types";
 import { plural } from "../services/plural";
@@ -120,8 +121,9 @@ export function init(): Promise<boolean> {
     await reload(await api.loadTree());
     const last = state.settings.onLaunch === "continue" ? lastSelection() : null;
     if (!last) return;
-    await reveal(last);
-    if (!findNode(last)) select(null);
+    if (last.key) await reveal(last.key.split("/"));
+    if (last.virtual === "board") await toggleBoard();
+    else if (last.virtual !== null) await goToPlace(last);
   });
 }
 
@@ -292,11 +294,11 @@ export async function setChildHidden(name: string, on: boolean): Promise<boolean
   return saved;
 }
 
-export const setOutput = (node: TreeNode, output: string | null) =>
-  run(async () => applyMutation(await api.setNodeOutput(node.relParts, output), node.relParts));
 export const setOutcomeDefault = (node: TreeNode, key: string, value: string | null) =>
   run(async () => applyMutation(await api.setOutcomeDefault(node.relParts, key, value), node.relParts));
 
+export const setOutput = (node: TreeNode, output: string | null) =>
+  run(async () => applyMutation(await api.setNodeOutput(node.relParts, output), node.relParts));
 
 // Finishing a workboard delivers its output, asking first when none is set (where nothing is a valid answer); reopening it brings the delivery back.
 export async function setDetails(node: TreeNode, status: WkbStatus | null, owner: string | null): Promise<boolean> {
@@ -413,13 +415,13 @@ export const dropFiles = async (target: string[], paths: string[]): Promise<void
     },
     `Placing ${plural(paths.length, "file")} in "${target[target.length - 1]}"…`,
   );
+  if (ok) await revalidate();
+};
 
 export const pasteFiles = (target: string[]) =>
   run(
     async () => {
       const { mutation, placed } = await api.pasteFiles(target);
-  if (ok) await revalidate();
-};
       await applyMutation(mutation);
       doneNotice = dropNotice(placed, mutation.warnings);
     },
