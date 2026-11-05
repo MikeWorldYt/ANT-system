@@ -230,7 +230,8 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
   input.addEventListener("focus", () => {
     focused = true;
     sync();
-    if (items.length > 0 && (input.value.trim() || chips.length > 0)) show();
+    // Data may have changed while the box was closed, so the query runs again instead of showing old hits.
+    if (input.value.trim() || chips.length > 0) void run();
   });
   // Mousedown on a hit would blur the input first and close the list before the click lands.
   list.addEventListener("mousedown", (ev) => ev.preventDefault());
