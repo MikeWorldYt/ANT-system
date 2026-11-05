@@ -103,6 +103,27 @@ mod tests {
     }
 
     #[test]
+    fn details_of_an_untracked_workboard_create_info_json_without_a_tree_entry() {
+        let dir = storage("untracked-details", &["100.A/01.B/01.C/PJ.013_Logo"], "100.A:
+  type: NODE-L1
+  01.B:
+    type: NODE-L2
+    01.C: {type: NODE-L3}
+");
+        let p = rel(&["100.A", "01.B", "01.C", "PJ.013_Logo"]);
+        synced_yaml(dir.path());
+        let m = set_details(dir.path(), &p, Some(WkbStatus::Done), Some("Ana")).unwrap();
+        let info = std::fs::read_to_string(dir.path().join("100.A/01.B/01.C/PJ.013_Logo/.ant/info.json")).unwrap();
+        assert!(info.contains("\"status\": \"done\"") && info.contains("\"owner\": \"Ana\""), "{info}");
+        assert!(get_node(&yaml(dir.path()), &p).is_none());
+        let level = m.levels.iter().find(|l| l.parent == parent_of(&p)).unwrap();
+        assert_eq!(level.children.iter().find(|n| n.name == "PJ.013_Logo").unwrap().status, Some(WkbStatus::Done));
+        crate::services::mutations::set_important(dir.path(), &p, true).unwrap();
+        crate::services::mutations::set_favorite(dir.path(), &p, true).unwrap();
+        assert!(get_node(&yaml(dir.path()), &p).is_none());
+    }
+
+    #[test]
     fn set_node_type_keeps_level_and_manages_status() {
         let dir = academic("retype");
         let p = rel(&["100.ACADEMIC", "02.Bio"]);

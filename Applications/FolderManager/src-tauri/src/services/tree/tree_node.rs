@@ -17,7 +17,7 @@ use crate::infra::fs_safe::{dir_entries, io_err, join_rel};
 use crate::infra::link_list;
 use crate::services::tree::review_links;
 use crate::infra::storage::info::{field_of, read_info, NodeInfo};
-use crate::domain::names::{name_parts, is_movable_node, is_system_root_name, numeric_id};
+use crate::domain::names::{name_parts, is_movable_node, is_system_root_name, is_workboard_name, numeric_id};
 use crate::infra::scan::list_subdirs;
 use crate::services::tree::depth;
 use crate::services::tree::tree_store::{get_node, get_type, is_locked_type};
@@ -356,7 +356,9 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
     let linked = entry.link.is_some();
 
     let yaml_entry = get_node(data, &rel_parts);
-    let raw_type = yaml_entry.and_then(|m| m.get("type")).and_then(Value::as_str).unwrap_or("");
+    // The tree only indexes down to the depth limit; a workboard-named folder it does not hold is still a workboard.
+    let untracked_wkb = yaml_entry.is_none() && entry.on_disk && entry.link.is_none() && is_workboard_name(&entry.name);
+    let raw_type = if untracked_wkb { "WKB" } else { yaml_entry.and_then(|m| m.get("type")).and_then(Value::as_str).unwrap_or("") };
     // A review link stands for its owner's review folder, so that is where its path and drops point.
     let abs_path = match &entry.link {
         Some(owner) => review_links::rev_folder(root, owner),
@@ -383,8 +385,17 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
     let info_broken = info.as_ref().is_some_and(|i| i.error.is_some());
 
     let (fixed_prefix, editable_name) = name_parts(&entry.name, is_wkb);
+    let mut actions = if linked { link_actions() } else { compute_actions(depth, limit, ghost, raw_type, reserved, info_broken) };
+    if untracked_wkb {
+        // These edit the tree entry, which an untracked folder does not have.
+        actions.change_type = false;
+        actions.add_next = false;
+        actions.add_child = false;
+        actions.edit_flags = false;
+        actions.hide = false;
+    }
     Ok(TreeNode {
-        actions: if linked { link_actions() } else { compute_actions(depth, limit, ghost, raw_type, reserved, info_broken) },
+        actions,
         name: entry.name,
         rel_parts,
         depth,
@@ -866,6 +877,26 @@ mod tests {
         let a = &find(&tree.nodes, "04.Wkb").actions;
         assert!(!a.favorite && !a.edit_details && !a.important);
         assert!(!find(&tree.nodes, "02.Beta").actions.edit_flags && !find(&tree.nodes, "04.Wkb").actions.edit_flags);
+    }
+
+    #[test]
+    fn an_untracked_workboard_past_the_limit_is_a_workboard_with_its_info() {
+        let dir = storage("untracked-wkb", &["100.A/01.B/01.C/PJ.013_Logo/.ant", "100.A/01.B/01.C/Plain"], "100.A:
+  type: NODE-L1
+  01.B:
+    type: NODE-L2
+    01.C: {type: NODE-L3}
+");
+        std::fs::write(dir.path().join("100.A/01.B/01.C/PJ.013_Logo/.ant/info.json"), "{\"status\": \"hold\", \"owner\": \"Ana\", \"important\": true}").unwrap();
+        let data = crate::test_support::yaml(dir.path());
+        let kids = build_children(dir.path(), &data, &rel(&["100.A", "01.B", "01.C"])).unwrap();
+        let wkb = find(&kids, "PJ.013_Logo");
+        assert!(!wkb.in_yaml && wkb.node_type.as_ref().is_some_and(|t| t.base == TypeBase::Wkb));
+        assert_eq!(wkb.status, Some(WkbStatus::Hold));
+        assert!(wkb.important && wkb.info.as_ref().and_then(|i| field_of(i, &["owner"])) == Some("Ana"));
+        let a = &wkb.actions;
+        assert!(a.edit_details && a.important && a.favorite && a.rename && a.delete && !a.change_type && !a.hide && !a.add_next);
+        assert!(find(&kids, "Plain").node_type.is_none());
     }
 
     #[test]
