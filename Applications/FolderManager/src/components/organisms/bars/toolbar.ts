@@ -14,7 +14,7 @@ export interface ViewPicker {
   onSelect(id: string): void;
 }
 
-export const SORT_KEYS: [SortBy, string][] = [["name", "Name"], ["type", "Type"], ["status", "Status"]];
+export const SORT_KEYS: [SortBy, string, GuiIcon][] = [["track", "Track", "sortTrack"], ["name", "Name", "sortName"], ["status", "Status", "sortStatus"]];
 const VIEW_ORDER = ["tree", "grid", "columns"];
 export const orderedModes = (views: ViewPicker) => [...views.modes].sort((a, b) => VIEW_ORDER.indexOf(a.id) - VIEW_ORDER.indexOf(b.id));
 
@@ -42,9 +42,9 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     const column = activeColumnKey();
     const { by, dir } = sortOf(column);
     return [
-      ...SORT_KEYS.map(([id, label]) => ({ label, checked: by === id, run: () => setColumnSort(column, { by: id }) })),
-      { label: "Ascending", checked: dir === "asc", divider: true, run: () => setColumnSort(column, { dir: "asc" }) },
-      { label: "Descending", checked: dir === "desc", run: () => setColumnSort(column, { dir: "desc" }) },
+      ...SORT_KEYS.map(([id, label, icon]) => ({ label, icon, checked: by === id, run: () => setColumnSort(column, { by: id }) })),
+      { label: "Ascending", icon: "up", checked: dir === "asc", divider: true, run: () => setColumnSort(column, { dir: "asc" }) },
+      { label: "Descending", icon: "up", flip: true, checked: dir === "desc", run: () => setColumnSort(column, { dir: "desc" }) },
     ];
   });
 

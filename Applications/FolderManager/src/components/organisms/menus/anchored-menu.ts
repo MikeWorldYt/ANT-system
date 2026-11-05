@@ -1,11 +1,15 @@
 // Small dropdown menu that opens under a button and closes on pick, Escape or an outside click.
 import { el } from "../../dom";
-import { focusInitial, menuItem, openPopup, placeUnder, popupTrigger, rove, separator } from "../../molecules/menu";
+import type { GuiIcon } from "../../atoms/gui-icons";
+import { focusInitial, menuIcon, menuItem, openPopup, placeUnder, popupTrigger, rove, separator } from "../../molecules/menu";
 
 export interface MenuChoice {
   label: string;
   // Present for radio-style menus, where exactly one choice is checked.
   checked?: boolean;
+  // Shown in place of the checked dot; `flip` turns it upside down, as Descending reuses the up arrow.
+  icon?: GuiIcon;
+  flip?: boolean;
   // Draws a separator above this choice.
   divider?: boolean;
   run(): void;
@@ -20,12 +24,14 @@ export function attachMenu(anchor: HTMLElement, label: string, choices: () => Me
 
   function open(): void {
     const list = choices();
-    const items = list.map((c) =>
-      menuItem(c.label, c.checked !== undefined ? "menuitemradio" : "menuitem", true, () => {
+    const items = list.map((c) => {
+      const item = menuItem(c.label, c.checked !== undefined ? "menuitemradio" : "menuitem", true, () => {
         close();
         c.run();
-      }, "ctx-item", c.checked),
-    );
+      }, c.icon ? "ctx-item ctx-iconed" : "ctx-item", c.checked);
+      if (c.icon) item.prepend(menuIcon(c.icon, c.flip));
+      return item;
+    });
     const menu = el("div", { id: menuId, class: "ctx-menu", role: "menu", "aria-label": label }, el("div", { class: "ctx-group", role: "group" }, ...items.flatMap((b, i) => (list[i]?.divider ? [separator(), b] : [b]))));
     menu.addEventListener("keydown", (ev) => {
       if (ev.key === "Tab") {

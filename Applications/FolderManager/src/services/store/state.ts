@@ -70,7 +70,7 @@ export interface Settings {
 export type { ColumnSort, SortBy };
 
 const SORTS_PREF = "fm.sorts";
-const DEFAULT_SORT: ColumnSort = { by: "name", dir: "asc" };
+const DEFAULT_SORT: ColumnSort = { by: "track", dir: "asc" };
 
 function readSorts(): Record<string, ColumnSort> {
   try {

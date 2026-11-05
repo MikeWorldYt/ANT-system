@@ -2,13 +2,13 @@
 import { STATUSES } from "./node-info";
 import type { TreeNode } from "../ipc/types";
 
-export type SortBy = "name" | "type" | "status";
+export type SortBy = "track" | "name" | "status";
 export interface ColumnSort {
   by: SortBy;
   dir: "asc" | "desc";
 }
 
-export const SORT_BYS: readonly SortBy[] = ["name", "type", "status"];
+export const SORT_BYS: readonly SortBy[] = ["track", "name", "status"];
 
 // The 90-99 folders and 998/999 stay at the end of a list whatever the sort direction.
 export function isTail(name: string): boolean {
@@ -16,9 +16,10 @@ export function isTail(name: string): boolean {
   return (n >= 90 && n <= 99) || n === 998 || n === 999;
 }
 
-const sortValue: Record<SortBy, (n: TreeNode) => string | number> = {
-  name: () => 0,
-  type: (n) => n.nodeType?.raw ?? "",
+const sortValue: Record<SortBy, (n: TreeNode) => string | number> & { status: (n: TreeNode) => number } = {
+  // The backend already lists each level by its id or tracker number.
+  track: () => 0,
+  name: (n) => (n.editableName || n.name).toLocaleLowerCase(),
   status: (n) => STATUSES.findIndex(([v]) => v === n.status) + 1 || STATUSES.length + 1,
 };
 
@@ -42,7 +43,19 @@ export function foldersFirst(nodes: TreeNode[]): TreeNode[] {
 export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort, pin: boolean): TreeNode[] {
   const head = nodes.filter((n) => !isTail(n.name));
   const key = sortValue[by];
-  const ordered = [...head].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
+  const ordered = [...head].sort((a, b) => {
+    const [x, y] = [key(a), key(b)];
+    return typeof x === "string" && typeof y === "string" ? x.localeCompare(y, undefined, { numeric: true }) : x < y ? -1 : x > y ? 1 : 0;
+  });
   if (dir === "desc") ordered.reverse();
   return foldersFirst(favoritesFirst([...ordered, ...nodes.filter((n) => isTail(n.name))], pin));
+}
+
+// Board cards come from many folders, so the track is read from each name instead of the backend's per-level order.
+export function sortedCards(nodes: TreeNode[], { by, dir }: ColumnSort): TreeNode[] {
+  const text = (n: TreeNode) => (by === "name" ? n.editableName || n.name : n.name);
+  const ordered = [...nodes].sort((a, b) =>
+    by === "status" ? sortValue.status(a) - sortValue.status(b) : text(a).localeCompare(text(b), undefined, { numeric: true, sensitivity: "base" }),
+  );
+  return dir === "desc" ? ordered.reverse() : ordered;
 }

@@ -1,6 +1,6 @@
 // Building blocks shared by the anchored dropdown, the status picker, the view popup and the node context menu.
 import { el } from "../dom";
-import { guiIcon } from "../atoms/gui-icons";
+import { guiIcon, type GuiIcon } from "../atoms/gui-icons";
 
 export const EDGE = 4;
 
@@ -15,6 +15,13 @@ export function menuItem(label: string, role: string, enabled: boolean, run: () 
     if (enabled) run();
   });
   return b;
+}
+
+export function menuIcon(name: GuiIcon, flip = false): SVGElement {
+  const icon = guiIcon(name);
+  icon.classList.add("ctx-icon");
+  if (flip) icon.classList.add("ctx-icon-flip");
+  return icon;
 }
 
 export const separator = () => el("div", { class: "ctx-sep", role: "separator" });

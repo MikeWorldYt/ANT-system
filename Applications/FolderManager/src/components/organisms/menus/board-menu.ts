@@ -2,7 +2,8 @@
 import { addChild, manageHidden, pasteFiles, refresh } from "../../../hooks/ops";
 import { keyOf, setColumnSort, sortOf, state, type ColumnSort } from "../../../services/store/state";
 import { SORT_KEYS, orderedModes, type ViewPicker } from "../bars/toolbar";
-import { menuItem, separator, submenu, type Submenu } from "../../molecules/menu";
+import { menuIcon, menuItem, separator, submenu, type Submenu } from "../../molecules/menu";
+import type { GuiIcon } from "../../atoms/gui-icons";
 import type { TreeNode } from "../../../services/ipc/types";
 
 export interface MenuParts {
@@ -31,13 +32,16 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   // The open folder's contents are sorted under its own key, not under the column its row stands in.
   const column = keyOf(node.relParts);
   const { by, dir } = sortOf(column);
-  const sortChoice = (label: string, checked: boolean, patch: Partial<ColumnSort>) =>
-    menuItem(label, "menuitemradio", true, () => {
+  const sortChoice = (label: string, icon: GuiIcon, checked: boolean, patch: Partial<ColumnSort>, flip = false) => {
+    const item = menuItem(label, "menuitemradio", true, () => {
       close();
       setColumnSort(column, patch);
-    }, "ctx-item", checked);
-  const ascending = sortChoice("Ascending", dir === "asc", { dir: "asc" });
-  const sort = submenu("Sort by", [...SORT_KEYS.map(([id, label]) => sortChoice(label, by === id, { by: id })), ascending, sortChoice("Descending", dir === "desc", { dir: "desc" })], true);
+    }, "ctx-item ctx-iconed", checked);
+    item.prepend(menuIcon(icon, flip));
+    return item;
+  };
+  const ascending = sortChoice("Ascending", "up", dir === "asc", { dir: "asc" });
+  const sort = submenu("Sort by", [...SORT_KEYS.map(([id, label, icon]) => sortChoice(label, icon, by === id, { by: id })), ascending, sortChoice("Descending", "up", dir === "desc", { dir: "desc" }, true)], true);
   // submenu() lays out only its choices, so the divider is slotted into the flyout afterwards.
   ascending.before(separator());
   if (views.active() !== "tree") subs.push(sort);
