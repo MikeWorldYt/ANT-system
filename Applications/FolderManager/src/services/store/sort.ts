@@ -16,11 +16,13 @@ export function isTail(name: string): boolean {
   return (n >= 90 && n <= 99) || n === 998 || n === 999;
 }
 
-const sortValue: Record<SortBy, (n: TreeNode) => string | number> & { status: (n: TreeNode) => number } = {
+const statusRank = (n: TreeNode): number => STATUSES.findIndex(([v]) => v === n.status) + 1 || STATUSES.length + 1;
+
+const sortValue: Record<SortBy, (n: TreeNode) => string | number> = {
   // The backend already lists each level by its id or tracker number.
   track: () => 0,
   name: (n) => (n.editableName || n.name).toLocaleLowerCase(),
-  status: (n) => STATUSES.findIndex(([v]) => v === n.status) + 1 || STATUSES.length + 1,
+  status: statusRank,
 };
 
 const isPortfolio = (n: TreeNode): boolean => n.nodeType?.base === "OUT";
@@ -55,7 +57,7 @@ export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort, pin
 export function sortedCards(nodes: TreeNode[], { by, dir }: ColumnSort): TreeNode[] {
   const text = (n: TreeNode) => (by === "name" ? n.editableName || n.name : n.name);
   const ordered = [...nodes].sort((a, b) =>
-    by === "status" ? sortValue.status(a) - sortValue.status(b) : text(a).localeCompare(text(b), undefined, { numeric: true, sensitivity: "base" }),
+    by === "status" ? statusRank(a) - statusRank(b) : text(a).localeCompare(text(b), undefined, { numeric: true, sensitivity: "base" }),
   );
   return dir === "desc" ? ordered.reverse() : ordered;
 }
