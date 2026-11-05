@@ -6,7 +6,7 @@ use crate::domain::config::DATA_FLAG;
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::is_locked_type;
 
-const REVIEW_PREFIX: &str = "98.";
+pub(super) const REVIEW_PREFIX: &str = "98.";
 const SYSTEM_FILES: [&str; 2] = ["desktop.ini", "Thumbs.db"];
 const ROOT_EXEMPT_MARKER: &str = "foldermanager";
 

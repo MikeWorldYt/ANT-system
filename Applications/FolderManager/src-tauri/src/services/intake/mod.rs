@@ -20,7 +20,7 @@ use crate::infra::naming::free_name;
 use crate::services::mutations::child_rel;
 use crate::services::tree::tree_store::load_synced;
 use crate::infra::storage::db::hide;
-use rules::{is_root_exempt_file, is_skipped_file, rule, Rule};
+use rules::{is_root_exempt_file, is_skipped_file, rule, Rule, REVIEW_PREFIX};
 pub(crate) use rules::{node_type, review_child};
 
 #[derive(Debug, Default, Serialize)]
@@ -79,7 +79,10 @@ fn walk(dir: &Path, node: &Mapping, rel: &[String], report: &mut IntakeReport) -
             if files > 0 {
                 report.waiting.push(WaitingNode { node: rel.join("/"), rel_parts: rel.to_vec(), files });
             } else {
-                let review = review.filter(|r| subdirs.iter().any(|d| d == r));
+                // Past the depth limit the index does not list the 98.* folder, so the disk names it.
+                let review = review
+                    .filter(|r| subdirs.iter().any(|d| d == r))
+                    .or_else(|| subdirs.iter().map(String::as_str).find(|d| d.starts_with(REVIEW_PREFIX)));
                 move_to_review(dir, rel, review, report)?;
             }
         }
@@ -136,9 +139,20 @@ fn move_to_review(dir: &Path, rel: &[String], review: Option<&str>, report: &mut
         return Ok(());
     }
     let node = rel.join("/");
-    let Some(review) = review else {
-        report.warnings.push(format!("{node}: no review folder, {} file(s) left in place", files.len()));
-        return Ok(());
+    // A node past the depth limit never got its 98.* folder from the index, so intake makes it like restore would.
+    let made;
+    let review = match review {
+        Some(review) => review,
+        None => {
+            let name = rel.last().map(|n| n.split_once('.').map_or(n.as_str(), |(_, rest)| rest)).unwrap_or_default();
+            made = format!("{REVIEW_PREFIX}{name}");
+            let path = dir.join(&made);
+            if let Err(e) = fs::create_dir(&path) {
+                report.warnings.push(format!("{node}: no review folder, {} file(s) left in place ({e})", files.len()));
+                return Ok(());
+            }
+            made.as_str()
+        }
     };
     let target = dir.join(review);
     let mut journal = Journal::new();
