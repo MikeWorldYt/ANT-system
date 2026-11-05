@@ -2,6 +2,7 @@
 import { listChildren } from "../ipc/api";
 import { favoritesFirst, foldersFirst, SORT_BYS, type ColumnSort, type SortBy } from "./sort";
 import { readPref, savePref } from "./prefs";
+import { DOWNLOADS_ROOT, inDownloads } from "../ipc/types";
 import type { HiddenChoice, LevelPatch, TreeNode, TreeSnapshot } from "../ipc/types";
 
 interface State {
@@ -25,11 +26,13 @@ interface State {
   // The open virtual root entry and the real folders it lists, gathered from the whole Storage.
   virtual: VirtualId | null;
   virtualKeys: string[];
+  // The system Downloads folder read so far; its paths start with DOWNLOADS_ROOT and live outside `tree`.
+  downloads: TreeNode[];
   // The listed entry the selection went through; inside FAVORITES the path stays symbolic below it.
   via: string | null;
 }
 
-export type VirtualId = "favorites" | "board";
+export type VirtualId = "favorites" | "downloads" | "board";
 
 export interface KeyCombo {
   code: string;
@@ -54,6 +57,8 @@ export interface Settings {
   backupAuto: boolean;
   watchExternal: boolean;
   autoOpenColumns: boolean;
+  showFavorites: boolean;
+  showDownloads: boolean;
   theme: Theme;
   accent: AccentId;
   iconColor: AccentId;
@@ -100,9 +105,10 @@ export const state: State = {
   hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, showFavorites: true, showDownloads: true, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
   virtual: null,
   virtualKeys: [],
+  downloads: [],
   via: null,
 };
 
@@ -119,10 +125,14 @@ export function notify(): void {
   listeners.forEach((fn) => fn());
 }
 
+// The nodes at the top of a path: the storage's, or Downloads' when the path starts with its marker.
+const topLevel = (parts: string[]): TreeNode[] => (inDownloads(parts) ? state.downloads : (state.tree?.nodes ?? []));
+
 export function findNode(parts: string[]): TreeNode | null {
-  let level: TreeNode[] = state.tree?.nodes ?? [];
+  let level: TreeNode[] = topLevel(parts.slice(0, 1));
   let found: TreeNode | null = null;
-  for (const part of parts) {
+  // The Downloads marker names the list itself, not a node in it.
+  for (const part of inDownloads(parts) ? parts.slice(1) : parts) {
     found = level.find((n) => n.name === part) ?? null;
     if (!found) return null;
     level = found.children ?? [];
@@ -201,6 +211,8 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.backupAuto = saved.backupAuto === "true";
   state.settings.watchExternal = saved.watchExternal === "true";
   state.settings.autoOpenColumns = saved.autoOpenColumns === "true";
+  state.settings.showFavorites = saved.showFavorites !== "false";
+  state.settings.showDownloads = saved.showDownloads !== "false";
   state.settings.theme = saved.theme === "light" || saved.theme === "system" ? saved.theme : "dark";
   state.settings.accent = ["blue", "purple", "coral", "gold"].includes(saved.accent ?? "") ? (saved.accent as AccentId) : "green";
   state.settings.iconColor = ["green", "blue", "coral", "gold"].includes(saved.iconColor ?? "") ? (saved.iconColor as AccentId) : "purple";
@@ -265,6 +277,9 @@ function inManagedScope(key: string | null): boolean {
   return key === managed || (at < 0 ? "" : key.slice(0, at)) === managed;
 }
 
+// Favorites and Downloads can be switched off in the settings; the board has no switch.
+export const isVirtualShown = (id: VirtualId): boolean => (id === "favorites" ? state.settings.showFavorites : id === "downloads" ? state.settings.showDownloads : true);
+
 export function leaveVirtual(): void {
   state.virtual = null;
   state.virtualKeys = [];
@@ -274,6 +289,11 @@ export function leaveVirtual(): void {
 // A virtual list stays open while one of its entries, or in FAVORITES something below the one entered, is selected.
 function keepVirtual(key: string | null): boolean {
   if (key === null) return false;
+  // Everything under Downloads belongs to its list; the entry it went through is the top-level one.
+  if (state.virtual === "downloads" && key.startsWith(`${DOWNLOADS_ROOT}/`)) {
+    state.via = key.split("/").slice(0, 2).join("/");
+    return true;
+  }
   if (state.virtual === "favorites" && state.via !== null && key.startsWith(`${state.via}/`)) return true;
   if (!state.virtualKeys.includes(key)) return false;
   state.via = key;
@@ -372,9 +392,10 @@ const idOf = (name: string): string | null => ID_PREFIX.exec(name)?.[0] ?? null;
 
 function followPath(parts: string[]): string[] | null {
   const resolved: string[] = [];
-  let level: TreeNode[] = state.tree?.nodes ?? [];
+  let level: TreeNode[] = topLevel(parts.slice(0, 1));
   for (const part of parts) {
-    const id = idOf(part);
+    // File names in Downloads are not identifiers, so only an exact name is followed there.
+    const id = inDownloads(parts) ? null : idOf(part);
     const sameId = id === null ? [] : level.filter((n) => idOf(n.name) === id);
     const found = level.find((n) => n.name === part) ?? (sameId.length === 1 ? sameId[0] : undefined);
     if (!found) return null;
@@ -399,7 +420,7 @@ let lastPlace: { key: string; index: number } | null = null;
 
 const siblingsOf = (parts: string[]): TreeNode[] => {
   const parent = parts.length > 1 ? findNode(parts.slice(0, -1)) : null;
-  return listed(parent ? (parent.children ?? []) : (state.tree?.nodes ?? []));
+  return listed(parent ? (parent.children ?? []) : topLevel(parts.slice(0, 1)));
 };
 
 function rememberPlace(): void {
@@ -455,7 +476,7 @@ export function patchLevels(levels: LevelPatch[]): TreeNode[][] | null {
 }
 
 // Loads children of every expanded node under `nodes` whose children are not fetched yet.
-export async function hydrate(nodes: TreeNode[] = state.tree?.nodes ?? []): Promise<void> {
+export async function hydrate(nodes: TreeNode[] = [...(state.tree?.nodes ?? []), ...state.downloads]): Promise<void> {
   const walk = async (level: TreeNode[]): Promise<void> => {
     for (const n of level) {
       // Preloaded levels are walked even when collapsed, so a deeper folder opened from the columns view still loads.

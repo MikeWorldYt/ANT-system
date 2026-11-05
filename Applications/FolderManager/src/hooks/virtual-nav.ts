@@ -6,6 +6,8 @@ import { reportError } from "../components/organisms/bars/status-line";
 
 export async function openVirtual(id: VirtualId): Promise<void> {
   selectVirtual(id);
+  // Opening the entry reads Downloads afresh; later reloads keep what is loaded below it.
+  if (id === "downloads") state.downloads = [];
   try {
     await loadVirtual();
   } catch (e) {

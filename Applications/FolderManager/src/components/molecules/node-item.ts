@@ -1,7 +1,8 @@
 // What every view item shows the same way: its key, selection, missing, locked and reserved marks, and its tooltip.
-import { clickSelect, isSelected, keyOf } from "../../services/store/state";
+import { clickSelect, isSelected, keyOf, startEdit } from "../../services/store/state";
 import { nodeSummary } from "../../services/store/node-info";
-import type { TreeNode } from "../../services/ipc/types";
+import { openFolder } from "../../hooks/path-actions";
+import { inDownloads, type TreeNode } from "../../services/ipc/types";
 
 export function markNodeItem(item: HTMLElement, n: TreeNode): void {
   const key = keyOf(n.relParts);
@@ -20,6 +21,12 @@ export function markNodeItem(item: HTMLElement, n: TreeNode): void {
   item.classList.toggle("reserved", n.reserved);
   item.classList.toggle("rev", n.nodeType?.base === "REV");
   item.title = nodeSummary(n);
+}
+
+// Items in Downloads cannot be renamed, so the double click that edits a name opens a file there instead.
+export function editOrOpen(n: TreeNode): void {
+  if (!inDownloads(n.relParts)) startEdit(n.relParts);
+  else if (n.file) void openFolder(n);
 }
 
 // Ctrl and Shift extend the selection over the listed keys; a plain click runs `pick`.

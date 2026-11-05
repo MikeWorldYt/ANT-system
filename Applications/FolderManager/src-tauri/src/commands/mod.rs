@@ -1,6 +1,7 @@
 // Tauri command layer: runs the pure core under the storage lock off the UI thread.
 mod backup;
 mod debug;
+mod downloads;
 mod drag_out;
 mod edit;
 mod extensions;
@@ -30,6 +31,7 @@ use crate::services::updater;
 
 pub use backup::*;
 pub use debug::*;
+pub use downloads::*;
 pub use drag_out::*;
 pub use edit::*;
 pub use extensions::*;

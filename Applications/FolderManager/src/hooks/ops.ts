@@ -9,13 +9,13 @@ import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
 import { relist, visibleLevels } from "./relist";
 import { dropNotice, type Notice } from "./drop-summary";
-import { applySettings, findNode, followExpanded, hydrate, keyOf, lastSelection, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../services/store/state";
+import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../services/store/state";
 import { sortedForColumns } from "../services/store/sort";
 import { loadVirtual } from "../services/store/virtual";
 import { outputOf } from "../services/store/node-info";
 import { goToPlace, toggleBoard } from "./virtual-nav";
 import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
-import { isFmError } from "../services/ipc/types";
+import { inDownloads, isFmError } from "../services/ipc/types";
 import { plural } from "../services/plural";
 import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../services/ipc/types";
 
@@ -124,7 +124,7 @@ export function init(): Promise<boolean> {
     if (!last) return;
     if (last.key) await reveal(last.key.split("/"));
     if (last.virtual === "board") await toggleBoard();
-    else if (last.virtual !== null) await goToPlace(last);
+    else if (last.virtual !== null && isVirtualShown(last.virtual)) await goToPlace(last);
   });
 }
 
@@ -132,6 +132,11 @@ export const changeSetting = <K extends keyof Settings>(key: K, value: Settings[
   run(async () => {
     await api.setSetting(key, serializeSetting(value));
     state.settings[key] = value;
+    // An entry hidden while it is open would leave its list on screen, so the view goes back to the root.
+    if (state.virtual !== null && !isVirtualShown(state.virtual)) {
+      leaveVirtual();
+      select(null);
+    }
     notify();
   });
 
@@ -416,6 +421,7 @@ async function revalidate(): Promise<void> {
 }
 
 export const dropFiles = async (target: string[], paths: string[]): Promise<void> => {
+  if (inDownloads(target)) return setStatus("warning", "Downloads takes no files from here");
   const ok = await run(
     async () => {
       const { mutation, placed, conflicts } = await api.dropFiles(target, paths);
@@ -455,7 +461,7 @@ export const dropFiles = async (target: string[], paths: string[]): Promise<void
 };
 
 export const pasteFiles = (target: string[]) =>
-  run(
+  inDownloads(target) ? Promise.resolve(setStatus("warning", "Downloads takes no files from here")) : run(
     async () => {
       const { mutation, placed } = await api.pasteFiles(target);
       await applyMutation(mutation);

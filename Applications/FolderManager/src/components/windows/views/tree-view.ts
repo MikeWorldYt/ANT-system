@@ -11,8 +11,8 @@ import { toggleExpand } from "../../../hooks/ops";
 import { keyOf, leaveVirtual, select, startEdit, state, visibleRows } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
-import { ROOT_ENTRIES, virtualEntry } from "../../molecules/virtual-entry";
-import { markNodeItem, onItemClick } from "../../molecules/node-item";
+import { entryBeside, headEntry, rootEntries, virtualEntry } from "../../molecules/virtual-entry";
+import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -56,7 +56,7 @@ export function createTreeView(): ViewMode {
     });
     onItemClick(row, n, () => rows.map((r) => keyOf(r.relParts)), () => pick(i), fromToggle);
     row.addEventListener("dblclick", (ev) => {
-      if (!fromToggle(ev)) startEdit(n.relParts);
+      if (!fromToggle(ev)) editOrOpen(n);
     });
     row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, tree));
     return row;
@@ -82,10 +82,12 @@ export function createTreeView(): ViewMode {
     const i = indexOfSelected();
     const n = rows[i];
     const open = n !== undefined && state.expanded.has(keyOf(n.relParts));
-    const head = ROOT_ENTRIES[0];
-    // The FAVORITES row precedes every other row, so with nothing selected the keys act on it.
+    const head = headEntry();
+    // The entry rows precede every other row, so with nothing selected the keys act on the current one.
     const onHead = head !== undefined && n === undefined && state.selectedKey === null && state.virtual !== "board";
     const headOpen = head !== undefined && state.virtual === head.id;
+    const before = entryBeside(head, -1);
+    const after = entryBeside(head, 1);
     if (isMenuKey(ev)) {
       if (n) nodeMenuFromKey(tree, n, tree.querySelector(`#row-${i}`));
       ev.preventDefault();
@@ -93,11 +95,14 @@ export function createTreeView(): ViewMode {
     }
     switch (ev.key) {
       case "ArrowDown":
-        pick(i + 1);
+        if (onHead && after && (!headOpen || listCount === 0)) void openVirtual(after.id);
+        else pick(i + 1);
         break;
       case "ArrowUp":
-        if (head && i === 0) void openVirtual(head.id);
-        else if (!onHead) pick(i < 0 ? 0 : i - 1);
+        if (onHead) {
+          if (before) void openVirtual(before.id);
+        } else if (head && i === 0) void openVirtual(listCount > 0 ? head.id : (rootEntries().at(-1)?.id ?? head.id));
+        else pick(i < 0 ? 0 : i - 1);
         break;
       case "Home":
         pick(0);
@@ -154,7 +159,7 @@ export function createTreeView(): ViewMode {
       listCount = list.length;
       rows = [...list, ...visibleRows()];
       const listRows = list.flatMap((n, i) => [buildRow(n, i), ...emptyLegend(n, listDepths[i] ?? 1)]);
-      const entries = ROOT_ENTRIES.flatMap((e) => {
+      const entries = rootEntries().flatMap((e) => {
         const open = state.virtual === e.id;
         const entry = virtualEntry(e, "row", "treeitem", { toggle: true, marker: "caret" });
         entry.id = `row-${e.id}`;
@@ -164,7 +169,7 @@ export function createTreeView(): ViewMode {
       });
       tree.replaceChildren(...entries, ...rows.slice(listCount).flatMap((n, i) => [buildRow(n, i + listCount), ...emptyLegend(n, n.depth)]));
       const i = indexOfSelected();
-      const head = ROOT_ENTRIES.find((e) => state.virtual === e.id);
+      const head = rootEntries().find((e) => state.virtual === e.id);
       if (i >= 0) {
         tree.setAttribute("aria-activedescendant", `row-${i}`);
         tree.querySelector(`#row-${i}`)?.scrollIntoView({ block: "nearest" });

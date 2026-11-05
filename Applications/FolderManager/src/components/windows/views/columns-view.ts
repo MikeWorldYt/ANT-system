@@ -15,8 +15,8 @@ import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot,
 import { findNode, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
-import { openEntry, ROOT_ENTRIES, virtualEntries } from "../../molecules/virtual-entry";
-import { markNodeItem, onItemClick } from "../../molecules/node-item";
+import { entryBeside, headEntry, openEntry, rootEntries, virtualEntries } from "../../molecules/virtual-entry";
+import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -72,7 +72,7 @@ export function createColumnsView(): ViewMode {
     }
     onItemClick(item, n, () => siblings, () => pick(n));
     item.addEventListener("dblclick", (ev) => {
-      if (!fromToggle(ev)) startEdit(n.relParts);
+      if (!fromToggle(ev)) editOrOpen(n);
     });
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
     return item;
@@ -98,7 +98,7 @@ export function createColumnsView(): ViewMode {
       // The column background cannot take focus, so keys go back to the row that now holds it.
       root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });
     });
-    // With nothing selected the FAVORITES row heading the root column holds the roving focus.
+    // With nothing selected the entry row heading the root column holds the roving focus.
     const tabbableKey = state.selectedKey;
     // Not an item, so it cannot be selected; it only tells why the review list is empty.
     const legend = nodes.length === 0 ? (listing?.empty ?? emptyLegend(parentNode)) : null;
@@ -138,20 +138,27 @@ export function createColumnsView(): ViewMode {
       return;
     }
     const cols = buildColumns(openKey);
-    const head = ROOT_ENTRIES[0];
-    // FAVORITES heads the root column, so with nothing selected the arrows start from it.
+    const head = headEntry();
+    // The entries head the root column, so with nothing selected the arrows start from the current one.
     if (n === null && head && state.virtual !== "board") {
       const first = cols[0]?.nodes[0];
+      const before = entryBeside(head, -1);
+      const after = entryBeside(head, 1);
       switch (ev.key) {
         case "ArrowDown":
-          if (first) {
+          if (after) void openVirtual(after.id);
+          else if (first) {
             leaveVirtual();
             pick(first);
           }
           break;
+        case "ArrowUp":
+          if (!before) return;
+          void openVirtual(before.id);
+          break;
         case "ArrowRight": {
-          const favorite = state.virtual === head.id ? virtualNodes()[0] : undefined;
-          if (favorite) select(favorite.relParts);
+          const entered = state.virtual === head.id ? virtualNodes()[0] : undefined;
+          if (entered) select(entered.relParts);
           else void openVirtual(head.id);
           break;
         }
@@ -179,7 +186,7 @@ export function createColumnsView(): ViewMode {
         move(i + 1 >= siblings.length ? 0 : i + 1);
         break;
       case "ArrowUp":
-        if (head && i === 0 && siblings === cols[0]?.nodes) void openVirtual(head.id);
+        if (head && i === 0 && siblings === cols[0]?.nodes) void openVirtual(rootEntries().at(-1)?.id ?? head.id);
         else move(i < 0 ? 0 : i === 0 ? siblings.length - 1 : i - 1);
         break;
       case "Home":

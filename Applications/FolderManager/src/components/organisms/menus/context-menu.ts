@@ -13,7 +13,7 @@ import { menuItems, runMenuItem } from "../../../extensions/host";
 import { autoDismiss, focusInitial, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
 import { boardMenu, type MenuParts } from "./board-menu";
 import type { ViewPicker } from "../bars/toolbar";
-import type { TreeNode } from "../../../services/ipc/types";
+import { inDownloads, type TreeNode } from "../../../services/ipc/types";
 
 interface MenuRequest {
   node: TreeNode;
@@ -69,7 +69,27 @@ export function nodeMenuFromKey(host: Element, node: TreeNode, anchor: Element |
   dispatch(host, { node, nodes, x: r.left + 24, y: r.bottom });
 }
 
+// Items in Downloads only open and copy: nothing there is a storage node, and the files are not ours to change.
+function downloadsMenu(nodes: TreeNode[], close: (restore?: boolean) => void): MenuParts {
+  const [one] = nodes.length === 1 ? nodes : [];
+  const copy = menuItem("Copy", "menuitem", true, () => {
+    close();
+    void putOnClipboard(nodes, false);
+  });
+  if (!one) return { items: [copy], subs: [], content: [copy] };
+  const open = menuItem("Open", "menuitem", one.actions.open, () => {
+    close();
+    void openFolder(one);
+  });
+  const copyPathItem = menuItem("Copy path", "menuitem", one.actions.copyPath, () => {
+    close();
+    void copyPath(one);
+  });
+  return { items: [open, copyPathItem, copy], subs: [], content: [open, copyPathItem, separator(), copy] };
+}
+
 function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts {
+  if (inDownloads(node.relParts)) return downloadsMenu([node], close);
   const a = node.actions;
 
   const open = menuItem("Open", "menuitem", a.open, () => {
@@ -284,7 +304,14 @@ function selectionMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
 function openMenu({ node, nodes, x, y, folderOnly }: MenuRequest, restoreFocus: () => void, views: ViewPicker): void {
   const group = nodes !== undefined && nodes.length > 1 ? nodes : null;
   const label = group ? `Actions for ${group.length} items` : `Actions for ${node.name}`;
-  openMenuWith((close) => (folderOnly ? boardMenu(node, views, close) : group ? selectionMenu(group, close) : nodeMenu(node, close)), label, x, y, restoreFocus);
+  const downloads = (group ?? [node]).every((n) => inDownloads(n.relParts));
+  openMenuWith(
+    (close) => (group && downloads ? downloadsMenu(group, close) : folderOnly && !downloads ? boardMenu(node, views, close) : group ? selectionMenu(group, close) : nodeMenu(node, close)),
+    label,
+    x,
+    y,
+    restoreFocus,
+  );
 }
 
 export function openMenuWith(build: (close: (restore?: boolean) => void) => MenuParts, label: string, x: number, y: number, restoreFocus: () => void): void {
