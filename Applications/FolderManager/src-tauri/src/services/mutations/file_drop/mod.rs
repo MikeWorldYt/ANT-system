@@ -19,7 +19,8 @@ use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{io_err, join_rel, redirects, resolve, Journal, StorageLock};
 use crate::infra::footprint_file;
 use crate::services::index::footprint;
-use crate::services::tree::review_links;
+use crate::services::tree::{depth, review_links};
+use crate::services::tree::tree_node::is_reserved;
 
 use crate::services::tree::tree_store::{self, delete_key, get_node};
 use serde_yaml::{Mapping, Value};
@@ -78,11 +79,15 @@ pub fn drop_files(
     if locate(root, &data, target)?.ghost {
         return Err(FmError::GhostNotAllowed { op: "drop files into".to_string() });
     }
-    let node = get_node(&data, target).ok_or_else(|| FmError::NotFound { rel_parts: target.to_vec() })?;
+    let node = get_node(&data, target);
+    // Past the depth limit the database tracks nothing, so the folder itself takes what is dropped on it.
+    let past_limit = node.is_none() && !target.is_empty() && target.len() >= depth::limit(root)?;
     // A 998.Review link stands for its owner's 98. folder, so its files go there whatever the owner's type.
-    let dest_rel = match &owner {
-        Some(owner) => review_links::rev_path(owner).split('/').map(str::to_string).collect(),
-        None => destination(target, node)?,
+    let dest_rel = match (&owner, node) {
+        (Some(owner), _) => review_links::rev_path(owner).split('/').map(str::to_string).collect(),
+        (None, Some(node)) => destination(target, node)?,
+        (None, None) if past_limit && !is_reserved(&target[..1]) => target.to_vec(),
+        (None, None) => return Err(FmError::NotFound { rel_parts: target.to_vec() }),
     };
     let dest = resolve(root, &dest_rel)?;
     if !exactly_on_disk(root, &dest_rel)? {
@@ -99,6 +104,7 @@ pub fn drop_files(
     let mut conflicts = Vec::new();
     // Workboards go first, since placing one changes the yaml that the files are placed by.
     let (folders, files): (Vec<&PathBuf>, Vec<&PathBuf>) = paths.iter().partition(|src| is_folder(src));
+    let (folders, plain): (Vec<&PathBuf>, Vec<&PathBuf>) = folders.into_iter().partition(|src| src.file_name().is_some_and(|n| is_workboard_name(&n.to_string_lossy())));
     let mut moved_workboard = false;
     if !folders.is_empty() && !matches!(type_base(&tree_store::get_type(&data, target)), "NODE" | "WKB") {
         return Err(FmError::InvalidPath { rel_parts: target.to_vec(), reason: "workboards go into a node or another workboard".to_string() });
@@ -115,6 +121,18 @@ pub fn drop_files(
                 placed.push(PlacedFile { name, folder: target.to_vec(), copied: false });
             }
             Ok(Workboard::Taken(conflict)) => conflicts.push(conflict),
+            Err(why) => warnings.push(format!("{}: not placed, {why}", src.display())),
+        }
+    }
+    // Any other folder lands as it is; the format validation then asks what it becomes.
+    for src in plain {
+        match place_folder(&node_dir, src, copy, &mut journal) {
+            Ok((name, note)) => {
+                if let Some(note) = note {
+                    warnings.push(format!("{}: {note}", src.display()));
+                }
+                placed.push(PlacedFile { name, folder: target.to_vec(), copied: copy });
+            }
             Err(why) => warnings.push(format!("{}: not placed, {why}", src.display())),
         }
     }
@@ -145,6 +163,9 @@ pub fn drop_files(
     // Each file stands alone: one that cannot be placed is reported and never undoes the others.
     journal.commit();
     let mut touched = vec![dest_rel];
+    if !touched.contains(&target.to_vec()) {
+        touched.push(target.to_vec());
+    }
     for folder in source_folders {
         if !touched.contains(&folder) {
             touched.push(folder);
@@ -152,6 +173,26 @@ pub fn drop_files(
     }
     let mutation = finish(root, &data, synced, None, warnings, touched);
     Ok(DropOutcome { mutation, placed, conflicts })
+}
+
+// Moved or copied whole under a free name; a folder already in the storage is moved inside the app instead.
+fn place_folder(dest: &Path, src: &Path, copy: bool, journal: &mut Journal) -> Result<(String, Option<String>), String> {
+    let real = fs::canonicalize(src).map_err(|e| io_err("resolve path", src, &e).to_string())?;
+    let dest_real = fs::canonicalize(dest).map_err(|e| io_err("resolve path", dest, &e).to_string())?;
+    if dest_real.starts_with(&real) {
+        return Err("a folder cannot be placed inside itself".to_string());
+    }
+    let name = real.file_name().map(|n| n.to_string_lossy().into_owned()).ok_or("the path has no file name")?;
+    let free = free_name(dest, &name, &[]).map_err(|e| e.to_string())?;
+    let to = dest.join(&free);
+    if copy {
+        return copy_whole(&real, &to).map(|()| (free, None));
+    }
+    match journal.rename(&real, &to) {
+        Ok(()) => Ok((free, None)),
+        Err(FmError::Io { os_code: Some(code), .. }) if crosses_devices(code) => move_across(&real, &to).map(|note| (free, note)),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 enum Workboard {

@@ -366,8 +366,16 @@ export const setReviewFilter = (hidden: string[], favorites: boolean) =>
 export const setUserFlag = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setUserFlag(node.relParts, on), node.relParts));
 
-export const dropFiles = (target: string[], paths: string[]) =>
-  run(
+// What comes in from outside may break the storage's rules, so the refresh checks run right after it lands, keeping the drop notice.
+async function revalidate(): Promise<void> {
+  const ok = await run(reload);
+  if (!ok) return;
+  void runIntake(reload);
+  void checkRootFolders(resolveInvalid, deleteInvalid);
+}
+
+export const dropFiles = async (target: string[], paths: string[]): Promise<void> => {
+  const ok = await run(
     async () => {
       const { mutation, placed, conflicts } = await api.dropFiles(target, paths);
       await applyMutation(mutation);
@@ -407,6 +415,8 @@ export const pasteFiles = (target: string[]) =>
   run(
     async () => {
       const { mutation, placed } = await api.pasteFiles(target);
+  if (ok) await revalidate();
+};
       await applyMutation(mutation);
       doneNotice = dropNotice(placed, mutation.warnings);
     },
