@@ -10,7 +10,10 @@ import type { TreeNode } from "../services/ipc/types";
 
 const HIGHLIGHT = "drop-target";
 
-type Movable = Pick<TreeNode, "nodeType" | "reserved" | "ghost" | "locked" | "flags" | "file">;
+type Movable = Pick<TreeNode, "nodeType" | "reserved" | "ghost" | "locked" | "flags" | "file" | "inYaml">;
+
+// A folder the database does not track is a plain disk folder, like the ones past the depth limit.
+const isPlain = (n: Movable): boolean => !n.file && !n.inYaml && n.nodeType === null;
 
 // Main categories never move; an unflagged node moves only after a warning.
 export const canMove = (n: Movable | null): boolean =>
@@ -19,7 +22,7 @@ export const canMove = (n: Movable | null): boolean =>
   !n.ghost &&
   !n.locked &&
   !n.flags.includes("main") &&
-  (n.file || n.nodeType?.base === "NODE" || n.nodeType?.base === "WKB");
+  (n.file || isPlain(n) || n.nodeType?.base === "NODE" || n.nodeType?.base === "WKB");
 
 // Files are never a destination; review folders are locked but still take folders and files.
 export const canDropOn = (n: Movable | null): boolean =>
@@ -27,7 +30,7 @@ export const canDropOn = (n: Movable | null): boolean =>
   !n.file &&
   !n.reserved &&
   !n.ghost &&
-  ((!n.locked && (n.nodeType?.base === "NODE" || n.nodeType?.base === "WKB")) || n.nodeType?.base === "REV");
+  ((!n.locked && (isPlain(n) || n.nodeType?.base === "NODE" || n.nodeType?.base === "WKB")) || n.nodeType?.base === "REV");
 
 // Neither a folder nor anything inside it can become its own destination.
 const holds = (source: string[], target: string[]): boolean => source.length <= target.length && source.every((part, i) => part === target[i]);
@@ -40,10 +43,11 @@ async function moveDragged(sources: string[][], target: string[], copy: boolean)
       const node = findNode(parts);
       return node ? [{ parts, node }] : [];
     });
-  const files = nodes.filter(({ node }) => node.file).map(({ parts }) => parts);
+  // Plain folders have no record to move, so they travel like files, straight on disk.
+  const files = nodes.filter(({ node }) => node.file || isPlain(node)).map(({ parts }) => parts);
   // A folder dropped on a review folder lands in its owner, so a drop where it already sits is a cancel, not an error.
   const folderTarget = findNode(target)?.nodeType?.base === "REV" ? target.slice(0, -1) : target;
-  const folders = nodes.filter(({ node, parts }) => !node.file && (copy || keyOf(parts.slice(0, -1)) !== keyOf(folderTarget)));
+  const folders = nodes.filter(({ node, parts }) => !node.file && !isPlain(node) && (copy || keyOf(parts.slice(0, -1)) !== keyOf(folderTarget)));
   const unflagged = folders.filter(({ node }) => node.nodeType?.base === "NODE" && !node.flags.includes("data"));
   if (unflagged.length > 0 && !copy) {
     const warnings = unflagged.map(({ node }) => `"${node.name}" has no data flag. Moving it can break its paths in other apps.`);
