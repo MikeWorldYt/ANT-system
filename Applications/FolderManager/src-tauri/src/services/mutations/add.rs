@@ -12,7 +12,10 @@ use crate::domain::tree_types::child_entries;
 use crate::services::backup::stamp::local_date;
 use crate::domain::config::{NewKind, DATA_DIR, DATA_FLAG, OWNER_KEYS};
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{io_err, Journal, StorageLock};
+use crate::infra::fs_safe::{io_err, resolve, Journal, StorageLock};
+use crate::infra::naming::free_name;
+use crate::services::tree::tree_node::is_reserved;
+use crate::services::tree::tree_store;
 use crate::infra::storage::db::hide;
 use crate::infra::storage::info::{field_of, read_info, write_info};
 use crate::services::tree::depth;
@@ -32,6 +35,9 @@ pub fn add_next(root: &Path, rel: &[String], kind: NewKind) -> R<Mutation> {
 
 pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
+    if !parent.is_empty() && parent.len() >= depth::limit(root)? {
+        return add_past_limit(root, parent, kind);
+    }
     // A tracker must be unique across the Storage, so a workboard counts every branch on disk.
     let (mut data, synced) = if kind == NewKind::Workboard { load_synced(root)? } else { load_synced_at(root, parent)? };
     if parent.is_empty() && kind == NewKind::Workboard {
@@ -105,6 +111,36 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     let moved = register_ids(root, &mut data, &mut warnings);
     let new_rel = child_rel(parent, &new_name);
     Ok(finish(root, &data, synced || moved, Some(new_rel.clone()), warnings, vec![new_rel]))
+}
+
+// Past the depth limit the database tracks nothing, so a node is a plain folder and a workboard counts only its own siblings.
+fn add_past_limit(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
+    if is_reserved(&parent[..1]) {
+        return Err(FmError::Reserved { rel_parts: parent.to_vec() });
+    }
+    let dir = resolve(root, parent)?;
+    if !dir.is_dir() {
+        return Err(FmError::NotFound { rel_parts: parent.to_vec() });
+    }
+    let workboard = kind == NewKind::Workboard;
+    let name = if workboard {
+        let siblings = list_subdirs(&dir)?;
+        let used = siblings.iter().filter_map(|n| n.strip_prefix("PJ.")?.split(|c: char| !c.is_ascii_digit()).next()?.parse::<u32>().ok());
+        format!("PJ.{:03}_New-Workboard", used.max().unwrap_or(0) + 1)
+    } else {
+        free_name(&dir, "New folder", &[])?
+    };
+    let abs = dir.join(&name);
+    fs::create_dir(&abs).map_err(|e| io_err("create folder", &abs, &e))?;
+    let mut warnings = Vec::new();
+    if workboard {
+        if let Err(e) = mark_folder(&abs, true, parent.last().map_or("", String::as_str)) {
+            warnings.push(format!("Could not set up {DATA_DIR}: {e}"));
+        }
+    }
+    let new_rel = child_rel(parent, &name);
+    let data = tree_store::load(root)?;
+    Ok(finish(root, &data, false, Some(new_rel.clone()), warnings, vec![new_rel]))
 }
 
 // Next free id of a tracker (3 digits, more once they run out) after every workboard of that tracker in the tree, missing folders included.

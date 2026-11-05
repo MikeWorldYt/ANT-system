@@ -28,6 +28,7 @@ export interface NodeActions {
   changeType: boolean;
   addNext: boolean;
   addChild: boolean;
+  addFolder: boolean;
   moveUp: boolean;
   moveDown: boolean;
   delete: boolean;
