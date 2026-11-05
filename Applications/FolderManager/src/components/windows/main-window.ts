@@ -11,6 +11,8 @@ import { installFolderMove } from "../../hooks/folder-move";
 import { installMarquee } from "../../hooks/marquee";
 import { trackPasteTarget } from "../../hooks/paste-target";
 import { createViewSwitcher } from "../../hooks/view-switch";
+import { openFolder } from "../../hooks/path-actions";
+import { selectedNode } from "../../services/store/state";
 import { openSettings } from "./settings";
 import { createBoardView } from "./views/board-view";
 import { createColumnsView } from "./views/columns-view";
@@ -37,10 +39,9 @@ export function createMainWindow(app: HTMLElement) {
   const search = createSearchBar();
   navigator.element.prepend(...toolbar.navLead);
   navigator.element.append(search.element, ...toolbar.trailing);
-  // The views already open on Enter, so the shortcut hands the key to whichever one is showing.
   const openSelected = () => {
-    views.current().focus();
-    document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    const n = selectedNode();
+    if (n?.actions.open) void openFolder(n);
   };
   const panel = createSidePanel({ openSelected, openSettings: (pageId) => void openSettings(pageId) });
   // The board stands beside the views, outside the host, so their drag, drop and marquee never reach its cards.
