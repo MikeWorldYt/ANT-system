@@ -113,7 +113,7 @@ Invoke-WebRequest -Uri https://github.com/MikeWorldYt/ANT-system/releases/downlo
 
 ```
 Applications/       the utilities (CreateNewStorage, FolderManager, Reformatter)
-Documentation/      the docs site (Astro + Starlight) and the legacy Angular one
+Documentation/      the docs site (Astro + Starlight)
 Migration/          the storage template and guides for adopting ANT on an existing setup
 Project'sColaborations/   contributor guides
 ```
