@@ -22,8 +22,7 @@ Before you start, please make sure to read our [Contributing Guidelines](https:/
   └── CreateNewStorage/    # Upcoming Script
 
 /Documentation/
-  ├── Angular/             # Legacy website (currently in use)
-  └── Astro/               # Future replacement for doc website
+  └── (Astro + Starlight docs site)
 ```
 
 ## 🧩 About the Monorepo Layout
