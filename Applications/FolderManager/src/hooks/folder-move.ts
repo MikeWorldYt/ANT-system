@@ -1,9 +1,11 @@
 // Folders and files dragged inside the window move onto a folder, or copy with Ctrl; HTML5 drag events never reach the webview.
 import { moveFiles, moveFolders } from "./ops";
 import { dragSources, ITEM } from "./drag-out";
-import { cancelOnEscape, dragGhost, leftWindow, modsOf, mousePress, moveGhost, pastThreshold, pointOf, released, type Mods, type Point } from "./pointer";
+import { cancelOnEscape, leftWindow, modsOf, mousePress, moveGhost, pastThreshold, pointOf, released, type Mods, type Point } from "./pointer";
 import { warningConfirmDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
 import { findNode, keyOf, outermost } from "../services/store/state";
+import { el } from "../components/dom";
+import { folderIcon } from "../components/atoms/icons";
 import type { TreeNode } from "../services/ipc/types";
 
 const HIGHLIGHT = "drop-target";
@@ -39,7 +41,9 @@ async function moveDragged(sources: string[][], target: string[], copy: boolean)
       return node ? [{ parts, node }] : [];
     });
   const files = nodes.filter(({ node }) => node.file).map(({ parts }) => parts);
-  const folders = nodes.filter(({ node }) => !node.file);
+  // A folder dropped on a review folder lands in its owner, so a drop where it already sits is a cancel, not an error.
+  const folderTarget = findNode(target)?.nodeType?.base === "REV" ? target.slice(0, -1) : target;
+  const folders = nodes.filter(({ node, parts }) => !node.file && (copy || keyOf(parts.slice(0, -1)) !== keyOf(folderTarget)));
   const unflagged = folders.filter(({ node }) => node.nodeType?.base === "NODE" && !node.flags.includes("data"));
   if (unflagged.length > 0 && !copy) {
     const warnings = unflagged.map(({ node }) => `"${node.name}" has no data flag. Moving it can break its paths in other apps.`);
@@ -62,6 +66,22 @@ interface Drag {
 }
 
 let drag: Drag | null = null;
+
+// Like Explorer, the ghost shows what is carried and a badge with the action a release would run.
+function itemGhost(sources: string[][]): HTMLElement {
+  const first = sources[0] ? findNode(sources[0]) : null;
+  const icon = first ? folderIcon(first) : el("span");
+  icon.classList.add("drag-ghost-icon");
+  const count = sources.length > 1 ? [el("span", { class: "drag-ghost-count" }, String(sources.length))] : [];
+  const ghost = el("div", { class: "drag-ghost-item", "aria-hidden": "true" }, icon, ...count, el("span", { class: "drag-ghost-mode" }));
+  document.body.append(ghost);
+  return ghost;
+}
+
+function showMode(ghost: HTMLElement | null, copy: boolean): void {
+  const mode = ghost?.querySelector(".drag-ghost-mode");
+  if (mode) mode.textContent = copy ? "+ Copy" : "→ Move";
+}
 
 export const folderMoveActive = (): boolean => drag?.ghost != null;
 
@@ -106,11 +126,11 @@ export function installFolderMove(host: HTMLElement): void {
     if (!drag.ghost) {
       if (!pastThreshold(drag.start, now)) return;
       drag.sources = dragSources(drag.key, drag.mods).map((key) => key.split("/")).filter((parts) => canMove(findNode(parts)));
-      const label = drag.sources.length === 1 ? (findNode(drag.sources[0])?.name ?? "") : `${drag.sources.length} items`;
-      drag.ghost = dragGhost(label);
+      drag.ghost = itemGhost(drag.sources);
       if (!host.hasPointerCapture(ev.pointerId)) host.setPointerCapture(ev.pointerId);
     }
     moveGhost(drag.ghost, now);
+    showMode(drag.ghost, ev.ctrlKey);
     retarget(drag, targetAt(now));
   });
   host.addEventListener("pointerup", (ev) => {
@@ -121,4 +141,6 @@ export function installFolderMove(host: HTMLElement): void {
   });
   host.addEventListener("pointercancel", cancel);
   cancelOnEscape(folderMoveActive, cancel);
+  // Ctrl pressed or let go without moving the pointer still flips the badge.
+  for (const type of ["keydown", "keyup"] as const) window.addEventListener(type, (ev) => ev.key === "Control" && showMode(drag?.ghost ?? null, ev.ctrlKey));
 }
