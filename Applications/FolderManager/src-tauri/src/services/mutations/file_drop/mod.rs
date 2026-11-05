@@ -79,7 +79,11 @@ pub fn drop_files(
         return Err(FmError::GhostNotAllowed { op: "drop files into".to_string() });
     }
     let node = get_node(&data, target).ok_or_else(|| FmError::NotFound { rel_parts: target.to_vec() })?;
-    let dest_rel = destination(target, node)?;
+    // A 998.Review link stands for its owner's 98. folder, so its files go there whatever the owner's type.
+    let dest_rel = match &owner {
+        Some(owner) => review_links::rev_path(owner).split('/').map(str::to_string).collect(),
+        None => destination(target, node)?,
+    };
     let dest = resolve(root, &dest_rel)?;
     if !exactly_on_disk(root, &dest_rel)? {
         return Err(FmError::NotFound { rel_parts: dest_rel });
