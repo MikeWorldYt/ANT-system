@@ -264,6 +264,19 @@ fn a_zip_cut_short_never_takes_its_final_name_and_a_stale_part_does_not_block_th
 }
 
 #[test]
+fn create_goes_through_the_part_name() {
+    let dir = academic("backup-create-part");
+    let root = dir.path();
+    let part = format!("backup/{STAMP}{SUFFIX}.zip.part");
+    dir.mkdir(&part);
+    assert!(create(root, STAMP).is_err());
+    assert!(!root.join(format!("backup/{STAMP}{SUFFIX}.zip")).exists());
+    fs::remove_dir(root.join(&part)).unwrap();
+    let zip = create(root, STAMP).unwrap();
+    assert_eq!(names(&root.join("backup")), [zip.file_name().unwrap().to_string_lossy().into_owned()]);
+}
+
+#[test]
 fn a_truncated_newest_zip_makes_restore_latest_use_the_previous_one() {
     let dir = academic("backup-truncated");
     let root = dir.path();

@@ -146,7 +146,7 @@ pub fn create(root: &Path, stamp: &str) -> R<PathBuf> {
     let staging = dir.join(format!(".{stamp}_staging"));
     staged(&staging, || {
         stage::stage(root, &staging, &skip)?;
-        archive::compress(&staging, &zip)
+        write_zip(&zip, |part| archive::compress(&staging, part))
     })?;
     Store::open_or_create(root)?.set_setting("backupLast", &now().to_string())?;
     Ok(zip)
