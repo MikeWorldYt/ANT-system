@@ -19,7 +19,7 @@ Each Support Node uses a prefix in capitals followed by a dot e.g. `REV.Developm
 This [node (folder)](/en/foundationals/core-concepts#nodes) may contain all of your files and directories that are unsorted, as temporary sandbox for avoiding mess and maintaining the sort the level.  
 
 > <h5> Naming Convention: </h5>
-> Use the prefix « **REV.** » and inherit its parent's name.
+> Use the prefix ` REV. ` and inherit its parent's name.
 > 
 > e.g. `REV.Digital-Art`, `REV.Video-Edition`, `REV.Development`
 
@@ -39,7 +39,7 @@ This [node (folder)](/en/foundationals/core-concepts#nodes) may contain all of y
 This [node (folder)](/en/foundationals/core-concepts#nodes) stores one or more ready-made structures content for starting new [workboard nodes](/en/foundationals/workboard-nodes), keeping projects consistent and avoiding copy-paste previous projects.
 
 > <h5> Naming Convention: </h5>
-> Use the prefix « **TPL.** » and name what it starts.
+> Use the prefix ` TPL. ` and name what it starts.
 >
 > e.g. `TPL.Video-Project`, `TPL.React-Project`
 
@@ -77,45 +77,71 @@ This [node (folder)](/en/foundationals/core-concepts#nodes) stores one or more r
 [32m       └── 📄[37m README.md
 ```
 
-## 90.Resources Folder
-Its should have identifier **90**.  
-This [node](/en/foundationals/core-concepts#nodes) (folder) serves as a centralized repository for frequently accessed reference materials, reusable assets, and static support files. It houses essential resources that remain consistently valuable across multiple projects or operations.
+## RES. Resources Folder
+This [node (folder)](/en/foundationals/core-concepts#nodes) holds content ready to use while projects are running, for example client assets (logos, images, etc) or project presets. 
 
-<h5> Naming Convention: </h5>
-This node appears as `90.Resources-of-` and continue inherit their name from parent node.
+its content dotn need be copied into a project: may use it direclty from here. Each `RES.` folder holds one kind of content, so a level can have several Resources (`RES`).
 
-```ansi {2}
-[32m 📁[37m 02.Video-Edition                     [35m  ←−−− Parent
-[32m  ├── 📁[37m 90.Resources-of-Video-Edition   [35m  ←−−− Resources Folder
-[32m  │    ├── 📁[37m 01.Templates-and-presets
-[32m  │    ├── 📁[37m 02.Music-and-SFX
-[32m  │    ├── 📁[37m . . .
+> <h5> Naming Convention: </h5>
+> Use the prefix ` RES. ` and name what it holds.
+>
+> e.g. `RES.Client-Assets`, `RES.Edition-Assets`
+>
+> At level 1, `900.Resources` stays unchanged.
+
+```ansi {2,5}
+[32m 📁[37m 04.Video-Edition                           [35m←−−− Parent
+[32m  ├── 📁[37m RES.Client-Assets                     [35m←−−− Resources of the clients
+[32m  │    ├── 📁[37m Logos
+[32m  │    └── 📁[37m Images
+[32m  ├── 📁[37m RES.Edition-Assets                    [35m←−−− Resources of the edition
+[32m  │    ├── 📁[37m Music-and-SFX
+[32m  │    └── 📁[37m Presets-and-LUTs
+[32m  ├── 📁[37m PJ.133_Promo-Video                    [35m←−−− Uses them from RES, without copying
+[32m  └── 📁[37m PJ.134_Product-Launch                 [35m←−−− Uses them from RES, without copying
 ```
 
-<h5> Utility </h5>
-Functions as an **always-available toolkit** for your projects, tasks or homework. It provides a place to store frequently used files, templates, and resources that are accessible from current level.
+## (00) Outcomes Folder
+This [node (folder)](/en/foundationals/core-concepts#nodes) receives the deliverables of the [workboards](/en/foundationals/workboard-nodes) beside it.
 
----
-## (00) Done Folder
-Its should have identifier **00**.  
-This [node](/en/foundationals/core-concepts#nodes) serves exclusively as the **final archive** for completed outputs. When a [workboard folder](/en/foundationals/workboard-nodes) reaches end-of-life after project/task completion, only the finalized assets are preserved here.
+When a workboard is finished, [FolderManager](/en/folder-manager/project-management#outcomes) moves its deliverable here into a dated folder and leaves a shortcut in the workboard to find it again.
 
-<h5> Naming Convention: </h5>
-Always it should appears as **00.Done** at every level where workboards exist.  
-if that you want, you may name it whatever you want but need to use the prefix **00.** before the name.
+> <h5> Naming Convention: </h5>
+> Use the identifier ` 00. ` and any name you want, at every level where workboards exist.
+>
+> e.g. `00.Outcomes`, `00.Edition-Portfolio`
 
-```ansi {2}
-[32m 📁[37m 02.Video-Edition                      [35m ←−−− Parent
-[32m  ├── 📁[37m 00.Edition-Portfolio             [35m ←−−− Done Folder
-[32m  │    ├── 📁[37m 01.Templates-and-presets
-[32m  │    ├── 📁[37m 02.Music-and-SFX
-[32m  │    ├── 📁[37m . . .
+```ansi {2-4}
+[32m 📁[37m 04.Video-Edition                           [35m←−−− Parent
+[32m  ├── 📁[37m 00.Outcomes                           [35m←−−− Outcomes Folder
+[32m  │    └── 📁[37m (26-11-01)_Promo-Video           [35m←−−− Dated delivery
+[32m  │         └── 📄[37m Promo-Video-Final.mp4
+[32m  └── 📁[37m PJ.133_Promo-Video                    [35m←−−− Workboard
+[32m       ├── 📁[37m 01.RawFootage
+[32m       └── 📁[37m 04.Renders                       [35m←−−− Output folder
+[32m            └── 📄[37m (26-11-01)_Promo-Video.lnk  [35m←−−− Shortcut to the delivery
 ```
 
 ---
 ## Temporal Folders (~)
-Alright, thats not a identifier as such, it's just a mark.  
-This special marker (not a numbered identifier) designates **ultra-short-lived storage** for active work files. Unlike the structured [REV. Review Folder](#rev-review-folder), `~` nodes are disposable containers for assets during active manipulation, serving as temporary holding areas that should be deleted immediately after use.
 
-<h5> Naming Convention: </h5>
-Always prefixed with `~` and continue with any name you want.
+This prefix is `~` is used for temporary files; It's placed at the start of the name of any folder or file and [FolderManager](/en/folder-manager/folder-manager) ignores it, no sort, no rename or other automation actions.
+
+Only use it to mark temporary items that should be deleted afterwards, so they don't keep consuming space.
+
+> <h5> Naming Convention: </h5>
+> Place a tilde ` ~ ` at the start of the name of any folder or file.
+>
+> e.g. `~09585`, `~render-draft.mp4`
+
+
+```ansi {4, 6}
+[32m 📁[37m 04.Parent-example                 
+[32m  ├── 📁[37m 01.Child-sorted                
+[32m  ├── 📁[37m 02.Another-file-sorted    
+[32m  ├── 📁[37m ~09585                                [35m←−−− Temporary folder
+[32m  ├── 📄[37m common-file.txt
+[32m  └── 📄[37m ~reference-document.docx              [35m←−−− Temporary file
+
+
+```

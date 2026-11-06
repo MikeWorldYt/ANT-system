@@ -20,7 +20,7 @@ Cada nodo de soporte usa un prefijo en mayúsculas seguido de un punto, p. ej. `
 Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) puede contener todos tus archivos y directorios sin clasificar, como un entorno temporal para evitar el desorden y mantener ordenado el nivel.
 
 > <h5> Nomenclatura: </h5>
-> Usa el prefijo « **REV.** » y hereda el nombre de su nodo padre.
+> Usa el prefijo ` REV. ` y hereda el nombre de su nodo padre.
 >
 > p. ej. `REV.Digital-Art`, `REV.Video-Edition`, `REV.Development`
 
@@ -40,7 +40,7 @@ Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) puede contener todo
 Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) guarda una o más estructuras con contenido listas para iniciar nuevos [nodos del tablero de trabajo](/es/foundationals/workboard-nodes), lo que mantiene coherentes los proyectos y evita copiar y pegar proyectos anteriores.
 
 > <h5> Nomenclatura: </h5>
-> Usa el prefijo « **TPL.** » y nombra lo que inicia.
+> Usa el prefijo ` TPL. ` y nombra lo que inicia.
 >
 > p. ej. `TPL.Video-Project`, `TPL.React-Project`
 
@@ -78,45 +78,70 @@ Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) guarda una o más e
 [32m       └── 📄[37m README.md
 ```
 
-## Carpeta 90.Resources
-Debe tener el identificador **90**.  
-Este [nodo](/es/foundationals/core-concepts#nodos) (carpeta) funciona como un repositorio centralizado de material de consulta de uso frecuente, recursos reutilizables y archivos de apoyo estáticos. Alberga los recursos esenciales que siguen siendo valiosos de forma constante en varios proyectos u operaciones.
+## Carpeta RES. Resources
+Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) guarda contenido listo para usar mientras los proyectos están en marcha, por ejemplo recursos de clientes (logos, imágenes, etc.) o ajustes preestablecidos de proyecto.
 
-<h5> Nomenclatura: </h5>
-Este nodo aparece como `90.Resources-of-` y sigue heredando el nombre de su nodo padre.
+Su contenido no necesita copiarse a un proyecto: se puede usar directamente desde aquí. Cada carpeta `RES.` guarda un solo tipo de contenido, así que un nivel puede tener varios recursos (`RES`).
 
-```ansi {2}
-[32m 📁[37m 02.Video-Edition                     [35m  ←−−− Padre
-[32m  ├── 📁[37m 90.Resources-of-Video-Edition   [35m  ←−−− Carpeta de recursos
-[32m  │    ├── 📁[37m 01.Templates-and-presets
-[32m  │    ├── 📁[37m 02.Music-and-SFX
-[32m  │    ├── 📁[37m . . .
+> <h5> Nomenclatura: </h5>
+> Usa el prefijo ` RES. ` y nombra lo que guarda.
+>
+> p. ej. `RES.Client-Assets`, `RES.Edition-Assets`
+>
+> En el nivel 1, `900.Resources` no cambia.
+
+```ansi {2,5}
+[32m 📁[37m 04.Video-Edition                           [35m←−−− Padre
+[32m  ├── 📁[37m RES.Client-Assets                     [35m←−−− Recursos de los clientes
+[32m  │    ├── 📁[37m Logos
+[32m  │    └── 📁[37m Images
+[32m  ├── 📁[37m RES.Edition-Assets                    [35m←−−− Recursos de edición
+[32m  │    ├── 📁[37m Music-and-SFX
+[32m  │    └── 📁[37m Presets-and-LUTs
+[32m  ├── 📁[37m PJ.133_Promo-Video                    [35m←−−− Los usa desde RES, sin copiarlos
+[32m  └── 📁[37m PJ.134_Product-Launch                 [35m←−−− Los usa desde RES, sin copiarlos
 ```
 
-<h5> Utilidad </h5>
-Funciona como una **caja de herramientas siempre disponible** para tus proyectos, tareas o trabajos escolares. Ofrece un lugar donde guardar los archivos, plantillas y recursos de uso frecuente, accesibles desde el nivel actual.
+## Carpeta (00) Outcomes
+Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) recibe los entregables de los [tableros de trabajo](/es/foundationals/workboard-nodes) que tiene al lado.
 
----
-## Carpeta (00) Done
-Debe tener el identificador **00**.  
-Este [nodo](/es/foundationals/core-concepts#nodos) sirve exclusivamente como el **archivo final** de los resultados completados. Cuando una [carpeta de tablero de trabajo](/es/foundationals/workboard-nodes) llega al final de su vida tras completarse el proyecto o la tarea, aquí solo se conservan los recursos finalizados.
+Cuando un tablero de trabajo termina, [FolderManager](/es/folder-manager/project-management#outcomes) mueve su entregable aquí, a una carpeta con fecha, y deja un acceso directo en el tablero para volver a encontrarlo.
 
-<h5> Nomenclatura: </h5>
-Siempre debe aparecer como **00.Done** en cada nivel donde existan tableros de trabajo.  
-Si lo deseas, puedes ponerle el nombre que quieras, pero debes usar el prefijo **00.** antes del nombre.
+> <h5> Nomenclatura: </h5>
+> Usa el identificador ` 00. ` y el nombre que quieras, en cada nivel donde existan tableros de trabajo.
+>
+> p. ej. `00.Outcomes`, `00.Edition-Portfolio`
 
-```ansi {2}
-[32m 📁[37m 02.Video-Edition                      [35m ←−−− Padre
-[32m  ├── 📁[37m 00.Edition-Portfolio             [35m ←−−− Carpeta Done
-[32m  │    ├── 📁[37m 01.Templates-and-presets
-[32m  │    ├── 📁[37m 02.Music-and-SFX
-[32m  │    ├── 📁[37m . . .
+```ansi {2-4}
+[32m 📁[37m 04.Video-Edition                           [35m←−−− Padre
+[32m  ├── 📁[37m 00.Outcomes                           [35m←−−− Carpeta Outcomes
+[32m  │    └── 📁[37m (26-11-01)_Promo-Video           [35m←−−− Entrega con fecha
+[32m  │         └── 📄[37m Promo-Video-Final.mp4
+[32m  └── 📁[37m PJ.133_Promo-Video                    [35m←−−− Tablero de trabajo
+[32m       ├── 📁[37m 01.RawFootage
+[32m       └── 📁[37m 04.Renders                       [35m←−−− Carpeta de salida
+[32m            └── 📄[37m (26-11-01)_Promo-Video.lnk  [35m←−−− Acceso directo a la entrega
 ```
 
 ---
 ## Carpetas temporales (~)
-Bueno, esto no es un identificador como tal, es solo una marca.  
-Este marcador especial (no es un identificador numerado) designa un **almacenamiento de vida ultracorta** para los archivos de trabajo activos. A diferencia de la [carpeta REV. Review](#carpeta-rev-review), los nodos `~` son contenedores desechables para los recursos mientras se manipulan, y funcionan como zonas de retención temporal que deben eliminarse inmediatamente después de usarse.
 
-<h5> Nomenclatura: </h5>
-Siempre llevan el prefijo `~` seguido del nombre que quieras.
+El prefijo `~` se usa para elementos temporales. Se coloca al inicio del nombre de cualquier carpeta o archivo y [FolderManager](/es/folder-manager/folder-manager) lo ignora: no lo ordena, no le cambia el nombre ni le aplica otras acciones automáticas.
+
+Úsalo solo para marcar elementos temporales que deban eliminarse después, para que no sigan consumiendo espacio.
+
+> <h5> Nomenclatura: </h5>
+> Coloca una virgulilla ` ~ ` al inicio del nombre de cualquier carpeta o archivo.
+>
+> p. ej. `~09585`, `~render-draft.mp4`
+
+```ansi {4, 6}
+[32m 📁[37m 04.Parent-example                 
+[32m  ├── 📁[37m 01.Child-sorted                
+[32m  ├── 📁[37m 02.Another-file-sorted    
+[32m  ├── 📁[37m ~09585                                [35m←−−− Carpeta temporal
+[32m  ├── 📄[37m common-file.txt
+[32m  └── 📄[37m ~reference-document.docx              [35m←−−− Archivo temporal
+
+
+```
