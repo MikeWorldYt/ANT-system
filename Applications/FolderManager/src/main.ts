@@ -10,6 +10,7 @@ import { autoRefresh } from "./hooks/auto-refresh";
 import { startIdleRefresh } from "./hooks/idle-refresh";
 import { handleFileDrag } from "./hooks/file-drop";
 import { installShortcuts } from "./hooks/shortcuts";
+import { closeTab, nextTab, openTab, syncTabs } from "./hooks/tabs";
 import { restoreFocus, trackFieldFocus } from "./hooks/focus-return";
 import { checkForUpdates } from "./hooks/updates";
 import { startBackups } from "./hooks/backups";
@@ -21,7 +22,7 @@ import { plural } from "./services/plural";
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
 
-const { views, toolbar, navigator, search, panel, board, openSelected } = createMainWindow(app);
+const { views, toolbar, navigator, tabBar, search, panel, board, openSelected } = createMainWindow(app);
 installShortcuts({
   focusSearch: () => search.focus("folders"),
   searchFiles: () => search.focus("files"),
@@ -31,11 +32,16 @@ installShortcuts({
   openSelected,
   toggleSidePanel: panel.toggleCollapsed,
   editDetails: panel.editDetails,
+  newTab: () => openTab(),
+  closeTab: () => closeTab(),
+  nextTab,
 });
 
 subscribe(() => {
   toolbar.render();
   navigator.render();
+  syncTabs();
+  tabBar.render();
   views.current().render();
   board.render();
   panel.render();

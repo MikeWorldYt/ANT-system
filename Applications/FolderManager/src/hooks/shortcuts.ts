@@ -14,6 +14,9 @@ export interface ShortcutTargets {
   openSelected(): void;
   toggleSidePanel(): void;
   editDetails(): void;
+  newTab(): void;
+  closeTab(): void;
+  nextTab(): void;
 }
 
 interface Binding extends KeyCombo {
@@ -50,6 +53,9 @@ const FIXED_SHORTCUTS: KeyCombo[] = [
   { code: "KeyV", mod: true, alt: false },
   { code: "KeyC", mod: true, alt: false },
   { code: "KeyX", mod: true, alt: false },
+  { code: "KeyT", mod: true, alt: false },
+  { code: "KeyW", mod: true, alt: false },
+  { code: "Tab", mod: true, alt: false },
 ];
 
 export const comboOf = (id: string): KeyCombo =>
@@ -97,6 +103,9 @@ function bindings(go: ShortcutTargets): Binding[] {
     { code: "KeyV", mod: true, alt: false, plain: false, inFields: false, run: pasteHere },
     { code: "KeyC", mod: true, alt: false, plain: false, inFields: false, run: () => void putOnClipboard(actedNodes(), false) },
     { code: "KeyX", mod: true, alt: false, plain: false, inFields: false, run: () => void putOnClipboard(actedNodes(), true) },
+    { code: "KeyT", mod: true, alt: false, plain: false, inFields: true, run: go.newTab },
+    { code: "KeyW", mod: true, alt: false, plain: false, inFields: true, run: go.closeTab },
+    { code: "Tab", mod: true, alt: false, plain: false, inFields: true, run: go.nextTab },
   ];
 }
 

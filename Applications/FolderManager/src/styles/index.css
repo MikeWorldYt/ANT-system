@@ -4,6 +4,7 @@
 @import "./base.css";
 @import "./components/atoms/gui-icons.css";
 @import "./components/organisms/bars/navigator.css";
+@import "./components/organisms/bars/tab-bar.css";
 @import "./components/organisms/bars/search-bar.css";
 @import "./components/molecules/search-chips.css";
 @import "./components/atoms/icon-button.css";
