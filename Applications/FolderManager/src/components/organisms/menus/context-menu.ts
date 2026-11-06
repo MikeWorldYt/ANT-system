@@ -8,7 +8,7 @@ import { suggestSearch } from "../../../services/ipc/api";
 import { reportError } from "../bars/status-line";
 import { createShortcut, putOnClipboard } from "../../../hooks/folder-share";
 import { openTab } from "../../../hooks/tabs";
-import { copyPath, openFolder } from "../../../hooks/path-actions";
+import { copyPath, openFolder, openInApp } from "../../../hooks/path-actions";
 import { isSelected, keyOf, selectedNodes, startEdit, state } from "../../../services/store/state";
 import { menuItems, runMenuItem } from "../../../extensions/host";
 import { autoDismiss, focusInitial, closingItem, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
@@ -76,7 +76,7 @@ function downloadsMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
   const [one] = nodes.length === 1 ? nodes : [];
   const copy = action("Copy", true, () => void putOnClipboard(nodes, false));
   if (!one) return { items: [copy], subs: [], content: [copy] };
-  const open = action("Open", one.actions.open, () => void openFolder(one));
+  const open = action(one.file ? "Open" : "Open folder location", one.actions.open, () => void openFolder(one));
   const copyPathItem = action("Copy path", one.actions.copyPath, () => void copyPath(one));
   return { items: [open, copyPathItem, copy], subs: [], content: [open, copyPathItem, separator(), copy] };
 }
@@ -86,7 +86,7 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   if (inDownloads(node.relParts)) return downloadsMenu([node], close);
   const a = node.actions;
 
-  const open = action("Open", a.open, () => void openFolder(node));
+  const open = action(node.file ? "Open" : "Open folder location", a.open, () => void openFolder(node));
   const copyPathItem = action("Copy path", a.copyPath, () => void copyPath(node));
   const favorite = action(node.favorite ? "Remove from favorites" : "Add to favorites", a.favorite, () => void setFavorite(node, !node.favorite));
   favorite.prepend(guiIcon("starred"));
@@ -114,6 +114,7 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     return { items: [open, copyPathItem, favorite, ...hideItems, copy, paste], subs: [], content: [open, copyPathItem, favorite, ...hideItems, separator(), copy, paste] };
   }
   const shortcut = action("Create shortcut", true, () => void createShortcut(node));
+  const openHere = action("Open", true, () => void openInApp(node));
   const newTab = action("Open in new tab", true, () => openTab(node.relParts));
   const shareItems = node.reserved || node.ghost ? [] : [paste, shortcut];
   const allowsFiles = node.flags.includes("data");
@@ -159,10 +160,10 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [open, newTab, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, hideElement, del, ...extras],
+    items: [openHere, newTab, open, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, hideElement, del, ...extras],
     subs,
     content: [
-      open, newTab, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
+      openHere, newTab, open, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
       rename, copy, cut, ...shareItems, separator(),
       ...subs.map((s) => s.element), ...fileItems, separator(),
       newNode, newWorkboard, separator(),

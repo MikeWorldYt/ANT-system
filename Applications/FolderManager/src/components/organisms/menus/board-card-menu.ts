@@ -5,7 +5,7 @@ import { BOARD_COLUMNS } from "../../../services/store/board";
 import { importantLabel } from "../../../services/store/node-info";
 import { guiIcon } from "../../atoms/gui-icons";
 import { closingItem, menuItem, separator, submenu } from "../../molecules/menu";
-import { copyPath } from "../../../hooks/path-actions";
+import { copyPath, openFolder } from "../../../hooks/path-actions";
 import type { MenuParts } from "./board-menu";
 import type { BoardColumn, TreeNode } from "../../../services/ipc/types";
 
@@ -21,6 +21,7 @@ export function boardCardMenu(node: TreeNode, at: BoardColumn, act: CardActions,
     close(false);
     void goToReal(node.relParts);
   });
+  const location = action("Open folder location", a.open, () => void openFolder(node));
   const copy = action("Copy path", a.copyPath, () => void copyPath(node));
   const edit = menuItem("Edit", "menuitem", a.editDetails || a.rename, () => {
     close(false);
@@ -44,8 +45,8 @@ export function boardCardMenu(node: TreeNode, at: BoardColumn, act: CardActions,
   }, "ctx-item danger");
   del.prepend(guiIcon("trash"));
   return {
-    items: [open, copy, edit, important, move.trigger, hide, del],
+    items: [open, location, copy, edit, important, move.trigger, hide, del],
     subs: [move],
-    content: [open, copy, edit, important, move.element, separator(), hide, del],
+    content: [open, location, copy, edit, important, move.element, separator(), hide, del],
   };
 }

@@ -208,6 +208,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     // The review root and its links have no order or delete: their folders are the app's or the owners'.
     order.hidden = foot.hidden = n === null || review || n.linked;
     quick.hidden = n === null || !quickActionsShown();
+    open.setLabel(n?.file ? "Open" : "Open folder location");
     favorite.setLabel(favoriteLabel(n));
     const marked = allImportant();
     important.setLabel(importantLabel(marked));

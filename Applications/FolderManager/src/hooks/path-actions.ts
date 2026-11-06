@@ -1,5 +1,7 @@
-// Copying a node's path and opening it in Explorer, shared by the node menus and the board cards.
+// Copying a node's path and opening it here or in Explorer, shared by the node menus and the board cards.
 import { openNode } from "../services/ipc/api";
+import { keyOf, state } from "../services/store/state";
+import { goToReal } from "./virtual-nav";
 import { setStatus, reportError } from "../components/organisms/bars/status-line";
 import type { TreeNode } from "../services/ipc/types";
 
@@ -10,6 +12,11 @@ export async function copyPath(node: TreeNode): Promise<void> {
   } catch {
     setStatus("warning", `Could not copy to the clipboard. Path: ${node.absPath}`);
   }
+}
+
+export async function openInApp(node: TreeNode): Promise<void> {
+  state.expanded.add(keyOf(node.relParts));
+  await goToReal(node.relParts);
 }
 
 export async function openFolder(node: TreeNode): Promise<void> {
