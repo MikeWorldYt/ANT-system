@@ -1,7 +1,7 @@
-// Commands of the Extensions settings page; downloads run outside the storage lock so a slow network never blocks the tree.
+// Commands of the Extensions settings page; downloads and zip expansion run outside the storage lock so neither blocks the tree.
 use tauri::AppHandle;
 
-use super::{off_thread, run_locked};
+use super::{off_thread, run_locked, run_unlocked};
 use crate::domain::error::{FmError, R};
 use crate::services::extensions::{self, ExtensionInfo, ExtensionPreview, RegistryEntry};
 
@@ -43,7 +43,8 @@ pub async fn install_registry_extension(app: AppHandle, id: String) -> R<Extensi
         Ok((item, bytes))
     })
     .await??;
-    run_locked(app, move |root| extensions::from_registry(root, &item, &bytes)).await
+    let staged = run_unlocked(app.clone(), move |_, root| extensions::stage_registry(root, item, &bytes)).await?;
+    run_locked(app, move |root| extensions::from_registry(root, &staged)).await
 }
 
 #[tauri::command]
@@ -53,7 +54,7 @@ pub async fn inspect_extension_repo(app: AppHandle, url: String) -> R<ExtensionP
     })?;
     let canonical = extensions::repo_url(&owner, &repo);
     let bytes = off_thread(move || extensions::repo_zip(&owner, &repo)).await??;
-    run_locked(app, move |root| extensions::stage_repo(root, &canonical, &bytes)).await
+    run_unlocked(app, move |_, root| extensions::stage_repo(root, &canonical, &bytes)).await
 }
 
 #[tauri::command]

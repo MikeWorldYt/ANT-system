@@ -3,6 +3,8 @@ use std::path::Path;
 
 use super::fail;
 use super::fetch::valid_sha256;
+#[cfg(windows)]
+use super::zip_limits::MAX_EXPANDED_BYTES;
 use crate::domain::error::R;
 
 pub fn hash_from(output: &str) -> R<String> {
@@ -35,11 +37,20 @@ pub fn sha256_file(file: &Path) -> R<String> {
     Err(fail(format!("Could not compute the sha256: {last}")))
 }
 
+// The sizes in a zip's directory are only claims, so every entry is inflated to nowhere against the limit before any file is written.
 #[cfg(windows)]
 pub fn expand(zip: &Path, dest: &Path) -> R<()> {
     let script = "$ErrorActionPreference = 'Stop'; Add-Type -AssemblyName System.IO.Compression.FileSystem; \
+        $left = [long]$env:FM_MAX; $buffer = New-Object byte[] 65536; \
+        $archive = [IO.Compression.ZipFile]::OpenRead($env:FM_ZIP); \
+        try { foreach ($entry in $archive.Entries) { $stream = $entry.Open(); \
+            try { while (($read = $stream.Read($buffer, 0, 65536)) -gt 0) { \
+                $left -= $read; if ($left -lt 0) { throw 'The archive expands past its limit' } } } \
+            finally { $stream.Dispose() } } } \
+        finally { $archive.Dispose() }; \
         [IO.Compression.ZipFile]::ExtractToDirectory($env:FM_ZIP, $env:FM_DEST)";
-    let env = [("FM_ZIP", zip.as_os_str()), ("FM_DEST", dest.as_os_str())];
+    let max = MAX_EXPANDED_BYTES.to_string();
+    let env = [("FM_ZIP", zip.as_os_str()), ("FM_DEST", dest.as_os_str()), ("FM_MAX", std::ffi::OsStr::new(&max))];
     crate::platform::windows::powershell::run_powershell(script, &env, None, std::time::Duration::from_secs(120))
         .map(|_| ())
         .map_err(|e| fail(format!("Could not expand the extension: {e}")))

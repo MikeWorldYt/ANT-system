@@ -10,6 +10,7 @@ use super::fail;
 use super::manifest::has_manifest;
 use super::store::extensions_dir;
 use super::tools;
+use super::zip_limits;
 use crate::domain::error::R;
 use crate::infra::fs_safe::{dir_entries, io_err, is_link};
 
@@ -86,6 +87,7 @@ pub fn check_tree(dir: &Path, inside: &Path) -> R<()> {
 }
 
 pub fn create(root: &Path, bytes: &[u8]) -> R<(String, PathBuf)> {
+    zip_limits::check(bytes)?;
     let token = new_token();
     let dir = staging_root(root).join(&token);
     fs::create_dir_all(&dir).map_err(|e| io_err("create folder", &dir, &e))?;
