@@ -19,7 +19,7 @@ use crate::domain::config::{BACKUP_FOLDER, SETTINGS_FOLDER};
 use crate::services::debug_log::valid_stamp;
 use crate::domain::validation::valid_backup_folder;
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{dir_entries, io_err, is_link, StorageLock};
+use crate::infra::fs_safe::{dir_entries, io_err, is_link, rename_no_replace, StorageLock};
 use crate::infra::storage::db::Store;
 use crate::infra::storage::recovery::{db_state, set_aside, DbState};
 
@@ -99,6 +99,26 @@ fn staged<T>(staging: &Path, f: impl FnOnce() -> R<T>) -> R<T> {
     result
 }
 
+fn remove_part(part: &Path) -> R<()> {
+    match fs::remove_file(part) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(io_err("delete file", part, &e)),
+        _ => Ok(()),
+    }
+}
+
+// Only a finished zip gets a name the backup lists accept, so a killed run can never become the newest backup.
+fn write_zip(zip: &Path, compress: impl FnOnce(&Path) -> R<()>) -> R<()> {
+    let mut part = zip.as_os_str().to_owned();
+    part.push(".part");
+    let part = PathBuf::from(part);
+    remove_part(&part)?;
+    let written = compress(&part).and_then(|()| rename_no_replace("rename file", &part, zip));
+    if let Err(e) = remove_part(&part) {
+        eprintln!("Could not remove {}: {e}", part.display());
+    }
+    written
+}
+
 pub fn create(root: &Path, stamp: &str) -> R<PathBuf> {
     if !valid_stamp(stamp) {
         return Err(fail(format!("Invalid backup stamp {stamp}")));
@@ -176,27 +196,41 @@ pub fn restore(root: &Path, name: &str, stamp: &str) -> R<()> {
     restore_from(root, dir, name, stamp)
 }
 
+fn unpack(zip: &Path, staging: &Path, name: &str) -> R<()> {
+    archive::expand(zip, staging)?;
+    if stage::has_db(staging) {
+        return Ok(());
+    }
+    Err(fail(format!("{name} holds no ant.db")))
+}
+
 // Without a readable ant.db there is nothing worth a safety backup, and an unreadable one is kept aside instead.
-fn restore_from(root: &Path, dir: &Path, name: &str, stamp: &str) -> R<()> {
+fn install(root: &Path, staging: &Path, stamp: &str) -> R<()> {
+    match db_state(root) {
+        DbState::Healthy => {
+            create(root, stamp)?;
+        }
+        DbState::Unreadable => set_aside(root, stamp)?,
+        DbState::Missing => {}
+    }
+    let _lock = StorageLock::acquire(root)?;
+    stage::apply(root, staging)?;
+    // The restored ant.db predates the safety backup, so its last-backup time is renewed.
+    Store::open_or_create(root)?.set_setting("backupLast", &now().to_string())
+}
+
+// The inner error means the zip is unusable and the storage is untouched, so another backup can still be tried.
+fn try_restore(root: &Path, dir: &Path, name: &str, stamp: &str) -> R<R<()>> {
     let zip = backup_zip(dir, name)?;
     let staging = dir.join(format!(".{stamp}_restore"));
-    staged(&staging, || {
-        archive::expand(&zip, &staging)?;
-        if !stage::has_db(&staging) {
-            return Err(fail(format!("{name} holds no ant.db")));
-        }
-        match db_state(root) {
-            DbState::Healthy => {
-                create(root, stamp)?;
-            }
-            DbState::Unreadable => set_aside(root, stamp)?,
-            DbState::Missing => {}
-        }
-        let _lock = StorageLock::acquire(root)?;
-        stage::apply(root, &staging)?;
-        // The restored ant.db predates the safety backup, so its last-backup time is renewed.
-        Store::open_or_create(root)?.set_setting("backupLast", &now().to_string())
+    staged(&staging, || match unpack(&zip, &staging, name) {
+        Ok(()) => install(root, &staging, stamp).map(Ok),
+        Err(e) => Ok(Err(e)),
     })
+}
+
+fn restore_from(root: &Path, dir: &Path, name: &str, stamp: &str) -> R<()> {
+    try_restore(root, dir, name, stamp)?
 }
 
 pub fn run_headless(start: Option<OsString>) -> i32 {

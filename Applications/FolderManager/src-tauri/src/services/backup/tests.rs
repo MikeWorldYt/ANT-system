@@ -3,7 +3,7 @@ use std::fs;
 use super::*;
 use crate::domain::config::{DATA_DIR, DB_FILENAME};
 use crate::infra::fs_safe::LOCK_FILE;
-use crate::test_support::{academic, TempDir};
+use crate::test_support::{academic, names, remove_db, TempDir};
 
 const STAMP: &str = "26-10-24-09-05";
 
@@ -126,6 +126,43 @@ fn restore_rejects_names_outside_the_backup_folder() {
     assert!(restore(dir.path(), "26-10-24-09-05_ANT-fm-backup.zip", "bad").is_err());
     fs::write(backups.join("26-10-24-09-05_ANT-fm-backup.zip"), "").unwrap();
     assert!(backup_zip(&backups, "26-10-24-09-05_ANT-fm-backup.zip").is_ok());
+}
+
+#[test]
+fn a_zip_cut_short_never_takes_its_final_name_and_a_stale_part_does_not_block_the_next() {
+    let dir = TempDir::new("backup-part");
+    let zip = dir.path().join(format!("{STAMP}{SUFFIX}.zip"));
+    let cut = write_zip(&zip, |part| {
+        fs::write(part, "half").unwrap();
+        Err(fail("disk full".to_string()))
+    });
+    assert!(cut.is_err());
+    assert_eq!(names(dir.path()), Vec::<String>::new());
+    let stale = dir.path().join(format!("{STAMP}{SUFFIX}.zip.part"));
+    fs::write(&stale, "killed").unwrap();
+    assert!(entries(dir.path()).unwrap().is_empty());
+    write_zip(&zip, |part| {
+        assert_eq!(part, stale);
+        assert!(!part.exists());
+        fs::write(part, "whole").map_err(|e| fail(e.to_string()))
+    })
+    .unwrap();
+    assert_eq!(fs::read_to_string(&zip).unwrap(), "whole");
+    assert_eq!(names(dir.path()), [format!("{STAMP}{SUFFIX}.zip")]);
+}
+
+#[test]
+fn a_truncated_newest_zip_makes_restore_latest_use_the_previous_one() {
+    let dir = academic("backup-truncated");
+    let root = dir.path();
+    Store::open_or_create(root).unwrap().set_setting("backupFrequency", "week").unwrap();
+    let good = create(root, STAMP).unwrap();
+    let bytes = fs::read(&good).unwrap();
+    fs::write(good.with_file_name("26-10-25-09-05_ANT-fm-backup.zip"), &bytes[..bytes.len() / 2]).unwrap();
+    remove_db(root);
+    restore_latest(root, "26-10-26-09-05").unwrap();
+    assert_eq!(settings(root).unwrap().get("backupFrequency").map(String::as_str), Some("week"));
+    assert_eq!(names(&root.join("backup")).len(), 2);
 }
 
 #[test]
