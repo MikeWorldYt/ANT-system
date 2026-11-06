@@ -23,7 +23,8 @@ if (!app) throw new Error("Missing #app mount point");
 
 const { views, toolbar, navigator, search, panel, board, openSelected } = createMainWindow(app);
 installShortcuts({
-  focusSearch: search.focus,
+  focusSearch: () => search.focus("folders"),
+  searchFiles: () => search.focus("files"),
   editPath: navigator.editPath,
   openSettings: () => void openSettings(),
   goUp: navigator.goUp,

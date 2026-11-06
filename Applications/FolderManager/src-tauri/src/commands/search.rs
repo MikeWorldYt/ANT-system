@@ -5,7 +5,7 @@ use super::{off_thread, run_unlocked};
 use crate::app::storage_session::Storage;
 use crate::domain::search::{canonical_key, parse_query};
 use crate::domain::error::R;
-use crate::services::index::disk_search;
+use crate::services::index::disk_search::{self, FileHit};
 use crate::infra::storage::db::{Store, Suggestion};
 
 #[tauri::command]
@@ -34,6 +34,16 @@ pub async fn search_disk(app: AppHandle, query: String) -> R<Vec<Vec<String>>> {
     off_thread(move || {
         let root = app.state::<Storage>().root()?;
         disk_search::search_disk(&root, &parse_query(&query))
+    })
+    .await?
+}
+
+// Same walk as search_disk, matching file names inside the folders.
+#[tauri::command]
+pub async fn search_files(app: AppHandle, query: String) -> R<Vec<FileHit>> {
+    off_thread(move || {
+        let root = app.state::<Storage>().root()?;
+        disk_search::search_files(&root, &parse_query(&query))
     })
     .await?
 }

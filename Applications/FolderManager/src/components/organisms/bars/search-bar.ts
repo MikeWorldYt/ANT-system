@@ -1,5 +1,5 @@
 // Search box of the navigation bar: filter chips, completions for `key:` and a results list.
-import { searchDisk, searchNodes, suggestSearch, type Suggestion } from "../../../services/ipc/api";
+import { searchDisk, searchFiles, searchNodes, suggestSearch, type FileHit, type Suggestion } from "../../../services/ipc/api";
 import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
 import { findNode, reveal } from "../../../services/store/state";
@@ -13,20 +13,28 @@ interface Item {
   label: string;
   hint: string;
   parts?: string[];
+  icon?: HTMLElement;
   pick(): void;
 }
+
+export type SearchMode = "folders" | "files";
+
+const MODES: Record<SearchMode, { placeholder: string; label: string }> = {
+  folders: { placeholder: "Search", label: "Search folders" },
+  files: { placeholder: "Search files", label: "Search files inside folders" },
+};
 
 const LIMIT = 50;
 const DELAY_MS = 200;
 // Walking the whole storage can be heavy, so it waits until typing has been idle this long.
 const REST_DELAY_MS = 5_000;
 
-export function createSearchBar(): { element: HTMLElement; focus(): void } {
+export function createSearchBar(): { element: HTMLElement; focus(mode: SearchMode): void } {
   const input = textInput({
     class: "search-input",
     placeholder: "Search",
     "aria-label": "Search folders",
-    title: "Filter with in:folder and status:name, then pick a suggestion to make a chip. Ctrl+F focuses the search.",
+    title: "Filter with in:folder and status:name, then pick a suggestion to make a chip. Ctrl+F focuses the search, Ctrl+K searches files.",
     role: "combobox",
     "aria-expanded": "false",
     "aria-controls": "search-results",
@@ -42,6 +50,7 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
   const element = el("div", { class: "search-box collapsed" }, field, list, live);
 
   const chips: Chip[] = [];
+  let mode: SearchMode = "folders";
   let focused = false;
   // Database matches come first in hits, then the rest of the storage from the slow pass.
   let hits: string[][] = [];
@@ -85,7 +94,7 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
 
   function show(extra: string[] = []): void {
     const rows = items.flatMap((item, i) => {
-      const icon = item.parts ? [hitIcon(item.parts)] : [];
+      const icon = item.icon ? [item.icon] : item.parts ? [hitIcon(item.parts)] : [];
       const li = el("li", { class: "search-hit", role: "option", id: `search-hit-${i}` }, ...icon, el("span", { class: "hit-name" }, item.label), el("span", { class: "hit-path" }, item.hint));
       if (item.parts) li.dataset.key = item.parts.join("/");
       li.addEventListener("click", item.pick);
@@ -108,6 +117,13 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     redraw();
     input.focus();
     void run();
+  }
+
+  function setMode(next: SearchMode): void {
+    mode = next;
+    input.placeholder = MODES[next].placeholder;
+    input.setAttribute("aria-label", MODES[next].label);
+    element.classList.toggle("files-mode", next === "files");
   }
 
   const queryText = (): string => [...chips.map(chipQuery), input.value.trim()].filter(Boolean).join(" ");
@@ -137,6 +153,19 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     if (restPending) notes.push("Searching the rest of the storage…");
     divider = dbShown > 0 && restShown > 0 ? dbShown : -1;
     show(notes);
+  }
+
+  async function runFiles(mine: number): Promise<void> {
+    const found = await searchFiles(queryText());
+    if (mine !== latest) return;
+    items = found.slice(0, LIMIT).map((hit: FileHit) => ({
+      label: hit.name,
+      hint: hit.folder.join(" › "),
+      icon: hitIcon(hit.folder),
+      pick: () => void openFile(hit),
+    }));
+    divider = -1;
+    show(found.length > LIMIT ? [`${found.length - LIMIT} more, narrow the search`] : []);
   }
 
   async function searchRest(): Promise<void> {
@@ -169,6 +198,7 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     try {
       const token = splitToken(input.value);
       if (token && (await suggest(token.key, token.before, token.partial, mine))) return;
+      if (mode === "files") return await runFiles(mine);
       const found = await searchNodes(queryText());
       if (mine !== latest) return;
       hits = found;
@@ -195,6 +225,19 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     if (!findNode(parts)) setStatus("warning", "That folder is no longer there. Refresh and search again");
   }
 
+  // The views list folders only, so a file is shown by selecting the folder that holds it.
+  async function openFile(hit: FileHit): Promise<void> {
+    close();
+    try {
+      await reveal(hit.folder);
+    } catch (e) {
+      reportError("error", e);
+      return;
+    }
+    if (!findNode(hit.folder)) setStatus("warning", "That folder is no longer there. Refresh and search again");
+    else setStatus("info", `"${hit.name}" is in ${hit.folder[hit.folder.length - 1] ?? "the storage"}`);
+  }
+
   // Typing a space right after a complete `key:value` closes it into a chip, as long as a suggestion matches it exactly.
   function confirmWithSpace(): boolean {
     if (!/\s$/.test(input.value) || !lastSuggest) return false;
@@ -212,7 +255,8 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
     timer = window.setTimeout(() => void run(), DELAY_MS);
   });
   input.addEventListener("keydown", (ev) => {
-    ev.stopPropagation();
+    // Ctrl combos must reach the global shortcuts, so Ctrl+F and Ctrl+K work from inside the box.
+    if (!ev.ctrlKey && !ev.metaKey) ev.stopPropagation();
     const isOpen = !list.hidden && items.length > 0;
     if (ev.key === "ArrowDown" && isOpen) active = (active + 1) % items.length;
     else if (ev.key === "ArrowUp" && isOpen) active = (active - 1 + items.length) % items.length;
@@ -243,6 +287,7 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
   input.addEventListener("blur", () => {
     focused = false;
     close();
+    if (input.value === "" && chips.length === 0) setMode("folders");
     sync();
   });
   field.addEventListener("click", () => {
@@ -251,9 +296,13 @@ export function createSearchBar(): { element: HTMLElement; focus(): void } {
 
   return {
     element,
-    focus() {
+    focus(next) {
+      const rerun = focused && next !== mode;
+      setMode(next);
       input.focus();
       input.select();
+      // Already focused means no focus event, so a changed mode searches again here.
+      if (rerun && (input.value.trim() || chips.length > 0)) void run();
     },
   };
 }

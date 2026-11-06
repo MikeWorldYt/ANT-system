@@ -138,6 +138,11 @@ export const listReview = () => call<string[][]>("list_review");
 export const listWorkboards = () => call<string[][]>("list_workboards");
 export const setBoard = (cards: BoardCard[]) => call<Mutation>("set_board", { cards });
 export const searchDisk = (query: string) => call<string[][]>("search_disk", { query });
+export interface FileHit {
+  folder: string[];
+  name: string;
+}
+export const searchFiles = (query: string) => call<FileHit[]>("search_files", { query });
 export interface Suggestion {
   value: string;
   label: string;

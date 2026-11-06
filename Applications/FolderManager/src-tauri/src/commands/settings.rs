@@ -29,8 +29,8 @@ const THEME_VALUES: [&str; 3] = ["system", "light", "dark"];
 const ACCENT_VALUES: [&str; 5] = ["green", "blue", "purple", "coral", "gold"];
 const TEXT_SIZE_VALUES: [&str; 3] = ["small", "medium", "large"];
 const BACKUP_FREQUENCIES: [&str; 3] = ["day", "week", "month"];
-const SHORTCUT_ACTIONS: [&str; 10] =
-    ["focusSearch", "editPath", "newNode", "newWorkboard", "openSettings", "goUp", "toggleSidePanel", "moveDown", "toggleFavorite", "editDetails"];
+const SHORTCUT_ACTIONS: [&str; 11] =
+    ["focusSearch", "searchFiles", "editPath", "newNode", "newWorkboard", "openSettings", "goUp", "toggleSidePanel", "moveDown", "toggleFavorite", "editDetails"];
 // Keys the folder views own, so a shortcut can never take them: (code, mod, alt).
 const FIXED_KEYS: [(&str, bool, bool); 2] = [("Delete", false, false), ("Enter", false, false)];
 

@@ -7,6 +7,7 @@ import { putOnClipboard } from "./folder-share";
 
 export interface ShortcutTargets {
   focusSearch(): void;
+  searchFiles(): void;
   editPath(): void;
   openSettings(): void;
   goUp(): void;
@@ -26,6 +27,7 @@ interface Binding extends KeyCombo {
 // Ctrl, or Cmd on macOS and Super elsewhere, whichever the platform reports as meta.
 export const EDITABLE_SHORTCUTS: { id: string; label: string; combo: KeyCombo }[] = [
   { id: "focusSearch", label: "Search in Storage", combo: { code: "KeyF", mod: true, alt: false } },
+  { id: "searchFiles", label: "Search files in Storage", combo: { code: "KeyK", mod: true, alt: false } },
   { id: "editPath", label: "Edit path", combo: { code: "KeyL", mod: true, alt: false } },
   { id: "newNode", label: "New node", combo: { code: "KeyN", mod: true, alt: false } },
   { id: "newWorkboard", label: "New Workboard", combo: { code: "KeyN", mod: true, alt: true } },
