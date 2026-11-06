@@ -128,6 +128,21 @@ fn a_folder_moved_across_drives_is_copied_whole_and_then_removed() {
     assert!(!from.exists());
 }
 
+#[test]
+fn a_copy_onto_an_existing_folder_fails_and_leaves_its_contents() {
+    let outside = TempDir::new("whole-src");
+    let from = outside.path().join("Folder");
+    fs::create_dir(&from).unwrap();
+    fs::write(from.join("new.txt"), "new").unwrap();
+    let other = TempDir::new("whole-dst");
+    let to = other.path().join("Folder");
+    fs::create_dir(&to).unwrap();
+    fs::write(to.join("keep.txt"), "keep").unwrap();
+    assert!(copy_whole(&from, &to).is_err());
+    assert_eq!(names(&to), ["keep.txt"]);
+    assert_eq!(fs::read_to_string(to.join("keep.txt")).unwrap(), "keep");
+}
+
 fn read(dir: &TempDir, rel: &str) -> String {
     fs::read_to_string(dir.path().join(rel)).unwrap()
 }

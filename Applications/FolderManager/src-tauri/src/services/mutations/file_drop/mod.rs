@@ -293,9 +293,10 @@ fn move_across(from: &Path, to: &Path) -> Result<Option<String>, String> {
     Ok(fs::remove_dir_all(from).err().map(|e| format!("copied as {}, but the original could not be removed: {e}", to.display())))
 }
 
-// A folder copied in part is removed again, so a failed copy leaves nothing behind.
+// A folder copied in part is removed again; `to` is created first, so that removal only ever takes what this copy made.
 fn copy_whole(from: &Path, to: &Path) -> Result<(), String> {
-    if let Err(why) = copy_tree(from, to) {
+    fs::create_dir(to).map_err(|e| io_err("create folder", to, &e).to_string())?;
+    if let Err(why) = copy_contents(from, to) {
         return match fs::remove_dir_all(to) {
             Ok(()) => Err(why),
             Err(r) => Err(format!("{why}; the partial copy {} could not be removed: {r}", to.display())),
@@ -306,6 +307,10 @@ fn copy_whole(from: &Path, to: &Path) -> Result<(), String> {
 
 pub(super) fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
     fs::create_dir(to).map_err(|e| io_err("create folder", to, &e).to_string())?;
+    copy_contents(from, to)
+}
+
+fn copy_contents(from: &Path, to: &Path) -> Result<(), String> {
     for entry in fs::read_dir(from).map_err(|e| io_err("list folder", from, &e).to_string())? {
         let entry = entry.map_err(|e| io_err("list folder", from, &e).to_string())?;
         let path = entry.path();
