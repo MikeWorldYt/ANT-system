@@ -1,4 +1,4 @@
-// A folder without a valid id moves into a review folder (98.*) beside its siblings, keeping its contents.
+// A folder without a valid id moves into a review folder (REV.*) beside its siblings, keeping its contents.
 use std::path::Path;
 
 use super::{insert, rules};
@@ -7,7 +7,7 @@ use crate::domain::tree_types::type_base;
 use crate::domain::config::is_hidden_dir;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{Journal, StorageLock};
-use crate::services::mutations::{child_rel, ensure_free, finish, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation};
+use crate::services::mutations::{child_rel, ensure_free, finish, load_synced_at, locate, parent_of, persist, scope, split, subtrees, Mutation};
 use crate::services::tree::depth;
 use crate::services::tree::tree_store::{self, delete_key, get_node, get_node_mut, infer_type};
 
@@ -17,7 +17,7 @@ pub fn move_to_review(root: &Path, source: &[String], destination: &[String]) ->
     if is_hidden_dir(name) || has_valid_id(source) {
         return Err(rules::refuse(source, "only a folder without a valid id can be moved to a review folder"));
     }
-    let (mut data, mut synced) = load_synced_at(root, destination)?;
+    let (mut data, synced) = load_synced_at(root, destination)?;
     let from = locate(root, &data, source)?;
     if from.ghost {
         return Err(FmError::GhostNotAllowed { op: "move to review".to_string() });
@@ -25,7 +25,7 @@ pub fn move_to_review(root: &Path, source: &[String], destination: &[String]) ->
     let to = locate(root, &data, destination)?;
     rules::check_destination(destination, &to)?;
     if type_base(&to.node_type) != "REV" {
-        return Err(rules::refuse(destination, "the destination must be a review folder (98.*)"));
+        return Err(rules::refuse(destination, "the destination must be a review folder (REV.*)"));
     }
     if destination.len() < 2 {
         return Err(rules::refuse(destination, "the review folder must sit inside a node"));
@@ -37,7 +37,7 @@ pub fn move_to_review(root: &Path, source: &[String], destination: &[String]) ->
     })?;
 
     if let Some(node) = get_node_mut(&mut data, source) {
-        synced |= tree_store::sync_subtree(root, source, node)?;
+        tree_store::sync_subtree(root, source, node)?;
     }
     let mut entry = get_node(&data, source).cloned().unwrap_or_default();
     // The type was inferred for the folder's old place, so it is inferred again for the level it lands on.
@@ -54,8 +54,8 @@ pub fn move_to_review(root: &Path, source: &[String], destination: &[String]) ->
     if let Err(e) = insert(root, &mut data, &new_rel, entry, limit) {
         return Err(journal.abort("move to review", e));
     }
-    persist(root, &data, journal, "move to review")?;
-    let m = finish(root, &data, synced, Some(select), warnings, vec![source.to_vec(), new_rel]);
+    persist(root, &data, journal, "move to review", &scope(&synced, vec![source.to_vec(), new_rel.clone()]))?;
+    let m = finish(root, &data, false, Some(select), warnings, scope(&synced, vec![source.to_vec(), new_rel]));
     Ok(m.replacing(before))
 }
 
@@ -98,7 +98,7 @@ mod tests {
         assert!(reason(refused(&dir, "100.WORK", &home)).contains("without a valid id"));
         assert!(reason(refused(&dir, "998.Review", &home)).contains("without a valid id"));
         assert!(reason(refused(&dir, ".ant", &home)).contains("without a valid id"));
-        assert!(reason(refused(&dir, "Marcos", &["100.WORK", "01.Plain"])).contains("review folder (98.*)"));
+        assert!(reason(refused(&dir, "Marcos", &["100.WORK", "01.Plain"])).contains("review folder (REV.*)"));
         assert!(matches!(refused(&dir, "Marcos", &["200.HOME", "98.Missing"]), FmError::NotFound { .. }));
         assert!(matches!(refused(&dir, "Gone", &home), FmError::NotFound { .. }));
         assert!(matches!(refused(&dir, "Marcos", &["998.Review"]), FmError::Reserved { .. }));

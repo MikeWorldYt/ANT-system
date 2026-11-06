@@ -4,10 +4,10 @@ use std::path::Path;
 use serde::Deserialize;
 use serde_yaml::{Mapping, Value};
 
-use super::add::{mark_workboard, track_or_lowest};
-use super::{child_rel, ensure_free, finish, move_to_review, persist, split, subtrees, Mutation};
+use super::add::mark_workboard;
+use super::{child_rel, ensure_free, finish, move_to_review, persist, scope, split, subtrees, Drift, Mutation};
 use crate::services::tree::tree_store::load_synced;
-use crate::domain::names::{has_node_id, is_track_name, is_valid_root_name, next_available_id, next_main_category_id, sanitize_train_case, title_of, tracker_number, workboard_title};
+use crate::domain::names::{has_node_id, is_track_name, is_valid_root_name, next_available_id, next_main_category_id, next_track_number, sanitize_train_case, title_of, tracker_number, workboard_title};
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{child_entries, type_base};
 use crate::domain::config::{DATA_FLAG, WKB_IDENTIFIERS};
@@ -52,7 +52,7 @@ pub fn preview_names(root: &Path, rows: &[Pending]) -> R<Vec<String>> {
             Resolution::Node => node_name(root, &data, rel)?,
             Resolution::Workboard { tracker } => {
                 delete_key(&mut data, parent, rel.last().map_or("", String::as_str));
-                workboard_name(&data, rel, &tracker.to_ascii_uppercase())
+                workboard_name(root, &data, rel, &tracker.to_ascii_uppercase())?
             }
         };
         // The name is held in the tree so the next row sees it as taken.
@@ -76,17 +76,21 @@ fn node_name(root: &Path, data: &Mapping, rel: &[String]) -> R<String> {
     })
 }
 
-// Keeps the number the folder already has for that tracker when it is free, else takes the lowest free one; the title loses its tracker and hash.
-fn workboard_name(data: &Mapping, rel: &[String], tracker: &str) -> String {
-    let name = rel.last().map_or("", String::as_str);
+// Keeps the number the folder already has for that tracker when no sibling uses it, else continues the siblings' count; the title loses its tracker and hash.
+fn workboard_name(root: &Path, data: &Mapping, rel: &[String], tracker: &str) -> R<String> {
+    let (name, parent) = split(rel)?;
     let title = sanitize_train_case(&workboard_title(name));
-    let id = track_or_lowest(data, tracker, tracker_number(name, &format!("{tracker}.")));
-    if title.is_empty() { format!("{tracker}.{id:03}") } else { format!("{tracker}.{id:03}_{title}") }
+    let letters = format!("{tracker}.");
+    let siblings: Vec<String> = taken_names(root, data, parent)?.into_iter().filter(|s| s != name).collect();
+    let used = |n: u32| siblings.iter().any(|s| tracker_number(s, &letters) == Some(n));
+    let id = tracker_number(name, &letters).filter(|n| *n >= 1 && !used(*n)).unwrap_or_else(|| next_track_number(&letters, &siblings));
+    Ok(if title.is_empty() { format!("{tracker}.{id:03}") } else { format!("{tracker}.{id:03}_{title}") })
 }
 
 fn become_node(root: &Path, rel: &[String]) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, synced) = load_synced(root)?;
+    let (mut data, changed) = load_synced(root)?;
+    let synced = Drift::unscoped(changed);
     let (_, parent) = split(rel)?;
     refuse_if_node(rel, &node_entry(&data, rel)?)?;
     let new = node_name(root, &data, rel)?;
@@ -99,15 +103,16 @@ fn become_node(root: &Path, rel: &[String]) -> R<Mutation> {
     }
     let new_rel = child_rel(parent, &new);
     let before = subtrees(&data, &[rel.to_vec()]);
-    reidentify(root, &mut data, rel, &new_rel, entry, "make node")?;
-    Ok(finish(root, &data, synced, Some(new_rel.clone()), Vec::new(), vec![rel.to_vec(), new_rel]).replacing(before))
+    reidentify(root, &mut data, (rel, &new_rel), &synced, entry, "make node")?;
+    Ok(finish(root, &data, false, Some(new_rel.clone()), Vec::new(), scope(&synced, vec![rel.to_vec(), new_rel])).replacing(before))
 }
 
 // Takes the lowest free track of its tracker and the usual info.json of a workboard, keeping any values it already has.
 fn become_workboard(root: &Path, rel: &[String], tracker: &str) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, synced) = load_synced(root)?;
-    let (old, parent) = split(rel)?;
+    let (mut data, changed) = load_synced(root)?;
+    let synced = Drift::unscoped(changed);
+    let (_, parent) = split(rel)?;
     let tracker = tracker.to_ascii_uppercase();
     let tracker = tracker.as_str();
     if parent.is_empty() {
@@ -118,21 +123,18 @@ fn become_workboard(root: &Path, rel: &[String], tracker: &str) -> R<Mutation> {
     }
     let mut entry = node_entry(&data, rel)?;
     refuse_if_workboard(rel, &entry)?;
-    // The folder's own entry is left out, so the number it holds now counts as free.
-    let mut others = data.clone();
-    delete_key(&mut others, parent, old);
-    let new = workboard_name(&others, rel, tracker);
+    let new = workboard_name(root, &data, rel, tracker)?;
     let status = entry.get("status").and_then(Value::as_str).unwrap_or("in-progress").to_string();
     entry.insert("type".into(), format!("WKB-L{}", rel.len()).into());
     entry.remove("flags");
     let new_rel = child_rel(parent, &new);
     let before = subtrees(&data, &[rel.to_vec()]);
-    reidentify(root, &mut data, rel, &new_rel, entry, "make workboard")?;
+    reidentify(root, &mut data, (rel, &new_rel), &synced, entry, "make workboard")?;
     let mut warnings = Vec::new();
     if let Err(e) = mark_workboard(&join_rel(root, &new_rel), parent.last().map_or("", String::as_str), &status) {
         warnings.push(format!("Could not set up the info file: {e}"));
     }
-    Ok(finish(root, &data, synced, Some(new_rel.clone()), warnings, vec![rel.to_vec(), new_rel]).replacing(before))
+    Ok(finish(root, &data, false, Some(new_rel.clone()), warnings, scope(&synced, vec![rel.to_vec(), new_rel])).replacing(before))
 }
 
 fn refuse(rel: &[String], reason: impl Into<String>) -> FmError {
@@ -173,7 +175,7 @@ fn node_entry(data: &Mapping, rel: &[String]) -> R<Mapping> {
 }
 
 // Renames the folder and moves its tree entry with it; the disk rename is rolled back when the tree cannot be saved.
-fn reidentify(root: &Path, data: &mut Mapping, rel: &[String], new_rel: &[String], entry: Mapping, op: &str) -> R<()> {
+fn reidentify(root: &Path, data: &mut Mapping, (rel, new_rel): (&[String], &[String]), synced: &Drift, entry: Mapping, op: &str) -> R<()> {
     let (old, parent) = split(rel)?;
     let (new, _) = split(new_rel)?;
     ensure_free(&join_rel(root, parent), get_node(data, parent), new, &[old.as_str()])?;
@@ -186,7 +188,7 @@ fn reidentify(root: &Path, data: &mut Mapping, rel: &[String], new_rel: &[String
         }
         None => return Err(journal.abort(op, FmError::NotFound { rel_parts: parent.to_vec() })),
     }
-    persist(root, data, journal, op)
+    persist(root, data, journal, op, &scope(synced, vec![rel.to_vec(), new_rel.to_vec()]))
 }
 
 #[cfg(test)]
@@ -243,14 +245,14 @@ mod tests {
     }
 
     #[test]
-    fn a_workboard_with_a_bad_name_takes_the_lowest_free_track_and_keeps_its_title() {
+    fn a_workboard_with_a_bad_name_continues_the_siblings_and_keeps_its_title() {
         let tree = "100.ACADEMIC:\n  type: NODE-L1\n  01.New-Node: {type: WKB-L2}\n  PJ.001_Fine: {type: WKB-L2}\n  PJ.1007_Prueba-7: {type: NODE-L2}\n";
         let dir = storage("resolve-track", &["100.ACADEMIC/01.New-Node", "100.ACADEMIC/PJ.001_Fine", "100.ACADEMIC/PJ.1007_Prueba-7"], tree);
         let pj = Resolution::Workboard { tracker: "PJ".to_string() };
         resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "01.New-Node"]), pj).unwrap();
-        let folder = dir.path().join("100.ACADEMIC/PJ.002_New-Node");
+        let folder = dir.path().join("100.ACADEMIC/PJ.1008_New-Node");
         assert!(folder.is_dir());
-        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "PJ.002_New-Node"]), "WKB-L2");
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "PJ.1008_New-Node"]), "WKB-L2");
         assert_eq!(field_of(&read_info(&folder).unwrap(), &["status"]), Some("in-progress"));
         let pj = Resolution::Workboard { tracker: "PJ".to_string() };
         resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "PJ.1007_Prueba-7"]), pj).unwrap();
@@ -271,11 +273,11 @@ mod tests {
     }
 
     #[test]
-    fn a_number_another_workboard_uses_gives_way_to_the_lowest_free_one() {
+    fn a_number_another_workboard_uses_gives_way_to_the_next_one() {
         let tree = "100.ACADEMIC:\n  type: NODE-L1\n  PJ.154_Other: {type: WKB-L2}\n  Pj.154_Mine: {type: NODE-L2}\n";
         let dir = storage("resolve-taken", &["100.ACADEMIC/PJ.154_Other", "100.ACADEMIC/Pj.154_Mine"], tree);
         resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "Pj.154_Mine"]), Resolution::Workboard { tracker: "PJ".to_string() }).unwrap();
-        assert!(dir.path().join("100.ACADEMIC/PJ.001_Mine").is_dir());
+        assert!(dir.path().join("100.ACADEMIC/PJ.155_Mine").is_dir());
     }
 
     #[test]

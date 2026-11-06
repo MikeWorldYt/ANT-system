@@ -35,7 +35,7 @@ pub struct ShortcutCreated {
 #[tauri::command]
 pub async fn copy_items(app: AppHandle, targets: Vec<Vec<String>>, cut: bool) -> R<()> {
     run_locked(app, move |root| {
-        let data = tree_store::load(root)?;
+        let data = tree_store::load_paths(root, &targets)?;
         let mut paths = Vec::with_capacity(targets.len());
         for target in &targets {
             if join_rel(root, target).is_file() {
@@ -55,7 +55,7 @@ pub async fn copy_items(app: AppHandle, targets: Vec<Vec<String>>, cut: bool) ->
 #[tauri::command]
 pub async fn create_shortcut_in(app: AppHandle, target: Vec<String>, folder: String) -> R<ShortcutCreated> {
     run_locked(app, move |root| {
-        let data = tree_store::load(root)?;
+        let data = tree_store::load_paths(root, std::slice::from_ref(&target))?;
         let (abs, link) = shortcut_plan(root, &data, &target, Path::new(&folder))?;
         place_link(abs, &link, folder)
     })

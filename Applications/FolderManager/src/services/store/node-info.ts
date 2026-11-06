@@ -81,9 +81,6 @@ export const hiddenCategories = (n: TreeNode): string[] =>
     .map((c) => c.trim())
     .filter((c) => c !== "");
 
-// Favorites are on unless the backend stored "off".
-export const favoritesShown = (n: TreeNode): boolean => filterField(n, "favorites") !== "off";
-
 export function nodeDetails(n: TreeNode): [string, string][] {
   const rows: [string, string][] = [["Name", n.name]];
   const wkb = isWorkboard(n);

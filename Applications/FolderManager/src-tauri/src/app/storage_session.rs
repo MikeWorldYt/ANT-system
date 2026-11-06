@@ -1,21 +1,23 @@
-// The storage the app has open: its root, the start path it was found from and the in-process lock.
+// The storage the app has open: its root, the start path it was found from, the in-process lock and the read connection that serves searches.
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, RwLock};
 
 use serde::Serialize;
 
 use crate::domain::error::{FmError, R};
+use crate::infra::storage::db::Store;
 
 pub struct Storage {
     pub start: RwLock<PathBuf>,
     pub root: RwLock<Option<PathBuf>>,
     pub lock: Mutex<()>,
+    pub(crate) reader: Mutex<Option<(PathBuf, Store)>>,
 }
 
 impl Storage {
     pub fn resolve(start: PathBuf) -> Self {
         let root = crate::infra::scan::find_root(&start);
-        Self { start: RwLock::new(start), root: RwLock::new(root), lock: Mutex::new(()) }
+        Self { start: RwLock::new(start), root: RwLock::new(root), lock: Mutex::new(()), reader: Mutex::new(None) }
     }
 
     pub fn root(&self) -> R<PathBuf> {
@@ -31,12 +33,32 @@ impl Storage {
     }
 
     pub fn reset(&self, start: PathBuf) {
+        self.close_reader();
         write(&self.root, crate::infra::scan::find_root(&start));
         self.set_start(start);
     }
 
     pub fn set_root(&self, root: PathBuf) {
+        self.close_reader();
         write(&self.root, Some(root));
+    }
+
+    // Runs a read on the kept connection, opened on first use and again after the root changes.
+    pub fn with_reader<T>(&self, f: impl FnOnce(&Store) -> R<T>) -> R<T> {
+        let root = self.root()?;
+        let mut slot = self.reader.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if !slot.as_ref().is_some_and(|(open_root, _)| *open_root == root) {
+            *slot = Some((root.clone(), Store::open_or_create(&root)?));
+        }
+        match slot.as_ref() {
+            Some((_, store)) => f(store),
+            None => Err(FmError::StorageNotFound { start: self.start().display().to_string() }),
+        }
+    }
+
+    // An open handle would block a rename or a restore of the files it reads, so those close it first.
+    pub fn close_reader(&self) {
+        *self.reader.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
     }
 
     pub fn guard(&self) -> MutexGuard<'_, ()> {

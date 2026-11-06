@@ -4,8 +4,9 @@ import { iconButton } from "../../atoms/icon-button";
 import { checkbox } from "../../atoms/checkbox";
 import { allImportant, canActOn, canMarkImportant, deleteActed, favoriteActed, hideActed, importantActed, moveActed } from "../../../hooks/acted-nodes";
 import { setReviewFilter } from "../../../hooks/ops";
+import { reviewFilter } from "../../../services/store/review-list";
 import { readPref, savePref } from "../../../services/store/prefs";
-import { favoritesShown, hiddenCategories, importantLabel, isMainCategory, isReviewRoot, nameWithoutIdentifier } from "../../../services/store/node-info";
+import { importantLabel, isMainCategory, isReviewRoot, nameWithoutIdentifier } from "../../../services/store/node-info";
 import { quickActionsShown, railLayout, type RailId } from "../../../services/store/side-layout";
 import { selectedNode, state, toggleHidingLinks } from "../../../services/store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
@@ -140,13 +141,13 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
 
   function applyFilters(): void {
     const unchecked = categoryInputs.filter((i) => !i.checked).map((i) => i.value);
-    void setReviewFilter(unchecked, favoritesInput.checked);
+    setReviewFilter(unchecked, favoritesInput.checked);
   }
 
-  function syncCategories(reviewRoot: TreeNode): void {
+  function syncCategories(): void {
     const mains = (state.tree?.nodes ?? []).filter(isMainCategory);
     const names = mains.map((c) => c.name);
-    const hidden = hiddenCategories(reviewRoot);
+    const { hidden, favorites } = reviewFilter();
     const key = names.join(",");
     if (key !== categoryKey) {
       categoryKey = key;
@@ -154,7 +155,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
       for (const input of categoryInputs) input.addEventListener("change", applyFilters);
       categories.replaceChildren(favoritesRow, ...categoryInputs.map((input, i) => el("label", { class: "side-category" }, input, nameWithoutIdentifier(mains[i]))));
     }
-    favoritesInput.checked = favoritesShown(reviewRoot);
+    favoritesInput.checked = favorites;
     for (const input of categoryInputs) input.checked = !hidden.includes(input.value);
   }
 
@@ -198,12 +199,11 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     for (const b of [board, railBoard]) b.setAttribute("aria-pressed", String(state.virtual === "board"));
     // The review root keeps its filter but no details; its links show the same filter above their details.
     const review = n !== null && isReviewRoot(n);
-    const reviewRoot = state.tree?.nodes.find(isReviewRoot) ?? null;
-    const filtered = review || !!n?.linked;
+    const filtered = state.virtual === "review";
     // Outcomes and review folders belong to the app: they show their automations instead of details.
     details.element.hidden = review || n?.nodeType?.base === "OUT" || n?.nodeType?.base === "REV";
-    categoriesSection.hidden = !filtered || reviewRoot === null;
-    if (filtered && reviewRoot) syncCategories(reviewRoot);
+    categoriesSection.hidden = !filtered;
+    if (filtered) syncCategories();
     hideLinks.classList.toggle("is-active", state.hidingLinks);
     // The review root and its links have no order or delete: their folders are the app's or the owners'.
     order.hidden = foot.hidden = n === null || review || n.linked;

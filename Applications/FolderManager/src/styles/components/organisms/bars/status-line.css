@@ -1,7 +1,9 @@
 /* Footer status line, colored by level. */
-.status-line { min-height: 28px; padding: 6px 12px; font-size: 9pt; color: var(--muted); border-top: 1px solid var(--border); }
-.status-line[data-level="info"] { color: var(--text); }
-.status-line[data-level="warning"] { color: var(--st-review); }
-.status-line[data-level="error"] { color: var(--delete-hover); }
-.status-line[data-level="warning"]::before { content: "Warning: "; }
-.status-line[data-level="error"]::before { content: "Error: "; }
+.status-line { display: flex; gap: 12px; min-height: 28px; padding: 6px 12px; font-size: 9pt; color: var(--muted); border-top: 1px solid var(--border); }
+.status-text[data-level="info"] { color: var(--text); }
+.status-text[data-level="warning"] { color: var(--st-review); }
+.status-text[data-level="error"] { color: var(--delete-hover); }
+.status-text[data-level="warning"]::before { content: "Warning: "; }
+.status-text[data-level="error"]::before { content: "Error: "; }
+.status-text { flex: 1; }
+.status-count { color: var(--accent); white-space: nowrap; }

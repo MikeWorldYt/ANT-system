@@ -2,11 +2,13 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::domain::config::{is_hidden_dir, CORE_FOLDER, DATA_DIR, DB_FILENAME, SETTINGS_FOLDER};
+use crate::domain::config::{is_hidden_dir, BACKUP_FOLDER, CORE_FOLDER, DATA_DIR, DB_FILENAME, SETTINGS_FOLDER};
 use crate::domain::error::R;
 use crate::infra::fs_safe::{dir_entries, io_err, is_link, LOCK_FILE};
 use crate::infra::storage::db::{db_path, hide, Store};
 use crate::services::tree::depth;
+
+pub(super) const LEGACY_BACKUP_DIR: &str = "03.Backup";
 
 struct Entry {
     name: String,
@@ -32,7 +34,7 @@ fn real_dir(path: &Path) -> bool {
 }
 
 fn is_lock(rel: &Path) -> bool {
-    rel == Path::new(SETTINGS_FOLDER).join(CORE_FOLDER).join(LOCK_FILE)
+    rel == Path::new(DATA_DIR).join(LOCK_FILE) || rel == Path::new(SETTINGS_FOLDER).join(CORE_FOLDER).join(LOCK_FILE)
 }
 
 fn rel(base: &Path, path: &Path) -> PathBuf {
@@ -44,7 +46,7 @@ fn tree_data(root: &Path, dir: &Path, depth: usize, limit: usize, skip: &Path, o
     let data = dir.join(DATA_DIR);
     if real_dir(&data) {
         for e in entries(&data)? {
-            if !e.is_dir && !(depth == 0 && e.name.starts_with(DB_FILENAME)) {
+            if !e.is_dir && !(depth == 0 && e.name.starts_with(DB_FILENAME)) && !is_lock(&rel(root, &e.path)) {
                 out.push(rel(root, &e.path));
             }
         }
@@ -53,17 +55,17 @@ fn tree_data(root: &Path, dir: &Path, depth: usize, limit: usize, skip: &Path, o
         return Ok(());
     }
     for e in entries(dir)? {
-        let settings = depth == 0 && e.name.eq_ignore_ascii_case(SETTINGS_FOLDER);
-        if e.is_dir && !is_hidden_dir(&e.name) && !settings && e.path != skip {
+        let app_owned = depth == 0 && (e.name.eq_ignore_ascii_case(SETTINGS_FOLDER) || e.name.eq_ignore_ascii_case(BACKUP_FOLDER));
+        if e.is_dir && !is_hidden_dir(&e.name) && !app_owned && e.path != skip {
             tree_data(root, &e.path, depth + 1, limit, skip, out)?;
         }
     }
     Ok(())
 }
 
-fn all_files(base: &Path, dir: &Path, skip: &Path, out: &mut Vec<PathBuf>) -> R<()> {
+fn all_files(base: &Path, dir: &Path, skip: &[&Path], out: &mut Vec<PathBuf>) -> R<()> {
     for e in entries(dir)? {
-        if e.path == skip {
+        if skip.contains(&e.path.as_path()) {
             continue;
         }
         if e.is_dir {
@@ -92,7 +94,8 @@ pub fn stage(root: &Path, stage: &Path, skip: &Path) -> R<()> {
     tree_data(&base, &base, 0, depth::limit(root)?, skip, &mut files)?;
     let settings = base.join(SETTINGS_FOLDER);
     if real_dir(&settings) {
-        all_files(&base, &settings, skip, &mut files)?;
+        // Older storages keep their backups beside the settings; they never go into a new backup.
+        all_files(&base, &settings, &[skip, &settings.join(LEGACY_BACKUP_DIR)], &mut files)?;
     }
     files.iter().try_for_each(|f| copy(&base.join(f), &stage.join(f)))
 }
@@ -118,7 +121,7 @@ fn replace_db(root: &Path, from: &Path) -> R<()> {
 // Folders that are gone since the backup are skipped, so a restore never recreates the tree.
 pub fn apply(root: &Path, stage: &Path) -> R<()> {
     let mut files = Vec::new();
-    all_files(stage, stage, Path::new(""), &mut files)?;
+    all_files(stage, stage, &[], &mut files)?;
     let db = Path::new(DATA_DIR).join(DB_FILENAME);
     replace_db(root, &stage.join(&db))?;
     for file in files.iter().filter(|f| **f != db && !is_lock(f)) {

@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde_yaml::Value;
 
-use super::{finish, load_synced_at, locate, parent_of, register_ids, Mutation};
+use super::{finish, scope, load_synced_at, locate, parent_of, register_ids, Mutation};
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::StorageLock;
 use crate::domain::config::LINK_FAVORITES_FILENAME;
@@ -21,7 +21,7 @@ pub fn set_favorite(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     if let [_, link] = rel {
         if review_links::linked_owner(root, &data, rel)?.is_some() {
             link_list::set(root, LINK_FAVORITES_FILENAME, link, on)?;
-            return Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new(), vec![rel.to_vec()]));
+            return Ok(finish(root, &data, false, Some(rel.to_vec()), Vec::new(), scope(&synced, vec![rel.to_vec()])));
         }
     }
     let target = locate(root, &data, rel)?;
@@ -35,7 +35,7 @@ pub fn set_favorite(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let mut warnings = Vec::new();
     let moved = register_ids(root, &mut data, &mut warnings);
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, synced || moved, Some(rel.to_vec()), warnings, vec![rel.to_vec()]))
+    Ok(finish(root, &data, false, Some(rel.to_vec()), warnings, scope(&synced.or_unscoped(moved), vec![rel.to_vec()])))
 }
 
 #[cfg(test)]

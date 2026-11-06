@@ -183,10 +183,13 @@ function lineBreaks(lines: string[]): (Node | string)[] {
 }
 
 // The parent path shows only its last folder, as "...\<dir>\"; the button opens the folder in the file explorer.
-export function pathButton(rel: string[], name: HTMLElement, openFolder: (relParts: string[]) => void): HTMLButtonElement {
+export function pathTrail(rel: string[]): string {
   const parents = rel.slice(0, -1);
-  const trail = parents.length > 1 ? `...\\${parents[parents.length - 1] ?? ""}\\` : parents.map((part) => `${part}\\`).join("");
-  const button = el("button", { type: "button", class: "invalid-path", title: "Show in Explorer" }, trail, name);
+  return parents.length > 1 ? `...\\${parents[parents.length - 1] ?? ""}\\` : parents.map((part) => `${part}\\`).join("");
+}
+
+export function pathButton(rel: string[], name: HTMLElement, openFolder: (relParts: string[]) => void): HTMLButtonElement {
+  const button = el("button", { type: "button", class: "invalid-path", title: "Show in Explorer" }, pathTrail(rel), name);
   button.addEventListener("click", () => openFolder(rel));
   return button;
 }

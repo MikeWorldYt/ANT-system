@@ -5,10 +5,12 @@ import { openSettings } from "./components/windows/settings";
 import { onFileDrag, onReviewIndex, onStorageChanged, onWindowFocus } from "./services/ipc/events";
 import { rememberSelection, state, subscribe } from "./services/store/state";
 import { clearStatus, currentOperationStatus, setStatus, reportError } from "./components/organisms/bars/status-line";
-import { init, refresh } from "./hooks/ops";
+import { init, refresh, relistLevels } from "./hooks/ops";
 import { autoRefresh } from "./hooks/auto-refresh";
+import { startIdleRefresh } from "./hooks/idle-refresh";
 import { handleFileDrag } from "./hooks/file-drop";
 import { installShortcuts } from "./hooks/shortcuts";
+import { closeTab, nextTab, openTab, syncTabs } from "./hooks/tabs";
 import { restoreFocus, trackFieldFocus } from "./hooks/focus-return";
 import { checkForUpdates } from "./hooks/updates";
 import { startBackups } from "./hooks/backups";
@@ -20,20 +22,26 @@ import { plural } from "./services/plural";
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
 
-const { views, toolbar, navigator, search, panel, board, openSelected } = createMainWindow(app);
+const { views, toolbar, navigator, tabBar, search, panel, board, openSelected } = createMainWindow(app);
 installShortcuts({
-  focusSearch: search.focus,
+  focusSearch: () => search.focus("folders"),
+  searchFiles: () => search.focus("files"),
   editPath: navigator.editPath,
   openSettings: () => void openSettings(),
   goUp: navigator.goUp,
   openSelected,
   toggleSidePanel: panel.toggleCollapsed,
   editDetails: panel.editDetails,
+  newTab: () => openTab(),
+  closeTab: () => closeTab(),
+  nextTab,
 });
 
 subscribe(() => {
   toolbar.render();
   navigator.render();
+  syncTabs();
+  tabBar.render();
   views.current().render();
   board.render();
   panel.render();
@@ -59,9 +67,15 @@ onReviewIndex((e) => {
   }
 }).catch((e) => reportError("warning", e, "Review index updates unavailable"));
 trackFieldFocus();
-onWindowFocus(() => void autoRefresh(refresh).finally(() => restoreFocus(() => views.current().focus()))).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
+const FOCUS_GAP_MS = 5_000;
+let lastFocusAt = 0;
+onWindowFocus(() => {
+  const quick = Date.now() - lastFocusAt < FOCUS_GAP_MS;
+  lastFocusAt = Date.now();
+  void (quick ? Promise.resolve() : relistLevels(null)).finally(() => restoreFocus(() => views.current().focus()));
+}).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
 
-onStorageChanged(() => void autoRefresh(refresh)).catch((e) =>
+onStorageChanged((e) => void (e.rescan ? autoRefresh(() => refresh(false)) : relistLevels(e.folders))).catch((e) =>
   reportError("warning", e, "Live storage updates unavailable"),
 );
 
@@ -72,6 +86,7 @@ installDebugLog();
 void init().then(() => {
   if (state.settings.debugLogging) void startDebugLog();
   startBackups();
+  startIdleRefresh(() => refresh(false));
   startExtensions();
   if (state.settings.startView !== "continue") {
     views.switchTo(state.settings.startView);

@@ -1,13 +1,13 @@
-// A rename keeps the fixed id prefix and carries the linked 90./98. folders along with the node.
+// A rename keeps the fixed id prefix and carries the linked RES./REV. folders along with the node.
 use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use super::{child_rel, editable_target, ensure_free, finish, load_synced_at, persist, split, subtrees, Mutation};
-use crate::domain::names::{compose_name, editable_part, name_parts, sanitize_train_case, sanitize_upper};
+use super::{child_rel, editable_target, ensure_free, finish, load_synced_at, persist, scope, split, subtrees, Mutation};
+use crate::domain::names::{compose_name, editable_part, is_legacy_support, name_parts, sanitize_train_case, sanitize_upper};
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::type_base;
-use crate::domain::config::LINKED_PREFIXES;
+use crate::domain::config::SUPPORT_NODES;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{join_rel, same_name, validate_component, Journal, StorageLock};
 use crate::services::tree::tree_store::{self, get_node, get_node_mut, rename_key};
@@ -33,10 +33,10 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
     let new_rel = child_rel(parent, &new_name);
     let before = subtrees(&data, &[rel.to_vec()]);
     if new_name == *old_name {
-        if synced {
+        if synced.any() {
             tree_store::save(root, &data)?;
         }
-        let m = finish(root, &data, synced, Some(new_rel.clone()), Vec::new(), vec![new_rel]);
+        let m = finish(root, &data, false, Some(new_rel.clone()), Vec::new(), scope(&synced, vec![new_rel]));
         return Ok(m.replacing(before));
     }
     let parent_abs = join_rel(root, parent);
@@ -52,8 +52,8 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
             node.remove("status");
         }
     }
-    persist(root, &data, journal, "rename")?;
-    let m = finish(root, &data, synced, Some(new_rel.clone()), warnings, vec![rel.to_vec(), new_rel]);
+    persist(root, &data, journal, "rename", &scope(&synced, vec![rel.to_vec(), new_rel.clone()]))?;
+    let m = finish(root, &data, false, Some(new_rel.clone()), warnings, scope(&synced, vec![rel.to_vec(), new_rel]));
     Ok(m.replacing(before))
 }
 
@@ -75,10 +75,11 @@ fn cascade_linked(
         Err(e) => return vec![format!("Linked folders not renamed: {e}")],
     };
     let mut warnings = Vec::new();
-    for prefix in LINKED_PREFIXES {
-        let wanted = format!("{prefix}.{old_ed}");
-        let Some(child_old) = existing.iter().find(|n| same_name(n, &wanted)) else { continue };
-        let child_new = format!("{prefix}.{new_ed}");
+    for (word, legacy, _) in SUPPORT_NODES.iter().filter(|(_, _, kind)| *kind != "TPL") {
+        let Some(child_old) = existing.iter().find(|n| same_name(n, &format!("{word}{old_ed}")) || same_name(n, &format!("{legacy}{old_ed}"))) else { continue };
+        // A folder still on its numeric id keeps it until the upgrade renames it.
+        let prefix = if is_legacy_support(child_old) { legacy } else { word };
+        let child_new = format!("{prefix}{new_ed}");
         let renamed = ensure_free(node_abs, get_node(data, node_rel), &child_new, &[child_old.as_str()])
             .and_then(|_| journal.rename(&node_abs.join(child_old), &node_abs.join(&child_new)));
         match renamed {
@@ -113,6 +114,27 @@ mod tests {
         let data = yaml(dir.path());
         assert!(get_node(&data, &rel(&["100.ACADEMIC", "01.Math"])).is_none());
         assert!(get_node(&data, &rel(&p)).unwrap().get("status").is_none());
+    }
+
+    #[test]
+    fn rename_carries_the_word_prefixed_review_and_resources_along() {
+        let dir = storage(
+            "rename-words",
+            &["100.A/01.Math/REV.Math", "100.A/01.Math/RES.Math", "100.A/01.Math/TPL.Math"],
+            "100.A:
+  type: NODE-L1
+  01.Math:
+    type: NODE-L2
+    REV.Math: {type: REV-L2}
+    RES.Math: {type: RES}
+    TPL.Math: {type: TPL}
+",
+        );
+        let m = rename_node(dir.path(), &rel(&["100.A", "01.Math"]), "physics").unwrap();
+        assert!(m.warnings.is_empty(), "{:?}", m.warnings);
+        assert_eq!(names(&dir.path().join("100.A/01.Physics")), ["RES.Physics", "REV.Physics", "TPL.Math"]);
+        assert_eq!(yaml_type(dir.path(), &["100.A", "01.Physics", "REV.Physics"]), "REV-L2");
+        assert_eq!(yaml_type(dir.path(), &["100.A", "01.Physics", "RES.Physics"]), "RES");
     }
 
     #[test]
@@ -198,9 +220,10 @@ mod tests {
     #[test]
     fn noop_rename_reports_and_saves_the_sync() {
         let dir = academic("rename-noop");
+        synced_yaml(dir.path());
         dir.mkdir("100.ACADEMIC/05.Fresh");
         let m = rename_node(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), "bio").unwrap();
-        assert!(m.tree.is_some_and(|t| t.yaml_changed));
+        assert!(m.tree.is_none() && !m.levels.is_empty());
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "05.Fresh"]), "NODE-L2");
     }
 

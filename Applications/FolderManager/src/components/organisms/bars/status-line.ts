@@ -1,6 +1,7 @@
 // Footer status line for errors, warnings and review-index progress.
 import { describeError } from "../../../services/ipc/api";
 import { el } from "../../dom";
+import { state, subscribe } from "../../../services/store/state";
 
 type Level = "info" | "warning" | "error";
 
@@ -11,10 +12,16 @@ export const onStatus = (fn: (level: "warning" | "error", text: string) => void)
   sink = fn;
 };
 
-const line = el("footer", { class: "status-line", role: "status", "aria-live": "polite" });
+const line = el("span", { class: "status-text", role: "status", "aria-live": "polite" });
+const count = el("span", { class: "status-count" });
 
+// Only a group of marked items is counted; a single selection is already visible.
 export function createStatusLine(): HTMLElement {
-  return line;
+  subscribe(() => {
+    const n = state.selectedKeys.length;
+    count.textContent = n > 1 ? `${n} items selected` : "";
+  });
+  return el("footer", { class: "status-line" }, line, count);
 }
 
 export function setStatus(level: Level, text: string): void {

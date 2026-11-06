@@ -114,7 +114,7 @@ fn move_and_add_node_rebuild_too() {
     assert!(m.warnings.is_empty());
     assert_eq!(probe.phases(), ["started", "done", "started", "done"]);
     let seen = probe.seen_yaml.borrow();
-    assert!(get_node(&seen[1], &rel(&["100.WORK", "04.New-Node", "98.New-Node"])).is_some());
+    assert!(get_node(&seen[1], &rel(&["100.WORK", "04.New-Node", "REV.New-Node"])).is_some());
 }
 
 #[test]
@@ -169,7 +169,7 @@ fn commands_release_both_locks_and_fail_without_a_storage() {
     locked(&storage, |root| mutations::rename_node(root, &rel(&["100.WORK", "02.B"]), "Bee")).unwrap();
     assert!(storage.lock.try_lock().is_ok());
     assert!(StorageLock::acquire(dir.path()).is_ok());
-    let none = Storage { start: RwLock::new(PathBuf::from("nowhere")), root: RwLock::new(None), lock: Mutex::new(()) };
+    let none = Storage { start: RwLock::new(PathBuf::from("nowhere")), root: RwLock::new(None), lock: Mutex::new(()), reader: Mutex::new(None) };
     assert!(matches!(locked(&none, |_| Ok(())), Err(FmError::StorageNotFound { .. })));
 }
 
@@ -179,7 +179,7 @@ fn refresh_syncs_new_folders_then_rebuilds_the_index() {
     dir.mkdir("100.WORK/05.Fresh");
     let probe = Probe::new();
     let emit = probe.emit();
-    let tree = refresh_flow(dir.path(), &emit, probe.rebuild(&["stub"])).unwrap();
+    let tree = refresh_flow(dir.path(), &emit, probe.rebuild(&["stub"]), true).unwrap();
     assert!(tree.yaml_changed);
     assert_eq!(probe.phases(), ["started", "done"]);
     assert_eq!(probe.events.borrow()[1].failures, ["stub"]);
@@ -317,12 +317,13 @@ fn a_failed_quick_update_falls_back_to_a_full_rebuild_and_says_so() {
     assert_eq!(m.warnings.len(), 1, "{:?}", m.warnings);
     assert!(m.warnings[0].contains("rebuilt in full") && m.warnings[0].contains("boom"), "{:?}", m.warnings);
     let search = Store::open_or_create(dir.path()).unwrap().search(&parse_query("in:/100.ACADEMIC/04.New-Node")).unwrap();
-    assert_eq!(search, [rel(&["100.ACADEMIC", "04.New-Node"]), rel(&["100.ACADEMIC", "04.New-Node", "98.New-Node"])]);
+    assert_eq!(search, [rel(&["100.ACADEMIC", "04.New-Node"]), rel(&["100.ACADEMIC", "04.New-Node", "REV.New-Node"])]);
 }
 
 #[test]
 fn a_manual_update_check_ignores_the_skipped_version() {
     let dir = work("cmd-skip");
+    dir.mkdir(".ant");
     std::fs::write(skip_path(dir.path()), " 9.9.9 \n").unwrap();
     assert_eq!(skipped_for(dir.path(), false).unwrap(), "9.9.9");
     assert_eq!(skipped_for(dir.path(), true).unwrap(), "");

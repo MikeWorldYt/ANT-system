@@ -43,12 +43,22 @@ pub async fn storage_health(app: AppHandle) -> R<StorageHealth> {
 
 #[tauri::command]
 pub async fn use_latest_backup(app: AppHandle, stamp: String) -> R<()> {
-    run_locked(app, move |root| backup::restore_latest(root, &stamp)).await
+    let storage = app.clone();
+    run_locked(app, move |root| {
+        storage.state::<Storage>().close_reader();
+        backup::restore_latest(root, &stamp)
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn prepare_scan(app: AppHandle, stamp: String) -> R<()> {
-    run_locked(app, move |root| recovery::prepare_scan(root, &stamp)).await
+    let storage = app.clone();
+    run_locked(app, move |root| {
+        storage.state::<Storage>().close_reader();
+        recovery::prepare_scan(root, &stamp)
+    })
+    .await
 }
 
 #[cfg(test)]

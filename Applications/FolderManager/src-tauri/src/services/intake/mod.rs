@@ -12,7 +12,8 @@ use serde_yaml::Mapping;
 
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{child_entries, flags_in};
-use crate::domain::config::{DATA_DIR, HIDDEN_FLAG};
+use crate::domain::config::{DATA_DIR, HIDDEN_FLAG, REVIEW_PREFIX};
+use crate::domain::names::support_kind;
 use crate::domain::error::R;
 use crate::infra::fs_safe::{io_err, join_rel, Journal, StorageLock};
 use crate::services::index::review_folders;
@@ -57,7 +58,7 @@ pub struct LooseFile {
     pub file: String,
 }
 
-// Intake moves files, never folders; the only folder it makes is a missing 98.* review folder, so every node has one to take files.
+// Intake moves files, never folders; the only folder it makes is a missing REV.* review folder, so every node has one to take files.
 pub fn run(root: &Path) -> R<IntakeReport> {
     review_folders::restore(root)?;
     let _lock = StorageLock::acquire(root)?;
@@ -79,7 +80,10 @@ fn walk(dir: &Path, node: &Mapping, rel: &[String], report: &mut IntakeReport) -
             if files > 0 {
                 report.waiting.push(WaitingNode { node: rel.join("/"), rel_parts: rel.to_vec(), files });
             } else {
-                let review = review.filter(|r| subdirs.iter().any(|d| d == r));
+                // Past the depth limit the index does not list the review folder, so the disk names it.
+                let review = review
+                    .filter(|r| subdirs.iter().any(|d| d == r))
+                    .or_else(|| subdirs.iter().map(String::as_str).find(|d| support_kind(d) == Some("REV")));
                 move_to_review(dir, rel, review, report)?;
             }
         }
@@ -136,9 +140,20 @@ fn move_to_review(dir: &Path, rel: &[String], review: Option<&str>, report: &mut
         return Ok(());
     }
     let node = rel.join("/");
-    let Some(review) = review else {
-        report.warnings.push(format!("{node}: no review folder, {} file(s) left in place", files.len()));
-        return Ok(());
+    // A node past the depth limit never got its review folder from the index, so intake makes it like restore would.
+    let made;
+    let review = match review {
+        Some(review) => review,
+        None => {
+            let name = rel.last().map(|n| n.split_once('.').map_or(n.as_str(), |(_, rest)| rest)).unwrap_or_default();
+            made = format!("{REVIEW_PREFIX}{name}");
+            let path = dir.join(&made);
+            if let Err(e) = fs::create_dir(&path) {
+                report.warnings.push(format!("{node}: no review folder, {} file(s) left in place ({e})", files.len()));
+                return Ok(());
+            }
+            made.as_str()
+        }
     };
     let target = dir.join(review);
     let mut journal = Journal::new();

@@ -20,16 +20,17 @@ const RELEASES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/t
 const DOCS_URL: &str = "https://ant.mikeworld.dev";
 const MAIL_ADDRESS: &str = "info@mikeworld.dev";
 // A new key is added here before the UI can write it: on/off switches, the launch choice and the shortcut overrides.
-const BOOLEAN_SETTINGS: [&str; 9] =
-    ["pinFavorites", "hideDone", "hideDirectoryIdentifiers", "confirmDelete", "autoUpdate", "debugLogging", "backupAuto", "watchExternal", "autoOpenColumns"];
+const BOOLEAN_SETTINGS: [&str; 12] = [
+    "pinFavorites", "hideDone", "hideDirectoryIdentifiers", "confirmDelete", "autoUpdate", "debugLogging", "backupAuto", "watchExternal", "autoOpenColumns", "showFavorites", "showDownloads", "showReview",
+];
 const ON_LAUNCH_VALUES: [&str; 2] = ["continue", "root"];
 const START_VIEW_VALUES: [&str; 3] = ["continue", "tree", "columns"];
 const THEME_VALUES: [&str; 3] = ["system", "light", "dark"];
 const ACCENT_VALUES: [&str; 5] = ["green", "blue", "purple", "coral", "gold"];
 const TEXT_SIZE_VALUES: [&str; 3] = ["small", "medium", "large"];
 const BACKUP_FREQUENCIES: [&str; 3] = ["day", "week", "month"];
-const SHORTCUT_ACTIONS: [&str; 10] =
-    ["focusSearch", "editPath", "newNode", "newWorkboard", "openSettings", "goUp", "toggleSidePanel", "moveDown", "toggleFavorite", "editDetails"];
+const SHORTCUT_ACTIONS: [&str; 11] =
+    ["focusSearch", "searchFiles", "editPath", "newNode", "newWorkboard", "openSettings", "goUp", "toggleSidePanel", "moveDown", "toggleFavorite", "editDetails"];
 // Keys the folder views own, so a shortcut can never take them: (code, mod, alt).
 const FIXED_KEYS: [(&str, bool, bool); 2] = [("Delete", false, false), ("Enter", false, false)];
 
@@ -162,6 +163,8 @@ mod tests {
         assert!(check("pinFavorites", "yes").is_err());
         assert!(check("other", "true").is_err());
         assert!(check("debugLogging", "false").is_ok());
+        assert!(check("showFavorites", "false").is_ok() && check("showDownloads", "true").is_ok() && check("showReview", "false").is_ok());
+        assert!(check("showDownloads", "off").is_err());
     }
 
     #[test]

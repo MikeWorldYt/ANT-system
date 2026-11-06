@@ -3,7 +3,8 @@
 .search-box.collapsed { width: 32px; }
 .search-box.collapsed .search-field { gap: 0; padding: 2px 7px; cursor: pointer; }
 .search-box.collapsed .search-field:hover { background: var(--field-bg); }
-.search-box.collapsed .search-field .gui-icon { color: var(--accent); }
+.search-box.collapsed .search-box.files-mode .search-field { border-color: var(--accent); }
+.search-field .gui-icon { color: var(--accent); }
 .search-box.collapsed .search-input { flex: none; width: 0; min-width: 0; padding: 0; opacity: 0; }
 .search-field {
   display: flex; align-items: center; gap: 4px; min-height: 32px; padding: 2px 8px; background: var(--input-bg);
@@ -18,7 +19,7 @@
   box-shadow: var(--shadow-pop);
 }
 .search-results[hidden] { display: none; }
-.search-hit { display: flex; align-items: baseline; gap: 8px; padding: 4px 12px; cursor: default; }
+.search-hit { display: flex; align-items: center; gap: 8px; padding: 4px 12px; cursor: default; }
 .search-hit[aria-selected="true"], .search-hit:hover { background: var(--highlight); }
 .hit-name { white-space: nowrap; }
 .hit-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 9pt; }
@@ -27,3 +28,4 @@
 @media (prefers-reduced-motion: reduce) {
   .search-box { transition: none; }
 }
+.search-hit .icon { flex: none; }

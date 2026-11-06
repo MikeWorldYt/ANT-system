@@ -79,6 +79,8 @@ impl Store {
         let fail = |e: rusqlite::Error| db_err("open ant.db", &path, &e);
         let mut conn = Connection::open(&path).map_err(fail)?;
         conn.busy_timeout(Duration::from_secs(5)).map_err(fail)?;
+        // WAL lets the search connection read while a change is being written.
+        conn.pragma_update_and_check(None, "journal_mode", "WAL", |_| Ok(())).map_err(fail)?;
         let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).map_err(fail)?;
         if version > SCHEMA_VERSION {
             return Err(FmError::Internal { message: "ant.db was written by a newer version of the app".to_string() });

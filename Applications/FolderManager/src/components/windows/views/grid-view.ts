@@ -12,9 +12,9 @@ import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot,
 import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
-import { openEntry, ROOT_ENTRIES, virtualEntries, virtualEntry, type VirtualEntry } from "../../molecules/virtual-entry";
-import { markNodeItem, onItemClick } from "../../molecules/node-item";
-import type { TreeNode } from "../../../services/ipc/types";
+import { openEntry, rootEntries, virtualEntries, virtualEntry, type VirtualEntry } from "../../molecules/virtual-entry";
+import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
+import { inDownloads, type TreeNode } from "../../../services/ipc/types";
 import type { ViewMode } from "./view-mode";
 
 export function createGridView(): ViewMode {
@@ -83,13 +83,16 @@ export function createGridView(): ViewMode {
     item.prepend(...manageBox(n, item));
     onItemClick(item, n, () => shownNodes().map((s) => keyOf(s.relParts)), () => select(n.relParts));
     // As in Explorer, the name renames and the rest of the tile opens.
-    item.addEventListener("dblclick", (ev) => (ev.target instanceof Element && ev.target.closest(".name") ? startEdit(n.relParts) : enter(n)));
+    item.addEventListener("dblclick", (ev) => (ev.target instanceof Element && ev.target.closest(".name") ? editOrOpen(n) : n.hasChildren || !inDownloads(n.relParts) ? enter(n) : editOrOpen(n)));
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
     return item;
   }
 
-  // The open entry heads its own list; in the root grid FAVORITES leads. Inside a folder there is none.
-  const headEntry = (): VirtualEntry | undefined => (folder === null ? (openEntry() ?? ROOT_ENTRIES[0]) : undefined);
+  // The open entry heads its own list; in the root grid every entry leads. Inside a folder there is none.
+  const leadEntries = (): VirtualEntry[] => {
+    const open = openEntry();
+    return folder !== null ? [] : open ? [open] : rootEntries();
+  };
 
   function perRow(): number {
     const items = [...root.querySelectorAll<HTMLElement>(".grid-item")];
@@ -107,15 +110,16 @@ export function createGridView(): ViewMode {
       return;
     }
     const nodes = shownNodes();
-    // The entry tile comes first in the arrow order, so every folder tile sits one place after its index.
-    const head = headEntry();
-    const lead = head ? 1 : 0;
+    // The entry tiles come first in the arrow order, so every folder tile sits that many places after its index.
+    const entries = leadEntries();
+    const lead = entries.length;
     const idx = n ? nodes.indexOf(n) : -1;
-    const i = idx >= 0 ? idx + lead : head && !n ? 0 : -1;
+    const i = idx >= 0 ? idx + lead : lead > 0 && !n ? 0 : -1;
     const go = (j: number) => {
       const at = Math.max(0, Math.min(nodes.length + lead - 1, j));
       if (at === i) return;
-      if (head && at === 0) return void openVirtual(head.id);
+      const entry = entries[at];
+      if (entry) return void openVirtual(entry.id);
       const target = nodes[at - lead];
       if (target) select(target.relParts);
     };
@@ -168,9 +172,8 @@ export function createGridView(): ViewMode {
       if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
       const nodes = shownNodes();
-      const head = headEntry();
       // With nothing selected the entry tile leads the roving focus.
-      const entryTabbable = head !== undefined && state.selectedKey === null;
+      const entryTabbable = leadEntries().length > 0 && state.selectedKey === null;
       const tabbable = entryTabbable ? undefined : (nodes.find((n) => keyOf(n.relParts) === state.selectedKey) ?? nodes[0]);
       const open = folderNode();
       const empty = nodes.length === 0 && open !== null && open.children !== null;

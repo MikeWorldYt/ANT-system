@@ -11,21 +11,19 @@ use std::path::Path;
 
 use serde_yaml::Mapping;
 
-use super::{child_rel, ensure_free, finish, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation};
+use super::{child_rel, ensure_free, finish, load_synced_at, locate, parent_of, persist, scope, split, subtrees, sync_branch_drift, Mutation};
 use crate::domain::names::with_next_slot;
 use crate::domain::tree_types::child_entries;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{Journal, StorageLock};
+use crate::infra::scan::list_subdirs;
 use crate::services::tree::depth;
 use crate::services::tree::tree_store::{self, delete_key, get_node, get_node_mut};
 
 pub fn move_folder(root: &Path, source: &[String], destination: &[String], copy: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, mut synced) = load_synced_at(root, parent_of(source))?;
-    if tree_store::sync_branch(root, &mut data, destination)? {
-        tree_store::sync(root, &mut data)?;
-        synced = true;
-    }
+    synced.absorb(sync_branch_drift(root, &mut data, destination)?);
     let from = locate(root, &data, source)?;
     let node = get_node(&data, source).ok_or_else(|| FmError::NotFound { rel_parts: source.to_vec() })?;
     rules::check_source(source, &from, node)?;
@@ -33,11 +31,13 @@ pub fn move_folder(root: &Path, source: &[String], destination: &[String], copy:
     rules::check_destination(destination, &to)?;
     rules::check_not_inside(source, destination)?;
     let (source_name, parent) = split(source)?;
-    // A move takes the lowest free slot of its new level; a copy keeps its id and takes the next free "(n)" name.
+    // A move takes the lowest free slot or next track of its new folder; a copy keeps its id and takes the next free "(n)" name.
     let owned_name = if copy {
         copy_name(&to.abs, get_node(&data, destination), source_name)?
     } else {
-        with_next_slot(source_name, &siblings_of(&data, destination))
+        let mut siblings = siblings_of(&data, destination);
+        siblings.extend(list_subdirs(&to.abs)?);
+        with_next_slot(source_name, &siblings)
     };
     let name = owned_name.as_str();
     if !copy && parent == destination {
@@ -45,7 +45,7 @@ pub fn move_folder(root: &Path, source: &[String], destination: &[String], copy:
     }
     // Folders made on disk inside the source count toward the depth like the ones already in the tree.
     if let Some(node) = get_node_mut(&mut data, source) {
-        synced |= tree_store::sync_subtree(root, source, node)?;
+        tree_store::sync_subtree(root, source, node)?;
     }
     let entry = get_node(&data, source).cloned().ok_or_else(|| FmError::NotFound { rel_parts: source.to_vec() })?;
     let limit = depth::limit(root)?;
@@ -72,8 +72,8 @@ pub fn move_folder(root: &Path, source: &[String], destination: &[String], copy:
     if let Err(e) = insert(root, &mut data, &new_rel, entry, limit) {
         return Err(journal.abort("move folder", e));
     }
-    persist(root, &data, journal, "move folder")?;
-    let m = finish(root, &data, synced, Some(select), warnings, vec![source.to_vec(), new_rel]);
+    persist(root, &data, journal, "move folder", &scope(&synced, vec![source.to_vec(), new_rel.clone()]))?;
+    let m = finish(root, &data, false, Some(select), warnings, scope(&synced, vec![source.to_vec(), new_rel]));
     Ok(m.replacing(before))
 }
 

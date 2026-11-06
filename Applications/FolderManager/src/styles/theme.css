@@ -11,6 +11,7 @@
   --accent: #ff8b40;
   --input-bg: #2b2b2b;
   --tree-bg: #1a1a1a;
+  --tab-back: #060606;
   --highlight: color-mix(in srgb, var(--button) 25%, var(--bg));
   --disabled-text: #555555;
   --muted: #999999;

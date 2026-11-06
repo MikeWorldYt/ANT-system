@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde::Deserialize;
 
-use super::{child_rel, editable_target, ensure_free, finish, load_synced_at, parent_of, persist, split, subtrees, Mutation};
+use super::{child_rel, editable_target, ensure_free, finish, load_synced_at, parent_of, persist, scope, split, subtrees, Mutation};
 use crate::domain::names::{editable_part, is_movable_node, numeric_id};
 use crate::infra::scan::list_subdirs;
 use crate::domain::error::{FmError, R};
@@ -71,15 +71,15 @@ pub fn move_node(root: &Path, rel: &[String], dir: MoveDirection) -> R<Mutation>
             siblings.insert(swap_new.clone().into(), entry);
         }
     }
-    persist(root, &data, journal, "move")?;
+    let node_rel = child_rel(parent, &node_final);
+    let touched = vec![rel.to_vec(), child_rel(parent, &swap_name), node_rel.clone(), child_rel(parent, &swap_new)];
+    persist(root, &data, journal, "move", &scope(&synced, touched.clone()))?;
     let warnings = if collision {
         vec![format!("{name} became {node_final} because {swap_name} has the same name")]
     } else {
         Vec::new()
     };
-    let node_rel = child_rel(parent, &node_final);
-    let touched = vec![rel.to_vec(), child_rel(parent, &swap_name), node_rel.clone(), child_rel(parent, &swap_new)];
-    Ok(finish(root, &data, synced, Some(node_rel), warnings, touched).replacing(before))
+    Ok(finish(root, &data, false, Some(node_rel), warnings, scope(&synced, touched)).replacing(before))
 }
 
 #[cfg(test)]

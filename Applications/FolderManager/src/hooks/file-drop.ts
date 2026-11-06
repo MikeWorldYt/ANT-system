@@ -3,6 +3,7 @@ import { dropFiles } from "./ops";
 import { folderMoveActive } from "./folder-move";
 import { setStatus } from "../components/organisms/bars/status-line";
 import type { DragDropEvent } from "@tauri-apps/api/webview";
+import { DOWNLOADS_ROOT } from "../services/ipc/types";
 
 const HIGHLIGHT = "drop-target";
 let marked: HTMLElement | null = null;
@@ -27,7 +28,8 @@ export function handleFileDrag(e: DragDropEvent): void {
   if (e.type === "leave") return mark(null);
   const hit = dialogOpen() ? null : nodeElementAt(e.position);
   // Reserved, missing and locked folders take no files, except review folders; a refused drop still reaches the backend for its message.
-  if (e.type !== "drop") return mark(hit && !hit.matches(".reserved, .ghost, .locked:not(.rev)") && hit.dataset.key !== "" ? hit : null);
+  const outside = hit?.dataset.key?.startsWith(DOWNLOADS_ROOT) === true;
+  if (e.type !== "drop") return mark(hit && !outside && !hit.matches(".reserved, .ghost, .locked:not(.rev)") && hit.dataset.key !== "" ? hit : null);
   mark(null);
   if (dialogOpen()) return;
   const key = hit?.dataset.key;

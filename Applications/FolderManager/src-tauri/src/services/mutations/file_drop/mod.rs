@@ -10,10 +10,10 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use super::recycle::move_to_bin;
-use super::{child_rel, exactly_on_disk, finish, load_synced_at, locate, register_ids, Mutation};
-use crate::domain::names::{compose_name, free_track, is_workboard_name, name_parts};
+use super::{child_rel, exactly_on_disk, finish, load_synced_at, locate, register_ids, scope, sync_branch_drift, sync_loaded_at, Drift, Mutation};
+use crate::domain::names::{compose_name, next_track, is_workboard_name, name_parts};
 use crate::domain::tree_types::{child_entries, type_base};
-use crate::domain::config::{is_hidden_dir, SETTINGS_FOLDER};
+use crate::domain::config::{is_hidden_dir, BACKUP_FOLDER, SETTINGS_FOLDER};
 use crate::infra::naming::free_name;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{io_err, join_rel, redirects, resolve, Journal, StorageLock};
@@ -73,18 +73,26 @@ pub fn drop_files(
     recycle: &dyn Fn(&Path) -> Result<(), String>,
 ) -> R<DropOutcome> {
     let _lock = StorageLock::acquire(root)?;
-    let owner = review_links::linked_owner(root, &tree_store::load(root)?, target)?;
+    // Only a 998.Review link needs the tree before the sync, and then the same load serves both.
+    let loaded = if review_links::is_link_path(target) { Some(tree_store::load(root)?) } else { None };
+    let owner = match &loaded {
+        Some(data) => review_links::linked_owner(root, data, target)?,
+        None => None,
+    };
     let target = owner.as_deref().unwrap_or(target);
-    let (mut data, mut synced) = load_synced_at(root, target)?;
+    let (mut data, mut synced) = match loaded {
+        Some(data) => sync_loaded_at(root, target, data)?,
+        None => load_synced_at(root, target)?,
+    };
     if locate(root, &data, target)?.ghost {
         return Err(FmError::GhostNotAllowed { op: "drop files into".to_string() });
     }
     let node = get_node(&data, target);
     // Past the depth limit the database tracks nothing, so the folder itself takes what is dropped on it.
     let past_limit = node.is_none() && !target.is_empty() && target.len() >= depth::limit(root)?;
-    // A 998.Review link stands for its owner's 98. folder, so its files go there whatever the owner's type.
+    // A 998.Review link stands for its owner's review folder, so its files go there whatever the owner's type.
     let dest_rel = match (&owner, node) {
-        (Some(owner), _) => review_links::rev_path(owner).split('/').map(str::to_string).collect(),
+        (Some(owner), _) => review_links::rev_path(root, owner).split('/').map(str::to_string).collect(),
         (None, Some(node)) => destination(target, node)?,
         (None, None) if past_limit && !is_reserved(&target[..1]) => target.to_vec(),
         (None, None) => return Err(FmError::NotFound { rel_parts: target.to_vec() }),
@@ -93,7 +101,7 @@ pub fn drop_files(
     if !exactly_on_disk(root, &dest_rel)? {
         return Err(FmError::NotFound { rel_parts: dest_rel });
     }
-    if synced {
+    if synced.any() {
         tree_store::save(root, &data)?;
     }
     let storage = fs::canonicalize(root).map_err(|e| io_err("resolve storage", root, &e))?;
@@ -137,8 +145,8 @@ pub fn drop_files(
         }
     }
     if moved_workboard {
-        synced |= tree_store::sync_branch(root, &mut data, target)?;
-        synced |= register_ids(root, &mut data, &mut warnings);
+        synced.absorb(sync_branch_drift(root, &mut data, target)?);
+        synced.absorb(Drift::unscoped(register_ids(root, &mut data, &mut warnings)));
         tree_store::save(root, &data)?;
     }
     let place = Place {
@@ -171,7 +179,7 @@ pub fn drop_files(
             touched.push(folder);
         }
     }
-    let mutation = finish(root, &data, synced, None, warnings, touched);
+    let mutation = finish(root, &data, false, None, warnings, scope(&synced, touched));
     Ok(DropOutcome { mutation, placed, conflicts })
 }
 
@@ -244,7 +252,7 @@ fn place_workboard(
     let siblings: Vec<String> = get_node(data, dest_rel).map(|n| child_entries(n).map(|(k, _)| k.to_string()).collect()).unwrap_or_default();
     let free = match replaced_track {
         Some(track) => compose_name(&track, &name_parts(&name, true).1, true),
-        None => free_track(&name, &siblings),
+        None => next_track(&name, &siblings),
     };
     let to = dest.join(&free);
     if to.exists() {
@@ -260,14 +268,14 @@ fn place_workboard(
     }
 }
 
-// A copy takes its own track and its own id, so the original and the copy never share either.
+// A copy takes the next track of its folder and its own id, so the original and the copy never share either.
 fn copy_workboard(root: &Path, data: &mut Mapping, dest_rel: &[String], dest: &Path, real: &Path, name: &str) -> Result<Workboard, String> {
     let dest_real = fs::canonicalize(dest).map_err(|e| io_err("resolve path", dest, &e).to_string())?;
     if dest_real.starts_with(real) {
         return Err("a workboard cannot be copied into itself".to_string());
     }
     let siblings: Vec<String> = get_node(data, dest_rel).map(|n| child_entries(n).map(|(k, _)| k.to_string()).collect()).unwrap_or_default();
-    let free = free_track(name, &siblings);
+    let free = next_track(name, &siblings);
     let to = dest.join(&free);
     if to.exists() {
         return Err(format!("a folder named {free} already exists"));
@@ -376,7 +384,7 @@ impl Place<'_> {
         let real = fs::canonicalize(src).map_err(|e| io_err("resolve path", src, &e).to_string())?;
         if let Ok(inner) = real.strip_prefix(&self.storage) {
             let parts: Vec<String> = inner.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect();
-            let settings = parts.first().is_some_and(|top| top.eq_ignore_ascii_case(SETTINGS_FOLDER));
+            let settings = parts.first().is_some_and(|top| top.eq_ignore_ascii_case(SETTINGS_FOLDER) || top.eq_ignore_ascii_case(BACKUP_FOLDER));
             if settings || parts.iter().any(|p| is_hidden_dir(p)) {
                 return Err("the file belongs to Folder Manager".to_string());
             }

@@ -3,7 +3,7 @@ import { el } from "../dom";
 import { guiIcon, type GuiIcon } from "../atoms/gui-icons";
 import { nodeToggle } from "../atoms/node-toggle";
 import { openVirtual } from "../../hooks/virtual-nav";
-import { select, state, type VirtualId } from "../../services/store/state";
+import { isVirtualShown, select, state, type VirtualId } from "../../services/store/state";
 
 export interface VirtualEntry {
   id: VirtualId;
@@ -15,11 +15,25 @@ export interface VirtualEntry {
 
 export const VIRTUAL_ENTRIES: VirtualEntry[] = [
   { id: "favorites", label: "FAVORITES", icon: "starred", hint: "Every favorite folder in the Storage", empty: "No favorites yet" },
+  { id: "downloads", label: "DOWNLOADS", icon: "download", hint: "The Downloads folder of this computer", empty: "Downloads is empty" },
+  { id: "review", label: "REVIEW", icon: "statusReview", hint: "The review folder of every node in the Storage", empty: "No review folders yet" },
   { id: "board", label: "BOARD", icon: "layout", hint: "Task board of every workboard in the Storage", empty: "No workboards yet" },
 ];
 
-// The board opens from the side panel, so only FAVORITES heads the root listing.
-export const ROOT_ENTRIES = VIRTUAL_ENTRIES.filter((e) => e.id !== "board");
+// The board opens from the side panel, so only the entries the settings leave on head the root listing.
+export const rootEntries = (): VirtualEntry[] => VIRTUAL_ENTRIES.filter((e) => e.id !== "board" && isVirtualShown(e.id));
+
+// The entry the arrow keys start from when nothing is selected: the open one, else the first.
+export const headEntry = (): VirtualEntry | undefined => {
+  const entries = rootEntries();
+  return entries.find((e) => e.id === state.virtual) ?? entries[0];
+};
+
+// The root entry just after (1) or before (-1) another; the first one when there is no other.
+export const entryBeside = (from: VirtualEntry | undefined, step: 1 | -1): VirtualEntry | undefined => {
+  const entries = rootEntries();
+  return entries[entries.findIndex((e) => e.id === from?.id) + step];
+};
 
 export const openEntry = (): VirtualEntry | null => VIRTUAL_ENTRIES.find((e) => e.id === state.virtual) ?? null;
 
@@ -64,4 +78,6 @@ export function virtualEntry(entry: VirtualEntry, cls: string, role: string, { t
   return item;
 }
 
-export const virtualEntries = (cls: string, role: string, options: EntryOptions = {}): HTMLElement[] => ROOT_ENTRIES.map((e) => virtualEntry(e, cls, role, options));
+// Only the head entry can hold the roving focus.
+export const virtualEntries = (cls: string, role: string, options: EntryOptions = {}): HTMLElement[] =>
+  rootEntries().map((e) => virtualEntry(e, cls, role, { ...options, tabbable: options.tabbable === true && e.id === headEntry()?.id }));

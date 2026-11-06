@@ -27,3 +27,5 @@ dialog.warning-confirm form { position: relative; }
 .dialog-text { white-space: pre-line; }
 .dialog-input { width: 100%; padding: 8px; font: inherit; color: var(--text); background: var(--field-bg); border: 1px solid transparent; border-radius: var(--radius-sm); }
 .dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.warning-skip { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
+.warning-skip input { accent-color: var(--accent); }

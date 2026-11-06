@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use serde_yaml::Value;
 
 use super::file_drop::copy_tree;
-use super::{child_rel, editable_target, finish, guard_frozen, load_synced_at, locate, parent_of, Mutation};
+use super::{child_rel, editable_target, finish, scope, guard_frozen, load_synced_at, locate, parent_of, Mutation};
 use crate::domain::names::title_of;
 use crate::infra::scan::list_subdirs;
 use crate::platform::shortcuts::create_shortcuts;
@@ -36,13 +36,13 @@ pub fn set_output(root: &Path, rel: &[String], output: Option<&str>) -> R<Mutati
         None => None,
     };
     write_info(&target.abs, &[(&[OUTPUT_KEY][..], OUTPUT_KEY, value)])?;
-    Ok(finish(root, &data, synced, Some(rel.to_vec()), Vec::new(), vec![rel.to_vec()]))
+    Ok(finish(root, &data, false, Some(rel.to_vec()), Vec::new(), scope(&synced, vec![rel.to_vec()])))
 }
 
 // Moves the deliverable into `(date)_Name` inside the Outcomes folder beside the workboard, and leaves `(date)_Name.lnk` behind.
 pub fn deliver(root: &Path, rel: &[String], date: &str, all: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, _) = load_synced_at(root, parent_of(rel))?;
+    let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
     if target.ghost || type_base(&target.node_type) != "WKB" {
@@ -71,13 +71,13 @@ pub fn deliver(root: &Path, rel: &[String], date: &str, all: bool) -> R<Mutation
     // An output folder keeps its place, so the link waits inside it where the deliverable was.
     let link = link_dir(rel, &target.abs, all).join(&name);
     let warnings: Vec<String> = create_shortcuts(&[(dest, link)]);
-    Ok(finish(root, &data, true, Some(rel.to_vec()), warnings, vec![rel.to_vec()]))
+    Ok(finish(root, &data, true, Some(rel.to_vec()), warnings, scope(&synced, vec![rel.to_vec()])))
 }
 
 // Brings back a copy of the deliverable for a workboard that is no longer Done, and removes its link; the Outcomes folder keeps it.
 pub fn restore(root: &Path, rel: &[String]) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
-    let (mut data, _) = load_synced_at(root, parent_of(rel))?;
+    let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
     if target.ghost || type_base(&target.node_type) != "WKB" {
@@ -110,7 +110,7 @@ pub fn restore(root: &Path, rel: &[String]) -> R<Mutation> {
     }
     tree_store::sync_branch(root, &mut data, rel)?;
     tree_store::save(root, &data)?;
-    Ok(finish(root, &data, true, Some(rel.to_vec()), warnings, vec![rel.to_vec()]))
+    Ok(finish(root, &data, true, Some(rel.to_vec()), warnings, scope(&synced, vec![rel.to_vec()])))
 }
 
 // The output path is kept relative to the workboard, with forward slashes and no leading slash.

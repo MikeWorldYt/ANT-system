@@ -3,6 +3,7 @@
   --bg: #f4f5f5;
   --text: #1d2020;
   --tree-bg: #ffffff;
+  --tab-back: var(--tree-bg);
   --input-bg: #ffffff;
   --field-bg: #e6e8e8;
   --border: #d4d7d7;
@@ -23,6 +24,7 @@
     --bg: #f4f5f5;
     --text: #1d2020;
     --tree-bg: #ffffff;
+    --tab-back: var(--tree-bg);
     --input-bg: #ffffff;
     --field-bg: #e6e8e8;
     --border: #d4d7d7;

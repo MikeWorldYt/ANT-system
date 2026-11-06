@@ -1,6 +1,8 @@
 // The snapshot the UI loads: the stored tree synced with disk, ids assigned and the search index rebuilt.
 use std::path::Path;
 
+use serde_yaml::Mapping;
+
 use crate::domain::model::Copies;
 use crate::domain::error::R;
 use crate::infra::fs_safe::StorageLock;
@@ -10,6 +12,11 @@ use crate::services::tree::tree_node::{build_tree, fill_children, TreeSnapshot};
 use crate::services::tree::tree_store;
 
 pub fn snapshot(root: &Path, mode: Copies) -> R<TreeSnapshot> {
+    snapshot_data(root, mode, true).map(|(tree, _)| tree)
+}
+
+// `index` is off for automatic refreshes, which leave the full search rebuild to the manual one.
+pub(crate) fn snapshot_data(root: &Path, mode: Copies, index: bool) -> R<(TreeSnapshot, Mapping)> {
     let mut data = tree_store::load(root)?;
     let mut changed = tree_store::sync(root, &mut data)?;
     changed |= tree_store::reconcile_portfolios_all(root, &mut data)?;
@@ -37,8 +44,10 @@ pub fn snapshot(root: &Path, mode: Copies) -> R<TreeSnapshot> {
     tree.copies = copies;
     tree.warnings = warnings;
     fill_children(root, &data, &mut tree.nodes)?;
-    search_index::rebuild_from_nodes(root, &tree.nodes)?;
-    Ok(tree)
+    if index {
+        search_index::rebuild_from_nodes(root, &tree.nodes)?;
+    }
+    Ok((tree, data))
 }
 
 #[cfg(test)]

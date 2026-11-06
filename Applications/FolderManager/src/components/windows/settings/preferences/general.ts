@@ -28,6 +28,24 @@ export const generalPage: SettingsPage = {
     },
     {
       section: "Preferences",
+      title: "Show Favorites folder",
+      description: "Lists the favorite folders of the Storage at the top of the root.",
+      control: () => switchControl("Show Favorites folder", state.settings.showFavorites, (on) => changeSetting("showFavorites", on)),
+    },
+    {
+      section: "Preferences",
+      title: "Show system Downloads folder",
+      description: "Adds the Downloads folder of this computer to the root, so its files can be opened or dragged into the Storage.",
+      control: () => switchControl("Show system Downloads folder", state.settings.showDownloads, (on) => changeSetting("showDownloads", on)),
+    },
+    {
+      section: "Preferences",
+      title: "Show Review entry",
+      description: "Lists the review folders of the whole Storage below Downloads in the root.",
+      control: () => switchControl("Show Review entry", state.settings.showReview, (on) => changeSetting("showReview", on)),
+    },
+    {
+      section: "Preferences",
       title: "Open columns on select",
       description: "In Columns view, selecting a folder opens its contents. Double-click the folder icon or the arrow otherwise.",
       control: () => switchControl("Open columns on select", state.settings.autoOpenColumns, (on) => changeSetting("autoOpenColumns", on)),

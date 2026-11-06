@@ -4,12 +4,12 @@ use std::path::Path;
 use serde_yaml::{Mapping, Value};
 
 use crate::domain::tree_types::{flags_in, type_base, META_KEYS};
-use crate::domain::config::{DATA_FLAG, HIDDEN_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, SPECIAL_TYPES, WKB_IDENTIFIERS};
+use crate::domain::config::{DATA_FLAG, HIDDEN_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, WKB_IDENTIFIERS};
 use crate::infra::storage::db::{db_path, Store};
 use crate::domain::error::R;
 use crate::infra::fs_safe::{io_err, join_rel};
 use crate::infra::footprint_file;
-use crate::domain::names::is_system_root_name;
+use crate::domain::names::{is_system_root_name, support_kind};
 use crate::infra::scan::list_subdirs;
 use crate::services::tree::depth;
 
@@ -20,8 +20,29 @@ pub fn load(root: &Path) -> R<Mapping> {
     }
 }
 
+// Only the path down to `rel` and what lies under it; the rest of the tree stays unread.
+pub fn load_level(root: &Path, rel: &[String]) -> R<Mapping> {
+    match Store::open_existing(root)? {
+        Some(store) => store.read_level(rel),
+        None => Ok(Mapping::new()),
+    }
+}
+
+// Each path with its ancestors and no children, for lookups of a node's own entry.
+pub fn load_paths(root: &Path, rels: &[Vec<String>]) -> R<Mapping> {
+    match Store::open_existing(root)? {
+        Some(store) => store.read_paths(rels),
+        None => Ok(Mapping::new()),
+    }
+}
+
 pub fn save(root: &Path, data: &Mapping) -> R<()> {
     Store::open_or_create(root)?.replace(&sort_mapping(data))
+}
+
+// Writes only the subtrees at `touched`, for a change known to stay inside them; the rest of the db is not compared.
+pub fn save_paths(root: &Path, data: &Mapping, touched: &[Vec<String>]) -> R<()> {
+    Store::open_or_create(root)?.replace_paths(&sort_mapping(data), touched)
 }
 
 // Folders added on disk since the last refresh get their yaml entry before any check runs.
@@ -39,8 +60,8 @@ pub fn infer_type(name: &str, depth: usize) -> String {
     if WKB_IDENTIFIERS.iter().any(|p| basename.starts_with(p)) {
         return "WKB".to_string();
     }
-    match SPECIAL_TYPES.iter().find(|(prefix, _)| basename.starts_with(prefix)) {
-        Some((_, folder_type)) => (*folder_type).to_string(),
+    match support_kind(basename) {
+        Some(kind) => kind.to_string(),
         None => format!("NODE-L{}", depth + 1),
     }
 }
@@ -177,16 +198,27 @@ pub fn delete_key(data: &mut Mapping, parent: &[String], key: &str) -> bool {
 
 // Syncs only the levels from the root down to `dir`, one listing each, without descending any further.
 pub fn sync_branch(root: &Path, data: &mut Mapping, dir: &[String]) -> R<bool> {
+    let (renamed, paths) = sync_branch_paths(root, data, dir)?;
+    Ok(renamed || !paths.is_empty())
+}
+
+// Also names the folders whose entries changed; the flag is a legacy rename, which can touch rows outside them.
+pub fn sync_branch_paths(root: &Path, data: &mut Mapping, dir: &[String]) -> R<(bool, Vec<Vec<String>>)> {
     let fresh = !db_path(root).is_file();
     let limit = depth::limit(root)?;
     let renamed = rename_legacy_types(data);
-    let (mut node, mut path, mut changed) = (data, root.to_path_buf(), renamed);
+    let (mut node, mut path, mut changed) = (data, root.to_path_buf(), Vec::new());
     for depth in 0..=dir.len().min(limit - 1) {
         let names = list_subdirs(&path)?;
         for name in names.iter().filter(|n| !META_KEYS.contains(&n.as_str())) {
-            changed |= add_missing(node, name, depth, fresh);
+            let mut touched = add_missing(node, name, depth, fresh);
             if let Some(Value::Mapping(child)) = node.get_mut(name.as_str()) {
-                changed |= reconcile_hidden(&path.join(name), child)?;
+                touched |= reconcile_hidden(&path.join(name), child)?;
+            }
+            if touched {
+                let mut rel = dir[..depth.min(dir.len())].to_vec();
+                rel.push(name.clone());
+                changed.push(rel);
             }
         }
         // Exact names only, as a full sync only descends into folders listed on disk.
@@ -195,7 +227,7 @@ pub fn sync_branch(root: &Path, data: &mut Mapping, dir: &[String]) -> R<bool> {
         node = child;
         path.push(part);
     }
-    Ok(changed)
+    Ok((renamed, changed))
 }
 
 // Syncs a node's whole subtree; a missing folder has nothing to add.
@@ -317,6 +349,56 @@ mod tests {
         let dir = TempDir::new("load-missing");
         assert!(load(dir.path()).unwrap().is_empty());
         assert!(!dir.path().join(".ant/ant.db").exists());
+    }
+
+    #[test]
+    fn a_level_load_holds_the_path_and_what_lies_under_it_only() {
+        let dir = TempDir::new("load-level");
+        let data = sort_mapping(&parse(RICH));
+        let mut data = data;
+        data.extend(parse("deep:
+  type: NODE-L1
+  mid:
+    type: NODE-L2
+    leaf: {type: X}
+  side: {type: NODE-L2}
+other:
+  type: NODE-L1
+  kid: {type: Y}
+"));
+        save(dir.path(), &data).unwrap();
+        let full = load(dir.path()).unwrap();
+        let level = load_level(dir.path(), &rel(&["deep", "mid"])).unwrap();
+        assert_eq!(get_node(&level, &rel(&["deep", "mid"])), get_node(&full, &rel(&["deep", "mid"])));
+        assert_eq!(get_type(&level, &rel(&["deep"])), "NODE-L1");
+        assert!(get_node(&level, &rel(&["deep", "side"])).is_none());
+        assert!(get_node(&level, &rel(&["other"])).is_none());
+        assert_eq!(load_level(dir.path(), &[]).unwrap(), full);
+        let missing = load_level(dir.path(), &rel(&["deep", "nope"])).unwrap();
+        assert_eq!(get_type(&missing, &rel(&["deep"])), "NODE-L1");
+        assert!(get_node(&missing, &rel(&["deep", "nope"])).is_none());
+    }
+
+    #[test]
+    fn a_path_load_holds_each_chain_without_children() {
+        let dir = TempDir::new("load-paths");
+        let data = parse("a:
+  type: NODE-L1
+  flags: hidden
+  b:
+    type: NODE-L2
+    c: {type: X}
+  d: {type: Y}
+z: {type: NODE-L1}
+");
+        save(dir.path(), &data).unwrap();
+        let part = load_paths(dir.path(), &[rel(&["a", "b"]), rel(&["a", "d"]), rel(&["a", "gone"])]).unwrap();
+        assert_eq!(get_type(&part, &rel(&["a", "b"])), "NODE-L2");
+        assert_eq!(get_type(&part, &rel(&["a", "d"])), "Y");
+        assert!(get_node(&part, &rel(&["a"])).unwrap().get("flags").is_some());
+        assert!(get_node(&part, &rel(&["a", "b", "c"])).is_none());
+        assert!(get_node(&part, &rel(&["a", "gone"])).is_none());
+        assert!(get_node(&part, &rel(&["z"])).is_none());
     }
 
     #[test]
@@ -448,6 +530,10 @@ mod tests {
         assert_eq!(infer_type("90.Resources", 1), "RES");
         assert_eq!(infer_type("97.Templates", 1), "TPL");
         assert_eq!(infer_type("98.Review", 2), "REV");
+        assert_eq!(infer_type("RES.Brand-Assets", 1), "RES");
+        assert_eq!(infer_type("tpl.Video-Project", 1), "TPL");
+        assert_eq!(infer_type("REV.Math", 2), "REV");
+        assert_eq!(infer_type("99.Misc", 1), "NODE-L2");
         assert_eq!(infer_type("00.Porfolio", 1), "OUT");
         assert_eq!(infer_type("01.Math", 0), "NODE-L1");
         assert_eq!(infer_type("a/b/02.X", 2), "NODE-L3");
@@ -531,5 +617,87 @@ mod tests {
         dir.mkdir("100.A/01.B/02.D");
         sync(dir.path(), &mut data).unwrap();
         assert!(get_node(&data, &rel(&["100.A", "01.B", "02.D"])).unwrap().get("flags").is_none());
+    }
+
+    const SCOPED: &str = "100.A:
+  type: NODE-L1
+  01.B:
+    type: NODE-L2
+    flags: data
+    status: done
+    01.C: {type: NODE-L3, note: [x, y]}
+  02.D: {type: NODE-L2}
+200.E:
+  type: NODE-L1
+  01.F: {type: NODE-L2}
+";
+
+    fn dump(root: &Path) -> String {
+        serde_yaml::to_string(&sort_mapping(&load(root).unwrap())).unwrap()
+    }
+
+    // A full save and a path save of the same edit must leave the same rows behind.
+    fn assert_same_as_full_save(tag: &str, edit: impl Fn(&mut Mapping), touched: &[&[&str]]) {
+        let (full, scoped) = (TempDir::new(&format!("{tag}-full")), TempDir::new(&format!("{tag}-scoped")));
+        let mut data = parse(SCOPED);
+        save(full.path(), &data).unwrap();
+        save(scoped.path(), &data).unwrap();
+        edit(&mut data);
+        save(full.path(), &data).unwrap();
+        let touched: Vec<Vec<String>> = touched.iter().map(|t| rel(t)).collect();
+        save_paths(scoped.path(), &data, &touched).unwrap();
+        assert_eq!(dump(scoped.path()), dump(full.path()));
+        assert_eq!(dump(full.path()), serde_yaml::to_string(&sort_mapping(&data)).unwrap());
+    }
+
+    #[test]
+    fn a_path_save_of_a_rename_matches_a_full_save() {
+        assert_same_as_full_save("ps-rename", |d| { rename_key(d, &rel(&["100.A"]), "01.B", "01.Z"); }, &[&["100.A", "01.B"], &["100.A", "01.Z"]]);
+    }
+
+    #[test]
+    fn a_path_save_of_a_move_matches_a_full_save() {
+        let edit = |d: &mut Mapping| {
+            let entry = get_node(d, &rel(&["100.A", "01.B"])).unwrap().clone();
+            delete_key(d, &rel(&["100.A"]), "01.B");
+            get_node_mut(d, &rel(&["200.E"])).unwrap().insert("02.B".into(), entry.into());
+        };
+        assert_same_as_full_save("ps-move", edit, &[&["100.A", "01.B"], &["200.E", "02.B"]]);
+    }
+
+    #[test]
+    fn a_path_save_of_a_delete_matches_a_full_save() {
+        assert_same_as_full_save("ps-delete", |d| { delete_key(d, &rel(&["100.A"]), "01.B"); }, &[&["100.A", "01.B"]]);
+    }
+
+    #[test]
+    fn a_path_save_of_a_flag_change_matches_a_full_save() {
+        assert_same_as_full_save("ps-flag", |d| set_flag(get_node_mut(d, &rel(&["100.A", "02.D"])).unwrap(), "hidden", true), &[&["100.A", "02.D"]]);
+    }
+
+    #[test]
+    fn a_path_save_of_an_added_node_matches_a_full_save() {
+        let edit = |d: &mut Mapping| {
+            get_node_mut(d, &rel(&["200.E", "01.F"])).unwrap().insert("01.G".into(), parse("type: NODE-L3
+98.G: {type: REV-L3}
+").into());
+        };
+        assert_same_as_full_save("ps-add", edit, &[&["200.E", "01.F", "01.G"]]);
+    }
+
+    #[test]
+    fn a_path_save_creates_missing_ancestors_and_leaves_other_branches_alone() {
+        let dir = TempDir::new("ps-ancestors");
+        save(dir.path(), &parse("100.A: {type: NODE-L1}
+")).unwrap();
+        let mut data = parse(SCOPED);
+        save_paths(dir.path(), &data, &[rel(&["200.E", "01.F"])]).unwrap();
+        let loaded = load(dir.path()).unwrap();
+        assert_eq!(get_type(&loaded, &rel(&["200.E", "01.F"])), "NODE-L2");
+        assert_eq!(get_type(&loaded, &rel(&["200.E"])), "NODE-L1");
+        assert!(get_node(&loaded, &rel(&["100.A", "01.B"])).is_none());
+        data.clear();
+        save_paths(dir.path(), &data, &[rel(&["200.E"])]).unwrap();
+        assert!(get_node(&load(dir.path()).unwrap(), &rel(&["200.E"])).is_none());
     }
 }

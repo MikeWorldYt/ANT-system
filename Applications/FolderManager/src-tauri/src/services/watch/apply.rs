@@ -24,7 +24,9 @@ pub(super) fn apply(root: &Path, changed: &[PathBuf], rescan: Option<&str>) -> R
     }
     let rels: Vec<Vec<String>> = rels.into_iter().collect();
     let reason = rescan.map(str::to_string).or_else(|| needs_full(rels.len()).then(|| format!("{} changed paths", rels.len())));
-    let mut report = ApplyReport { paths: rels.len(), full: reason.is_some(), skipped, saved: false };
+    // A full sync tells the window to rescan, so listing every parent would only be noise.
+    let folders = if reason.is_some() { Vec::new() } else { parents(&rels) };
+    let mut report = ApplyReport { paths: rels.len(), full: reason.is_some(), skipped, saved: false, folders };
     if let Some(reason) = &reason {
         log("info", &format!("Watch: full sync ({reason})"));
     }
@@ -45,6 +47,12 @@ pub(super) fn apply(root: &Path, changed: &[PathBuf], rescan: Option<&str>) -> R
     tree_store::save(root, &data)?;
     report.saved = true;
     Ok(report)
+}
+
+// The window re-lists these levels: a path appearing, vanishing or renaming changes its parent's listing.
+fn parents(rels: &[Vec<String>]) -> Vec<Vec<String>> {
+    let set: BTreeSet<Vec<String>> = rels.iter().map(|rel| rel[..rel.len().saturating_sub(1)].to_vec()).collect();
+    set.into_iter().collect()
 }
 
 // A change at the storage root makes its target the root itself, which is a full sync.
@@ -75,7 +83,7 @@ mod tests {
         dir.mkdir("100.WORK/06.New/01.Deep");
         dir.mkdir("200.Other");
         let report = apply_batch(dir.path(), &[dir.path().join("100.WORK/06.New")]).unwrap();
-        assert_eq!(report, ApplyReport { paths: 1, full: false, skipped: 0, saved: true });
+        assert_eq!(report, ApplyReport { paths: 1, full: false, skipped: 0, saved: true, folders: vec![rel(&["100.WORK"])] });
         let data = yaml(dir.path());
         assert_eq!(tree_store::get_type(&data, &rel(&["100.WORK", "06.New"])), "NODE-L2");
         assert_eq!(tree_store::get_type(&data, &rel(&["100.WORK", "06.New", "01.Deep"])), "NODE-L3");
@@ -91,7 +99,7 @@ mod tests {
         let before = std::fs::metadata(db_path(dir.path())).unwrap().modified().unwrap();
         let own = [".ant/ant.db", ".ant/ant.db-journal", "999.Settings/00.Core/.FolderManager.lock"].map(|p| dir.path().join(p));
         let report = apply_batch(dir.path(), &own).unwrap();
-        assert_eq!(report, ApplyReport { paths: 0, full: false, skipped: 3, saved: false });
+        assert_eq!(report, ApplyReport { paths: 0, full: false, skipped: 3, saved: false, folders: vec![] });
         assert_eq!(std::fs::metadata(db_path(dir.path())).unwrap().modified().unwrap(), before);
     }
 

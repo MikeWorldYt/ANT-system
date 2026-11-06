@@ -12,15 +12,16 @@ use super::{log, watch, ApplyReport};
 // A rename or location change only swaps the root in memory, so polling it is how the watcher notices.
 const FOLLOW: Duration = Duration::from_millis(500);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct StorageChanged {
     pub paths: usize,
-    pub full: bool,
+    pub folders: Vec<Vec<String>>,
+    pub rescan: bool,
 }
 
 // Our own writes are filtered out before this point, so any remaining path is news; files alone save no yaml.
 fn changed_event(report: &ApplyReport) -> Option<StorageChanged> {
-    (report.saved || report.paths > 0).then_some(StorageChanged { paths: report.paths, full: report.full })
+    (report.saved || report.paths > 0).then(|| StorageChanged { paths: report.paths, folders: report.folders.clone(), rescan: report.full })
 }
 
 struct Running {
@@ -119,12 +120,13 @@ mod tests {
 
     #[test]
     fn only_a_batch_that_changed_something_reaches_the_window() {
-        let quiet = ApplyReport { paths: 0, full: false, skipped: 3, saved: false };
+        let quiet = ApplyReport { paths: 0, full: false, skipped: 3, saved: false, folders: vec![] };
         assert_eq!(changed_event(&quiet), None);
-        let files = ApplyReport { paths: 2, full: false, skipped: 1, saved: false };
-        assert_eq!(changed_event(&files), Some(StorageChanged { paths: 2, full: false }));
-        let saved = ApplyReport { saved: true, full: true, ..files };
-        assert_eq!(changed_event(&saved), Some(StorageChanged { paths: 2, full: true }));
+        let folders = vec![vec!["100.WORK".to_string()]];
+        let files = ApplyReport { paths: 2, full: false, skipped: 1, saved: false, folders: folders.clone() };
+        assert_eq!(changed_event(&files), Some(StorageChanged { paths: 2, folders, rescan: false }));
+        let saved = ApplyReport { saved: true, full: true, folders: vec![], ..files };
+        assert_eq!(changed_event(&saved), Some(StorageChanged { paths: 2, folders: vec![], rescan: true }));
     }
 
     #[test]

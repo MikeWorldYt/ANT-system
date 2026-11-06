@@ -4,27 +4,31 @@ use std::path::Path;
 use serde_yaml::Mapping;
 use tauri::{AppHandle, Manager};
 
-use super::{off_thread, review_emitter, run_locked};
+use super::{off_thread, review_emitter, run_locked, run_unlocked};
 use crate::app::storage_session::Storage;
+use crate::domain::config::REVIEW_FOLDER;
 use crate::domain::model::Copies;
 use crate::domain::error::R;
 use crate::infra::fs_safe::{join_rel, validate_component};
-use crate::services::index::{node_names, reindex, review_folders, review_index, Emit};
-use crate::services::snapshot::snapshot;
+use crate::services::index::{node_names, reindex_data, review_folders, review_index, Emit};
+use crate::services::snapshot::{snapshot, snapshot_data};
 use crate::services::tree::root_check::{self, RootCheck};
 use crate::services::tree::tree_node::{build_children, fill_children, lists_files, TreeNode, TreeSnapshot};
 use crate::services::tree::tree_store;
 
-pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>) -> R<TreeSnapshot> {
+// Only a manual refresh (`full`) rebuilds the search and review indexes; automatic ones just sync the tree.
+pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>, full: bool) -> R<TreeSnapshot> {
     node_names::tidy(root)?;
-    let mut tree = snapshot(root, Copies::Tail)?;
+    let (mut tree, mut data) = snapshot_data(root, Copies::Tail, full)?;
     if review_folders::restore(root)? {
         let copies = tree.copies;
-        tree = snapshot(root, Copies::Tail)?;
+        (tree, data) = snapshot_data(root, Copies::Tail, full)?;
         tree.copies.extend(copies);
         tree.yaml_changed = true;
     }
-    reindex(root, emit, rebuild);
+    if full {
+        reindex_data(root, emit, &data, rebuild);
+    }
     Ok(tree)
 }
 
@@ -34,9 +38,9 @@ pub async fn load_tree(app: AppHandle) -> R<TreeSnapshot> {
 }
 
 #[tauri::command]
-pub async fn refresh(app: AppHandle) -> R<TreeSnapshot> {
+pub async fn refresh(app: AppHandle, full: bool) -> R<TreeSnapshot> {
     let emitter = app.clone();
-    run_locked(app, move |root| refresh_flow(root, &review_emitter(&emitter), review_index::rebuild)).await
+    run_locked(app, move |root| refresh_flow(root, &review_emitter(&emitter), review_index::rebuild, full)).await
 }
 
 #[tauri::command]
@@ -46,9 +50,13 @@ pub async fn check_root(app: AppHandle) -> R<RootCheck> {
 
 #[tauri::command]
 pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<TreeNode>> {
-    run_locked(app, move |root| {
+    run_unlocked(app, move |_, root| {
         rel_parts.iter().try_for_each(|part| validate_component(part))?;
-        let data = tree_store::load(root)?;
+        // The review folder lists links to owners anywhere in the tree; every other level needs only its own branch.
+        let data = match rel_parts.as_slice() {
+            [top] if top.eq_ignore_ascii_case(REVIEW_FOLDER) => tree_store::load(root)?,
+            _ => tree_store::load_level(root, &rel_parts)?,
+        };
         let mut kids = build_children(root, &data, &rel_parts)?;
         fill_children(root, &data, &mut kids)?;
         Ok(kids)

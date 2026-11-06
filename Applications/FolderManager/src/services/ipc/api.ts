@@ -1,6 +1,6 @@
 // Single IPC surface: the only module that calls invoke.
 import { invoke } from "@tauri-apps/api/core";
-import { isFmError } from "./types";
+import { inDownloads, isFmError } from "./types";
 import type {
   BoardCard,
   CopyAnswer,
@@ -15,6 +15,7 @@ import type {
   Mutation,
   Resolution,
   RootCheck,
+  SupportCheck,
   StorageInfo,
   TreeNode,
   TreeSnapshot,
@@ -32,25 +33,32 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
 
 export const getStorage = () => call<StorageInfo>("get_storage");
 export const loadTree = () => call<TreeSnapshot>("load_tree");
-export const refresh = () => call<TreeSnapshot>("refresh");
+export const refresh = (full: boolean) => call<TreeSnapshot>("refresh", { full });
 export const runIntake = () => call<IntakeReport>("run_intake");
 export const acknowledgeIntake = (relParts: string[]) => call<void>("acknowledge_intake", { relParts });
 export const checkRoot = () => call<RootCheck>("check_root");
+export const checkSupportUpgrade = () => call<SupportCheck>("check_support_upgrade");
+export const applySupportUpgrade = (relParts: string[]) => call<Mutation>("apply_support_upgrade", { relParts });
+export const finishSupportUpgrade = (stamp: string) => call<string[]>("finish_support_upgrade", { stamp });
 export const previewInvalid = (rows: { relParts: string[]; resolution: Resolution }[]) => call<string[]>("preview_invalid", { rows });
 export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
   call<Mutation>("resolve_invalid", { relParts, resolution });
-export const listChildren = (relParts: string[]) => call<TreeNode[]>("list_children", { relParts });
+// Downloads paths start with a marker the backend does not take; it only receives the names below Downloads.
+const belowDownloads = (relParts: string[]) => relParts.slice(1);
+export const listChildren = (relParts: string[]) =>
+  inDownloads(relParts) ? call<TreeNode[]>("list_downloads", { relParts: belowDownloads(relParts) }) : call<TreeNode[]>("list_children", { relParts });
 export const renameNode = (relParts: string[], newEditable: string) =>
   call<Mutation>("rename_node", { relParts, newEditable });
 export const setNodeType = (relParts: string[], typeBase: EditableType, status: WkbStatus | null) =>
   call<Mutation>("set_node_type", { relParts, typeBase, status });
-export const openNode = (relParts: string[]) => call<void>("open_node", { relParts });
+export const openNode = (relParts: string[]) =>
+  inDownloads(relParts) ? call<void>("open_download", { relParts: belowDownloads(relParts) }) : call<void>("open_node", { relParts });
 export const revealNode = (relParts: string[]) => call<void>("reveal_node", { relParts });
 export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("set_favorite", { relParts, on });
 export const setImportant = (relParts: string[], on: boolean) => call<Mutation>("set_important", { relParts, on });
-export const fileImage = (relParts: string[], large: boolean) => call<string | null>("file_image", { relParts, large });
+export const fileImage = (relParts: string[], large: boolean) =>
+  inDownloads(relParts) ? call<string | null>("download_image", { relParts: belowDownloads(relParts), large }) : call<string | null>("file_image", { relParts, large });
 export const setLinkHidden =(relParts: string[], on: boolean) => call<Mutation>("set_link_hidden", { relParts, on });
-export const setReviewFilter = (hidden: string[], favorites: boolean) => call<Mutation>("set_review_filter", { hidden, favorites });
 export const setUserFlag = (relParts: string[], on: boolean) => call<Mutation>("set_user_flag", { relParts, on });
 export const answerCopy = (relParts: string[], answer: CopyAnswer) => call<void>("answer_copy", { relParts, answer });
 export const getSettings = () => call<Record<string, string>>("get_settings");
@@ -115,7 +123,8 @@ export interface ShortcutCreated {
 }
 export const createShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_shortcut_in", { target, folder });
-export const copyItems = (targets: string[][], cut: boolean) => call<void>("copy_items", { targets, cut });
+export const copyItems = (targets: string[][], cut: boolean) =>
+  targets.every(inDownloads) ? call<void>("copy_downloads", { targets: targets.map(belowDownloads) }) : call<void>("copy_items", { targets, cut });
 export const createFileShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_file_shortcut_in", { target, folder });
 export const renameFile = (relParts: string[], newName: string) => call<Mutation>("rename_file", { relParts, newName });
@@ -125,9 +134,15 @@ export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonE
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
 export const listFavorites = () => call<string[][]>("list_favorites");
+export const listReview = () => call<string[][]>("list_review");
 export const listWorkboards = () => call<string[][]>("list_workboards");
 export const setBoard = (cards: BoardCard[]) => call<Mutation>("set_board", { cards });
 export const searchDisk = (query: string) => call<string[][]>("search_disk", { query });
+export interface FileHit {
+  folder: string[];
+  name: string;
+}
+export const searchFiles = (query: string) => call<FileHit[]>("search_files", { query });
 export interface Suggestion {
   value: string;
   label: string;

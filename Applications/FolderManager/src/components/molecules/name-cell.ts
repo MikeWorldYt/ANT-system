@@ -6,6 +6,7 @@ import { textInput } from "../atoms/text-input";
 import { renameTo, setLinkHidden } from "../../hooks/ops";
 import { keyOf, state, stopEdit } from "../../services/store/state";
 import type { TreeNode } from "../../services/ipc/types";
+import { inReviewList, reviewLevel, reviewName } from "../../services/store/review-list";
 import { displayNodeName, isTopLink, linkDashes } from "../../services/store/node-info";
 
 export const favoriteMark = () => el("span", { class: "fav-mark", title: "Favorite" }, guiIcon("starred"));
@@ -25,8 +26,9 @@ export function nameCell(n: TreeNode, inlineStar = true, staircase = false): HTM
   const key = keyOf(n.relParts);
   const edit = state.editing;
   if (!edit || edit.key !== key) {
-    const text = (staircase ? linkDashes(n) : "") + displayNodeName(n);
-    return el("span", { class: isTopLink(n) ? "name top-link" : "name" }, el("span", { class: "name-text" }, text), ...(n.favorite && inlineStar ? [favoriteMark()] : []), ...(n.important && inlineStar ? [importantMark()] : []));
+    const review = inReviewList(n);
+    const text = review ? (staircase ? "-".repeat(reviewLevel(n) - 1) : "") + reviewName(n) : (staircase ? linkDashes(n) : "") + displayNodeName(n);
+    return el("span", { class: isTopLink(n) || (review && reviewLevel(n) === 1) ? "name top-link" : "name" }, el("span", { class: "name-text" }, text), ...(n.favorite && inlineStar ? [favoriteMark()] : []), ...(n.important && inlineStar ? [importantMark()] : []));
   }
 
   const input = textInput({ class: "name-input", "aria-label": `Rename ${n.name}` });

@@ -2,6 +2,7 @@
 import { startDragOut } from "../services/ipc/api";
 import { forgetMoved, refresh } from "./ops";
 import { findNode, isSelected, select, state } from "../services/store/state";
+import { inDownloads } from "../services/ipc/types";
 import { leftWindow, modsOf, mousePress, pastThreshold, pointOf, released, type Mods, type Point } from "./pointer";
 import { setStatus, reportError } from "../components/organisms/bars/status-line";
 
@@ -20,7 +21,7 @@ export function dragSources(key: string, mods: Mods): string[] {
 // Main categories are top-level, so the backend refuses them; checking here keeps one of them from failing the whole drag.
 const dragOutable = (parts: string[]): boolean => {
   const node = findNode(parts);
-  return parts.length > 1 && node !== null && !node.reserved && !node.ghost && !node.flags.includes("main");
+  return parts.length > 1 && !inDownloads(parts) && node !== null && !node.reserved && !node.ghost && !node.flags.includes("main");
 };
 
 async function dragOut(sources: string[][]): Promise<void> {
@@ -48,7 +49,7 @@ export function installDragOut(host: HTMLElement): void {
     if (!target) return;
     const item = target.closest<HTMLElement>(ITEM);
     const key = item?.dataset.key;
-    if (!item || !key || item.matches(".reserved, .ghost") || findNode(key.split("/"))?.flags.includes("main")) return;
+    if (!item || !key || item.matches(".reserved, .ghost") || inDownloads(key.split("/")) || findNode(key.split("/"))?.flags.includes("main")) return;
     gesture = { key, mods: modsOf(ev), start: pointOf(ev) };
   });
   host.addEventListener("pointermove", (ev) => {

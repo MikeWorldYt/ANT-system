@@ -1,6 +1,7 @@
 // Tauri command layer: runs the pure core under the storage lock off the UI thread.
 mod backup;
 mod debug;
+mod downloads;
 mod drag_out;
 mod edit;
 mod extensions;
@@ -16,6 +17,7 @@ mod storage;
 mod tests;
 mod tree;
 mod update;
+mod upgrade;
 
 use std::path::Path;
 
@@ -30,6 +32,7 @@ use crate::services::updater;
 
 pub use backup::*;
 pub use debug::*;
+pub use downloads::*;
 pub use drag_out::*;
 pub use edit::*;
 pub use extensions::*;
@@ -42,6 +45,7 @@ pub use share::*;
 pub use storage::*;
 pub use tree::*;
 pub use update::*;
+pub use upgrade::*;
 
 
 const REVIEW_EVENT: &str = "fm://review-index";
@@ -64,13 +68,33 @@ where
     F: FnOnce(&Path) -> R<T> + Send + 'static,
 {
     let result = off_thread(move || locked(&app.state::<Storage>(), f)).await?;
-    if let Err(err) = &result {
+    log_failure(&result);
+    result
+}
+
+// Reads only: no storage lock, so a change in progress is neither waited for nor held up.
+pub async fn run_unlocked<T, F>(app: AppHandle, f: F) -> R<T>
+where
+    T: Send + 'static,
+    F: FnOnce(&Storage, &Path) -> R<T> + Send + 'static,
+{
+    let result = off_thread(move || {
+        let storage = app.state::<Storage>();
+        let root = storage.root()?;
+        f(&storage, &root)
+    })
+    .await?;
+    log_failure(&result);
+    result
+}
+
+fn log_failure<T>(result: &R<T>) {
+    if let Err(err) = result {
         // The command's own error matters more to the caller than a failed log write.
         if let Err(log) = crate::services::debug_log::line("error", &err.to_string()) {
             eprintln!("{log}");
         }
     }
-    result
 }
 
 fn review_emitter(app: &AppHandle) -> impl Fn(&ReviewIndexEvent) -> Result<(), String> + '_ {

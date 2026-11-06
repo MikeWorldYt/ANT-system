@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use serde_yaml::Mapping;
 
+use crate::domain::names::is_workboard_name;
 use crate::domain::tree_types::META_KEYS;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{io_err, resolve};
@@ -43,7 +44,12 @@ pub(crate) fn locate(root: &Path, data: &Mapping, rel: &[String]) -> R<Target> {
     if !on_disk && get_node(data, rel).is_none() {
         return Err(FmError::NotFound { rel_parts: rel.to_vec() });
     }
-    Ok(Target { abs, ghost: !on_disk, node_type: get_type(data, rel) })
+    // A workboard-named folder past the depth limit has no tree entry but edits like any workboard.
+    let node_type = match get_node(data, rel) {
+        None if on_disk && rel.last().is_some_and(|name| is_workboard_name(name)) => "WKB".to_string(),
+        _ => get_type(data, rel),
+    };
+    Ok(Target { abs, ghost: !on_disk, node_type })
 }
 
 pub(super) fn exactly_on_disk(root: &Path, rel: &[String]) -> R<bool> {

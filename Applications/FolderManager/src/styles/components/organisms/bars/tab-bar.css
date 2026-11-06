@@ -1,0 +1,17 @@
+/* Strip of open tabs above the navigation bar. */
+.tab-bar { --tab-outline: var(--disabled-text); display: flex; align-items: flex-end; gap: 6px; padding: 8px 12px 0; background: var(--tab-back); box-shadow: inset 0 -1px var(--tab-outline); }
+.tab-bar .icon-btn { width: 26px; height: 26px; margin-bottom: 2px; background: transparent; }
+.tab-list { min-width: 0; display: flex; overflow-x: auto; scrollbar-width: none; }
+.tab { --tab-fill: var(--tab-back); --tab-base: var(--tab-outline); position: relative; z-index: 0; flex: 0 1 190px; min-width: 100px; display: flex; align-items: center; padding: 0 12px; }
+.tab + .tab { margin-left: -8px; }
+.tab:hover { --tab-fill: var(--input-bg); }
+.tab.active { --tab-fill: var(--bg); --tab-base: var(--bg); z-index: 1; }
+/* Two halves skewed apart draw the slanted sides, keeping the rounded top corners a clip-path would lose. */
+.tab::before, .tab::after { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; width: 50%; background: var(--tab-fill); border: solid var(--tab-outline); border-width: 1px 0; border-bottom-color: var(--tab-base); }
+.tab::before { left: 0; border-left-width: 1px; border-radius: var(--radius-md) 0 0 0; transform: skewX(-18deg); transform-origin: left bottom; }
+.tab::after { right: 0; border-right-width: 1px; border-radius: 0 var(--radius-md) 0 0; transform: skewX(18deg); transform-origin: right bottom; }
+.tab-name { flex: 1; min-width: 0; padding: 5px 10px; border: 0; background: transparent; color: var(--text); font: inherit; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.tab.active .tab-name { font-weight: 600; }
+.tab-close { margin-right: 4px; padding: 0 5px; border: 0; border-radius: 3px; background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
+.tab-close:hover { color: var(--text); }
+.tab-name:focus-visible, .tab-close:focus-visible { outline: 2px solid var(--button); outline-offset: -2px; }

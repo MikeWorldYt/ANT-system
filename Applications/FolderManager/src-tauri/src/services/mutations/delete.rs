@@ -5,7 +5,7 @@ use std::path::Path;
 use serde::Serialize;
 
 use super::recycle::move_to_bin;
-use super::{finish, load_synced_at, locate, parent_of, persist, split, subtrees, Mutation, Target};
+use super::{finish, load_synced_at, locate, parent_of, persist, scope, split, subtrees, Mutation, Target};
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{dir_entries, io_err, redirects, Journal, StorageLock};
 use crate::services::tree::tree_node::is_reserved;
@@ -51,8 +51,8 @@ pub fn delete_node(
         if !delete_key(&mut data, parent, name) {
             return Err(FmError::NotFound { rel_parts: rel.to_vec() });
         }
-        tree_store::save(root, &data)?;
-        return Ok(finish(root, &data, synced, None, Vec::new(), vec![rel.to_vec()]).replacing(before));
+        tree_store::save_paths(root, &data, &scope(&synced, vec![rel.to_vec()]))?;
+        return Ok(finish(root, &data, false, None, Vec::new(), scope(&synced, vec![rel.to_vec()])).replacing(before));
     }
     let (files, dirs) = count_contents(&target.abs)?;
     if files + dirs > 0 && !confirm_non_empty {
@@ -60,8 +60,8 @@ pub fn delete_node(
     }
     move_to_bin(&target.abs, recycle)?;
     delete_key(&mut data, parent, name);
-    persist(root, &data, Journal::new(), "delete")?;
-    Ok(finish(root, &data, synced, None, Vec::new(), vec![rel.to_vec()]).replacing(before))
+    persist(root, &data, Journal::new(), "delete", &scope(&synced, vec![rel.to_vec()]))?;
+    Ok(finish(root, &data, false, None, Vec::new(), scope(&synced, vec![rel.to_vec()])).replacing(before))
 }
 
 // A locked ghost is only a stale record, so it may go; a locked real folder may not.

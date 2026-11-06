@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::recycle::move_to_bin;
-use super::{finish, load_synced_at, parent_of, Mutation};
+use super::{finish, scope, load_synced_at, parent_of, Mutation};
 
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{io_err, join_rel, validate_component, StorageLock};
@@ -22,6 +22,16 @@ pub fn file_path(root: &Path, rel: &[String]) -> R<PathBuf> {
     }
 }
 
+// A folder the database does not track is moved like a file, straight on disk.
+pub fn source_path(root: &Path, rel: &[String]) -> R<PathBuf> {
+    rel.iter().try_for_each(|part| validate_component(part))?;
+    let path = join_rel(root, rel);
+    if path.is_dir() && !rel.is_empty() && crate::services::tree::tree_store::get_node(&crate::services::tree::tree_store::load(root)?, rel).is_none() {
+        return Ok(path);
+    }
+    file_path(root, rel)
+}
+
 pub fn rename_file(root: &Path, rel: &[String], new_name: &str) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let from = file_path(root, rel)?;
@@ -35,7 +45,7 @@ pub fn rename_file(root: &Path, rel: &[String], new_name: &str) -> R<Mutation> {
     let (data, synced) = load_synced_at(root, &parent)?;
     let mut renamed = parent.clone();
     renamed.push(new_name.to_string());
-    Ok(finish(root, &data, synced, Some(renamed), Vec::new(), vec![parent]))
+    Ok(finish(root, &data, false, Some(renamed), Vec::new(), scope(&synced, vec![parent])))
 }
 
 // The Recycle Bin takes the file from its own folder under the lock, as it takes folders.
@@ -45,7 +55,7 @@ pub fn delete_file(root: &Path, rel: &[String], recycle: impl FnOnce(&Path) -> R
     let parent = parent_of(rel).to_vec();
     let (data, synced) = load_synced_at(root, &parent)?;
     move_to_bin(&abs, recycle)?;
-    Ok(finish(root, &data, synced, None, Vec::new(), vec![parent]))
+    Ok(finish(root, &data, false, None, Vec::new(), scope(&synced, vec![parent])))
 }
 
 #[cfg(test)]

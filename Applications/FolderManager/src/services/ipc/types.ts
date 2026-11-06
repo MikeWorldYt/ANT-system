@@ -172,6 +172,19 @@ export interface InvalidFolder {
   tracker: string | null;
 }
 
+export interface SupportFolder {
+  relParts: string[];
+  name: string;
+  notice: boolean;
+  proposed: string;
+}
+
+export interface SupportCheck {
+  needed: boolean;
+  folders: SupportFolder[];
+  root: boolean;
+}
+
 export interface RootCheck {
   invalid: InvalidFolder[];
 }
@@ -188,7 +201,8 @@ export interface ReviewIndexEvent {
 
 export interface StorageChangedEvent {
   paths: number;
-  full: boolean;
+  folders: string[][];
+  rescan: boolean;
 }
 
 export type FmError =
@@ -213,3 +227,8 @@ export type FmError =
 export function isFmError(e: unknown): e is FmError {
   return typeof e === "object" && e !== null && typeof (e as { kind?: unknown }).kind === "string";
 }
+
+// The first part of every path inside the system Downloads folder; ':' cannot occur in a folder name, so it never matches a storage folder.
+export const DOWNLOADS_ROOT = "::Downloads";
+
+export const inDownloads = (parts: string[]): boolean => parts[0] === DOWNLOADS_ROOT;

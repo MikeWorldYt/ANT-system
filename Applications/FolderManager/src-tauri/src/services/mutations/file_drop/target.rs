@@ -30,7 +30,7 @@ pub(crate) fn destination(rel: &[String], node: &Mapping) -> R<Vec<String>> {
         "NODE" if flags_in(node).iter().any(|f| f == DATA_FLAG) => Ok(rel.to_vec()),
         "NODE" => review_child(node)
             .map(|review| child_rel(rel, review))
-            .ok_or_else(|| refuse("the folder has no 98.* review folder to receive the files")),
+            .ok_or_else(|| refuse("the folder has no review folder to receive the files")),
         "" => Err(refuse("the folder has no type in the tree yet; refresh and retry")),
         other => Err(refuse(&format!("{other} folders do not take dropped files"))),
     }
@@ -70,7 +70,7 @@ mod tests {
     #[test]
     fn a_node_without_a_review_child_is_refused() {
         let err = dest(&["100.A", "05.Bare"], "type: NODE-L2\n98.Fake: {type: NODE-L3}\n").unwrap_err();
-        assert!(matches!(&err, FmError::InvalidPath { reason, .. } if reason.contains("98.*")), "{err:?}");
+        assert!(matches!(&err, FmError::InvalidPath { reason, .. } if reason.contains("no review folder")), "{err:?}");
     }
 
     #[test]

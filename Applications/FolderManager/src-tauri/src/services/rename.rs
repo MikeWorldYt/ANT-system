@@ -11,6 +11,7 @@ pub fn rename_flow(storage: &Storage, stamp: &str, target: impl FnOnce(&Path) ->
     let _guard = storage.guard();
     let root = storage.root()?;
     let new_name = target(&root)?;
+    storage.close_reader();
     let new_root = rename::rename_root(&root, &new_name)?;
     storage.set_root(new_root.clone());
     // The folder already has its new name, so a missing log must not report the rename as failed.

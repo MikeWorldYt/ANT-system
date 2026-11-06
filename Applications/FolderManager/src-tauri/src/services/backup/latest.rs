@@ -1,9 +1,9 @@
-// The newest backup of the default folder, the only one known when ant.db (and with it the folder setting) is gone.
+// The newest backup of the default folders, the only ones known when ant.db (and with it the folder setting) is gone.
 use std::path::Path;
 
 use serde::Serialize;
 
-use super::{default_dir, entries, fail, restore_from, SUFFIX};
+use super::{default_dir, entries_in, fail, legacy_dir, restore_from, SUFFIX};
 use crate::services::debug_log::valid_stamp;
 use crate::domain::error::R;
 
@@ -23,7 +23,7 @@ fn label(name: &str) -> String {
 }
 
 pub fn newest_default(root: &Path) -> R<Option<LatestBackup>> {
-    let newest = entries(&default_dir(root))?.into_iter().next();
+    let newest = entries_in(&[default_dir(root), legacy_dir(root)])?.into_iter().next();
     Ok(newest.map(|e| LatestBackup { label: label(&e.name), name: e.name }))
 }
 
@@ -31,11 +31,12 @@ pub fn restore_latest(root: &Path, stamp: &str) -> R<()> {
     if !valid_stamp(stamp) {
         return Err(fail(format!("Invalid backup stamp {stamp}")));
     }
-    let dir = default_dir(root);
+    let dirs = [default_dir(root), legacy_dir(root)];
     let Some(latest) = newest_default(root)? else {
-        return Err(fail(format!("There is no backup in {}", dir.display())));
+        return Err(fail(format!("There is no backup in {}", dirs[0].display())));
     };
-    restore_from(root, &dir, &latest.name, stamp)
+    let dir = dirs.iter().find(|d| d.join(&latest.name).is_file()).unwrap_or(&dirs[0]);
+    restore_from(root, dir, &latest.name, stamp)
 }
 
 #[cfg(test)]

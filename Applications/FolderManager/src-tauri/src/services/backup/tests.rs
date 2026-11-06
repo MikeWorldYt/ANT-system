@@ -95,6 +95,26 @@ fn listing_shows_matching_zips_newest_first() {
 }
 
 #[test]
+fn new_backups_use_the_root_backup_folder_and_the_staging_skips_it_with_the_lock() {
+    let dir = academic("backup-root-dir");
+    let root = dir.path();
+    assert_eq!(default_dir(root), root.join("backup"));
+    dir.mkdir("backup/old/.ant");
+    fs::write(root.join("backup/old/.ant/info.json"), "old").unwrap();
+    fs::write(root.join(DATA_DIR).join(LOCK_FILE), "1").unwrap();
+    fs::write(root.join(DATA_DIR).join("lnk-favorites.json"), "[]").unwrap();
+    let out = TempDir::new("backup-root-dir-stage");
+    stage::stage(root, out.path(), &fs::canonicalize(root.join("backup")).unwrap()).unwrap();
+    assert!(out.path().join(DATA_DIR).join("lnk-favorites.json").is_file());
+    assert!(!out.path().join(DATA_DIR).join(LOCK_FILE).exists() && !out.path().join("backup").exists());
+    fs::write(root.join("backup/26-10-26-09-05_ANT-fm-backup.zip"), "").unwrap();
+    dir.mkdir("999.Settings/03.Backup");
+    fs::write(root.join("999.Settings/03.Backup/26-10-27-09-05_ANT-fm-backup.zip"), "").unwrap();
+    let listed: Vec<String> = list(root).unwrap().into_iter().map(|e| e.name).collect();
+    assert_eq!(listed, ["26-10-27-09-05_ANT-fm-backup.zip", "26-10-26-09-05_ANT-fm-backup.zip"]);
+}
+
+#[test]
 fn restore_rejects_names_outside_the_backup_folder() {
     let dir = academic("backup-reject");
     let backups = dir.path().join("999.Settings/03.Backup");

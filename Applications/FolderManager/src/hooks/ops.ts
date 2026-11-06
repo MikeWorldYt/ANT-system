@@ -7,20 +7,24 @@ import { markRefreshed } from "./auto-refresh";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
+import { checkSupportUpgrade } from "./support-upgrade";
+import { relist, visibleLevels } from "./relist";
 import { dropNotice, type Notice } from "./drop-summary";
-import { applySettings, findNode, followExpanded, hydrate, keyOf, lastSelection, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../services/store/state";
+import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../services/store/state";
 import { sortedForColumns } from "../services/store/sort";
-import { loadVirtual } from "../services/store/virtual";
+import { loadVirtual, virtualNodes } from "../services/store/virtual";
+import { saveReviewFilter } from "../services/store/review-list";
 import { outputOf } from "../services/store/node-info";
 import { goToPlace, toggleBoard } from "./virtual-nav";
 import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
-import { isFmError } from "../services/ipc/types";
+import { inDownloads, isFmError } from "../services/ipc/types";
 import { plural } from "../services/plural";
+import { localStamp } from "../services/stamp";
 import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../services/ipc/types";
 
-async function reload(snapshot?: TreeSnapshot): Promise<void> {
+async function reload(snapshot?: TreeSnapshot, full = true): Promise<void> {
   markRefreshed();
-  const tree = snapshot ?? (await api.refresh());
+  const tree = snapshot ?? (await api.refresh(full));
   setTree(tree);
   if (tree.warnings.length > 0) setStatus("warning", tree.warnings.join(". "));
   followExpanded();
@@ -104,8 +108,9 @@ async function applyMutation(m: Mutation, fallback: string[] | null = null, foll
   else clearStatus();
 }
 
-export function init(): Promise<boolean> {
-  return run(async () => {
+export async function init(): Promise<boolean> {
+  let ready = false;
+  const ok = await run(async () => {
     if (!(await checkStorage())) return;
     try {
       applySettings(await api.getSettings());
@@ -119,18 +124,38 @@ export function init(): Promise<boolean> {
       reportError("warning", e, "Storage info");
     }
     await reload(await api.loadTree());
+    ready = true;
     const last = state.settings.onLaunch === "continue" ? lastSelection() : null;
     if (!last) return;
     if (last.key) await reveal(last.key.split("/"));
     if (last.virtual === "board") await toggleBoard();
-    else if (last.virtual !== null) await goToPlace(last);
+    else if (last.virtual !== null && isVirtualShown(last.virtual)) await goToPlace(last);
   });
+  if (ok && ready) void checkSupportUpgrade(applySupportUpgrade, finishSupportUpgrade);
+  return ok;
 }
+
+const applySupportUpgrade = (relParts: string[]) =>
+  run(async () => applyMutation(await api.applySupportUpgrade(relParts)), `Updating "${relParts[relParts.length - 1]}"…`);
+
+// The root folders change shape, so the tree is read again and any leftover the move kept is reported.
+const finishSupportUpgrade = () =>
+  run(async () => {
+    const warnings = await api.finishSupportUpgrade(localStamp());
+    await reload();
+    if (warnings.length > 0) setStatus("warning", warnings.join(". "));
+    else clearStatus();
+  }, "Updating the storage root…");
 
 export const changeSetting = <K extends keyof Settings>(key: K, value: Settings[K]) =>
   run(async () => {
     await api.setSetting(key, serializeSetting(value));
     state.settings[key] = value;
+    // An entry hidden while it is open would leave its list on screen, so the view goes back to the root.
+    if (state.virtual !== null && !isVirtualShown(state.virtual)) {
+      leaveVirtual();
+      select(null);
+    }
     notify();
   });
 
@@ -160,10 +185,11 @@ export const restoreBackupNamed = (name: string, stamp: string) =>
     clearStatus();
   });
 
-export async function refresh(): Promise<boolean> {
+// Automatic callers pass full=false so only the manual refresh rebuilds the indexes.
+export async function refresh(full = true): Promise<boolean> {
   if (state.busy) return false;
   const ok = await run(async () => {
-    await reload();
+    await reload(undefined, full);
     clearStatus();
   });
   if (ok) {
@@ -171,6 +197,20 @@ export async function refresh(): Promise<boolean> {
     void checkRootFolders(resolveInvalid, deleteInvalid);
   }
   return ok;
+}
+
+// Folders the backend has no say over are listed from disk; the intake checks only run when one actually appeared.
+export async function relistLevels(folders: string[][] | null): Promise<void> {
+  if (state.busy) return;
+  try {
+    const added = await relist(folders ?? visibleLevels());
+    if (added && folders !== null) {
+      void runIntake(reload);
+      void checkRootFolders(resolveInvalid, deleteInvalid);
+    }
+  } catch (e) {
+    reportError("warning", e, "Refresh");
+  }
 }
 
 export async function expand(node: TreeNode): Promise<void> {
@@ -257,6 +297,16 @@ export const hideNode = (node: TreeNode) =>
     await applyMutation({ ...m, select: sibling ?? (parent.length > 0 ? parent : null) }, parent.length > 0 ? parent : null);
   });
 
+// The marked items all leave the view, so the selection falls back to the first one's parent.
+export const hideMany = (nodes: TreeNode[]) =>
+  run(async () => {
+    const parent = nodes[0]?.relParts.slice(0, -1) ?? [];
+    for (const node of nodes) {
+      const m = await api.setNodeHidden(node.relParts, true);
+      await applyMutation({ ...m, select: parent.length > 0 ? parent : null }, parent.length > 0 ? parent : null);
+    }
+  });
+
 // The side panel lists the folder's children with a checkbox each, and every checkbox applies at once.
 export async function manageHidden(parent: string[]): Promise<void> {
   state.managing = parent;
@@ -335,6 +385,16 @@ export async function setDetails(node: TreeNode, status: WkbStatus | null, owner
 export const setFavorite = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setFavorite(node.relParts, on), node.relParts));
 
+export const setFavorites = (nodes: TreeNode[], on: boolean) =>
+  run(async () => {
+    for (const node of nodes.filter((n) => n.favorite !== on)) await applyMutation(await api.setFavorite(node.relParts, on), node.relParts, false);
+  });
+
+// Each workboard goes through the single-item path, so finishing one still asks for its output.
+export async function setManyDetails(nodes: TreeNode[], status: WkbStatus | null, owner: string | null): Promise<void> {
+  for (const node of nodes) if (!(await setDetails(node, status, owner))) return;
+}
+
 // Several marked workboards are flagged in one go; a lone one is also selected, like a favorite.
 export const setImportant = (nodes: TreeNode[], on: boolean) =>
   run(async () => {
@@ -347,26 +407,18 @@ export const placeOnBoard = (cards: BoardCard[]) => run(async () => applyMutatio
 export const setLinkHidden = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setLinkHidden(node.relParts, on), node.relParts));
 
-const REVIEW_PATH = ["998.Review"];
-
-// The review list in the order its column shows it.
-function reviewListing(): string[] {
-  const children = findNode(REVIEW_PATH)?.children ?? [];
-  return sortedForColumns(listed(children), sortOf(keyOf(REVIEW_PATH)), state.settings.pinFavorites).map((n) => keyOf(n.relParts));
+export function setReviewFilter(hidden: string[], favorites: boolean): void {
+  const listing = () => virtualNodes().map((n) => keyOf(n.relParts));
+  const before = listing();
+  const selected = state.selectedKey;
+  saveReviewFilter({ hidden, favorites });
+  const remaining = new Set(listing());
+  if (selected === null || remaining.has(selected)) return notify();
+  // A hidden selection moves to the nearest folder still listed, or to the entry when none is left.
+  const index = before.indexOf(selected);
+  const nearest = before.slice(index + 1).find((k) => remaining.has(k)) ?? before.slice(0, Math.max(index, 0)).reverse().find((k) => remaining.has(k));
+  select(nearest ? nearest.split("/") : null);
 }
-
-export const setReviewFilter = (hidden: string[], favorites: boolean) =>
-  run(async () => {
-    const before = reviewListing();
-    const selected = state.selectedKey;
-    const index = selected === null ? -1 : before.indexOf(selected);
-    await applyMutation(await api.setReviewFilter(hidden, favorites));
-    if (selected === null || selectedNode() !== null) return;
-    // A hidden selection moves to the nearest link still listed, or to the review folder when none is left.
-    const remaining = new Set(reviewListing());
-    const nearest = before.slice(index + 1).find((k) => remaining.has(k)) ?? before.slice(0, Math.max(index, 0)).reverse().find((k) => remaining.has(k));
-    select(nearest ? nearest.split("/") : REVIEW_PATH);
-  });
 
 export const setUserFlag = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setUserFlag(node.relParts, on), node.relParts));
@@ -380,6 +432,7 @@ async function revalidate(): Promise<void> {
 }
 
 export const dropFiles = async (target: string[], paths: string[]): Promise<void> => {
+  if (inDownloads(target)) return setStatus("warning", "Downloads takes no files from here");
   const ok = await run(
     async () => {
       const { mutation, placed, conflicts } = await api.dropFiles(target, paths);
@@ -419,14 +472,16 @@ export const dropFiles = async (target: string[], paths: string[]): Promise<void
 };
 
 export const pasteFiles = (target: string[]) =>
-  run(
+  inDownloads(target) ? Promise.resolve(setStatus("warning", "Downloads takes no files from here")) : run(
     async () => {
       const { mutation, placed } = await api.pasteFiles(target);
       await applyMutation(mutation);
       doneNotice = dropNotice(placed, mutation.warnings);
     },
     `Pasting files in "${target[target.length - 1]}"…`,
-  );
+  ).then(async (ok) => {
+    if (ok) await revalidate();
+  });
 
 // Files already in the storage move (or copy) into a folder, with the same placement as files dropped from Explorer.
 export const moveFiles = (sources: string[][], target: string[], copy: boolean) =>
@@ -438,7 +493,9 @@ export const moveFiles = (sources: string[][], target: string[], copy: boolean) 
       doneNotice = dropNotice(placed, mutation.warnings);
     },
     `${copy ? "Copying" : "Moving"} files to "${target[target.length - 1]}"…`,
-  );
+  ).then(async (ok) => {
+    if (ok) await revalidate();
+  });
 
 // A folder moved out of the storage on purpose loses its record, instead of staying listed as missing.
 export const forgetMoved = (sources: string[][]) =>
@@ -465,7 +522,9 @@ export const moveFolders = (sources: string[][], destination: string[], copy: bo
       if (failures.length > 0) setStatus("error", failures.join(". "));
     },
     `${copy ? "Copying" : "Moving"} ${sources.length === 1 ? `"${sources[0][sources[0].length - 1]}"` : `${sources.length} folders`} to "${destination[destination.length - 1]}"…`,
-  );
+  ).then(async (ok) => {
+    if (ok) await revalidate();
+  });
 
 export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
   run(

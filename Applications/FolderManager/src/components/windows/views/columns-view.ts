@@ -13,10 +13,11 @@ import { buildColumns, type Column } from "../../../hooks/column-model";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
 import { findNode, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
+import { reviewFilter, reviewGroup } from "../../../services/store/review-list";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
-import { openEntry, ROOT_ENTRIES, virtualEntries } from "../../molecules/virtual-entry";
-import { markNodeItem, onItemClick } from "../../molecules/node-item";
+import { entryBeside, headEntry, openEntry, rootEntries, virtualEntries } from "../../molecules/virtual-entry";
+import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import type { ViewMode } from "./view-mode";
 
@@ -72,7 +73,7 @@ export function createColumnsView(): ViewMode {
     }
     onItemClick(item, n, () => siblings, () => pick(n));
     item.addEventListener("dblclick", (ev) => {
-      if (!fromToggle(ev)) startEdit(n.relParts);
+      if (!fromToggle(ev)) editOrOpen(n);
     });
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
     return item;
@@ -84,7 +85,7 @@ export function createColumnsView(): ViewMode {
     const column = el("div", { class: "column", role: "listbox", "aria-label": listing ? listing.label : `Contents of ${col.parent?.name ?? "storage"}` });
     const parentNode = col.parent;
     // The review list holds long link names, so it gets twice the width of an ordinary column.
-    column.classList.toggle("review-list", parentNode !== null && isReviewRoot(parentNode));
+    column.classList.toggle("review-list", listing?.id === "review" || (parentNode !== null && isReviewRoot(parentNode)));
     // The empty area of a column is a drop target for the folder it lists; "" is the storage root. A virtual list is no folder.
     if (!listing) column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
     column.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentNode, root));
@@ -98,15 +99,15 @@ export function createColumnsView(): ViewMode {
       // The column background cannot take focus, so keys go back to the row that now holds it.
       root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus({ preventScroll: true });
     });
-    // With nothing selected the FAVORITES row heading the root column holds the roving focus.
+    // With nothing selected the entry row heading the root column holds the roving focus.
     const tabbableKey = state.selectedKey;
     // Not an item, so it cannot be selected; it only tells why the review list is empty.
-    const legend = nodes.length === 0 ? (listing?.empty ?? emptyLegend(parentNode)) : null;
+    const legend = nodes.length === 0 ? (listing?.id === "review" && reviewFilter().hidden.length > 0 ? "No active filters" : (listing?.empty ?? emptyLegend(parentNode))) : null;
     const siblings = nodes.map((n) => keyOf(n.relParts));
     const rows = nodes.flatMap((n, i) => {
       const prev = nodes[i - 1];
       // Review links are grouped by category, so a change of category gets a line between the groups.
-      const groupStart = prev?.linked && n.linked && linkCategory(prev) !== linkCategory(n);
+      const groupStart = prev && (listing?.id === "review" ? reviewGroup(prev) !== reviewGroup(n) : prev.linked && n.linked && linkCategory(prev) !== linkCategory(n));
       const item = buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey, siblings);
       return groupStart ? [el("div", { class: "col-sep", role: "separator" }), item] : [item];
     });
@@ -138,20 +139,27 @@ export function createColumnsView(): ViewMode {
       return;
     }
     const cols = buildColumns(openKey);
-    const head = ROOT_ENTRIES[0];
-    // FAVORITES heads the root column, so with nothing selected the arrows start from it.
+    const head = headEntry();
+    // The entries head the root column, so with nothing selected the arrows start from the current one.
     if (n === null && head && state.virtual !== "board") {
       const first = cols[0]?.nodes[0];
+      const before = entryBeside(head, -1);
+      const after = entryBeside(head, 1);
       switch (ev.key) {
         case "ArrowDown":
-          if (first) {
+          if (after) void openVirtual(after.id);
+          else if (first) {
             leaveVirtual();
             pick(first);
           }
           break;
+        case "ArrowUp":
+          if (!before) return;
+          void openVirtual(before.id);
+          break;
         case "ArrowRight": {
-          const favorite = state.virtual === head.id ? virtualNodes()[0] : undefined;
-          if (favorite) select(favorite.relParts);
+          const entered = state.virtual === head.id ? virtualNodes()[0] : undefined;
+          if (entered) select(entered.relParts);
           else void openVirtual(head.id);
           break;
         }
@@ -179,7 +187,7 @@ export function createColumnsView(): ViewMode {
         move(i + 1 >= siblings.length ? 0 : i + 1);
         break;
       case "ArrowUp":
-        if (head && i === 0 && siblings === cols[0]?.nodes) void openVirtual(head.id);
+        if (head && i === 0 && siblings === cols[0]?.nodes) void openVirtual(rootEntries().at(-1)?.id ?? head.id);
         else move(i < 0 ? 0 : i === 0 ? siblings.length - 1 : i - 1);
         break;
       case "Home":

@@ -4,8 +4,9 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use super::io_err;
-use crate::domain::config::{CORE_FOLDER, SETTINGS_FOLDER};
 use crate::domain::error::{FmError, R};
+use crate::infra::storage::core_dir::data_dir;
+use crate::infra::storage::db::hide;
 
 pub(crate) const LOCK_FILE: &str = ".FolderManager.lock";
 const STALE_LOCK: Duration = Duration::from_secs(120);
@@ -36,8 +37,11 @@ impl StorageLock {
     }
 
     fn try_acquire(root: &Path) -> Result<Self, Attempt> {
-        let dir = root.join(SETTINGS_FOLDER).join(CORE_FOLDER);
-        fs::create_dir_all(&dir).map_err(|e| Attempt::Failed(io_err("create folder", &dir, &e)))?;
+        let dir = data_dir(root);
+        if !dir.is_dir() {
+            fs::create_dir_all(&dir).map_err(|e| Attempt::Failed(io_err("create folder", &dir, &e)))?;
+            hide(&dir);
+        }
         let path = dir.join(LOCK_FILE);
         let mut file = match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
             Ok(file) => file,
@@ -92,7 +96,7 @@ mod tests {
         assert!(matches!(&busy, FmError::Io { message, .. } if message.contains("another Folder Manager")), "{busy:?}");
         drop(held);
         drop(StorageLock::acquire(dir.path()).unwrap());
-        assert!(!dir.path().join(SETTINGS_FOLDER).join(CORE_FOLDER).join(LOCK_FILE).exists());
+        assert!(!dir.path().join(".ant").join(LOCK_FILE).exists());
     }
 
     #[test]
@@ -112,8 +116,8 @@ mod tests {
     #[test]
     fn stale_storage_lock_is_reported_and_kept() {
         let dir = TempDir::new("lock-stale");
-        let path = dir.path().join(SETTINGS_FOLDER).join(CORE_FOLDER).join(LOCK_FILE);
-        dir.mkdir("999.Settings/00.Core");
+        let path = dir.path().join(".ant").join(LOCK_FILE);
+        dir.mkdir(".ant");
         let file = fs::File::create(&path).unwrap();
         file.set_modified(std::time::SystemTime::now() - Duration::from_secs(600)).unwrap();
         drop(file);
