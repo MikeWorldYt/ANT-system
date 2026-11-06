@@ -158,6 +158,8 @@ pub fn run() {
             commands::check_support_upgrade,
             commands::apply_support_upgrade,
             commands::finish_support_upgrade,
+            commands::check_extra_reviews,
+            commands::merge_extra_review,
             commands::drop_files,
             commands::paste_files,
             commands::start_drag_out,

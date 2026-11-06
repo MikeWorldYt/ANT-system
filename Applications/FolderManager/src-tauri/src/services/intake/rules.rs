@@ -2,8 +2,8 @@
 use serde_yaml::{Mapping, Value};
 
 use crate::domain::tree_types::{child_entries, flags_in, type_base};
-use crate::domain::config::DATA_FLAG;
-use crate::domain::names::support_kind;
+use crate::domain::config::{DATA_FLAG, REVIEW_PREFIX};
+use crate::domain::names::{editable_part, support_kind};
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::is_locked_type;
 
@@ -29,12 +29,12 @@ pub(super) fn rule<'a>(rel: &[String], node: &'a Mapping) -> Rule<'a> {
     }
     if rel.len() == 1 {
         // Storage's top-level folders are main nodes; send their files to their own review folder.
-        return if type_base(raw) == "NODE" { Rule::Review(review_child(node)) } else { Rule::Loose };
+        return if type_base(raw) == "NODE" { Rule::Review(review_child(rel, node)) } else { Rule::Loose };
     }
     if type_base(raw) != "NODE" || flags_in(node).iter().any(|f| f == DATA_FLAG) {
         return Rule::Keep;
     }
-    Rule::Review(review_child(node))
+    Rule::Review(review_child(rel, node))
 }
 
 pub(super) fn is_root_exempt_file(name: &str) -> bool {
@@ -45,10 +45,12 @@ pub(super) fn is_skipped_file(name: &str) -> bool {
     name.starts_with('.') || SYSTEM_FILES.iter().any(|s| name.eq_ignore_ascii_case(s))
 }
 
-pub(crate) fn review_child(node: &Mapping) -> Option<&str> {
-    child_entries(node)
-        .find(|(name, child)| support_kind(name) == Some("REV") && type_base(node_type(child)) == "REV")
-        .map(|(name, _)| name)
+// An extra review stays beside the node's own until the user merges it, so the one named after the node goes first.
+pub(crate) fn review_child<'a>(rel: &[String], node: &'a Mapping) -> Option<&'a str> {
+    let reviews: Vec<&str> = child_entries(node).filter(|(name, child)| support_kind(name) == Some("REV") && type_base(node_type(child)) == "REV").map(|(name, _)| name).collect();
+    let editable = rel.last().map_or("", |name| editable_part(name));
+    let own = [format!("{REVIEW_PREFIX}{editable}"), format!("98.{editable}")];
+    own.iter().find_map(|name| reviews.iter().find(|review| **review == name.as_str())).or(reviews.first()).copied()
 }
 
 pub(crate) fn node_type(node: &Mapping) -> &str {

@@ -185,6 +185,12 @@ export interface SupportCheck {
   root: boolean;
 }
 
+export interface ExtraReview {
+  relParts: string[];
+  name: string;
+  keep: string;
+}
+
 export interface RootCheck {
   invalid: InvalidFolder[];
 }

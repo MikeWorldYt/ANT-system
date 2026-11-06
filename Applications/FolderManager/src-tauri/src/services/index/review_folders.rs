@@ -9,9 +9,8 @@ use crate::domain::names::{editable_part, is_legacy_support, support_kind};
 
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{child_entries, type_base};
-use crate::infra::naming::free_name;
 use crate::domain::error::R;
-use crate::infra::fs_safe::{dir_entries, io_err, join_rel, StorageLock};
+use crate::infra::fs_safe::{io_err, join_rel, StorageLock};
 use crate::services::tree::depth;
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::{self, delete_key, get_node};
@@ -38,7 +37,6 @@ pub fn restore(root: &Path) -> R<bool> {
             fs::create_dir(&target).map_err(|e| io_err("create folder", &target, &e))?;
             changed = true;
         }
-        changed |= merge_extra_reviews(&mut data, &owner, &dir, &keep)?;
         // An entry for a review folder that no longer exists on disk would show as a ghost beside the live one.
         for stale in stale_reviews(&data, &owner, &dir, &keep) {
             changed |= delete_key(&mut data, &owner, &stale);
@@ -51,7 +49,7 @@ pub fn restore(root: &Path) -> R<bool> {
     Ok(changed)
 }
 
-fn collect(node: &Mapping, parts: &mut Vec<String>, out: &mut Vec<Vec<String>>, limit: usize) {
+pub(crate) fn collect(node: &Mapping, parts: &mut Vec<String>, out: &mut Vec<Vec<String>>, limit: usize) {
     for (name, child) in child_entries(node) {
         parts.push(name.to_string());
         let is_node = child.get("type").and_then(Value::as_str).is_some_and(|t| type_base(t) == "NODE");
@@ -65,40 +63,23 @@ fn collect(node: &Mapping, parts: &mut Vec<String>, out: &mut Vec<Vec<String>>, 
     }
 }
 
+pub(crate) fn kept_review(names: &[String], editable: &str) -> Option<String> {
+    [format!("{REVIEW_PREFIX}{editable}"), format!("98.{editable}")].into_iter().find(|name| names.contains(name))
+}
+
 // A review folder left under the node's old name after an outside rename is the node's review, so it takes the node's name and keeps its prefix style.
 fn review_name(data: &mut Mapping, owner: &[String], dir: &Path, editable: &str) -> R<(String, bool)> {
     let names = list_subdirs(dir)?;
+    if let Some(kept) = kept_review(&names, editable) {
+        return Ok((kept, false));
+    }
     let (current, legacy) = (format!("{REVIEW_PREFIX}{editable}"), format!("98.{editable}"));
-    if names.contains(&current) {
-        return Ok((current, false));
-    }
-    if names.contains(&legacy) {
-        return Ok((legacy, false));
-    }
     let Some(old) = old_review(data, owner, &names) else { return Ok((current, false)) };
     let expected = if is_legacy_support(&old) { legacy } else { current };
     let from = dir.join(&old);
     fs::rename(&from, dir.join(&expected)).map_err(|e| io_err("rename folder", &from, &e))?;
     tree_store::rename_key(data, owner, &old, &expected);
     Ok((expected, true))
-}
-
-// Older builds left extra review folders; their contents move into the one the node keeps, and the emptied folders go.
-fn merge_extra_reviews(data: &mut Mapping, owner: &[String], dir: &Path, keep: &str) -> R<bool> {
-    let target = dir.join(keep);
-    let extras: Vec<String> = list_subdirs(dir)?.into_iter().filter(|name| name != keep && support_kind(name) == Some("REV")).collect();
-    for extra in &extras {
-        let from = dir.join(extra);
-        for entry in dir_entries(&from, "list folder")? {
-            let entry = entry?;
-            let name = entry.file_name().to_string_lossy().into_owned();
-            let landing = free_name(&target, &name, &[])?;
-            fs::rename(entry.path(), target.join(&landing)).map_err(|e| io_err("move file", &entry.path(), &e))?;
-        }
-        fs::remove_dir(&from).map_err(|e| io_err("remove folder", &from, &e))?;
-        delete_key(data, owner, extra);
-    }
-    Ok(!extras.is_empty())
 }
 
 fn old_review(data: &Mapping, owner: &[String], names: &[String]) -> Option<String> {
@@ -108,7 +89,7 @@ fn old_review(data: &Mapping, owner: &[String], names: &[String]) -> Option<Stri
         .map(|(name, _)| name.to_string())
 }
 
-fn is_review(child: &Mapping) -> bool {
+pub(crate) fn is_review(child: &Mapping) -> bool {
     child.get("type").and_then(Value::as_str).is_some_and(|t| type_base(t) == "REV")
 }
 
@@ -159,21 +140,39 @@ mod tests {
     }
 
     #[test]
-    fn extra_review_folders_merge_into_the_one_the_node_keeps() {
+    fn restore_keeps_extra_word_prefixed_reviews() {
+        let dir = storage(
+            "review-extra-word",
+            &["100.ACADEMIC/01.Math/REV.Math", "100.ACADEMIC/01.Math/REV.2024"],
+            "100.ACADEMIC:
+  type: NODE-L1
+  01.Math: {type: NODE-L2, REV.Math: {type: REV-L3}, REV.2024: {type: REV-L3}}
+",
+        );
+        fs::write(dir.path().join("100.ACADEMIC/01.Math/REV.2024/notes.txt"), "old").unwrap();
+        restore(dir.path()).unwrap();
+        assert!(dir.path().join("100.ACADEMIC/01.Math/REV.Math").is_dir());
+        assert_eq!(fs::read_to_string(dir.path().join("100.ACADEMIC/01.Math/REV.2024/notes.txt")).unwrap(), "old");
+    }
+
+    #[test]
+    fn extra_review_folders_stay_in_place_on_restore() {
         let dir = storage(
             "review-merge",
             &["100.ACADEMIC/01.Math/98.Math", "100.ACADEMIC/01.Math/98.Old", "100.ACADEMIC/01.Math/98.Older"],
-            "100.ACADEMIC:\n  type: NODE-L1\n  01.Math: {type: NODE-L2, 98.Math: {type: REV-L3}, 98.Old: {type: REV-L3}, 98.Older: {type: REV-L3}}\n",
+            "100.ACADEMIC:
+  type: NODE-L1
+  01.Math: {type: NODE-L2, 98.Math: {type: REV-L3}, 98.Old: {type: REV-L3}, 98.Older: {type: REV-L3}}
+",
         );
         fs::write(dir.path().join("100.ACADEMIC/01.Math/98.Math/notes.txt"), "kept").unwrap();
         fs::write(dir.path().join("100.ACADEMIC/01.Math/98.Old/notes.txt"), "old").unwrap();
-        assert!(restore(dir.path()).unwrap());
-        assert!(!dir.path().join("100.ACADEMIC/01.Math/98.Old").exists());
-        assert!(!dir.path().join("100.ACADEMIC/01.Math/98.Older").exists());
+        restore(dir.path()).unwrap();
+        assert!(dir.path().join("100.ACADEMIC/01.Math/98.Older").is_dir());
         assert_eq!(fs::read_to_string(dir.path().join("100.ACADEMIC/01.Math/98.Math/notes.txt")).unwrap(), "kept");
-        assert_eq!(fs::read_to_string(dir.path().join("100.ACADEMIC/01.Math/98.Math/notes (2).txt")).unwrap(), "old");
+        assert_eq!(fs::read_to_string(dir.path().join("100.ACADEMIC/01.Math/98.Old/notes.txt")).unwrap(), "old");
         let data = yaml(dir.path());
-        assert!(get_node(&data, &["100.ACADEMIC".to_string(), "01.Math".to_string(), "98.Old".to_string()]).is_none());
+        assert!(get_node(&data, &["100.ACADEMIC".to_string(), "01.Math".to_string(), "98.Old".to_string()]).is_some());
         assert!(!restore(dir.path()).unwrap());
     }
 

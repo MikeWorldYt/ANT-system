@@ -138,6 +138,72 @@ fn finish_waits_for_every_folder_and_leaves_no_marker_before_that() {
     assert!(dir.path().join("999.Settings").is_dir());
 }
 
+const EXTRAS: &str = "100.A:
+  type: NODE-L1
+  01.Math:
+    type: NODE-L2
+    98.Math: {type: REV-L3}
+    98.Old: {type: REV-L3}
+    98.Plain: {type: NODE-L3}
+    REV.2024: {type: REV-L3}
+";
+
+fn extras_storage(tag: &str) -> TempDir {
+    let dir = storage(tag, &["100.A/01.Math/98.Math", "100.A/01.Math/98.Old/sub", "100.A/01.Math/98.Plain", "100.A/01.Math/REV.2024"], EXTRAS);
+    fs::write(dir.path().join("100.A/01.Math/98.Math/notes.txt"), "kept").unwrap();
+    fs::write(dir.path().join("100.A/01.Math/98.Old/notes.txt"), "old").unwrap();
+    dir
+}
+
+const OLD: [&str; 3] = ["100.A", "01.Math", "98.Old"];
+
+#[test]
+fn only_a_legacy_review_tracked_as_one_is_offered() {
+    let dir = extras_storage("extras-list");
+    write_marker(dir.path()).unwrap();
+    let extras = extra_reviews(dir.path()).unwrap();
+    let rows: Vec<(Vec<String>, &str)> = extras.iter().map(|e| (e.rel_parts.clone(), e.keep.as_str())).collect();
+    assert_eq!(rows, [(rel(&OLD), "98.Math")]);
+    assert!(merge_extra_review(dir.path(), &rel(&["100.A", "01.Math", "REV.2024"])).is_err());
+    assert!(merge_extra_review(dir.path(), &rel(&["100.A", "01.Math", "98.Plain"])).is_err());
+    assert!(dir.path().join("100.A/01.Math/REV.2024").is_dir() && dir.path().join("100.A/01.Math/98.Plain").is_dir());
+}
+
+#[test]
+fn nothing_is_offered_or_merged_before_the_upgrade_is_done() {
+    let dir = extras_storage("extras-marker");
+    assert!(extra_reviews(dir.path()).unwrap().is_empty());
+    assert!(merge_extra_review(dir.path(), &rel(&OLD)).is_err());
+    assert!(dir.path().join("100.A/01.Math/98.Old/notes.txt").is_file());
+}
+
+#[test]
+fn a_merge_numbers_collisions_and_removes_only_the_emptied_folder() {
+    let dir = extras_storage("extras-merge");
+    write_marker(dir.path()).unwrap();
+    let m = merge_extra_review(dir.path(), &rel(&OLD)).unwrap();
+    assert!(m.warnings.is_empty(), "{:?}", m.warnings);
+    let keep = dir.path().join("100.A/01.Math/98.Math");
+    assert_eq!(fs::read_to_string(keep.join("notes.txt")).unwrap(), "kept");
+    assert_eq!(fs::read_to_string(keep.join("notes (2).txt")).unwrap(), "old");
+    assert!(keep.join("sub").is_dir());
+    assert!(!dir.path().join("100.A/01.Math/98.Old").exists());
+    assert_eq!(yaml_type(dir.path(), &OLD), "");
+    assert!(extra_reviews(dir.path()).unwrap().is_empty());
+}
+
+#[cfg(windows)]
+#[test]
+fn a_failed_merge_puts_every_file_back() {
+    let dir = extras_storage("extras-rollback");
+    write_marker(dir.path()).unwrap();
+    let _held = break_tree_save(dir.path());
+    assert!(merge_extra_review(dir.path(), &rel(&OLD)).is_err());
+    assert_eq!(fs::read_to_string(dir.path().join("100.A/01.Math/98.Old/notes.txt")).unwrap(), "old");
+    assert!(dir.path().join("100.A/01.Math/98.Old/sub").is_dir());
+    assert!(!dir.path().join("100.A/01.Math/98.Math/notes (2).txt").exists());
+}
+
 #[test]
 fn a_storage_with_nothing_old_gets_the_marker_at_once() {
     let dir = TempDir::new("upgrade-clean");

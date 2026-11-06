@@ -1,14 +1,19 @@
-// Commands of the one-time support nodes upgrade: the check and the final root move.
+// Commands of the one-time support nodes upgrade: the checks and the final root move.
 use tauri::AppHandle;
 
 use super::run_locked;
 use crate::domain::error::R;
 use crate::services::debug_log::valid_stamp;
-use crate::services::upgrade::{self, SupportCheck};
+use crate::services::upgrade::{self, ExtraReview, SupportCheck};
 
 #[tauri::command]
 pub async fn check_support_upgrade(app: AppHandle) -> R<SupportCheck> {
     run_locked(app, |root| upgrade::check_support_upgrade(root)).await
+}
+
+#[tauri::command]
+pub async fn check_extra_reviews(app: AppHandle) -> R<Vec<ExtraReview>> {
+    run_locked(app, |root| upgrade::extra_reviews(root)).await
 }
 
 #[tauri::command]

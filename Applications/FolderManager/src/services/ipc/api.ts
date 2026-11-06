@@ -8,6 +8,7 @@ import type {
   DeletePreview,
   DropOutcome,
   EditableType,
+  ExtraReview,
   FmError,
   IntakeReport,
   MoveDirection,
@@ -40,6 +41,8 @@ export const checkRoot = () => call<RootCheck>("check_root");
 export const checkSupportUpgrade = () => call<SupportCheck>("check_support_upgrade");
 export const applySupportUpgrade = (relParts: string[]) => call<Mutation>("apply_support_upgrade", { relParts });
 export const finishSupportUpgrade = (stamp: string) => call<string[]>("finish_support_upgrade", { stamp });
+export const checkExtraReviews = () => call<ExtraReview[]>("check_extra_reviews");
+export const mergeExtraReview = (relParts: string[]) => call<Mutation>("merge_extra_review", { relParts });
 export const previewInvalid = (rows: { relParts: string[]; resolution: Resolution }[]) => call<string[]>("preview_invalid", { rows });
 export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
   call<Mutation>("resolve_invalid", { relParts, resolution });

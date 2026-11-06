@@ -7,6 +7,7 @@ import { markRefreshed } from "./auto-refresh";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
+import { checkExtraReviews } from "./extra-reviews";
 import { checkSupportUpgrade } from "./support-upgrade";
 import { relist, visibleLevels } from "./relist";
 import { dropNotice, type Notice } from "./drop-summary";
@@ -135,7 +136,7 @@ export async function init(): Promise<boolean> {
     if (last.virtual === "board") await toggleBoard();
     else if (last.virtual !== null && isVirtualShown(last.virtual)) await goToPlace(last);
   });
-  if (ok && ready) void checkSupportUpgrade(applySupportUpgrade, finishSupportUpgrade);
+  if (ok && ready) void checkSupportUpgrade(applySupportUpgrade, finishSupportUpgrade).then(() => checkExtraReviews(mergeExtraReview));
   return ok;
 }
 
@@ -150,6 +151,9 @@ const finishSupportUpgrade = () =>
     if (warnings.length > 0) setStatus("warning", warnings.join(". "));
     else clearStatus();
   }, "Updating the storage root…");
+
+const mergeExtraReview = (relParts: string[]) =>
+  run(async () => applyMutation(await api.mergeExtraReview(relParts)), `Merging "${relParts[relParts.length - 1]}"…`);
 
 export const changeSetting = <K extends keyof Settings>(key: K, value: Settings[K]) =>
   run(async () => {
