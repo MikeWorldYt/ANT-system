@@ -9,7 +9,7 @@ use tauri::AppHandle;
 
 use super::run_locked;
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{join_rel, validate_component};
+use crate::infra::fs_safe::resolve;
 use crate::services::tree::review_links;
 use crate::services::tree::tree_store;
 
@@ -41,8 +41,7 @@ fn revealer(path: &Path) -> Command {
 #[tauri::command]
 pub async fn reveal_node(app: AppHandle, rel_parts: Vec<String>) -> R<()> {
     run_locked(app, move |root| {
-        rel_parts.iter().try_for_each(|part| validate_component(part))?;
-        let path = join_rel(root, &rel_parts);
+        let path = resolve(root, &rel_parts)?;
         if !path.exists() {
             return Err(FmError::NotFound { rel_parts });
         }
@@ -57,12 +56,11 @@ pub async fn reveal_node(app: AppHandle, rel_parts: Vec<String>) -> R<()> {
 #[tauri::command]
 pub async fn open_node(app: AppHandle, rel_parts: Vec<String>) -> R<()> {
     run_locked(app, move |root| {
-        rel_parts.iter().try_for_each(|part| validate_component(part))?;
         // Only a 998.Review link needs the tree to find its owner.
         let data = if review_links::is_link_path(&rel_parts) { tree_store::load(root)? } else { Mapping::new() };
         let dir = match review_links::link_folder(root, &data, &rel_parts)? {
             Some(dir) => dir,
-            None => join_rel(root, &rel_parts),
+            None => resolve(root, &rel_parts)?,
         };
         // Files open with the system's default app, folders in the file manager.
         if !dir.exists() {

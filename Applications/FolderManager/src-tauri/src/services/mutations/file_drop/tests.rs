@@ -423,11 +423,10 @@ fn an_untracked_folder_moved_inside_the_app_still_moves_but_app_folders_do_not()
     assert_eq!(out.placed, [placed("Loose", &["100.PERSONAL", "PJ.001_Board"], false)]);
     assert!(!loose.exists() && dir.path().join("100.PERSONAL/PJ.001_Board/Loose/sub").is_dir());
     dir.mkdir("backup");
-    for name in [".ant", "backup"] {
-        let path = source_path(dir.path(), &rel(&[name])).unwrap();
-        let out = move_in(dir.path(), &target, &[path.clone()], false, &never_recycles).unwrap();
-        assert!(out.placed.is_empty() && path.is_dir(), "{name}: {:?}", out.placed);
-    }
+    let backup = source_path(dir.path(), &rel(&["backup"])).unwrap();
+    let out = move_in(dir.path(), &target, &[backup.clone()], false, &never_recycles).unwrap();
+    assert!(out.placed.is_empty() && backup.is_dir(), "{:?}", out.placed);
+    assert!(source_path(dir.path(), &rel(&[".ant"])).is_err());
     assert!(source_path(dir.path(), &rel(&["100.PERSONAL", "03.Toki"])).is_err());
 }
 
