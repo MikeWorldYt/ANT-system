@@ -1,0 +1,30 @@
+---
+title: Folder Manager
+description: Explora, busca y organiza un almacenamiento ANT desde una app de escritorio para Windows, Linux y macOS.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+Folder Manager (ANT System Manager) es la app de escritorio para explorar un almacenamiento ANT, añadir nodos y tableros de trabajo, seguir el estado de tu trabajo y encontrar cualquier carpeta por nombre, tipo, estado o responsable. Es una app Tauri 2 (Rust y TypeScript) con versiones para Windows, Linux y macOS.
+
+## Instalar y abrir
+
+1. Descarga el archivo de tu sistema desde la [página de Descargas](/es/start-here/download).
+2. **Windows:** ejecuta `FolderManager.exe`. **Linux y macOS:** extrae el `.tar.gz` y ejecuta el archivo de dentro.
+3. La app necesita un almacenamiento ANT: una carpeta que contenga `999.Settings`. Si aún no tienes uno, mira [Primeros pasos](/es/start-here/getting-started).
+
+<ImagePlaceholder label="Captura: Instalar y abrir" />
+
+### Cómo encuentra la app tu almacenamiento
+
+Al iniciar, la app elige dónde buscar en este orden, y gana el primero que aplique:
+
+1. Una ruta de carpeta pasada a la app como primer argumento.
+2. El almacenamiento que recordó la última vez que abrió, guardado por cada copia de la app fuera de tu almacenamiento.
+3. La carpeta desde la que se inició la app, si esa carpeta o su carpeta superior contiene `999.Settings`.
+4. La carpeta donde está el ejecutable.
+
+Desde esa carpeta de inicio, la app toma la propia carpeta, o su carpeta superior, como raíz cuando contiene `999.Settings`. Si no encuentra nada, o la base de datos no se puede leer, pregunta qué hacer:
+
+- **Change path:** escribe la ruta completa de la carpeta del almacenamiento.
+- **Scan Storage:** vuelve a leer las carpetas del disco. Una `ant.db` ilegible se aparta antes.
+- **Use backup:** aparece cuando falta la base de datos y hay un respaldo en la carpeta de respaldos por defecto. Mira [Respaldos](/es/folder-manager/backups).

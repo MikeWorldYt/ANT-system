@@ -1,0 +1,28 @@
+---
+title: Project Management
+description: Manage the status, owner and outcomes of your workboards.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+## Workboard details
+
+Select a workboard and use the pencil button in the details panel to edit its **name**, **status** and **owner**.
+
+<ImagePlaceholder label="Screenshot: Workboard details" />
+
+| Status | Meaning |
+| --- | --- |
+| Hold | Paused |
+| In progress | Being worked on |
+| For review | Waiting for a review |
+| Done | Finished |
+
+Status and owner are stored in the folder's own `.ant/info.json`, so they travel with the folder. A new workboard starts as `in-progress` with the owner `unknown`. The owner can also be stored under `holder` or `client`; the app reads and updates whichever one is already there. Other keys in the file are shown in the panel and kept untouched. If the file is not valid JSON, the app shows the error and does not overwrite it.
+
+Metadata for individual files is not implemented: the app tracks folders only.
+
+## Outcomes
+
+When a workboard is finished, Folder Manager moves its deliverable into the [Outcomes folder](/en/foundationals/support-nodes#00-outcomes-folder) of its node, inside a dated folder, and leaves a shortcut in the workboard.
+
+If the workboard stops being Done, it gets a copy of the deliverable back and the shortcut is removed; the Outcomes folder keeps its copy.

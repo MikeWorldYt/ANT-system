@@ -1,0 +1,22 @@
+---
+title: Ajustes
+description: Cada página de la ventana de ajustes.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+Abre la ventana de ajustes con el botón del engranaje junto al nombre del almacenamiento, o con `Ctrl+,`. Tiene una página por grupo. Los cambios se aplican al instante.
+
+<ImagePlaceholder label="Captura: Ajustes" />
+
+| Página | Qué puedes hacer |
+| --- | --- |
+| General | Fijar los favoritos arriba de cada lista. Ocultar tableros con estado done. Elegir qué abrir al iniciar (continuar donde lo dejaste, o la raíz) y la vista inicial (continuar, Tree o Columns). Activar o desactivar **Confirm before deleting**. |
+| Appearance | Tema (System, Light, Dark), color de acento y tamaño del texto (Small, Medium, Large). |
+| Shortcuts | Editar los seis atajos editables: pulsa **Edit**, luego las teclas nuevas, o `Esc` para cancelar. Un atajo necesita `Ctrl` o `Alt` con una tecla, sin `Shift`, y no puede repetir otro atajo ni uno fijo. **Reset** restaura los valores por defecto. |
+| Storage | Renombrar la carpeta del almacenamiento, con registro y **Revert last rename**, y ver dónde está. **Reindex Storage** tras mover archivos fuera de la app. **Watch for external changes** revisa una vez al día. |
+| Backup | Respaldo automático, su frecuencia y carpeta, y exportar e importar. Mira [Respaldos](/es/folder-manager/backups). |
+| Extensions | Añadir, activar, desactivar y quitar extensiones. Mira [Extensiones](/es/folder-manager/extensions). |
+| Advanced | Registro de depuración, abrir la carpeta de registros, abrir las herramientas de desarrollo y restablecer preferencias. Mira [Solución de problemas](/es/folder-manager/troubleshooting#solución-de-problemas). |
+| About | Versión de la app, ruta del almacenamiento, búsqueda de actualizaciones, el interruptor de búsqueda automática, documentación, novedades y **Report a bug** (una incidencia con datos previos en GitHub, o un correo a `info@mikeworld.dev`). |
+
+Renombrar la carpeta del almacenamiento cambia su ruta, así que cierra antes cualquier programa que la esté leyendo. La revisión diaria de **Watch for external changes** corre como tarea programada, que por ahora solo está disponible en Windows.

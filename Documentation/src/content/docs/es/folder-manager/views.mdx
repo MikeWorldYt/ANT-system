@@ -1,0 +1,24 @@
+---
+title: Vistas y orden
+description: Cambia entre las vistas de árbol y columnas y ordena tus carpetas.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+## Vistas
+
+Usa el botón de vista de la barra de herramientas para cambiar entre dos vistas del mismo almacenamiento.
+
+<ImagePlaceholder label="Captura: Vistas" />
+
+- **Tree (Árbol):** filas expandibles con el teclado (flechas para moverte, izquierda y derecha para contraer y expandir).
+- **Columns (Columnas):** una columna por nivel. Cada columna tiene su propio orden, mira [Orden](#orden).
+
+La ruta de navegación muestra el camino seleccionado. Haz doble clic, o pulsa `Ctrl+L`, para escribir una ruta. Los botones atrás, adelante y subir recorren el historial de tu selección. El panel de detalles de la derecha muestra la carpeta seleccionada y se oculta con su botón de la barra.
+
+## Orden
+
+En la vista de Columnas, el botón de orden de la barra ordena la columna activa por **Name**, **Type** o **Status**, ascendente o descendente. Cada columna conserva su propio orden.
+
+<ImagePlaceholder label="Captura: Orden" />
+
+Sea cual sea el orden, las carpetas numeradas del 90 al 99, además de 998 y 999, siempre quedan al final de su lista. Así los [nodos de soporte](/es/foundationals/support-nodes) siempre están en un lugar fijo.

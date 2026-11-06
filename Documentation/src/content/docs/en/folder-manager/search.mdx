@@ -1,0 +1,17 @@
+---
+title: Search
+description: Find any folder by name, status or owner.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+Press `Ctrl+F` to focus the search box, then type words to match folder names. Filters narrow the result:
+
+<ImagePlaceholder label="Screenshot: Search" />
+
+| Filter | Example | Matches |
+| --- | --- | --- |
+| `in:` | `in:200.WORK` | Only inside that folder |
+| `status:` | `status:in-progress` | Workboards with that status |
+| Any `info.json` key | `owner:Mike` | Folders whose `info.json` has that value. `client:` and `holder:` count as `owner:` |
+
+While you type a filter such as `in:` or `status:`, the app suggests values. Pick one, or type a space after a complete value, to turn it into a chip. Quote values with spaces, like `owner:"Mike W"`. Choose a result to jump to that folder in the tree. `Backspace` on an empty box removes the last chip, and `Esc` closes the results.

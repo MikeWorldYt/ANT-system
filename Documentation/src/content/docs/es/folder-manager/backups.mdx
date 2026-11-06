@@ -1,0 +1,16 @@
+---
+title: Respaldos
+description: Respaldos automáticos, exportación e importación.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+Un respaldo es un zip con nombre como `26-10-24-09-05_ANT-fm-backup.zip`. Contiene solo los datos de ANT: `ant.db`, los archivos `.ant` de tus carpetas y `999.Settings`. Nunca incluye tus propios archivos.
+
+<ImagePlaceholder label="Captura: Respaldos" />
+
+- **Automatic backup** guarda una copia cada día, semana o mes. La app lo revisa al iniciar y luego cada hora mientras está abierta. En Windows, una tarea programada también lo ejecuta a las 12:00 con la app cerrada.
+- **Backup folder** es `999.Settings/03.Backup` por defecto; **Change** pide una ruta completa y **Default** vuelve a la de origen.
+- **Export** guarda una copia ahora.
+- **Import** lista los respaldos de la carpeta de respaldos. Antes guarda una copia del estado actual, así que puedes deshacerlo. Para usar un respaldo de otro equipo, copia antes el zip a esta carpeta.
+
+Si `ant.db` falta o no se puede leer al iniciar, la app ofrece **Use backup** con el zip más reciente de la carpeta por defecto.

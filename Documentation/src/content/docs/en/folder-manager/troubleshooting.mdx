@@ -1,0 +1,27 @@
+---
+title: Data and troubleshooting
+description: Where the app stores its data and how to fix common problems.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+## Where the data lives
+
+| File | Holds |
+| --- | --- |
+| `<root>/.ant/ant.db` | The tree, the search index and your settings. Settings survive updates. |
+| `<folder>/.ant/info.json` | Status, owner and favorite of that folder |
+| `<folder>/.ant/dragpath.json` | A lasting id for the folder, so a move made outside the app is recognised |
+
+<ImagePlaceholder label="Screenshot: Where the data lives" />
+
+The `.ant` folders are hidden and the app never shows them as nodes. Folder metadata is explained in [Naming conventions](/en/foundationals/naming-conventions). The app also remembers the storage path in its own data folder, outside your storage.
+
+## Troubleshooting
+
+- **Wrong or missing storage:** use **Change path** in the startup dialog, or start the app from inside your storage.
+- **Changes made outside the app do not show up:** use **Refresh**, or **Reindex Storage** in Settings.
+- **Something fails:** turn on **Debug logging** in Advanced, repeat the steps and open the logs folder. Logs are `.log` files under `<root>/.ant/debug`. Attach one when you **Report a bug** in About.
+- **Settings in a bad state:** **Reset preferences** in Advanced restores every setting and leaves your folders untouched.
+
+
+<ImagePlaceholder label="Screenshot: Troubleshooting" />

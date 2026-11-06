@@ -1,0 +1,30 @@
+---
+title: Folder Manager
+description: Browse, search and organize an ANT storage from one desktop app for Windows, Linux and macOS.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+Folder Manager (ANT System Manager) is the desktop app to browse an ANT storage, add nodes and workboards, track the status of your work and find any folder by name, type, status or owner. It is a Tauri 2 app (Rust and TypeScript) with builds for Windows, Linux and macOS.
+
+## Install and open
+
+1. Download the file for your system from the [Downloads page](/en/start-here/download).
+2. **Windows:** run `FolderManager.exe`. **Linux and macOS:** extract the `.tar.gz` and run the file inside.
+3. The app needs an ANT storage: a folder that holds `999.Settings`. If you do not have one yet, see [Getting Started](/en/start-here/getting-started).
+
+<ImagePlaceholder label="Screenshot: Install and open" />
+
+### How the app finds your storage
+
+At launch the app picks where to look in this order, and the first one that applies wins:
+
+1. A folder path passed to the app as its first argument.
+2. The storage it remembered the last time it opened, kept per copy of the app outside your storage.
+3. The folder the app was started from, if that folder or its parent holds `999.Settings`.
+4. The folder where the executable lives.
+
+From that start folder the app takes the folder itself, or its parent, as the root when it holds `999.Settings`. If it finds nothing, or the database cannot be read, it asks what to do:
+
+- **Change path:** type the full path of the storage folder.
+- **Scan Storage:** read the folders on disk again. An unreadable `ant.db` is moved aside first.
+- **Use backup:** shown when the database is gone and a backup exists in the default backup folder. See [Backups](/en/folder-manager/backups).

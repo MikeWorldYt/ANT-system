@@ -1,0 +1,16 @@
+---
+title: Backups
+description: Automatic backups, export and import.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+A backup is a zip named like `26-10-24-09-05_ANT-fm-backup.zip`. It holds the ANT data only: `ant.db`, the `.ant` files of your folders and `999.Settings`. It never includes your own files.
+
+<ImagePlaceholder label="Screenshot: Backups" />
+
+- **Automatic backup** saves a copy every day, week or month. The app checks at launch and then every hour while it is open. On Windows a scheduled task also runs it at 12:00 while the app is closed.
+- **Backup folder** is `999.Settings/03.Backup` by default; **Change** takes a full path and **Default** goes back.
+- **Export** saves a copy now.
+- **Import** lists the backups in the backup folder. It saves a copy of the current state first, so you can undo it. To use a backup from another computer, copy the zip into this folder first.
+
+If `ant.db` is missing or unreadable at launch, the app offers **Use backup** with the newest zip of the default folder.

@@ -1,0 +1,31 @@
+---
+// Holds the space of a screenshot until the final image is uploaded to R2.
+interface Props {
+  label: string;
+}
+
+const { label } = Astro.props;
+---
+
+<figure class="not-content image-placeholder" role="img" aria-label={label}>
+  <span>{label}</span>
+</figure>
+
+<style>
+  .image-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 16 / 9;
+    max-height: 22rem;
+    width: 100%;
+    margin-block: 1.5rem;
+    padding: 1rem;
+    border: 2px dashed var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+    text-align: center;
+  }
+</style>

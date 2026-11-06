@@ -1,0 +1,27 @@
+---
+title: Datos y solución de problemas
+description: Dónde guarda sus datos la app y cómo resolver problemas comunes.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+## Dónde viven los datos
+
+| Archivo | Contiene |
+| --- | --- |
+| `<raíz>/.ant/ant.db` | El árbol, el índice de búsqueda y tus ajustes. Los ajustes sobreviven a las actualizaciones. |
+| `<carpeta>/.ant/info.json` | Estado, responsable y favorito de esa carpeta |
+| `<carpeta>/.ant/dragpath.json` | Un id duradero de la carpeta, para reconocer un movimiento hecho fuera de la app |
+
+<ImagePlaceholder label="Captura: Dónde viven los datos" />
+
+Las carpetas `.ant` están ocultas y la app nunca las muestra como nodos. Los metadatos de las carpetas se explican en [Nomenclaturas](/es/foundationals/naming-conventions). La app también recuerda la ruta del almacenamiento en su propia carpeta de datos, fuera de tu almacenamiento.
+
+## Solución de problemas
+
+- **Almacenamiento equivocado o ausente:** usa **Change path** en el diálogo de inicio, o inicia la app desde dentro de tu almacenamiento.
+- **Los cambios hechos fuera de la app no aparecen:** usa **Actualizar**, o **Reindex Storage** en los ajustes.
+- **Algo falla:** activa **Debug logging** en Advanced, repite los pasos y abre la carpeta de registros. Los registros son archivos `.log` en `<raíz>/.ant/debug`. Adjunta uno al usar **Report a bug** en About.
+- **Ajustes en mal estado:** **Reset preferences** en Advanced restaura todos los ajustes y no toca tus carpetas.
+
+
+<ImagePlaceholder label="Captura: Solución de problemas" />

@@ -1,0 +1,12 @@
+---
+title: Updates
+description: How the app updates.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+On open, the app compares its version with the one published on GitHub, unless you turned off **Check for updates automatically** in About. If there is a newer one, choose **Update**, **Remind me later** or **Skip version**. **Check for updates** in About runs the check on demand, even for a skipped version.
+
+<ImagePlaceholder label="Screenshot: Updates" />
+
+- **Windows:** Update closes the app, swaps the executable and needs `FM_Updater.bat` in `999.Settings/00.Core` of your storage.
+- **Linux and macOS:** the in-app update is not available. Download the new archive from the [Downloads page](/en/start-here/download) and replace the old file.
