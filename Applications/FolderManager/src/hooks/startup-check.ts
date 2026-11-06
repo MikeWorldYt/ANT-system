@@ -52,9 +52,12 @@ export async function checkStorage(): Promise<boolean> {
       else return false;
       continue;
     }
+    const noDatabase = health.state === "noDatabase";
     const choice = await choiceDialog(
-      "Storage not found",
-      `Hmm, it looks like ANT has not been initialized or the Storage is wrong.\n\nPath: ${health.path}`,
+      noDatabase ? "Database problem" : "Storage not found",
+      noDatabase
+        ? `I found no usable database and no backup. Scan Storage builds one if it is missing or damaged, and keeps one that is only locked or from a newer version.\n\nPath: ${health.path}`
+        : `Hmm, it looks like ANT has not been initialized or the Storage is wrong.\n\nPath: ${health.path}`,
       [
         ["change", "Change path"],
         ["scan", "Scan Storage"],
@@ -62,7 +65,7 @@ export async function checkStorage(): Promise<boolean> {
     );
     if (choice === "change") await changePath(health.path);
     else if (choice === "scan") {
-      if (health.state === "noDatabase") return scan();
+      if (noDatabase) return scan();
       setStatus("warning", `No Storage found at ${health.path}`);
       return false;
     } else return false;
