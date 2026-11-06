@@ -1,4 +1,4 @@
-// Creates .lnk shortcuts in one PowerShell run through the WScript.Shell COM object.
+// Creates and reads .lnk shortcuts in one PowerShell run through the WScript.Shell COM object.
 use std::path::PathBuf;
 
 const SHORTCUT_SCRIPT: &str = "$ErrorActionPreference = 'Stop'; \
@@ -10,6 +10,23 @@ const SHORTCUT_SCRIPT: &str = "$ErrorActionPreference = 'Stop'; \
         catch { $out.WriteLine([string]$i + [char]9 + $_.Exception.Message) }; \
         $i++ }; \
     $out.Flush()";
+
+const TARGET_SCRIPT: &str = "$ErrorActionPreference = 'Stop'; \
+    $in = [IO.StreamReader]::new([Console]::OpenStandardInput(), [Text.UTF8Encoding]::new($false)); \
+    $out = [IO.StreamWriter]::new([Console]::OpenStandardOutput(), [Text.UTF8Encoding]::new($false)); \
+    $shell = New-Object -ComObject WScript.Shell; \
+    while ($null -ne ($line = $in.ReadLine())) { \
+        try { $out.WriteLine($shell.CreateShortcut($line).TargetPath) } catch { $out.WriteLine('') } }; \
+    $out.Flush()";
+
+pub(crate) fn platform_targets(links: &[PathBuf]) -> Result<Vec<String>, String> {
+    if links.is_empty() {
+        return Ok(Vec::new());
+    }
+    let input: String = links.iter().map(|link| format!("{}\n", link.display())).collect();
+    let stdout = crate::platform::windows::powershell::run_powershell(TARGET_SCRIPT, &[], Some(input), std::time::Duration::from_secs(120))?;
+    Ok(stdout.lines().map(str::to_string).collect())
+}
 
 pub(crate) fn platform_create(pairs: &[(PathBuf, PathBuf)]) -> Vec<String> {
     let mut failures = Vec::new();

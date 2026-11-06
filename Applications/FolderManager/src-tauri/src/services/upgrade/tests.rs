@@ -1,6 +1,8 @@
 use std::fs;
 
+use super::finish::finish_with;
 use super::*;
+use crate::services::index::review_index::text_targets;
 use crate::test_support::*;
 
 const STAMP: &str = "26-01-01-10-00";
@@ -100,10 +102,10 @@ fn finish_moves_the_root_data_writes_the_marker_and_ends_the_check() {
     fs::write(dir.path().join("999.Settings/00.Core/FM_Updater.bat"), "").unwrap();
     fs::write(dir.path().join("999.Settings/00.Core/.FolderManager.lock"), "1").unwrap();
     fs::write(dir.path().join("999.Settings/03.Backup/old.zip"), "z").unwrap();
-    fs::write(dir.path().join("998.Review/100.A.lnk"), "").unwrap();
+    fs::write(dir.path().join("998.Review/100.A.lnk"), dir.path().join("100.A/REV.A").to_string_lossy().as_bytes()).unwrap();
     fs::write(dir.path().join("998.Review/.ant/info.json"), "{}").unwrap();
     assert!(check_support_upgrade(dir.path()).unwrap().needed);
-    let warnings = finish_support_upgrade(dir.path(), STAMP).unwrap();
+    let warnings = finish_with(dir.path(), STAMP, text_targets).unwrap();
     assert!(warnings.is_empty(), "{warnings:?}");
     let data = dir.path().join(".ant");
     assert!(data.join(".skip_version").is_file() && data.join("FM_Updater.bat").is_file());
@@ -127,6 +129,37 @@ fn finish_keeps_folders_that_hold_user_files_and_says_so() {
     assert_eq!(warnings.len(), 2, "{warnings:?}");
     assert!(dir.path().join("999.Settings/notes.txt").is_file() && dir.path().join("998.Review/mine.docx").is_file());
     assert!(is_done(dir.path()));
+}
+
+#[test]
+fn finish_keeps_a_shortcut_of_the_user_and_says_so() {
+    let dir = storage("upgrade-own-link", &["998.Review", "100.A/REV.A"], "100.A: {type: NODE-L1}\n");
+    fs::write(dir.path().join("998.Review/100.A.lnk"), dir.path().join("100.A/REV.A").to_string_lossy().as_bytes()).unwrap();
+    fs::write(dir.path().join("998.Review/mine.lnk"), "C:/Users/me/report.pdf").unwrap();
+    let warnings = finish_with(dir.path(), STAMP, text_targets).unwrap();
+    assert_eq!(warnings.len(), 1, "{warnings:?}");
+    assert!(!dir.path().join("998.Review/100.A.lnk").exists());
+    assert!(dir.path().join("998.Review/mine.lnk").is_file());
+}
+
+#[test]
+fn shortcuts_that_cannot_be_read_stay() {
+    let dir = storage("upgrade-no-read", &["998.Review", "100.A/REV.A"], "100.A: {type: NODE-L1}\n");
+    fs::write(dir.path().join("998.Review/100.A.lnk"), "").unwrap();
+    let warnings = finish_with(dir.path(), STAMP, |_| Err("no shell".to_string())).unwrap();
+    assert_eq!(warnings.len(), 2, "{warnings:?}");
+    assert!(dir.path().join("998.Review/100.A.lnk").is_file());
+}
+
+#[test]
+fn an_online_only_file_in_998_review_is_never_taken_for_a_link() {
+    use super::finish::{review_entry, ReviewEntry};
+    assert_eq!(review_entry(false, true, false, false), ReviewEntry::Yours);
+    assert_eq!(review_entry(false, true, false, true), ReviewEntry::Yours);
+    assert_eq!(review_entry(false, true, true, false), ReviewEntry::Link);
+    assert_eq!(review_entry(false, false, false, true), ReviewEntry::Shortcut);
+    assert_eq!(review_entry(false, false, false, false), ReviewEntry::Yours);
+    assert_eq!(review_entry(true, true, true, true), ReviewEntry::Yours);
 }
 
 #[test]
