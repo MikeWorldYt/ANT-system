@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::domain::model::Copies;
 use crate::domain::error::R;
+use crate::infra::storage::db::db_path;
 use crate::services::index::review_index;
 use crate::services::scheduler::{self, Task};
 use crate::services::snapshot::snapshot;
@@ -21,6 +22,11 @@ pub fn apply(on: bool, root: &Path) -> R<()> {
 }
 
 fn sync(root: &Path) -> R<()> {
+    // A rebuilt db would look healthy and hide the recovery prompt.
+    if !db_path(root).is_file() {
+        eprintln!("Sync skipped: {} has no ant.db", root.display());
+        return Ok(());
+    }
     snapshot(root, Copies::Ignore)?;
     for failure in review_index::rebuild(root, &tree_store::load(root)?) {
         eprintln!("Review index: {failure}");
@@ -53,7 +59,7 @@ pub fn run_headless(start: Option<OsString>) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::{rel, work, TempDir};
+    use crate::test_support::{rel, remove_db, work, TempDir};
 
     #[test]
     fn schtasks_arguments_run_the_sync_daily() {
@@ -81,6 +87,15 @@ mod tests {
         assert!(xml.contains("<RunLevel>LeastPrivilege</RunLevel>"));
         assert!(xml.contains("<Command>C:/App/fm.exe</Command>"));
         assert!(xml.contains("<Arguments>--watch \"D:/My Storage &amp; Co\"</Arguments>"));
+    }
+
+    #[test]
+    fn a_storage_without_its_db_is_skipped_and_the_db_stays_absent() {
+        let dir = work("sync-no-db");
+        remove_db(dir.path());
+        dir.mkdir("100.WORK/06.New");
+        assert_eq!(run_headless(Some(dir.path().into())), 0);
+        assert!(!db_path(dir.path()).exists());
     }
 
     #[test]

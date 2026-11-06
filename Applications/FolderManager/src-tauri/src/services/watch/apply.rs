@@ -9,9 +9,13 @@ use super::targets::targets;
 use super::{log, ApplyReport};
 use crate::domain::error::R;
 use crate::infra::fs_safe::StorageLock;
+use crate::infra::storage::db::db_path;
 use crate::services::tree::tree_store;
 
 pub(super) fn apply(root: &Path, changed: &[PathBuf], rescan: Option<&str>) -> R<ApplyReport> {
+    if let Some(report) = skip_without_db(root, changed.len()) {
+        return Ok(report);
+    }
     let mut rels = BTreeSet::new();
     let mut skipped = 0;
     for path in changed {
@@ -42,11 +46,23 @@ pub(super) fn apply(root: &Path, changed: &[PathBuf], rescan: Option<&str>) -> R
     }
     // Reloading under the file lock keeps this save from overwriting another process's edit.
     let _lock = StorageLock::acquire(root)?;
+    if let Some(report) = skip_without_db(root, changed.len()) {
+        return Ok(report);
+    }
     let mut data = tree_store::load(root)?;
     sync(root, &mut data, &rels, report.full)?;
     tree_store::save(root, &data)?;
     report.saved = true;
     Ok(report)
+}
+
+// A rebuilt db would look healthy and hide the recovery prompt, so only the window's load after the health check creates one.
+fn skip_without_db(root: &Path, changed: usize) -> Option<ApplyReport> {
+    if db_path(root).is_file() {
+        return None;
+    }
+    log("warning", &format!("Watch: {changed} changed paths skipped, {} has no ant.db", root.display()));
+    Some(ApplyReport { paths: 0, full: false, skipped: changed, saved: false, folders: Vec::new() })
 }
 
 // The window re-lists these levels: a path appearing, vanishing or renaming changes its parent's listing.
@@ -73,8 +89,7 @@ fn sync(root: &Path, data: &mut Mapping, rels: &[Vec<String>], full: bool) -> R<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infra::storage::db::db_path;
-    use crate::test_support::{rel, work, yaml};
+    use crate::test_support::{rel, remove_db, work, yaml};
     use crate::services::watch::apply_batch;
 
     #[test]
@@ -88,6 +103,19 @@ mod tests {
         assert_eq!(tree_store::get_type(&data, &rel(&["100.WORK", "06.New"])), "NODE-L2");
         assert_eq!(tree_store::get_type(&data, &rel(&["100.WORK", "06.New", "01.Deep"])), "NODE-L3");
         assert!(tree_store::get_node(&data, &rel(&["200.Other"])).is_none());
+    }
+
+    #[test]
+    fn a_missing_db_is_not_recreated_and_the_window_hears_nothing() {
+        let dir = work("watch-no-db");
+        remove_db(dir.path());
+        dir.mkdir("100.WORK/06.New");
+        let quiet = ApplyReport { paths: 0, full: false, skipped: 1, saved: false, folders: vec![] };
+        assert_eq!(apply_batch(dir.path(), &[dir.path().join("100.WORK/06.New")]).unwrap(), quiet);
+        assert!(!db_path(dir.path()).exists());
+        let report = apply(dir.path(), &[], Some("overflow")).unwrap();
+        assert!(!report.saved && !report.full, "{report:?}");
+        assert!(!db_path(dir.path()).exists());
     }
 
     #[test]
