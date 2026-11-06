@@ -3,7 +3,7 @@ use std::fs;
 
 use super::*;
 use crate::services::mutations::source_path;
-use crate::test_support::{names, rel, storage, yaml, TempDir};
+use crate::test_support::{names, ok_recycle, rel, storage, yaml, TempDir};
 
 const TREE: &str = "100.PERSONAL:
   type: NODE-L1
@@ -124,9 +124,63 @@ fn a_folder_moved_across_drives_is_copied_whole_and_then_removed() {
     fs::write(from.join("sub/a.txt"), "a").unwrap();
     let other = TempDir::new("across-dst");
     let to = other.path().join("PJ.050_X");
-    assert_eq!(move_across(&from, &to).unwrap(), None);
+    assert_eq!(move_across(&from, &to, &ok_recycle).unwrap(), None);
     assert_eq!(fs::read_to_string(to.join("sub/a.txt")).unwrap(), "a");
     assert!(!from.exists());
+}
+
+// A folder and its copy on two throwaway drives, as `move_across` leaves them just before removing the original.
+fn copied_folder(tag: &str) -> (TempDir, TempDir, PathBuf, PathBuf) {
+    let outside = TempDir::new(&format!("{tag}-src"));
+    let from = outside.path().join("Folder");
+    fs::create_dir_all(from.join("sub")).unwrap();
+    fs::write(from.join("sub/a.txt"), "a").unwrap();
+    let other = TempDir::new(&format!("{tag}-dst"));
+    let to = other.path().join("Folder");
+    copy_whole(&from, &to).unwrap();
+    (outside, other, from, to)
+}
+
+fn keeps_the_original(from: &Path, to: &Path) {
+    let note = remove_original(from, to, &ok_recycle).expect("the note says the original stayed");
+    assert!(note.contains("the original could not be removed"), "{note}");
+    assert!(from.exists());
+}
+
+#[test]
+fn an_original_that_gained_or_changed_files_after_the_copy_stays() {
+    let (_a, _b, from, to) = copied_folder("across-added");
+    fs::write(from.join("sub/late.txt"), "late").unwrap();
+    keeps_the_original(&from, &to);
+    assert_eq!(fs::read_to_string(from.join("sub/late.txt")).unwrap(), "late");
+
+    let (_a, _b, from, to) = copied_folder("across-grown");
+    fs::write(from.join("sub/a.txt"), "longer").unwrap();
+    keeps_the_original(&from, &to);
+
+    let (_a, _b, from, to) = copied_folder("across-touched");
+    let later = std::time::SystemTime::now() + std::time::Duration::from_secs(3600);
+    fs::File::options().write(true).open(from.join("sub/a.txt")).unwrap().set_modified(later).unwrap();
+    keeps_the_original(&from, &to);
+
+    let (_a, _b, from, to) = copied_folder("across-file");
+    fs::write(from.join("sub/a.txt"), "longer").unwrap();
+    keeps_the_original(&from.join("sub/a.txt"), &to.join("sub/a.txt"));
+}
+
+#[test]
+fn an_unchanged_original_goes_to_the_bin_and_a_refusal_keeps_it() {
+    let (_a, _b, from, to) = copied_folder("across-bin");
+    let sent = std::cell::RefCell::new(Vec::new());
+    let bin = |p: &Path| {
+        sent.borrow_mut().push(p.to_path_buf());
+        Ok(())
+    };
+    assert_eq!(remove_original(&from, &to, &bin), None);
+    assert_eq!(sent.borrow().as_slice(), [from.clone()]);
+    let note = remove_original(&from, &to, &never_recycles).expect("a refusal is reported");
+    assert!(note.contains("no Recycle Bin"), "{note}");
+    assert!(from.join("sub/a.txt").is_file());
 }
 
 #[test]

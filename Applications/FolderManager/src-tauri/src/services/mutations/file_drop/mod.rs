@@ -6,6 +6,7 @@ mod tests;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use serde::Serialize;
 
@@ -26,6 +27,8 @@ use crate::services::tree::tree_store::{self, delete_key, get_node};
 use serde_yaml::{Mapping, Value};
 use target::destination;
 
+// FAT drives round modified times to 2 seconds. Only an original newer than its copy counts, since a copy made off Windows gets its own time.
+const TIME_SLACK: Duration = Duration::from_secs(2);
 const ALREADY_INSIDE: &str = "it is already in the storage; drag it inside the app to move it";
 
 struct Place<'a> {
@@ -34,6 +37,7 @@ struct Place<'a> {
     dest_real: PathBuf,
     tree_names: Vec<&'a str>,
     copy: bool,
+    recycle: &'a dyn Fn(&Path) -> Result<(), String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -153,7 +157,7 @@ fn place_all(
     }
     // Any other folder lands as it is; the format validation then asks what it becomes.
     for src in plain {
-        match place_folder(&storage, &node_dir, src, copy, untracked_inside, &mut journal) {
+        match place_folder(&storage, &node_dir, src, copy, untracked_inside, recycle, &mut journal) {
             Ok((name, note)) => {
                 if let Some(note) = note {
                     warnings.push(format!("{}: {note}", src.display()));
@@ -174,6 +178,7 @@ fn place_all(
         dest_real: fs::canonicalize(&dest).map_err(|e| io_err("resolve path", &dest, &e))?,
         tree_names: get_node(&data, &dest_rel).map(|n| child_entries(n).map(|(k, _)| k).collect()).unwrap_or_default(),
         copy,
+        recycle,
     };
     for src in files {
         match place.one(&mut journal, src) {
@@ -203,7 +208,15 @@ fn place_all(
 }
 
 // Moved or copied whole under a free name; a folder already in the storage is moved inside the app instead.
-fn place_folder(storage: &Path, dest: &Path, src: &Path, copy: bool, untracked_inside: bool, journal: &mut Journal) -> Result<(String, Option<String>), String> {
+fn place_folder(
+    storage: &Path,
+    dest: &Path,
+    src: &Path,
+    copy: bool,
+    untracked_inside: bool,
+    recycle: &dyn Fn(&Path) -> Result<(), String>,
+    journal: &mut Journal,
+) -> Result<(String, Option<String>), String> {
     let real = fs::canonicalize(src).map_err(|e| io_err("resolve path", src, &e).to_string())?;
     if belongs_to_app(storage, &real) {
         return Err("the folder belongs to Folder Manager".to_string());
@@ -223,7 +236,7 @@ fn place_folder(storage: &Path, dest: &Path, src: &Path, copy: bool, untracked_i
     }
     match journal.rename(&real, &to) {
         Ok(()) => Ok((free, None)),
-        Err(FmError::Io { os_code: Some(code), .. }) if crosses_devices(code) => move_across(&real, &to).map(|note| (free, note)),
+        Err(FmError::Io { os_code: Some(code), .. }) if crosses_devices(code) => move_across(&real, &to, recycle).map(|note| (free, note)),
         Err(e) => Err(e.to_string()),
     }
 }
@@ -286,7 +299,7 @@ fn place_workboard(
     match journal.rename(&real, &to) {
         Ok(()) => Ok(Workboard::Placed(free, None)),
         Err(FmError::Io { os_code: Some(code), .. }) if crosses_devices(code) => {
-            let note = move_across(&real, &to)?;
+            let note = move_across(&real, &to, recycle)?;
             Ok(Workboard::Placed(free, note))
         }
         Err(e) => Err(e.to_string()),
@@ -312,10 +325,42 @@ fn copy_workboard(root: &Path, data: &mut Mapping, dest_rel: &[String], dest: &P
     Ok(Workboard::Placed(free, None))
 }
 
-// Across drives a folder is copied and then removed from its place, as files are; links inside stop the copy before it starts.
-fn move_across(from: &Path, to: &Path) -> Result<Option<String>, String> {
+// Across drives a folder is copied and its original then recycled, as files are; links inside stop the copy before it starts.
+fn move_across(from: &Path, to: &Path, recycle: &dyn Fn(&Path) -> Result<(), String>) -> Result<Option<String>, String> {
     copy_whole(from, to)?;
-    Ok(fs::remove_dir_all(from).err().map(|e| format!("copied as {}, but the original could not be removed: {e}", to.display())))
+    Ok(remove_original(from, to, recycle))
+}
+
+// What reached the original after the copy walked it exists nowhere else, and a drive with no Recycle Bin would make the removal final, so either keeps it.
+fn remove_original(from: &Path, to: &Path, recycle: &dyn Fn(&Path) -> Result<(), String>) -> Option<String> {
+    let removed = matches_copy(from, to).and_then(|()| move_to_bin(from, recycle).map_err(|e| e.to_string()));
+    removed.err().map(|why| format!("copied as {}, but the original could not be removed: {why}", to.display()))
+}
+
+// Only the original is walked: something the copy holds beyond it risks nothing when the original goes.
+fn matches_copy(from: &Path, to: &Path) -> Result<(), String> {
+    let inspect = |path: &Path| fs::symlink_metadata(path).map_err(|e| io_err("inspect path", path, &e).to_string());
+    let (original, copy) = (inspect(from)?, inspect(to)?);
+    let changed = || format!("{} changed during the copy", from.display());
+    if redirects(from, &original).map_err(|e| e.to_string())? {
+        return Err(changed());
+    }
+    if original.is_dir() {
+        if !copy.is_dir() {
+            return Err(changed());
+        }
+        for entry in fs::read_dir(from).map_err(|e| io_err("list folder", from, &e).to_string())? {
+            let entry = entry.map_err(|e| io_err("list folder", from, &e).to_string())?;
+            matches_copy(&entry.path(), &to.join(entry.file_name()))?;
+        }
+        return Ok(());
+    }
+    let modified = |meta: &fs::Metadata, path: &Path| meta.modified().map_err(|e| io_err("inspect path", path, &e).to_string());
+    if copy.is_file() && original.len() == copy.len() && modified(&original, from)? <= modified(&copy, to)? + TIME_SLACK {
+        Ok(())
+    } else {
+        Err(changed())
+    }
 }
 
 // A folder copied in part is removed again; `to` is created first, so that removal only ever takes what this copy made.
@@ -394,9 +439,7 @@ impl Place<'_> {
             Ok(()) => Ok(Outcome::Placed(free, None)),
             Err(FmError::Io { os_code: Some(code), .. }) if crosses_devices(code) => {
                 copy_new(&real, &to)?;
-                let note = fs::remove_file(&real)
-                    .err()
-                    .map(|e| format!("copied as {free}, but the original could not be removed: {e}"));
+                let note = remove_original(&real, &to, self.recycle);
                 Ok(Outcome::Placed(free, note))
             }
             Err(e) => Err(e.to_string()),
