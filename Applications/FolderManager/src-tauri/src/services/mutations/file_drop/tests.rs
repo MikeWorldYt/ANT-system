@@ -104,6 +104,96 @@ fn replacing_a_workboard_sends_the_existing_one_to_the_bin_and_places_the_new_on
     assert_eq!(read(&dir, "100.PERSONAL/PJ.001_Other/brief.txt"), "brief");
 }
 
+fn with_uid(dir: &TempDir, parts: &[&str], id: &str) {
+    let mut data = yaml(dir.path());
+    tree_store::get_node_mut(&mut data, &rel(parts)).unwrap().insert("uid".into(), id.into());
+    tree_store::save(dir.path(), &data).unwrap();
+}
+
+// Replaces the holder of `id` at `target` with a board from outside; the bin must stay unused unless a test passes its own.
+fn replace_at(dir: &TempDir, target: &[&str], tag: &str, name: &str, id: &str, bin: &dyn Fn(&Path) -> Result<(), String>) -> (DropOutcome, TempDir, PathBuf) {
+    let (outside, incoming) = outside_workboard(tag, name, id);
+    let out = drop_files(dir.path(), &rel(target), std::slice::from_ref(&incoming), false, std::slice::from_ref(&incoming), bin).unwrap();
+    (out, outside, incoming)
+}
+
+fn refused(out: &DropOutcome, incoming: &Path, why: &str) {
+    assert!(out.placed.is_empty(), "{:?}", out.placed);
+    assert!(out.mutation.warnings.iter().any(|w| w.contains(why)), "{:?}", out.mutation.warnings);
+    assert!(incoming.join("brief.txt").is_file() && incoming.join(".ant/dragpath.json").is_file());
+}
+
+#[test]
+fn a_replacement_whose_name_is_taken_leaves_the_old_workboard() {
+    let (dir, _src) = fixture("drop-swap-taken");
+    with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000003");
+    dir.mkdir("100.PERSONAL/PJ.001_Other");
+    let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL"], "drop-swap-taken-in", "PJ.007_Other", "EXISTINGID000003", &ok_recycle);
+    refused(&out, &incoming, "already exists");
+    assert!(dir.path().join("100.PERSONAL/PJ.001_Board").is_dir());
+}
+
+#[test]
+fn only_a_workboard_can_be_replaced() {
+    let owners: [&[&str]; 3] = [&["100.PERSONAL"], &["100.PERSONAL", "03.Toki"], &["100.PERSONAL", "98.PERSONAL"]];
+    for (n, owner) in owners.into_iter().enumerate() {
+        let (dir, _src) = fixture(&format!("drop-swap-node-{n}"));
+        with_uid(&dir, owner, "EXISTINGID000004");
+        let sent = std::cell::Cell::new(false);
+        let bin = |_: &Path| {
+            sent.set(true);
+            Ok(())
+        };
+        let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL", "04.Data"], &format!("drop-swap-node-in-{n}"), "PJ.007_Other", "EXISTINGID000004", &bin);
+        refused(&out, &incoming, "only a workboard");
+        assert!(!sent.get(), "{owner:?}");
+    }
+}
+
+#[test]
+fn a_workboard_cannot_be_replaced_from_inside_itself() {
+    let (dir, _src) = fixture("drop-swap-inside");
+    with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000005");
+    let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL", "PJ.001_Board"], "drop-swap-inside-in", "PJ.007_Other", "EXISTINGID000005", &ok_recycle);
+    refused(&out, &incoming, "inside");
+    assert!(dir.path().join("100.PERSONAL/PJ.001_Board").is_dir());
+}
+
+#[test]
+fn a_refused_recycle_puts_the_new_workboard_back_and_keeps_the_old_one() {
+    let (dir, _src) = fixture("drop-swap-bin");
+    with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000006");
+    let before = names(&dir.path().join("100.PERSONAL"));
+    let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL"], "drop-swap-bin-in", "PJ.007_Other", "EXISTINGID000006", &never_recycles);
+    refused(&out, &incoming, "no Recycle Bin");
+    assert_eq!(names(&dir.path().join("100.PERSONAL")), before);
+}
+
+#[test]
+fn a_final_name_lost_after_the_recycle_puts_the_new_workboard_back() {
+    let (dir, _src) = fixture("drop-swap-lost");
+    with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000007");
+    let taken = dir.path().join("100.PERSONAL/PJ.001_Other");
+    let bin = |p: &Path| {
+        fs::remove_dir_all(p).map_err(|e| e.to_string())?;
+        fs::create_dir(&taken).map_err(|e| e.to_string())
+    };
+    let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL"], "drop-swap-lost-in", "PJ.007_Other", "EXISTINGID000007", &bin);
+    refused(&out, &incoming, "Recycle Bin");
+    assert!(names(&dir.path().join("100.PERSONAL")).iter().all(|n| !n.contains("PJ.001_Other.")), "the temporary name stayed");
+}
+
+#[test]
+fn a_replacement_may_take_the_name_of_the_workboard_it_replaces() {
+    let (dir, _src) = fixture("drop-swap-same");
+    with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000008");
+    let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL"], "drop-swap-same-in", "PJ.009_Board", "EXISTINGID000008", &ok_recycle);
+    assert_eq!(out.placed, [placed("PJ.001_Board", &["100.PERSONAL"], false)]);
+    assert!(!incoming.exists());
+    assert_eq!(read(&dir, "100.PERSONAL/PJ.001_Board/brief.txt"), "brief");
+    assert!(names(&dir.path().join("100.PERSONAL")).iter().all(|n| !n.contains("replacing")));
+}
+
 #[test]
 fn a_workboard_copy_keeps_the_original_and_takes_a_track_and_an_id_of_its_own() {
     let (dir, _src) = fixture("drop-wkb-copy");

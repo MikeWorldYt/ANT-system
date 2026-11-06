@@ -11,13 +11,13 @@ use std::time::Duration;
 use serde::Serialize;
 
 use super::recycle::move_to_bin;
-use super::{child_rel, exactly_on_disk, finish, load_synced_at, locate, register_ids, scope, sync_branch_drift, sync_loaded_at, Drift, Mutation};
+use super::{child_rel, exactly_on_disk, finish, guard_frozen, load_synced_at, locate, register_ids, scope, sync_branch_drift, sync_loaded_at, Drift, Mutation};
 use crate::domain::names::{compose_name, next_track, is_workboard_name, name_parts};
 use crate::domain::tree_types::{child_entries, type_base};
 use crate::domain::config::{is_hidden_dir, BACKUP_FOLDER, SETTINGS_FOLDER};
 use crate::infra::naming::free_name;
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{io_err, join_rel, redirects, resolve, Journal, StorageLock};
+use crate::infra::fs_safe::{io_err, join_rel, redirects, resolve, same_name, Journal, StorageLock};
 use crate::infra::footprint_file;
 use crate::services::index::footprint;
 use crate::services::tree::{depth, review_links};
@@ -275,23 +275,14 @@ fn place_workboard(
     if real.starts_with(&storage) {
         return Err(ALREADY_INSIDE.to_string());
     }
-    // A replacement keeps the track of the workboard it replaces, so the number a project is known by stays.
-    let mut replaced_track = None;
     if let Some(owner) = footprint_file::read_id(&real).and_then(|id| owner_of(data, &id)) {
         if !replace {
             return Ok(Workboard::Taken(WorkboardConflict { name, source: src.to_path_buf(), existing: owner }));
         }
-        move_to_bin(&join_rel(root, &owner), recycle).map_err(|e| e.to_string())?;
-        if let Some((last, parent)) = owner.split_last() {
-            delete_key(data, parent, last);
-            replaced_track = Some(name_parts(last, true).0);
-        }
+        return replace_workboard(root, data, dest_rel, dest, &real, &name, &owner, recycle, journal);
     }
     let siblings: Vec<String> = get_node(data, dest_rel).map(|n| child_entries(n).map(|(k, _)| k.to_string()).collect()).unwrap_or_default();
-    let free = match replaced_track {
-        Some(track) => compose_name(&track, &name_parts(&name, true).1, true),
-        None => next_track(&name, &siblings),
-    };
+    let free = next_track(&name, &siblings);
     let to = dest.join(&free);
     if to.exists() {
         return Err(format!("a folder named {free} already exists"));
@@ -304,6 +295,62 @@ fn place_workboard(
         }
         Err(e) => Err(e.to_string()),
     }
+}
+
+// The old workboard goes to the bin only once the new one waits beside its final name, so a refused replace changes nothing.
+fn replace_workboard(
+    root: &Path,
+    data: &mut Mapping,
+    dest_rel: &[String],
+    dest: &Path,
+    real: &Path,
+    name: &str,
+    owner: &[String],
+    recycle: &dyn Fn(&Path) -> Result<(), String>,
+    journal: &mut Journal,
+) -> Result<Workboard, String> {
+    let (last, parent) = owner.split_last().ok_or("the workboard has no place in the tree")?;
+    let kind = tree_store::get_type(data, owner);
+    if type_base(&kind) != "WKB" {
+        return Err("only a workboard can be replaced".to_string());
+    }
+    guard_frozen(owner, &kind).map_err(|e| e.to_string())?;
+    let old = join_rel(root, owner);
+    let inner = fs::canonicalize(dest).map_err(|e| io_err("resolve path", dest, &e).to_string())?;
+    if inner.starts_with(fs::canonicalize(&old).map_err(|e| io_err("resolve path", &old, &e).to_string())?) {
+        return Err("the drop target is inside the workboard being replaced".to_string());
+    }
+    // A replacement keeps the track of the workboard it replaces, so the number a project is known by stays.
+    let free = compose_name(&name_parts(last, true).0, &name_parts(name, true).1, true);
+    let to = dest.join(&free);
+    if !(parent == dest_rel && same_name(last, &free)) && fs::symlink_metadata(&to).is_ok() {
+        return Err(format!("a folder named {free} already exists"));
+    }
+    let temp = dest.join(free_name(dest, &format!("{free}.replacing"), &[]).map_err(|e| e.to_string())?);
+    let renamed = match journal.rename(real, &temp) {
+        Ok(()) => true,
+        Err(FmError::Io { os_code: Some(code), .. }) if crosses_devices(code) => {
+            copy_whole(real, &temp)?;
+            false
+        }
+        Err(e) => return Err(e.to_string()),
+    };
+    // Across drives the original is still in place, so only the copy has to go.
+    let put_back = |journal: &mut Journal, why: String| {
+        let undone = if renamed { journal.rename(&temp, real).map_err(|e| e.to_string()) } else { fs::remove_dir_all(&temp).map_err(|e| e.to_string()) };
+        match undone {
+            Ok(()) => why,
+            Err(r) => format!("{why}; the new workboard stays as {}: {r}", temp.display()),
+        }
+    };
+    if let Err(e) = move_to_bin(&old, recycle) {
+        return Err(put_back(journal, e.to_string()));
+    }
+    delete_key(data, parent, last);
+    if let Err(e) = journal.rename(&temp, &to) {
+        return Err(put_back(journal, format!("{e}; the old workboard is in the Recycle Bin")));
+    }
+    Ok(Workboard::Placed(free, if renamed { None } else { remove_original(real, &to, recycle) }))
 }
 
 // A copy takes the next track of its folder and its own id, so the original and the copy never share either.
