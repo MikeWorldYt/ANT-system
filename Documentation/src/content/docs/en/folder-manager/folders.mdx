@@ -1,0 +1,44 @@
+---
+title: Working with folders
+description: Add, rename, move, delete and favorite folders.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+## Add, rename and move
+
+- **Add node** and **Add workboard** create a new folder next to the selected one. They are available from level 2 down; level 1 folders and the reserved folders have their own creation rules.
+- **Rename** edits only the editable part of the name. The fixed prefix, such as `PJ.001_`, stays as it is.
+- **Move up** and **Move down** change the order of the selected folder among its siblings.
+- **Refresh** reads the storage again. The app also refreshes by itself when its window gets focus, so changes made in your file manager show up.
+
+<ImagePlaceholder label="Screenshot: Add, rename and move" />
+
+:::note[Workboard identifiers]
+The ANT docs define `PJ`, `PR`, `HW`, `TK` and `CR` as official identifiers. Today the app only recognises `PJ.`, `PR.` and `HW.` as workboards, and every new workboard it creates starts as `PJ.`.
+:::
+
+## Context menu
+
+Right-click a folder, or press the menu key or `Shift+F10`, to get the items below. Items that do not apply to a folder, such as Delete on a reserved folder, are disabled.
+
+<ImagePlaceholder label="Screenshot: Context menu" />
+
+| Item | What it does |
+| --- | --- |
+| Open | Opens the folder in your system file manager |
+| Rename | Edits the name in place |
+| Add to favorites / Remove from favorites | Marks the folder as a favorite |
+| Change type | Switches between Node, Workboard and Portfolio |
+| Status | Only for workboards: Hold, In progress, For review or Done |
+| Copy path | Copies the absolute path to the clipboard |
+| Delete | Sends the folder to the Recycle Bin (the system trash on Linux and macOS) |
+| Extension items | Added by [extensions](/en/folder-manager/extensions) that have the permission, at the end of the menu |
+
+Delete first moves the folder into a hidden `.ant-trash` folder, then to the Recycle Bin. If you restore it from the Recycle Bin, the next refresh puts it back at the storage root. With **Confirm before deleting** on, a folder that is not empty asks you to confirm first and tells you how many files and folders go with it.
+
+## Favorites
+
+Mark any folder as a favorite from the context menu. The mark is saved as `"favorite": true` in the folder's `.ant/info.json`. With the setting **Pin favorites to the top of each list** on, favorites go above the rest in every list.
+
+
+<ImagePlaceholder label="Screenshot: Favorites" />

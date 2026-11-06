@@ -3,126 +3,145 @@ title: Support Nodes
 ---
 import Callout from "/src/components/ui/Callout.astro";
 
-Support Nodes are folders that are used to store files or directories that are not directly related to the current level. 
-Its purpose is to provide a way to store additional information or resources at their same level, In that way support the user.
+Support Nodes are folders used to store files and directories that are directly related to the current level.
+It's purpose is provide support to the user with additional data from itself.
 
-Each Support Node should has a unique identifier, making it easy to differentiate and quickly identify them.
+Each Support Node uses a prefix in capitals followed by a dot e.g. `REV.Development`, `RES.Brand-Assets`, `TPL.Video-Project`.
 
-## 99.Settings Folder
-Its should have identifier **99**.  
-This [node](/en/foundationals/core-concepts#nodes) (folder) stores preset configurations for programs, the Operating system, or the ANT system itself. It consolidates all environment-specific settings in a single location for immediate access.
+| Prefix | Type | Purpose |
+|---|---|---|
+| `REV.` | Review | Get any loose files until they are sorted. |
+| `RES.` | Resources | Shared resources for the parent's content. |
+| `TPL.` | Templates | Starting structures for new workboards. |
+| `00.` | Outcomes | Save deliverables of their siblings workboards. |
 
-Here you should contain subfolders, depending on the type of settings being stored.
+## REV. Review Folder
+This [node (folder)](/en/foundationals/core-concepts#nodes) may contain all of your files and directories that are unsorted, as temporary sandbox for avoiding mess and maintaining the sort the level.  
 
-<Callout type="warning">
-  As recommendation, you should only deploy at Level 1 and Level 2 to ensure global accessibility while preventing **file fragmentation**.
-</Callout>
-
-You can include:
-- Program/OS configuration files (e.g., `.env`, `config.json`, etc.)
-- System customization assets (icons, themes, scripts)
-- Templates or presets
-- Automation workflows
-- Custom Profiles
-- Set-up Programs
-
-<h5> Naming Convention: </h5>
-This node may or not inherit their name from parent node.  
-Just looking like **99.Settings** is enough.
-
-<h5> Uttility </h5> 
-Acts as a central hub for storing configurations, presets, and other settings that are required for your programs and files.
-
----
-## 98.Review Folder
-Its should have identifier **98**.  
-This [node](/en/foundationals/core-concepts#nodes) (folder) contains all your files and directories that need review;
-- Need renaming
-- Have no classification
-- or Even are not from the current level.
-
-<h5> Naming Convention: </h5>
-This node will inherit just their name from parent node, with prefix **98.** before the name.  
+> <h5> Naming Convention: </h5>
+> Use the prefix ` REV. ` and inherit its parent's name.
+> 
+> e.g. `REV.Digital-Art`, `REV.Video-Edition`, `REV.Development`
 
 ```ansi {5}
 [32m 📁[37m 04.Marketing                      [35m ←−−− Parent
 [32m  ├── 📁[37m 01.Foundations of Marketing
 [32m  ├── 📁[37m 02.Web Analytics and SEO
 [32m  ├── 📁[37m . . .
-[32m  ├── 📁[37m 98.Marketing                 [35m ←−−− Review Folder
+[32m  ├── 📁[37m REV.Marketing                [35m ←−−− Review Folder
 [32m  │    ├── 📁[37m Online marketing Paolini course
 [32m  │    ├── 📄[37m Build-a-Successful-Social-Media-Strategy.pdf
 [32m  │    ├── [37m🖼 bf25a6e4ab1909bfcb25c50e3368a8.jpg
 [32m  │    └── [37m🖼 . . .
 ```
 
-<h5> Uttility </h5> 
-✅ Its functionality is to be like a Sandbox; This helps the user and the system alike in avoiding mess and maintaining organizational integrity.  
-✅ By routing unclear or unclassified files to a properly marked staging area, it is become a temporary place for these without compromising rest of files.
+## TPL. Templates Folder
+This [node (folder)](/en/foundationals/core-concepts#nodes) stores one or more ready-made structures content for starting new [workboard nodes](/en/foundationals/workboard-nodes), keeping projects consistent and avoiding copy-paste previous projects.
 
----
-## 97.Templates Folder
-Its should have identifier **97**.  
-This [node](/en/foundationals/core-concepts#nodes) (folder) stores blueprint structures for [workboard nodes](/en/foundationals/workboard-nodes). These templates provide standardized starting points for [lifespan nodes](/en/foundationals/core-concepts#lifespan) (folders) that frequently created.
+> <h5> Naming Convention: </h5>
+> Use the prefix ` TPL. ` and name what it starts.
+>
+> e.g. `TPL.Video-Project`, `TPL.React-Project`
 
-<h5> Naming Convention: </h5>
-Does not inherit parent name. Always appears as **97.Templates** with relevant subfolders:
-
-```ansi {2}
-[32m 📁[37m 02.Video-Edition                      [35m ←−−− Parent
-[32m  ├── 📁[37m 97.Templates                     [35m ←−−− Templates Folder
-[32m  │    ├── 📁[37m PJ.999_Unnamed-Project
-[32m  │    └── 📁[37m PR.999_New-Practice
-[32m  ├── 📁[37m PJ.133_Template-Use-Example
-[32m  ├── 📁[37m . . .
+```ansi {3-8, 10-15}
+[32m 📁[37m 04.Video-Edition                           [35m←−−− Parent
+[32m  ├── 📁[37m TPL.Video-Project                     [35m←−−− Templates Folder
+[32m  │    └── 📁[37m TEMPLATE_New-Video-Edition       [35m←−−− Project template example
+[32m  │         ├── 📁[37m 01.RawFootage
+[32m  │         ├── 📁[37m 02.Resources
+[32m  │         ├── 📁[37m 03.StockMedia
+[32m  │         ├── 📁[37m 04.Renders
+[32m  │         └── 📁[37m 05.Process
+[32m  ├── 📁[37m PJ.132_Weeding-Edition
+[32m  └── 📁[37m PJ.133_New-Video-Edition             [35m←−−− Template used for ready to work
+[32m       ├── 📁[37m 01.RawFootage
+[32m       ├── 📁[37m 02.Resources
+[32m       ├── 📁[37m 03.StockMedia
+[32m       ├── 📁[37m 04.Renders
+[32m       └── 📁[37m 05.Process
 ```
 
-<h5> Utility </h5>
-Serves as a **rapid deployment hub** for [workboards nodes](/en/foundationals/workboard-nodes) by:  
-✅ Providing one-click copy/paste templates for new [workboards nodes](/en/foundationals/workboard-nodes) that just require renaming  
-✅ Maintaining consistent structures for temporary projects  
-✅ It may hold starter files that can be used for new projects  
-
----
-## 90.Resources Folder
-Its should have identifier **90**.  
-This [node](/en/foundationals/core-concepts#nodes) (folder) serves as a centralized repository for frequently accessed reference materials, reusable assets, and static support files. It houses essential resources that remain consistently valuable across multiple projects or operations.
-
-<h5> Naming Convention: </h5>
-This node appears as `90.Resources-of-` and continue inherit their name from parent node.
-
-```ansi {2}
-[32m 📁[37m 02.Video-Edition                     [35m  ←−−− Parent
-[32m  ├── 📁[37m 90.Resources-of-Video-Edition   [35m  ←−−− Resources Folder
-[32m  │    ├── 📁[37m 01.Templates-and-presets
-[32m  │    ├── 📁[37m 02.Music-and-SFX
-[32m  │    ├── 📁[37m . . .
+```ansi {3-7, 9-13}
+[32m 📁[37m 02.Development                             [35m←−−− Parent
+[32m  ├── 📁[37m TPL.React-Project                     [35m←−−− Templates Folder
+[32m  │    └── 📁[37m TEMPLATE_New-React-App           [35m←−−− Project template example
+[32m  │         ├── 📁[37m public
+[32m  │         ├── 📁[37m src
+[32m  │         ├── 📄[37m package.json
+[32m  │         └── 📄[37m README.md
+[32m  ├── 📁[37m PJ.202_DewShop-website
+[32m  └── 📁[37m PJ.205_Portfolio-Website              [35m←−−− Template used for ready to work
+[32m       ├── 📁[37m public
+[32m       ├── 📁[37m src
+[32m       ├── 📄[37m package.json
+[32m       └── 📄[37m README.md
 ```
 
-<h5> Utility </h5>
-Functions as an **always-available toolkit** for your projects, tasks or homework. It provides a place to store frequently used files, templates, and resources that are accessible from current level.
+## RES. Resources Folder
+This [node (folder)](/en/foundationals/core-concepts#nodes) holds content ready to use while projects are running, for example client assets (logos, images, etc) or project presets. 
 
----
-## (00) Done Folder
-Its should have identifier **00**.  
-This [node](/en/foundationals/core-concepts#nodes) serves exclusively as the **final archive** for completed outputs. When a [workboard folder](/en/foundationals/workboard-nodes) reaches end-of-life after project/task completion, only the finalized assets are preserved here.
+its content dotn need be copied into a project: may use it direclty from here. Each `RES.` folder holds one kind of content, so a level can have several Resources (`RES`).
 
-<h5> Naming Convention: </h5>
-Always it should appears as **00.Done** at every level where workboards exist.  
-if that you want, you may name it whatever you want but need to use the prefix **00.** before the name.
+> <h5> Naming Convention: </h5>
+> Use the prefix ` RES. ` and name what it holds.
+>
+> e.g. `RES.Client-Assets`, `RES.Edition-Assets`
+>
+> At level 1, `900.Resources` stays unchanged.
 
-```ansi {2}
-[32m 📁[37m 02.Video-Edition                      [35m ←−−− Parent
-[32m  ├── 📁[37m 00.Edition-Portfolio             [35m ←−−− Done Folder
-[32m  │    ├── 📁[37m 01.Templates-and-presets
-[32m  │    ├── 📁[37m 02.Music-and-SFX
-[32m  │    ├── 📁[37m . . .
+```ansi {2,5}
+[32m 📁[37m 04.Video-Edition                           [35m←−−− Parent
+[32m  ├── 📁[37m RES.Client-Assets                     [35m←−−− Resources of the clients
+[32m  │    ├── 📁[37m Logos
+[32m  │    └── 📁[37m Images
+[32m  ├── 📁[37m RES.Edition-Assets                    [35m←−−− Resources of the edition
+[32m  │    ├── 📁[37m Music-and-SFX
+[32m  │    └── 📁[37m Presets-and-LUTs
+[32m  ├── 📁[37m PJ.133_Promo-Video                    [35m←−−− Uses them from RES, without copying
+[32m  └── 📁[37m PJ.134_Product-Launch                 [35m←−−− Uses them from RES, without copying
+```
+
+## (00) Outcomes Folder
+This [node (folder)](/en/foundationals/core-concepts#nodes) receives the deliverables of the [workboards](/en/foundationals/workboard-nodes) beside it.
+
+When a workboard is finished, [FolderManager](/en/folder-manager/project-management#outcomes) moves its deliverable here into a dated folder and leaves a shortcut in the workboard to find it again.
+
+> <h5> Naming Convention: </h5>
+> Use the identifier ` 00. ` and any name you want, at every level where workboards exist.
+>
+> e.g. `00.Outcomes`, `00.Edition-Portfolio`
+
+```ansi {2-4}
+[32m 📁[37m 04.Video-Edition                           [35m←−−− Parent
+[32m  ├── 📁[37m 00.Outcomes                           [35m←−−− Outcomes Folder
+[32m  │    └── 📁[37m (26-11-01)_Promo-Video           [35m←−−− Dated delivery
+[32m  │         └── 📄[37m Promo-Video-Final.mp4
+[32m  └── 📁[37m PJ.133_Promo-Video                    [35m←−−− Workboard
+[32m       ├── 📁[37m 01.RawFootage
+[32m       └── 📁[37m 04.Renders                       [35m←−−− Output folder
+[32m            └── 📄[37m (26-11-01)_Promo-Video.lnk  [35m←−−− Shortcut to the delivery
 ```
 
 ---
 ## Temporal Folders (~)
-Alright, thats not a identifier as such, it's just a mark.  
-This special marker (not a numbered identifier) designates **ultra-short-lived storage** for active work files. Unlike the structured [98.Review Folder](#98review-folder), `~` nodes are disposable containers for assets during active manipulation, serving as temporary holding areas that should be deleted immediately after use.
 
-<h5> Naming Convention: </h5>
-Always prefixed with `~` and continue with any name you want.
+This prefix is `~` is used for temporary files; It's placed at the start of the name of any folder or file and [FolderManager](/en/folder-manager) ignores it, no sort, no rename or other automation actions.
+
+Only use it to mark temporary items that should be deleted afterwards, so they don't keep consuming space.
+
+> <h5> Naming Convention: </h5>
+> Place a tilde ` ~ ` at the start of the name of any folder or file.
+>
+> e.g. `~09585`, `~render-draft.mp4`
+
+
+```ansi {4, 6}
+[32m 📁[37m 04.Parent-example                 
+[32m  ├── 📁[37m 01.Child-sorted                
+[32m  ├── 📁[37m 02.Another-file-sorted    
+[32m  ├── 📁[37m ~09585                                [35m←−−− Temporary folder
+[32m  ├── 📄[37m common-file.txt
+[32m  └── 📄[37m ~reference-document.docx              [35m←−−− Temporary file
+
+
+```

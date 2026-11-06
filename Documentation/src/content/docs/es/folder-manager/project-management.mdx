@@ -1,0 +1,28 @@
+---
+title: Gestión de Proyectos
+description: Gestiona el estado, el responsable y los outcomes de tus tableros de trabajo.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+## Detalles del tablero de trabajo
+
+Selecciona un tablero y usa el botón del lápiz del panel de detalles para editar su **nombre**, **estado** y **responsable**.
+
+<ImagePlaceholder label="Captura: Detalles del tablero de trabajo" />
+
+| Estado | Significado |
+| --- | --- |
+| Hold | En pausa |
+| In progress | En curso |
+| For review | Esperando revisión |
+| Done | Terminado |
+
+El estado y el responsable se guardan en el `.ant/info.json` de la propia carpeta, así que viajan con ella. Un tablero nuevo empieza como `in-progress` con responsable `unknown`. El responsable también puede estar guardado como `holder` o `client`; la app lee y actualiza el que ya exista. Las demás claves del archivo se muestran en el panel y no se tocan. Si el archivo no es JSON válido, la app muestra el error y no lo sobrescribe.
+
+Los metadatos de archivos individuales no están implementados: la app solo gestiona carpetas.
+
+## Outcomes
+
+Cuando un tablero de trabajo termina, Folder Manager mueve su entregable a la [carpeta Outcomes](/es/foundationals/support-nodes#carpeta-00-outcomes) de su nodo, dentro de una carpeta con fecha, y deja un acceso directo en el tablero.
+
+Si el tablero deja de estar en Done, recibe de vuelta una copia del entregable y se quita el acceso directo; la carpeta Outcomes conserva su copia.
