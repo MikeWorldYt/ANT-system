@@ -126,7 +126,7 @@ fn a_node_without_a_review_child_gets_one_and_its_files_move_into_it() {
     let dir = fixture("intake-no-review");
     put(&dir, "100.PERSONAL/05.Bare/lost.txt", "l");
     let report = run(dir.path()).unwrap();
-    assert!(has(&dir, "100.PERSONAL/05.Bare/98.Bare/lost.txt"));
+    assert!(has(&dir, "100.PERSONAL/05.Bare/REV.Bare/lost.txt"));
     assert!(!has(&dir, "100.PERSONAL/05.Bare/lost.txt"));
     assert_eq!(report.moved.len(), 1, "{report:?}");
     assert!(report.warnings.is_empty(), "{report:?}");
@@ -144,7 +144,7 @@ fn a_node_the_app_has_never_marked_waits_until_the_user_acknowledges_it() {
     assert!(report.moved.is_empty(), "{report:?}");
     acknowledge(dir.path(), &["100.PERSONAL".to_string(), "07.Fresh".to_string()]).unwrap();
     let report = run(dir.path()).unwrap();
-    assert!(has(&dir, "100.PERSONAL/07.Fresh/98.Fresh/loose.txt"));
+    assert!(has(&dir, "100.PERSONAL/07.Fresh/REV.Fresh/loose.txt"));
     assert!(report.waiting.is_empty() && report.moved.len() == 1, "{report:?}");
 }
 
@@ -154,7 +154,7 @@ fn a_review_child_missing_on_disk_is_recreated_and_takes_the_files() {
     fs::remove_dir(dir.path().join("100.PERSONAL/03.Toki/98.Toki")).unwrap();
     put(&dir, "100.PERSONAL/03.Toki/notes.txt", "n");
     let report = run(dir.path()).unwrap();
-    assert!(has(&dir, "100.PERSONAL/03.Toki/98.Toki/notes.txt"));
+    assert!(has(&dir, "100.PERSONAL/03.Toki/REV.Toki/notes.txt"));
     assert_eq!(report.moved.len(), 1, "{report:?}");
     assert!(report.warnings.is_empty(), "{report:?}");
 }

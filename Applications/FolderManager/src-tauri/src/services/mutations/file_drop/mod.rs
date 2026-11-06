@@ -13,7 +13,7 @@ use super::recycle::move_to_bin;
 use super::{child_rel, exactly_on_disk, finish, load_synced_at, locate, register_ids, scope, sync_branch_drift, sync_loaded_at, Drift, Mutation};
 use crate::domain::names::{compose_name, free_track, is_workboard_name, name_parts};
 use crate::domain::tree_types::{child_entries, type_base};
-use crate::domain::config::{is_hidden_dir, SETTINGS_FOLDER};
+use crate::domain::config::{is_hidden_dir, BACKUP_FOLDER, SETTINGS_FOLDER};
 use crate::infra::naming::free_name;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{io_err, join_rel, redirects, resolve, Journal, StorageLock};
@@ -90,9 +90,9 @@ pub fn drop_files(
     let node = get_node(&data, target);
     // Past the depth limit the database tracks nothing, so the folder itself takes what is dropped on it.
     let past_limit = node.is_none() && !target.is_empty() && target.len() >= depth::limit(root)?;
-    // A 998.Review link stands for its owner's 98. folder, so its files go there whatever the owner's type.
+    // A 998.Review link stands for its owner's review folder, so its files go there whatever the owner's type.
     let dest_rel = match (&owner, node) {
-        (Some(owner), _) => review_links::rev_path(owner).split('/').map(str::to_string).collect(),
+        (Some(owner), _) => review_links::rev_path(root, owner).split('/').map(str::to_string).collect(),
         (None, Some(node)) => destination(target, node)?,
         (None, None) if past_limit && !is_reserved(&target[..1]) => target.to_vec(),
         (None, None) => return Err(FmError::NotFound { rel_parts: target.to_vec() }),
@@ -384,7 +384,7 @@ impl Place<'_> {
         let real = fs::canonicalize(src).map_err(|e| io_err("resolve path", src, &e).to_string())?;
         if let Ok(inner) = real.strip_prefix(&self.storage) {
             let parts: Vec<String> = inner.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect();
-            let settings = parts.first().is_some_and(|top| top.eq_ignore_ascii_case(SETTINGS_FOLDER));
+            let settings = parts.first().is_some_and(|top| top.eq_ignore_ascii_case(SETTINGS_FOLDER) || top.eq_ignore_ascii_case(BACKUP_FOLDER));
             if settings || parts.iter().any(|p| is_hidden_dir(p)) {
                 return Err("the file belongs to Folder Manager".to_string());
             }

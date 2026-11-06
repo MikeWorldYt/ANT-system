@@ -1,4 +1,4 @@
-// Zip backups of the ANT data (ant.db, the .ant files and 999.Settings), never of the user's own files.
+// Zip backups of the ANT data (ant.db, the .ant files and the legacy 999.Settings), never of the user's own files.
 mod archive;
 mod latest;
 pub mod schedule;
@@ -15,7 +15,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
-use crate::domain::config::SETTINGS_FOLDER;
+use crate::domain::config::{BACKUP_FOLDER, SETTINGS_FOLDER};
 use crate::services::debug_log::valid_stamp;
 use crate::domain::validation::valid_backup_folder;
 use crate::domain::error::{FmError, R};
@@ -25,7 +25,6 @@ use crate::infra::storage::recovery::{db_state, set_aside, DbState};
 
 pub use latest::{newest_default, restore_latest, LatestBackup};
 
-const BACKUP_DIR: &str = "03.Backup";
 const SUFFIX: &str = "_ANT-fm-backup";
 pub const DEFAULT_FREQUENCY: &str = "day";
 
@@ -44,7 +43,18 @@ pub fn settings(root: &Path) -> R<HashMap<String, String>> {
 }
 
 fn default_dir(root: &Path) -> PathBuf {
-    root.join(SETTINGS_FOLDER).join(BACKUP_DIR)
+    root.join(BACKUP_FOLDER)
+}
+
+// Backups an older storage made beside its settings stay listed and restorable until the upgrade moves them.
+fn legacy_dir(root: &Path) -> PathBuf {
+    root.join(SETTINGS_FOLDER).join(stage::LEGACY_BACKUP_DIR)
+}
+
+// Where backups are read from: the chosen folder, or both default ones.
+fn read_dirs(root: &Path, settings: &HashMap<String, String>) -> R<Vec<PathBuf>> {
+    let dir = backup_dir(root, settings)?;
+    Ok(if dir == default_dir(root) { vec![dir, legacy_dir(root)] } else { vec![dir] })
 }
 
 // The setting is checked again because ant.db can be edited outside the app.
@@ -118,7 +128,16 @@ pub fn if_due(root: &Path, stamp: &str) -> R<Option<PathBuf>> {
 }
 
 pub fn list(root: &Path) -> R<Vec<BackupEntry>> {
-    entries(&backup_dir(root, &settings(root)?)?)
+    entries_in(&read_dirs(root, &settings(root)?)?)
+}
+
+fn entries_in(dirs: &[PathBuf]) -> R<Vec<BackupEntry>> {
+    let mut out = Vec::new();
+    for dir in dirs {
+        out.extend(entries(dir)?);
+    }
+    out.sort_by(|a, b| b.name.cmp(&a.name));
+    Ok(out)
 }
 
 fn entries(dir: &Path) -> R<Vec<BackupEntry>> {
@@ -152,7 +171,9 @@ pub fn restore(root: &Path, name: &str, stamp: &str) -> R<()> {
     if !valid_stamp(stamp) {
         return Err(fail(format!("Invalid backup stamp {stamp}")));
     }
-    restore_from(root, &backup_dir(root, &settings(root)?)?, name, stamp)
+    let dirs = read_dirs(root, &settings(root)?)?;
+    let dir = dirs.iter().find(|d| d.join(name).is_file()).unwrap_or(&dirs[0]);
+    restore_from(root, dir, name, stamp)
 }
 
 // Without a readable ant.db there is nothing worth a safety backup, and an unreadable one is kept aside instead.

@@ -33,7 +33,7 @@ pub fn storage_root(path: &Path) -> R<PathBuf> {
     if !path.is_dir() {
         return Err(invalid(&text, "the folder does not exist"));
     }
-    find_root(path).ok_or_else(|| FmError::Internal { message: "That folder is not an ANT Storage: it has no 999.Settings folder.".to_string() })
+    find_root(path).ok_or_else(|| FmError::Internal { message: "That folder is not an ANT Storage: it has no .ant folder.".to_string() })
 }
 
 #[cfg(test)]
@@ -75,7 +75,7 @@ mod tests {
         assert!(clean_path("rel").unwrap().is_absolute());
         assert!(storage_root(&dir.path().join("missing")).is_err());
         let not_storage = storage_root(dir.path()).unwrap_err().to_string();
-        assert!(not_storage.contains("no 999.Settings folder"), "{not_storage}");
+        assert!(not_storage.contains("no .ant folder"), "{not_storage}");
         dir.mkdir("999.Settings");
         assert_eq!(storage_root(dir.path()).unwrap(), dir.path());
     }

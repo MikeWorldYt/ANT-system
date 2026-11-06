@@ -13,7 +13,7 @@ import { actions } from "../../../molecules/button-row";
 import type { RowHandle } from "../../../molecules/setting-row";
 import type { SettingsPage } from "../page";
 
-const DEFAULT_FOLDER = "999.Settings/03.Backup";
+const DEFAULT_FOLDER = "backup";
 
 async function report(fn: () => Promise<void>): Promise<void> {
   try {

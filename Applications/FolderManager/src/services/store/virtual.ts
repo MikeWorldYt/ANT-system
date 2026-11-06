@@ -1,5 +1,6 @@
 // Virtual root entries list real folders from the whole Storage; their nodes are loaded into the tree without expanding it.
-import { listChildren, listFavorites, listWorkboards } from "../ipc/api";
+import { listChildren, listFavorites, listReview, listWorkboards } from "../ipc/api";
+import { arrangeReview } from "./review-list";
 import { findNode, keyOf, state, type VirtualId } from "./state";
 import { DOWNLOADS_ROOT, type TreeNode } from "../ipc/types";
 
@@ -11,7 +12,7 @@ async function listDownloadsTop(): Promise<string[][]> {
   return state.downloads.map((n) => n.relParts);
 }
 
-const SOURCES: Record<VirtualId, () => Promise<string[][]>> = { favorites: listFavorites, downloads: listDownloadsTop, board: listWorkboards };
+const SOURCES: Record<VirtualId, () => Promise<string[][]>> = { favorites: listFavorites, downloads: listDownloadsTop, review: listReview, board: listWorkboards };
 
 // Loads every level above the folder, so findNode, the details panel and the actions reach it like any shown folder.
 export async function loadPath(parts: string[]): Promise<void> {
@@ -33,4 +34,7 @@ export async function loadVirtual(): Promise<void> {
   if (state.virtual === id) state.virtualKeys = paths.filter((p) => findNode(p) !== null).map(keyOf);
 }
 
-export const virtualNodes = (): TreeNode[] => state.virtualKeys.flatMap((key) => findNode(key.split("/")) ?? []);
+export function virtualNodes(): TreeNode[] {
+  const nodes = state.virtualKeys.flatMap((key) => findNode(key.split("/")) ?? []);
+  return state.virtual === "review" ? arrangeReview(nodes) : nodes;
+}

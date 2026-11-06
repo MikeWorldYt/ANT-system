@@ -1,11 +1,11 @@
 // Folder-name rules: numeric slot ids, editable name parts and sanitizing of user input.
-use crate::domain::config::WKB_IDENTIFIERS;
+use crate::domain::config::{SUPPORT_NODES, WKB_IDENTIFIERS};
 use crate::domain::tree_types::type_base;
 
 pub(crate) const FORBIDDEN: &[char] = &['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
 
 const FIRST_SLOT: u32 = 1;
-const LAST_SLOT: u32 = 89;
+const LAST_SLOT: u32 = 99;
 const FIRST_MAIN_ID: u32 = 100;
 const LAST_MAIN_ID: u32 = 800;
 const MAIN_ID_STEP: u32 = 100;
@@ -81,10 +81,23 @@ pub fn is_valid_root_name(name: &str) -> bool {
     is_main_category(name) || is_system_root_name(name)
 }
 
-// Nodes below the root open with a two-digit id ("01.Math"); "00" is not one.
+// The type a support folder gives ("REV", "RES", "TPL"): the word prefix in any case, or the numeric one of older storages.
+pub fn support_kind(name: &str) -> Option<&'static str> {
+    SUPPORT_NODES.iter().find_map(|(word, legacy, kind)| {
+        let is_word = name.get(..word.len()).is_some_and(|head| head.eq_ignore_ascii_case(word));
+        (is_word || name.starts_with(legacy)).then_some(*kind)
+    })
+}
+
+// A support folder still on its numeric id waits for the upgrade to rename it.
+pub fn is_legacy_support(name: &str) -> bool {
+    SUPPORT_NODES.iter().any(|(_, legacy, _)| name.starts_with(legacy))
+}
+
+// Nodes below the root open with a two-digit id ("01.Math"); "00" is not one, nor a numeric support folder.
 pub fn has_node_id(name: &str) -> bool {
     let b = name.as_bytes();
-    b.len() >= 3 && b[0].is_ascii_digit() && b[1].is_ascii_digit() && b[2] == b'.' && &name[..2] != "00"
+    b.len() >= 3 && b[0].is_ascii_digit() && b[1].is_ascii_digit() && b[2] == b'.' && &name[..2] != "00" && !is_legacy_support(name)
 }
 
 pub fn is_workboard_name(name: &str) -> bool {
@@ -138,7 +151,7 @@ pub fn workboard_title(name: &str) -> String {
 pub fn has_valid_id(rel: &[String]) -> bool {
     match rel {
         [name] => is_valid_root_name(name),
-        [.., name] => has_node_id(name) || is_workboard_name(name),
+        [.., name] => has_node_id(name) || is_workboard_name(name) || support_kind(name).is_some(),
         [] => false,
     }
 }
@@ -235,8 +248,38 @@ mod tests {
 
     #[test]
     fn next_available_id_falls_back_when_all_slots_full() {
-        let full: Vec<String> = (1..=89).map(|i| format!("{i:02}.X")).collect();
-        assert_eq!(next_available_id(&full), 89);
+        let full: Vec<String> = (1..=99).map(|i| format!("{i:02}.X")).collect();
+        assert_eq!(next_available_id(&full), 99);
+    }
+
+    #[test]
+    fn the_slots_skip_the_numbers_a_legacy_support_folder_still_uses() {
+        let siblings: Vec<String> = (1..=89).map(|i| format!("{i:02}.X")).chain(["90.Res".to_string(), "97.Tpl".to_string(), "98.Rev".to_string()]).collect();
+        assert_eq!(next_available_id(&siblings), 91);
+        let more: Vec<String> = siblings.into_iter().chain((91..=96).map(|i| format!("{i}.X"))).collect();
+        assert_eq!(next_available_id(&more), 99);
+    }
+
+    #[test]
+    fn support_folders_are_known_by_their_word_prefix_or_the_legacy_number() {
+        for (name, kind) in [("REV.Math", "REV"), ("rev.Math", "REV"), ("RES.Brand-Assets", "RES"), ("TPL.Video-Project", "TPL"), ("98.Math", "REV"), ("90.Res", "RES"), ("97.Tpl", "TPL")] {
+            assert_eq!(support_kind(name), Some(kind), "{name}");
+        }
+        for name in ["01.Math", "99.Misc", "91.Misc", "PJ.001_Web", "Review", "REVIEW.x", "00.Outcomes"] {
+            assert_eq!(support_kind(name), None, "{name}");
+        }
+        assert!(is_legacy_support("98.Math") && !is_legacy_support("REV.Math"));
+    }
+
+    #[test]
+    fn numbers_from_01_to_99_are_node_ids_except_the_legacy_support_ones_and_00() {
+        for id in ["01.A", "55.A", "91.A", "96.A", "99.A"] {
+            assert!(has_node_id(id), "{id}");
+        }
+        for not_id in ["00.Outcomes", "90.Res", "97.Tpl", "98.Rev", "REV.A", "RES.A", "TPL.A"] {
+            assert!(!has_node_id(not_id), "{not_id}");
+        }
+        assert!(has_valid_id(&["100.A".to_string(), "REV.A".to_string()]) && has_valid_id(&["100.A".to_string(), "98.A".to_string()]));
     }
 
     #[test]
@@ -254,9 +297,9 @@ mod tests {
     #[test]
     fn is_movable_node_needs_node_type_and_slot_range() {
         assert!(is_movable_node("05.X", "NODE-L2"));
-        assert!(is_movable_node("89.x", "NODE"));
+        assert!(is_movable_node("89.x", "NODE") && is_movable_node("99.x", "NODE"));
         assert!(!is_movable_node("05.X", "WKB"));
-        assert!(!is_movable_node("90.RES", "NODE"));
+        assert!(!is_movable_node("90.RES", "RES") && !is_movable_node("100.X", "NODE"));
         assert!(!is_movable_node("00.Core", "NODE"));
         assert!(!is_movable_node("X", "NODE"));
     }

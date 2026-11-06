@@ -4,12 +4,12 @@ use std::path::Path;
 use serde_yaml::{Mapping, Value};
 
 use crate::domain::tree_types::{flags_in, type_base, META_KEYS};
-use crate::domain::config::{DATA_FLAG, HIDDEN_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, SPECIAL_TYPES, WKB_IDENTIFIERS};
+use crate::domain::config::{DATA_FLAG, HIDDEN_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, WKB_IDENTIFIERS};
 use crate::infra::storage::db::{db_path, Store};
 use crate::domain::error::R;
 use crate::infra::fs_safe::{io_err, join_rel};
 use crate::infra::footprint_file;
-use crate::domain::names::is_system_root_name;
+use crate::domain::names::{is_system_root_name, support_kind};
 use crate::infra::scan::list_subdirs;
 use crate::services::tree::depth;
 
@@ -60,8 +60,8 @@ pub fn infer_type(name: &str, depth: usize) -> String {
     if WKB_IDENTIFIERS.iter().any(|p| basename.starts_with(p)) {
         return "WKB".to_string();
     }
-    match SPECIAL_TYPES.iter().find(|(prefix, _)| basename.starts_with(prefix)) {
-        Some((_, folder_type)) => (*folder_type).to_string(),
+    match support_kind(basename) {
+        Some(kind) => kind.to_string(),
         None => format!("NODE-L{}", depth + 1),
     }
 }
@@ -530,6 +530,10 @@ z: {type: NODE-L1}
         assert_eq!(infer_type("90.Resources", 1), "RES");
         assert_eq!(infer_type("97.Templates", 1), "TPL");
         assert_eq!(infer_type("98.Review", 2), "REV");
+        assert_eq!(infer_type("RES.Brand-Assets", 1), "RES");
+        assert_eq!(infer_type("tpl.Video-Project", 1), "TPL");
+        assert_eq!(infer_type("REV.Math", 2), "REV");
+        assert_eq!(infer_type("99.Misc", 1), "NODE-L2");
         assert_eq!(infer_type("00.Porfolio", 1), "OUT");
         assert_eq!(infer_type("01.Math", 0), "NODE-L1");
         assert_eq!(infer_type("a/b/02.X", 2), "NODE-L3");

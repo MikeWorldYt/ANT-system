@@ -42,7 +42,7 @@ pub(super) fn check_source(rel: &[String], target: &Target, node: &Mapping) -> R
 }
 
 pub(super) fn check_destination(rel: &[String], target: &Target) -> R<()> {
-    // A 98.* review folder takes moved folders as it takes dropped files; the other locked types do not.
+    // A review folder takes moved folders as it takes dropped files; the other locked types do not.
     guard(rel, target, "move into", true)?;
     match type_base(&target.node_type) {
         "NODE" | "WKB" | "REV" => Ok(()),

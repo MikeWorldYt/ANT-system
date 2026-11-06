@@ -10,7 +10,7 @@ use crate::domain::names::{editable_part, next_available_id, next_main_category_
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::child_entries;
 use crate::services::backup::stamp::local_date;
-use crate::domain::config::{NewKind, DATA_DIR, DATA_FLAG, OWNER_KEYS};
+use crate::domain::config::{NewKind, DATA_DIR, DATA_FLAG, OWNER_KEYS, REVIEW_PREFIX};
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{io_err, resolve, Journal, StorageLock};
 use crate::infra::naming::free_name;
@@ -87,10 +87,10 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
         entry.insert("flags".into(), DATA_FLAG.into());
     }
     let mut warnings = Vec::new();
-    let rev_name = format!("98.{}", editable_part(&new_name));
+    let rev_name = format!("{REVIEW_PREFIX}{}", editable_part(&new_name));
     // A workboard keeps its review shortcuts out of its own folder.
     match if workboard { Ok(()) } else { journal.mkdir(&new_abs.join(&rev_name)) } {
-        // The deepest level keeps its 98 folder on disk only, as the tree stops at the depth limit.
+        // The deepest level keeps its review folder on disk only, as the tree stops at the depth limit.
         Ok(()) if level < limit && !workboard => {
             let mut rev = Mapping::new();
             rev.insert("type".into(), format!("REV-L{level}").into());
@@ -235,16 +235,16 @@ mod tests {
         let dir = academic("add");
         let m = add_node(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node).unwrap();
         assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "04.New-Node"])));
-        assert!(dir.path().join("100.ACADEMIC/04.New-Node/98.New-Node").is_dir());
+        assert!(dir.path().join("100.ACADEMIC/04.New-Node/REV.New-Node").is_dir());
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "04.New-Node"]), "NODE-L2");
-        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "04.New-Node", "98.New-Node"]), "REV-L2");
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "04.New-Node", "REV.New-Node"]), "REV-L2");
 
         let deep = add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), NewKind::Node).unwrap();
         let p = ["100.ACADEMIC", "01.Math", "02.New-Node"];
         assert_eq!(deep.select, Some(rel(&p)));
-        assert!(dir.path().join("100.ACADEMIC/01.Math/02.New-Node/98.New-Node").is_dir());
+        assert!(dir.path().join("100.ACADEMIC/01.Math/02.New-Node/REV.New-Node").is_dir());
         assert_eq!(yaml_type(dir.path(), &p), "NODE-L3");
-        assert!(get_node(&yaml(dir.path()), &rel(&p)).unwrap().get("98.New-Node").is_none());
+        assert!(get_node(&yaml(dir.path()), &rel(&p)).unwrap().get("REV.New-Node").is_none());
     }
 
     #[test]
@@ -259,7 +259,7 @@ mod tests {
         let expected = rel(&["200.NEW-CATEGORY"]);
         assert_eq!(main.select, Some(expected.clone()));
         assert_eq!(yaml_type(dir.path(), &["200.NEW-CATEGORY"]), "NODE-L1");
-        assert!(dir.path().join("200.NEW-CATEGORY/98.NEW-CATEGORY").is_dir());
+        assert!(dir.path().join("200.NEW-CATEGORY/REV.NEW-CATEGORY").is_dir());
         let main_node = main.touched_nodes()[0];
         assert_eq!(main_node.rel_parts, expected);
         assert!(main_node.flags.iter().any(|flag| flag == "main"));
@@ -324,13 +324,13 @@ PJ.1000_Next: {type: WKB-L1}
         let dir = academic("add-deeper");
         crate::infra::storage::db::Store::open_or_create(dir.path()).unwrap().set_setting(depth::DEPTH_KEY, "4").unwrap();
         add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), NewKind::Node).unwrap();
-        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "02.New-Node", "98.New-Node"]), "REV-L3");
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "02.New-Node", "REV.New-Node"]), "REV-L3");
         let m = add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "01.Algebra"]), NewKind::Node).unwrap();
         let l4 = rel(&["100.ACADEMIC", "01.Math", "01.Algebra", "01.New-Node"]);
         assert_eq!(m.select, Some(l4.clone()));
         assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "01.Algebra", "01.New-Node"]), "NODE-L4");
-        assert!(dir.path().join("100.ACADEMIC/01.Math/01.Algebra/01.New-Node/98.New-Node").is_dir());
-        assert!(get_node(&yaml(dir.path()), &l4).unwrap().get("98.New-Node").is_none());
+        assert!(dir.path().join("100.ACADEMIC/01.Math/01.Algebra/01.New-Node/REV.New-Node").is_dir());
+        assert!(get_node(&yaml(dir.path()), &l4).unwrap().get("REV.New-Node").is_none());
         assert!(matches!(add_node(dir.path(), &l4, NewKind::Node), Err(FmError::DepthLimit)));
     }
 

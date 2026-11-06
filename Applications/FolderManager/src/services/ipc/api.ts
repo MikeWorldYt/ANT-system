@@ -15,6 +15,7 @@ import type {
   Mutation,
   Resolution,
   RootCheck,
+  SupportCheck,
   StorageInfo,
   TreeNode,
   TreeSnapshot,
@@ -36,6 +37,9 @@ export const refresh = (full: boolean) => call<TreeSnapshot>("refresh", { full }
 export const runIntake = () => call<IntakeReport>("run_intake");
 export const acknowledgeIntake = (relParts: string[]) => call<void>("acknowledge_intake", { relParts });
 export const checkRoot = () => call<RootCheck>("check_root");
+export const checkSupportUpgrade = () => call<SupportCheck>("check_support_upgrade");
+export const applySupportUpgrade = (relParts: string[]) => call<Mutation>("apply_support_upgrade", { relParts });
+export const finishSupportUpgrade = (stamp: string) => call<string[]>("finish_support_upgrade", { stamp });
 export const previewInvalid = (rows: { relParts: string[]; resolution: Resolution }[]) => call<string[]>("preview_invalid", { rows });
 export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
   call<Mutation>("resolve_invalid", { relParts, resolution });
@@ -55,7 +59,6 @@ export const setImportant = (relParts: string[], on: boolean) => call<Mutation>(
 export const fileImage = (relParts: string[], large: boolean) =>
   inDownloads(relParts) ? call<string | null>("download_image", { relParts: belowDownloads(relParts), large }) : call<string | null>("file_image", { relParts, large });
 export const setLinkHidden =(relParts: string[], on: boolean) => call<Mutation>("set_link_hidden", { relParts, on });
-export const setReviewFilter = (hidden: string[], favorites: boolean) => call<Mutation>("set_review_filter", { hidden, favorites });
 export const setUserFlag = (relParts: string[], on: boolean) => call<Mutation>("set_user_flag", { relParts, on });
 export const answerCopy = (relParts: string[], answer: CopyAnswer) => call<void>("answer_copy", { relParts, answer });
 export const getSettings = () => call<Record<string, string>>("get_settings");
@@ -131,6 +134,7 @@ export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonE
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
 export const listFavorites = () => call<string[][]>("list_favorites");
+export const listReview = () => call<string[][]>("list_review");
 export const listWorkboards = () => call<string[][]>("list_workboards");
 export const setBoard = (cards: BoardCard[]) => call<Mutation>("set_board", { cards });
 export const searchDisk = (query: string) => call<string[][]>("search_disk", { query });

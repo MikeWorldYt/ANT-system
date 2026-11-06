@@ -1,10 +1,11 @@
-// Gives every node its 98. review folder back when it went missing or was left under an old name.
+// Gives every node its REV. review folder back when it went missing or was left under an old name.
 use std::fs;
 use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use crate::domain::names::editable_part;
+use crate::domain::config::REVIEW_PREFIX;
+use crate::domain::names::{editable_part, is_legacy_support, support_kind};
 
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{child_entries, type_base};
@@ -23,12 +24,12 @@ pub fn restore(root: &Path) -> R<bool> {
     let mut owners = Vec::new();
     collect(&data, &mut Vec::new(), &mut owners, depth::limit(root)?);
     for owner in owners {
-        let expected = format!("98.{}", editable_part(owner.last().map_or("", String::as_str)));
+        let editable = editable_part(owner.last().map_or("", String::as_str));
         let dir = join_rel(root, &owner);
         if !dir.is_dir() {
             continue;
         }
-        let (keep, renamed) = review_name(&mut data, &owner, &dir, expected)?;
+        let (keep, renamed) = review_name(&mut data, &owner, &dir, editable)?;
         changed |= renamed;
         let mut review = owner.clone();
         review.push(keep.clone());
@@ -64,23 +65,28 @@ fn collect(node: &Mapping, parts: &mut Vec<String>, out: &mut Vec<Vec<String>>, 
     }
 }
 
-// A review folder left under the node's old name after an outside rename is the node's review, so it takes the node's name.
-fn review_name(data: &mut Mapping, owner: &[String], dir: &Path, expected: String) -> R<(String, bool)> {
+// A review folder left under the node's old name after an outside rename is the node's review, so it takes the node's name and keeps its prefix style.
+fn review_name(data: &mut Mapping, owner: &[String], dir: &Path, editable: &str) -> R<(String, bool)> {
     let names = list_subdirs(dir)?;
-    if names.contains(&expected) {
-        return Ok((expected, false));
+    let (current, legacy) = (format!("{REVIEW_PREFIX}{editable}"), format!("98.{editable}"));
+    if names.contains(&current) {
+        return Ok((current, false));
     }
-    let Some(old) = old_review(data, owner, &names) else { return Ok((expected, false)) };
+    if names.contains(&legacy) {
+        return Ok((legacy, false));
+    }
+    let Some(old) = old_review(data, owner, &names) else { return Ok((current, false)) };
+    let expected = if is_legacy_support(&old) { legacy } else { current };
     let from = dir.join(&old);
     fs::rename(&from, dir.join(&expected)).map_err(|e| io_err("rename folder", &from, &e))?;
     tree_store::rename_key(data, owner, &old, &expected);
     Ok((expected, true))
 }
 
-// Older builds left extra 98.* folders; their contents move into the one the node keeps, and the emptied folders go.
+// Older builds left extra review folders; their contents move into the one the node keeps, and the emptied folders go.
 fn merge_extra_reviews(data: &mut Mapping, owner: &[String], dir: &Path, keep: &str) -> R<bool> {
     let target = dir.join(keep);
-    let extras: Vec<String> = list_subdirs(dir)?.into_iter().filter(|name| name != keep && name.starts_with("98.")).collect();
+    let extras: Vec<String> = list_subdirs(dir)?.into_iter().filter(|name| name != keep && support_kind(name) == Some("REV")).collect();
     for extra in &extras {
         let from = dir.join(extra);
         for entry in dir_entries(&from, "list folder")? {
@@ -98,7 +104,7 @@ fn merge_extra_reviews(data: &mut Mapping, owner: &[String], dir: &Path, keep: &
 fn old_review(data: &Mapping, owner: &[String], names: &[String]) -> Option<String> {
     let node = get_node(data, owner)?;
     child_entries(node)
-        .find(|(name, child)| name.starts_with("98.") && is_review(child) && names.iter().any(|n| n.as_str() == *name))
+        .find(|(name, child)| support_kind(name) == Some("REV") && is_review(child) && names.iter().any(|n| n.as_str() == *name))
         .map(|(name, _)| name.to_string())
 }
 
@@ -109,7 +115,7 @@ fn is_review(child: &Mapping) -> bool {
 fn stale_reviews(data: &Mapping, owner: &[String], dir: &Path, keep: &str) -> Vec<String> {
     let Some(node) = get_node(data, owner) else { return Vec::new() };
     child_entries(node)
-        .filter(|(name, child)| *name != keep && name.starts_with("98.") && is_review(child) && !dir.join(name).is_dir())
+        .filter(|(name, child)| *name != keep && support_kind(name) == Some("REV") && is_review(child) && !dir.join(name).is_dir())
         .map(|(name, _)| name.to_string())
         .collect()
 }
@@ -127,11 +133,28 @@ mod tests {
             "100.ACADEMIC:\n  type: NODE-L1\n  01.Math: {type: NODE-L2}\n  90.Res: {type: RES}\n  98.Review: {type: REV-L2}\n  98.ACADEMIC: {type: REV-L2}\n",
         );
         assert!(restore(dir.path()).unwrap());
-        assert!(dir.path().join("100.ACADEMIC/01.Math/98.Math").is_dir());
+        assert!(dir.path().join("100.ACADEMIC/01.Math/REV.Math").is_dir());
         assert!(!dir.path().join("100.ACADEMIC/90.Res/98.Res").exists());
         let data = yaml(dir.path());
         assert!(get_node(&data, &["100.ACADEMIC".to_string(), "98.Review".to_string()]).is_none());
-        assert!(get_node(&data, &["100.ACADEMIC".to_string(), "01.Math".to_string(), "98.Math".to_string()]).is_some());
+        assert!(get_node(&data, &["100.ACADEMIC".to_string(), "01.Math".to_string(), "REV.Math".to_string()]).is_some());
+        assert!(!restore(dir.path()).unwrap());
+    }
+
+    #[test]
+    fn a_node_with_a_word_prefixed_review_keeps_it_and_one_with_a_legacy_review_is_not_renamed() {
+        let dir = storage(
+            "review-styles",
+            &["100.A/01.New/REV.New", "100.A/02.Old/98.Old"],
+            "100.A:
+  type: NODE-L1
+  01.New: {type: NODE-L2, REV.New: {type: REV-L3}}
+  02.Old: {type: NODE-L2, 98.Old: {type: REV-L3}}
+",
+        );
+        restore(dir.path()).unwrap();
+        assert!(dir.path().join("100.A/01.New/REV.New").is_dir() && !dir.path().join("100.A/01.New/98.New").exists());
+        assert!(dir.path().join("100.A/02.Old/98.Old").is_dir() && !dir.path().join("100.A/02.Old/REV.Old").exists());
         assert!(!restore(dir.path()).unwrap());
     }
 

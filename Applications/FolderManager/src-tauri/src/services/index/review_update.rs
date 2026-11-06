@@ -254,7 +254,7 @@ mod tests {
         assert_eq!(failures.len(), 1, "{failures:?}");
         assert!(failures[0].contains("rebuilt in full") && failures[0].contains("already exists"), "{failures:?}");
         let fallback = links(&dir);
-        assert!(fallback.iter().any(|(_, t)| t.ends_with("03.New-Node/98.New-Node")), "{fallback:?}");
+        assert!(fallback.iter().any(|(_, t)| t.ends_with("03.New-Node/REV.New-Node")), "{fallback:?}");
         assert!(rebuild_with(dir.path(), &yaml(dir.path()), fake_create).is_empty());
         assert_eq!(fallback, links(&dir));
     }

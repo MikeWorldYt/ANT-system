@@ -8,9 +8,11 @@ pub const EXE_DOWNLOAD_URL: &str =
 pub const UPDATER_SCRIPT: &str = "FM_Updater.bat";
 pub const UPDATER_SCRIPT_URL: &str = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Migration/Core/FM_Updater.bat";
 
+// Legacy root folders: still read and recognised, never created.
 pub const SETTINGS_FOLDER: &str = "999.Settings";
 pub const CORE_FOLDER: &str = "00.Core";
 pub const REVIEW_FOLDER: &str = "998.Review";
+pub const BACKUP_FOLDER: &str = "backup";
 // The Portfolio that a workboard's level gets automatically; the title can be renamed, the 00. id is kept.
 pub const PORTFOLIO_FOLDER: &str = "00.Outcomes";
 pub const TRASH_DIR: &str = ".ant-trash";
@@ -29,9 +31,10 @@ pub const DATA_FLAG: &str = "data";
 // A hidden folder stays in the storage but is not listed, searched or read.
 pub const HIDDEN_FLAG: &str = "hidden";
 pub const MAIN_FLAG: &str = "main";
-pub const LINKED_PREFIXES: &[&str] = &["90", "98"];
 pub const WKB_IDENTIFIERS: &[&str] = &["PJ.", "PR.", "HW.", "CR.", "TK."];
-pub const SPECIAL_TYPES: &[(&str, &str)] = &[("90.", "RES"), ("97.", "TPL"), ("98.", "REV")];
+// Support nodes: the word prefix, the numeric one older storages still use, and the type it gives.
+pub const SUPPORT_NODES: &[(&str, &str, &str)] = &[("RES.", "90.", "RES"), ("TPL.", "97.", "TPL"), ("REV.", "98.", "REV")];
+pub const REVIEW_PREFIX: &str = "REV.";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]

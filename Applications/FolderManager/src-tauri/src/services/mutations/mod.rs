@@ -1,4 +1,4 @@
-// Rename, retype and add nodes, keeping disk folders, linked 90./98. folders and the tree in step.
+// Rename, retype and add nodes, keeping disk folders, linked RES./REV. folders and the tree in step.
 mod add;
 mod automations;
 mod board;

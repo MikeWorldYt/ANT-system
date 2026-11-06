@@ -114,7 +114,7 @@ fn move_and_add_node_rebuild_too() {
     assert!(m.warnings.is_empty());
     assert_eq!(probe.phases(), ["started", "done", "started", "done"]);
     let seen = probe.seen_yaml.borrow();
-    assert!(get_node(&seen[1], &rel(&["100.WORK", "04.New-Node", "98.New-Node"])).is_some());
+    assert!(get_node(&seen[1], &rel(&["100.WORK", "04.New-Node", "REV.New-Node"])).is_some());
 }
 
 #[test]
@@ -317,12 +317,13 @@ fn a_failed_quick_update_falls_back_to_a_full_rebuild_and_says_so() {
     assert_eq!(m.warnings.len(), 1, "{:?}", m.warnings);
     assert!(m.warnings[0].contains("rebuilt in full") && m.warnings[0].contains("boom"), "{:?}", m.warnings);
     let search = Store::open_or_create(dir.path()).unwrap().search(&parse_query("in:/100.ACADEMIC/04.New-Node")).unwrap();
-    assert_eq!(search, [rel(&["100.ACADEMIC", "04.New-Node"]), rel(&["100.ACADEMIC", "04.New-Node", "98.New-Node"])]);
+    assert_eq!(search, [rel(&["100.ACADEMIC", "04.New-Node"]), rel(&["100.ACADEMIC", "04.New-Node", "REV.New-Node"])]);
 }
 
 #[test]
 fn a_manual_update_check_ignores_the_skipped_version() {
     let dir = work("cmd-skip");
+    dir.mkdir(".ant");
     std::fs::write(skip_path(dir.path()), " 9.9.9 \n").unwrap();
     assert_eq!(skipped_for(dir.path(), false).unwrap(), "9.9.9");
     assert_eq!(skipped_for(dir.path(), true).unwrap(), "");

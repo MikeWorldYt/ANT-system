@@ -12,5 +12,6 @@ pub mod scheduler;
 pub mod snapshot;
 pub mod sync;
 pub mod tree;
+pub mod upgrade;
 pub mod updater;
 pub mod watch;

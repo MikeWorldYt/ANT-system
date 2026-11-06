@@ -40,6 +40,12 @@ export const generalPage: SettingsPage = {
     },
     {
       section: "Preferences",
+      title: "Show Review entry",
+      description: "Lists the review folders of the whole Storage below Downloads in the root.",
+      control: () => switchControl("Show Review entry", state.settings.showReview, (on) => changeSetting("showReview", on)),
+    },
+    {
+      section: "Preferences",
       title: "Open columns on select",
       description: "In Columns view, selecting a folder opens its contents. Double-click the folder icon or the arrow otherwise.",
       control: () => switchControl("Open columns on select", state.settings.autoOpenColumns, (on) => changeSetting("autoOpenColumns", on)),

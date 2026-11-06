@@ -32,7 +32,7 @@ interface State {
   via: string | null;
 }
 
-export type VirtualId = "favorites" | "downloads" | "board";
+export type VirtualId = "favorites" | "downloads" | "review" | "board";
 
 export interface KeyCombo {
   code: string;
@@ -59,6 +59,7 @@ export interface Settings {
   autoOpenColumns: boolean;
   showFavorites: boolean;
   showDownloads: boolean;
+  showReview: boolean;
   theme: Theme;
   accent: AccentId;
   iconColor: AccentId;
@@ -105,7 +106,7 @@ export const state: State = {
   hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, showFavorites: true, showDownloads: true, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
   virtual: null,
   virtualKeys: [],
   downloads: [],
@@ -213,6 +214,7 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.autoOpenColumns = saved.autoOpenColumns === "true";
   state.settings.showFavorites = saved.showFavorites !== "false";
   state.settings.showDownloads = saved.showDownloads !== "false";
+  state.settings.showReview = saved.showReview !== "false";
   state.settings.theme = saved.theme === "light" || saved.theme === "system" ? saved.theme : "dark";
   state.settings.accent = ["blue", "purple", "coral", "gold"].includes(saved.accent ?? "") ? (saved.accent as AccentId) : "green";
   state.settings.iconColor = ["green", "blue", "coral", "gold"].includes(saved.iconColor ?? "") ? (saved.iconColor as AccentId) : "purple";
@@ -278,7 +280,7 @@ function inManagedScope(key: string | null): boolean {
 }
 
 // Favorites and Downloads can be switched off in the settings; the board has no switch.
-export const isVirtualShown = (id: VirtualId): boolean => (id === "favorites" ? state.settings.showFavorites : id === "downloads" ? state.settings.showDownloads : true);
+export const isVirtualShown = (id: VirtualId): boolean => (id === "favorites" ? state.settings.showFavorites : id === "downloads" ? state.settings.showDownloads : id === "review" ? state.settings.showReview : true);
 
 export function leaveVirtual(): void {
   state.virtual = null;

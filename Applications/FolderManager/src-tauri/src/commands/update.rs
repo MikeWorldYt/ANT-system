@@ -5,15 +5,15 @@ use serde::Serialize;
 use tauri::AppHandle;
 
 use super::{off_thread, run_locked};
-use crate::domain::config::{CORE_FOLDER, SETTINGS_FOLDER};
 use crate::domain::error::R;
 use crate::infra::fs_safe::io_err;
+use crate::infra::storage::core_dir::{data_dir, root_file};
 use crate::services::updater;
 
 const SKIP_FILE: &str = ".skip_version";
 
 pub(super) fn skip_path(root: &Path) -> PathBuf {
-    root.join(SETTINGS_FOLDER).join(CORE_FOLDER).join(SKIP_FILE)
+    root_file(root, SKIP_FILE)
 }
 
 fn read_skipped(root: &Path) -> R<String> {
@@ -58,7 +58,7 @@ pub async fn start_update(app: AppHandle) -> R<()> {
 #[tauri::command]
 pub async fn skip_version(app: AppHandle, version: String) -> R<()> {
     run_locked(app, move |root| {
-        let path = skip_path(root);
+        let path = data_dir(root).join(SKIP_FILE);
         std::fs::write(&path, version.trim()).map_err(|e| io_err("save skipped version", &path, &e))
     })
     .await

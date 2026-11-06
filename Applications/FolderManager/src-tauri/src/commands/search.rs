@@ -19,6 +19,11 @@ pub async fn list_favorites(app: AppHandle) -> R<Vec<Vec<String>>> {
 }
 
 #[tauri::command]
+pub async fn list_review(app: AppHandle) -> R<Vec<Vec<String>>> {
+    run_unlocked(app, |storage, _| storage.with_reader(Store::reviews)).await
+}
+
+#[tauri::command]
 pub async fn list_workboards(app: AppHandle) -> R<Vec<Vec<String>>> {
     run_unlocked(app, |storage, _| storage.with_reader(Store::workboards)).await
 }

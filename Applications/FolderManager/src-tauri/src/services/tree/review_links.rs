@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use serde_yaml::{Mapping, Value};
 
-use crate::domain::config::REVIEW_FOLDER;
+use crate::domain::config::{REVIEW_FOLDER, REVIEW_PREFIX};
 use crate::domain::error::R;
 use crate::domain::names::editable_part;
 use crate::domain::shortcut_names::review_shortcut_name;
@@ -25,9 +25,13 @@ pub(crate) fn review_dir(root: &Path) -> Result<Option<PathBuf>, String> {
     }
 }
 
+// The owner's review folder on disk: REV.<Name>, or the 98.<Name> of a storage not upgraded yet; REV.<Name> when none exists.
 pub(crate) fn rev_folder(root: &Path, owner: &[String]) -> PathBuf {
     let editable = owner.last().map_or("", |name| editable_part(name));
-    join_rel(root, owner).join(format!("98.{editable}"))
+    let dir = join_rel(root, owner);
+    let current = dir.join(format!("{REVIEW_PREFIX}{editable}"));
+    let legacy = dir.join(format!("98.{editable}"));
+    if !current.is_dir() && legacy.is_dir() { legacy } else { current }
 }
 
 // The links 998.Review lists: each existing shortcut with the owner it opens.
@@ -72,11 +76,11 @@ pub(crate) fn link_folder(root: &Path, data: &Mapping, rel: &[String]) -> R<Opti
     Ok(linked_owner(root, data, rel)?.map(|owner| rev_folder(root, &owner)))
 }
 
-// The review folder's storage path as the details show it, e.g. "200.WORK/03.Toki/98.Toki".
-pub(crate) fn rev_path(owner: &[String]) -> String {
-    let editable = owner.last().map_or("", |name| editable_part(name));
+// The review folder's storage path as the details show it, e.g. "200.WORK/03.Toki/REV.Toki".
+pub(crate) fn rev_path(root: &Path, owner: &[String]) -> String {
+    let name = rev_folder(root, owner).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let mut parts = owner.to_vec();
-    parts.push(format!("98.{editable}"));
+    parts.push(name);
     parts.join("/")
 }
 

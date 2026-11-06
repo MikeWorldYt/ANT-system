@@ -9,7 +9,7 @@ use serde_yaml::{Mapping, Value};
 
 use crate::domain::tree_types::{child_entries, flags_in, type_base, type_level, META_KEYS};
 use crate::domain::config::{
-    HIDDEN_FLAG, LINK_FAVORITES_FILENAME, LINK_HIDDEN_FILENAME, LINKED_PREFIXES, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
+    HIDDEN_FLAG, LINK_FAVORITES_FILENAME, LINK_HIDDEN_FILENAME, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
 };
 use crate::domain::model::Copied;
 use crate::domain::error::R;
@@ -17,7 +17,7 @@ use crate::infra::fs_safe::{dir_entries, io_err, join_rel};
 use crate::infra::link_list;
 use crate::services::tree::review_links;
 use crate::infra::storage::info::{field_of, read_info, NodeInfo};
-use crate::domain::names::{name_parts, is_movable_node, is_system_root_name, is_workboard_name, numeric_id};
+use crate::domain::names::{name_parts, is_movable_node, is_system_root_name, is_workboard_name, numeric_id, support_kind};
 use crate::infra::scan::list_subdirs;
 use crate::services::tree::depth;
 use crate::services::tree::tree_store::{get_node, get_type, is_locked_type};
@@ -248,15 +248,13 @@ fn natural_key(name: &str) -> (String, u64, String) {
     (name[..start].to_string(), number, name[start + digits..].to_string())
 }
 
-// The 90-99 folders and the 998/999 ones always close a list, after workboards and unnumbered folders too.
+// Support folders (REV., RES., TPL. and the numeric ids older storages use) and the 998/999 root ones always close a list, after workboards and unnumbered folders too.
 fn is_tail(name: &str) -> bool {
-    numeric_id(name).is_some_and(|n| (90..=99).contains(&n) || n == 998 || n == 999)
+    support_kind(name).is_some() || numeric_id(name).is_some_and(|n| n == 998 || n == 999)
 }
 
 fn is_linked_folder(name: &str) -> bool {
-    LINKED_PREFIXES
-        .iter()
-        .any(|p| name.strip_prefix(p).is_some_and(|rest| rest.starts_with('.')))
+    matches!(support_kind(name), Some("REV" | "RES"))
 }
 
 // Any of these inside a folder means it holds a git project.
@@ -407,7 +405,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
         locked,
         reserved,
         linked,
-        link_path: entry.link.as_deref().map(review_links::rev_path),
+        link_path: entry.link.as_deref().map(|owner| review_links::rev_path(root, owner)),
         flags: node_flags(depth, yaml_entry),
         has_children,
         is_git,
@@ -601,6 +599,29 @@ mod tests {
         .unwrap();
         let kids = build_children(dir.path(), &data, &rel(&["01.Top"])).unwrap();
         assert_eq!(names(&kids), ["01.A", "Loose", "PJ.001_Wb", "90.Resources", "98.Review"]);
+    }
+
+    #[test]
+    fn the_word_prefixed_support_folders_close_the_list_and_91_to_99_are_plain_nodes() {
+        let dir = TempDir::new("tail-words");
+        for d in ["01.A", "91.Plain", "99.Last", "REV.Top", "RES.Resources", "TPL.Templates", "PJ.001_Wb", "Loose"] {
+            dir.mkdir(&format!("01.Top/{d}"));
+        }
+        let data: Mapping = serde_yaml::from_str(
+            "01.Top:
+  type: NODE-L1
+  01.A: {type: NODE-L2}
+  91.Plain: {type: NODE-L2}
+  99.Last: {type: NODE-L2}
+  REV.Top: {type: REV-L1}
+  RES.Resources: {type: RES}
+  TPL.Templates: {type: TPL}
+  PJ.001_Wb: {type: WKB-L2}
+",
+        )
+        .unwrap();
+        let kids = build_children(dir.path(), &data, &rel(&["01.Top"])).unwrap();
+        assert_eq!(names(&kids), ["01.A", "91.Plain", "99.Last", "Loose", "PJ.001_Wb", "RES.Resources", "REV.Top", "TPL.Templates"]);
     }
 
     #[test]

@@ -4,7 +4,8 @@ use std::path::Path;
 use std::process::Command;
 use std::time::{Duration, Instant};
 
-use crate::domain::config::{CORE_FOLDER, EXE_DOWNLOAD_URL, SETTINGS_FOLDER, UPDATER_SCRIPT, UPDATER_SCRIPT_URL, VERSION_URL};
+use crate::domain::config::{EXE_DOWNLOAD_URL, UPDATER_SCRIPT, UPDATER_SCRIPT_URL, VERSION_URL};
+use crate::infra::storage::core_dir::{data_dir, root_file};
 use crate::domain::error::{FmError, R};
 use crate::domain::version::parse_file_version;
 use crate::infra::fs_safe::{io_err, write_atomic};
@@ -22,12 +23,11 @@ pub fn latest_version() -> Option<String> {
 
 // Starts FM_Updater.bat, which waits for this app to close before it swaps the executable.
 pub fn launch_updater(root: &Path) -> R<()> {
-    let core = root.join(SETTINGS_FOLDER).join(CORE_FOLDER);
-    let bat = core.join(UPDATER_SCRIPT);
+    let bat = root_file(root, UPDATER_SCRIPT);
     if !bat.is_file() {
-        fetch_updater(&core, UPDATER_SCRIPT_URL)?;
+        fetch_updater(&data_dir(root), UPDATER_SCRIPT_URL)?;
     }
-    let exe = std::env::current_exe().map_err(|e| io_err("find the app", &core, &e))?;
+    let exe = std::env::current_exe().map_err(|e| io_err("find the app", &bat, &e))?;
     // cmd /s strips only the outer quote pair, so every quoted path survives spaces.
     let mut child = Command::new("cmd")
         .raw_arg(format!(r#"/d /s /c ""{}" "{}" "{EXE_DOWNLOAD_URL}"""#, bat.display(), exe.display()))
@@ -73,7 +73,7 @@ mod tests {
     #[test]
     fn a_missing_updater_script_that_cannot_be_downloaded_is_reported() {
         let dir = TempDir::new("updater-missing");
-        let core = dir.path().join("999.Settings/00.Core");
+        let core = dir.path().join(".ant");
         let err = fetch_updater(&core, "http://127.0.0.1:9/FM_Updater.bat").unwrap_err();
         assert!(err.to_string().contains("Could not download"), "{err}");
         assert!(!core.join(UPDATER_SCRIPT).exists());
@@ -87,8 +87,8 @@ mod tests {
     #[test]
     fn an_updater_that_exits_at_once_is_reported_as_failed() {
         let dir = TempDir::new("updater-fails");
-        dir.mkdir("999.Settings/00.Core");
-        std::fs::write(dir.path().join("999.Settings/00.Core/FM_Updater.bat"), "@exit /b 7\r\n").unwrap();
+        dir.mkdir(".ant");
+        std::fs::write(dir.path().join(".ant/FM_Updater.bat"), "@exit /b 7\r\n").unwrap();
         let err = launch_updater(dir.path()).unwrap_err();
         assert!(err.to_string().contains("stopped right away"), "{err}");
     }

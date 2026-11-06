@@ -3,10 +3,10 @@ use serde_yaml::{Mapping, Value};
 
 use crate::domain::tree_types::{child_entries, flags_in, type_base};
 use crate::domain::config::DATA_FLAG;
+use crate::domain::names::support_kind;
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::is_locked_type;
 
-pub(super) const REVIEW_PREFIX: &str = "98.";
 const SYSTEM_FILES: [&str; 2] = ["desktop.ini", "Thumbs.db"];
 const ROOT_EXEMPT_MARKER: &str = "foldermanager";
 
@@ -47,7 +47,7 @@ pub(super) fn is_skipped_file(name: &str) -> bool {
 
 pub(crate) fn review_child(node: &Mapping) -> Option<&str> {
     child_entries(node)
-        .find(|(name, child)| name.starts_with(REVIEW_PREFIX) && type_base(node_type(child)) == "REV")
+        .find(|(name, child)| support_kind(name) == Some("REV") && type_base(node_type(child)) == "REV")
         .map(|(name, _)| name)
 }
 

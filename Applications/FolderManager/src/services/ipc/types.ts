@@ -172,6 +172,19 @@ export interface InvalidFolder {
   tracker: string | null;
 }
 
+export interface SupportFolder {
+  relParts: string[];
+  name: string;
+  notice: boolean;
+  proposed: string;
+}
+
+export interface SupportCheck {
+  needed: boolean;
+  folders: SupportFolder[];
+  root: boolean;
+}
+
 export interface RootCheck {
   invalid: InvalidFolder[];
 }

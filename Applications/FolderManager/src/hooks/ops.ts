@@ -7,16 +7,19 @@ import { markRefreshed } from "./auto-refresh";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
+import { checkSupportUpgrade } from "./support-upgrade";
 import { relist, visibleLevels } from "./relist";
 import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../services/store/state";
 import { sortedForColumns } from "../services/store/sort";
-import { loadVirtual } from "../services/store/virtual";
+import { loadVirtual, virtualNodes } from "../services/store/virtual";
+import { saveReviewFilter } from "../services/store/review-list";
 import { outputOf } from "../services/store/node-info";
 import { goToPlace, toggleBoard } from "./virtual-nav";
 import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
 import { inDownloads, isFmError } from "../services/ipc/types";
 import { plural } from "../services/plural";
+import { localStamp } from "../services/stamp";
 import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../services/ipc/types";
 
 async function reload(snapshot?: TreeSnapshot, full = true): Promise<void> {
@@ -105,8 +108,9 @@ async function applyMutation(m: Mutation, fallback: string[] | null = null, foll
   else clearStatus();
 }
 
-export function init(): Promise<boolean> {
-  return run(async () => {
+export async function init(): Promise<boolean> {
+  let ready = false;
+  const ok = await run(async () => {
     if (!(await checkStorage())) return;
     try {
       applySettings(await api.getSettings());
@@ -120,13 +124,28 @@ export function init(): Promise<boolean> {
       reportError("warning", e, "Storage info");
     }
     await reload(await api.loadTree());
+    ready = true;
     const last = state.settings.onLaunch === "continue" ? lastSelection() : null;
     if (!last) return;
     if (last.key) await reveal(last.key.split("/"));
     if (last.virtual === "board") await toggleBoard();
     else if (last.virtual !== null && isVirtualShown(last.virtual)) await goToPlace(last);
   });
+  if (ok && ready) void checkSupportUpgrade(applySupportUpgrade, finishSupportUpgrade);
+  return ok;
 }
+
+const applySupportUpgrade = (relParts: string[]) =>
+  run(async () => applyMutation(await api.applySupportUpgrade(relParts)), `Updating "${relParts[relParts.length - 1]}"…`);
+
+// The root folders change shape, so the tree is read again and any leftover the move kept is reported.
+const finishSupportUpgrade = () =>
+  run(async () => {
+    const warnings = await api.finishSupportUpgrade(localStamp());
+    await reload();
+    if (warnings.length > 0) setStatus("warning", warnings.join(". "));
+    else clearStatus();
+  }, "Updating the storage root…");
 
 export const changeSetting = <K extends keyof Settings>(key: K, value: Settings[K]) =>
   run(async () => {
@@ -388,26 +407,18 @@ export const placeOnBoard = (cards: BoardCard[]) => run(async () => applyMutatio
 export const setLinkHidden = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setLinkHidden(node.relParts, on), node.relParts));
 
-const REVIEW_PATH = ["998.Review"];
-
-// The review list in the order its column shows it.
-function reviewListing(): string[] {
-  const children = findNode(REVIEW_PATH)?.children ?? [];
-  return sortedForColumns(listed(children), sortOf(keyOf(REVIEW_PATH)), state.settings.pinFavorites).map((n) => keyOf(n.relParts));
+export function setReviewFilter(hidden: string[], favorites: boolean): void {
+  const listing = () => virtualNodes().map((n) => keyOf(n.relParts));
+  const before = listing();
+  const selected = state.selectedKey;
+  saveReviewFilter({ hidden, favorites });
+  const remaining = new Set(listing());
+  if (selected === null || remaining.has(selected)) return notify();
+  // A hidden selection moves to the nearest folder still listed, or to the entry when none is left.
+  const index = before.indexOf(selected);
+  const nearest = before.slice(index + 1).find((k) => remaining.has(k)) ?? before.slice(0, Math.max(index, 0)).reverse().find((k) => remaining.has(k));
+  select(nearest ? nearest.split("/") : null);
 }
-
-export const setReviewFilter = (hidden: string[], favorites: boolean) =>
-  run(async () => {
-    const before = reviewListing();
-    const selected = state.selectedKey;
-    const index = selected === null ? -1 : before.indexOf(selected);
-    await applyMutation(await api.setReviewFilter(hidden, favorites));
-    if (selected === null || selectedNode() !== null) return;
-    // A hidden selection moves to the nearest link still listed, or to the review folder when none is left.
-    const remaining = new Set(reviewListing());
-    const nearest = before.slice(index + 1).find((k) => remaining.has(k)) ?? before.slice(0, Math.max(index, 0)).reverse().find((k) => remaining.has(k));
-    select(nearest ? nearest.split("/") : REVIEW_PATH);
-  });
 
 export const setUserFlag = (node: TreeNode, on: boolean) =>
   run(async () => applyMutation(await api.setUserFlag(node.relParts, on), node.relParts));

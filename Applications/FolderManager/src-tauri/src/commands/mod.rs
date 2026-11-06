@@ -17,6 +17,7 @@ mod storage;
 mod tests;
 mod tree;
 mod update;
+mod upgrade;
 
 use std::path::Path;
 
@@ -44,6 +45,7 @@ pub use share::*;
 pub use storage::*;
 pub use tree::*;
 pub use update::*;
+pub use upgrade::*;
 
 
 const REVIEW_EVENT: &str = "fm://review-index";

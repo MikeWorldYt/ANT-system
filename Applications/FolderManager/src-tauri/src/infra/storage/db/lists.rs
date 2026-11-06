@@ -12,6 +12,11 @@ impl Store {
         self.paths_where("type", "WKB%")
     }
 
+    // The review folders of the whole Storage, whatever prefix they still carry.
+    pub fn reviews(&self) -> R<Vec<Vec<String>>> {
+        self.paths_where("type", "REV%")
+    }
+
     // LIKE is case-insensitive for ASCII, so "true" and "True" both count.
     fn paths_where(&self, key: &str, like: &str) -> R<Vec<Vec<String>>> {
         let fail = |e: rusqlite::Error| db_err("search ant.db", &self.path, &e);
@@ -47,6 +52,31 @@ mod tests {
         let store = Store::open_or_create(dir.path()).unwrap();
         let found: Vec<String> = store.favorites().unwrap().iter().map(|p| p.join("/")).collect();
         assert_eq!(found, ["100.A/01.Deep", "200.B"]);
+    }
+
+    #[test]
+    fn reviews_are_every_rev_type_whatever_their_prefix() {
+        let dir = TempDir::new("lists-reviews");
+        for folder in ["100.A/REV.A", "100.A/01.B/98.B", "200.C/02.Node"] {
+            dir.mkdir(folder);
+        }
+        let data: Mapping = serde_yaml::from_str(
+            "100.A:
+  type: NODE-L1
+  REV.A: {type: REV-L1}
+  01.B:
+    type: NODE-L2
+    98.B: {type: REV-L2}
+200.C:
+  type: NODE-L1
+  02.Node: {type: NODE-L2}
+",
+        )
+        .unwrap();
+        search_index::rebuild(dir.path(), &data).unwrap();
+        let store = Store::open_or_create(dir.path()).unwrap();
+        let found: Vec<String> = store.reviews().unwrap().iter().map(|p| p.join("/")).collect();
+        assert_eq!(found, ["100.A/01.B/98.B", "100.A/REV.A"]);
     }
 
     #[test]

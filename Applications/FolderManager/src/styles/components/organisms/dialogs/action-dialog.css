@@ -8,3 +8,4 @@
 .dialog-table input:focus-visible, .dialog-table select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dialog-table input[type="radio"] { accent-color: var(--accent); }
 .dialog-table input[type="radio"]:disabled { opacity: 0.35; }
+.dialog-table thead tr + tr th { top: 30px; }

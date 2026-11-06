@@ -1,4 +1,4 @@
-// A folder without a valid id moves into a review folder (98.*) beside its siblings, keeping its contents.
+// A folder without a valid id moves into a review folder (REV.*) beside its siblings, keeping its contents.
 use std::path::Path;
 
 use super::{insert, rules};
@@ -25,7 +25,7 @@ pub fn move_to_review(root: &Path, source: &[String], destination: &[String]) ->
     let to = locate(root, &data, destination)?;
     rules::check_destination(destination, &to)?;
     if type_base(&to.node_type) != "REV" {
-        return Err(rules::refuse(destination, "the destination must be a review folder (98.*)"));
+        return Err(rules::refuse(destination, "the destination must be a review folder (REV.*)"));
     }
     if destination.len() < 2 {
         return Err(rules::refuse(destination, "the review folder must sit inside a node"));
@@ -98,7 +98,7 @@ mod tests {
         assert!(reason(refused(&dir, "100.WORK", &home)).contains("without a valid id"));
         assert!(reason(refused(&dir, "998.Review", &home)).contains("without a valid id"));
         assert!(reason(refused(&dir, ".ant", &home)).contains("without a valid id"));
-        assert!(reason(refused(&dir, "Marcos", &["100.WORK", "01.Plain"])).contains("review folder (98.*)"));
+        assert!(reason(refused(&dir, "Marcos", &["100.WORK", "01.Plain"])).contains("review folder (REV.*)"));
         assert!(matches!(refused(&dir, "Marcos", &["200.HOME", "98.Missing"]), FmError::NotFound { .. }));
         assert!(matches!(refused(&dir, "Gone", &home), FmError::NotFound { .. }));
         assert!(matches!(refused(&dir, "Marcos", &["998.Review"]), FmError::Reserved { .. }));

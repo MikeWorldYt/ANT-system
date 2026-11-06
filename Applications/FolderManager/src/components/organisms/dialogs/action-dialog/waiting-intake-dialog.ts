@@ -34,7 +34,7 @@ export function waitingIntakeDialog(nodes: WaitingNode[], showFolder: (relParts:
         "p",
         { class: "dialog-text" },
         el("strong", {}, "Sort automatically"),
-        ": moves them to a review folder (98.*), now and from now on.",
+        ": moves them to a review folder (REV.*), now and from now on.",
         el("br"),
         el("strong", {}, "Keep unsorted"),
         ": leaves them where they are so you can sort them manually.",

@@ -13,6 +13,7 @@ import { buildColumns, type Column } from "../../../hooks/column-model";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
 import { findNode, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
+import { reviewFilter, reviewGroup } from "../../../services/store/review-list";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { entryBeside, headEntry, openEntry, rootEntries, virtualEntries } from "../../molecules/virtual-entry";
@@ -84,7 +85,7 @@ export function createColumnsView(): ViewMode {
     const column = el("div", { class: "column", role: "listbox", "aria-label": listing ? listing.label : `Contents of ${col.parent?.name ?? "storage"}` });
     const parentNode = col.parent;
     // The review list holds long link names, so it gets twice the width of an ordinary column.
-    column.classList.toggle("review-list", parentNode !== null && isReviewRoot(parentNode));
+    column.classList.toggle("review-list", listing?.id === "review" || (parentNode !== null && isReviewRoot(parentNode)));
     // The empty area of a column is a drop target for the folder it lists; "" is the storage root. A virtual list is no folder.
     if (!listing) column.dataset.key = parentNode ? keyOf(parentNode.relParts) : "";
     column.addEventListener("contextmenu", (ev) => folderContextMenu(ev, parentNode, root));
@@ -101,12 +102,12 @@ export function createColumnsView(): ViewMode {
     // With nothing selected the entry row heading the root column holds the roving focus.
     const tabbableKey = state.selectedKey;
     // Not an item, so it cannot be selected; it only tells why the review list is empty.
-    const legend = nodes.length === 0 ? (listing?.empty ?? emptyLegend(parentNode)) : null;
+    const legend = nodes.length === 0 ? (listing?.id === "review" && reviewFilter().hidden.length > 0 ? "No active filters" : (listing?.empty ?? emptyLegend(parentNode))) : null;
     const siblings = nodes.map((n) => keyOf(n.relParts));
     const rows = nodes.flatMap((n, i) => {
       const prev = nodes[i - 1];
       // Review links are grouped by category, so a change of category gets a line between the groups.
-      const groupStart = prev?.linked && n.linked && linkCategory(prev) !== linkCategory(n);
+      const groupStart = prev && (listing?.id === "review" ? reviewGroup(prev) !== reviewGroup(n) : prev.linked && n.linked && linkCategory(prev) !== linkCategory(n));
       const item = buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey, siblings);
       return groupStart ? [el("div", { class: "col-sep", role: "separator" }), item] : [item];
     });

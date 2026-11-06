@@ -12,7 +12,8 @@ use serde_yaml::Mapping;
 
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{child_entries, flags_in};
-use crate::domain::config::{DATA_DIR, HIDDEN_FLAG};
+use crate::domain::config::{DATA_DIR, HIDDEN_FLAG, REVIEW_PREFIX};
+use crate::domain::names::support_kind;
 use crate::domain::error::R;
 use crate::infra::fs_safe::{io_err, join_rel, Journal, StorageLock};
 use crate::services::index::review_folders;
@@ -20,7 +21,7 @@ use crate::infra::naming::free_name;
 use crate::services::mutations::child_rel;
 use crate::services::tree::tree_store::load_synced;
 use crate::infra::storage::db::hide;
-use rules::{is_root_exempt_file, is_skipped_file, rule, Rule, REVIEW_PREFIX};
+use rules::{is_root_exempt_file, is_skipped_file, rule, Rule};
 pub(crate) use rules::{node_type, review_child};
 
 #[derive(Debug, Default, Serialize)]
@@ -57,7 +58,7 @@ pub struct LooseFile {
     pub file: String,
 }
 
-// Intake moves files, never folders; the only folder it makes is a missing 98.* review folder, so every node has one to take files.
+// Intake moves files, never folders; the only folder it makes is a missing REV.* review folder, so every node has one to take files.
 pub fn run(root: &Path) -> R<IntakeReport> {
     review_folders::restore(root)?;
     let _lock = StorageLock::acquire(root)?;
@@ -79,10 +80,10 @@ fn walk(dir: &Path, node: &Mapping, rel: &[String], report: &mut IntakeReport) -
             if files > 0 {
                 report.waiting.push(WaitingNode { node: rel.join("/"), rel_parts: rel.to_vec(), files });
             } else {
-                // Past the depth limit the index does not list the 98.* folder, so the disk names it.
+                // Past the depth limit the index does not list the review folder, so the disk names it.
                 let review = review
                     .filter(|r| subdirs.iter().any(|d| d == r))
-                    .or_else(|| subdirs.iter().map(String::as_str).find(|d| d.starts_with(REVIEW_PREFIX)));
+                    .or_else(|| subdirs.iter().map(String::as_str).find(|d| support_kind(d) == Some("REV")));
                 move_to_review(dir, rel, review, report)?;
             }
         }
@@ -139,7 +140,7 @@ fn move_to_review(dir: &Path, rel: &[String], review: Option<&str>, report: &mut
         return Ok(());
     }
     let node = rel.join("/");
-    // A node past the depth limit never got its 98.* folder from the index, so intake makes it like restore would.
+    // A node past the depth limit never got its review folder from the index, so intake makes it like restore would.
     let made;
     let review = match review {
         Some(review) => review,

@@ -224,6 +224,11 @@ pub async fn resolve_invalid(app: AppHandle, rel_parts: Vec<String>, resolution:
 }
 
 #[tauri::command]
+pub async fn apply_support_upgrade(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
+    run_indexed(app, move |root| crate::services::upgrade::apply_support_upgrade(root, &rel_parts)).await
+}
+
+#[tauri::command]
 pub async fn inspect_delete(app: AppHandle, rel_parts: Vec<String>) -> R<DeletePreview> {
     run_locked(app, move |root| mutations::inspect_delete(root, &rel_parts)).await
 }

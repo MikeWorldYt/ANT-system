@@ -1,5 +1,5 @@
 // Typed-path editing for the navigation bar: turns the breadcrumb into an input and goes to the place it names.
-import { listChildren, listFavorites } from "../../../services/ipc/api";
+import { listChildren, listFavorites, listReview } from "../../../services/ipc/api";
 import { findNode, isVirtualShown, keyOf, state, type VirtualId } from "../../../services/store/state";
 import { loadPath } from "../../../services/store/virtual";
 import type { Place } from "../../../services/store/place";
@@ -7,7 +7,7 @@ import { clearStatus, setStatus, reportError } from "./status-line";
 import { textInput } from "../../atoms/text-input";
 import { DOWNLOADS_ROOT, type TreeNode } from "../../../services/ipc/types";
 
-const VIRTUAL_IDS: VirtualId[] = ["favorites", "downloads", "board"];
+const VIRTUAL_IDS: VirtualId[] = ["favorites", "downloads", "review", "board"];
 
 const cleaned = (text: string): string => text.trim().replace(/^"+|"+$/g, "");
 const splitPath = (text: string): string[] => cleaned(text).split(/[\\/]/).filter(Boolean);
@@ -40,7 +40,7 @@ async function resolveVirtual(id: VirtualId, rest: string[]): Promise<Place | nu
     const found = await walk(state.downloads, [name, ...below]);
     return found && { virtual: id, via: keyOf([DOWNLOADS_ROOT, found[0] ?? name]), key: keyOf([DOWNLOADS_ROOT, ...found]) };
   }
-  const favorite = (await listFavorites()).find((p) => same(p.at(-1) ?? "", name));
+  const favorite = (await (id === "review" ? listReview() : listFavorites())).find((p) => same(p.at(-1) ?? "", name));
   if (!favorite) return null;
   await loadPath(favorite);
   const node = findNode(favorite);
