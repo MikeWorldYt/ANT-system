@@ -1,16 +1,19 @@
-// Downloads through the system curl, kept to https and a short list of GitHub hosts.
+// Downloads through the system curl, kept to https and a short list of hosts.
 use std::process::Command;
 
-pub const GITHUB_HOSTS: [&str; 5] = [
+pub const ALLOWED_HOSTS: [&str; 6] = [
     "github.com",
     "raw.githubusercontent.com",
     "objects.githubusercontent.com",
     "release-assets.githubusercontent.com",
     "api.github.com",
+    "r2.mikeworld.dev",
 ];
 pub const MAX_TEXT_BYTES: u64 = 5 * 1024 * 1024;
 pub const MAX_EXE_BYTES: u64 = 100 * 1024 * 1024;
 const MAX_URL_CHARS: usize = 2048;
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 fn host_of(url: &str) -> Option<&str> {
     let rest = url.strip_prefix("https://")?;
@@ -21,7 +24,7 @@ fn host_of(url: &str) -> Option<&str> {
 pub fn allowed_url(url: &str) -> bool {
     url.len() <= MAX_URL_CHARS
         && url.chars().all(|c| c.is_ascii_graphic() && !"\"\\<>`{}|^[]".contains(c))
-        && host_of(url).is_some_and(|h| GITHUB_HOSTS.iter().any(|a| a.eq_ignore_ascii_case(h)))
+        && host_of(url).is_some_and(|h| ALLOWED_HOSTS.iter().any(|a| a.eq_ignore_ascii_case(h)))
 }
 
 fn curl_message(code: Option<i32>) -> String {
@@ -50,7 +53,7 @@ fn curl() -> Command {
         .map(|r| std::path::PathBuf::from(r).join(r"System32\curl.exe"))
         .unwrap_or_else(|| std::path::PathBuf::from("curl.exe"));
     let mut cmd = Command::new(exe);
-    cmd.creation_flags(crate::powershell::CREATE_NO_WINDOW);
+    cmd.creation_flags(CREATE_NO_WINDOW);
     cmd
 }
 
@@ -87,23 +90,8 @@ pub fn download_text(url: &str) -> Result<String, String> {
     String::from_utf8(download(url, MAX_TEXT_BYTES, 30)?).map_err(|_| format!("{url} is not UTF-8 text"))
 }
 
-// GitHub's contents API answers JSON, which the YAML parser reads as flow style.
-pub fn core_file_list(listing: &str) -> Result<Vec<(String, String)>, String> {
-    let items: Vec<serde_yaml::Value> = serde_yaml::from_str(listing).map_err(|e| format!("Unexpected core file listing: {e}"))?;
-    let mut files = Vec::new();
-    for item in items.iter().filter(|i| i.get("type").and_then(|t| t.as_str()) == Some("file")) {
-        let field = |k: &str| item.get(k).and_then(|v| v.as_str()).ok_or(format!("Core file entry without {k}"));
-        let name = field("name")?;
-        if name.contains(['/', '\\', '\0']) || name == ".." || name == "." {
-            return Err(format!("Core file has an invalid name: {name:?}"));
-        }
-        files.push((name.to_string(), field("download_url")?.to_string()));
-    }
-    Ok(files)
-}
-
 // Highest stable `<prefix>X.Y.Z` tag in a releases listing (pre-releases like `-rc1` are skipped). The text is scanned
-// for "tag_name" instead of parsed, because release notes can hold characters the YAML reader rejects.
+// for "tag_name" instead of parsed, because only this one field is needed.
 pub fn latest_release_tag(listing: &str, prefix: &str) -> Option<String> {
     let mut best: Option<((u64, u64, u64), String)> = None;
     for part in listing.split("\"tag_name\"").skip(1) {
@@ -133,13 +121,6 @@ mod tests {
         assert!(!allowed_url("http://github.com/a"));
         assert!(!allowed_url("https://evil.com/github.com"));
         assert!(!allowed_url("https://user@github.com/a"));
-    }
-
-    #[test]
-    fn core_list_keeps_files_and_rejects_bad_names() {
-        let json = r#"[{"name":"Tree.yaml","type":"file","download_url":"https://x/1"},{"name":"d","type":"dir","download_url":null}]"#;
-        assert_eq!(core_file_list(json).unwrap(), vec![("Tree.yaml".to_string(), "https://x/1".to_string())]);
-        assert!(core_file_list(r#"[{"name":"../a","type":"file","download_url":"u"}]"#).is_err());
     }
 
     #[test]

@@ -86,7 +86,7 @@ mod tests {
     #[test]
     fn atomic_write_replaces_existing_file() {
         let tmp = TempDir::new("atomic");
-        let file = tmp.path().join("Tree.yaml");
+        let file = tmp.path().join("ant.db");
         write_file_atomic(&file, b"old").unwrap();
         write_file_atomic(&file, b"new").unwrap();
         assert_eq!(fs::read(&file).unwrap(), b"new");

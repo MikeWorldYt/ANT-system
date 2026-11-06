@@ -11,9 +11,6 @@ path = "src/lib.rs"
 name = "create-new-storage"
 path = "src/main.rs"
 
-[dependencies]
-serde_yaml = "0.9"
-
 [profile.release]
 opt-level = "z"
 lto = true

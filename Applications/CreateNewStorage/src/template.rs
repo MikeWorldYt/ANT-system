@@ -1,11 +1,10 @@
 // Turns the template database's nodes and fields into the tree the storage is built from.
 use std::collections::HashMap;
 
-use serde_yaml::{Mapping, Value};
-
 use crate::info::FIELDS;
 use crate::plan::check_names;
 use crate::sqlite::{self, Database, Row, Table};
+use crate::tree_types::TreeNode;
 
 const MAX_DEPTH: usize = 64;
 
@@ -24,7 +23,7 @@ struct Template {
     fields: Fields,
 }
 
-pub fn tree_from_template(file: &[u8]) -> Result<Mapping, String> {
+pub fn tree_from_template(file: &[u8]) -> Result<Vec<TreeNode>, String> {
     let db = Database::open(file)?;
     let mut nodes = nodes_of(&db.table("nodes")?)?;
     nodes.sort_by_key(|n| n.id);
@@ -77,25 +76,19 @@ fn text(row: &Row, at: usize) -> &str {
 }
 
 impl Template {
-    fn children(&self, parent: i64, prefix: &str, reached: &mut usize, depth: usize) -> Result<Mapping, String> {
-        let mut out = Mapping::new();
-        let Some(kids) = self.by_parent.get(&parent) else { return Ok(out) };
+    fn children(&self, parent: i64, prefix: &str, reached: &mut usize, depth: usize) -> Result<Vec<TreeNode>, String> {
+        let Some(kids) = self.by_parent.get(&parent) else { return Ok(Vec::new()) };
         if depth > MAX_DEPTH {
             return Err("ant.db template is nested too deeply".to_string());
         }
+        let mut out = Vec::with_capacity(kids.len());
         for &index in kids {
             let node = &self.nodes[index];
             *reached += 1;
             let path = if prefix.is_empty() { node.name.clone() } else { format!("{prefix}/{}", node.name) };
-            let mut entry = Mapping::new();
-            entry.insert(Value::from("type"), Value::from(node.kind.as_str()));
-            for (key, value) in self.fields.get(&path).into_iter().flatten() {
-                entry.insert(Value::from(key.as_str()), Value::from(value.as_str()));
-            }
-            for (key, value) in self.children(node.id, &path, reached, depth + 1)? {
-                entry.insert(key, value);
-            }
-            out.insert(Value::from(node.name.as_str()), Value::Mapping(entry));
+            let children = self.children(node.id, &path, reached, depth + 1)?;
+            let fields = self.fields.get(&path).cloned().unwrap_or_default();
+            out.push(TreeNode { name: node.name.clone(), kind: node.kind.clone(), fields, children });
         }
         Ok(out)
     }
@@ -106,13 +99,18 @@ mod tests {
     use super::*;
     use crate::tests::TEMPLATE;
 
+    fn named<'a>(nodes: &'a [TreeNode], name: &str) -> &'a TreeNode {
+        nodes.iter().find(|n| n.name == name).unwrap()
+    }
+
     #[test]
     fn the_starter_template_gives_its_tree_and_info_fields() {
         let tree = tree_from_template(TEMPLATE).unwrap();
-        let industry = tree.get("200.WORK").and_then(Value::as_mapping).and_then(|w| w.get("02.Industry")).and_then(Value::as_mapping).unwrap();
-        let pj = industry.get("PJ.001_project-name-example").and_then(Value::as_mapping).unwrap();
-        assert_eq!(pj.get("type").and_then(Value::as_str), Some("WKB"));
-        assert_eq!(pj.get("created").and_then(Value::as_str), Some("03-01-03"));
+        let work = named(&tree, "200.WORK");
+        let industry = named(&work.children, "02.Industry");
+        let pj = named(&industry.children, "PJ.001_project-name-example");
+        assert_eq!(pj.kind, "WKB");
+        assert!(pj.fields.contains(&("created".to_string(), "03-01-03".to_string())));
     }
 
     #[test]

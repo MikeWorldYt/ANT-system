@@ -2,10 +2,10 @@
 use std::path::Path;
 
 use crate::config::{
-    CORE_API_URL, DB_NAME, FOLDER_MANAGER_FALLBACK_TAG, FOLDER_MANAGER_NAME, FOLDER_MANAGER_TAG_PREFIX, RELEASES_API_URL,
-    RELEASE_DOWNLOAD_URL, RETIRED_TREE_NAME,
+    CORE_BASE_URL, CORE_FILES, FOLDER_MANAGER_ASSET, FOLDER_MANAGER_FALLBACK_TAG, FOLDER_MANAGER_NAME, FOLDER_MANAGER_TAG_PREFIX, RELEASES_API_URL,
+    RELEASE_DOWNLOAD_URL,
 };
-use crate::fetch::{core_file_list, download, download_text, latest_release_tag, MAX_EXE_BYTES, MAX_TEXT_BYTES};
+use crate::fetch::{download, download_text, latest_release_tag, MAX_EXE_BYTES, MAX_TEXT_BYTES};
 use crate::fs_ops::write_file_atomic;
 use crate::Level;
 
@@ -17,14 +17,10 @@ pub fn optional_downloads(root: &Path, core: &Path, progress: &mut dyn FnMut(Lev
     folder_manager(root, progress);
 }
 
-// The template database is already in place from the essential step, and the retired Tree.yaml is not copied.
 fn core_files(core: &Path, progress: &mut dyn FnMut(Level, &str)) -> Result<(), String> {
-    for (name, url) in core_file_list(&download_text(CORE_API_URL)?)? {
-        if name == DB_NAME || name == RETIRED_TREE_NAME {
-            continue;
-        }
-        let dest = core.join(&name);
-        download(&url, MAX_TEXT_BYTES, 60).and_then(|b| write_file_atomic(&dest, &b))?;
+    for name in CORE_FILES {
+        let dest = core.join(name);
+        download(&format!("{CORE_BASE_URL}/{name}"), MAX_TEXT_BYTES, 60).and_then(|b| write_file_atomic(&dest, &b))?;
         progress(Level::Ok, &format!("✔ {} (downloaded)", dest.display()));
     }
     Ok(())
@@ -41,13 +37,32 @@ fn folder_manager(root: &Path, progress: &mut dyn FnMut(Level, &str)) {
         progress(Level::Warn, &format!("⚠ Could not find the latest FolderManager release; using {FOLDER_MANAGER_FALLBACK_TAG}"));
         FOLDER_MANAGER_FALLBACK_TAG.to_string()
     });
-    let url = format!("{RELEASE_DOWNLOAD_URL}/{tag}/{FOLDER_MANAGER_NAME}");
+    let url = format!("{RELEASE_DOWNLOAD_URL}/{tag}/{FOLDER_MANAGER_ASSET}");
     let exe = root.join(FOLDER_MANAGER_NAME);
-    let fetched = download(&url, MAX_EXE_BYTES, 300).and_then(|b| write_file_atomic(&exe, &b)).and_then(|()| make_executable(&exe));
+    let fetched = download(&url, MAX_EXE_BYTES, 300).and_then(|b| install_folder_manager(&exe, &b)).and_then(|()| make_executable(&exe));
     match fetched {
         Ok(()) => progress(Level::Ok, &format!("✔ {} (downloaded)", exe.display())),
-        Err(e) => progress(Level::Warn, &format!("⚠ FolderManager download failed: {e} (asset {FOLDER_MANAGER_NAME} of {tag})")),
+        Err(e) => progress(Level::Warn, &format!("⚠ FolderManager download failed: {e} (asset {FOLDER_MANAGER_ASSET} of {tag})")),
     }
+}
+
+#[cfg(windows)]
+fn install_folder_manager(exe: &Path, asset: &[u8]) -> Result<(), String> {
+    write_file_atomic(exe, asset)
+}
+
+#[cfg(not(windows))]
+fn install_folder_manager(exe: &Path, asset: &[u8]) -> Result<(), String> {
+    let archive = exe.with_extension("tar.gz");
+    write_file_atomic(&archive, asset)?;
+    let unpacked = std::process::Command::new("tar").arg("-xzOf").arg(&archive).arg(crate::config::FOLDER_MANAGER_MEMBER).output();
+    let removed = std::fs::remove_file(&archive);
+    let unpacked = unpacked.map_err(|e| format!("Could not run tar: {e}"))?;
+    if !unpacked.status.success() {
+        return Err(format!("Could not unpack {FOLDER_MANAGER_ASSET}: {}", String::from_utf8_lossy(&unpacked.stderr).trim()));
+    }
+    removed.map_err(|e| format!("Could not remove {}: {e}", archive.display()))?;
+    write_file_atomic(exe, &unpacked.stdout)
 }
 
 #[cfg(unix)]
