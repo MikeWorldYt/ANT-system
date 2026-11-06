@@ -110,7 +110,7 @@ pub fn drop_files(
     let mut warnings = Vec::new();
     let mut placed = Vec::new();
     let mut conflicts = Vec::new();
-    // Workboards go first, since placing one changes the yaml that the files are placed by.
+    // Workboards go first, since placing one changes the tree that the files are placed by.
     let (folders, files): (Vec<&PathBuf>, Vec<&PathBuf>) = paths.iter().partition(|src| is_folder(src));
     let (folders, plain): (Vec<&PathBuf>, Vec<&PathBuf>) = folders.into_iter().partition(|src| src.file_name().is_some_and(|n| is_workboard_name(&n.to_string_lossy())));
     let mut moved_workboard = false;

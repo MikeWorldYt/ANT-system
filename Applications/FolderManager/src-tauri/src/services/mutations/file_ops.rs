@@ -1,4 +1,4 @@
-// Files in review folders are listed from disk, so these operations act on the file itself and leave the yaml tree alone.
+// Files in review folders are listed from disk, so these operations act on the file itself and leave the tree alone.
 use std::fs;
 use std::path::{Path, PathBuf};
 

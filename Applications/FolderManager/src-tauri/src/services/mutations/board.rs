@@ -58,7 +58,7 @@ pub fn set_board(root: &Path, cards: &[BoardCard]) -> R<Mutation> {
         if type_base(&target.node_type) != "WKB" {
             return Err(FmError::InvalidPath { rel_parts: rel.clone(), reason: "only workboards are on the board".to_string() });
         }
-        // Same precedence as the tree: the info.json status wins over the yaml one.
+        // Same precedence as the tree: the info.json status wins over the tree one.
         let yaml_status = get_node(&data, rel).and_then(|n| n.get("status")).and_then(Value::as_str).map(str::to_string);
         let status = read_info(&target.abs).as_ref().and_then(|i| field_of(i, &["status"])).map(str::to_string).or(yaml_status);
         placed.push((card, target.abs, status));

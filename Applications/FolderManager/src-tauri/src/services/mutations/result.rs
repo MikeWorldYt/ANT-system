@@ -77,7 +77,7 @@ fn patch_levels(root: &Path, data: &Mapping, touched: &[Vec<String>]) -> R<Vec<L
     Ok(levels)
 }
 
-// An empty tree with yamlChanged set tells the UI to refresh instead of showing a stale tree.
+// An empty tree with treeChanged set tells the UI to refresh instead of showing a stale tree.
 pub(super) fn after_commit(
     root: &Path,
     tree: R<TreeSnapshot>,

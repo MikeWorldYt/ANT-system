@@ -10,7 +10,7 @@ use crate::services::index::footprint::{plan, scan};
 use crate::services::index::review_index::rebuild_with;
 use crate::services::index::{reindex_paths, search_index, ReviewIndexEvent};
 use crate::infra::storage::db::Store;
-use crate::test_support::{names, rel, storage, yaml, TempDir};
+use crate::test_support::{reason, names, rel, storage, yaml, TempDir};
 
 const TREE: &str = "100.WORK:\n  type: NODE-L1\n  01.Plain: {type: NODE-L2, 98.Plain: {type: REV-L2}}\n  \
     02.Data: {type: NODE-L2, flags: data, 98.Data: {type: REV-L2}}\n  03.Target: {type: NODE-L2, 98.Target: {type: REV-L2}}\n  \
@@ -37,7 +37,7 @@ fn fake_create(pairs: &[(PathBuf, PathBuf)]) -> Vec<String> {
     crate::platform::shortcuts::create_shortcuts(pairs)
 }
 
-// Startup state: synced yaml with ids, a full search index and a fully built 998.Review.
+// Startup state: synced tree with ids, a full search index and a fully built 998.Review.
 fn ready(tag: &str) -> TempDir {
     let dir = storage(tag, DIRS, TREE);
     fs::write(dir.path().join("100.WORK/02.Data/.ant/dragpath.json"), "{\"id\": \"DATA00000000001\"}\n").unwrap();
@@ -167,13 +167,6 @@ fn refused(dir: &TempDir, source: &[&str], destination: &[&str], copy: bool) -> 
     assert_eq!(disk, tree_on_disk(dir.path()), "{err:?}");
     assert_eq!(tree, yaml(dir.path()), "{err:?}");
     err
-}
-
-fn reason(err: FmError) -> String {
-    match err {
-        FmError::InvalidPath { reason, .. } => reason,
-        other => panic!("{other:?}"),
-    }
 }
 
 #[test]

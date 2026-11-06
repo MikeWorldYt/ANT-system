@@ -57,7 +57,7 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
     Ok(m.replacing(before))
 }
 
-// Linked folders follow best-effort: a clash or failure becomes a warning and its yaml key stays.
+// Linked folders follow best-effort: a clash or failure becomes a warning and its tree key stays.
 fn cascade_linked(
     journal: &mut Journal,
     data: &mut Mapping,

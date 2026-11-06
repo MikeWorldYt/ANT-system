@@ -40,7 +40,7 @@ pub(super) fn with_search_index(root: &Path, result: R<Mutation>) -> R<Mutation>
             Err(e) => m.warnings.push(format!("Search index: the quick update failed, so it was rebuilt in full. {e}")),
         }
     }
-    // after_commit's empty fallback has no tree, so the yaml is indexed instead of wiping the index.
+    // after_commit's empty fallback has no tree, so the tree is indexed instead of wiping the index.
     let indexed = match m.tree.as_ref().filter(|t| !t.nodes.is_empty()) {
         Some(tree) => search_index::rebuild_from_nodes(root, &tree.nodes),
         None => tree_store::load(root).and_then(|data| search_index::rebuild(root, &data)),

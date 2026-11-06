@@ -129,3 +129,10 @@ pub fn delete_with(
 ) -> R<Mutation> {
     delete_node(root, rel, expect_ghost, confirm, recycle)
 }
+
+pub fn reason(err: crate::domain::error::FmError) -> String {
+    match err {
+        crate::domain::error::FmError::InvalidPath { reason, .. } => reason,
+        other => panic!("{other:?}"),
+    }
+}

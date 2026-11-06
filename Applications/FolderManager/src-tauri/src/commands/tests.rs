@@ -199,7 +199,7 @@ fn details_and_type_edits_reach_the_search_index() {
     assert_eq!(search("client:Zed"), [p]);
 }
 
-// Startup state: a synced, saved yaml and a full index, so the next mutation updates the index in place.
+// Startup state: a synced, saved tree and a full index, so the next mutation updates the index in place.
 fn indexed(tag: &str) -> TempDir {
     let dir = academic(tag);
     dir.mkdir("100.ACADEMIC/01.Math/.ant");

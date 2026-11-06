@@ -47,7 +47,7 @@ fn collect(nodes: &[TreeNode], limit: usize, docs: &mut Vec<Doc>) {
         if let Some(status) = &node.status_raw {
             fields.push(("status".to_string(), status.clone()));
         }
-        // info.json comes last so its keys win over the yaml ones of the same name.
+        // info.json comes last so its keys win over the tree ones of the same name.
         for field in node.info.iter().flat_map(|i| &i.fields) {
             fields.push((canonical_key(&field.key), field.value.clone()));
         }

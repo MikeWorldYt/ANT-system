@@ -19,7 +19,7 @@ pub struct StorageChanged {
     pub rescan: bool,
 }
 
-// Our own writes are filtered out before this point, so any remaining path is news; files alone save no yaml.
+// Our own writes are filtered out before this point, so any remaining path is news; files alone save no tree.
 fn changed_event(report: &ApplyReport) -> Option<StorageChanged> {
     (report.saved || report.paths > 0).then(|| StorageChanged { paths: report.paths, folders: report.folders.clone(), rescan: report.full })
 }
