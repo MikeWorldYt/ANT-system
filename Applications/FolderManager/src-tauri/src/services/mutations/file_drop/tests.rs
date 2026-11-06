@@ -3,7 +3,7 @@ use std::fs;
 
 use super::*;
 use crate::services::mutations::source_path;
-use crate::test_support::{names, ok_recycle, rel, storage, yaml, TempDir};
+use crate::test_support::{names, ok_recycle, rel, storage, synced_yaml, yaml, TempDir};
 
 const TREE: &str = "100.PERSONAL:
   type: NODE-L1
@@ -379,6 +379,36 @@ fn app_folders_and_tracked_nodes_dropped_from_explorer_stay_where_they_are() {
         assert!(path.is_dir(), "{source}");
     }
     assert_eq!(read(&dir, ".ant/keep.txt"), "keep");
+    assert!(names(&dir.path().join("100.PERSONAL/04.Data")).is_empty());
+}
+
+#[test]
+fn a_tracked_node_copied_inside_the_storage_keeps_its_source_while_a_move_stays_refused() {
+    let (dir, _src) = fixture("drop-own-copy");
+    let node = rel(&["100.PERSONAL", "03.Toki"]);
+    let target = rel(&["100.PERSONAL", "04.Data"]);
+    let source = dir.path().join("100.PERSONAL/03.Toki");
+    fs::write(source.join("plan.txt"), "plan").unwrap();
+    let moved = drop_files(dir.path(), &target, std::slice::from_ref(&source), false, &[], &never_recycles).unwrap();
+    assert!(moved.placed.is_empty() && moved.mutation.warnings[0].contains(ALREADY_INSIDE), "{:?}", moved.mutation.warnings);
+    assert!(names(&dir.path().join("100.PERSONAL/04.Data")).is_empty());
+    let copied = drop_files(dir.path(), &target, std::slice::from_ref(&source), true, &[], &never_recycles).unwrap();
+    assert!(copied.mutation.warnings.is_empty(), "{:?}", copied.mutation.warnings);
+    assert_eq!(copied.placed, [placed("03.Toki", &["100.PERSONAL", "04.Data"], true)]);
+    assert_eq!(read(&dir, "100.PERSONAL/04.Data/03.Toki/plan.txt"), "plan");
+    assert_eq!(read(&dir, "100.PERSONAL/03.Toki/plan.txt"), "plan");
+    assert!(tree_store::get_node(&yaml(dir.path()), &node).is_some());
+    assert!(tree_store::get_node(&synced_yaml(dir.path()), &node).is_some());
+}
+
+#[test]
+fn app_folders_are_refused_for_a_copy_too() {
+    let (dir, _src) = fixture("drop-own-copy-app");
+    dir.mkdir("backup");
+    for source in [".ant", "backup", "999.Settings"] {
+        let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), &[dir.path().join(source)], true, &[], &never_recycles).unwrap();
+        assert!(out.placed.is_empty(), "{source}: {:?}", out.placed);
+    }
     assert!(names(&dir.path().join("100.PERSONAL/04.Data")).is_empty());
 }
 

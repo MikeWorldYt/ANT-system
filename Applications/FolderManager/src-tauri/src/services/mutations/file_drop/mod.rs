@@ -81,7 +81,7 @@ pub fn drop_files(
     place_all(root, target, paths, copy, replace, recycle, false)
 }
 
-// The app resolved these sources to folders the tree does not track, the one case where a folder may come from inside the storage.
+// The app resolved these sources to folders the tree does not track, the one case where a folder may move from inside the storage.
 pub fn move_in(root: &Path, target: &[String], paths: &[PathBuf], copy: bool, recycle: &dyn Fn(&Path) -> Result<(), String>) -> R<DropOutcome> {
     place_all(root, target, paths, copy, &[], recycle, true)
 }
@@ -221,7 +221,7 @@ fn place_folder(
     if belongs_to_app(storage, &real) {
         return Err("the folder belongs to Folder Manager".to_string());
     }
-    if !untracked_inside && real.starts_with(storage) {
+    if !copy && !untracked_inside && real.starts_with(storage) {
         return Err(ALREADY_INSIDE.to_string());
     }
     let dest_real = fs::canonicalize(dest).map_err(|e| io_err("resolve path", dest, &e).to_string())?;
