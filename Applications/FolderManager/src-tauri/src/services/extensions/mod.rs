@@ -1,4 +1,5 @@
 // Sandboxed JavaScript extensions: their folders under .ant/extensions, the validated library and installs.
+mod confirmed;
 mod fetch;
 mod install;
 mod manifest;
@@ -6,6 +7,8 @@ mod registry;
 pub mod sandbox_page;
 mod staging;
 mod store;
+#[cfg(test)]
+mod confirm_tests;
 #[cfg(test)]
 mod tests;
 mod tools;

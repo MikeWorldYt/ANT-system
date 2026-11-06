@@ -7,7 +7,11 @@ export const SANDBOX_SCHEME = "extsandbox";
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:";
 
 // Runs before the extension code and is the only bridge it gets to the host.
+// The webview's edgeWebRTCEnabled flag is the real block; a nested frame gets fresh globals, so hiding these is only a second layer.
 const BOOTSTRAP = `(() => {
+  for (const name of ["RTCPeerConnection", "webkitRTCPeerConnection"]) {
+    Object.defineProperty(window, name, { value: undefined, writable: false, configurable: false });
+  }
   const pending = new Map();
   const listeners = { menu: [], "details-action": [] };
   let provider = null;

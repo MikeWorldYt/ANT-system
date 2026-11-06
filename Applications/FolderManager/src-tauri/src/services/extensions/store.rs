@@ -1,16 +1,17 @@
-// Installed extensions: the folder scan, their on/off state in ant.db and removal.
+// Installed extensions: the folder scan, their on/off state in ant.db, this machine's confirmation of it and removal.
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use super::confirmed;
 use super::fail;
 use super::manifest::{self, Manifest, MAX_JSON_BYTES, MAX_MAIN_BYTES};
 use crate::domain::config::DATA_DIR;
 use crate::domain::error::R;
 use crate::infra::fs_safe::{dir_entries, io_err, is_link};
-use crate::infra::storage::db::Store;
+use crate::infra::storage::db::{hash, Store};
 
 const EXTENSIONS_DIR: &str = "extensions";
 const STATE_KEY: &str = "extensions";
@@ -29,6 +30,7 @@ pub struct ExtensionInfo {
     pub enabled: bool,
     pub status: &'static str,
     pub reason: Option<String>,
+    pub needs_confirmation: bool,
 }
 
 #[derive(Deserialize)]
@@ -114,6 +116,7 @@ pub fn info(dir: &Path, folder: &str, enabled: bool) -> ExtensionInfo {
             enabled,
             status: "ok",
             reason: None,
+            needs_confirmation: false,
         },
         Err(reason) => ExtensionInfo {
             id: folder.to_string(),
@@ -126,6 +129,7 @@ pub fn info(dir: &Path, folder: &str, enabled: bool) -> ExtensionInfo {
             enabled: false,
             status: "rejected",
             reason: Some(reason),
+            needs_confirmation: false,
         },
     }
 }
@@ -146,14 +150,41 @@ fn child_dirs(dir: &Path) -> R<Vec<(String, PathBuf)>> {
     Ok(out)
 }
 
+// Hashes what would run and what it may do, so changed code never inherits an earlier confirmation.
+fn fingerprint(manifest: &Manifest, code: &[u8]) -> String {
+    hash(&format!("{}\n{}\n{}", manifest.version, manifest.permissions.join(","), String::from_utf8_lossy(code)))
+}
+
+fn entry_bytes(dir: &Path, manifest: &Manifest) -> R<Vec<u8>> {
+    let file = manifest::main_file(dir, &manifest.main).map_err(fail)?;
+    manifest::read_small(&file, MAX_MAIN_BYTES).map_err(fail)
+}
+
+// A folder that cannot be checked has nothing to confirm, and info() already reports it as rejected.
+fn confirmed_here(file: &Path, root: &Path, dir: &Path, folder: &str) -> R<bool> {
+    let Ok(manifest) = checked(dir, folder) else { return Ok(false) };
+    let Ok(code) = entry_bytes(dir, &manifest) else { return Ok(false) };
+    confirmed::listed(file, root, folder, &fingerprint(&manifest, &code))
+}
+
 pub fn list(root: &Path) -> R<Vec<ExtensionInfo>> {
+    list_with(root, &confirmed::file()?)
+}
+
+// ant.db travels with the storage, so its state only asks: the extension runs once this machine has confirmed it.
+pub(super) fn list_with(root: &Path, file: &Path) -> R<Vec<ExtensionInfo>> {
     let dirs = child_dirs(&extensions_dir(root))?;
     let mut state = read_state(root)?;
     if prune(&mut state, &dirs.iter().map(|(n, _)| n.as_str()).collect()) {
         write_state(root, &state)?;
     }
-    let mut out: Vec<ExtensionInfo> =
-        dirs.iter().map(|(name, dir)| info(dir, name, state.get(name).copied().unwrap_or(false))).collect();
+    let mut out = Vec::with_capacity(dirs.len());
+    for (name, dir) in &dirs {
+        let stored = state.get(name).copied().unwrap_or(false);
+        let mut ext = info(dir, name, stored && confirmed_here(file, root, dir, name)?);
+        ext.needs_confirmation = stored && !ext.enabled && ext.status == "ok";
+        out.push(ext);
+    }
     out.sort_by_key(|e| e.name.to_lowercase());
     Ok(out)
 }
@@ -180,24 +211,42 @@ fn find_ok(root: &Path, id: &str) -> R<(PathBuf, Manifest)> {
 }
 
 pub fn set_enabled(root: &Path, id: &str, enabled: bool) -> R<()> {
-    find_ok(root, id)?;
+    set_enabled_with(root, id, enabled, &confirmed::file()?)
+}
+
+pub(super) fn set_enabled_with(root: &Path, id: &str, enabled: bool, file: &Path) -> R<()> {
+    let (dir, manifest) = find_ok(root, id)?;
+    if enabled {
+        confirmed::add(file, root, id, &fingerprint(&manifest, &entry_bytes(&dir, &manifest)?))?;
+    } else {
+        confirmed::remove(file, root, id)?;
+    }
     let mut state = read_state(root)?;
     state.insert(id.to_string(), enabled);
     write_state(root, &state)
 }
 
 pub fn read_entry(root: &Path, id: &str) -> R<String> {
+    read_entry_with(root, id, &confirmed::file()?)
+}
+
+pub(super) fn read_entry_with(root: &Path, id: &str, file: &Path) -> R<String> {
     let (dir, manifest) = find_ok(root, id)?;
-    if !read_state(root)?.get(id).copied().unwrap_or(false) {
+    let bytes = entry_bytes(&dir, &manifest)?;
+    let on = read_state(root)?.get(id).copied().unwrap_or(false);
+    if !on || !confirmed::listed(file, root, id, &fingerprint(&manifest, &bytes))? {
         return Err(fail(format!("Extension {id} is disabled")));
     }
-    let file = manifest::main_file(&dir, &manifest.main).map_err(fail)?;
-    let bytes = manifest::read_small(&file, MAX_MAIN_BYTES).map_err(fail)?;
     String::from_utf8(bytes).map_err(|_| fail(format!("{} is not UTF-8", manifest.main)))
 }
 
 pub fn remove(root: &Path, id: &str) -> R<()> {
+    remove_with(root, id, &confirmed::file()?)
+}
+
+pub(super) fn remove_with(root: &Path, id: &str, file: &Path) -> R<()> {
     let dir = installed_dir(root, id)?;
     fs::remove_dir_all(&dir).map_err(|e| io_err("delete folder", &dir, &e))?;
+    confirmed::remove(file, root, id)?;
     forget(root, id)
 }

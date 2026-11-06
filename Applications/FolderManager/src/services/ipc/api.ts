@@ -171,6 +171,7 @@ export interface ExtensionInfo {
   enabled: boolean;
   status: "ok" | "rejected";
   reason: string | null;
+  needsConfirmation: boolean;
 }
 export interface RegistryEntry {
   id: string;

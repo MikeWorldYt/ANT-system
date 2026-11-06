@@ -27,12 +27,15 @@ pub(super) fn guard_dir() -> R<PathBuf> {
     Ok(local_data_dir()?.join("watch"))
 }
 
-// Windows paths ignore case, so two spellings of one storage must share a guard.
-pub(super) fn guard_name(root: &Path) -> String {
+// Windows paths ignore case, so two spellings of one storage must share one key.
+pub(crate) fn storage_key(root: &Path) -> String {
     let canonical = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let text = canonical.to_string_lossy();
-    let key = if cfg!(windows) { text.to_lowercase() } else { text.into_owned() };
-    format!("watch-{}.lock", hash(&key))
+    hash(&if cfg!(windows) { text.to_lowercase() } else { text.into_owned() })
+}
+
+pub(super) fn guard_name(root: &Path) -> String {
+    format!("watch-{}.lock", storage_key(root))
 }
 
 // An OS file lock dies with the process, so a crashed watcher never leaves a stale guard behind.

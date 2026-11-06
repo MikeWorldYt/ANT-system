@@ -93,6 +93,7 @@ function installedRow(ext: ExtensionInfo, ctx: PageContext): SettingRow {
     try {
       await setExtensionEnabled(ext.id, on);
       ext.enabled = on;
+      ext.needsConfirmation = false;
       reloadExtensions();
       return true;
     } catch (e) {
@@ -105,7 +106,7 @@ function installedRow(ext: ExtensionInfo, ctx: PageContext): SettingRow {
   return {
     section: "Installed",
     title,
-    description: `${ext.author} · ${ext.trust === "validated" ? "Validated" : "Unvalidated"} · ${permissionsText(ext.permissions)}`,
+    description: `${ext.needsConfirmation ? "Listed as on by this Storage, off until you turn it on here. " : ""}${ext.author} · ${ext.trust === "validated" ? "Validated" : "Unvalidated"} · ${permissionsText(ext.permissions)}`,
     control: (row) => actions(switchControl(`Enable ${ext.name}`, ext.enabled, toggle), remove(row)),
   };
 }

@@ -17,7 +17,8 @@
         "minWidth": 589,
         "height": 640,
         "minHeight": 260,
-        "theme": "Dark"
+        "theme": "Dark",
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required --blink-settings=edgeWebRTCEnabled=false"
       }
     ],
     "security": {
