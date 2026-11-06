@@ -2,6 +2,7 @@ use std::fs;
 
 use super::*;
 use crate::domain::config::{DATA_DIR, DB_FILENAME};
+use crate::infra::storage::db::db_path;
 use crate::infra::fs_safe::LOCK_FILE;
 use crate::test_support::{academic, names, remove_db, TempDir};
 
@@ -56,6 +57,75 @@ fn restoring_brings_the_data_back_and_skips_missing_folders() {
     assert!(stage::has_db(out.path()));
     fs::remove_file(out.path().join(DATA_DIR).join(DB_FILENAME)).unwrap();
     assert!(!stage::has_db(out.path()));
+}
+
+fn wal(root: &Path) -> PathBuf {
+    db_path(root).with_file_name(format!("{DB_FILENAME}-wal"))
+}
+
+#[test]
+fn a_failing_copy_leaves_the_wal_and_the_db_in_place() {
+    let dir = academic("restore-copy");
+    let root = dir.path();
+    fs::write(wal(root), "committed pages").unwrap();
+    let before = fs::read(db_path(root)).unwrap();
+    let empty = TempDir::new("restore-copy-stage");
+    assert!(stage::apply(root, empty.path()).is_err());
+    assert_eq!(fs::read_to_string(wal(root)).unwrap(), "committed pages");
+    assert_eq!(fs::read(db_path(root)).unwrap(), before);
+}
+
+#[test]
+fn a_damaged_db_is_refused_before_the_wal_goes() {
+    let dir = academic("restore-damaged");
+    let root = dir.path();
+    fs::write(wal(root), "committed pages").unwrap();
+    let before = fs::read(db_path(root)).unwrap();
+    let bad = TempDir::new("restore-damaged-stage");
+    bad.mkdir(DATA_DIR);
+    fs::write(bad.path().join(DATA_DIR).join(DB_FILENAME), "not a database ".repeat(512)).unwrap();
+    assert!(stage::apply(root, bad.path()).is_err());
+    assert_eq!(fs::read_to_string(wal(root)).unwrap(), "committed pages");
+    assert_eq!(fs::read(db_path(root)).unwrap(), before);
+    assert!(!names(&root.join(DATA_DIR)).iter().any(|n| n.contains("restore")));
+}
+
+#[test]
+fn a_blocked_rename_puts_the_wal_back() {
+    let (dir, out) = staged_copy("restore-blocked");
+    let root = dir.path();
+    remove_db(root);
+    fs::create_dir(db_path(root)).unwrap();
+    fs::write(wal(root), "committed pages").unwrap();
+    assert!(stage::apply(root, out.path()).is_err());
+    assert_eq!(fs::read_to_string(wal(root)).unwrap(), "committed pages");
+    assert!(!names(&root.join(DATA_DIR)).iter().any(|n| n.contains("restore")));
+}
+
+#[test]
+fn a_finished_restore_leaves_no_old_wal() {
+    let (dir, out) = staged_copy("restore-wal");
+    let root = dir.path();
+    fs::write(wal(root), "stale pages").unwrap();
+    stage::apply(root, out.path()).unwrap();
+    assert!(!wal(root).exists());
+    assert!(!names(&root.join(DATA_DIR)).iter().any(|n| n.contains("restore")));
+    assert!(settings(root).is_ok());
+}
+
+#[test]
+fn a_restore_that_fails_after_the_safety_backup_names_it() {
+    let dir = academic("restore-safety");
+    let root = dir.path();
+    let bad = TempDir::new("restore-safety-stage");
+    bad.mkdir(DATA_DIR);
+    fs::write(bad.path().join(DATA_DIR).join(DB_FILENAME), "not a database ".repeat(512)).unwrap();
+    dir.mkdir("backup");
+    let name = format!("{STAMP}{SUFFIX}.zip");
+    archive::compress(bad.path(), &root.join("backup").join(&name)).unwrap();
+    let err = restore_from(root, &root.join("backup"), &name, "26-10-24-09-06").unwrap_err().to_string();
+    assert!(err.contains("26-10-24-09-06_ANT-fm-backup.zip"), "{err}");
+    assert!(settings(root).is_ok());
 }
 
 #[test]

@@ -206,17 +206,25 @@ fn unpack(zip: &Path, staging: &Path, name: &str) -> R<()> {
 
 // Without a readable ant.db there is nothing worth a safety backup, and an unreadable one is kept aside instead.
 fn install(root: &Path, staging: &Path, stamp: &str) -> R<()> {
-    match db_state(root) {
-        DbState::Healthy => {
-            create(root, stamp)?;
+    let safety = match db_state(root) {
+        DbState::Healthy => Some(create(root, stamp)?),
+        DbState::Unreadable => {
+            set_aside(root, stamp)?;
+            None
         }
-        DbState::Unreadable => set_aside(root, stamp)?,
-        DbState::Missing => {}
-    }
+        DbState::Missing => None,
+    };
     let _lock = StorageLock::acquire(root)?;
-    stage::apply(root, staging)?;
+    let applied = stage::apply(root, staging);
     // The restored ant.db predates the safety backup, so its last-backup time is renewed.
-    Store::open_or_create(root)?.set_setting("backupLast", &now().to_string())
+    let restored = applied.and_then(|()| Store::open_or_create(root)?.set_setting("backupLast", &now().to_string()));
+    match (restored, safety) {
+        (Err(e), Some(zip)) => {
+            let name = zip.file_name().unwrap_or_default().to_string_lossy();
+            Err(fail(format!("{e}. The storage as it was before the restore is in the backup {name}")))
+        }
+        (result, _) => result,
+    }
 }
 
 // The inner error means the zip is unusable and the storage is untouched, so another backup can still be tried.
