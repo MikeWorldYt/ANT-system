@@ -6,7 +6,7 @@ use super::recycle::move_to_bin;
 use super::{finish, scope, load_synced_at, parent_of, Mutation};
 
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{io_err, resolve, validate_component, StorageLock};
+use crate::infra::fs_safe::{rename_no_replace, resolve, validate_component, StorageLock};
 use crate::services::tree::tree_node::lists_files;
 
 // The file a review folder lists; folders, links and missing paths are refused.
@@ -35,10 +35,7 @@ pub fn rename_file(root: &Path, rel: &[String], new_name: &str) -> R<Mutation> {
     let from = file_path(root, rel)?;
     validate_component(new_name)?;
     let to = from.with_file_name(new_name);
-    if to.exists() {
-        return Err(FmError::AlreadyExists { name: new_name.to_string() });
-    }
-    fs::rename(&from, &to).map_err(|e| io_err("rename file", &from, &e))?;
+    rename_no_replace("rename file", &from, &to)?;
     let parent = parent_of(rel).to_vec();
     let (data, synced) = load_synced_at(root, &parent)?;
     let mut renamed = parent.clone();
@@ -84,6 +81,25 @@ mod tests {
         assert!(dir.path().join("100.A/x.txt").is_file());
         assert!(rename_file(dir.path(), &rel(&["100.A", "missing.txt"]), "y.txt").is_err());
         assert!(delete_file(dir.path(), &rel(&["100.A", "98.A"]), |_| Ok(())).is_err());
+    }
+
+    #[test]
+    fn a_case_only_rename_changes_the_name_on_disk() {
+        let dir = review_with_file("file-case");
+        let m = rename_file(dir.path(), &rel(&["100.A", "98.A", "notes.txt"]), "NOTES.txt").unwrap();
+        assert_eq!(crate::test_support::names(&dir.path().join("100.A/98.A")), ["NOTES.txt"]);
+        assert_eq!(m.select, Some(rel(&["100.A", "98.A", "NOTES.txt"])));
+    }
+
+    #[test]
+    fn a_taken_name_is_refused_and_both_files_stay() {
+        let dir = review_with_file("file-taken");
+        let folder = dir.path().join("100.A/98.A");
+        std::fs::write(folder.join("plan.txt"), "plan").unwrap();
+        let err = rename_file(dir.path(), &rel(&["100.A", "98.A", "notes.txt"]), "plan.txt").unwrap_err();
+        assert!(matches!(&err, FmError::AlreadyExists { name } if name == "plan.txt"), "{err:?}");
+        assert_eq!(std::fs::read_to_string(folder.join("notes.txt")).unwrap(), "x");
+        assert_eq!(std::fs::read_to_string(folder.join("plan.txt")).unwrap(), "plan");
     }
 
     // `mklink` reads a forward slash as a switch, so the path is rebuilt with native separators.
