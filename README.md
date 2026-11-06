@@ -50,9 +50,9 @@ Three minutes from nothing to a working storage.
 
 | Platform | Download |
 | --- | --- |
-| Windows | [`CreateNewStorage.exe`](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage.exe) |
-| Linux | [`CreateNewStorage-linux.tar.gz`](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage-linux.tar.gz) |
-| macOS | [`CreateNewStorage-macos.tar.gz`](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage-macos.tar.gz) |
+| Windows | [`CreateNewStorage.exe`](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage.exe) |
+| Linux | [`CreateNewStorage-linux.tar.gz`](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage-linux.tar.gz) |
+| macOS | [`CreateNewStorage-macos.tar.gz`](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage-macos.tar.gz) |
 
 Or from a terminal.
 
@@ -60,7 +60,7 @@ Or from a terminal.
 <summary><b>Linux</b> (use <code>CreateNewStorage-macos.tar.gz</code> on macOS)</summary>
 
 ```bash
-curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage-linux.tar.gz
+curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage-linux.tar.gz
 tar -xzf cns.tar.gz        # extracts the "create-new-storage" executable, already runnable
 ./create-new-storage --help
 ./create-new-storage ~ --name "My-name-storage"   # change the name to yours
@@ -72,7 +72,7 @@ tar -xzf cns.tar.gz        # extracts the "create-new-storage" executable, alrea
 <summary><b>Windows</b> (PowerShell)</summary>
 
 ```powershell
-Invoke-WebRequest -Uri https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage.exe -OutFile CreateNewStorage.exe
+Invoke-WebRequest -Uri https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage.exe -OutFile CreateNewStorage.exe
 .\CreateNewStorage.exe --help
 .\CreateNewStorage.exe $HOME --name "My-name-storage"   # change the name to yours
 ```
@@ -105,7 +105,7 @@ Invoke-WebRequest -Uri https://github.com/MikeWorldYt/ANT-system/releases/downlo
 
 | Tool | What it does | Platforms | |
 | --- | --- | --- | --- |
-| **CreateNewStorage** | Generates a ready-to-use ANT storage from the official template, with the review shortcuts and the starter database. Fast, dependency-free CLI written in Rust. | Windows · Linux · macOS | [Download](https://github.com/MikeWorldYt/ANT-system/releases/tag/create-new-storage-v3.1.0) · [Source](Applications/CreateNewStorage) |
+| **CreateNewStorage** | Generates a ready-to-use ANT storage from the official template, with the review shortcuts and the starter database. Fast, dependency-free CLI written in Rust. | Windows · Linux · macOS | [Download](https://github.com/MikeWorldYt/ANT-system/releases/tag/create-new-storage-v3.3.0) · [Source](Applications/CreateNewStorage) |
 | **FolderManager** | Day-to-day management of a storage: tree and column views, favorites, status colors, details, search, scheduled backups, extensions and a settings window. | Windows | [Download](https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe) · [Source](Applications/FolderManager) |
 | **Reformatter** | Batch renames existing files to the ANT naming format, with a preview mode, safety filters and automatic skipping of system and hidden files. | Windows | [Download](https://github.com/MikeWorldYt/ANT-system/releases/download/v0.2.1/reformatter.v.0.2.1.exe) · [Source](Applications/Reformatter) |
 
