@@ -26,6 +26,8 @@ use crate::services::tree::tree_store::{self, delete_key, get_node};
 use serde_yaml::{Mapping, Value};
 use target::destination;
 
+const ALREADY_INSIDE: &str = "it is already in the storage; drag it inside the app to move it";
+
 struct Place<'a> {
     storage: PathBuf,
     dest: &'a Path,
@@ -71,6 +73,23 @@ pub fn drop_files(
     copy: bool,
     replace: &[PathBuf],
     recycle: &dyn Fn(&Path) -> Result<(), String>,
+) -> R<DropOutcome> {
+    place_all(root, target, paths, copy, replace, recycle, false)
+}
+
+// The app resolved these sources to folders the tree does not track, the one case where a folder may come from inside the storage.
+pub fn move_in(root: &Path, target: &[String], paths: &[PathBuf], copy: bool, recycle: &dyn Fn(&Path) -> Result<(), String>) -> R<DropOutcome> {
+    place_all(root, target, paths, copy, &[], recycle, true)
+}
+
+fn place_all(
+    root: &Path,
+    target: &[String],
+    paths: &[PathBuf],
+    copy: bool,
+    replace: &[PathBuf],
+    recycle: &dyn Fn(&Path) -> Result<(), String>,
+    untracked_inside: bool,
 ) -> R<DropOutcome> {
     let _lock = StorageLock::acquire(root)?;
     // Only a 998.Review link needs the tree before the sync, and then the same load serves both.
@@ -134,7 +153,7 @@ pub fn drop_files(
     }
     // Any other folder lands as it is; the format validation then asks what it becomes.
     for src in plain {
-        match place_folder(&node_dir, src, copy, &mut journal) {
+        match place_folder(&storage, &node_dir, src, copy, untracked_inside, &mut journal) {
             Ok((name, note)) => {
                 if let Some(note) = note {
                     warnings.push(format!("{}: {note}", src.display()));
@@ -184,8 +203,14 @@ pub fn drop_files(
 }
 
 // Moved or copied whole under a free name; a folder already in the storage is moved inside the app instead.
-fn place_folder(dest: &Path, src: &Path, copy: bool, journal: &mut Journal) -> Result<(String, Option<String>), String> {
+fn place_folder(storage: &Path, dest: &Path, src: &Path, copy: bool, untracked_inside: bool, journal: &mut Journal) -> Result<(String, Option<String>), String> {
     let real = fs::canonicalize(src).map_err(|e| io_err("resolve path", src, &e).to_string())?;
+    if belongs_to_app(storage, &real) {
+        return Err("the folder belongs to Folder Manager".to_string());
+    }
+    if !untracked_inside && real.starts_with(storage) {
+        return Err(ALREADY_INSIDE.to_string());
+    }
     let dest_real = fs::canonicalize(dest).map_err(|e| io_err("resolve path", dest, &e).to_string())?;
     if dest_real.starts_with(&real) {
         return Err("a folder cannot be placed inside itself".to_string());
@@ -235,7 +260,7 @@ fn place_workboard(
         return copy_workboard(root, data, dest_rel, dest, &real, &name);
     }
     if real.starts_with(&storage) {
-        return Err("it is already in the storage; drag it inside the app to move it".to_string());
+        return Err(ALREADY_INSIDE.to_string());
     }
     // A replacement keeps the track of the workboard it replaces, so the number a project is known by stays.
     let mut replaced_track = None;
@@ -387,15 +412,19 @@ impl Place<'_> {
             return Err("only regular files can be dropped".to_string());
         }
         let real = fs::canonicalize(src).map_err(|e| io_err("resolve path", src, &e).to_string())?;
-        if let Ok(inner) = real.strip_prefix(&self.storage) {
-            let parts: Vec<String> = inner.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect();
-            let settings = parts.first().is_some_and(|top| top.eq_ignore_ascii_case(SETTINGS_FOLDER) || top.eq_ignore_ascii_case(BACKUP_FOLDER));
-            if settings || parts.iter().any(|p| is_hidden_dir(p)) {
-                return Err("the file belongs to Folder Manager".to_string());
-            }
+        if belongs_to_app(&self.storage, &real) {
+            return Err("the file belongs to Folder Manager".to_string());
         }
         Ok(real)
     }
+}
+
+// Settings, backups and every .ant folder are the app's own, whichever way they are dragged in.
+fn belongs_to_app(storage: &Path, real: &Path) -> bool {
+    let Ok(inner) = real.strip_prefix(storage) else { return false };
+    let parts: Vec<String> = inner.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect();
+    let settings = parts.first().is_some_and(|top| top.eq_ignore_ascii_case(SETTINGS_FOLDER) || top.eq_ignore_ascii_case(BACKUP_FOLDER));
+    settings || parts.iter().any(|p| is_hidden_dir(p))
 }
 
 // fs::copy alone would overwrite a file that appeared after the free name was picked; creating it first reserves the name.

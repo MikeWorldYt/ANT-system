@@ -35,7 +35,10 @@ pub async fn paste_files(app: AppHandle, target: Vec<String>) -> R<DropOutcome> 
 }
 
 fn place(root: &Path, target: &[String], paths: &[PathBuf], copy: bool, replace: &[PathBuf]) -> R<DropOutcome> {
-    let DropOutcome { mutation, placed, conflicts } = mutations::drop_files(root, target, paths, copy, replace, &send_to_recycle_bin)?;
+    indexed(root, mutations::drop_files(root, target, paths, copy, replace, &send_to_recycle_bin)?)
+}
+
+fn indexed(root: &Path, DropOutcome { mutation, placed, conflicts }: DropOutcome) -> R<DropOutcome> {
     Ok(DropOutcome { mutation: with_search_index(root, Ok(mutation))?, placed, conflicts })
 }
 
@@ -49,7 +52,7 @@ fn ctrl_held() -> bool {
 pub async fn move_files_in(app: AppHandle, sources: Vec<Vec<String>>, target: Vec<String>, copy: bool) -> R<DropOutcome> {
     run_locked(app, move |root| {
         let paths = sources.iter().map(|rel| mutations::source_path(root, rel)).collect::<R<Vec<PathBuf>>>()?;
-        place(root, &target, &paths, copy, &[])
+        indexed(root, mutations::move_in(root, &target, &paths, copy, &send_to_recycle_bin)?)
     })
     .await
 }

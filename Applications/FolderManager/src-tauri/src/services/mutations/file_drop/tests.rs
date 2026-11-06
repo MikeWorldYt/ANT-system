@@ -2,6 +2,7 @@
 use std::fs;
 
 use super::*;
+use crate::services::mutations::source_path;
 use crate::test_support::{names, rel, storage, yaml, TempDir};
 
 const TREE: &str = "100.PERSONAL:
@@ -217,6 +218,43 @@ fn a_plain_folder_lands_whole_while_missing_and_app_files_are_reported() {
     assert!(m.warnings[1].contains("belongs to Folder Manager"), "{:?}", m.warnings);
     assert!(!src.path().join("Folder").exists() && lock_like.is_file());
     assert_eq!(names(&dir.path().join("100.PERSONAL/04.Data")), ["Folder", "notes"]);
+}
+
+#[test]
+fn app_folders_and_tracked_nodes_dropped_from_explorer_stay_where_they_are() {
+    let (dir, _src) = fixture("drop-own");
+    dir.mkdir("backup/old");
+    fs::write(dir.path().join(".ant/keep.txt"), "keep").unwrap();
+    dir.mkdir("100.PERSONAL/PJ.001_Board/Loose");
+    let sources = [".ant", "backup", "999.Settings", "100.PERSONAL/03.Toki", "100.PERSONAL/PJ.001_Board/Loose"];
+    for source in sources {
+        let path = dir.path().join(source);
+        let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), &[path.clone()], false, &[], &never_recycles);
+        let out = out.unwrap_or_else(|e| panic!("{source}: {e:?}"));
+        assert!(out.placed.is_empty(), "{source}: {:?}", out.placed);
+        assert!(path.is_dir(), "{source}");
+    }
+    assert_eq!(read(&dir, ".ant/keep.txt"), "keep");
+    assert!(names(&dir.path().join("100.PERSONAL/04.Data")).is_empty());
+}
+
+#[test]
+fn an_untracked_folder_moved_inside_the_app_still_moves_but_app_folders_do_not() {
+    let (dir, _src) = fixture("drop-inner");
+    dir.mkdir("100.PERSONAL/04.Data/Loose/sub");
+    let target = rel(&["100.PERSONAL", "PJ.001_Board"]);
+    let loose = source_path(dir.path(), &rel(&["100.PERSONAL", "04.Data", "Loose"])).unwrap();
+    let out = move_in(dir.path(), &target, &[loose.clone()], false, &never_recycles).unwrap();
+    assert!(out.mutation.warnings.is_empty(), "{:?}", out.mutation.warnings);
+    assert_eq!(out.placed, [placed("Loose", &["100.PERSONAL", "PJ.001_Board"], false)]);
+    assert!(!loose.exists() && dir.path().join("100.PERSONAL/PJ.001_Board/Loose/sub").is_dir());
+    dir.mkdir("backup");
+    for name in [".ant", "backup"] {
+        let path = source_path(dir.path(), &rel(&[name])).unwrap();
+        let out = move_in(dir.path(), &target, &[path.clone()], false, &never_recycles).unwrap();
+        assert!(out.placed.is_empty() && path.is_dir(), "{name}: {:?}", out.placed);
+    }
+    assert!(source_path(dir.path(), &rel(&["100.PERSONAL", "03.Toki"])).is_err());
 }
 
 #[test]
