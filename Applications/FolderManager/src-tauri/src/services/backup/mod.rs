@@ -262,6 +262,11 @@ pub fn run_headless(start: Option<OsString>) -> i32 {
         eprintln!("--backup needs the path of an ANT storage");
         return 1;
     };
+    let chosen = settings(&root).map(|s| s.get("backupFrequency").map_or(DEFAULT_FREQUENCY.to_string(), String::clone));
+    // A task under the old fixed name reaches this run, so it moves itself with no window open.
+    if let Err(e) = chosen.and_then(|frequency| schedule::migrate(&frequency, &root)) {
+        eprintln!("Scheduled backup not moved: {e}");
+    }
     match if_due(&root, &stamp::local_stamp()) {
         Ok(_) => 0,
         Err(e) => {

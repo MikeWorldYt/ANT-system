@@ -5,6 +5,17 @@ import { promptDialog } from "../components/organisms/dialogs/action-dialog/form
 import { setStatus, reportError } from "../components/organisms/bars/status-line";
 import { localStamp } from "../services/stamp";
 
+// The settings are not loaded yet at this point, so the new Storage's own values decide which tasks follow it.
+async function followNewPath(): Promise<void> {
+  try {
+    const saved = await api.getSettings();
+    if (saved.backupAuto === "true") await api.backupSchedule(true);
+    if (saved.watchExternal === "true") await api.syncSchedule(true);
+  } catch (e) {
+    reportError("warning", e, "Scheduled tasks");
+  }
+}
+
 async function changePath(current: string): Promise<void> {
   const typed = await promptDialog("Change path", "Full path of the Storage folder.", current, "Use this path");
   if (typed === null || typed === "") return;
@@ -12,7 +23,9 @@ async function changePath(current: string): Promise<void> {
     await api.changeStoragePath(typed);
   } catch (e) {
     reportError("error", e);
+    return;
   }
+  await followNewPath();
 }
 
 async function scan(): Promise<boolean> {

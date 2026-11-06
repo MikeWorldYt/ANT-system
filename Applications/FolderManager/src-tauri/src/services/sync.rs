@@ -21,6 +21,13 @@ pub fn apply(on: bool, root: &Path) -> R<()> {
     sync.and(watch)
 }
 
+// The daily run also moves the logon task, which fires only at the next logon.
+fn migrate(root: &Path) -> R<()> {
+    let sync = scheduler::migrate(&TASK, "DAILY", root);
+    let watch = scheduler::migrate_logon(&WATCH_TASK, root);
+    sync.and(watch)
+}
+
 fn sync(root: &Path) -> R<()> {
     // A rebuilt db would look healthy and hide the recovery prompt.
     if !db_path(root).is_file() {
@@ -47,6 +54,9 @@ pub fn run_headless(start: Option<OsString>) -> i32 {
         eprintln!("{} is not an ANT storage", path.display());
         return 1;
     };
+    if let Err(e) = migrate(&root) {
+        eprintln!("Scheduled sync not moved: {e}");
+    }
     match sync(&root) {
         Ok(()) => 0,
         Err(e) => {
@@ -63,13 +73,15 @@ mod tests {
 
     #[test]
     fn schtasks_arguments_run_the_sync_daily() {
-        let args = scheduler::args(&TASK, Some("DAILY"), Path::new("C:/App/fm.exe"), Path::new("D:/My Storage"));
-        let expected = ["/Create", "/F", "/SC", "DAILY", "/TN", "ANT System Manager Sync", "/TR"];
+        let root = Path::new("D:/My Storage");
+        let args = scheduler::args(&TASK, Some("DAILY"), Path::new("C:/App/fm.exe"), root);
+        let name = scheduler::task_name(&TASK, root);
+        let expected = ["/Create", "/F", "/SC", "DAILY", "/TN", &name, "/TR"];
         assert_eq!(args[..7], expected);
         assert_eq!(args[7], "\"C:/App/fm.exe\" --sync \"D:/My Storage\"");
         assert_eq!(args[8..], ["/ST", "12:30"]);
-        let off = scheduler::args(&TASK, None, Path::new("a"), Path::new("b"));
-        assert_eq!(off, ["/Delete", "/F", "/TN", "ANT System Manager Sync"]);
+        let off = scheduler::args(&TASK, None, Path::new("a"), root);
+        assert_eq!(off, ["/Delete", "/F", "/TN", &name]);
     }
 
     #[test]
