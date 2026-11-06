@@ -21,7 +21,6 @@ mod reorder;
 mod result;
 mod resolve;
 mod retype;
-mod review_filter;
 mod save;
 mod target;
 
@@ -45,7 +44,6 @@ pub use hidden::{hidden_choices, set_hidden, set_hidden_children, HiddenChoice};
 pub use outputs::{deliver, restore, set_output};
 pub use automations::set_default;
 pub use retype::{set_details, set_node_type};
-pub use review_filter::set_review_filter;
 pub use mutation::Mutation;
 pub(crate) use mutation::subtrees;
 pub(crate) use checks::{editable_target, ensure_free, guard_frozen};

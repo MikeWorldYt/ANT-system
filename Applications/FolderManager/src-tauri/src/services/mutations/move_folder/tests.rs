@@ -150,9 +150,10 @@ fn a_workboard_moves_into_a_workboard_and_into_a_data_node() {
     let app = uid(&dir, &["100.WORK", "PJ.002_App"]).unwrap();
     let back = move_folder(dir.path(), &rel(&["100.WORK", "PJ.002_App", "PJ.001_Web"]), &rel(&["100.WORK"]), false).unwrap();
     assert_indexes_like_full_rebuild(&dir, &back);
+    assert_eq!(back.select, Some(rel(&["100.WORK", "PJ.004_Web"])));
     let m = move_folder(dir.path(), &rel(&["100.WORK", "PJ.002_App"]), &rel(&["100.WORK", "02.Data"]), false).unwrap();
-    assert_eq!(uid(&dir, &["100.WORK", "02.Data", "PJ.002_App"]), Some(app));
-    assert_eq!(get_type_of(&dir, &["100.WORK", "02.Data", "PJ.002_App"]), "WKB-L2");
+    assert_eq!(uid(&dir, &["100.WORK", "02.Data", "PJ.001_App"]), Some(app));
+    assert_eq!(get_type_of(&dir, &["100.WORK", "02.Data", "PJ.001_App"]), "WKB-L2");
     assert_indexes_like_full_rebuild(&dir, &m);
 }
 
@@ -192,8 +193,6 @@ fn refusals_leave_the_disk_and_the_tree_unchanged() {
     let big = ["100.WORK", "PJ.003_Big"];
     assert!(reason(refused(&dir, &big, &["100.WORK", "PJ.003_Big", "01.Part"], true)).contains("into itself"));
     assert!(reason(refused(&dir, &web, &["100.WORK"], false)).contains("already in 100.WORK"));
-    dir.mkdir("100.WORK/03.Target/PJ.001_Web");
-    assert_eq!(reason(refused(&dir, &web, &target, false)), "a folder named PJ.001_Web already exists in 100.WORK/03.Target");
 }
 
 #[test]
@@ -220,10 +219,10 @@ fn a_review_folder_takes_a_data_node_and_a_workboard_but_998_review_does_not() {
 fn a_move_past_the_depth_limit_completes_and_drops_the_deeper_entries_from_the_tree() {
     let dir = ready("mf-overflow");
     let m = move_folder(dir.path(), &rel(&["100.WORK", "PJ.003_Big"]), &rel(&["200.HOME", "01.Garden"]), false).unwrap();
-    assert_eq!(m.warnings, ["PJ.003_Big moved; folders below level 3 are not shown in the tree (they stay on disk)"]);
-    let moved = ["200.HOME", "01.Garden", "PJ.003_Big"];
+    assert_eq!(m.warnings, ["PJ.001_Big moved; folders below level 3 are not shown in the tree (they stay on disk)"]);
+    let moved = ["200.HOME", "01.Garden", "PJ.001_Big"];
     assert_eq!(m.select, Some(rel(&moved)));
-    assert!(dir.path().join("200.HOME/01.Garden/PJ.003_Big/01.Part").is_dir());
+    assert!(dir.path().join("200.HOME/01.Garden/PJ.001_Big/01.Part").is_dir());
     assert!(!dir.path().join("100.WORK/PJ.003_Big").exists());
     assert_eq!(get_type_of(&dir, &moved), "WKB-L2");
     assert!(get_node(&yaml(dir.path()), &rel(&moved)).unwrap().get("01.Part").is_none());
@@ -257,8 +256,8 @@ fn a_raised_depth_limit_lets_a_deeper_workboard_move() {
     let dir = ready("mf-deeper");
     Store::open_or_create(dir.path()).unwrap().set_setting(depth::DEPTH_KEY, "4").unwrap();
     let m = move_folder(dir.path(), &rel(&["100.WORK", "PJ.003_Big"]), &rel(&["200.HOME", "01.Garden"]), false).unwrap();
-    assert_eq!(m.select, Some(rel(&["200.HOME", "01.Garden", "PJ.003_Big"])));
-    assert!(dir.path().join("200.HOME/01.Garden/PJ.003_Big/01.Part").is_dir());
+    assert_eq!(m.select, Some(rel(&["200.HOME", "01.Garden", "PJ.001_Big"])));
+    assert!(dir.path().join("200.HOME/01.Garden/PJ.001_Big/01.Part").is_dir());
 }
 
 #[test]

@@ -59,7 +59,7 @@ fn outside_workboard(tag: &str, name: &str, id: &str) -> (TempDir, PathBuf) {
 }
 
 #[test]
-fn a_workboard_from_outside_moves_in_and_takes_the_lowest_free_track() {
+fn a_workboard_from_outside_moves_in_and_takes_the_next_track() {
     let (dir, _src) = fixture("drop-wkb");
     let (_outside, incoming) = outside_workboard("drop-wkb-in", "PJ.001_Incoming", "NEWID00000000001");
     let out = drop_files(dir.path(), &rel(&["100.PERSONAL"]), std::slice::from_ref(&incoming), false, &[], &never_recycles).unwrap();

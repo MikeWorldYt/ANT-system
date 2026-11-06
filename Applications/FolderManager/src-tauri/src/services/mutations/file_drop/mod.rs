@@ -11,7 +11,7 @@ use serde::Serialize;
 
 use super::recycle::move_to_bin;
 use super::{child_rel, exactly_on_disk, finish, load_synced_at, locate, register_ids, scope, sync_branch_drift, sync_loaded_at, Drift, Mutation};
-use crate::domain::names::{compose_name, free_track, is_workboard_name, name_parts};
+use crate::domain::names::{compose_name, next_track, is_workboard_name, name_parts};
 use crate::domain::tree_types::{child_entries, type_base};
 use crate::domain::config::{is_hidden_dir, BACKUP_FOLDER, SETTINGS_FOLDER};
 use crate::infra::naming::free_name;
@@ -252,7 +252,7 @@ fn place_workboard(
     let siblings: Vec<String> = get_node(data, dest_rel).map(|n| child_entries(n).map(|(k, _)| k.to_string()).collect()).unwrap_or_default();
     let free = match replaced_track {
         Some(track) => compose_name(&track, &name_parts(&name, true).1, true),
-        None => free_track(&name, &siblings),
+        None => next_track(&name, &siblings),
     };
     let to = dest.join(&free);
     if to.exists() {
@@ -268,14 +268,14 @@ fn place_workboard(
     }
 }
 
-// A copy takes its own track and its own id, so the original and the copy never share either.
+// A copy takes the next track of its folder and its own id, so the original and the copy never share either.
 fn copy_workboard(root: &Path, data: &mut Mapping, dest_rel: &[String], dest: &Path, real: &Path, name: &str) -> Result<Workboard, String> {
     let dest_real = fs::canonicalize(dest).map_err(|e| io_err("resolve path", dest, &e).to_string())?;
     if dest_real.starts_with(real) {
         return Err("a workboard cannot be copied into itself".to_string());
     }
     let siblings: Vec<String> = get_node(data, dest_rel).map(|n| child_entries(n).map(|(k, _)| k.to_string()).collect()).unwrap_or_default();
-    let free = free_track(name, &siblings);
+    let free = next_track(name, &siblings);
     let to = dest.join(&free);
     if to.exists() {
         return Err(format!("a folder named {free} already exists"));

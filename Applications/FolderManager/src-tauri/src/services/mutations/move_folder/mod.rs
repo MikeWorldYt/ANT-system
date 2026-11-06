@@ -16,6 +16,7 @@ use crate::domain::names::with_next_slot;
 use crate::domain::tree_types::child_entries;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{Journal, StorageLock};
+use crate::infra::scan::list_subdirs;
 use crate::services::tree::depth;
 use crate::services::tree::tree_store::{self, delete_key, get_node, get_node_mut};
 
@@ -30,11 +31,13 @@ pub fn move_folder(root: &Path, source: &[String], destination: &[String], copy:
     rules::check_destination(destination, &to)?;
     rules::check_not_inside(source, destination)?;
     let (source_name, parent) = split(source)?;
-    // A move takes the lowest free slot of its new level; a copy keeps its id and takes the next free "(n)" name.
+    // A move takes the lowest free slot or next track of its new folder; a copy keeps its id and takes the next free "(n)" name.
     let owned_name = if copy {
         copy_name(&to.abs, get_node(&data, destination), source_name)?
     } else {
-        with_next_slot(source_name, &siblings_of(&data, destination))
+        let mut siblings = siblings_of(&data, destination);
+        siblings.extend(list_subdirs(&to.abs)?);
+        with_next_slot(source_name, &siblings)
     };
     let name = owned_name.as_str();
     if !copy && parent == destination {

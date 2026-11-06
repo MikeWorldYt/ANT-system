@@ -4,10 +4,10 @@ use std::path::Path;
 use serde::Deserialize;
 use serde_yaml::{Mapping, Value};
 
-use super::add::{mark_workboard, track_or_lowest};
+use super::add::mark_workboard;
 use super::{child_rel, ensure_free, finish, move_to_review, persist, scope, split, subtrees, Drift, Mutation};
 use crate::services::tree::tree_store::load_synced;
-use crate::domain::names::{has_node_id, is_track_name, is_valid_root_name, next_available_id, next_main_category_id, sanitize_train_case, title_of, tracker_number, workboard_title};
+use crate::domain::names::{has_node_id, is_track_name, is_valid_root_name, next_available_id, next_main_category_id, next_track_number, sanitize_train_case, title_of, tracker_number, workboard_title};
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{child_entries, type_base};
 use crate::domain::config::{DATA_FLAG, WKB_IDENTIFIERS};
@@ -52,7 +52,7 @@ pub fn preview_names(root: &Path, rows: &[Pending]) -> R<Vec<String>> {
             Resolution::Node => node_name(root, &data, rel)?,
             Resolution::Workboard { tracker } => {
                 delete_key(&mut data, parent, rel.last().map_or("", String::as_str));
-                workboard_name(&data, rel, &tracker.to_ascii_uppercase())
+                workboard_name(root, &data, rel, &tracker.to_ascii_uppercase())?
             }
         };
         // The name is held in the tree so the next row sees it as taken.
@@ -76,12 +76,15 @@ fn node_name(root: &Path, data: &Mapping, rel: &[String]) -> R<String> {
     })
 }
 
-// Keeps the number the folder already has for that tracker when it is free, else takes the lowest free one; the title loses its tracker and hash.
-fn workboard_name(data: &Mapping, rel: &[String], tracker: &str) -> String {
-    let name = rel.last().map_or("", String::as_str);
+// Keeps the number the folder already has for that tracker when no sibling uses it, else continues the siblings' count; the title loses its tracker and hash.
+fn workboard_name(root: &Path, data: &Mapping, rel: &[String], tracker: &str) -> R<String> {
+    let (name, parent) = split(rel)?;
     let title = sanitize_train_case(&workboard_title(name));
-    let id = track_or_lowest(data, tracker, tracker_number(name, &format!("{tracker}.")));
-    if title.is_empty() { format!("{tracker}.{id:03}") } else { format!("{tracker}.{id:03}_{title}") }
+    let letters = format!("{tracker}.");
+    let siblings: Vec<String> = taken_names(root, data, parent)?.into_iter().filter(|s| s != name).collect();
+    let used = |n: u32| siblings.iter().any(|s| tracker_number(s, &letters) == Some(n));
+    let id = tracker_number(name, &letters).filter(|n| *n >= 1 && !used(*n)).unwrap_or_else(|| next_track_number(&letters, &siblings));
+    Ok(if title.is_empty() { format!("{tracker}.{id:03}") } else { format!("{tracker}.{id:03}_{title}") })
 }
 
 fn become_node(root: &Path, rel: &[String]) -> R<Mutation> {
@@ -109,7 +112,7 @@ fn become_workboard(root: &Path, rel: &[String], tracker: &str) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, changed) = load_synced(root)?;
     let synced = Drift::unscoped(changed);
-    let (old, parent) = split(rel)?;
+    let (_, parent) = split(rel)?;
     let tracker = tracker.to_ascii_uppercase();
     let tracker = tracker.as_str();
     if parent.is_empty() {
@@ -120,10 +123,7 @@ fn become_workboard(root: &Path, rel: &[String], tracker: &str) -> R<Mutation> {
     }
     let mut entry = node_entry(&data, rel)?;
     refuse_if_workboard(rel, &entry)?;
-    // The folder's own entry is left out, so the number it holds now counts as free.
-    let mut others = data.clone();
-    delete_key(&mut others, parent, old);
-    let new = workboard_name(&others, rel, tracker);
+    let new = workboard_name(root, &data, rel, tracker)?;
     let status = entry.get("status").and_then(Value::as_str).unwrap_or("in-progress").to_string();
     entry.insert("type".into(), format!("WKB-L{}", rel.len()).into());
     entry.remove("flags");
@@ -245,14 +245,14 @@ mod tests {
     }
 
     #[test]
-    fn a_workboard_with_a_bad_name_takes_the_lowest_free_track_and_keeps_its_title() {
+    fn a_workboard_with_a_bad_name_continues_the_siblings_and_keeps_its_title() {
         let tree = "100.ACADEMIC:\n  type: NODE-L1\n  01.New-Node: {type: WKB-L2}\n  PJ.001_Fine: {type: WKB-L2}\n  PJ.1007_Prueba-7: {type: NODE-L2}\n";
         let dir = storage("resolve-track", &["100.ACADEMIC/01.New-Node", "100.ACADEMIC/PJ.001_Fine", "100.ACADEMIC/PJ.1007_Prueba-7"], tree);
         let pj = Resolution::Workboard { tracker: "PJ".to_string() };
         resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "01.New-Node"]), pj).unwrap();
-        let folder = dir.path().join("100.ACADEMIC/PJ.002_New-Node");
+        let folder = dir.path().join("100.ACADEMIC/PJ.1008_New-Node");
         assert!(folder.is_dir());
-        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "PJ.002_New-Node"]), "WKB-L2");
+        assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "PJ.1008_New-Node"]), "WKB-L2");
         assert_eq!(field_of(&read_info(&folder).unwrap(), &["status"]), Some("in-progress"));
         let pj = Resolution::Workboard { tracker: "PJ".to_string() };
         resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "PJ.1007_Prueba-7"]), pj).unwrap();
@@ -273,11 +273,11 @@ mod tests {
     }
 
     #[test]
-    fn a_number_another_workboard_uses_gives_way_to_the_lowest_free_one() {
+    fn a_number_another_workboard_uses_gives_way_to_the_next_one() {
         let tree = "100.ACADEMIC:\n  type: NODE-L1\n  PJ.154_Other: {type: WKB-L2}\n  Pj.154_Mine: {type: NODE-L2}\n";
         let dir = storage("resolve-taken", &["100.ACADEMIC/PJ.154_Other", "100.ACADEMIC/Pj.154_Mine"], tree);
         resolve_invalid(dir.path(), &rel(&["100.ACADEMIC", "Pj.154_Mine"]), Resolution::Workboard { tracker: "PJ".to_string() }).unwrap();
-        assert!(dir.path().join("100.ACADEMIC/PJ.001_Mine").is_dir());
+        assert!(dir.path().join("100.ACADEMIC/PJ.155_Mine").is_dir());
     }
 
     #[test]

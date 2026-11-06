@@ -31,27 +31,29 @@ pub fn next_available_id(siblings: &[String]) -> u32 {
         .unwrap_or(LAST_SLOT)
 }
 
-// A moved node takes the lowest free slot of its new level, so the ids stay in sequence; other names are kept as they are.
+// A moved node takes the lowest free slot of its new level and a workboard the next track; other names are kept as they are.
 pub fn with_next_slot(name: &str, siblings: &[String]) -> String {
     if has_node_id(name) {
         format!("{:02}.{}", next_available_id(siblings), &name[3..])
+    } else if is_track_name(name) {
+        next_track(name, siblings)
     } else {
         name.to_string()
     }
 }
 
-// A workboard whose track another sibling already uses takes the lowest free number of that tracker, at the same width.
-pub fn free_track(name: &str, siblings: &[String]) -> String {
+// Each folder counts its own workboards, so a tracker's next number follows the highest one among the siblings.
+pub fn next_track_number(letters: &str, siblings: &[String]) -> u32 {
+    siblings.iter().filter_map(|s| track_number(s.split('_').next().unwrap_or(s), letters)).max().unwrap_or(0) + 1
+}
+
+// A workboard entering a folder continues that folder's count, at the same width.
+pub fn next_track(name: &str, siblings: &[String]) -> String {
     let head = name.split('_').next().unwrap_or(name);
     let Some(dot) = head.find('.') else { return name.to_string() };
     let letters = &head[..=dot];
-    let used: Vec<u32> = siblings.iter().filter_map(|s| track_number(s.split('_').next().unwrap_or(s), letters)).collect();
-    if !track_number(head, letters).is_some_and(|n| used.contains(&n)) {
-        return name.to_string();
-    }
     let width = head.len() - letters.len();
-    let free = (1..).find(|n| !used.contains(n)).unwrap_or(1);
-    format!("{letters}{free:0width$}{}", &name[head.len()..])
+    format!("{letters}{:0width$}{}", next_track_number(letters, siblings), &name[head.len()..])
 }
 
 // The number after a tracker's letters ("PJ.") when the head is that tracker, else None.
@@ -328,13 +330,13 @@ mod tests {
     }
 
     #[test]
-    fn a_taken_track_takes_the_lowest_free_number_of_its_tracker() {
-        let siblings: Vec<String> = ["PJ.001_Fabi-web", "PJ.009_Phospo", "PJ.010_Cangrebot", "PR.002_Other"].map(String::from).to_vec();
-        assert_eq!(free_track("PJ.009_Test", &siblings), "PJ.002_Test");
-        assert_eq!(free_track("PJ.005_Free", &siblings), "PJ.005_Free");
-        assert_eq!(free_track("PJ.009", &siblings), "PJ.002");
-        assert_eq!(free_track("PR.002_Mine", &siblings), "PR.001_Mine");
-        assert_eq!(free_track("PJ.0009_Wide", &["PJ.0009_X".to_string()]), "PJ.0001_Wide");
+    fn a_workboard_continues_the_count_of_its_new_siblings() {
+        let siblings: Vec<String> = ["PJ.001_Fabi-web", "PJ.048_Phospo", "PR.002_Other"].map(String::from).to_vec();
+        assert_eq!(next_track("PJ.026_Test", &siblings), "PJ.049_Test");
+        assert_eq!(next_track("PJ.009", &siblings), "PJ.049");
+        assert_eq!(next_track("PR.180_Mine", &siblings), "PR.003_Mine");
+        assert_eq!(next_track("PJ.180_Alone", &[]), "PJ.001_Alone");
+        assert_eq!(with_next_slot("PJ.026_Test", &siblings), "PJ.049_Test");
     }
 
     #[test]

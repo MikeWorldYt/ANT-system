@@ -1,12 +1,11 @@
 // A new folder is created with its tree entry, 98 review folder and .ant marker as one journaled step.
-use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, persist, register_ids, scope, Drift, Mutation};
-use crate::domain::names::{editable_part, next_available_id, next_main_category_id};
+use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, persist, register_ids, scope, Mutation};
+use crate::domain::names::{editable_part, next_available_id, next_main_category_id, next_track_number};
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::child_entries;
 use crate::services::backup::stamp::local_date;
@@ -19,7 +18,7 @@ use crate::services::tree::tree_store;
 use crate::infra::storage::db::hide;
 use crate::infra::storage::info::{field_of, read_info, write_info};
 use crate::services::tree::depth;
-use crate::services::tree::tree_store::{get_node, get_node_mut, load_synced};
+use crate::services::tree::tree_store::{get_node, get_node_mut};
 
 // A selected Level 1 node creates a sibling category at the Storage root.
 pub fn add_next(root: &Path, rel: &[String], kind: NewKind) -> R<Mutation> {
@@ -38,13 +37,7 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     if !parent.is_empty() && parent.len() >= depth::limit(root)? {
         return add_past_limit(root, parent, kind);
     }
-    // A tracker must be unique across the Storage, so a workboard counts every branch on disk.
-    let (mut data, synced) = if kind == NewKind::Workboard {
-        let (data, changed) = load_synced(root)?;
-        (data, Drift::unscoped(changed))
-    } else {
-        load_synced_at(root, parent)?
-    };
+    let (mut data, synced) = load_synced_at(root, parent)?;
     if parent.is_empty() && kind == NewKind::Workboard {
         return Err(FmError::InvalidPath { rel_parts: parent.to_vec(), reason: "workboards cannot be created at the storage root".to_string() });
     }
@@ -71,7 +64,7 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     let new_name = if parent.is_empty() {
         format!("{:03}.NEW-CATEGORY", next_main_category_id(&taken))
     } else if workboard {
-        format!("PJ.{:03}_New-Workboard", next_tracker(&data, "PJ"))
+        format!("PJ.{:03}_New-Workboard", next_track_number("PJ.", &taken))
     } else {
         format!("{:02}.New-Node", next_available_id(&taken))
     };
@@ -123,7 +116,7 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     Ok(finish(root, &data, false, Some(new_rel.clone()), warnings, scope(&synced.or_unscoped(moved), vec![new_rel])))
 }
 
-// Past the depth limit the database tracks nothing, so a node is a plain folder and a workboard counts only its own siblings.
+// Past the depth limit the database tracks nothing, so a node is a plain folder.
 fn add_past_limit(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     if is_reserved(&parent[..1]) {
         return Err(FmError::Reserved { rel_parts: parent.to_vec() });
@@ -134,9 +127,7 @@ fn add_past_limit(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> 
     }
     let workboard = kind == NewKind::Workboard;
     let name = if workboard {
-        let siblings = list_subdirs(&dir)?;
-        let used = siblings.iter().filter_map(|n| n.strip_prefix("PJ.")?.split(|c: char| !c.is_ascii_digit()).next()?.parse::<u32>().ok());
-        format!("PJ.{:03}_New-Workboard", used.max().unwrap_or(0) + 1)
+        format!("PJ.{:03}_New-Workboard", next_track_number("PJ.", &list_subdirs(&dir)?))
     } else {
         free_name(&dir, "New folder", &[])?
     };
@@ -151,20 +142,6 @@ fn add_past_limit(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> 
     let new_rel = child_rel(parent, &name);
     let data = tree_store::load(root)?;
     Ok(finish(root, &data, false, Some(new_rel.clone()), warnings, vec![new_rel]))
-}
-
-// Next free id of a tracker (3 digits, more once they run out) after every workboard of that tracker in the tree, missing folders included.
-pub(super) fn next_tracker(data: &Mapping, tracker: &str) -> u32 {
-    fn highest(node: &Mapping, prefix: &str) -> u32 {
-        child_entries(node)
-            .map(|(name, child)| {
-                let own = name.strip_prefix(prefix).map(|r| r.split(|c: char| !c.is_ascii_digit()).next().unwrap_or("")).and_then(|d| d.parse().ok()).unwrap_or(0);
-                own.max(highest(child, prefix))
-            })
-            .max()
-            .unwrap_or(0)
-    }
-    highest(data, &format!("{tracker}.")) + 1
 }
 
 // Every created folder gets a .ant folder, which is what lets its id follow it around; workboards also start their info.json.
@@ -199,30 +176,6 @@ pub(super) fn mark_workboard(folder: &Path, parent: &str, status: &str) -> R<()>
         return Ok(());
     }
     write_info(folder, &updates)
-}
-
-// The lowest number of a tracker that no workboard in the tree uses, ghosts included.
-pub(super) fn lowest_free_track(data: &Mapping, tracker: &str) -> u32 {
-    let mut used = BTreeSet::new();
-    collect_tracks(data, &format!("{tracker}."), &mut used);
-    (1u32..).find(|n| !used.contains(n)).unwrap_or(1)
-}
-
-// The wanted number when it is a real one nobody uses, else the lowest free one.
-pub(super) fn track_or_lowest(data: &Mapping, tracker: &str, wanted: Option<u32>) -> u32 {
-    let mut used = BTreeSet::new();
-    collect_tracks(data, &format!("{tracker}."), &mut used);
-    wanted.filter(|n| *n >= 1 && !used.contains(n)).unwrap_or_else(|| lowest_free_track(data, tracker))
-}
-
-fn collect_tracks(node: &Mapping, prefix: &str, used: &mut BTreeSet<u32>) {
-    for (name, child) in child_entries(node) {
-        let digits = name.strip_prefix(prefix).map(|rest| rest.split(|c: char| !c.is_ascii_digit()).next().unwrap_or(""));
-        if let Some(number) = digits.and_then(|d| d.parse().ok()) {
-            used.insert(number);
-        }
-        collect_tracks(child, prefix, used);
-    }
 }
 
 #[cfg(test)]
@@ -272,7 +225,7 @@ mod tests {
         let first = add_next(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "01.Algebra"]), NewKind::Workboard).unwrap();
         assert_eq!(first.select, Some(child_rel(&p, "PJ.001_New-Workboard")));
         let second = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
-        assert_eq!(second.select, Some(rel(&["100.ACADEMIC", "PJ.002_New-Workboard"])));
+        assert_eq!(second.select, Some(rel(&["100.ACADEMIC", "PJ.001_New-Workboard"])));
         let wkb = dir.path().join("100.ACADEMIC/01.Math/PJ.001_New-Workboard");
         assert_eq!(names(&wkb), [".ant"], "no 98 folder inside a workboard");
         let info = std::fs::read_to_string(wkb.join(".ant/info.json")).unwrap();
@@ -283,23 +236,17 @@ mod tests {
     }
 
     #[test]
-    fn a_workboard_made_outside_the_app_in_another_branch_keeps_its_tracker() {
+    fn a_workboard_counts_only_its_siblings_and_those_made_on_disk() {
         let dir = academic("add-wkb-outside");
-        let mut data = yaml(dir.path());
-        crate::services::tree::tree_store::sync(dir.path(), &mut data).unwrap();
-        crate::services::tree::tree_store::save(dir.path(), &data).unwrap();
-        dir.mkdir("100.ACADEMIC/01.Math/PJ.007_Outside");
+        dir.mkdir("100.ACADEMIC/01.Math/PJ.180_Elsewhere");
+        dir.mkdir("100.ACADEMIC/PJ.014_Outside");
         let m = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
-        assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "PJ.008_New-Workboard"])));
+        assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "PJ.015_New-Workboard"])));
     }
 
     #[test]
     fn trackers_keep_counting_past_three_digits() {
         let dir = academic("add-wkb-1000");
-        let data = serde_yaml::from_str("PJ.999_Full: {type: WKB-L1}
-PJ.1000_Next: {type: WKB-L1}
-").unwrap();
-        assert_eq!(next_tracker(&data, "PJ"), 1001);
         std::fs::create_dir(dir.path().join("100.ACADEMIC/PJ.999_Full")).unwrap();
         let m = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
         assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "PJ.1000_New-Workboard"])));
