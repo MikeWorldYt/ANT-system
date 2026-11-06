@@ -1,22 +1,19 @@
 // End-to-end runs of create() and storage() in temp folders, offline only.
 use std::path::PathBuf;
 
-use serde_yaml::Mapping;
-
 use crate::create::storage;
 use crate::test_dir::TempDir;
+use crate::tree_types::TreeNode;
 use crate::{create, CreateOptions, Level};
 
-pub(crate) const TEMPLATE: &[u8] = include_bytes!("../../../Migration/Core/ant.db");
-
-const TREE: &str = "100.PERSONAL:\n  type: NODE-L1\n  01.Docs:\n    type: NODE-L2\n  98.PERSONAL:\n    type: REV-L2\n999.Settings:\n  type: CFG\n  01.Extra:\n    type: NODE\n";
+pub(crate) const TEMPLATE: &[u8] = include_bytes!("../testdata/ant.db");
 
 fn opts(root: PathBuf, allow_existing: bool) -> CreateOptions {
     CreateOptions { root, template: Some(TEMPLATE.to_vec()), allow_existing, download: false }
 }
 
-fn tree(text: &str) -> Mapping {
-    serde_yaml::from_str(text).unwrap()
+pub(crate) fn node(name: &str, kind: &str, children: Vec<TreeNode>) -> TreeNode {
+    TreeNode { name: name.to_string(), kind: kind.to_string(), fields: Vec::new(), children }
 }
 
 #[test]
@@ -24,12 +21,15 @@ fn creates_the_tree_and_keeps_the_template_db() {
     let tmp = TempDir::new("create");
     let root = tmp.path().join("Store");
     let mut log = Vec::new();
-    storage(&opts(root.clone(), false), TEMPLATE, &tree(TREE), &mut |l, m| log.push((l, m.to_string()))).unwrap();
+    let tree = [
+        node("100.PERSONAL", "NODE-L1", vec![node("01.Docs", "NODE-L2", vec![]), node("98.PERSONAL", "REV-L2", vec![])]),
+        node("999.Settings", "CFG", vec![node("01.Extra", "NODE", vec![])]),
+    ];
+    storage(&opts(root.clone(), false), TEMPLATE, &tree, &mut |l, m| log.push((l, m.to_string()))).unwrap();
     for dir in ["100.PERSONAL/01.Docs", "100.PERSONAL/98.PERSONAL", "998.Review", "999.Settings/01.Extra"] {
         assert!(root.join(dir).is_dir(), "{dir}");
     }
     assert_eq!(std::fs::read(root.join(".ant/ant.db")).unwrap(), TEMPLATE);
-    assert!(!root.join("999.Settings/00.Core/Tree.yaml").exists());
     assert!(!log.iter().any(|(l, _)| *l == Level::Error));
 }
 
@@ -49,8 +49,8 @@ fn failure_rolls_back_only_this_runs_folders() {
     let root = tmp.path().join("Store");
     std::fs::create_dir_all(root.join("keep")).unwrap();
     let long = "x".repeat(300);
-    let text = format!("100.A:\n  type: NODE\n  01.B:\n    type: NODE\n{long}:\n  type: NODE\n");
-    let err = storage(&opts(root.clone(), true), TEMPLATE, &tree(&text), &mut |_, _| {}).unwrap_err();
+    let tree = [node("100.A", "NODE", vec![node("01.B", "NODE", vec![])]), node(&long, "NODE", vec![])];
+    let err = storage(&opts(root.clone(), true), TEMPLATE, &tree, &mut |_, _| {}).unwrap_err();
     assert!(err.contains("Could not create"), "{err}");
     assert!(root.join("keep").is_dir());
     assert!(!root.join("100.A").exists() && !root.join("998.Review").exists() && !root.join("999.Settings").exists());
@@ -71,8 +71,10 @@ fn existing_root_needs_permission_and_a_bad_template_touches_nothing() {
 fn entries_with_fields_get_an_info_file() {
     let tmp = TempDir::new("info-tree");
     let root = tmp.path().join("Store");
-    let text = "300.PROJECTS:\n  type: WS-L1\n  PJ.001_A:\n    owner: Ren\n    type: WKB\n    status: done\n    created: 2025-05-16\n";
-    storage(&opts(root.clone(), false), TEMPLATE, &tree(text), &mut |_, _| {}).unwrap();
+    let mut project = node("PJ.001_A", "WKB", vec![]);
+    project.fields = [("owner", "Ren"), ("status", "done"), ("created", "2025-05-16")].map(|(k, v)| (k.to_string(), v.to_string())).to_vec();
+    let tree = [node("300.PROJECTS", "WS-L1", vec![project])];
+    storage(&opts(root.clone(), false), TEMPLATE, &tree, &mut |_, _| {}).unwrap();
     let info = std::fs::read_to_string(root.join("300.PROJECTS/PJ.001_A/.ant/info.json")).unwrap();
     assert!(info.contains("\"created\": \"25-05-16\"") && info.contains("\"owner\": \"Ren\""));
     assert!(!root.join("300.PROJECTS/.ant").exists());

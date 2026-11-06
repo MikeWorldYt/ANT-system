@@ -7,9 +7,6 @@ mod fs_ops;
 mod info;
 mod name;
 mod plan;
-#[cfg(windows)]
-mod powershell;
-mod shortcuts;
 mod sqlite;
 mod template;
 mod tree_types;
