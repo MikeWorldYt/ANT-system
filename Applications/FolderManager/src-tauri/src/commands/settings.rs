@@ -8,6 +8,7 @@ use tauri::AppHandle;
 
 use crate::commands::run_locked;
 use crate::domain::validation::valid_backup_folder;
+use crate::services::backup;
 use crate::services::index::review_index;
 use crate::infra::storage::db::Store;
 use crate::services::tree::depth;
@@ -108,6 +109,9 @@ pub async fn get_settings(app: AppHandle) -> R<HashMap<String, String>> {
 pub async fn set_setting(app: AppHandle, key: String, value: String) -> R<()> {
     check(&key, &value)?;
     run_locked(app, move |root| {
+        if key == "backupFolder" {
+            backup::confirm_folder(&value)?;
+        }
         Store::open_or_create(root)?.set_setting(&key, &value)?;
         // Shortcut names carry one slot per level, so a new depth renames every review link.
         if key != depth::DEPTH_KEY {

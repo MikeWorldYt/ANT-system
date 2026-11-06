@@ -1,5 +1,6 @@
 // Zip backups of the ANT data (ant.db, the .ant files and the legacy 999.Settings), never of the user's own files.
 mod archive;
+mod confirmed;
 mod latest;
 pub mod schedule;
 mod stage;
@@ -17,7 +18,7 @@ use serde::Serialize;
 
 use crate::domain::config::{BACKUP_FOLDER, SETTINGS_FOLDER};
 use crate::services::debug_log::valid_stamp;
-use crate::domain::validation::valid_backup_folder;
+use crate::domain::validation::{remote_backup_folder, valid_backup_folder};
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{dir_entries, io_err, is_link, rename_no_replace, StorageLock};
 use crate::infra::storage::db::Store;
@@ -57,13 +58,28 @@ fn read_dirs(root: &Path, settings: &HashMap<String, String>) -> R<Vec<PathBuf>>
     Ok(if dir == default_dir(root) { vec![dir, legacy_dir(root)] } else { vec![dir] })
 }
 
-// The setting is checked again because ant.db can be edited outside the app.
-fn backup_dir(root: &Path, settings: &HashMap<String, String>) -> R<PathBuf> {
+// Only set_setting calls this, so a value that merely arrived in a foreign ant.db never gets listed.
+pub fn confirm_folder(folder: &str) -> R<()> {
+    if remote_backup_folder(folder) {
+        return confirmed::add(&confirmed::file()?, folder);
+    }
+    Ok(())
+}
+
+// The setting is checked again because ant.db can be edited outside the app, and touching a share at all makes Windows authenticate to it.
+fn chosen_dir(root: &Path, settings: &HashMap<String, String>, is_confirmed: impl Fn(&str) -> R<bool>) -> R<PathBuf> {
     match settings.get("backupFolder").map(String::as_str) {
         None | Some("") => Ok(default_dir(root)),
-        Some(folder) if valid_backup_folder(folder) => Ok(PathBuf::from(folder)),
-        Some(folder) => Err(fail(format!("Invalid backup folder {folder}"))),
+        Some(folder) if !valid_backup_folder(folder) => Err(fail(format!("Invalid backup folder {folder}"))),
+        Some(folder) if remote_backup_folder(folder) && !is_confirmed(folder)? => {
+            Err(fail(format!("The backup folder {folder} was not set on this computer. Set it again in Settings to use it")))
+        }
+        Some(folder) => Ok(PathBuf::from(folder)),
     }
+}
+
+fn backup_dir(root: &Path, settings: &HashMap<String, String>) -> R<PathBuf> {
+    chosen_dir(root, settings, |folder| confirmed::listed(&confirmed::file()?, folder))
 }
 
 pub fn valid_name(name: &str) -> bool {

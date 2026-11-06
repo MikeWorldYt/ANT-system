@@ -128,6 +128,48 @@ fn a_restore_that_fails_after_the_safety_backup_names_it() {
     assert!(settings(root).is_ok());
 }
 
+const SHARE: &str = r"\\ant-test.invalid\share";
+
+fn folder_setting(folder: &str) -> HashMap<String, String> {
+    HashMap::from([("backupFolder".to_string(), folder.to_string())])
+}
+
+#[cfg(windows)]
+#[test]
+fn a_share_from_a_foreign_db_is_refused_before_anything_touches_it() {
+    let dir = academic("backup-foreign");
+    let root = dir.path();
+    let refused = chosen_dir(root, &folder_setting(SHARE), |_| Ok(false)).unwrap_err().to_string();
+    assert!(refused.contains("not set on this computer"), "{refused}");
+    let mut store = Store::open_or_create(root).unwrap();
+    store.set_setting("backupFolder", SHARE).unwrap();
+    store.set_setting("backupAuto", "true").unwrap();
+    drop(store);
+    for err in [create(root, STAMP).unwrap_err(), if_due(root, STAMP).unwrap_err()] {
+        assert!(err.to_string().contains("not set on this computer"), "{err}");
+    }
+    assert!(list(root).is_err());
+    assert!(!settings(root).unwrap().contains_key("backupLast"));
+}
+
+#[cfg(windows)]
+#[test]
+fn a_share_listed_on_this_machine_and_a_local_folder_keep_working() {
+    let dir = TempDir::new("backup-confirmed");
+    let file = dir.path().join("data/list.txt");
+    assert!(!confirmed::listed(&file, SHARE).unwrap());
+    confirmed::add(&file, SHARE).unwrap();
+    confirmed::add(&file, SHARE).unwrap();
+    confirmed::add(&file, r"\\other.invalid\share").unwrap();
+    assert!(confirmed::listed(&file, SHARE).unwrap());
+    assert!(!confirmed::listed(&file, r"\\ant-test.invalid\share\sub").unwrap());
+    assert_eq!(fs::read_to_string(&file).unwrap().lines().count(), 2);
+    let is_confirmed = |folder: &str| confirmed::listed(&file, folder);
+    assert_eq!(chosen_dir(dir.path(), &folder_setting(SHARE), is_confirmed).unwrap(), PathBuf::from(SHARE));
+    let unasked = |_: &str| -> R<bool> { panic!("a local folder needs no confirmation") };
+    assert_eq!(chosen_dir(dir.path(), &folder_setting(r"D:\Backups"), unasked).unwrap(), PathBuf::from(r"D:\Backups"));
+}
+
 #[test]
 fn backup_names_follow_the_pattern() {
     assert!(valid_name("26-10-24-09-05_ANT-fm-backup.zip"));
