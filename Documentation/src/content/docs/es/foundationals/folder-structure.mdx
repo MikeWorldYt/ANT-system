@@ -33,8 +33,7 @@ En este nivel debes usar la [nomenclatura Block](/es/foundationals/naming-conven
 
 <h5> Puntos clave: </h5>
 - **Almacenamiento:** Este nivel no debe contener archivos, carpetas externas ni contenido sin organizar. Solo debe incluir [nodos (carpetas)](/es/foundationals/core-concepts#nodos) considerados categorías principales que definen su propio contenido.
-- **Nodos de soporte:** Reservan la secuencia 900 combinada con su identificador (p. ej., 998.Review
-en lugar de 98.Review).
+- **Nodos de soporte:** En este nivel, solo `900.Resources` es una carpeta. **REVIEW** es una entrada virtual de la aplicación, y los ajustes y datos internos viven en la carpeta oculta `.ant/` de la raíz.
 
 ##### Recomendación de categorías principales:
 
@@ -45,9 +44,7 @@ en lugar de 98.Review).
   ├── 📁 300.PROJECTS
   ├── 📁 400.ACADEMIC
   ├── 📁 500.HOBBIES
-  ├── 📁 900.Resources
-  ├── 📁 998.Review (Index)
-  └── 📁 999.Settings
+  └── 📁 900.Resources
 ```
 
 ## Nivel 2
@@ -80,7 +77,7 @@ En este nivel debes usar la [nomenclatura Chill](/es/foundationals/naming-conven
 
 <h5> Puntos clave: </h5>
 - **Almacenamiento:** Este nivel no debe contener archivos, carpetas externas ni contenido sin organizar. Solo debe incluir [nodos (carpetas)](/es/foundationals/core-concepts#nodos) considerados subcategorías del padre que definen su propio contenido.
-- **Nodos de soporte:** Reservan las secuencias "90-99" y "00" para sus identificadores.
+- **Nodos de soporte:** Usan los prefijos `REV.`, `RES.` y `TPL.`, además del `00` reservado, así que del `01` al `99` quedan libres para los nodos regulares.
 
 ## Nivel 3
 El tercer nivel es hijo de un nodo del [Nivel 2](#nivel-2) y **admite organización adicional**, ya sea mediante extensiones de categoría o [**nodos del tablero de trabajo**](/es/foundationals/workboard-nodes) **(carpetas)**.
@@ -163,8 +160,6 @@ Puedes usar 2 nomenclaturas;
       - 400.ACADEMIC/
       - 500.HOBBIES/
       - 900.RESOURCES/
-      - 998.REVIEW/
-      - 999.SETTINGS/
     </FileTree>
   </TabItem>
   <TabItem label="WORK" icon="seti:folder">
@@ -177,33 +172,31 @@ Puedes usar 2 nomenclaturas;
         - 01.Development
           - 01.Ideas/
           - 02.Hod/
-          - 90.Dev-Resources/ ← [Nodo de recursos](/es/foundationals/support-nodes#carpeta-90resources)
-          - 97.Templates/ ← [Nodo de plantillas](/es/foundationals/support-nodes#carpeta-97templates)
-          - 98.Development/ ← [Nodo de revisión](/es/foundationals/support-nodes#carpeta-98review)
+          - RES.Development/ ← [Nodo de recursos](/es/foundationals/support-nodes#carpeta-res-resources)
+          - REV.Development/ ← [Nodo de revisión](/es/foundationals/support-nodes#carpeta-rev-review)
+          - TPL.Dev-Project/ ← [Nodo de plantillas](/es/foundationals/support-nodes#carpeta-tpl-templates)
           - PJ.003_ANT-System/
           - PJ.004_Uber-Eats-App/
           - PJ.006_Astro-Carwash-Landing-Page/
           - ...
         - 02.Video-Edition/
-          - 00.Done/ ← [Nodo Done](/es/foundationals/support-nodes#carpeta-00-done)
+          - 00.Outcomes/ ← [Nodo Outcomes](/es/foundationals/support-nodes#carpeta-00-outcomes)
             - PJ.123_7-Days-Buried-Alive-Review/
             - PJ.124_Huawei-Pura-70-Review/
-          - 90.Edition-Resources/ ← [Nodo de recursos](/es/foundationals/support-nodes#carpeta-90resources)
-          - 97.Templates/ ← [Nodo de plantillas](/es/foundationals/support-nodes#carpeta-97templates)
-          - 98.Video-Edition/ ← [Nodo de revisión](/es/foundationals/support-nodes#carpeta-98review)
+          - RES.Video-Edition/ ← [Nodo de recursos](/es/foundationals/support-nodes#carpeta-res-resources)
+          - REV.Video-Edition/ ← [Nodo de revisión](/es/foundationals/support-nodes#carpeta-rev-review)
+          - TPL.Video-Project/ ← [Nodo de plantillas](/es/foundationals/support-nodes#carpeta-tpl-templates)
           - PJ.130_Organize-Documents/
           - PJ.131_Huawei-Pura-70-Review/
           - ...
         - ...
-        - 98.WORK/
+        - REV.WORK/
           - unorganized.jpg
           - ...
         - ...
       - 400.ACADEMIC/
       - 500.HOBBIES/
       - 900.RESOURCES/
-      - 998.REVIEW/
-      - 999.SETTINGS/
     </FileTree>
   </TabItem>
   <TabItem label="ACADEMIC" icon="seti:folder">

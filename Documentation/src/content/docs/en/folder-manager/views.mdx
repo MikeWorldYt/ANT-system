@@ -1,0 +1,24 @@
+---
+title: Views and sorting
+description: Switch between the Tree and Columns views and sort your folders.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+## Views
+
+Use the view button in the toolbar to switch between two views of the same storage.
+
+<ImagePlaceholder label="Screenshot: Views" />
+
+- **Tree:** expandable rows with the keyboard (arrow keys to move, left and right to collapse and expand).
+- **Columns:** one column per level. Each column has its own sort, see [Sorting](#sorting).
+
+The breadcrumb shows the selected path. Double-click it, or press `Ctrl+L`, to type a path. The back, forward and up buttons walk your selection history. The details panel on the right shows the selected folder and can be hidden with its toolbar button.
+
+## Sorting
+
+In the Columns view, the sort button in the toolbar sorts the active column by **Name**, **Type** or **Status**, ascending or descending. Every column keeps its own sort.
+
+<ImagePlaceholder label="Screenshot: Sorting" />
+
+Whatever the sort, the folders numbered 90 to 99, plus 998 and 999, always stay at the end of their list. That keeps the [support nodes](/en/foundationals/support-nodes) in a fixed place.

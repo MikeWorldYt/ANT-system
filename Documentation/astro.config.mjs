@@ -58,10 +58,27 @@ export default defineConfig({
 						]
 					},
 					{
-						label: 'Tools',
-						translations: { es: 'Herramientas' },
+						label: 'Folder Manager',
+						translations: { es: 'Folder Manager' },
 						items: [
-							{ label: 'Folder Manager', slug: 'tools/folder-manager', translations: { es: 'Folder Manager' } },
+							{ label: 'Overview', slug: 'folder-manager', translations: { es: 'Resumen' } },
+							{ label: 'Views and sorting', slug: 'folder-manager/views', translations: { es: 'Vistas y orden' } },
+							{ label: 'Working with folders', slug: 'folder-manager/folders', translations: { es: 'Trabajar con carpetas' } },
+							{ label: 'Project Management', slug: 'folder-manager/project-management', translations: { es: 'Gestión de Proyectos' } },
+							{ label: 'Search', slug: 'folder-manager/search', translations: { es: 'Búsqueda' } },
+							{ label: 'Keyboard shortcuts', slug: 'folder-manager/shortcuts', translations: { es: 'Atajos de teclado' } },
+							{ label: 'Settings', slug: 'folder-manager/settings', translations: { es: 'Ajustes' } },
+							{ label: 'Backups', slug: 'folder-manager/backups', translations: { es: 'Respaldos' } },
+							{ label: 'Extensions', slug: 'folder-manager/extensions', translations: { es: 'Extensiones' } },
+							{ label: 'Updates', slug: 'folder-manager/updates', translations: { es: 'Actualizaciones' } },
+							{ label: 'Data and troubleshooting', slug: 'folder-manager/troubleshooting', translations: { es: 'Datos y solución de problemas' } },
+						],
+					},
+					{
+						label: 'Advanced',
+						translations: { es: 'Avanzado' },
+						items: [
+							{ label: 'CLI', slug: 'advanced/cli', translations: { es: 'CLI' } },
 						],
 					},
 					{

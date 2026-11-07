@@ -1,8 +1,6 @@
 // Writes the people and dates a template entry carries into the folder's .ant/info.json.
 use std::path::{Path, PathBuf};
 
-use serde_yaml::Mapping;
-
 use crate::config::{ANT_DIR, INFO_NAME};
 use crate::fs_ops::{make_dirs_tracked, write_file_atomic};
 use crate::{Level, Progress};
@@ -10,10 +8,10 @@ use crate::{Level, Progress};
 // Same order the file is written in.
 pub(crate) const FIELDS: [&str; 3] = ["owner", "created", "status"];
 
-pub fn write_info(folder: &Path, entry: &Mapping, created: &mut Vec<PathBuf>, progress: Progress) -> Result<(), String> {
+pub fn write_info(folder: &Path, fields: &[(String, String)], created: &mut Vec<PathBuf>, progress: Progress) -> Result<(), String> {
     let pairs: Vec<(&str, String)> = FIELDS
         .iter()
-        .filter_map(|key| entry.get(*key).and_then(|v| v.as_str()).map(|v| (*key, short_date(key, v))))
+        .filter_map(|key| fields.iter().rfind(|(k, _)| k == key).map(|(_, v)| (*key, short_date(key, v))))
         .collect();
     if pairs.is_empty() {
         return Ok(());
@@ -59,7 +57,7 @@ mod tests {
 
     #[test]
     fn renders_fields_with_a_short_created_date() {
-        let entry: Mapping = serde_yaml::from_str("owner: Mike Diaz\ntype: WKB\nstatus: in-progress\ncreated: 2024-06-01\n").unwrap();
+        let entry = [("status", "in-progress"), ("created", "2024-06-01"), ("owner", "Mike Diaz")].map(|(k, v)| (k.to_string(), v.to_string()));
         let mut made = Vec::new();
         let tmp = crate::test_dir::TempDir::new("info");
         write_info(tmp.path(), &entry, &mut made, &mut |_, _| {}).unwrap();
@@ -70,8 +68,7 @@ mod tests {
     #[test]
     fn entries_without_fields_write_nothing_and_quotes_are_escaped() {
         let tmp = crate::test_dir::TempDir::new("info-none");
-        let plain: Mapping = serde_yaml::from_str("type: NODE-L1\n").unwrap();
-        write_info(tmp.path(), &plain, &mut Vec::new(), &mut |_, _| {}).unwrap();
+        write_info(tmp.path(), &[], &mut Vec::new(), &mut |_, _| {}).unwrap();
         assert!(!tmp.path().join(".ant").exists());
         assert_eq!(quote("a\"b\\c"), "\"a\\\"b\\\\c\"");
     }

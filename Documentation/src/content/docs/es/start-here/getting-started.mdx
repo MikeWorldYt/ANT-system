@@ -5,9 +5,7 @@ description: Crea tu primer almacenamiento ANT en Windows, Linux o macOS y admin
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import Callout from "/src/components/ui/Callout.astro";
 
-¡Bienvenido a la documentación de ANT! 🐜
-
-ANT es un sistema de métodos de organización diseñado para agilizar el almacenamiento, la gestión de proyectos y la recuperación de archivos.
+![¡Bienvenido a la documentación de ANT on the system!](https://r2.mikeworld.dev/page/welcome.png)
 
 ## Inicio rápido
 
@@ -15,28 +13,90 @@ ANT es un sistema de métodos de organización diseñado para agilizar el almace
 
 <Tabs syncKey="os">
   <TabItem label="Windows">
+
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="26" height="26" />
+      <h3 style="margin: 0;">CLI de windows</h3>
+    </div>
+    1.1 DESCARGA:
+
     ```powershell
-    # PowerShell
-    Invoke-WebRequest -Uri https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage.exe -OutFile CreateNewStorage.exe
-    .\CreateNewStorage.exe --help
-    .\CreateNewStorage.exe $HOME --name "My-name-storage"   # cambia el nombre por el tuyo
+    Invoke-WebRequest -Uri https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage.exe -OutFile CreateNewStorage.exe
     ```
+    [Descarga directa para Windows](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage.exe)
+
+    1.2. INSTALA Y ABRE:
+
+    ```powershell
+    # Variables
+    $MY_STORAGE = "My-name-storage"       # <-- Cambia el nombre por el tuyo, p. ej. William
+
+    # Instala y abre
+    .\CreateNewStorage.exe $HOME --name "$MY_STORAGE"
+    explorer "$HOME\$MY_STORAGE"
+    ```
+    <Callout type="warning" title="Atención">
+      Cambia la variable **MY_STORAGE** por el nombre que quieras antes de ejecutar los comandos.
+    </Callout>
+
   </TabItem>
   <TabItem label="Linux">
+
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg" width="26" height="26" />
+      <h3 style="margin: 0;">CLI de linux</h3>
+    </div>
+    1.1 DESCARGA:
+
     ```bash
-    curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage-linux.tar.gz
-    tar -xzf cns.tar.gz        # extrae el ejecutable "create-new-storage", ya listo para correr
-    ./create-new-storage --help
-    ./create-new-storage ~ --name "My-name-storage"   # cambia el nombre por el tuyo
+    curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage-linux.tar.gz
+    tar -xzf cns.tar.gz        # extrae el ejecutable del CLI
     ```
+    [Descarga directa para Linux](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage-linux.tar.gz)
+
+    1.2. INSTALA Y ABRE:
+
+    ```sh
+    # Variables
+    MY_STORAGE="My-name-storage"       # <-- Cambia el nombre por el tuyo, p. ej. William
+
+    # Instala y abre
+    ./create-new-storage ~ --name "\$MY_STORAGE"
+    xdg-open ~/"\$MY_STORAGE"
+    ```
+    <Callout type="warning" title="Atención">
+      Cambia la variable **MY_STORAGE** por el nombre que quieras antes de ejecutar los comandos.
+    </Callout>
+
   </TabItem>
   <TabItem label="macOS">
+
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apple/apple-original.svg" width="26" height="26" />
+      <h3 style="margin: 0;">CLI de macOS</h3>
+    </div>
+    1.1 DESCARGA:
+
     ```bash
-    curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.1.0/CreateNewStorage-macos.tar.gz
-    tar -xzf cns.tar.gz        # extrae el ejecutable "create-new-storage", ya listo para correr
-    ./create-new-storage --help
-    ./create-new-storage ~ --name "My-name-storage"   # cambia el nombre por el tuyo
+    curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage-macos.tar.gz
+    tar -xzf cns.tar.gz        # extrae el ejecutable del CLI
     ```
+    [Descarga directa para Mac](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage-macos.tar.gz)
+
+    1.2. INSTALA Y ABRE:
+
+    ```sh
+    # Variables
+    MY_STORAGE="My-name-storage"       # <-- Cambia el nombre por el tuyo, p. ej. William
+
+    # Instala y abre
+    ./create-new-storage ~ --name "$MY_STORAGE"
+    open ~/"$MY_STORAGE"
+    ```
+    <Callout type="warning" title="Atención">
+      Cambia la variable **MY_STORAGE** por el nombre que quieras antes de ejecutar los comandos.
+    </Callout>
+
   </TabItem>
 </Tabs>
 
@@ -46,56 +106,10 @@ Si prefieres una [descarga directa](/es/start-here/download).
 ### 2. Abre FolderManager
 
 CreateNewStorage deja **FolderManager** en tu nuevo almacenamiento.
-Ábrelo para empezar: te mostrará una estructura sugerida que puedes ajustar a tu comodidad. Lee más en [Folder Manager](/es/tools/folder-manager).
+Ábrelo para empezar: te mostrará una estructura sugerida que puedes ajustar a tu comodidad. Lee más en [Folder Manager](/es/folder-manager).
 
 ![FolderManager abriendo la estructura sugerida, cambiando de vista, eliminando, renombrando y cambiando el tipo de carpetas](https://r2.mikeworld.dev/folder-manager/first-run.gif)
 
 ### 3. Migra tus archivos
 
 Después de inicializar, puedes empezar a [**migrar**](/es/start-here/migrating-plan) **tus archivos existentes** al nuevo sistema.
-
-## Creación manual del almacenamiento
-
-<Callout type="warning">
-  Te recomendamos usar **CreateNewStorage** para evitar hacerlo manualmente.
-</Callout>
-
-### 1. Crea una raíz
-
-Elige una ubicación raíz, por ejemplo:
-
-<Tabs syncKey="os">
-  <TabItem label="Windows">
-    ```powershell
-    New-Item -Path "D:
-oot-name" -ItemType Directory
-    ```
-  </TabItem>
-  <TabItem label="Linux">
-    ```bash
-    sudo mkdir /root-name
-    ```
-  </TabItem>
-</Tabs>
-
-Nombra el directorio raíz  
-Crea un nombre descriptivo como:   
-- `My_Files`
-- `Home_Files`
-- `Rick_Files`
-
-### 2. Crea una estructura básica
-Abre el directorio raíz y crea las siguientes carpetas:
-
-```
-📁 You_Root
- ├── 📁 100.PERSONAL
- ├── 📁 200.WORK
- ├── 📁 300.PROJECTS
- ├── 📁 400.ACADEMIC
- ├── 📁 500.HOBBIES
- ├── 📁 900.Resources
- ├── 📁 998.Review (Index)
- └── 📁 999.Settings
-
-```

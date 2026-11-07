@@ -1,15 +1,12 @@
 // Builds the storage on disk and undoes this run's folders when an essential step fails.
 use std::path::{Path, PathBuf};
 
-use serde_yaml::Mapping;
-
 use crate::config::{ANT_DIR, CORE_DIR, DB_NAME, REVIEW_DIR, SETTINGS_DIR, TEMPLATE_DB_URL};
 use crate::fetch::{download, MAX_TEXT_BYTES};
 use crate::fs_ops::{make_dirs_tracked, rollback_created, write_file_atomic};
 use crate::info::write_info;
-use crate::shortcuts::{create_shortcuts, review_shortcut_name};
 use crate::template::tree_from_template;
-use crate::tree_types::{child_entries, node_type};
+use crate::tree_types::TreeNode;
 use crate::{downloads, Level};
 
 pub struct CreateOptions {
@@ -17,6 +14,7 @@ pub struct CreateOptions {
     pub template: Option<Vec<u8>>,
     pub allow_existing: bool,
     pub download: bool,
+    pub folder_manager: bool,
 }
 
 pub type Progress<'a> = &'a mut dyn FnMut(Level, &str);
@@ -31,7 +29,7 @@ pub fn create(opts: &CreateOptions, progress: Progress) -> Result<(), String> {
 }
 
 // Nothing touches the disk until the template is fetched and readable.
-fn load_template(opts: &CreateOptions) -> Result<Vec<u8>, String> {
+pub fn load_template(opts: &CreateOptions) -> Result<Vec<u8>, String> {
     match (&opts.template, opts.download) {
         (Some(bytes), _) => Ok(bytes.clone()),
         (None, true) => download(TEMPLATE_DB_URL, MAX_TEXT_BYTES, 60).map_err(|e| format!("Failed to download essential file 'ant.db': {e}")),
@@ -39,7 +37,7 @@ fn load_template(opts: &CreateOptions) -> Result<Vec<u8>, String> {
     }
 }
 
-pub(crate) fn storage(opts: &CreateOptions, template: &[u8], tree: &Mapping, progress: Progress) -> Result<(), String> {
+pub(crate) fn storage(opts: &CreateOptions, template: &[u8], tree: &[TreeNode], progress: Progress) -> Result<(), String> {
     let mut created = Vec::new();
     match build(opts, template, tree, &mut created, progress) {
         Ok(()) => Ok(()),
@@ -59,7 +57,7 @@ pub(crate) fn storage(opts: &CreateOptions, template: &[u8], tree: &Mapping, pro
     }
 }
 
-fn build(opts: &CreateOptions, template: &[u8], tree: &Mapping, created: &mut Vec<PathBuf>, progress: Progress) -> Result<(), String> {
+fn build(opts: &CreateOptions, template: &[u8], tree: &[TreeNode], created: &mut Vec<PathBuf>, progress: Progress) -> Result<(), String> {
     let root = &opts.root;
     let review = root.join(REVIEW_DIR);
     let core = root.join(SETTINGS_DIR).join(CORE_DIR);
@@ -77,48 +75,28 @@ fn build(opts: &CreateOptions, template: &[u8], tree: &Mapping, created: &mut Ve
     progress(Level::Ok, &format!("✔ {}", db_dest.display()));
 
     progress(Level::Step, "Generating an ANT Storage Template ...");
-    let mut links = Vec::new();
-    make_tree(tree, root, &review, &[], created, &mut links, progress)?;
-    for failure in create_shortcuts(&links) {
-        progress(Level::Warn, &format!("⚠ {failure}"));
-    }
+    make_tree(tree, root, created, progress)?;
     if opts.download {
-        downloads::optional_downloads(root, &core, progress);
+        downloads::optional_downloads(root, &core, opts.folder_manager, progress);
     }
     progress(Level::Ok, "Congrats, ANT Storage successfully created!");
     Ok(())
 }
 
-fn make_tree(
-    m: &Mapping,
-    base: &Path,
-    review: &Path,
-    context: &[String],
-    created: &mut Vec<PathBuf>,
-    links: &mut Vec<(PathBuf, PathBuf)>,
-    progress: Progress,
-) -> Result<(), String> {
-    for (name, child) in child_entries(m) {
-        let folder = base.join(name);
-        let kind = node_type(child);
+fn make_tree(nodes: &[TreeNode], base: &Path, created: &mut Vec<PathBuf>, progress: Progress) -> Result<(), String> {
+    for node in nodes {
+        let folder = base.join(&node.name);
+        let kind = node.base_kind();
         // CFG folders are the essentials made above; only their children come from the template.
         if kind != "CFG" {
             make_dirs_tracked(&folder, created)?;
             progress(Level::Ok, &format!("✔ {}", folder.display()));
-            write_info(&folder, child, created, progress)?;
+            write_info(&folder, &node.fields, created, progress)?;
         }
         if kind == "REV" {
-            match review_shortcut_name(context, name) {
-                Ok(link) => {
-                    progress(Level::Info, &format!("  ⤤ shortcut → {link}"));
-                    links.push((folder, review.join(link)));
-                }
-                Err(e) => progress(Level::Warn, &format!("  ⚠ {e}")),
-            }
             continue;
         }
-        let next: Vec<String> = context.iter().cloned().chain([name.to_string()]).collect();
-        make_tree(child, &folder, review, &next, created, links, progress)?;
+        make_tree(&node.children, &folder, created, progress)?;
     }
     Ok(())
 }

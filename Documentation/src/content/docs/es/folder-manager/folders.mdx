@@ -1,0 +1,44 @@
+---
+title: Trabajar con carpetas
+description: Añade, renombra, mueve, elimina y marca carpetas como favoritas.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+## Añadir, renombrar y mover
+
+- **Añadir nodo** y **Añadir tablero** crean una carpeta nueva junto a la seleccionada. Están disponibles desde el nivel 2 hacia abajo; las carpetas de nivel 1 y las reservadas tienen sus propias reglas de creación.
+- **Renombrar** edita solo la parte editable del nombre. El prefijo fijo, como `PJ.001_`, se mantiene.
+- **Subir** y **Bajar** cambian el orden de la carpeta seleccionada entre sus hermanas.
+- **Actualizar** vuelve a leer el almacenamiento. La app también se actualiza sola cuando su ventana recibe el foco, así que los cambios hechos en tu explorador de archivos aparecen.
+
+<ImagePlaceholder label="Captura: Añadir, renombrar y mover" />
+
+:::note[Identificadores de tablero]
+La documentación de ANT define `PJ`, `PR`, `HW`, `TK` y `CR` como identificadores oficiales. Hoy la app solo reconoce `PJ.`, `PR.` y `HW.` como tableros, y todo tablero nuevo que crea empieza como `PJ.`.
+:::
+
+## Menú contextual
+
+Haz clic derecho en una carpeta, o pulsa la tecla de menú o `Shift+F10`, para ver las opciones de abajo. Las opciones que no aplican a una carpeta, como Delete en una carpeta reservada, aparecen deshabilitadas.
+
+<ImagePlaceholder label="Captura: Menú contextual" />
+
+| Opción | Qué hace |
+| --- | --- |
+| Open | Abre la carpeta en el explorador de archivos del sistema |
+| Rename | Edita el nombre en el lugar |
+| Add to favorites / Remove from favorites | Marca la carpeta como favorita |
+| Change type | Cambia entre Node, Workboard y Portfolio |
+| Status | Solo para tableros: Hold, In progress, For review o Done |
+| Copy path | Copia la ruta absoluta al portapapeles |
+| Delete | Envía la carpeta a la Papelera de reciclaje (la papelera del sistema en Linux y macOS) |
+| Opciones de extensiones | Las añaden las [extensiones](/es/folder-manager/extensions) con ese permiso, al final del menú |
+
+Delete mueve primero la carpeta a una carpeta oculta `.ant-trash` y después a la Papelera. Si la restauras desde la Papelera, la siguiente actualización la devuelve a la raíz del almacenamiento. Con **Confirm before deleting** activado, una carpeta que no está vacía pide confirmación antes e indica cuántos archivos y carpetas se van con ella.
+
+## Favoritos
+
+Marca cualquier carpeta como favorita desde el menú contextual. La marca se guarda como `"favorite": true` en el `.ant/info.json` de la carpeta. Con la opción **Pin favorites to the top of each list** activada, los favoritos van encima del resto en cada lista.
+
+
+<ImagePlaceholder label="Captura: Favoritos" />

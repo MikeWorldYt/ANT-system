@@ -1,0 +1,22 @@
+---
+title: Settings
+description: Every page of the settings window.
+---
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+Open the settings window with the gear button next to the storage name, or press `Ctrl+,`. It has one page per group. Changes apply right away.
+
+<ImagePlaceholder label="Screenshot: Settings" />
+
+| Page | What you can do |
+| --- | --- |
+| General | Pin favorites to the top of each list. Hide workboards with status done. Choose what to open on launch (continue where you left off, or the root) and the starting view (continue, Tree or Columns). Turn **Confirm before deleting** on or off. |
+| Appearance | Theme (System, Light, Dark), accent color and text size (Small, Medium, Large). |
+| Shortcuts | Edit the six editable shortcuts: press **Edit**, then the new keys, or `Esc` to cancel. A shortcut needs `Ctrl` or `Alt` with a key, without `Shift`, and cannot reuse another shortcut or a fixed one. **Reset** restores the defaults. |
+| Storage | Rename the storage folder, with a log and **Revert last rename**, and see where the storage is. **Reindex Storage** after moving files outside the app. **Watch for external changes** checks once a day. |
+| Backup | Automatic backup, its frequency and folder, and export and import. See [Backups](/en/folder-manager/backups). |
+| Extensions | Add, enable, disable and remove extensions. See [Extensions](/en/folder-manager/extensions). |
+| Advanced | Debug logging, open the logs folder, open the developer tools and reset preferences. See [Troubleshooting](/en/folder-manager/troubleshooting#troubleshooting). |
+| About | App version, storage path, update check, the automatic check toggle, documentation, changelog and **Report a bug** (a prefilled issue on GitHub, or an email to `info@mikeworld.dev`). |
+
+Renaming the storage folder changes its path, so close any program that reads it first. The daily **Watch for external changes** check runs as a scheduled task, which is only available on Windows for now.

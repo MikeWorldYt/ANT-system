@@ -1,10 +1,8 @@
 // Describes the folders the template will create, so a caller can preview before touching disk.
 use std::path::{Component, Path};
 
-use serde_yaml::Mapping;
-
 use crate::template::tree_from_template;
-use crate::tree_types::{child_entries, node_type};
+use crate::tree_types::TreeNode;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlanNode {
@@ -17,21 +15,23 @@ pub fn plan(template: &[u8]) -> Result<Vec<PlanNode>, String> {
     Ok(plan_nodes(&tree_from_template(template)?))
 }
 
-fn plan_nodes(m: &Mapping) -> Vec<PlanNode> {
-    child_entries(m)
-        .map(|(name, child)| PlanNode { name: name.to_string(), kind: node_type(child).to_string(), children: plan_nodes(child) })
+fn plan_nodes(nodes: &[TreeNode]) -> Vec<PlanNode> {
+    nodes
+        .iter()
+        .map(|n| PlanNode { name: n.name.clone(), kind: n.base_kind().to_string(), children: plan_nodes(&n.children) })
         .collect()
 }
 
-// Each key becomes one folder name, so a key like "../x" must never leave the storage root.
-pub(crate) fn check_names(m: &Mapping) -> Result<(), String> {
-    for (name, child) in child_entries(m) {
+// Each node becomes one folder name, so a name like "../x" must never leave the storage root.
+pub(crate) fn check_names(nodes: &[TreeNode]) -> Result<(), String> {
+    for node in nodes {
+        let name = node.name.as_str();
         let mut parts = Path::new(name).components();
         let single = matches!((parts.next(), parts.next()), (Some(Component::Normal(_)), None));
         if !single || name.contains(['/', '\\', '\0']) {
             return Err(format!("The template has an invalid folder name: {name:?}"));
         }
-        check_names(child)?;
+        check_names(&node.children)?;
     }
     Ok(())
 }
@@ -39,7 +39,7 @@ pub(crate) fn check_names(m: &Mapping) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tests::TEMPLATE;
+    use crate::tests::{node, TEMPLATE};
 
     #[test]
     fn plan_keeps_order_kinds_and_nesting() {
@@ -58,8 +58,8 @@ mod tests {
 
     #[test]
     fn names_that_escape_the_root_are_refused() {
-        let escaping: Mapping = serde_yaml::from_str("\"../x\":\n  type: NODE\n").unwrap();
-        let nested: Mapping = serde_yaml::from_str("a:\n  \"b/c\":\n    type: NODE\n").unwrap();
+        let escaping = vec![node("../x", "NODE", vec![])];
+        let nested = vec![node("a", "NODE", vec![node("b/c", "NODE", vec![])])];
         assert!(check_names(&escaping).is_err());
         assert!(check_names(&nested).is_err());
     }
