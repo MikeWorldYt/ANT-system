@@ -29,7 +29,7 @@ struct Bits {
 
 impl Bits {
     fn push(&mut self, bit: u32) {
-        if self.count % 8 == 0 {
+        if self.count.is_multiple_of(8) {
             self.out.push(0);
         }
         *self.out.last_mut().unwrap() |= ((bit & 1) as u8) << (self.count % 8);

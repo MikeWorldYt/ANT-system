@@ -1,29 +1,29 @@
 // Tree rows sent to the UI: disk folders merged with tree entries, plus the per-node action rules.
+mod actions;
+mod entries;
 #[cfg(test)]
 mod tests;
 
-use std::collections::BTreeSet;
-use std::ffi::OsStr;
-use std::fs;
+pub use actions::NodeActions;
+
 use std::path::Path;
 
 use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use crate::domain::tree_types::{child_entries, flags_in, type_base, type_level, META_KEYS};
-use crate::domain::config::{
-    HIDDEN_FLAG, LINK_FAVORITES_FILENAME, LINK_HIDDEN_FILENAME, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER, TypeBase, WkbStatus, is_hidden_dir,
-};
-use crate::domain::model::Copied;
+use crate::domain::config::{is_hidden_dir, TypeBase, WkbStatus, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER};
 use crate::domain::error::R;
-use crate::infra::fs_safe::{dir_entries, io_err, join_rel};
-use crate::infra::link_list;
-use crate::services::tree::review_links;
-use crate::infra::storage::info::{field_of, read_info, NodeInfo};
-use crate::domain::names::{name_parts, is_movable_node, is_system_root_name, is_workboard_name, numeric_id, support_kind};
+use crate::domain::model::Copied;
+use crate::domain::names::{is_system_root_name, is_workboard_name, name_parts};
+use crate::domain::tree_types::{flags_in, type_base, type_level, META_KEYS};
+use crate::infra::fs_safe::join_rel;
 use crate::infra::scan::list_subdirs;
+use crate::infra::storage::info::{field_of, read_info, NodeInfo};
 use crate::services::tree::depth;
+use crate::services::tree::review_links;
 use crate::services::tree::tree_store::{get_node, get_type, is_locked_type};
+use actions::{compute_actions, file_actions, link_actions, mark_moves};
+use entries::{is_unmanaged, level_entries, Entry};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,27 +31,6 @@ pub struct NodeType {
     pub raw: String,
     pub base: TypeBase,
     pub level: Option<u32>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NodeActions {
-    pub rename: bool,
-    pub change_type: bool,
-    pub add_next: bool,
-    pub add_child: bool,
-    pub add_folder: bool,
-    pub move_up: bool,
-    pub move_down: bool,
-    pub delete: bool,
-    pub copy_path: bool,
-    pub open: bool,
-    pub favorite: bool,
-    pub important: bool,
-    pub edit_details: bool,
-    pub edit_flags: bool,
-    pub hide_link: bool,
-    pub hide: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -92,16 +71,6 @@ pub struct TreeSnapshot {
     pub yaml_changed: bool,
     pub copies: Vec<Copied>,
     pub warnings: Vec<String>,
-}
-
-struct Entry {
-    name: String,
-    on_disk: bool,
-    in_yaml: bool,
-    link: Option<Vec<String>>,
-    favorite: bool,
-    hidden: bool,
-    file: bool,
 }
 
 pub fn build_tree(root: &Path, data: &Mapping, yaml_changed: bool) -> R<TreeSnapshot> {
@@ -167,99 +136,6 @@ fn fill_at(root: &Path, data: &Mapping, nodes: &mut [TreeNode], limit: usize) ->
     Ok(())
 }
 
-// A folder on disk with no database entry, and not a review link.
-fn is_unmanaged(entry: &Entry) -> bool {
-    entry.on_disk && !entry.in_yaml && entry.link.is_none() && !entry.file
-}
-
-fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>> {
-    let disk_dir = join_rel(root, parent);
-    let disk = if disk_dir.is_dir() { list_subdirs(&disk_dir)? } else { Vec::new() };
-    let yaml: Vec<&str> = get_node(data, parent)
-        .map(|m| child_entries(m).map(|(k, _)| k).collect())
-        .unwrap_or_default();
-    // A hidden folder keeps its tree entry but is not listed, so nothing below it is read either.
-    let hidden_here: BTreeSet<&str> = get_node(data, parent)
-        .map(|m| child_entries(m).filter(|(_, c)| flags_in(c).iter().any(|f| f == HIDDEN_FLAG)).map(|(k, _)| k).collect())
-        .unwrap_or_default();
-    // A disk folder named like a meta key has no tree entry of its own, and the trash is never a node.
-    let names: BTreeSet<&str> = disk
-        .iter()
-        .map(String::as_str)
-        .filter(|d| !META_KEYS.contains(d))
-        .chain(yaml.iter().copied().filter(|k| !is_hidden_dir(k)))
-        .filter(|name| !hidden_here.contains(name))
-        .filter(|name| !(parent.is_empty() && is_hidden_system_root(name)))
-        .collect();
-    let link_entries: Vec<Entry> = if matches!(parent, [top] if top.eq_ignore_ascii_case(REVIEW_FOLDER)) {
-        let starred = link_list::read(root, LINK_FAVORITES_FILENAME)?;
-        let hidden_links = link_list::read(root, LINK_HIDDEN_FILENAME)?;
-        let hidden = review_links::hidden_categories(root);
-        let favorites_shown = review_links::favorites_shown(root);
-        let links = review_links::links(root, data)?;
-        // A starred link brings its category's top link along, so the group keeps its heading under a hidden category.
-        let starred_categories: Vec<String> = links
-            .iter()
-            .filter(|(name, _)| favorites_shown && starred.contains(name))
-            .map(|(_, owner)| owner[0].clone())
-            .collect();
-        links
-            .into_iter()
-            .filter(|(name, owner)| {
-                let kept_as_favorite = favorites_shown && starred.contains(name);
-                let kept_as_heading = owner.len() == 1 && starred_categories.contains(&owner[0]);
-                (kept_as_favorite || kept_as_heading || !hidden.contains(&owner[0])) && !names.contains(name.as_str())
-            })
-            .map(|(name, owner)| Entry { favorite: starred.contains(&name), hidden: hidden_links.contains(&name), name, on_disk: true, in_yaml: false, link: Some(owner), file: false })
-            .collect()
-    } else {
-        Vec::new()
-    };
-
-    let file_entries: Vec<Entry> = if lists_files(parent) {
-        disk_files(&disk_dir)?
-            .into_iter()
-            .map(|name| Entry { name, on_disk: true, in_yaml: false, link: None, favorite: false, hidden: false, file: true })
-            .collect()
-    } else {
-        Vec::new()
-    };
-    let mut entries: Vec<Entry> = names
-        .into_iter()
-        .map(|name| Entry {
-            name: name.to_string(),
-            on_disk: disk.iter().any(|d| d == name),
-            in_yaml: yaml.contains(&name),
-            link: None,
-            favorite: false,
-            hidden: false,
-            file: false,
-        })
-        .filter(|e| !(e.on_disk && !e.in_yaml && is_linked_folder(&e.name)))
-        .chain(link_entries)
-        .chain(file_entries)
-        .collect();
-    entries.sort_by_cached_key(|e| (is_tail(&e.name), natural_key(&e.name)));
-    Ok(entries)
-}
-
-// Compares the first run of digits as a number, so PJ.999 comes before PJ.1000.
-fn natural_key(name: &str) -> (String, u64, String) {
-    let start = name.find(|c: char| c.is_ascii_digit()).unwrap_or(name.len());
-    let digits = name[start..].bytes().take_while(u8::is_ascii_digit).count();
-    let number = name[start..start + digits].parse().unwrap_or(0);
-    (name[..start].to_string(), number, name[start + digits..].to_string())
-}
-
-// Support folders (REV., RES., TPL. and the numeric ids older storages use) and the 998/999 root ones always close a list, after workboards and unnumbered folders too.
-fn is_tail(name: &str) -> bool {
-    support_kind(name).is_some() || numeric_id(name).is_some_and(|n| n == 998 || n == 999)
-}
-
-fn is_linked_folder(name: &str) -> bool {
-    matches!(support_kind(name), Some("REV" | "RES"))
-}
-
 // Any of these inside a folder means it holds a git project.
 const GIT_MARKERS: [&str; 3] = [".git", ".github", ".gitignore"];
 
@@ -301,52 +177,9 @@ fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
         file: true,
         info: None,
         children: None,
-        actions: NodeActions {
-            rename: true,
-            change_type: false,
-            add_next: false,
-            add_child: false,
-            add_folder: false,
-            move_up: false,
-            move_down: false,
-            delete: true,
-            copy_path: true,
-            open: true,
-            favorite: false,
-            important: false,
-            edit_details: false,
-            edit_flags: false,
-            hide_link: false,
-            hide: false,
-        },
+        actions: file_actions(),
         name,
     }
-}
-
-// Review folders also list their files; hidden files and the Windows desktop.ini stay out.
-fn disk_files(dir: &Path) -> R<Vec<String>> {
-    if !dir.is_dir() {
-        return Ok(Vec::new());
-    }
-    let mut files = Vec::new();
-    for entry in dir_entries(dir, "read the folder")? {
-        let entry = entry?;
-        let name = entry.file_name().to_string_lossy().into_owned();
-        if name.starts_with('.') || name.eq_ignore_ascii_case("desktop.ini") || is_running_app(dir, &entry.file_name()) {
-            continue;
-        }
-        if entry.file_type().map_err(|e| io_err("read the folder", dir, &e))?.is_file() {
-            files.push(name);
-        }
-    }
-    Ok(files)
-}
-
-// The app can sit inside the storage it manages; listing its own executable would show the app inside itself.
-fn is_running_app(dir: &Path, name: &OsStr) -> bool {
-    let Ok(exe) = std::env::current_exe() else { return false };
-    exe.file_name().is_some_and(|exe_name| exe_name.eq_ignore_ascii_case(name))
-        && exe.parent().is_some_and(|parent| fs::canonicalize(parent).ok() == fs::canonicalize(dir).ok())
 }
 
 fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit: usize) -> R<TreeNode> {
@@ -424,59 +257,6 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
     })
 }
 
-// A review link only opens its owner folder; files reach the owner through the drop target instead.
-fn link_actions() -> NodeActions {
-    NodeActions {
-        rename: false,
-        change_type: false,
-        add_next: false,
-        add_child: false,
-        add_folder: false,
-        move_up: false,
-        move_down: false,
-        delete: false,
-        copy_path: true,
-        open: true,
-        favorite: true,
-        important: false,
-        edit_details: false,
-        edit_flags: false,
-        hide_link: true,
-        hide: false,
-    }
-}
-
-// The only place that decides what a node allows; move flags are filled in by `mark_moves`.
-fn compute_actions(depth: usize, limit: usize, ghost: bool, raw_type: &str, reserved: bool, info_broken: bool) -> NodeActions {
-    let locked = is_locked_type(raw_type);
-    let frozen = locked || reserved;
-    // The tree stops at the depth limit, so deeper folders have no entry to retype or to add a sibling under.
-    let in_tree = depth < limit;
-    let outcome = type_base(raw_type) == "OUT";
-    NodeActions {
-        rename: !ghost && !frozen,
-        change_type: !frozen && in_tree && type_base(raw_type) != "OUT",
-        // Main categories can create another Level 1 category; deeper nodes create siblings as usual.
-        add_next: !ghost && !reserved && in_tree,
-        // Mirrors add_node: the new child sits one level below this node and must stay inside the limit.
-        add_child: !ghost && !frozen && depth + 1 < limit,
-        // Past the limit a child is a plain folder or a workboard the database does not track.
-        add_folder: !ghost && !frozen && depth + 1 >= limit,
-        move_up: false,
-        move_down: false,
-        delete: !reserved && (ghost || !locked) && !outcome,
-        copy_path: !ghost,
-        open: !ghost,
-        // A broken info.json is never overwritten, so neither edit can be saved into it.
-        favorite: !reserved && !ghost && !info_broken && !outcome,
-        important: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
-        edit_details: !frozen && !ghost && !info_broken && type_base(raw_type) == "WKB",
-        edit_flags: !frozen && !ghost && depth > 0 && type_base(raw_type) == "NODE",
-        hide_link: false,
-        hide: !frozen && !ghost && depth > 0,
-    }
-}
-
 // Root folders are always main, a rule rather than a stored flag; the rest carry what the user set.
 fn node_flags(depth: usize, yaml_entry: Option<&Mapping>) -> Vec<String> {
     let mut flags = if depth == 0 { vec![MAIN_FLAG.to_string()] } else { Vec::new() };
@@ -484,36 +264,10 @@ fn node_flags(depth: usize, yaml_entry: Option<&Mapping>) -> Vec<String> {
     flags
 }
 
-// Moves swap ids with the nearest movable sibling, so the ends of the movable list cannot go further.
-fn mark_moves(nodes: &mut [TreeNode]) {
-    let mut movable: Vec<(u32, usize)> = nodes
-        .iter()
-        .enumerate()
-        .filter(|(_, n)| is_movable(n))
-        .filter_map(|(i, n)| numeric_id(&n.name).map(|id| (id, i)))
-        .collect();
-    movable.sort();
-    let last = movable.len().saturating_sub(1);
-    for (pos, (_, idx)) in movable.iter().enumerate() {
-        nodes[*idx].actions.move_up = pos > 0;
-        nodes[*idx].actions.move_down = pos < last;
-    }
-}
-
-fn is_movable(node: &TreeNode) -> bool {
-    let raw = node.node_type.as_ref().map_or("", |t| t.raw.as_str());
-    !node.file && !node.ghost && !node.locked && !node.reserved && !node.linked && is_movable_node(&node.name, raw)
-}
-
 // Windows folder names ignore case, so "999.settings" is the same reserved folder; the whole 9xx range is the app's.
 pub(crate) fn is_reserved(rel_parts: &[String]) -> bool {
     matches!(rel_parts, [name]
         if name.eq_ignore_ascii_case(SETTINGS_FOLDER) || name.eq_ignore_ascii_case(REVIEW_FOLDER) || is_system_root_name(name))
-}
-
-// The 9xx root folders are the app's; 998.Review stays listed because its links are what the user browses.
-fn is_hidden_system_root(name: &str) -> bool {
-    is_system_root_name(name) && !name.eq_ignore_ascii_case(REVIEW_FOLDER)
 }
 
 fn parse_type(raw: &str) -> NodeType {

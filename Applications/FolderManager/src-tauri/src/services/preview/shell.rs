@@ -48,13 +48,15 @@ fn read_rgba(bitmap: HBITMAP) -> Option<(u32, u32, Vec<u8>)> {
         return None;
     }
     let (width, height) = (info_bitmap.bmWidth, info_bitmap.bmHeight);
-    let mut header = BITMAPINFO::default();
-    header.bmiHeader = BITMAPINFOHEADER {
-        biSize: size_of::<BITMAPINFOHEADER>() as u32,
-        biWidth: width,
-        biHeight: -height,
-        biPlanes: 1,
-        biBitCount: 32,
+    let mut header = BITMAPINFO {
+        bmiHeader: BITMAPINFOHEADER {
+            biSize: size_of::<BITMAPINFOHEADER>() as u32,
+            biWidth: width,
+            biHeight: -height,
+            biPlanes: 1,
+            biBitCount: 32,
+            ..Default::default()
+        },
         ..Default::default()
     };
     let mut bgra = vec![0u8; width as usize * height as usize * 4];

@@ -20,9 +20,24 @@ pub(crate) fn remote_backup_folder(value: &str) -> bool {
     }
 }
 
+pub(crate) fn valid_stamp(stamp: &str) -> bool {
+    let groups: Vec<&str> = stamp.split('-').collect();
+    groups.len() == 5 && groups.iter().all(|g| g.len() == 2 && g.bytes().all(|b| b.is_ascii_digit()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_five_two_digit_groups_make_a_stamp() {
+        assert!(valid_stamp("26-10-24-09-05"));
+        assert!(!valid_stamp("26-10-24-09"));
+        assert!(!valid_stamp("26-10-24-09-5"));
+        assert!(!valid_stamp("26-10-24-09-0a"));
+        assert!(!valid_stamp("../x-10-24-09-05"));
+        assert!(!valid_stamp("26-10-24-09-05-00"));
+    }
 
     #[cfg(windows)]
     #[test]

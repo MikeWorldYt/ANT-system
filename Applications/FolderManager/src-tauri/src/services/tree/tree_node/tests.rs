@@ -1,3 +1,4 @@
+use super::entries::natural_key;
 use super::*;
 use crate::test_support::{rel, storage, TempDir};
 

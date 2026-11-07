@@ -1,13 +1,15 @@
 // Opt-in Markdown trail of what the app did, written under .ant/debug for bug reports.
 pub mod sysinfo;
 
+pub(crate) use crate::domain::validation::valid_stamp;
+pub(crate) use crate::infra::storage::core_dir::logs_dir;
+
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Instant;
 
-use crate::domain::config::DATA_DIR;
 use crate::domain::error::{FmError, R};
 use crate::infra::storage::db::db_path;
 use crate::services::tree::depth;
@@ -25,15 +27,6 @@ fn state() -> std::sync::MutexGuard<'static, Option<(PathBuf, Instant)>> {
 
 fn io_err(path: &Path, e: &std::io::Error) -> FmError {
     FmError::Internal { message: format!("Could not write the debug log {}: {e}", path.display()) }
-}
-
-pub fn logs_dir(root: &Path) -> PathBuf {
-    root.join(DATA_DIR).join("debug")
-}
-
-pub fn valid_stamp(stamp: &str) -> bool {
-    let groups: Vec<&str> = stamp.split('-').collect();
-    groups.len() == 5 && groups.iter().all(|g| g.len() == 2 && g.bytes().all(|b| b.is_ascii_digit()))
 }
 
 fn free_path(dir: &Path, stamp: &str) -> PathBuf {
@@ -110,16 +103,6 @@ pub fn stop() -> R<()> {
 mod tests {
     use super::*;
     use crate::test_support::TempDir;
-
-    #[test]
-    fn only_five_two_digit_groups_make_a_stamp() {
-        assert!(valid_stamp("26-10-24-09-05"));
-        assert!(!valid_stamp("26-10-24-09"));
-        assert!(!valid_stamp("26-10-24-09-5"));
-        assert!(!valid_stamp("26-10-24-09-0a"));
-        assert!(!valid_stamp("../x-10-24-09-05"));
-        assert!(!valid_stamp("26-10-24-09-05-00"));
-    }
 
     #[test]
     fn an_existing_log_name_gets_a_numeric_suffix() {

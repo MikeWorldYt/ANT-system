@@ -8,7 +8,7 @@ use crate::services::intake::IntakeReport;
 
 #[tauri::command]
 pub async fn run_intake(app: AppHandle) -> R<IntakeReport> {
-    run_locked(app, |root| crate::services::intake::run(root)).await
+    run_locked(app, crate::services::intake::run).await
 }
 
 #[tauri::command]

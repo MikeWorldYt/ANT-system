@@ -8,12 +8,12 @@ use crate::services::upgrade::{self, ExtraReview, SupportCheck};
 
 #[tauri::command]
 pub async fn check_support_upgrade(app: AppHandle) -> R<SupportCheck> {
-    run_locked(app, |root| upgrade::check_support_upgrade(root)).await
+    run_locked(app, upgrade::check_support_upgrade).await
 }
 
 #[tauri::command]
 pub async fn check_extra_reviews(app: AppHandle) -> R<Vec<ExtraReview>> {
-    run_locked(app, |root| upgrade::extra_reviews(root)).await
+    run_locked(app, upgrade::extra_reviews).await
 }
 
 #[tauri::command]

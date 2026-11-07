@@ -7,7 +7,7 @@ use crate::services::extensions::{self, ExtensionInfo, ExtensionPreview, Registr
 
 #[tauri::command]
 pub async fn list_extensions(app: AppHandle) -> R<Vec<ExtensionInfo>> {
-    run_locked(app, |root| extensions::list(root)).await
+    run_locked(app, extensions::list).await
 }
 
 #[tauri::command]

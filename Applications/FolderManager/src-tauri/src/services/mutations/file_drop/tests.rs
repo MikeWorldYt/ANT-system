@@ -1,6 +1,9 @@
 // Drops checked on a throwaway storage, with the files coming from a folder outside it.
 use std::fs;
 
+use serde_yaml::Value;
+
+use super::transfer::{copy_whole, move_across, remove_original};
 use super::*;
 use crate::services::mutations::source_path;
 use crate::test_support::{names, ok_recycle, rel, storage, synced_yaml, yaml, TempDir};
@@ -267,7 +270,7 @@ fn an_unchanged_original_goes_to_the_bin_and_a_refusal_keeps_it() {
         Ok(())
     };
     assert_eq!(remove_original(&from, &to, &bin), None);
-    assert_eq!(sent.borrow().as_slice(), [from.clone()]);
+    assert_eq!(sent.borrow().as_slice(), std::slice::from_ref(&from));
     let note = remove_original(&from, &to, &never_recycles).expect("a refusal is reported");
     assert!(note.contains("no Recycle Bin"), "{note}");
     assert!(from.join("sub/a.txt").is_file());
@@ -373,7 +376,7 @@ fn app_folders_and_tracked_nodes_dropped_from_explorer_stay_where_they_are() {
     let sources = [".ant", "backup", "999.Settings", "100.PERSONAL/03.Toki", "100.PERSONAL/PJ.001_Board/Loose"];
     for source in sources {
         let path = dir.path().join(source);
-        let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), &[path.clone()], false, &[], &never_recycles);
+        let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), std::slice::from_ref(&path), false, &[], &never_recycles);
         let out = out.unwrap_or_else(|e| panic!("{source}: {e:?}"));
         assert!(out.placed.is_empty(), "{source}: {:?}", out.placed);
         assert!(path.is_dir(), "{source}");
@@ -418,13 +421,13 @@ fn an_untracked_folder_moved_inside_the_app_still_moves_but_app_folders_do_not()
     dir.mkdir("100.PERSONAL/04.Data/Loose/sub");
     let target = rel(&["100.PERSONAL", "PJ.001_Board"]);
     let loose = source_path(dir.path(), &rel(&["100.PERSONAL", "04.Data", "Loose"])).unwrap();
-    let out = move_in(dir.path(), &target, &[loose.clone()], false, &never_recycles).unwrap();
+    let out = move_in(dir.path(), &target, std::slice::from_ref(&loose), false, &never_recycles).unwrap();
     assert!(out.mutation.warnings.is_empty(), "{:?}", out.mutation.warnings);
     assert_eq!(out.placed, [placed("Loose", &["100.PERSONAL", "PJ.001_Board"], false)]);
     assert!(!loose.exists() && dir.path().join("100.PERSONAL/PJ.001_Board/Loose/sub").is_dir());
     dir.mkdir("backup");
     let backup = source_path(dir.path(), &rel(&["backup"])).unwrap();
-    let out = move_in(dir.path(), &target, &[backup.clone()], false, &never_recycles).unwrap();
+    let out = move_in(dir.path(), &target, std::slice::from_ref(&backup), false, &never_recycles).unwrap();
     assert!(out.placed.is_empty() && backup.is_dir(), "{:?}", out.placed);
     assert!(source_path(dir.path(), &rel(&[".ant"])).is_err());
     assert!(source_path(dir.path(), &rel(&["100.PERSONAL", "03.Toki"])).is_err());
@@ -435,7 +438,7 @@ fn a_file_moved_onto_its_own_folder_stays_put() {
     let (dir, _src) = fixture("drop-same");
     let own = dir.path().join("100.PERSONAL/04.Data/a.txt");
     fs::write(&own, "a").unwrap();
-    let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), &[own.clone()], false, &[], &never_recycles).unwrap();
+    let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), std::slice::from_ref(&own), false, &[], &never_recycles).unwrap();
     assert!(out.placed.is_empty());
     let m = &out.mutation;
     assert!(m.warnings[0].contains("already in this folder"), "{:?}", m.warnings);

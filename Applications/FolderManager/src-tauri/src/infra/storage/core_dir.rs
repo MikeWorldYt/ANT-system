@@ -7,6 +7,10 @@ pub fn data_dir(root: &Path) -> PathBuf {
     root.join(DATA_DIR)
 }
 
+pub fn logs_dir(root: &Path) -> PathBuf {
+    data_dir(root).join("debug")
+}
+
 pub fn legacy_core_dir(root: &Path) -> PathBuf {
     root.join(SETTINGS_FOLDER).join(CORE_FOLDER)
 }

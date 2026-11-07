@@ -6,8 +6,8 @@ use rusqlite::{Connection, ErrorCode};
 
 use super::db::{db_path, Store, BUSY_TIMEOUT};
 use crate::domain::config::DB_FILENAME;
-use crate::services::debug_log::valid_stamp;
 use crate::domain::error::{FmError, R};
+use crate::domain::validation::valid_stamp;
 use crate::infra::fs_safe::io_err;
 
 #[derive(Debug, PartialEq)]

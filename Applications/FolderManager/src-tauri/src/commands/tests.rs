@@ -193,7 +193,7 @@ fn details_and_type_edits_reach_the_search_index() {
     let p = rel(&["100.WORK", "01.A"]);
     let search = |q: &str| Store::open_or_create(dir.path()).unwrap().search(&parse_query(q)).unwrap();
     with_search_index(dir.path(), mutations::set_node_type(dir.path(), &p, EditableType::Wkb, None)).unwrap();
-    assert_eq!(search("type:WKB-L2"), [p.clone()]);
+    assert_eq!(search("type:WKB-L2"), std::slice::from_ref(&p));
     let m = with_search_index(dir.path(), mutations::set_details(dir.path(), &p, None, Some("Zed"))).unwrap();
     assert!(m.warnings.is_empty(), "{:?}", m.warnings);
     assert_eq!(search("client:Zed"), [p]);
@@ -209,7 +209,9 @@ fn indexed(tag: &str) -> TempDir {
     dir
 }
 
-fn index_state(dir: &TempDir) -> (Vec<(String, String, String)>, Vec<Vec<Vec<String>>>) {
+type IndexState = (Vec<(String, String, String)>, Vec<Vec<Vec<String>>>);
+
+fn index_state(dir: &TempDir) -> IndexState {
     let store = Store::open_or_create(dir.path()).unwrap();
     let queries = ["", "type:NODE", "status:done", "client:Mike", "in:100.ACADEMIC new", "physics"];
     (store.field_rows().unwrap(), queries.iter().map(|q| store.search(&parse_query(q)).unwrap()).collect())

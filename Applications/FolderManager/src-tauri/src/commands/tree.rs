@@ -45,7 +45,7 @@ pub async fn refresh(app: AppHandle, full: bool) -> R<TreeSnapshot> {
 
 #[tauri::command]
 pub async fn check_root(app: AppHandle) -> R<RootCheck> {
-    run_locked(app, |root| root_check::check_root(root)).await
+    run_locked(app, root_check::check_root).await
 }
 
 #[tauri::command]
