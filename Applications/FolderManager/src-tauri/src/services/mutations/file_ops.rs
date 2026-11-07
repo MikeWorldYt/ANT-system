@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use super::recycle::move_to_bin;
 use super::{finish, scope, load_synced_at, parent_of, Mutation};
 
+use crate::domain::config::is_hidden_dir;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{rename_no_replace, resolve, validate_component, StorageLock};
 use crate::services::tree::tree_node::lists_files;
@@ -34,6 +35,9 @@ pub fn rename_file(root: &Path, rel: &[String], new_name: &str) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let from = file_path(root, rel)?;
     validate_component(new_name)?;
+    if is_hidden_dir(new_name) {
+        return Err(FmError::InvalidName { name: new_name.to_string(), reason: "reserved name".to_string() });
+    }
     let to = from.with_file_name(new_name);
     rename_no_replace("rename file", &from, &to)?;
     let parent = parent_of(rel).to_vec();
@@ -56,6 +60,7 @@ pub fn delete_file(root: &Path, rel: &[String], recycle: impl FnOnce(&Path) -> R
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::config::{DATA_DIR, TRASH_DIR};
     use crate::test_support::{rel, storage};
 
     fn review_with_file(tag: &str) -> crate::test_support::TempDir {
@@ -81,6 +86,16 @@ mod tests {
         assert!(dir.path().join("100.A/x.txt").is_file());
         assert!(rename_file(dir.path(), &rel(&["100.A", "missing.txt"]), "y.txt").is_err());
         assert!(delete_file(dir.path(), &rel(&["100.A", "98.A"]), |_| Ok(())).is_err());
+    }
+
+    #[test]
+    fn a_file_cannot_take_the_name_of_a_hidden_app_folder() {
+        let dir = review_with_file("file-hidden-name");
+        for name in [DATA_DIR, ".ANT", TRASH_DIR] {
+            let err = rename_file(dir.path(), &rel(&["100.A", "98.A", "notes.txt"]), name).unwrap_err();
+            assert!(matches!(err, FmError::InvalidName { .. }), "{name}: {err}");
+        }
+        assert_eq!(crate::test_support::names(&dir.path().join("100.A/98.A")), ["notes.txt"]);
     }
 
     #[test]
