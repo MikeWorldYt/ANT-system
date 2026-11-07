@@ -137,6 +137,7 @@ export const deleteFile = (relParts: string[]) => call<Mutation>("delete_file", 
 export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
 export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonEmpty: boolean) =>
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });
+export const answerUiRequest = (id: number, value: unknown, error: string | null) => call<void>("answer_ui_request", { id, value, error });
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
 export const listFavorites = () => call<string[][]>("list_favorites");
 export const listReview = () => call<string[][]>("list_review");

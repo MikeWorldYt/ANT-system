@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 
 use super::protocol::{RpcError, INVALID_PARAMS};
 use super::view::{Brief, Detail};
-use super::{schema, write, Server};
+use super::{schema, ui, write, Server};
 use crate::app::storage_session::StorageInfo;
 use crate::domain::error::{FmError, R};
 use crate::domain::search::{parse_query, suggest_key};
@@ -39,7 +39,7 @@ pub(super) fn list() -> Vec<Value> {
                 "annotations": { "title": title, "readOnlyHint": true, "openWorldHint": false },
             })
         });
-    read.chain(write::list()).collect()
+    read.chain(write::list()).chain(ui::list()).collect()
 }
 
 #[derive(Deserialize)]
@@ -98,6 +98,7 @@ pub(super) fn call(server: &Server, params: &Value) -> Result<Value, RpcError> {
         "suggest_search" => args::<SuggestArgs>(name, &arguments).map(|a| {
             server.read(|storage, _| Ok(json!({ "suggestions": storage.with_reader(|store| store.suggest(&suggest_key(&a.key), &a.prefix))? })))
         })?,
+        name if name.starts_with("ui_") => ui::call(server, name, &arguments)?,
         _ => write::call(server, name, &arguments)?,
     };
     Ok(result(outcome))
@@ -139,7 +140,7 @@ fn children(root: &Path, rel_parts: &[String]) -> R<Value> {
     Ok(json!({ "nodes": kids.iter().map(|k| Brief::of(k, 1)).collect::<Vec<_>>() }))
 }
 
-fn node(root: &Path, mut rel_parts: Vec<String>) -> R<Detail> {
+pub(super) fn node(root: &Path, mut rel_parts: Vec<String>) -> R<Detail> {
     let Some(name) = rel_parts.pop() else {
         return Err(FmError::InvalidPath { rel_parts, reason: "a node needs at least one folder name".to_string() });
     };

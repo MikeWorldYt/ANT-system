@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { DragDropEvent } from "@tauri-apps/api/webview";
-import type { ReviewIndexEvent, StorageChangedEvent } from "./types";
+import type { ReviewIndexEvent, StorageChangedEvent, UiRequest } from "./types";
 
 export const onReviewIndex = (fn: (e: ReviewIndexEvent) => void) =>
   listen<ReviewIndexEvent>("fm://review-index", (ev) => fn(ev.payload));
@@ -18,3 +18,5 @@ export const onFileDrag = (fn: (e: DragDropEvent) => void) =>
 
 export const onStorageChanged =(fn: (e: StorageChangedEvent) => void) =>
   listen<StorageChangedEvent>("storage-changed", (ev) => fn(ev.payload));
+
+export const onUiRequest = (fn: (e: UiRequest) => void) => listen<UiRequest>("fm://ui-request", (ev) => fn(ev.payload));

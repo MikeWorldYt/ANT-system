@@ -144,8 +144,8 @@ export function nextTab(): void {
 }
 
 // A tab opens on the folder it was asked for, else on the storage root.
-export function openTab(parts?: string[]): void {
-  if (moving) return;
+export function openTab(parts?: string[]): Promise<void> {
+  if (moving) return Promise.resolve();
   capture();
   const place: Place = { virtual: null, via: null, key: parts ? keyOf(parts) : null };
   const { tabView, startView } = state.settings;
@@ -155,7 +155,7 @@ export function openTab(parts?: string[]): void {
     state.entering = place.key;
     leaveVirtual();
   }
-  void activate(tabs.length - 1);
+  return activate(tabs.length - 1);
 }
 
 export function duplicateTab(index: number): void {
@@ -212,3 +212,6 @@ function labelOf(place: Place): string {
 
 export const tabViews = (): TabView[] =>
   tabs.map((t, i) => ({ label: labelOf(t.place), title: t.place.key ?? labelOf(t.place), active: i === active, split: t.split ? (t.split.right ? "right" : "left") : null }));
+
+export const tabStates = () =>
+  tabs.map((t, i) => ({ label: labelOf(t.place), relParts: t.place.key?.split("/") ?? [], virtual: t.place.virtual, view: t.view, active: i === active }));

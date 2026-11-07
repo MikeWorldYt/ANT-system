@@ -223,6 +223,18 @@ export interface StorageChangedEvent {
   rescan: boolean;
 }
 
+export type UiCall =
+  | { action: "getState" }
+  | { action: "reveal"; relParts: string[] }
+  | { action: "openTab"; relParts: string[] | null }
+  | { action: "split"; relParts: string[] | null }
+  | { action: "setView"; view: string };
+
+export interface UiRequest {
+  id: number;
+  call: UiCall;
+}
+
 export type FmError =
   | { kind: "storageNotFound"; start: string }
   | { kind: "invalidName"; name: string; reason: string }

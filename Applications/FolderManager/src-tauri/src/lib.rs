@@ -66,6 +66,12 @@ pub fn run() {
                     }
                 },
             ));
+            match app::ui_bridge::UiBridge::start(app.handle()) {
+                Ok(bridge) => {
+                    app.manage(bridge);
+                }
+                Err(e) => eprintln!("UI bridge unavailable, so ui_* tools will report the app as closed: {e}"),
+            }
             if let Some(window) = app.get_webview_window("main") {
                 window_state::restore(&window);
                 let saved = window.clone();
@@ -174,6 +180,7 @@ pub fn run() {
             commands::paste_files,
             commands::start_drag_out,
             commands::create_shortcut_in,
+            commands::answer_ui_request,
         ])
         .build(tauri::generate_context!())
         .expect("error while running Folder Manager")
@@ -182,6 +189,9 @@ pub fn run() {
                 use tauri::Manager;
                 if let Some(watcher) = app.try_state::<services::watch::GuiWatch>() {
                     watcher.shutdown();
+                }
+                if let Some(bridge) = app.try_state::<app::ui_bridge::UiBridge>() {
+                    bridge.stop();
                 }
             }
         });

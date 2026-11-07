@@ -16,6 +16,7 @@ mod storage;
 #[cfg(test)]
 mod tests;
 mod tree;
+mod ui_bridge;
 mod update;
 mod upgrade;
 
@@ -41,6 +42,7 @@ pub use search::*;
 pub use share::*;
 pub use storage::*;
 pub use tree::*;
+pub use ui_bridge::*;
 pub use update::*;
 pub use upgrade::*;
 

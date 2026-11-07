@@ -5,6 +5,10 @@ mod schema;
 #[cfg(test)]
 mod tests;
 mod tools;
+mod ui;
+mod ui_schema;
+#[cfg(test)]
+mod ui_tests;
 mod view;
 mod write;
 mod write_schema;
@@ -30,12 +34,13 @@ pub struct Server {
     storage: Result<Storage, String>,
     recycle: fn(&Path) -> Result<(), String>,
     retry: Retry,
+    bridge: Result<PathBuf, String>,
 }
 
 impl Server {
     pub fn open(arg: Option<PathBuf>, remembered: impl FnOnce() -> Option<PathBuf>) -> Self {
         let storage = arg.or_else(remembered).map(Storage::resolve).ok_or_else(|| NO_STORAGE.to_string());
-        Self { storage, recycle: send_to_recycle_bin, retry: RETRY }
+        Self { storage, recycle: send_to_recycle_bin, retry: RETRY, bridge: ui::bridge_file() }
     }
 
     fn storage(&self) -> R<&Storage> {

@@ -15,13 +15,13 @@ export async function copyPath(node: TreeNode): Promise<void> {
   }
 }
 
-export async function openInApp(node: TreeNode): Promise<void> {
+export async function openInApp(node: Pick<TreeNode, "relParts">): Promise<void> {
   state.entering = keyOf(node.relParts);
   state.expanded.add(state.entering);
   await goToReal(node.relParts);
 }
 
-export async function openInSplit(node: TreeNode): Promise<void> {
+export async function openInSplit(node: Pick<TreeNode, "relParts">): Promise<void> {
   openSplit();
   focusPane(true);
   await openInApp(node);
