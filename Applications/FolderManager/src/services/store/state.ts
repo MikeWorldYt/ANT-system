@@ -7,6 +7,8 @@ import type { HiddenChoice, LevelPatch, TreeNode, TreeSnapshot } from "../ipc/ty
 
 interface State {
   tree: TreeSnapshot | null;
+  // Set by an explicit open, so a view that lists a folder enters this one instead of showing it among its siblings.
+  entering: string | null;
   selectedKey: string | null;
   // Every selected key, the primary one included; a plain click leaves just that one.
   selectedKeys: string[];
@@ -96,6 +98,7 @@ function readSorts(): Record<string, ColumnSort> {
 
 export const state: State = {
   tree: null,
+  entering: null,
   selectedKey: null,
   selectedKeys: [],
   pasteKey: null,

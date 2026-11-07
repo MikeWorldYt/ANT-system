@@ -38,7 +38,7 @@ export function createMainWindow(app: HTMLElement) {
   };
   const toolbar = createToolbar(viewPicker);
   const navigator = createNavigator();
-  bindTabs(navigator);
+  bindTabs(navigator, views);
   const tabBar = createTabBar();
   const search = createSearchBar();
   navigator.element.prepend(...toolbar.navLead);

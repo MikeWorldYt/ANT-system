@@ -33,6 +33,13 @@ export function createGridView(): ViewMode {
     }
     const parts = key.split("/");
     const parent = parts.length > 1 ? parts.slice(0, -1).join("/") : null;
+    if (key === state.entering) {
+      state.entering = null;
+      if (selectedNode()?.hasChildren) {
+        folder = key;
+        return;
+      }
+    }
     if (key === folder || parent === folder) return;
     folder = selectedNode()?.hasChildren ? key : parent;
   }

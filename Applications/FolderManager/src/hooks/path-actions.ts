@@ -15,7 +15,8 @@ export async function copyPath(node: TreeNode): Promise<void> {
 }
 
 export async function openInApp(node: TreeNode): Promise<void> {
-  state.expanded.add(keyOf(node.relParts));
+  state.entering = keyOf(node.relParts);
+  state.expanded.add(state.entering);
   await goToReal(node.relParts);
 }
 
