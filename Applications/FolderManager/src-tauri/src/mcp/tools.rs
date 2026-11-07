@@ -1,4 +1,4 @@
-// The read tools: each calls the service its IPC command uses and answers with structured JSON or an FmError.
+// The read tools, and the dispatch of every tool call: each calls the service its IPC command uses and answers with structured JSON or an FmError.
 use std::path::Path;
 
 use serde::de::DeserializeOwned;
@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 
 use super::protocol::{RpcError, INVALID_PARAMS};
 use super::view::{Brief, Detail};
-use super::{schema, Server};
+use super::{schema, write, Server};
 use crate::app::storage_session::StorageInfo;
 use crate::domain::error::{FmError, R};
 use crate::domain::search::{parse_query, suggest_key};
@@ -30,7 +30,7 @@ const TOOLS: [(&str, &str, &str, Schemas); 7] = [
 ];
 
 pub(super) fn list() -> Vec<Value> {
-    TOOLS
+    let read = TOOLS
         .iter()
         .map(|(name, title, description, schemas)| {
             let (input, output) = schemas();
@@ -38,8 +38,8 @@ pub(super) fn list() -> Vec<Value> {
                 "name": name, "title": title, "description": description, "inputSchema": input, "outputSchema": output,
                 "annotations": { "title": title, "readOnlyHint": true, "openWorldHint": false },
             })
-        })
-        .collect()
+        });
+    read.chain(write::list()).collect()
 }
 
 #[derive(Deserialize)]
@@ -73,7 +73,7 @@ struct SuggestArgs {
     prefix: String,
 }
 
-fn args<T: DeserializeOwned>(name: &str, arguments: &Value) -> Result<T, RpcError> {
+pub(super) fn args<T: DeserializeOwned>(name: &str, arguments: &Value) -> Result<T, RpcError> {
     serde_json::from_value(arguments.clone()).map_err(|e| (INVALID_PARAMS, format!("Invalid arguments for {name}: {e}")))
 }
 
@@ -98,7 +98,7 @@ pub(super) fn call(server: &Server, params: &Value) -> Result<Value, RpcError> {
         "suggest_search" => args::<SuggestArgs>(name, &arguments).map(|a| {
             server.read(|storage, _| Ok(json!({ "suggestions": storage.with_reader(|store| store.suggest(&suggest_key(&a.key), &a.prefix))? })))
         })?,
-        _ => return Err((INVALID_PARAMS, format!("Unknown tool: {name}"))),
+        _ => write::call(server, name, &arguments)?,
     };
     Ok(result(outcome))
 }

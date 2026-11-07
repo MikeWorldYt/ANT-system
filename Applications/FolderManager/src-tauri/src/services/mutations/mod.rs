@@ -25,7 +25,7 @@ mod retype;
 mod save;
 mod target;
 
-pub use add::{add_next, add_node};
+pub use add::{add_next, add_node, add_node_named};
 pub use board::{set_board, BoardCard};
 pub use copy_answer::{answer_copy, CopyAnswer};
 pub use delete::{delete_node, inspect_delete, DeletePreview};

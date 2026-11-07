@@ -1,8 +1,9 @@
-// What the read tools return: a short row per folder for listings, the full row with its owner for one node.
+// What the tools return: a short row per folder for listings, the full row with its owner for one node, a short note per change.
 use serde::Serialize;
 
 use crate::domain::config::{WkbStatus, OWNER_KEYS};
 use crate::infra::storage::info::field_of;
+use crate::services::mutations::Mutation;
 use crate::services::tree::tree_node::TreeNode;
 
 #[derive(Serialize)]
@@ -63,5 +64,23 @@ impl Detail {
     pub fn of(node: TreeNode) -> Self {
         let owner = node.info.as_ref().and_then(|i| field_of(i, &OWNER_KEYS)).map(str::to_string);
         Self { node, owner }
+    }
+}
+
+// The UI's level patches stay out: the agent gets which levels to read again, not the rows themselves.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Change {
+    pub changed: String,
+    pub rel_parts: Option<Vec<String>>,
+    pub levels: Vec<Vec<String>>,
+    pub full_tree: bool,
+    pub warnings: Vec<String>,
+}
+
+impl Change {
+    pub fn of(changed: String, m: Mutation) -> Self {
+        let levels = m.levels.into_iter().map(|l| l.parent).collect();
+        Self { changed, rel_parts: m.select, levels, full_tree: m.tree.is_some(), warnings: m.warnings }
     }
 }

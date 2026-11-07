@@ -1,25 +1,25 @@
 // JSON schemas of the read tools: what each takes and the shape of what it returns.
 use serde_json::{json, Value};
 
-fn strings() -> Value {
+pub(super) fn strings() -> Value {
     json!({ "type": "array", "items": { "type": "string" } })
 }
 
-fn nullable(kind: &str) -> Value {
+pub(super) fn nullable(kind: &str) -> Value {
     json!({ "type": [kind, "null"] })
 }
 
-fn rel_parts(min: usize) -> Value {
+pub(super) fn rel_parts(min: usize) -> Value {
     json!({ "type": "array", "items": { "type": "string" }, "minItems": min,
         "description": "Folder names from the storage root down, e.g. [\"100.WORK\", \"01.Project\"]" })
 }
 
-fn object(properties: Value, required: &[&str]) -> Value {
+pub(super) fn object(properties: Value, required: &[&str]) -> Value {
     json!({ "type": "object", "properties": properties, "required": required, "additionalProperties": false })
 }
 
 // Output objects may gain fields later, so they stay open where inputs are closed.
-fn output(properties: Value, required: &[&str]) -> Value {
+pub(super) fn output(properties: Value, required: &[&str]) -> Value {
     json!({ "type": "object", "properties": properties, "required": required })
 }
 

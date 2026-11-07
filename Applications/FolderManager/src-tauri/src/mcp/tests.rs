@@ -12,40 +12,40 @@ use crate::services::tree::tree_store;
 use crate::services::updater::CURRENT_VERSION;
 use crate::test_support::{rel, work, TempDir};
 
-fn server(root: &Path) -> Server {
+pub(super) fn server(root: &Path) -> Server {
     Server::open(Some(root.to_path_buf()), || None)
 }
 
-fn exchange(server: &Server, input: &[u8]) -> Vec<Value> {
+pub(super) fn exchange(server: &Server, input: &[u8]) -> Vec<Value> {
     let mut out = Vec::new();
     serve(server, input, &mut out).unwrap();
     String::from_utf8(out).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
 }
 
-fn request(id: u64, method: &str, params: Value) -> String {
+pub(super) fn request(id: u64, method: &str, params: Value) -> String {
     json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params }).to_string() + "\n"
 }
 
-fn call(server: &Server, tool: &str, arguments: Value) -> Value {
+pub(super) fn call(server: &Server, tool: &str, arguments: Value) -> Value {
     let replies = exchange(server, request(7, "tools/call", json!({ "name": tool, "arguments": arguments })).as_bytes());
     assert_eq!(replies.len(), 1);
     replies[0]["result"].clone()
 }
 
-fn ok(result: &Value) -> Value {
+pub(super) fn ok(result: &Value) -> Value {
     assert_eq!(result["isError"], false, "{result}");
     let text: Value = serde_json::from_str(result["content"][0]["text"].as_str().unwrap()).unwrap();
     assert_eq!(text, result["structuredContent"]);
     text
 }
 
-fn failed(result: &Value) -> Value {
+pub(super) fn failed(result: &Value) -> Value {
     assert_eq!(result["isError"], true, "{result}");
     assert!(result.get("structuredContent").is_none());
     serde_json::from_str(result["content"][0]["text"].as_str().unwrap()).unwrap()
 }
 
-fn names(nodes: &Value) -> Vec<&str> {
+pub(super) fn names(nodes: &Value) -> Vec<&str> {
     nodes.as_array().unwrap().iter().map(|n| n["name"].as_str().unwrap()).collect()
 }
 
@@ -68,15 +68,17 @@ fn initialize_answers_the_client_version_and_notifications_get_no_reply() {
 }
 
 #[test]
-fn every_tool_is_listed_read_only_with_its_schemas() {
+fn every_read_tool_is_listed_read_only_with_its_schemas() {
     let dir = work("mcp-list");
     let replies = exchange(&server(dir.path()), request(1, "tools/list", json!({})).as_bytes());
     let tools = replies[0]["result"]["tools"].as_array().unwrap();
-    let listed: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
+    let listed: Vec<&str> = tools.iter().take(7).map(|t| t["name"].as_str().unwrap()).collect();
     assert_eq!(listed, ["get_storage", "get_tree", "list_children", "get_node", "search_folders", "search_files", "suggest_search"]);
-    for tool in tools {
+    for tool in &tools[..7] {
         assert_eq!(tool["annotations"]["readOnlyHint"], true, "{tool}");
-        assert_eq!((tool["inputSchema"]["type"].clone(), tool["outputSchema"]["type"].clone()), (json!("object"), json!("object")));
+    }
+    for tool in tools {
+        assert_eq!((tool["inputSchema"]["type"].clone(), tool["outputSchema"]["type"].clone()), (json!("object"), json!("object")), "{tool}");
     }
 }
 
