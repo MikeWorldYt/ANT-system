@@ -106,6 +106,10 @@ pub fn has_db(stage: &Path) -> bool {
     stage.join(DATA_DIR).join(DB_FILENAME).is_file()
 }
 
+pub fn check_staged_db(stage: &Path) -> R<()> {
+    check_db(&stage.join(DATA_DIR).join(DB_FILENAME))
+}
+
 fn check_db(path: &Path) -> R<()> {
     let refused = |cause: String| FmError::Internal { message: format!("The backup's ant.db is not usable: {cause}") };
     let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e| refused(e.to_string()))?;

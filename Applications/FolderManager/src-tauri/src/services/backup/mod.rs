@@ -21,8 +21,8 @@ use crate::services::debug_log::valid_stamp;
 use crate::domain::validation::{remote_backup_folder, valid_backup_folder};
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{dir_entries, io_err, is_link, rename_no_replace, StorageLock};
-use crate::infra::storage::db::Store;
-use crate::infra::storage::recovery::{db_state, set_aside, DbState};
+use crate::infra::storage::db::{db_path, Store};
+use crate::infra::storage::recovery::prepare_scan;
 
 pub use latest::{newest_default, restore_latest, LatestBackup};
 
@@ -215,21 +215,15 @@ pub fn restore(root: &Path, name: &str, stamp: &str) -> R<()> {
 fn unpack(zip: &Path, staging: &Path, name: &str) -> R<()> {
     archive::expand(zip, staging)?;
     if stage::has_db(staging) {
-        return Ok(());
+        return stage::check_staged_db(staging);
     }
     Err(fail(format!("{name} holds no ant.db")))
 }
 
-// Without a readable ant.db there is nothing worth a safety backup, and an unreadable one is kept aside instead.
+// A damaged ant.db is kept aside and a locked or newer one stops the restore, so whatever stays is healthy and worth a safety backup.
 fn install(root: &Path, staging: &Path, stamp: &str) -> R<()> {
-    let safety = match db_state(root) {
-        DbState::Healthy => Some(create(root, stamp)?),
-        DbState::Unreadable => {
-            set_aside(root, stamp)?;
-            None
-        }
-        DbState::Missing => None,
-    };
+    prepare_scan(root, stamp)?;
+    let safety = db_path(root).is_file().then(|| create(root, stamp)).transpose()?;
     let _lock = StorageLock::acquire(root)?;
     let applied = stage::apply(root, staging);
     // The restored ant.db predates the safety backup, so its last-backup time is renewed.

@@ -113,18 +113,98 @@ fn a_finished_restore_leaves_no_old_wal() {
     assert!(settings(root).is_ok());
 }
 
-#[test]
-fn a_restore_that_fails_after_the_safety_backup_names_it() {
-    let dir = academic("restore-safety");
-    let root = dir.path();
-    let bad = TempDir::new("restore-safety-stage");
+const GARBAGE: &str = "not a database ";
+
+fn corrupt_files(root: &Path) -> Vec<String> {
+    names(&root.join(DATA_DIR)).into_iter().filter(|name| name.contains(".corrupt-")).collect()
+}
+
+fn zip_failing_the_check(root: &Path, name: &str) {
+    let bad = TempDir::new("bad-backup");
     bad.mkdir(DATA_DIR);
-    fs::write(bad.path().join(DATA_DIR).join(DB_FILENAME), "not a database ".repeat(512)).unwrap();
+    fs::write(bad.path().join(DATA_DIR).join(DB_FILENAME), GARBAGE.repeat(512)).unwrap();
+    fs::create_dir_all(root.join("backup")).unwrap();
+    archive::compress(bad.path(), &root.join("backup").join(name)).unwrap();
+}
+
+// A folder where the backup holds a file stops the restore after its ant.db went in.
+fn zip_failing_to_apply(tag: &str) -> (TempDir, String) {
+    let (dir, out) = staged_copy(tag);
+    fs::write(out.path().join("999.Settings/00.Core/blocked"), "x").unwrap();
+    dir.mkdir("999.Settings/00.Core/blocked");
     dir.mkdir("backup");
     let name = format!("{STAMP}{SUFFIX}.zip");
-    archive::compress(bad.path(), &root.join("backup").join(&name)).unwrap();
+    archive::compress(out.path(), &dir.path().join("backup").join(&name)).unwrap();
+    (dir, name)
+}
+
+fn raise_version(root: &Path) {
+    rusqlite::Connection::open(db_path(root)).unwrap().pragma_update(None, "user_version", 99).unwrap();
+}
+
+#[test]
+fn a_restore_that_fails_after_the_safety_backup_names_it() {
+    let (dir, name) = zip_failing_to_apply("restore-safety");
+    let root = dir.path();
     let err = restore_from(root, &root.join("backup"), &name, "26-10-24-09-06").unwrap_err().to_string();
     assert!(err.contains("26-10-24-09-06_ANT-fm-backup.zip"), "{err}");
+    assert!(settings(root).is_ok());
+}
+
+#[test]
+fn a_backup_failing_the_check_makes_restore_latest_use_the_previous_one() {
+    let dir = academic("backup-check-fallback");
+    let root = dir.path();
+    Store::open_or_create(root).unwrap().set_setting("backupFrequency", "week").unwrap();
+    create(root, STAMP).unwrap();
+    zip_failing_the_check(root, "26-10-25-09-05_ANT-fm-backup.zip");
+    fs::write(db_path(root), GARBAGE.repeat(512)).unwrap();
+    restore_latest(root, "26-10-26-09-05").unwrap();
+    assert_eq!(settings(root).unwrap().get("backupFrequency").map(String::as_str), Some("week"));
+    assert_eq!(corrupt_files(root), ["ant.db.corrupt-26-10-26-09-05"]);
+}
+
+#[test]
+fn a_damaged_db_stays_in_place_when_no_backup_passes_the_check() {
+    let dir = academic("backup-check-none");
+    let root = dir.path();
+    zip_failing_the_check(root, &format!("{STAMP}{SUFFIX}.zip"));
+    fs::write(db_path(root), GARBAGE.repeat(512)).unwrap();
+    let err = restore_latest(root, "26-10-26-09-05").unwrap_err().to_string();
+    assert!(err.contains("not usable"), "{err}");
+    assert_eq!(fs::read_to_string(db_path(root)).unwrap(), GARBAGE.repeat(512));
+    assert_eq!(corrupt_files(root), Vec::<String>::new());
+}
+
+#[test]
+fn a_newer_db_is_not_set_aside_by_a_failed_restore() {
+    let (dir, name) = zip_failing_to_apply("restore-newer");
+    let root = dir.path();
+    raise_version(root);
+    let before = fs::read(db_path(root)).unwrap();
+    let err = restore_from(root, &root.join("backup"), &name, "26-10-24-09-06").unwrap_err().to_string();
+    assert!(err.contains("newer version"), "{err}");
+    assert_eq!(fs::read(db_path(root)).unwrap(), before);
+    assert_eq!(corrupt_files(root), Vec::<String>::new());
+
+    let bad = format!("26-10-25-09-05{SUFFIX}.zip");
+    zip_failing_the_check(root, &bad);
+    assert!(restore_from(root, &root.join("backup"), &bad, "26-10-24-09-06").is_err());
+    assert_eq!(fs::read(db_path(root)).unwrap(), before);
+    assert_eq!(corrupt_files(root), Vec::<String>::new());
+}
+
+#[test]
+fn a_locked_db_is_not_set_aside_by_a_failed_restore() {
+    let (dir, name) = zip_failing_to_apply("restore-locked");
+    let root = dir.path();
+    let holder = rusqlite::Connection::open(db_path(root)).unwrap();
+    holder.execute_batch("PRAGMA locking_mode = EXCLUSIVE; BEGIN EXCLUSIVE;").unwrap();
+    assert!(restore_from(root, &root.join("backup"), &name, "26-10-24-09-06").is_err());
+    holder.execute_batch("COMMIT;").unwrap();
+    drop(holder);
+    assert!(db_path(root).is_file());
+    assert_eq!(corrupt_files(root), Vec::<String>::new());
     assert!(settings(root).is_ok());
 }
 
