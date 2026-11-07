@@ -117,3 +117,55 @@ fn add_node_removes_created_folders_when_yaml_save_fails() {
     assert!(matches!(err, FmError::RolledBack { .. }), "{err:?}");
     assert_eq!(names(&dir.path().join("100.ACADEMIC")), ["01.Math", "02.Bio"]);
 }
+
+#[test]
+fn a_given_name_is_cleaned_like_a_rename_and_keeps_the_id() {
+    let dir = academic("add-named");
+    let m = add_node_named(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node, Some("  linear algebra ")).unwrap();
+    assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "04.Linear-algebra"])));
+    assert!(dir.path().join("100.ACADEMIC/04.Linear-algebra/REV.Linear-algebra").is_dir());
+    assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "04.Linear-algebra", "REV.Linear-algebra"]), "REV-L2");
+    let main = add_next_named(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node, Some("home stuff")).unwrap();
+    assert_eq!(main.select, Some(rel(&["200.HOME-STUFF"])));
+    let wkb = add_next_named(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard, Some("fabi web")).unwrap();
+    assert_eq!(wkb.select, Some(rel(&["100.ACADEMIC", "PJ.001_Fabi-web"])));
+    assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "PJ.001_Fabi-web"]), "WKB-L2");
+    assert!(add_node_named(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node, None).unwrap().select.is_some());
+}
+
+#[test]
+fn a_given_name_that_is_empty_or_invalid_creates_nothing() {
+    let dir = academic("add-named-bad");
+    let parent = rel(&["100.ACADEMIC"]);
+    for bad in ["", "   ", " /:* ", "..", "x\u{1}"] {
+        let err = add_node_named(dir.path(), &parent, NewKind::Node, Some(bad));
+        assert!(matches!(err, Err(FmError::InvalidName { .. })), "{bad:?}: {err:?}");
+        let wkb = add_node_named(dir.path(), &parent, NewKind::Workboard, Some(bad));
+        assert!(matches!(wkb, Err(FmError::InvalidName { .. })), "{bad:?}: {wkb:?}");
+    }
+    assert_eq!(names(&dir.path().join("100.ACADEMIC")), ["01.Math", "02.Bio"]);
+}
+
+#[test]
+fn a_given_name_still_meets_the_parent_rules() {
+    let dir = academic("add-named-rules");
+    let locked = add_node_named(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "98.Math"]), NewKind::Node, Some("X"));
+    assert!(matches!(locked, Err(FmError::Locked { .. })));
+    let reserved = add_node_named(dir.path(), &rel(&["999.Settings"]), NewKind::Node, Some("X"));
+    assert!(matches!(reserved, Err(FmError::Reserved { .. })));
+    let at_root = add_node_named(dir.path(), &[], NewKind::Workboard, Some("X"));
+    assert!(matches!(at_root, Err(FmError::InvalidPath { .. })));
+}
+
+#[test]
+fn past_the_depth_limit_a_given_name_is_the_folder_name_and_never_clashes() {
+    let dir = academic("add-named-past");
+    let leaf = rel(&["100.ACADEMIC", "01.Math", "01.Algebra"]);
+    let m = add_node_named(dir.path(), &leaf, NewKind::Node, Some("Notes")).unwrap();
+    assert_eq!(m.select, Some(child_rel(&leaf, "Notes")));
+    let clash = add_node_named(dir.path(), &leaf, NewKind::Node, Some("notes"));
+    assert!(matches!(clash, Err(FmError::AlreadyExists { .. })), "{clash:?}");
+    let wkb = add_node_named(dir.path(), &leaf, NewKind::Workboard, Some("sprint one")).unwrap();
+    assert_eq!(wkb.select, Some(child_rel(&leaf, "PJ.001_Sprint-one")));
+    assert!(matches!(add_node_named(dir.path(), &leaf, NewKind::Node, Some("status")), Err(FmError::InvalidName { .. })));
+}
