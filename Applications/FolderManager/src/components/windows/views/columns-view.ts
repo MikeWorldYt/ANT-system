@@ -19,6 +19,7 @@ import { openVirtual } from "../../../hooks/virtual-nav";
 import { entryBeside, headEntry, openEntry, rootEntries, virtualEntries } from "../../molecules/virtual-entry";
 import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
+import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
 
 // Why an empty column is empty: a filter hides the review list, or the folder has no content.
@@ -73,7 +74,7 @@ export function createColumnsView(): ViewMode {
     }
     onItemClick(item, n, () => siblings, () => pick(n));
     item.addEventListener("dblclick", (ev) => {
-      if (!fromToggle(ev)) editOrOpen(n);
+      if (!fromToggle(ev)) editOrOpen(n, ev);
     });
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
     return item;
@@ -214,7 +215,8 @@ export function createColumnsView(): ViewMode {
         if (n) startEdit(n.relParts);
         break;
       case "Enter":
-        go(Math.max(i, 0));
+        if (n?.file) void openFolder(n);
+        else go(Math.max(i, 0));
         break;
       case " ":
         if (n?.hasChildren) openColumn(n);

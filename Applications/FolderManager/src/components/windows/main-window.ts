@@ -19,15 +19,15 @@ import { selectedNode } from "../../services/store/state";
 import { openSettings } from "./settings";
 import { createBoardView } from "./views/board-view";
 import { createColumnsView } from "./views/columns-view";
-import { createGridView } from "./views/grid-view";
+import { createCardsView, createGridView, createListView } from "./views/grid-view";
 import { createTreeView } from "./views/tree-view";
 
 export function createMainWindow(app: HTMLElement) {
   const host = el("section", { class: "tree-host", "aria-label": "Storage" });
   const rightHost = el("section", { class: "tree-host", "aria-label": "Split storage" });
   const panes = el("div", { class: "panes" }, host, rightHost);
-  const leftViews = createViewSwitcher(host, [createTreeView(), createColumnsView(), createGridView()]);
-  const rightViews = createViewSwitcher(rightHost, [createTreeView(), createColumnsView(), createGridView()]);
+  const leftViews = createViewSwitcher(host, [createCardsView(), createTreeView(), createColumnsView(), createGridView(), createListView()]);
+  const rightViews = createViewSwitcher(rightHost, [createCardsView(), createTreeView(), createColumnsView(), createGridView(), createListView()]);
   const views = focusedViews(leftViews.modes);
   for (const pane of [host, rightHost]) {
     trackPasteTarget(pane);
