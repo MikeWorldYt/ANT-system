@@ -152,7 +152,7 @@ export function openSplit(): void {
   notify();
 }
 
-function focusPane(toRight: boolean): void {
+export function focusPane(toRight: boolean): void {
   if (!split || !navigator || split.right === toRight) return;
   const here = read();
   const trail = navigator.trail();
