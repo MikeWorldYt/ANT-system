@@ -21,6 +21,8 @@ import type {
   TreeNode,
   TreeSnapshot,
   WkbStatus,
+  ProjectGroup,
+  ProjectPlan,
 } from "./types";
 
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -139,6 +141,10 @@ export const searchNodes = (query: string) => call<string[][]>("search_nodes", {
 export const listFavorites = () => call<string[][]>("list_favorites");
 export const listReview = () => call<string[][]>("list_review");
 export const listWorkboards = () => call<string[][]>("list_workboards");
+export const previewProjectGroups = (folder: string[]) => call<ProjectGroup[]>("preview_project_groups", { folder });
+export const applyProjectGroups = (folder: string[], plans: ProjectPlan[]) => call<Mutation>("apply_project_groups", { folder, plans });
+export const canUndoProjectSort = () => call<boolean>("can_undo_project_sort");
+export const undoProjectSort = () => call<Mutation>("undo_project_sort");
 export const setBoard = (cards: BoardCard[]) => call<Mutation>("set_board", { cards });
 export const searchDisk = (query: string) => call<string[][]>("search_disk", { query });
 export interface FileHit {

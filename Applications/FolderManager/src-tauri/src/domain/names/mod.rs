@@ -36,7 +36,9 @@ pub fn next_available_id(siblings: &[String]) -> u32 {
 
 // A moved node takes the lowest free slot of its new level and a workboard the next track; other names are kept as they are.
 pub fn with_next_slot(name: &str, siblings: &[String]) -> String {
-    if has_node_id(name) {
+    if let Some((tracker, title)) = untracked_parts(name) {
+        format!("{tracker}{:03}_{title}", next_track_number(tracker, siblings))
+    } else if has_node_id(name) {
         format!("{:02}.{}", next_available_id(siblings), &name[3..])
     } else if is_track_name(name) {
         next_track(name, siblings)
@@ -107,6 +109,11 @@ pub fn has_node_id(name: &str) -> bool {
 
 pub fn is_workboard_name(name: &str) -> bool {
     WKB_IDENTIFIERS.iter().any(|tracker| name.starts_with(tracker))
+}
+
+// A workboard still in a review folder ("PJ_Name") has its tracker but no number until it enters the storage.
+pub fn untracked_parts(name: &str) -> Option<(&'static str, &str)> {
+    WKB_IDENTIFIERS.iter().find_map(|tracker| name.strip_prefix(tracker.trim_end_matches('.')).and_then(|rest| rest.strip_prefix('_')).map(|title| (*tracker, title)))
 }
 
 // A tracker and its number ("PJ.001", "PJ.1007_Name"); the title after the number is free.

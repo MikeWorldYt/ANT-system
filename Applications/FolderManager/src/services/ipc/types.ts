@@ -70,6 +70,18 @@ export interface TreeNode {
   actions: NodeActions;
 }
 
+export interface ProjectPlan {
+  name: string;
+  files: string[];
+  owner: string | null;
+  created: string | null;
+}
+
+export interface ProjectGroup extends ProjectPlan {
+  tier: "sure" | "likely";
+  ownerConflict: boolean;
+}
+
 export interface TreeSnapshot {
   root: string;
   nodes: TreeNode[];

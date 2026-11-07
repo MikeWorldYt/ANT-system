@@ -97,7 +97,7 @@ async function run(fn: () => Promise<void>, progress?: string): Promise<boolean>
 const orRoot = (parent: string[]) => (parent.length > 0 ? parent : null);
 
 // A move or copy passes follow=false, so the view stays on the folder the user was in.
-async function applyMutation(m: Mutation, fallback: string[] | null = null, follow = true): Promise<void> {
+export async function applyMutation(m: Mutation, fallback: string[] | null = null, follow = true): Promise<void> {
   const target = follow ? (m.select ?? fallback) : null;
   if (target) {
     for (let i = 1; i < target.length; i++) state.expanded.add(keyOf(target.slice(0, i)));
