@@ -2,6 +2,7 @@
 pub mod backup;
 pub mod debug_log;
 pub mod downloads;
+pub mod edit;
 pub mod extensions;
 pub mod index;
 pub mod intake;

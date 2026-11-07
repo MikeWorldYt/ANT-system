@@ -5,7 +5,8 @@ use std::sync::{Mutex, RwLock};
 
 use serde_yaml::Mapping;
 
-use super::edit::{delete_flow, with_index, with_search_index};
+use super::edit::delete_flow;
+use crate::services::index::after_mutation::{with_index, with_search_index};
 use super::tree::refresh_flow;
 use super::update::{skip_path, skipped_for};
 use super::*;
