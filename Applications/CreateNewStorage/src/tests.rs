@@ -9,7 +9,7 @@ use crate::{create, CreateOptions, Level};
 pub(crate) const TEMPLATE: &[u8] = include_bytes!("../testdata/ant.db");
 
 fn opts(root: PathBuf, allow_existing: bool) -> CreateOptions {
-    CreateOptions { root, template: Some(TEMPLATE.to_vec()), allow_existing, download: false }
+    CreateOptions { root, template: Some(TEMPLATE.to_vec()), allow_existing, download: false, folder_manager: false }
 }
 
 pub(crate) fn node(name: &str, kind: &str, children: Vec<TreeNode>) -> TreeNode {
@@ -62,7 +62,7 @@ fn existing_root_needs_permission_and_a_bad_template_touches_nothing() {
     let err = create(&opts(tmp.path().to_path_buf(), false), &mut |_, _| {}).unwrap_err();
     assert!(err.contains("already exists"));
     let root = tmp.path().join("New");
-    let broken = CreateOptions { root: root.clone(), template: Some(b"name: not a database".to_vec()), allow_existing: false, download: false };
+    let broken = CreateOptions { root: root.clone(), template: Some(b"name: not a database".to_vec()), allow_existing: false, download: false, folder_manager: false };
     assert!(create(&broken, &mut |_, _| {}).is_err());
     assert!(!root.exists());
 }

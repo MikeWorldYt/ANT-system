@@ -9,12 +9,14 @@ use crate::fetch::{download, download_text, latest_release_tag, MAX_EXE_BYTES, M
 use crate::fs_ops::write_file_atomic;
 use crate::Level;
 
-pub fn optional_downloads(root: &Path, core: &Path, progress: &mut dyn FnMut(Level, &str)) {
+pub fn optional_downloads(root: &Path, core: &Path, folder_manager: bool, progress: &mut dyn FnMut(Level, &str)) {
     progress(Level::Step, "Downloading ANT Core and utility files ...");
     if let Err(e) = core_files(core, progress) {
         progress(Level::Warn, &format!("⚠ Core files download failed: {e}"));
     }
-    folder_manager(root, progress);
+    if folder_manager {
+        download_folder_manager(root, progress);
+    }
 }
 
 fn core_files(core: &Path, progress: &mut dyn FnMut(Level, &str)) -> Result<(), String> {
@@ -32,7 +34,7 @@ fn latest_folder_manager_tag() -> Option<String> {
 }
 
 // The newest FolderManager release asset goes into the storage root.
-fn folder_manager(root: &Path, progress: &mut dyn FnMut(Level, &str)) {
+fn download_folder_manager(root: &Path, progress: &mut dyn FnMut(Level, &str)) {
     let tag = latest_folder_manager_tag().unwrap_or_else(|| {
         progress(Level::Warn, &format!("⚠ Could not find the latest FolderManager release; using {FOLDER_MANAGER_FALLBACK_TAG}"));
         FOLDER_MANAGER_FALLBACK_TAG.to_string()
