@@ -33,7 +33,9 @@ Examples:
 What it creates:
   The folder tree from the template, .ant/ant.db with the storage database,
   999.Settings/00.Core with the updater and FolderManager in the storage root.
-  If an essential step fails, only the folders made by this run are removed.";
+  If an essential step fails, only the folders made by this run are removed.
+
+Full reference: https://ant.mikeworld.dev/en/advanced/cli/";
 
 struct Args {
     opts: CreateOptions,
