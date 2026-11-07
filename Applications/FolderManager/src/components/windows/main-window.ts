@@ -11,6 +11,7 @@ import { installDragOut } from "../../hooks/drag-out";
 import { installFolderMove } from "../../hooks/folder-move";
 import { installMarquee } from "../../hooks/marquee";
 import { trackPasteTarget } from "../../hooks/paste-target";
+import { bindPanes, focusedViews } from "../../hooks/split";
 import { bindTabs } from "../../hooks/tabs";
 import { createViewSwitcher } from "../../hooks/view-switch";
 import { openFolder } from "../../hooks/path-actions";
@@ -18,16 +19,22 @@ import { selectedNode } from "../../services/store/state";
 import { openSettings } from "./settings";
 import { createBoardView } from "./views/board-view";
 import { createColumnsView } from "./views/columns-view";
-import { createGridView } from "./views/grid-view";
+import { createCardsView, createGridView, createListView } from "./views/grid-view";
 import { createTreeView } from "./views/tree-view";
 
 export function createMainWindow(app: HTMLElement) {
   const host = el("section", { class: "tree-host", "aria-label": "Storage" });
-  const views = createViewSwitcher(host, [createTreeView(), createColumnsView(), createGridView()]);
-  trackPasteTarget(host);
-  installDragOut(host);
-  installFolderMove(host);
-  installMarquee(host);
+  const rightHost = el("section", { class: "tree-host", "aria-label": "Split storage" });
+  const panes = el("div", { class: "panes" }, host, rightHost);
+  const leftViews = createViewSwitcher(host, [createCardsView(), createTreeView(), createColumnsView(), createGridView(), createListView()]);
+  const rightViews = createViewSwitcher(rightHost, [createCardsView(), createTreeView(), createColumnsView(), createGridView(), createListView()]);
+  const views = focusedViews(leftViews.modes);
+  for (const pane of [host, rightHost]) {
+    trackPasteTarget(pane);
+    installDragOut(pane);
+    installFolderMove(pane);
+    installMarquee(pane);
+  }
   const viewPicker: ViewPicker = {
     modes: views.modes,
     active: () => views.current().id,
@@ -38,7 +45,8 @@ export function createMainWindow(app: HTMLElement) {
   };
   const toolbar = createToolbar(viewPicker);
   const navigator = createNavigator();
-  bindTabs(navigator);
+  bindPanes({ host, views: leftViews }, { host: rightHost, views: rightViews }, navigator);
+  bindTabs(navigator, views);
   const tabBar = createTabBar();
   const search = createSearchBar();
   navigator.element.prepend(...toolbar.navLead);
@@ -49,9 +57,9 @@ export function createMainWindow(app: HTMLElement) {
   };
   const panel = createSidePanel({ openSelected, openSettings: (pageId) => void openSettings(pageId) });
   // The board stands beside the views, outside the host, so their drag, drop and marquee never reach its cards.
-  const board = createBoardView(host, panel.editDetails);
-  const main = el("main", { class: "app-main" }, host, board.element, ...panel.elements);
+  const board = createBoardView(panes, panel.editDetails);
+  const main = el("main", { class: "app-main" }, panes, board.element, ...panel.elements);
   app.append(tabBar.element, navigator.element, main, createStatusLine());
-  installContextMenu(host, () => views.current().focus(), viewPicker);
+  installContextMenu(panes, () => views.current().focus(), viewPicker);
   return { views, toolbar, navigator, tabBar, search, panel, board, openSelected };
 }

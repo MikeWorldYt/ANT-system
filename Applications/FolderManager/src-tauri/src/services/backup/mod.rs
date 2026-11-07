@@ -1,5 +1,6 @@
 // Zip backups of the ANT data (ant.db, the .ant files and the legacy 999.Settings), never of the user's own files.
 mod archive;
+mod confirmed;
 mod latest;
 pub mod schedule;
 mod stage;
@@ -17,11 +18,11 @@ use serde::Serialize;
 
 use crate::domain::config::{BACKUP_FOLDER, SETTINGS_FOLDER};
 use crate::services::debug_log::valid_stamp;
-use crate::domain::validation::valid_backup_folder;
+use crate::domain::validation::{remote_backup_folder, valid_backup_folder};
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{dir_entries, io_err, is_link, StorageLock};
-use crate::infra::storage::db::Store;
-use crate::infra::storage::recovery::{db_state, set_aside, DbState};
+use crate::infra::fs_safe::{dir_entries, io_err, is_link, rename_no_replace, StorageLock};
+use crate::infra::storage::db::{db_path, Store};
+use crate::infra::storage::recovery::prepare_scan;
 
 pub use latest::{newest_default, restore_latest, LatestBackup};
 
@@ -57,13 +58,28 @@ fn read_dirs(root: &Path, settings: &HashMap<String, String>) -> R<Vec<PathBuf>>
     Ok(if dir == default_dir(root) { vec![dir, legacy_dir(root)] } else { vec![dir] })
 }
 
-// The setting is checked again because ant.db can be edited outside the app.
-fn backup_dir(root: &Path, settings: &HashMap<String, String>) -> R<PathBuf> {
+// Only set_setting calls this, so a value that merely arrived in a foreign ant.db never gets listed.
+pub fn confirm_folder(folder: &str) -> R<()> {
+    if remote_backup_folder(folder) {
+        return confirmed::add(&confirmed::file()?, folder);
+    }
+    Ok(())
+}
+
+// The setting is checked again because ant.db can be edited outside the app, and touching a share at all makes Windows authenticate to it.
+fn chosen_dir(root: &Path, settings: &HashMap<String, String>, is_confirmed: impl Fn(&str) -> R<bool>) -> R<PathBuf> {
     match settings.get("backupFolder").map(String::as_str) {
         None | Some("") => Ok(default_dir(root)),
-        Some(folder) if valid_backup_folder(folder) => Ok(PathBuf::from(folder)),
-        Some(folder) => Err(fail(format!("Invalid backup folder {folder}"))),
+        Some(folder) if !valid_backup_folder(folder) => Err(fail(format!("Invalid backup folder {folder}"))),
+        Some(folder) if remote_backup_folder(folder) && !is_confirmed(folder)? => {
+            Err(fail(format!("The backup folder {folder} was not set on this computer. Set it again in Settings to use it")))
+        }
+        Some(folder) => Ok(PathBuf::from(folder)),
     }
+}
+
+fn backup_dir(root: &Path, settings: &HashMap<String, String>) -> R<PathBuf> {
+    chosen_dir(root, settings, |folder| confirmed::listed(&confirmed::file()?, folder))
 }
 
 pub fn valid_name(name: &str) -> bool {
@@ -99,6 +115,26 @@ fn staged<T>(staging: &Path, f: impl FnOnce() -> R<T>) -> R<T> {
     result
 }
 
+fn remove_part(part: &Path) -> R<()> {
+    match fs::remove_file(part) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(io_err("delete file", part, &e)),
+        _ => Ok(()),
+    }
+}
+
+// Only a finished zip gets a name the backup lists accept, so a killed run can never become the newest backup.
+fn write_zip(zip: &Path, compress: impl FnOnce(&Path) -> R<()>) -> R<()> {
+    let mut part = zip.as_os_str().to_owned();
+    part.push(".part");
+    let part = PathBuf::from(part);
+    remove_part(&part)?;
+    let written = compress(&part).and_then(|()| rename_no_replace("rename file", &part, zip));
+    if let Err(e) = remove_part(&part) {
+        eprintln!("Could not remove {}: {e}", part.display());
+    }
+    written
+}
+
 pub fn create(root: &Path, stamp: &str) -> R<PathBuf> {
     if !valid_stamp(stamp) {
         return Err(fail(format!("Invalid backup stamp {stamp}")));
@@ -110,7 +146,7 @@ pub fn create(root: &Path, stamp: &str) -> R<PathBuf> {
     let staging = dir.join(format!(".{stamp}_staging"));
     staged(&staging, || {
         stage::stage(root, &staging, &skip)?;
-        archive::compress(&staging, &zip)
+        write_zip(&zip, |part| archive::compress(&staging, part))
     })?;
     Store::open_or_create(root)?.set_setting("backupLast", &now().to_string())?;
     Ok(zip)
@@ -176,27 +212,43 @@ pub fn restore(root: &Path, name: &str, stamp: &str) -> R<()> {
     restore_from(root, dir, name, stamp)
 }
 
-// Without a readable ant.db there is nothing worth a safety backup, and an unreadable one is kept aside instead.
-fn restore_from(root: &Path, dir: &Path, name: &str, stamp: &str) -> R<()> {
+fn unpack(zip: &Path, staging: &Path, name: &str) -> R<()> {
+    archive::expand(zip, staging)?;
+    if stage::has_db(staging) {
+        return stage::check_staged_db(staging);
+    }
+    Err(fail(format!("{name} holds no ant.db")))
+}
+
+// A damaged ant.db is kept aside and a locked or newer one stops the restore, so whatever stays is healthy and worth a safety backup.
+fn install(root: &Path, staging: &Path, stamp: &str) -> R<()> {
+    prepare_scan(root, stamp)?;
+    let safety = db_path(root).is_file().then(|| create(root, stamp)).transpose()?;
+    let _lock = StorageLock::acquire(root)?;
+    let applied = stage::apply(root, staging);
+    // The restored ant.db predates the safety backup, so its last-backup time is renewed.
+    let restored = applied.and_then(|()| Store::open_or_create(root)?.set_setting("backupLast", &now().to_string()));
+    match (restored, safety) {
+        (Err(e), Some(zip)) => {
+            let name = zip.file_name().unwrap_or_default().to_string_lossy();
+            Err(fail(format!("{e}. The storage as it was before the restore is in the backup {name}")))
+        }
+        (result, _) => result,
+    }
+}
+
+// The inner error means the zip is unusable and the storage is untouched, so another backup can still be tried.
+fn try_restore(root: &Path, dir: &Path, name: &str, stamp: &str) -> R<R<()>> {
     let zip = backup_zip(dir, name)?;
     let staging = dir.join(format!(".{stamp}_restore"));
-    staged(&staging, || {
-        archive::expand(&zip, &staging)?;
-        if !stage::has_db(&staging) {
-            return Err(fail(format!("{name} holds no ant.db")));
-        }
-        match db_state(root) {
-            DbState::Healthy => {
-                create(root, stamp)?;
-            }
-            DbState::Unreadable => set_aside(root, stamp)?,
-            DbState::Missing => {}
-        }
-        let _lock = StorageLock::acquire(root)?;
-        stage::apply(root, &staging)?;
-        // The restored ant.db predates the safety backup, so its last-backup time is renewed.
-        Store::open_or_create(root)?.set_setting("backupLast", &now().to_string())
+    staged(&staging, || match unpack(&zip, &staging, name) {
+        Ok(()) => install(root, &staging, stamp).map(Ok),
+        Err(e) => Ok(Err(e)),
     })
+}
+
+fn restore_from(root: &Path, dir: &Path, name: &str, stamp: &str) -> R<()> {
+    try_restore(root, dir, name, stamp)?
 }
 
 pub fn run_headless(start: Option<OsString>) -> i32 {
@@ -204,6 +256,11 @@ pub fn run_headless(start: Option<OsString>) -> i32 {
         eprintln!("--backup needs the path of an ANT storage");
         return 1;
     };
+    let chosen = settings(&root).map(|s| s.get("backupFrequency").map_or(DEFAULT_FREQUENCY.to_string(), String::clone));
+    // A task under the old fixed name reaches this run, so it moves itself with no window open.
+    if let Err(e) = chosen.and_then(|frequency| schedule::migrate(&frequency, &root)) {
+        eprintln!("Scheduled backup not moved: {e}");
+    }
     match if_due(&root, &stamp::local_stamp()) {
         Ok(_) => 0,
         Err(e) => {

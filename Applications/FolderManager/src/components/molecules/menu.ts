@@ -17,6 +17,13 @@ export function menuItem(label: string, role: string, enabled: boolean, run: () 
   return b;
 }
 
+// The usual item closes the menu before it acts.
+export const closingItem = (close: () => void) => (label: string, enabled: boolean, run: () => void) =>
+  menuItem(label, "menuitem", enabled, () => {
+    close();
+    run();
+  });
+
 export function menuIcon(name: GuiIcon, flip = false): SVGElement {
   const icon = guiIcon(name);
   icon.classList.add("ctx-icon");

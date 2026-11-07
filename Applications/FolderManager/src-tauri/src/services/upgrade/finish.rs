@@ -1,21 +1,27 @@
 // Moves the root leftovers of an old storage (999.Settings, 998.Review) into .ant/ and backup/, then writes the done marker.
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use super::{internal, is_done, scan, write_marker};
 use crate::domain::config::{BACKUP_FOLDER, CORE_FOLDER, DATA_DIR, FOOTPRINT_FILENAME, INFO_FILENAME, REVIEW_FOLDER, SETTINGS_FOLDER};
 use crate::domain::error::R;
-use crate::infra::fs_safe::{dir_entries, io_err, is_link, StorageLock, LOCK_FILE};
+use crate::infra::fs_safe::{dir_entries, io_err, is_link, redirects, StorageLock, LOCK_FILE};
 use crate::infra::storage::core_dir::{data_dir, legacy_core_dir};
 use crate::infra::storage::db::Store;
 use crate::services::backup;
+use crate::platform::shortcuts::shortcut_targets;
+use crate::services::index::review_index::{own_shortcuts, LinkTargets};
 use crate::services::index::search_index;
 use crate::services::tree::tree_store::{self, delete_key};
 
 const LEGACY_BACKUP_DIR: &str = "03.Backup";
 
-// Fails before any marker exists, so the next launch asks again; what is left behind on purpose is reported as warnings.
 pub fn finish_support_upgrade(root: &Path, stamp: &str) -> R<Vec<String>> {
+    finish_with(root, stamp, shortcut_targets)
+}
+
+// Fails before any marker exists, so the next launch asks again; what is left behind on purpose is reported as warnings.
+pub(super) fn finish_with(root: &Path, stamp: &str, read_targets: impl FnOnce(&[PathBuf]) -> LinkTargets) -> R<Vec<String>> {
     let _lock = StorageLock::acquire(root)?;
     if is_done(root) {
         return Ok(Vec::new());
@@ -31,7 +37,7 @@ pub fn finish_support_upgrade(root: &Path, stamp: &str) -> R<Vec<String>> {
     if settings.is_dir() && !prune(&settings)? {
         warnings.push(format!("{SETTINGS_FOLDER} was kept because it still holds files of yours"));
     }
-    remove_review(root, &mut warnings)?;
+    remove_review(root, &mut warnings, read_targets)?;
     forget_removed(root)?;
     write_marker(root)?;
     Ok(warnings)
@@ -100,21 +106,54 @@ fn prune(dir: &Path) -> R<bool> {
     Ok(fs::remove_dir(dir).is_ok())
 }
 
+#[derive(Debug, PartialEq)]
+pub(super) enum ReviewEntry {
+    Link,
+    Shortcut,
+    Yours,
+}
+
+// An online-only file is a reparse point that stays in place, so it is the user's whatever its name.
+pub(super) fn review_entry(is_dir: bool, reparse: bool, leads_away: bool, lnk: bool) -> ReviewEntry {
+    match (is_dir, reparse, leads_away, lnk) {
+        (true, ..) => ReviewEntry::Yours,
+        (_, true, true, _) => ReviewEntry::Link,
+        (_, false, _, true) => ReviewEntry::Shortcut,
+        _ => ReviewEntry::Yours,
+    }
+}
+
 // Only the shortcuts and the filter file are the app's own; anything else keeps the folder in place.
-fn remove_review(root: &Path, warnings: &mut Vec<String>) -> R<()> {
+fn remove_review(root: &Path, warnings: &mut Vec<String>, read_targets: impl FnOnce(&[PathBuf]) -> LinkTargets) -> R<()> {
     let review = root.join(REVIEW_FOLDER);
     let Ok(meta) = fs::symlink_metadata(&review) else { return Ok(()) };
     if !meta.is_dir() || is_link(&meta) {
         warnings.push(format!("{REVIEW_FOLDER} was kept because it is a link"));
         return Ok(());
     }
+    let mut shortcuts = Vec::new();
     for entry in dir_entries(&review, "list folder")? {
         let path = entry?.path();
         let meta = fs::symlink_metadata(&path).map_err(|e| io_err("inspect path", &path, &e))?;
-        let is_shortcut = is_link(&meta) || path.extension().is_some_and(|e| e.eq_ignore_ascii_case("lnk"));
-        if is_shortcut && !meta.is_dir() {
-            fs::remove_file(&path).map_err(|e| io_err("delete file", &path, &e))?;
+        let reparse = is_link(&meta);
+        // A placeholder whose provider is offline cannot be resolved, so it stays like any other file of the user.
+        let leads_away = reparse && redirects(&path, &meta).unwrap_or_else(|e| {
+            warnings.push(e.to_string());
+            false
+        });
+        match review_entry(meta.is_dir(), reparse, leads_away, path.extension().is_some_and(|e| e.eq_ignore_ascii_case("lnk"))) {
+            ReviewEntry::Link => fs::remove_file(&path).map_err(|e| io_err("delete file", &path, &e))?,
+            ReviewEntry::Shortcut => shortcuts.push(path),
+            ReviewEntry::Yours => {}
         }
+    }
+    match own_shortcuts(root, &review, shortcuts, read_targets) {
+        Ok(own) => {
+            for path in own {
+                fs::remove_file(&path).map_err(|e| io_err("delete file", &path, &e))?;
+            }
+        }
+        Err(e) => warnings.push(format!("The shortcuts in {REVIEW_FOLDER} were kept: {e}")),
     }
     let own = review.join(DATA_DIR);
     for file in [INFO_FILENAME, FOOTPRINT_FILENAME] {

@@ -37,7 +37,7 @@ pub(crate) fn ensure_free(
     name: &str,
     ignore: &[&str],
 ) -> R<()> {
-    // A folder named like a meta key would overwrite its parent's type or status in the yaml.
+    // A folder named like a meta key would overwrite its parent's type or status in the tree.
     if META_KEYS.iter().any(|k| same_name(k, name)) || is_hidden_dir(name) {
         return Err(FmError::InvalidName { name: name.to_string(), reason: "reserved name".to_string() });
     }

@@ -1,8 +1,12 @@
 // Drops checked on a throwaway storage, with the files coming from a folder outside it.
 use std::fs;
 
+use serde_yaml::Value;
+
+use super::transfer::{copy_whole, move_across, remove_original};
 use super::*;
-use crate::test_support::{names, rel, storage, yaml, TempDir};
+use crate::services::mutations::source_path;
+use crate::test_support::{names, ok_recycle, rel, storage, synced_yaml, yaml, TempDir};
 
 const TREE: &str = "100.PERSONAL:
   type: NODE-L1
@@ -103,6 +107,96 @@ fn replacing_a_workboard_sends_the_existing_one_to_the_bin_and_places_the_new_on
     assert_eq!(read(&dir, "100.PERSONAL/PJ.001_Other/brief.txt"), "brief");
 }
 
+fn with_uid(dir: &TempDir, parts: &[&str], id: &str) {
+    let mut data = yaml(dir.path());
+    tree_store::get_node_mut(&mut data, &rel(parts)).unwrap().insert("uid".into(), id.into());
+    tree_store::save(dir.path(), &data).unwrap();
+}
+
+// Replaces the holder of `id` at `target` with a board from outside; the bin must stay unused unless a test passes its own.
+fn replace_at(dir: &TempDir, target: &[&str], tag: &str, name: &str, id: &str, bin: &dyn Fn(&Path) -> Result<(), String>) -> (DropOutcome, TempDir, PathBuf) {
+    let (outside, incoming) = outside_workboard(tag, name, id);
+    let out = drop_files(dir.path(), &rel(target), std::slice::from_ref(&incoming), false, std::slice::from_ref(&incoming), bin).unwrap();
+    (out, outside, incoming)
+}
+
+fn refused(out: &DropOutcome, incoming: &Path, why: &str) {
+    assert!(out.placed.is_empty(), "{:?}", out.placed);
+    assert!(out.mutation.warnings.iter().any(|w| w.contains(why)), "{:?}", out.mutation.warnings);
+    assert!(incoming.join("brief.txt").is_file() && incoming.join(".ant/dragpath.json").is_file());
+}
+
+#[test]
+fn a_replacement_whose_name_is_taken_leaves_the_old_workboard() {
+    let (dir, _src) = fixture("drop-swap-taken");
+    with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000003");
+    dir.mkdir("100.PERSONAL/PJ.001_Other");
+    let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL"], "drop-swap-taken-in", "PJ.007_Other", "EXISTINGID000003", &ok_recycle);
+    refused(&out, &incoming, "already exists");
+    assert!(dir.path().join("100.PERSONAL/PJ.001_Board").is_dir());
+}
+
+#[test]
+fn only_a_workboard_can_be_replaced() {
+    let owners: [&[&str]; 3] = [&["100.PERSONAL"], &["100.PERSONAL", "03.Toki"], &["100.PERSONAL", "98.PERSONAL"]];
+    for (n, owner) in owners.into_iter().enumerate() {
+        let (dir, _src) = fixture(&format!("drop-swap-node-{n}"));
+        with_uid(&dir, owner, "EXISTINGID000004");
+        let sent = std::cell::Cell::new(false);
+        let bin = |_: &Path| {
+            sent.set(true);
+            Ok(())
+        };
+        let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL", "04.Data"], &format!("drop-swap-node-in-{n}"), "PJ.007_Other", "EXISTINGID000004", &bin);
+        refused(&out, &incoming, "only a workboard");
+        assert!(!sent.get(), "{owner:?}");
+    }
+}
+
+#[test]
+fn a_workboard_cannot_be_replaced_from_inside_itself() {
+    let (dir, _src) = fixture("drop-swap-inside");
+    with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000005");
+    let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL", "PJ.001_Board"], "drop-swap-inside-in", "PJ.007_Other", "EXISTINGID000005", &ok_recycle);
+    refused(&out, &incoming, "inside");
+    assert!(dir.path().join("100.PERSONAL/PJ.001_Board").is_dir());
+}
+
+#[test]
+fn a_refused_recycle_puts_the_new_workboard_back_and_keeps_the_old_one() {
+    let (dir, _src) = fixture("drop-swap-bin");
+    with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000006");
+    let before = names(&dir.path().join("100.PERSONAL"));
+    let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL"], "drop-swap-bin-in", "PJ.007_Other", "EXISTINGID000006", &never_recycles);
+    refused(&out, &incoming, "no Recycle Bin");
+    assert_eq!(names(&dir.path().join("100.PERSONAL")), before);
+}
+
+#[test]
+fn a_final_name_lost_after_the_recycle_puts_the_new_workboard_back() {
+    let (dir, _src) = fixture("drop-swap-lost");
+    with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000007");
+    let taken = dir.path().join("100.PERSONAL/PJ.001_Other");
+    let bin = |p: &Path| {
+        fs::remove_dir_all(p).map_err(|e| e.to_string())?;
+        fs::create_dir(&taken).map_err(|e| e.to_string())
+    };
+    let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL"], "drop-swap-lost-in", "PJ.007_Other", "EXISTINGID000007", &bin);
+    refused(&out, &incoming, "Recycle Bin");
+    assert!(names(&dir.path().join("100.PERSONAL")).iter().all(|n| !n.contains("PJ.001_Other.")), "the temporary name stayed");
+}
+
+#[test]
+fn a_replacement_may_take_the_name_of_the_workboard_it_replaces() {
+    let (dir, _src) = fixture("drop-swap-same");
+    with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000008");
+    let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL"], "drop-swap-same-in", "PJ.009_Board", "EXISTINGID000008", &ok_recycle);
+    assert_eq!(out.placed, [placed("PJ.001_Board", &["100.PERSONAL"], false)]);
+    assert!(!incoming.exists());
+    assert_eq!(read(&dir, "100.PERSONAL/PJ.001_Board/brief.txt"), "brief");
+    assert!(names(&dir.path().join("100.PERSONAL")).iter().all(|n| !n.contains("replacing")));
+}
+
 #[test]
 fn a_workboard_copy_keeps_the_original_and_takes_a_track_and_an_id_of_its_own() {
     let (dir, _src) = fixture("drop-wkb-copy");
@@ -123,9 +217,78 @@ fn a_folder_moved_across_drives_is_copied_whole_and_then_removed() {
     fs::write(from.join("sub/a.txt"), "a").unwrap();
     let other = TempDir::new("across-dst");
     let to = other.path().join("PJ.050_X");
-    assert_eq!(move_across(&from, &to).unwrap(), None);
+    assert_eq!(move_across(&from, &to, &ok_recycle).unwrap(), None);
     assert_eq!(fs::read_to_string(to.join("sub/a.txt")).unwrap(), "a");
     assert!(!from.exists());
+}
+
+// A folder and its copy on two throwaway drives, as `move_across` leaves them just before removing the original.
+fn copied_folder(tag: &str) -> (TempDir, TempDir, PathBuf, PathBuf) {
+    let outside = TempDir::new(&format!("{tag}-src"));
+    let from = outside.path().join("Folder");
+    fs::create_dir_all(from.join("sub")).unwrap();
+    fs::write(from.join("sub/a.txt"), "a").unwrap();
+    let other = TempDir::new(&format!("{tag}-dst"));
+    let to = other.path().join("Folder");
+    copy_whole(&from, &to).unwrap();
+    (outside, other, from, to)
+}
+
+fn keeps_the_original(from: &Path, to: &Path) {
+    let note = remove_original(from, to, &ok_recycle).expect("the note says the original stayed");
+    assert!(note.contains("the original could not be removed"), "{note}");
+    assert!(from.exists());
+}
+
+#[test]
+fn an_original_that_gained_or_changed_files_after_the_copy_stays() {
+    let (_a, _b, from, to) = copied_folder("across-added");
+    fs::write(from.join("sub/late.txt"), "late").unwrap();
+    keeps_the_original(&from, &to);
+    assert_eq!(fs::read_to_string(from.join("sub/late.txt")).unwrap(), "late");
+
+    let (_a, _b, from, to) = copied_folder("across-grown");
+    fs::write(from.join("sub/a.txt"), "longer").unwrap();
+    keeps_the_original(&from, &to);
+
+    let (_a, _b, from, to) = copied_folder("across-touched");
+    let later = std::time::SystemTime::now() + std::time::Duration::from_secs(3600);
+    fs::File::options().write(true).open(from.join("sub/a.txt")).unwrap().set_modified(later).unwrap();
+    keeps_the_original(&from, &to);
+
+    let (_a, _b, from, to) = copied_folder("across-file");
+    fs::write(from.join("sub/a.txt"), "longer").unwrap();
+    keeps_the_original(&from.join("sub/a.txt"), &to.join("sub/a.txt"));
+}
+
+#[test]
+fn an_unchanged_original_goes_to_the_bin_and_a_refusal_keeps_it() {
+    let (_a, _b, from, to) = copied_folder("across-bin");
+    let sent = std::cell::RefCell::new(Vec::new());
+    let bin = |p: &Path| {
+        sent.borrow_mut().push(p.to_path_buf());
+        Ok(())
+    };
+    assert_eq!(remove_original(&from, &to, &bin), None);
+    assert_eq!(sent.borrow().as_slice(), std::slice::from_ref(&from));
+    let note = remove_original(&from, &to, &never_recycles).expect("a refusal is reported");
+    assert!(note.contains("no Recycle Bin"), "{note}");
+    assert!(from.join("sub/a.txt").is_file());
+}
+
+#[test]
+fn a_copy_onto_an_existing_folder_fails_and_leaves_its_contents() {
+    let outside = TempDir::new("whole-src");
+    let from = outside.path().join("Folder");
+    fs::create_dir(&from).unwrap();
+    fs::write(from.join("new.txt"), "new").unwrap();
+    let other = TempDir::new("whole-dst");
+    let to = other.path().join("Folder");
+    fs::create_dir(&to).unwrap();
+    fs::write(to.join("keep.txt"), "keep").unwrap();
+    assert!(copy_whole(&from, &to).is_err());
+    assert_eq!(names(&to), ["keep.txt"]);
+    assert_eq!(fs::read_to_string(to.join("keep.txt")).unwrap(), "keep");
 }
 
 fn read(dir: &TempDir, rel: &str) -> String {
@@ -205,11 +368,77 @@ fn a_plain_folder_lands_whole_while_missing_and_app_files_are_reported() {
 }
 
 #[test]
+fn app_folders_and_tracked_nodes_dropped_from_explorer_stay_where_they_are() {
+    let (dir, _src) = fixture("drop-own");
+    dir.mkdir("backup/old");
+    fs::write(dir.path().join(".ant/keep.txt"), "keep").unwrap();
+    dir.mkdir("100.PERSONAL/PJ.001_Board/Loose");
+    let sources = [".ant", "backup", "999.Settings", "100.PERSONAL/03.Toki", "100.PERSONAL/PJ.001_Board/Loose"];
+    for source in sources {
+        let path = dir.path().join(source);
+        let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), std::slice::from_ref(&path), false, &[], &never_recycles);
+        let out = out.unwrap_or_else(|e| panic!("{source}: {e:?}"));
+        assert!(out.placed.is_empty(), "{source}: {:?}", out.placed);
+        assert!(path.is_dir(), "{source}");
+    }
+    assert_eq!(read(&dir, ".ant/keep.txt"), "keep");
+    assert!(names(&dir.path().join("100.PERSONAL/04.Data")).is_empty());
+}
+
+#[test]
+fn a_tracked_node_copied_inside_the_storage_keeps_its_source_while_a_move_stays_refused() {
+    let (dir, _src) = fixture("drop-own-copy");
+    let node = rel(&["100.PERSONAL", "03.Toki"]);
+    let target = rel(&["100.PERSONAL", "04.Data"]);
+    let source = dir.path().join("100.PERSONAL/03.Toki");
+    fs::write(source.join("plan.txt"), "plan").unwrap();
+    let moved = drop_files(dir.path(), &target, std::slice::from_ref(&source), false, &[], &never_recycles).unwrap();
+    assert!(moved.placed.is_empty() && moved.mutation.warnings[0].contains(ALREADY_INSIDE), "{:?}", moved.mutation.warnings);
+    assert!(names(&dir.path().join("100.PERSONAL/04.Data")).is_empty());
+    let copied = drop_files(dir.path(), &target, std::slice::from_ref(&source), true, &[], &never_recycles).unwrap();
+    assert!(copied.mutation.warnings.is_empty(), "{:?}", copied.mutation.warnings);
+    assert_eq!(copied.placed, [placed("03.Toki", &["100.PERSONAL", "04.Data"], true)]);
+    assert_eq!(read(&dir, "100.PERSONAL/04.Data/03.Toki/plan.txt"), "plan");
+    assert_eq!(read(&dir, "100.PERSONAL/03.Toki/plan.txt"), "plan");
+    assert!(tree_store::get_node(&yaml(dir.path()), &node).is_some());
+    assert!(tree_store::get_node(&synced_yaml(dir.path()), &node).is_some());
+}
+
+#[test]
+fn app_folders_are_refused_for_a_copy_too() {
+    let (dir, _src) = fixture("drop-own-copy-app");
+    dir.mkdir("backup");
+    for source in [".ant", "backup", "999.Settings"] {
+        let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), &[dir.path().join(source)], true, &[], &never_recycles).unwrap();
+        assert!(out.placed.is_empty(), "{source}: {:?}", out.placed);
+    }
+    assert!(names(&dir.path().join("100.PERSONAL/04.Data")).is_empty());
+}
+
+#[test]
+fn an_untracked_folder_moved_inside_the_app_still_moves_but_app_folders_do_not() {
+    let (dir, _src) = fixture("drop-inner");
+    dir.mkdir("100.PERSONAL/04.Data/Loose/sub");
+    let target = rel(&["100.PERSONAL", "PJ.001_Board"]);
+    let loose = source_path(dir.path(), &rel(&["100.PERSONAL", "04.Data", "Loose"])).unwrap();
+    let out = move_in(dir.path(), &target, std::slice::from_ref(&loose), false, &never_recycles).unwrap();
+    assert!(out.mutation.warnings.is_empty(), "{:?}", out.mutation.warnings);
+    assert_eq!(out.placed, [placed("Loose", &["100.PERSONAL", "PJ.001_Board"], false)]);
+    assert!(!loose.exists() && dir.path().join("100.PERSONAL/PJ.001_Board/Loose/sub").is_dir());
+    dir.mkdir("backup");
+    let backup = source_path(dir.path(), &rel(&["backup"])).unwrap();
+    let out = move_in(dir.path(), &target, std::slice::from_ref(&backup), false, &never_recycles).unwrap();
+    assert!(out.placed.is_empty() && backup.is_dir(), "{:?}", out.placed);
+    assert!(source_path(dir.path(), &rel(&[".ant"])).is_err());
+    assert!(source_path(dir.path(), &rel(&["100.PERSONAL", "03.Toki"])).is_err());
+}
+
+#[test]
 fn a_file_moved_onto_its_own_folder_stays_put() {
     let (dir, _src) = fixture("drop-same");
     let own = dir.path().join("100.PERSONAL/04.Data/a.txt");
     fs::write(&own, "a").unwrap();
-    let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), &[own.clone()], false, &[], &never_recycles).unwrap();
+    let out = drop_files(dir.path(), &rel(&["100.PERSONAL", "04.Data"]), std::slice::from_ref(&own), false, &[], &never_recycles).unwrap();
     assert!(out.placed.is_empty());
     let m = &out.mutation;
     assert!(m.warnings[0].contains("already in this folder"), "{:?}", m.warnings);
@@ -236,7 +465,7 @@ fn the_tree_gets_the_destination_level_back() {
     let m = drop_at(&dir, &src, &["100.PERSONAL", "03.Toki"], &["notes"], false).unwrap().mutation;
     assert!(m.tree.is_none());
     let review = rel(&["100.PERSONAL", "03.Toki", "98.Toki"]);
-    assert_eq!(m.touched, [review.clone()]);
+    assert_eq!(m.touched, [review.clone(), rel(&["100.PERSONAL", "03.Toki"])]);
     assert_eq!(m.levels[0].parent, rel(&["100.PERSONAL", "03.Toki"]));
     assert!(m.levels[0].children.iter().any(|n| n.rel_parts == review));
 }

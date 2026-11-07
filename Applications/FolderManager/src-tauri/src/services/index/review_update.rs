@@ -154,7 +154,7 @@ mod tests {
         crate::platform::shortcuts::create_shortcuts(pairs)
     }
 
-    // A synced, saved yaml and a fully built 998.Review, as after startup.
+    // A synced, saved tree and a fully built 998.Review, as after startup.
     fn reviewed(tag: &str) -> TempDir {
         let dir = storage(tag, DIRS, TREE);
         let data = synced_yaml(dir.path());

@@ -25,7 +25,7 @@ import type { PageContext, SettingsPage } from "../page";
 
 type Loaded<T> = { state: "loading" } | { state: "ok"; value: T } | { state: "error"; message: string };
 
-const UNVALIDATED = "Unvalidated: this code was not reviewed by the ANT developers. It runs isolated, but install it only if you trust its author.";
+const UNVALIDATED = "Unvalidated: this code was not reviewed by the ANT developers. It runs isolated, but install it only if you trust its author";
 
 // Keyed by the Storage root, so switching Storage reads its own extensions again.
 let cache: { root: string; installed: Loaded<ExtensionInfo[]>; library: Loaded<RegistryEntry[]> } | null = null;
@@ -68,7 +68,7 @@ function findRepo(url: string, row: RowHandle, ctx: PageContext): Promise<void> 
   return attempt(row, async () => {
     row.describe("Looking up the repository…");
     const p = await inspectExtensionRepo(url);
-    if (p.alreadyInstalled) return row.describe(`${p.name} is already installed.`);
+    if (p.alreadyInstalled) return row.describe(`${p.name} is already installed`);
     row.describe("");
     const message = `${p.name} ${p.version} by ${p.author} (${Math.ceil(p.size / 1024)} KB). It asks to: ${permissionsText(p.permissions)}. ${UNVALIDATED}`;
     if (!(await confirmDialog(`Install ${p.name}?`, message, "Install"))) return;
@@ -83,7 +83,7 @@ function installedRow(ext: ExtensionInfo, ctx: PageContext): SettingRow {
       "Remove",
       () =>
         void attempt(row, async () => {
-          if (!(await confirmDialog("Remove extension", `${ext.name} and its folder are deleted.`, "Remove"))) return;
+          if (!(await confirmDialog("Remove extension", `${ext.name} and its folder are deleted`, "Remove"))) return;
           await removeExtension(ext.id);
           changed(ctx);
         }),
@@ -93,6 +93,7 @@ function installedRow(ext: ExtensionInfo, ctx: PageContext): SettingRow {
     try {
       await setExtensionEnabled(ext.id, on);
       ext.enabled = on;
+      ext.needsConfirmation = false;
       reloadExtensions();
       return true;
     } catch (e) {
@@ -101,11 +102,11 @@ function installedRow(ext: ExtensionInfo, ctx: PageContext): SettingRow {
     }
   };
   const title = `${ext.name} ${ext.version}`;
-  if (ext.status === "rejected") return { section: "Installed", title, description: ext.reason ?? "Rejected.", control: (row) => remove(row) };
+  if (ext.status === "rejected") return { section: "Installed", title, description: ext.reason ?? "Rejected", control: (row) => remove(row) };
   return {
     section: "Installed",
     title,
-    description: `${ext.author} · ${ext.trust === "validated" ? "Validated" : "Unvalidated"} · ${permissionsText(ext.permissions)}`,
+    description: `${ext.needsConfirmation ? "Listed as on by this Storage, off until you turn it on here. " : ""}${ext.author} · ${ext.trust === "validated" ? "Validated" : "Unvalidated"} · ${permissionsText(ext.permissions)}`,
     control: (row) => actions(switchControl(`Enable ${ext.name}`, ext.enabled, toggle), remove(row)),
   };
 }
@@ -147,11 +148,11 @@ export const extensionsPage: SettingsPage = {
       {
         section: "Add from a repository",
         title: "Repository address",
-        description: "A public GitHub address, such as https://github.com/owner/repo.",
+        description: "A public GitHub address, such as https://github.com/owner/repo",
         control: (row) => inputControl("Repository address", "https://github.com/…", "Find", (url) => void findRepo(url, row, ctx)),
       },
-      ...rowsOf("Installed", d.installed, "No extensions installed.", (ext) => installedRow(ext, ctx), retry),
-      ...rowsOf("Library", d.library, "The library is empty.", (entry) => libraryRow(entry, ctx), retry),
+      ...rowsOf("Installed", d.installed, "No extensions installed", (ext) => installedRow(ext, ctx), retry),
+      ...rowsOf("Library", d.library, "The library is empty", (entry) => libraryRow(entry, ctx), retry),
     ];
   },
 };

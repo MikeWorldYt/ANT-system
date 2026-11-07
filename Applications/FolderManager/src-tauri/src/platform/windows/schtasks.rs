@@ -1,4 +1,5 @@
 // The Windows user and the schtasks.exe process the scheduled tasks are managed through.
+use super::system::system_tool;
 use crate::domain::error::{FmError, R};
 
 pub(crate) fn current_user() -> R<String> {
@@ -11,10 +12,7 @@ pub(crate) fn current_user() -> R<String> {
 
 pub(crate) fn schtasks(args: &[String]) -> R<std::process::Output> {
     use std::os::windows::process::CommandExt;
-    // An absolute path keeps a schtasks.exe planted next to the app or on PATH from running.
-    let exe = std::env::var_os("SystemRoot")
-        .map(|r| std::path::PathBuf::from(r).join(r"System32\schtasks.exe"))
-        .unwrap_or_else(|| "schtasks.exe".into());
+    let exe = system_tool("schtasks.exe").map_err(|e| FmError::Internal { message: format!("Could not start schtasks: {e}") })?;
     std::process::Command::new(exe)
         .args(args)
         .creation_flags(crate::platform::windows::powershell::CREATE_NO_WINDOW)

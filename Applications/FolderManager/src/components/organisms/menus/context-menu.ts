@@ -8,10 +8,10 @@ import { suggestSearch } from "../../../services/ipc/api";
 import { reportError } from "../bars/status-line";
 import { createShortcut, putOnClipboard } from "../../../hooks/folder-share";
 import { openTab } from "../../../hooks/tabs";
-import { copyPath, openFolder } from "../../../hooks/path-actions";
+import { copyPath, openFolder, openInApp } from "../../../hooks/path-actions";
 import { isSelected, keyOf, selectedNodes, startEdit, state } from "../../../services/store/state";
 import { menuItems, runMenuItem } from "../../../extensions/host";
-import { autoDismiss, focusInitial, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
+import { autoDismiss, focusInitial, closingItem, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
 import { boardMenu, type MenuParts } from "./board-menu";
 import type { ViewPicker } from "../bars/toolbar";
 import { inDownloads, type TreeNode } from "../../../services/ipc/types";
@@ -72,53 +72,31 @@ export function nodeMenuFromKey(host: Element, node: TreeNode, anchor: Element |
 
 // Items in Downloads only open and copy: nothing there is a storage node, and the files are not ours to change.
 function downloadsMenu(nodes: TreeNode[], close: (restore?: boolean) => void): MenuParts {
+  const action = closingItem(close);
   const [one] = nodes.length === 1 ? nodes : [];
-  const copy = menuItem("Copy", "menuitem", true, () => {
-    close();
-    void putOnClipboard(nodes, false);
-  });
+  const copy = action("Copy", true, () => void putOnClipboard(nodes, false));
   if (!one) return { items: [copy], subs: [], content: [copy] };
-  const open = menuItem("Open", "menuitem", one.actions.open, () => {
-    close();
-    void openFolder(one);
-  });
-  const copyPathItem = menuItem("Copy path", "menuitem", one.actions.copyPath, () => {
-    close();
-    void copyPath(one);
-  });
+  const open = action(one.file ? "Open" : "Open folder location", one.actions.open, () => void openFolder(one));
+  const copyPathItem = action("Copy path", one.actions.copyPath, () => void copyPath(one));
   return { items: [open, copyPathItem, copy], subs: [], content: [open, copyPathItem, separator(), copy] };
 }
 
 function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts {
+  const action = closingItem(close);
   if (inDownloads(node.relParts)) return downloadsMenu([node], close);
   const a = node.actions;
 
-  const open = menuItem("Open", "menuitem", a.open, () => {
-    close();
-    void openFolder(node);
-  });
-  const copyPathItem = menuItem("Copy path", "menuitem", a.copyPath, () => {
-    close();
-    void copyPath(node);
-  });
-  const favorite = menuItem(node.favorite ? "Remove from favorites" : "Add to favorites", "menuitem", a.favorite, () => {
-    close();
-    void setFavorite(node, !node.favorite);
-  });
+  const open = action(node.file ? "Open" : "Open folder location", a.open, () => void openFolder(node));
+  const copyPathItem = action("Copy path", a.copyPath, () => void copyPath(node));
+  const favorite = action(node.favorite ? "Remove from favorites" : "Add to favorites", a.favorite, () => void setFavorite(node, !node.favorite));
   favorite.prepend(guiIcon("starred"));
   favorite.classList.toggle("ctx-favorite-add", !node.favorite);
-  const important = menuItem(importantLabel(node.important), "menuitem", a.important, () => {
-    close();
-    void setImportant([node], !node.important);
-  });
+  const important = action(importantLabel(node.important), a.important, () => void setImportant([node], !node.important));
   important.prepend(guiIcon("important"));
   important.classList.toggle("ctx-important-add", !node.important);
   // Only workboards are placed on the board, so the item is left out for other folders.
   const importantItems = isWorkboard(node) ? [important] : [];
-  const hide = menuItem(node.hidden ? "Show element" : "Hide element", "menuitem", a.hideLink, () => {
-    close();
-    void setLinkHidden(node, !node.hidden);
-  });
+  const hide = action(node.hidden ? "Show element" : "Hide element", a.hideLink, () => void setLinkHidden(node, !node.hidden));
   // Only review links carry the action, so the item is left out everywhere else.
   const hideItems = a.hideLink ? [hide] : [];
   const rename = menuItem("Rename", "menuitem", a.rename, () => {
@@ -126,38 +104,21 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     startEdit(node.relParts);
   });
   // Ungated like Ctrl+C: the backend explains a refusal.
-  const copy = menuItem("Copy", "menuitem", true, () => {
-    close();
-    void putOnClipboard([node], false);
-  });
+  const copy = action("Copy", true, () => void putOnClipboard([node], false));
   // The backend refuses a cut that is not allowed, such as a folder that holds no loose data.
-  const cut = menuItem("Cut", "menuitem", true, () => {
-    close();
-    void putOnClipboard([node], true);
-  });
+  const cut = action("Cut", true, () => void putOnClipboard([node], true));
   // Enabled even on locked folders: the backend picks the real target and explains a refusal.
-  const paste = menuItem("Paste", "menuitem", true, () => {
-    close();
-    void pasteFiles(node.relParts);
-  });
+  const paste = action("Paste", true, () => void pasteFiles(node.relParts));
   // A review link only opens its owner folder, so the actions that change the folder do not apply.
   if (node.linked) {
     return { items: [open, copyPathItem, favorite, ...hideItems, copy, paste], subs: [], content: [open, copyPathItem, favorite, ...hideItems, separator(), copy, paste] };
   }
-  const shortcut = menuItem("Create shortcut", "menuitem", true, () => {
-    close();
-    void createShortcut(node);
-  });
-  const newTab = menuItem("Open in new tab", "menuitem", true, () => {
-    close();
-    openTab(node.relParts);
-  });
+  const shortcut = action("Create shortcut", true, () => void createShortcut(node));
+  const openHere = action("Open", true, () => void openInApp(node));
+  const newTab = action("Open in new tab", true, () => openTab(node.relParts));
   const shareItems = node.reserved || node.ghost ? [] : [paste, shortcut];
   const allowsFiles = node.flags.includes("data");
-  const files = menuItem(allowsFiles ? "Deny files" : "Allow files", "menuitem", a.editFlags, () => {
-    close();
-    void setUserFlag(node, !allowsFiles);
-  });
+  const files = action(allowsFiles ? "Deny files" : "Allow files", a.editFlags, () => void setUserFlag(node, !allowsFiles));
   const fileItems = node.nodeType?.base === "NODE" ? [files] : [];
   const typeChoices = TYPES.map(([base, label]) =>
     menuItem(label, "menuitemradio", a.changeType, () => {
@@ -175,23 +136,14 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   });
   const subs: Submenu[] = [submenu("Change type", typeChoices, a.changeType)];
   if (node.nodeType?.base === "WKB") subs.push(submenu("Change status", statusChoices, a.editDetails));
-  const newNode = menuItem(a.addFolder ? "New folder" : "New node", "menuitem", a.addChild || a.addFolder, () => {
-    close();
-    void addChild(node, "node");
-  });
-  const newWorkboard = menuItem("New workboard", "menuitem", (a.addChild || a.addFolder) && node.relParts.length > 1, () => {
-    close();
-    void addChild(node, "workboard");
-  });
+  const newNode = action(a.addFolder ? "New folder" : "New node", a.addChild || a.addFolder, () => void addChild(node, "node"));
+  const newWorkboard = action("New workboard", (a.addChild || a.addFolder) && node.relParts.length > 1, () => void addChild(node, "workboard"));
   const del = menuItem("Delete", "menuitem", a.delete, () => {
     close();
     void remove(node);
   }, "ctx-item danger");
   del.prepend(guiIcon("trash"));
-  const hideElement = menuItem("Hide element", "menuitem", a.hide, () => {
-    close();
-    void hideNode(node);
-  });
+  const hideElement = action("Hide element", a.hide, () => void hideNode(node));
   hideElement.prepend(guiIcon("hide"));
 
   // A file offers only the actions that apply to one file.
@@ -204,17 +156,14 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   }
 
   const extras = menuItems().map((m) =>
-    menuItem(m.label, "menuitem", true, () => {
-      close();
-      runMenuItem(m.extId, m.id, node);
-    }),
+    action(m.label, true, () => runMenuItem(m.extId, m.id, node)),
   );
 
   return {
-    items: [open, newTab, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, hideElement, del, ...extras],
+    items: [openHere, newTab, open, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, hideElement, del, ...extras],
     subs,
     content: [
-      open, newTab, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
+      openHere, newTab, open, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
       rename, copy, cut, ...shareItems, separator(),
       ...subs.map((s) => s.element), ...fileItems, separator(),
       newNode, newWorkboard, separator(),
@@ -244,6 +193,7 @@ function ownerSubmenu(nodes: TreeNode[], close: () => void, enabled: boolean): S
 
 // Workboard-only actions show only when every marked item is a workboard.
 function workboardItems(nodes: TreeNode[], close: () => void): { items: HTMLButtonElement[]; subs: Submenu[] } {
+  const action = closingItem(close);
   if (!nodes.every(isWorkboard)) return { items: [], subs: [] };
   const statusChoices = STATUSES.map(([value, label]) => {
     const item = menuItem(label, "menuitemradio", true, () => {
@@ -256,10 +206,7 @@ function workboardItems(nodes: TreeNode[], close: () => void): { items: HTMLButt
   const editable = nodes.every((n) => n.actions.editDetails);
   const subs = [submenu("Change status", statusChoices, editable), ownerSubmenu(nodes, close, editable)];
   const on = !nodes.every((n) => n.important);
-  const important = menuItem(importantLabel(!on), "menuitem", nodes.every((n) => n.actions.important), () => {
-    close();
-    void setImportant(nodes, on);
-  });
+  const important = action(importantLabel(!on), nodes.every((n) => n.actions.important), () => void setImportant(nodes, on));
   important.prepend(guiIcon("important"));
   important.classList.toggle("ctx-important-add", on);
   return { items: [important], subs };
@@ -267,27 +214,16 @@ function workboardItems(nodes: TreeNode[], close: () => void): { items: HTMLButt
 
 // Several marked items share Copy, Cut and Delete; Delete needs every one of them deletable.
 function selectionMenu(nodes: TreeNode[], close: (restore?: boolean) => void): MenuParts {
+  const action = closingItem(close);
   const favOn = !nodes.every((n) => n.favorite);
-  const favorite = menuItem(favOn ? "Add to favorites" : "Remove from favorites", "menuitem", nodes.every((n) => n.actions.favorite), () => {
-    close();
-    void setFavorites(nodes, favOn);
-  });
+  const favorite = action(favOn ? "Add to favorites" : "Remove from favorites", nodes.every((n) => n.actions.favorite), () => void setFavorites(nodes, favOn));
   favorite.prepend(guiIcon("starred"));
   favorite.classList.toggle("ctx-favorite-add", favOn);
   const wkb = workboardItems(nodes, close);
-  const hideElement = menuItem("Hide elements", "menuitem", nodes.every((n) => n.actions.hide), () => {
-    close();
-    void hideMany(nodes);
-  });
+  const hideElement = action("Hide elements", nodes.every((n) => n.actions.hide), () => void hideMany(nodes));
   hideElement.prepend(guiIcon("hide"));
-  const copy = menuItem("Copy", "menuitem", true, () => {
-    close();
-    void putOnClipboard(nodes, false);
-  });
-  const cut = menuItem("Cut", "menuitem", true, () => {
-    close();
-    void putOnClipboard(nodes, true);
-  });
+  const copy = action("Copy", true, () => void putOnClipboard(nodes, false));
+  const cut = action("Cut", true, () => void putOnClipboard(nodes, true));
   const del = menuItem("Delete", "menuitem", nodes.every((n) => n.actions.delete), () => {
     close();
     void removeMany(nodes);

@@ -29,7 +29,7 @@ pub(crate) fn reindex(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapp
     })
 }
 
-// Rebuilds from data the caller already loaded, so a snapshot's yaml is not read twice.
+// Rebuilds from data the caller already loaded, so a snapshot's tree is not read twice.
 pub(crate) fn reindex_data(root: &Path, emit: Emit, data: &Mapping, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>) -> Vec<String> {
     report(emit, || rebuild(root, data))
 }

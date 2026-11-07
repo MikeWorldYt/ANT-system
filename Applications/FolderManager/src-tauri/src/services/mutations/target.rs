@@ -63,7 +63,7 @@ pub(super) fn exactly_on_disk(root: &Path, rel: &[String]) -> R<bool> {
     Ok(true)
 }
 
-// Exact match, because Windows would also open "01.math" for a yaml key "01.Math".
+// Exact match, because Windows would also open "01.math" for a tree key "01.Math".
 fn has_exact_dir(dir: &Path, name: &str) -> R<bool> {
     let entries = match fs::read_dir(dir) {
         Ok(entries) => entries,

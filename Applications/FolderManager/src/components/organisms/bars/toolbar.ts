@@ -1,4 +1,5 @@
 // Tree actions (add, sort, view, refresh) that share the navigation row.
+import { VIEW_ICONS, viewChoice } from "../../molecules/view-choice";
 import { el, setDisabled } from "../../dom";
 import { guiIcon, type GuiIcon } from "../../atoms/gui-icons";
 import { iconButton } from "../../atoms/icon-button";
@@ -15,7 +16,7 @@ export interface ViewPicker {
 }
 
 export const SORT_KEYS: [SortBy, string, GuiIcon][] = [["track", "Track", "sortTrack"], ["name", "Name", "sortName"], ["status", "Status", "sortStatus"]];
-const VIEW_ORDER = ["tree", "grid", "columns"];
+const VIEW_ORDER = ["tree", "list", "cards", "grid", "columns"];
 export const orderedModes = (views: ViewPicker) => [...views.modes].sort((a, b) => VIEW_ORDER.indexOf(a.id) - VIEW_ORDER.indexOf(b.id));
 
 export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trailing: HTMLElement[]; render(): void } {
@@ -48,9 +49,8 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     ];
   });
 
-  const VIEW_ICONS: Record<string, GuiIcon> = { tree: "viewTree", columns: "viewColumns", grid: "viewGrid" };
   let closeViewPopup: ((restore?: boolean) => void) | null = null;
-  const modeButtons = orderedModes(views).map((m): [string, HTMLButtonElement] => [m.id, iconButton(`${m.label} view`, VIEW_ICONS[m.id] ?? "layout", () => {
+  const modeButtons = orderedModes(views).map((m): [string, HTMLButtonElement] => [m.id, viewChoice(m.label, VIEW_ICONS[m.id] ?? "layout", () => {
     views.onSelect(m.id);
     closeViewPopup?.(true);
   })]);

@@ -42,6 +42,13 @@ pub fn apply(on: bool, frequency: &str, root: &Path) -> R<()> {
     scheduler::apply(&TASK, schedule(on, frequency)?, root)
 }
 
+pub fn migrate(frequency: &str, root: &Path) -> R<()> {
+    match schedule(true, frequency)? {
+        Some(schedule) => scheduler::migrate(&TASK, schedule, root),
+        None => Ok(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -64,14 +71,16 @@ mod tests {
 
     #[test]
     fn schtasks_arguments_follow_the_frequency() {
-        let args = schtasks_args(true, "week", Path::new("C:/App/fm.exe"), Path::new("D:/My Storage")).unwrap();
-        let expected = ["/Create", "/F", "/SC", "WEEKLY", "/TN", TASK_NAME, "/TR"];
+        let root = Path::new("D:/My Storage");
+        let args = schtasks_args(true, "week", Path::new("C:/App/fm.exe"), root).unwrap();
+        let name = scheduler::task_name(&TASK, root);
+        let expected = ["/Create", "/F", "/SC", "WEEKLY", "/TN", &name, "/TR"];
         assert_eq!(args[..7], expected);
         assert_eq!(args[7], "\"C:/App/fm.exe\" --backup \"D:/My Storage\"");
         assert_eq!(args[8..], ["/ST", "12:00"]);
         assert_eq!(schtasks_args(true, "day", Path::new("a"), Path::new("b")).unwrap()[3], "DAILY");
         assert_eq!(schtasks_args(true, "month", Path::new("a"), Path::new("b")).unwrap()[3], "MONTHLY");
         assert!(schtasks_args(true, "hour", Path::new("a"), Path::new("b")).is_err());
-        assert_eq!(schtasks_args(false, "", Path::new("a"), Path::new("b")).unwrap(), ["/Delete", "/F", "/TN", TASK_NAME]);
+        assert_eq!(schtasks_args(false, "", Path::new("a"), root).unwrap(), ["/Delete", "/F", "/TN", &name]);
     }
 }

@@ -78,7 +78,7 @@ export const backupPage: SettingsPage = {
   rows: (ctx) => [
     {
       title: "Automatic backup",
-      description: "Save a copy of the Storage at regular intervals.",
+      description: "Save a copy of the Storage at regular intervals",
       control: () => switchControl("Automatic backup", state.settings.backupAuto, toggleAuto),
     },
     {
@@ -106,7 +106,7 @@ export const backupPage: SettingsPage = {
     },
     {
       title: "Export or import",
-      description: "Move your Workboards to another computer.",
+      description: "Move your Workboards to another computer",
       control: (row: RowHandle) => actions(buttonControl("Export", () => void exportNow(row)), buttonControl("Import", () => void importOne(row))),
     },
   ],

@@ -10,6 +10,7 @@ import { autoRefresh } from "./hooks/auto-refresh";
 import { startIdleRefresh } from "./hooks/idle-refresh";
 import { handleFileDrag } from "./hooks/file-drop";
 import { installShortcuts } from "./hooks/shortcuts";
+import { isRenderingOther, renderOther } from "./hooks/split";
 import { closeTab, nextTab, openTab, syncTabs } from "./hooks/tabs";
 import { restoreFocus, trackFieldFocus } from "./hooks/focus-return";
 import { checkForUpdates } from "./hooks/updates";
@@ -38,11 +39,13 @@ installShortcuts({
 });
 
 subscribe(() => {
+  if (isRenderingOther()) return;
   toolbar.render();
   navigator.render();
   syncTabs();
   tabBar.render();
   views.current().render();
+  renderOther();
   board.render();
   panel.render();
   rememberSelection();

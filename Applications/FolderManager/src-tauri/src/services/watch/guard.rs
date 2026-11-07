@@ -10,7 +10,7 @@ use crate::infra::storage::db::hash;
 const APP_ID: &str = "com.mikeworldyt.foldermanager";
 
 // The headless mode has no AppHandle, so this mirrors Tauri's app_local_data_dir from the environment.
-pub(super) fn guard_dir() -> R<PathBuf> {
+pub(crate) fn local_data_dir() -> R<PathBuf> {
     let var = |name: &str| std::env::var_os(name).filter(|v| !v.is_empty()).map(PathBuf::from);
     let base = if cfg!(windows) {
         var("LOCALAPPDATA")
@@ -19,16 +19,23 @@ pub(super) fn guard_dir() -> R<PathBuf> {
     } else {
         var("XDG_DATA_HOME").or_else(|| var("HOME").map(|h| h.join(".local/share")))
     };
-    let base = base.ok_or_else(|| FmError::Internal { message: "No local app data folder to keep the watch guard in".to_string() })?;
-    Ok(base.join(APP_ID).join("watch"))
+    let base = base.ok_or_else(|| FmError::Internal { message: "No local app data folder found".to_string() })?;
+    Ok(base.join(APP_ID))
 }
 
-// Windows paths ignore case, so two spellings of one storage must share a guard.
-pub(super) fn guard_name(root: &Path) -> String {
+pub(super) fn guard_dir() -> R<PathBuf> {
+    Ok(local_data_dir()?.join("watch"))
+}
+
+// Windows paths ignore case, so two spellings of one storage must share one key.
+pub(crate) fn storage_key(root: &Path) -> String {
     let canonical = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let text = canonical.to_string_lossy();
-    let key = if cfg!(windows) { text.to_lowercase() } else { text.into_owned() };
-    format!("watch-{}.lock", hash(&key))
+    hash(&if cfg!(windows) { text.to_lowercase() } else { text.into_owned() })
+}
+
+pub(super) fn guard_name(root: &Path) -> String {
+    format!("watch-{}.lock", storage_key(root))
 }
 
 // An OS file lock dies with the process, so a crashed watcher never leaves a stale guard behind.

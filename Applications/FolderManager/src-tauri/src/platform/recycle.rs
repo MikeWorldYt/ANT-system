@@ -47,4 +47,17 @@ mod tests {
         assert!(m.warnings.is_empty(), "{:?}", m.warnings);
         assert!(!dir.path().join("100.WORK/02.B").exists());
     }
+
+    #[cfg(windows)]
+    #[test]
+    #[ignore = "sends a temp file to the real Recycle Bin through PowerShell"]
+    fn a_canonical_path_reaches_the_recycle_bin() {
+        let dir = work("recycle-canonical");
+        let file = dir.path().join("100.WORK/loose.txt");
+        fs::write(&file, "x").unwrap();
+        let canonical = fs::canonicalize(&file).unwrap();
+        assert!(canonical.to_string_lossy().starts_with(r"\\?\"), "{}", canonical.display());
+        send_to_recycle_bin(&canonical).unwrap();
+        assert!(!file.exists());
+    }
 }

@@ -4,21 +4,42 @@ use std::path::{Component, Path, PathBuf};
 
 use serde_yaml::Mapping;
 
+use crate::domain::names::support_kind;
 use crate::domain::shortcut_names::review_shortcut_name;
 
-use crate::platform::shortcuts::create_shortcuts;
+#[cfg(windows)]
+use crate::infra::fs_safe::is_link;
+use crate::platform::shortcuts::{create_shortcuts, shortcut_targets};
 use crate::services::tree::depth;
 use crate::services::tree::tree_store::get_node;
 use crate::services::tree::review_links::{is_locked, owners, review_dir, rev_folder};
 
+pub(crate) type LinkTargets = Result<Vec<String>, String>;
+
 pub fn rebuild(root: &Path, data: &Mapping) -> Vec<String> {
-    rebuild_with(root, data, create_shortcuts)
+    rebuild_using(root, data, create_shortcuts, shortcut_targets)
 }
 
+// Stands in for the shell: each test .lnk file holds its target path as text.
+#[cfg(test)]
+pub(crate) fn text_targets(links: &[PathBuf]) -> LinkTargets {
+    links.iter().map(|link| fs::read_to_string(link).map_err(|e| e.to_string())).collect()
+}
+
+#[cfg(test)]
 pub(crate) fn rebuild_with(
     root: &Path,
     data: &Mapping,
     create: impl FnOnce(&[(PathBuf, PathBuf)]) -> Vec<String>,
+) -> Vec<String> {
+    rebuild_using(root, data, create, text_targets)
+}
+
+fn rebuild_using(
+    root: &Path,
+    data: &Mapping,
+    create: impl FnOnce(&[(PathBuf, PathBuf)]) -> Vec<String>,
+    read_targets: impl FnOnce(&[PathBuf]) -> LinkTargets,
 ) -> Vec<String> {
     let review_dir = match review_dir(root) {
         Ok(Some(dir)) => dir,
@@ -29,7 +50,7 @@ pub(crate) fn rebuild_with(
         Ok(limit) => limit,
         Err(e) => return vec![e.to_string()],
     };
-    let mut failures = remove_old_links(root, &review_dir);
+    let mut failures = remove_old_links(root, &review_dir, read_targets);
     let mut found = Vec::new();
     owners(data, &[], &mut found, limit);
     let mut pairs = Vec::new();
@@ -59,12 +80,30 @@ pub(super) fn branch_owners(data: &Mapping, branch: &[String], node: &Mapping, l
     found
 }
 
-fn remove_old_links(#[cfg_attr(windows, allow(unused_variables))] root: &Path, review_dir: &Path) -> Vec<String> {
+// A .lnk is the app's only when it opens a review folder of this storage; any other is the user's and stays.
+pub(crate) fn own_shortcuts(root: &Path, review_dir: &Path, links: Vec<PathBuf>, read_targets: impl FnOnce(&[PathBuf]) -> LinkTargets) -> Result<Vec<PathBuf>, String> {
+    if links.is_empty() {
+        return Ok(links);
+    }
+    let targets = read_targets(&links)?;
+    Ok(links.into_iter().zip(targets).filter(|(_, target)| opens_review(root, review_dir, target)).map(|(link, _)| link).collect())
+}
+
+// Windows paths ignore case, and a shortcut keeps whatever case the storage path had when it was made.
+fn opens_review(root: &Path, review_dir: &Path, target: &str) -> bool {
+    let lower = |path: &Path| PathBuf::from(path.to_string_lossy().to_lowercase());
+    let target = Path::new(target);
+    targets_storage(&lower(root), &lower(review_dir), &lower(target)) && target.file_name().is_some_and(|name| support_kind(&name.to_string_lossy()) == Some("REV"))
+}
+
+fn remove_old_links(root: &Path, review_dir: &Path, read_targets: impl FnOnce(&[PathBuf]) -> LinkTargets) -> Vec<String> {
     let entries = match fs::read_dir(review_dir) {
         Ok(entries) => entries,
         Err(e) => return vec![format!("Could not list {}: {e}", review_dir.display())],
     };
     let mut failures = Vec::new();
+    let mut stale_links = Vec::new();
+    let mut shortcuts = Vec::new();
     for entry in entries {
         let entry = match entry {
             Ok(entry) => entry,
@@ -74,8 +113,11 @@ fn remove_old_links(#[cfg_attr(windows, allow(unused_variables))] root: &Path, r
             }
         };
         let name = entry.file_name().to_string_lossy().into_owned();
+        // An online-only file is the user's whatever its name, and reading it would download it.
         #[cfg(windows)]
-        let stale = entry.file_type().is_ok_and(|t| t.is_file()) && name.to_lowercase().ends_with(".lnk");
+        if name.to_lowercase().ends_with(".lnk") && entry.metadata().is_ok_and(|meta| meta.is_file() && !is_link(&meta)) {
+            shortcuts.push(entry.path());
+        }
         // Only symlinks into the storage are ours; dangling ones still resolve lexically.
         #[cfg(not(windows))]
         let stale = match entry.file_type() {
@@ -88,10 +130,18 @@ fn remove_old_links(#[cfg_attr(windows, allow(unused_variables))] root: &Path, r
             },
             _ => false,
         };
+        #[cfg(not(windows))]
         if stale {
-            if let Err(e) = fs::remove_file(entry.path()) {
-                failures.push(format!("Could not remove {name}: {e}"));
-            }
+            stale_links.push(entry.path());
+        }
+    }
+    match own_shortcuts(root, review_dir, shortcuts, read_targets) {
+        Ok(own) => stale_links.extend(own),
+        Err(e) => failures.push(format!("Could not read the review shortcuts: {e}")),
+    }
+    for link in stale_links {
+        if let Err(e) = fs::remove_file(&link) {
+            failures.push(format!("Could not remove {}: {e}", link.display()));
         }
     }
     failures
@@ -143,8 +193,9 @@ mod tests {
              02.Bio: {type: NODE-L2}\n  90.Res: {type: RES}\n",
         );
         let review = dir.path().join("998.Review");
-        fs::write(review.join("old.lnk"), "").unwrap();
-        fs::write(review.join("OLD2.LNK"), "").unwrap();
+        let old = dir.path().join("100.ACADEMIC/98.Gone").to_string_lossy().into_owned();
+        fs::write(review.join("old.lnk"), &old).unwrap();
+        fs::write(review.join("OLD2.LNK"), &old).unwrap();
         fs::write(review.join("notes.txt"), "").unwrap();
         fs::write(review.join("keep.lnk").join("inner.lnk"), "").unwrap();
 
@@ -169,6 +220,85 @@ mod tests {
             (a.join("01.Math/PJ.Thesis/98.Thesis"), review.join("101.PJ.Thesis")),
         ];
         assert_eq!(seen, expected);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn rebuild_keeps_a_shortcut_that_does_not_open_a_review_folder() {
+        let dir = storage("review-own", &["998.Review", "100.A/REV.A"], "100.A: {type: NODE-L1}\n");
+        let review = dir.path().join("998.Review");
+        let stale = dir.path().join("100.A/REV.Gone").to_string_lossy().into_owned();
+        fs::write(review.join("stale.lnk"), stale).unwrap();
+        fs::write(review.join("mine.lnk"), "C:/Users/me/report.pdf").unwrap();
+        fs::write(review.join("inside.lnk"), dir.path().join("100.A/report.pdf").to_string_lossy().as_bytes()).unwrap();
+        assert!(rebuild_with(dir.path(), &yaml(dir.path()), |_| Vec::new()).is_empty());
+        assert!(review.join("mine.lnk").is_file() && review.join("inside.lnk").is_file());
+        assert!(!review.join("stale.lnk").exists());
+    }
+
+    #[cfg(windows)]
+    const LINKS: [&str; 3] = ["a-corrupt.lnk", "b-user.lnk", "c-stale.lnk"];
+
+    #[cfg(windows)]
+    fn three_links(tag: &str) -> (crate::test_support::TempDir, PathBuf, String) {
+        let dir = storage(tag, &["998.Review", "100.A/REV.A"], "100.A: {type: NODE-L1}\n");
+        let review = dir.path().join("998.Review");
+        for name in LINKS {
+            fs::write(review.join(name), "").unwrap();
+        }
+        let stale = dir.path().join("100.A/REV.Gone").to_string_lossy().into_owned();
+        (dir, review, stale)
+    }
+
+    #[cfg(windows)]
+    fn rebuild_from_stdout(root: &Path, stdout: &str) -> Vec<String> {
+        use crate::platform::windows::shortcuts::paired_targets;
+        rebuild_using(root, &yaml(root), |_| Vec::new(), |links| paired_targets(stdout, links.len()))
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn output_without_indexes_keeps_every_link_when_a_blank_first_target_shifted_the_rest() {
+        let (dir, review, stale) = three_links("review-shift");
+        let raw = format!("\r\nC:/Users/me/report.pdf\r\n{stale}\r\n");
+        let failures = rebuild_from_stdout(dir.path(), raw.trim());
+        for name in LINKS {
+            assert!(review.join(name).is_file(), "{name}");
+        }
+        assert_eq!(failures.len(), 1, "{failures:?}");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn each_target_stays_with_its_link_whatever_the_blank_lines() {
+        let (dir, review, stale) = three_links("review-pair");
+        let raw = format!("\r\n\r\n0:\r\n1:C:/Users/me/report.pdf\r\n2:{stale}\r\n");
+        assert_eq!(rebuild_from_stdout(dir.path(), &raw), Vec::<String>::new());
+        assert!(review.join(LINKS[0]).is_file() && review.join(LINKS[1]).is_file());
+        assert!(!review.join(LINKS[2]).exists());
+
+        let (dir, review, stale) = three_links("review-pair-trimmed");
+        let raw = format!("0:{stale}\r\n1:C:/Users/me/report.pdf\r\n2:\r\n");
+        assert_eq!(rebuild_from_stdout(dir.path(), raw.trim()), Vec::<String>::new());
+        assert!(!review.join(LINKS[0]).exists());
+        assert!(review.join(LINKS[1]).is_file() && review.join(LINKS[2]).is_file());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_count_or_order_that_does_not_match_keeps_every_link() {
+        let cases = [
+            ("review-few", "0:\r\n1:{stale}"),
+            ("review-many", "0:\r\n1:{stale}\r\n2:\r\n3:{stale}"),
+            ("review-order", "1:{stale}\r\n0:\r\n2:"),
+            ("review-twice", "0:\r\n1:{stale}\r\n1:{stale}"),
+        ];
+        for (tag, raw) in cases {
+            let (dir, review, stale) = three_links(tag);
+            let failures = rebuild_from_stdout(dir.path(), &raw.replace("{stale}", &stale));
+            assert_eq!(fs::read_dir(&review).unwrap().count(), LINKS.len(), "{tag}");
+            assert_eq!(failures.len(), 1, "{tag}: {failures:?}");
+        }
     }
 
     #[test]
@@ -227,6 +357,11 @@ mod tests {
         let failures = rebuild(dir.path(), &yaml(dir.path()));
         assert!(failures.is_empty(), "{failures:?}");
         assert!(dir.path().join("998.Review/100.AÑO.lnk").is_file());
-        assert!(dir.path().join("998.Review/101.00.Café.lnk").is_file());
+        let link = dir.path().join("998.Review/101.00.Café.lnk");
+        assert!(link.is_file());
+        let target = dir.path().join("100.AÑO/01.Café/98.Café").to_string_lossy().replace('/', "\\");
+        assert_eq!(shortcut_targets(std::slice::from_ref(&link)).unwrap(), [target]);
+        assert!(rebuild(dir.path(), &yaml(dir.path())).is_empty());
+        assert!(link.is_file());
     }
 }

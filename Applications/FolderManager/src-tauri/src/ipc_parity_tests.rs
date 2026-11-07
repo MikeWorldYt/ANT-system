@@ -2,7 +2,7 @@
 use std::collections::BTreeSet;
 
 const LIB_RS: &str = include_str!("lib.rs");
-const API_TS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../src/ipc/api.ts"));
+const API_TS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../src/services/ipc/api.ts"));
 
 fn handler_names(src: &str) -> BTreeSet<String> {
     let start = src.find("generate_handler![").expect("generate_handler! not found") + "generate_handler![".len();

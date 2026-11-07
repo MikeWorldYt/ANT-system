@@ -14,4 +14,8 @@
   background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-pop);
 }
 .view-segment .icon-btn { width: 28px; height: 28px; background: transparent; }
+.view-choices { display: flex; gap: 4px; }
+.view-segment .view-choice, .view-choices .view-choice { width: 58px; height: auto; flex-direction: column; gap: 3px; padding: 6px 2px; background: transparent; }
+.view-segment .view-choice[aria-pressed="true"], .view-choices .view-choice[aria-pressed="true"] { background: var(--highlight); color: var(--text); }
+.view-choice-label { font-size: 8pt; white-space: nowrap; }
 .sort-btn[data-dir="desc"] .gui-icon:last-child { transform: rotate(180deg); }

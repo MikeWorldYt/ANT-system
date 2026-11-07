@@ -58,7 +58,7 @@ pub fn set_board(root: &Path, cards: &[BoardCard]) -> R<Mutation> {
         if type_base(&target.node_type) != "WKB" {
             return Err(FmError::InvalidPath { rel_parts: rel.clone(), reason: "only workboards are on the board".to_string() });
         }
-        // Same precedence as the tree: the info.json status wins over the yaml one.
+        // Same precedence as the tree: the info.json status wins over the tree one.
         let yaml_status = get_node(&data, rel).and_then(|n| n.get("status")).and_then(Value::as_str).map(str::to_string);
         let status = read_info(&target.abs).as_ref().and_then(|i| field_of(i, &["status"])).map(str::to_string).or(yaml_status);
         placed.push((card, target.abs, status));
@@ -108,9 +108,20 @@ mod tests {
         let dir = academic("board-refused");
         let bio = rel(&["100.ACADEMIC", "02.Bio"]);
         set_node_type(dir.path(), &bio, EditableType::Wkb, None).unwrap();
-        let ghost = rel(&["100.ACADEMIC", "03.Ghost"]);
-        assert!(set_board(dir.path(), &[card(&bio, BoardColumn::Done, 0), card(&ghost, BoardColumn::Done, 1)]).is_err());
+        let plain_node = rel(&["100.ACADEMIC", "01.Math"]);
+        assert!(set_board(dir.path(), &[card(&bio, BoardColumn::Done, 0), card(&plain_node, BoardColumn::Done, 1)]).is_err());
         let info = std::fs::read_to_string(dir.path().join("100.ACADEMIC/02.Bio/.ant/info.json")).unwrap();
         assert!(!info.contains("board"), "{info}");
+    }
+
+    #[test]
+    fn a_missing_folder_in_a_column_is_skipped_and_the_others_are_placed() {
+        let dir = academic("board-ghost");
+        let bio = rel(&["100.ACADEMIC", "02.Bio"]);
+        set_node_type(dir.path(), &bio, EditableType::Wkb, None).unwrap();
+        let ghost = rel(&["100.ACADEMIC", "03.Ghost"]);
+        set_board(dir.path(), &[card(&bio, BoardColumn::Done, 0), card(&ghost, BoardColumn::Done, 1)]).unwrap();
+        let info = std::fs::read_to_string(dir.path().join("100.ACADEMIC/02.Bio/.ant/info.json")).unwrap();
+        assert!(info.contains("\"board\": \"done\""), "{info}");
     }
 }

@@ -1,13 +1,11 @@
 // The curl.exe Windows ships, started without a console window.
 use std::process::Command;
 
-// An absolute path keeps a curl.exe planted next to the app or on PATH from running.
+use super::system::system_command;
+
 pub(crate) fn curl() -> Command {
     use std::os::windows::process::CommandExt;
-    let exe = std::env::var_os("SystemRoot")
-        .map(|r| std::path::PathBuf::from(r).join(r"System32\curl.exe"))
-        .unwrap_or_else(|| std::path::PathBuf::from("curl.exe"));
-    let mut cmd = Command::new(exe);
+    let mut cmd = system_command("curl.exe");
     cmd.creation_flags(crate::platform::windows::powershell::CREATE_NO_WINDOW);
     cmd
 }

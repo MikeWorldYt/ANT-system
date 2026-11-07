@@ -9,7 +9,7 @@ use crate::app::storage_session::Storage;
 use crate::domain::config::REVIEW_FOLDER;
 use crate::domain::model::Copies;
 use crate::domain::error::R;
-use crate::infra::fs_safe::{join_rel, validate_component};
+use crate::infra::fs_safe::{resolve, validate_component};
 use crate::services::index::{node_names, reindex_data, review_folders, review_index, Emit};
 use crate::services::snapshot::{snapshot, snapshot_data};
 use crate::services::tree::root_check::{self, RootCheck};
@@ -45,7 +45,7 @@ pub async fn refresh(app: AppHandle, full: bool) -> R<TreeSnapshot> {
 
 #[tauri::command]
 pub async fn check_root(app: AppHandle) -> R<RootCheck> {
-    run_locked(app, |root| root_check::check_root(root)).await
+    run_locked(app, root_check::check_root).await
 }
 
 #[tauri::command]
@@ -69,12 +69,11 @@ pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<Tree
 pub async fn file_image(app: AppHandle, rel_parts: Vec<String>, large: bool) -> R<Option<String>> {
     off_thread(move || {
         let root = app.state::<Storage>().root()?;
-        rel_parts.iter().try_for_each(|part| validate_component(part))?;
         let parent = &rel_parts[..rel_parts.len().saturating_sub(1)];
         if !lists_files(parent) {
             return Ok(None);
         }
-        crate::services::preview::file_image(&join_rel(&root, &rel_parts), large)
+        crate::services::preview::file_image(&resolve(&root, &rel_parts)?, large)
     })
     .await?
 }

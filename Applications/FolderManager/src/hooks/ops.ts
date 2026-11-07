@@ -7,6 +7,7 @@ import { markRefreshed } from "./auto-refresh";
 import { checkStorage } from "./startup-check";
 import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
+import { checkExtraReviews } from "./extra-reviews";
 import { checkSupportUpgrade } from "./support-upgrade";
 import { relist, visibleLevels } from "./relist";
 import { dropNotice, type Notice } from "./drop-summary";
@@ -93,6 +94,8 @@ async function run(fn: () => Promise<void>, progress?: string): Promise<boolean>
   }
 }
 
+const orRoot = (parent: string[]) => (parent.length > 0 ? parent : null);
+
 // A move or copy passes follow=false, so the view stays on the folder the user was in.
 async function applyMutation(m: Mutation, fallback: string[] | null = null, follow = true): Promise<void> {
   const target = follow ? (m.select ?? fallback) : null;
@@ -101,19 +104,24 @@ async function applyMutation(m: Mutation, fallback: string[] | null = null, foll
     select(target);
   }
   if (m.tree === null) await patch(m.levels);
-  // The backend may flag a yaml change and leave the node list empty; the tree then has to be read again.
+  // The backend may flag a tree change and leave the node list empty; the tree then has to be read again.
   else if (m.tree.nodes.length === 0 && m.tree.yamlChanged) await reload();
   else await reload(m.tree);
   if (m.warnings.length > 0) setStatus("warning", m.warnings.join(". "));
   else clearStatus();
 }
 
+const mutate = (call: () => Promise<Mutation>, fallback?: string[] | null) => run(async () => applyMutation(await call(), fallback));
+
 export async function init(): Promise<boolean> {
   let ready = false;
   const ok = await run(async () => {
     if (!(await checkStorage())) return;
     try {
-      applySettings(await api.getSettings());
+      const saved = await api.getSettings();
+      applySettings(saved);
+      // The watch is on by default, so a Storage that never chose gets its task once.
+      if (saved.watchExternal === undefined && (await changeSetting("watchExternal", true))) await api.syncSchedule(true);
     } catch (e) {
       reportError("warning", e, "Settings");
     }
@@ -131,7 +139,7 @@ export async function init(): Promise<boolean> {
     if (last.virtual === "board") await toggleBoard();
     else if (last.virtual !== null && isVirtualShown(last.virtual)) await goToPlace(last);
   });
-  if (ok && ready) void checkSupportUpgrade(applySupportUpgrade, finishSupportUpgrade);
+  if (ok && ready) void checkSupportUpgrade(applySupportUpgrade, finishSupportUpgrade).then(() => checkExtraReviews(mergeExtraReview));
   return ok;
 }
 
@@ -146,6 +154,9 @@ const finishSupportUpgrade = () =>
     if (warnings.length > 0) setStatus("warning", warnings.join(". "));
     else clearStatus();
   }, "Updating the storage root…");
+
+const mergeExtraReview = (relParts: string[]) =>
+  run(async () => applyMutation(await api.mergeExtraReview(relParts)), `Merging "${relParts[relParts.length - 1]}"…`);
 
 export const changeSetting = <K extends keyof Settings>(key: K, value: Settings[K]) =>
   run(async () => {
@@ -294,7 +305,7 @@ export const hideNode = (node: TreeNode) =>
     const parent = node.relParts.slice(0, -1);
     const sibling = nearestSibling(node);
     const m = await api.setNodeHidden(node.relParts, true);
-    await applyMutation({ ...m, select: sibling ?? (parent.length > 0 ? parent : null) }, parent.length > 0 ? parent : null);
+    await applyMutation({ ...m, select: sibling ?? orRoot(parent) }, orRoot(parent));
   });
 
 // The marked items all leave the view, so the selection falls back to the first one's parent.
@@ -303,7 +314,7 @@ export const hideMany = (nodes: TreeNode[]) =>
     const parent = nodes[0]?.relParts.slice(0, -1) ?? [];
     for (const node of nodes) {
       const m = await api.setNodeHidden(node.relParts, true);
-      await applyMutation({ ...m, select: parent.length > 0 ? parent : null }, parent.length > 0 ? parent : null);
+      await applyMutation({ ...m, select: orRoot(parent) }, orRoot(parent));
     }
   });
 
@@ -345,10 +356,10 @@ export async function setChildHidden(name: string, on: boolean): Promise<boolean
 }
 
 export const setOutcomeDefault = (node: TreeNode, key: string, value: string | null) =>
-  run(async () => applyMutation(await api.setOutcomeDefault(node.relParts, key, value), node.relParts));
+  mutate(() => api.setOutcomeDefault(node.relParts, key, value), node.relParts);
 
 export const setOutput = (node: TreeNode, output: string | null) =>
-  run(async () => applyMutation(await api.setNodeOutput(node.relParts, output), node.relParts));
+  mutate(() => api.setNodeOutput(node.relParts, output), node.relParts);
 
 // Finishing a workboard delivers its output, asking first when none is set (where nothing is a valid answer); reopening it brings the delivery back.
 export async function setDetails(node: TreeNode, status: WkbStatus | null, owner: string | null): Promise<boolean> {
@@ -375,15 +386,15 @@ export async function setDetails(node: TreeNode, status: WkbStatus | null, owner
     }
     if (!(await setOutput(current, picked.relative))) return false;
   }
-  const saved = await run(async () => applyMutation(await api.setNodeDetails(current.relParts, status, owner), current.relParts));
+  const saved = await mutate(() => api.setNodeDetails(current.relParts, status, owner), current.relParts);
   if (!saved) return false;
-  if (finishing && delivery !== "none") await run(async () => applyMutation(await api.deliverOutput(current.relParts, todayStamp(), delivery === "all"), current.relParts));
-  else if (reopening) await run(async () => applyMutation(await api.restoreOutput(current.relParts), current.relParts));
+  if (finishing && delivery !== "none") await mutate(() => api.deliverOutput(current.relParts, todayStamp(), delivery === "all"), current.relParts);
+  else if (reopening) await mutate(() => api.restoreOutput(current.relParts), current.relParts);
   return true;
 }
 
 export const setFavorite = (node: TreeNode, on: boolean) =>
-  run(async () => applyMutation(await api.setFavorite(node.relParts, on), node.relParts));
+  mutate(() => api.setFavorite(node.relParts, on), node.relParts);
 
 export const setFavorites = (nodes: TreeNode[], on: boolean) =>
   run(async () => {
@@ -402,10 +413,10 @@ export const setImportant = (nodes: TreeNode[], on: boolean) =>
   });
 
 // Placing cards never moves the selection, so the board keeps the card the user is on.
-export const placeOnBoard = (cards: BoardCard[]) => run(async () => applyMutation(await api.setBoard(cards)));
+export const placeOnBoard = (cards: BoardCard[]) => mutate(() => api.setBoard(cards));
 
 export const setLinkHidden = (node: TreeNode, on: boolean) =>
-  run(async () => applyMutation(await api.setLinkHidden(node.relParts, on), node.relParts));
+  mutate(() => api.setLinkHidden(node.relParts, on), node.relParts);
 
 export function setReviewFilter(hidden: string[], favorites: boolean): void {
   const listing = () => virtualNodes().map((n) => keyOf(n.relParts));
@@ -421,7 +432,7 @@ export function setReviewFilter(hidden: string[], favorites: boolean): void {
 }
 
 export const setUserFlag = (node: TreeNode, on: boolean) =>
-  run(async () => applyMutation(await api.setUserFlag(node.relParts, on), node.relParts));
+  mutate(() => api.setUserFlag(node.relParts, on), node.relParts);
 
 // What comes in from outside may break the storage's rules, so the refresh checks run right after it lands, keeping the drop notice.
 async function revalidate(): Promise<void> {
@@ -576,7 +587,7 @@ function selectionAfterMoving(moving: string[][]): void {
   if (!node) return;
   const sibling = nearestSibling(node, moving);
   const parent = node.relParts.slice(0, -1);
-  select(sibling ?? (parent.length > 0 ? parent : null));
+  select(sibling ?? orRoot(parent));
 }
 
 // Files have no contents to count, so they only need the confirmation and the sibling choice.
@@ -600,7 +611,7 @@ export const remove =(node: TreeNode) =>
     const sibling = nearestSibling(node);
     const m = await api.deleteNode(node.relParts, preview.ghost, nonEmpty);
     const parent = node.relParts.slice(0, -1);
-    await applyMutation(m, sibling ?? (parent.length > 0 ? parent : null));
+    await applyMutation(m, sibling ?? orRoot(parent));
   }, "Waiting for user decision…");
 
 // One confirmation for the batch; each item is then deleted on its own, so one refusal does not stop the rest.

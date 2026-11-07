@@ -6,12 +6,13 @@ use serde_yaml::Value;
 
 use super::file_drop::copy_tree;
 use super::{child_rel, editable_target, finish, scope, guard_frozen, load_synced_at, locate, parent_of, Mutation};
+use crate::domain::config::is_hidden_dir;
 use crate::domain::names::title_of;
 use crate::infra::scan::list_subdirs;
 use crate::platform::shortcuts::create_shortcuts;
 use crate::domain::tree_types::type_base;
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{dir_entries, io_err, join_rel, Journal, StorageLock};
+use crate::infra::fs_safe::{dir_entries, io_err, join_rel, resolve, validate_component, Journal, StorageLock};
 use crate::infra::storage::info::{field_of, read_info, write_info};
 use crate::services::tree::tree_store::{self, delete_key, get_type};
 
@@ -28,7 +29,7 @@ pub fn set_output(root: &Path, rel: &[String], output: Option<&str>) -> R<Mutati
     let value = match output {
         Some(raw) => {
             let path = clean_output(rel, raw)?;
-            if !target.abs.join(&path).exists() {
+            if !inside_workboard(&target.abs, &path)?.exists() {
                 return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: format!("{path} is not inside this workboard") });
             }
             Some(Value::String(path))
@@ -117,11 +118,24 @@ pub fn restore(root: &Path, rel: &[String]) -> R<Mutation> {
 fn clean_output(rel: &[String], raw: &str) -> R<String> {
     let path = raw.trim().replace('\\', "/");
     let path = path.trim_matches('/').to_string();
-    let inside = !path.is_empty() && path.split('/').all(|part| !part.is_empty() && part != "." && part != "..");
+    let inside = !path.is_empty() && path.split('/').all(|part| validate_component(part).is_ok() && !is_hidden_dir(part));
     if !inside {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the output must be a path inside the workboard".to_string() });
     }
     Ok(path)
+}
+
+// The names alone cannot show a link or junction on the way out of the workboard.
+fn inside_workboard(workboard: &Path, output: &str) -> R<PathBuf> {
+    let parts: Vec<String> = output.split('/').map(str::to_string).collect();
+    resolve(workboard, &parts)
+}
+
+// A workboard can arrive with a foreign `info.json`, so a value that fails the checks reads as no output.
+fn stored_output(rel: &[String], workboard: &Path) -> Option<PathBuf> {
+    let info = read_info(workboard)?;
+    let output = clean_output(rel, field_of(&info, &[OUTPUT_KEY])?).ok()?;
+    inside_workboard(workboard, &output).ok()
 }
 
 fn check_date(date: &str) -> R<()> {
@@ -134,12 +148,10 @@ fn check_date(date: &str) -> R<()> {
 
 // A file is moved as it is; a folder gives up its contents, not the folder itself.
 fn output_sources(rel: &[String], workboard: &Path) -> R<Vec<PathBuf>> {
-    let info = read_info(workboard);
-    let output = info.as_ref().and_then(|i| field_of(i, &[OUTPUT_KEY])).ok_or_else(|| FmError::InvalidPath {
+    let path = stored_output(rel, workboard).ok_or_else(|| FmError::InvalidPath {
         rel_parts: rel.to_vec(),
         reason: "no output is set for this workboard".to_string(),
     })?;
-    let path = workboard.join(clean_output(rel, output)?);
     if !path.exists() {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the output is no longer there".to_string() });
     }
@@ -152,8 +164,7 @@ fn output_sources(rel: &[String], workboard: &Path) -> R<Vec<PathBuf>> {
 
 // The output folder when one is set and still a folder, else the workboard itself.
 fn link_dir(rel: &[String], workboard: &Path, all: bool) -> PathBuf {
-    let output = read_info(workboard).and_then(|i| field_of(&i, &[OUTPUT_KEY]).map(str::to_string));
-    match output.and_then(|o| clean_output(rel, &o).ok()).map(|o| workboard.join(o)) {
+    match stored_output(rel, workboard) {
         Some(dir) if !all && dir.is_dir() => dir,
         _ => workboard.to_path_buf(),
     }
@@ -183,9 +194,11 @@ fn free_name(outcomes: &Path, base: &str) -> (PathBuf, String) {
     (outcomes.join(&name), name)
 }
 
+// The app's own folders stay with the folder they describe: `.ant` holds its status, owner and lasting id.
 fn children_of(dir: &Path) -> R<Vec<PathBuf>> {
     let entries = fs::read_dir(dir).map_err(|e| io_err("list folder", dir, &e))?;
-    entries.map(|e| e.map(|e| e.path()).map_err(|e| io_err("list folder", dir, &e))).collect()
+    let paths = entries.map(|e| e.map(|e| e.path()).map_err(|e| io_err("list folder", dir, &e))).collect::<R<Vec<PathBuf>>>()?;
+    Ok(paths.into_iter().filter(|p| !p.file_name().is_some_and(|n| is_hidden_dir(&n.to_string_lossy()))).collect())
 }
 
 // Links in the workboard that name a delivery folder in the Outcomes folder.
@@ -202,53 +215,5 @@ fn delivery_links(workboard: &Path, outcomes: &Path) -> R<Vec<String>> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::test_support::{names, rel, storage, TempDir};
-
-    const WKB: &str = "100.WORK/PJ.006_Claude-2";
-    const OUT: &str = "100.WORK/00.Outcomes";
-    const DELIVERED: &str = "100.WORK/00.Outcomes/(26-11-01)_Claude-2";
-
-    fn fixture(tag: &str) -> TempDir {
-        let dir = storage(tag, &["100.WORK/PJ.006_Claude-2/dist", OUT], "100.WORK:\n  type: NODE-L1\n  PJ.006_Claude-2: {type: WKB-L2}\n  00.Outcomes: {type: OUT-L2}\n");
-        std::fs::write(dir.path().join(WKB).join("dist/entregable.txt"), "done").unwrap();
-        dir
-    }
-
-    fn workboard() -> Vec<String> {
-        rel(&["100.WORK", "PJ.006_Claude-2"])
-    }
-
-    #[test]
-    fn delivering_moves_the_contents_of_the_output_folder_and_leaves_a_link_inside_it() {
-        let dir = fixture("out-deliver");
-        set_output(dir.path(), &workboard(), Some("/dist")).unwrap();
-        deliver(dir.path(), &workboard(), "26-11-01", false).unwrap();
-        assert!(dir.path().join(DELIVERED).join("entregable.txt").is_file());
-        let left: Vec<String> = if cfg!(windows) { vec!["(26-11-01)_Claude-2.lnk".to_string()] } else { Vec::new() };
-        assert_eq!(names(&dir.path().join(WKB).join("dist")), left);
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn restoring_copies_the_delivery_back_and_removes_the_link() {
-        let dir = fixture("out-restore");
-        set_output(dir.path(), &workboard(), Some("dist")).unwrap();
-        deliver(dir.path(), &workboard(), "26-11-01", false).unwrap();
-        restore(dir.path(), &workboard()).unwrap();
-        assert!(dir.path().join(WKB).join("dist/entregable.txt").is_file());
-        assert!(dir.path().join(DELIVERED).join("entregable.txt").is_file());
-        assert!(!dir.path().join(WKB).join("dist/(26-11-01)_Claude-2.lnk").exists());
-    }
-
-    #[test]
-    fn delivering_needs_an_output_a_date_and_a_path_inside_the_workboard() {
-        let dir = fixture("out-refuse");
-        assert!(deliver(dir.path(), &workboard(), "26-11-01", false).is_err());
-        assert!(set_output(dir.path(), &workboard(), Some("../etc")).is_err());
-        assert!(set_output(dir.path(), &workboard(), Some("missing")).is_err());
-        set_output(dir.path(), &workboard(), Some("dist")).unwrap();
-        assert!(matches!(deliver(dir.path(), &workboard(), "Nov 1", false), Err(FmError::InvalidName { .. })));
-    }
-}
+#[path = "outputs_tests.rs"]
+mod tests;

@@ -25,7 +25,7 @@ dialog.settings-window::backdrop { background: rgb(0 0 0 / 0.6); }
 .sw-head h2 { margin: 0; font-size: 14pt; color: var(--title); }
 .sw-body { flex: 1; min-height: 0; padding: 6px 24px 24px; overflow-y: auto; }
 .sw-body h3 { margin: 22px 0 2px; font-size: 9.5pt; font-weight: 600; color: var(--title); }
-.sw-keys { display: flex; align-items: center; gap: 4px; color: var(--muted); }
+.sw-keys { display: flex; align-items: center; gap: 4px; color: var(--muted); margin-right: 16px; }
 .sw-keys kbd { padding: 1px 6px; font: 9pt "Cascadia Mono", Consolas, monospace; color: var(--text); background: var(--field-bg); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; }
 .sw-name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sw-empty { padding: 40px 0; color: var(--muted); text-align: center; }

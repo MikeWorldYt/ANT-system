@@ -108,6 +108,11 @@ export async function openSettings(pageId?: string): Promise<void> {
   const main = el("section", { class: "sw-main" }, el("div", { class: "sw-head" }, title, close), body);
   const dialog = el("dialog", { class: "settings-window", "aria-labelledby": "settings-title" }, side, main);
   show(currentId);
+  // A press that starts inside and ends on the backdrop, like a text selection, keeps the window open.
+  dialog.addEventListener("pointerdown", (ev) => {
+    const r = dialog.getBoundingClientRect();
+    if (ev.target === dialog && (ev.clientX < r.left || ev.clientX > r.right || ev.clientY < r.top || ev.clientY > r.bottom)) dialog.close();
+  });
   void showModal(dialog);
   search.focus();
 }

@@ -31,12 +31,12 @@ export const appearancePage: SettingsPage = {
     },
     {
       title: "Accent color",
-      description: "Used for buttons, titles and active states.",
+      description: "Used for buttons, titles and active states",
       control: () => dotsControl<AccentId>("Accent color", ACCENTS, state.settings.accent, (value) => void changeSetting("accent", value)),
     },
     {
       title: "Icon color",
-      description: "Used for folder and project icons.",
+      description: "Used for folder and project icons",
       control: () => dotsControl<AccentId>("Icon color", ACCENTS, state.settings.iconColor, (value) => void changeSetting("iconColor", value)),
     },
     {
@@ -55,7 +55,7 @@ export const appearancePage: SettingsPage = {
     },
     {
       title: "Quick actions",
-      description: "Show Open and favorite in the expanded side panel.",
+      description: "Show Open and favorite in the expanded side panel",
       control: () =>
         switchControl("Show quick actions in the side panel", quickActionsShown(), (on) => {
           setQuickActionsShown(on);
@@ -63,8 +63,8 @@ export const appearancePage: SettingsPage = {
         }),
     },
     {
-      title: "Collapsed side panel",
-      description: "Choose which buttons the collapsed rail shows and their order.",
+      title: "Side panel",
+      description: "Choose which buttons shows, drag for change their order",
       control: railEditor,
     },
   ],

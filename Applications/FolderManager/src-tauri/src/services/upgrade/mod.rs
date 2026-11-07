@@ -1,5 +1,6 @@
 // One-time upgrade of storages that still use the numeric support ids (90., 97., 98.) and the 998/999 root folders.
 mod apply;
+mod extra_reviews;
 mod finish;
 mod scan;
 #[cfg(test)]
@@ -17,6 +18,7 @@ use crate::infra::storage::core_dir::data_dir;
 use crate::infra::storage::db::hide;
 
 pub use apply::apply_support_upgrade;
+pub use extra_reviews::{extra_reviews, merge_extra_review, ExtraReview};
 pub use finish::finish_support_upgrade;
 
 const MARKER: &str = "support-nodes-v2.done";

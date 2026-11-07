@@ -193,13 +193,13 @@ fn details_and_type_edits_reach_the_search_index() {
     let p = rel(&["100.WORK", "01.A"]);
     let search = |q: &str| Store::open_or_create(dir.path()).unwrap().search(&parse_query(q)).unwrap();
     with_search_index(dir.path(), mutations::set_node_type(dir.path(), &p, EditableType::Wkb, None)).unwrap();
-    assert_eq!(search("type:WKB-L2"), [p.clone()]);
+    assert_eq!(search("type:WKB-L2"), std::slice::from_ref(&p));
     let m = with_search_index(dir.path(), mutations::set_details(dir.path(), &p, None, Some("Zed"))).unwrap();
     assert!(m.warnings.is_empty(), "{:?}", m.warnings);
     assert_eq!(search("client:Zed"), [p]);
 }
 
-// Startup state: a synced, saved yaml and a full index, so the next mutation updates the index in place.
+// Startup state: a synced, saved tree and a full index, so the next mutation updates the index in place.
 fn indexed(tag: &str) -> TempDir {
     let dir = academic(tag);
     dir.mkdir("100.ACADEMIC/01.Math/.ant");
@@ -209,7 +209,9 @@ fn indexed(tag: &str) -> TempDir {
     dir
 }
 
-fn index_state(dir: &TempDir) -> (Vec<(String, String, String)>, Vec<Vec<Vec<String>>>) {
+type IndexState = (Vec<(String, String, String)>, Vec<Vec<Vec<String>>>);
+
+fn index_state(dir: &TempDir) -> IndexState {
     let store = Store::open_or_create(dir.path()).unwrap();
     let queries = ["", "type:NODE", "status:done", "client:Mike", "in:100.ACADEMIC new", "physics"];
     (store.field_rows().unwrap(), queries.iter().map(|q| store.search(&parse_query(q)).unwrap()).collect())
@@ -300,7 +302,7 @@ fn dropped_files_keep_the_search_index_like_a_full_rebuild() {
     std::fs::write(&file, "x").unwrap();
     let m = with_search_index(dir.path(), mutations::drop_files(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), &[file], false, &[], &|_: &std::path::Path| Ok(())).map(|o| o.mutation)).unwrap();
     assert!(dir.path().join("100.ACADEMIC/01.Math/98.Math/scan.pdf").is_file());
-    assert_eq!(m.touched, [rel(&["100.ACADEMIC", "01.Math", "98.Math"])]);
+    assert_eq!(m.touched, [rel(&["100.ACADEMIC", "01.Math", "98.Math"]), rel(&["100.ACADEMIC", "01.Math"])]);
     assert_matches_full_rebuild(&dir, &m);
     let search = Store::open_or_create(dir.path()).unwrap().search(&parse_query("in:/100.ACADEMIC/01.Math/98.Math")).unwrap();
     assert_eq!(search, [rel(&["100.ACADEMIC", "01.Math", "98.Math"])]);

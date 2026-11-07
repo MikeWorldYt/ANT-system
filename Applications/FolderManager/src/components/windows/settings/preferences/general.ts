@@ -1,7 +1,8 @@
 // General preferences: how lists behave, what the app opens on and when it asks before deleting.
 import { changeSetting } from "../../../../hooks/ops";
-import { state, type OnLaunch, type StartView } from "../../../../services/store/state";
+import { state, type OnLaunch, type StartView, type TabView } from "../../../../services/store/state";
 import { selectControl } from "../../../atoms/select";
+import { VIEW_ICONS, viewChoices } from "../../../molecules/view-choice";
 import { switchControl } from "../../../atoms/switch";
 import type { SettingsPage } from "../page";
 
@@ -12,48 +13,9 @@ export const generalPage: SettingsPage = {
   icon: "pageGeneral",
   rows: () => [
     {
-      section: "Preferences",
-      title: "Pin favorites to the top of each list",
-      control: () => switchControl("Pin favorites to the top of each list", state.settings.pinFavorites, (on) => changeSetting("pinFavorites", on)),
-    },
-    {
-      section: "Preferences",
-      title: "Hide Workboards with status done",
-      control: () => switchControl("Hide Workboards with status done", state.settings.hideDone, (on) => changeSetting("hideDone", on)),
-    },
-    {
-      section: "Preferences",
-      title: "Hide directory identifiers",
-      control: () => switchControl("Hide directory identifiers", state.settings.hideDirectoryIdentifiers, (on) => changeSetting("hideDirectoryIdentifiers", on)),
-    },
-    {
-      section: "Preferences",
-      title: "Show Favorites folder",
-      description: "Lists the favorite folders of the Storage at the top of the root.",
-      control: () => switchControl("Show Favorites folder", state.settings.showFavorites, (on) => changeSetting("showFavorites", on)),
-    },
-    {
-      section: "Preferences",
-      title: "Show system Downloads folder",
-      description: "Adds the Downloads folder of this computer to the root, so its files can be opened or dragged into the Storage.",
-      control: () => switchControl("Show system Downloads folder", state.settings.showDownloads, (on) => changeSetting("showDownloads", on)),
-    },
-    {
-      section: "Preferences",
-      title: "Show Review entry",
-      description: "Lists the review folders of the whole Storage below Downloads in the root.",
-      control: () => switchControl("Show Review entry", state.settings.showReview, (on) => changeSetting("showReview", on)),
-    },
-    {
-      section: "Preferences",
-      title: "Open columns on select",
-      description: "In Columns view, selecting a folder opens its contents. Double-click the folder icon or the arrow otherwise.",
-      control: () => switchControl("Open columns on select", state.settings.autoOpenColumns, (on) => changeSetting("autoOpenColumns", on)),
-    },
-    {
-      section: "Startup",
+      section: "Setup",
       title: "On launch",
-      description: "What to show when ANT starts.",
+      description: "What to show when app starts",
       control: () =>
         selectControl<OnLaunch>(
           "On launch",
@@ -66,25 +28,85 @@ export const generalPage: SettingsPage = {
         ),
     },
     {
-      section: "Startup",
-      title: "View",
-      description: "The view ANT opens with.",
+      section: "Setup",
+      title: "Default View",
+      description: "View when app opens new windows",
       control: () =>
-        selectControl<StartView>(
-          "View",
+        viewChoices<StartView>(
+          "Default View",
           [
-            ["continue", "Continue where I left off"],
-            ["tree", "Tree"],
-            ["columns", "Columns"],
+            ["continue", "Last used", "layout"],
+            ["tree", "Tree", VIEW_ICONS.tree ?? "layout"],
+            ["list", "List", VIEW_ICONS.list ?? "layout"],
+            ["cards", "Cards", VIEW_ICONS.cards ?? "layout"],
+            ["grid", "Grid", VIEW_ICONS.grid ?? "layout"],
+            ["columns", "Columns", VIEW_ICONS.columns ?? "layout"],
           ],
           state.settings.startView,
           (value) => void changeSetting("startView", value),
         ),
     },
     {
-      section: "Startup",
+      section: "Setup",
+      title: "View when opening a tab",
+      description: "The view a new tab starts with",
+      control: () =>
+        selectControl<TabView>(
+          "View when opening a tab",
+          [
+            ["last", "Last used"],
+            ["default", "Default View"],
+          ],
+          state.settings.tabView,
+          (value) => void changeSetting("tabView", value),
+        ),
+    },
+    {
+      section: "Preferences",
+      title: "Show directory tracking",
+      description: "Visibility of id and trackers (e.g. 01, 02, 03, PJ.30...)",
+      control: () => switchControl("Show directory tracking", !state.settings.hideDirectoryIdentifiers, (on) => changeSetting("hideDirectoryIdentifiers", !on)),
+    },
+    {
+      section: "Preferences",
+      title: "Show finished Workboards",
+      description: "Visibility of Workboards with status done",
+      control: () => switchControl("Show finished Workboards", !state.settings.hideDone, (on) => changeSetting("hideDone", !on)),
+    },
+    {
+      section: "Preferences",
+      title: "Pin favorites to the top",
+      description: "Favorites items to the top of each list",
+      control: () => switchControl("Pin favorites to the top", state.settings.pinFavorites, (on) => changeSetting("pinFavorites", on)),
+    },
+    {
+      section: "Preferences",
+      title: "Show Favorites folder",
+      description: "Lists the favorite folders of the Storage at the top of the root",
+      control: () => switchControl("Show Favorites folder", state.settings.showFavorites, (on) => changeSetting("showFavorites", on)),
+    },
+    {
+      section: "Preferences",
+      title: "Show Downloads folder",
+      description: "Adds system Downloads into the app",
+      control: () => switchControl("Show Downloads folder", state.settings.showDownloads, (on) => changeSetting("showDownloads", on)),
+    },
+    {
+      section: "Preferences",
+      title: "Show Review entry",
+      description: "Lists the review folders of the whole Storage",
+      control: () => switchControl("Show Review entry", state.settings.showReview, (on) => changeSetting("showReview", on)),
+    },
+    {
+      section: "Preferences",
+      title: "Auto-open columns",
+      description: "In Columns view, selecting a folder opens its contents",
+      control: () => switchControl("Auto-open columns", state.settings.autoOpenColumns, (on) => changeSetting("autoOpenColumns", on)),
+    },
+    {
+      section: "Preferences",
       title: "Confirm before deleting",
-      description: "Ask for confirmation when deleting Workboards or folders.",
+      description: "Ask for confirmation when deleting any node or file",
       control: () => switchControl("Confirm before deleting", state.settings.confirmDelete, (on) => changeSetting("confirmDelete", on)),
     },
   ],

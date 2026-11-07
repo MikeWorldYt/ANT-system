@@ -2,8 +2,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use rusqlite::{Connection, OpenFlags};
+
 use crate::domain::config::{is_hidden_dir, BACKUP_FOLDER, CORE_FOLDER, DATA_DIR, DB_FILENAME, SETTINGS_FOLDER};
-use crate::domain::error::R;
+use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{dir_entries, io_err, is_link, LOCK_FILE};
 use crate::infra::storage::db::{db_path, hide, Store};
 use crate::services::tree::depth;
@@ -104,18 +106,67 @@ pub fn has_db(stage: &Path) -> bool {
     stage.join(DATA_DIR).join(DB_FILENAME).is_file()
 }
 
-fn replace_db(root: &Path, from: &Path) -> R<()> {
-    let target = db_path(root);
-    for stale in ["-wal", "-shm"] {
-        let path = target.with_file_name(format!("{DB_FILENAME}{stale}"));
-        match fs::remove_file(&path) {
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(io_err("delete file", &path, &e)),
-            _ => {}
+pub fn check_staged_db(stage: &Path) -> R<()> {
+    check_db(&stage.join(DATA_DIR).join(DB_FILENAME))
+}
+
+fn check_db(path: &Path) -> R<()> {
+    let refused = |cause: String| FmError::Internal { message: format!("The backup's ant.db is not usable: {cause}") };
+    let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e| refused(e.to_string()))?;
+    let first: String = conn.query_row("PRAGMA quick_check(1)", [], |r| r.get(0)).map_err(|e| refused(e.to_string()))?;
+    if first == "ok" {
+        return Ok(());
+    }
+    Err(refused(first))
+}
+
+fn put_back(aside: &[(PathBuf, PathBuf)]) {
+    for (path, kept) in aside {
+        if let Err(e) = fs::rename(kept, path) {
+            eprintln!("Could not put {} back: {e}", path.display());
         }
     }
+}
+
+// SQLite would replay an old WAL over the new db, so the journals leave first and come back if the db cannot go in.
+fn swap_in(tmp: &Path, target: &Path) -> R<()> {
+    let mut aside = Vec::new();
+    for journal in ["-wal", "-shm"] {
+        let path = target.with_file_name(format!("{DB_FILENAME}{journal}"));
+        let kept = target.with_file_name(format!("{DB_FILENAME}{journal}.restore-old"));
+        match fs::rename(&path, &kept) {
+            Ok(()) => aside.push((path, kept)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => {
+                put_back(&aside);
+                return Err(io_err("rename file", &path, &e));
+            }
+        }
+    }
+    if let Err(e) = fs::rename(tmp, target) {
+        put_back(&aside);
+        return Err(io_err("replace file", target, &e));
+    }
+    for (_, kept) in &aside {
+        if let Err(e) = fs::remove_file(kept) {
+            eprintln!("Could not remove {}: {e}", kept.display());
+        }
+    }
+    Ok(())
+}
+
+fn replace_db(root: &Path, from: &Path) -> R<()> {
+    let target = db_path(root);
     let tmp = target.with_file_name(format!(".{DB_FILENAME}.restore.tmp"));
-    copy(from, &tmp)?;
-    fs::rename(&tmp, &target).map_err(|e| io_err("replace file", &target, &e))
+    let replaced = copy(from, &tmp).and_then(|()| check_db(&tmp)).and_then(|()| swap_in(&tmp, &target));
+    if replaced.is_err() {
+        if let Err(e) = fs::remove_file(&tmp) {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                eprintln!("Could not remove {}: {e}", tmp.display());
+            }
+        }
+    }
+    replaced
 }
 
 // Folders that are gone since the backup are skipped, so a restore never recreates the tree.

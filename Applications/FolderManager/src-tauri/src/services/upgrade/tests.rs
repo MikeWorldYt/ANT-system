@@ -1,6 +1,8 @@
 use std::fs;
 
+use super::finish::finish_with;
 use super::*;
+use crate::services::index::review_index::text_targets;
 use crate::test_support::*;
 
 const STAMP: &str = "26-01-01-10-00";
@@ -100,10 +102,10 @@ fn finish_moves_the_root_data_writes_the_marker_and_ends_the_check() {
     fs::write(dir.path().join("999.Settings/00.Core/FM_Updater.bat"), "").unwrap();
     fs::write(dir.path().join("999.Settings/00.Core/.FolderManager.lock"), "1").unwrap();
     fs::write(dir.path().join("999.Settings/03.Backup/old.zip"), "z").unwrap();
-    fs::write(dir.path().join("998.Review/100.A.lnk"), "").unwrap();
+    fs::write(dir.path().join("998.Review/100.A.lnk"), dir.path().join("100.A/REV.A").to_string_lossy().as_bytes()).unwrap();
     fs::write(dir.path().join("998.Review/.ant/info.json"), "{}").unwrap();
     assert!(check_support_upgrade(dir.path()).unwrap().needed);
-    let warnings = finish_support_upgrade(dir.path(), STAMP).unwrap();
+    let warnings = finish_with(dir.path(), STAMP, text_targets).unwrap();
     assert!(warnings.is_empty(), "{warnings:?}");
     let data = dir.path().join(".ant");
     assert!(data.join(".skip_version").is_file() && data.join("FM_Updater.bat").is_file());
@@ -130,12 +132,109 @@ fn finish_keeps_folders_that_hold_user_files_and_says_so() {
 }
 
 #[test]
+fn finish_keeps_a_shortcut_of_the_user_and_says_so() {
+    let dir = storage("upgrade-own-link", &["998.Review", "100.A/REV.A"], "100.A: {type: NODE-L1}\n");
+    fs::write(dir.path().join("998.Review/100.A.lnk"), dir.path().join("100.A/REV.A").to_string_lossy().as_bytes()).unwrap();
+    fs::write(dir.path().join("998.Review/mine.lnk"), "C:/Users/me/report.pdf").unwrap();
+    let warnings = finish_with(dir.path(), STAMP, text_targets).unwrap();
+    assert_eq!(warnings.len(), 1, "{warnings:?}");
+    assert!(!dir.path().join("998.Review/100.A.lnk").exists());
+    assert!(dir.path().join("998.Review/mine.lnk").is_file());
+}
+
+#[test]
+fn shortcuts_that_cannot_be_read_stay() {
+    let dir = storage("upgrade-no-read", &["998.Review", "100.A/REV.A"], "100.A: {type: NODE-L1}\n");
+    fs::write(dir.path().join("998.Review/100.A.lnk"), "").unwrap();
+    let warnings = finish_with(dir.path(), STAMP, |_| Err("no shell".to_string())).unwrap();
+    assert_eq!(warnings.len(), 2, "{warnings:?}");
+    assert!(dir.path().join("998.Review/100.A.lnk").is_file());
+}
+
+#[test]
+fn an_online_only_file_in_998_review_is_never_taken_for_a_link() {
+    use super::finish::{review_entry, ReviewEntry};
+    assert_eq!(review_entry(false, true, false, false), ReviewEntry::Yours);
+    assert_eq!(review_entry(false, true, false, true), ReviewEntry::Yours);
+    assert_eq!(review_entry(false, true, true, false), ReviewEntry::Link);
+    assert_eq!(review_entry(false, false, false, true), ReviewEntry::Shortcut);
+    assert_eq!(review_entry(false, false, false, false), ReviewEntry::Yours);
+    assert_eq!(review_entry(true, true, true, true), ReviewEntry::Yours);
+}
+
+#[test]
 fn finish_waits_for_every_folder_and_leaves_no_marker_before_that() {
     let dir = old_storage("upgrade-early");
     let err = finish_support_upgrade(dir.path(), STAMP).unwrap_err();
     assert!(matches!(err, FmError::Internal { .. }), "{err:?}");
     assert!(!is_done(dir.path()));
     assert!(dir.path().join("999.Settings").is_dir());
+}
+
+const EXTRAS: &str = "100.A:
+  type: NODE-L1
+  01.Math:
+    type: NODE-L2
+    98.Math: {type: REV-L3}
+    98.Old: {type: REV-L3}
+    98.Plain: {type: NODE-L3}
+    REV.2024: {type: REV-L3}
+";
+
+fn extras_storage(tag: &str) -> TempDir {
+    let dir = storage(tag, &["100.A/01.Math/98.Math", "100.A/01.Math/98.Old/sub", "100.A/01.Math/98.Plain", "100.A/01.Math/REV.2024"], EXTRAS);
+    fs::write(dir.path().join("100.A/01.Math/98.Math/notes.txt"), "kept").unwrap();
+    fs::write(dir.path().join("100.A/01.Math/98.Old/notes.txt"), "old").unwrap();
+    dir
+}
+
+const OLD: [&str; 3] = ["100.A", "01.Math", "98.Old"];
+
+#[test]
+fn only_a_legacy_review_tracked_as_one_is_offered() {
+    let dir = extras_storage("extras-list");
+    write_marker(dir.path()).unwrap();
+    let extras = extra_reviews(dir.path()).unwrap();
+    let rows: Vec<(Vec<String>, &str)> = extras.iter().map(|e| (e.rel_parts.clone(), e.keep.as_str())).collect();
+    assert_eq!(rows, [(rel(&OLD), "98.Math")]);
+    assert!(merge_extra_review(dir.path(), &rel(&["100.A", "01.Math", "REV.2024"])).is_err());
+    assert!(merge_extra_review(dir.path(), &rel(&["100.A", "01.Math", "98.Plain"])).is_err());
+    assert!(dir.path().join("100.A/01.Math/REV.2024").is_dir() && dir.path().join("100.A/01.Math/98.Plain").is_dir());
+}
+
+#[test]
+fn nothing_is_offered_or_merged_before_the_upgrade_is_done() {
+    let dir = extras_storage("extras-marker");
+    assert!(extra_reviews(dir.path()).unwrap().is_empty());
+    assert!(merge_extra_review(dir.path(), &rel(&OLD)).is_err());
+    assert!(dir.path().join("100.A/01.Math/98.Old/notes.txt").is_file());
+}
+
+#[test]
+fn a_merge_numbers_collisions_and_removes_only_the_emptied_folder() {
+    let dir = extras_storage("extras-merge");
+    write_marker(dir.path()).unwrap();
+    let m = merge_extra_review(dir.path(), &rel(&OLD)).unwrap();
+    assert!(m.warnings.is_empty(), "{:?}", m.warnings);
+    let keep = dir.path().join("100.A/01.Math/98.Math");
+    assert_eq!(fs::read_to_string(keep.join("notes.txt")).unwrap(), "kept");
+    assert_eq!(fs::read_to_string(keep.join("notes (2).txt")).unwrap(), "old");
+    assert!(keep.join("sub").is_dir());
+    assert!(!dir.path().join("100.A/01.Math/98.Old").exists());
+    assert_eq!(yaml_type(dir.path(), &OLD), "");
+    assert!(extra_reviews(dir.path()).unwrap().is_empty());
+}
+
+#[cfg(windows)]
+#[test]
+fn a_failed_merge_puts_every_file_back() {
+    let dir = extras_storage("extras-rollback");
+    write_marker(dir.path()).unwrap();
+    let _held = break_tree_save(dir.path());
+    assert!(merge_extra_review(dir.path(), &rel(&OLD)).is_err());
+    assert_eq!(fs::read_to_string(dir.path().join("100.A/01.Math/98.Old/notes.txt")).unwrap(), "old");
+    assert!(dir.path().join("100.A/01.Math/98.Old/sub").is_dir());
+    assert!(!dir.path().join("100.A/01.Math/98.Math/notes (2).txt").exists());
 }
 
 #[test]

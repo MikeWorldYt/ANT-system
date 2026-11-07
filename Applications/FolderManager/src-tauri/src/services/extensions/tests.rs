@@ -209,12 +209,12 @@ fn scanning_lists_ok_and_rejected_folders_and_drops_gone_state() {
     install(&dir, "other-name", OK);
     install(&dir, ".staging", OK);
     Store::open_or_create(dir.path()).unwrap().set_setting("extensions", r#"{"word-count":{"enabled":true},"gone-ext":{"enabled":true}}"#).unwrap();
-    let list = store::list(dir.path()).unwrap();
+    let list = store::list_with(dir.path(), &dir.path().join("machine.txt")).unwrap();
     assert_eq!(list.len(), 2);
     let ok = list.iter().find(|e| e.id == "word-count").unwrap();
-    assert!(ok.enabled && ok.status == "ok" && ok.trust == "unvalidated");
+    assert!(ok.needs_confirmation && ok.status == "ok" && ok.trust == "unvalidated");
     let bad = list.iter().find(|e| e.id == "other-name").unwrap();
-    assert!(!bad.enabled && bad.status == "rejected" && bad.reason.as_deref().unwrap().contains("differs"));
+    assert!(!bad.enabled && !bad.needs_confirmation && bad.status == "rejected" && bad.reason.as_deref().unwrap().contains("differs"));
     let saved = Store::open_existing(dir.path()).unwrap().unwrap().settings().unwrap();
     assert_eq!(saved["extensions"], r#"{"word-count":{"enabled":true}}"#);
 }
@@ -242,19 +242,20 @@ fn a_missing_main_file_rejects() {
 fn enabling_reading_and_removing_follow_the_rules() {
     let dir = TempDir::new("ext-ops");
     let root = dir.path();
+    let machine = root.join("machine.txt");
     install(&dir, "word-count", OK);
     install(&dir, "other-name", OK);
-    assert!(store::read_entry(root, "word-count").is_err());
-    assert!(store::set_enabled(root, "other-name", true).is_err());
-    assert!(store::set_enabled(root, "missing-ext", true).is_err());
-    assert!(store::set_enabled(root, "../x", true).is_err());
-    store::set_enabled(root, "word-count", true).unwrap();
-    assert_eq!(store::read_entry(root, "word-count").unwrap(), "ant.panel.show();");
-    store::remove(root, "word-count").unwrap();
+    assert!(store::read_entry_with(root, "word-count", &machine).is_err());
+    assert!(store::set_enabled_with(root, "other-name", true, &machine).is_err());
+    assert!(store::set_enabled_with(root, "missing-ext", true, &machine).is_err());
+    assert!(store::set_enabled_with(root, "../x", true, &machine).is_err());
+    store::set_enabled_with(root, "word-count", true, &machine).unwrap();
+    assert_eq!(store::read_entry_with(root, "word-count", &machine).unwrap(), "ant.panel.show();");
+    store::remove_with(root, "word-count", &machine).unwrap();
     assert!(!store::extensions_dir(root).join("word-count").exists());
     assert_eq!(Store::open_existing(root).unwrap().unwrap().settings().unwrap()["extensions"], "{}");
-    assert!(store::remove(root, "word-count").is_err());
-    assert!(store::remove(root, ".staging").is_err());
+    assert!(store::remove_with(root, "word-count", &machine).is_err());
+    assert!(store::remove_with(root, ".staging", &machine).is_err());
 }
 
 #[test]
@@ -262,8 +263,9 @@ fn entry_files_must_be_utf8() {
     let dir = TempDir::new("ext-utf8");
     install(&dir, "word-count", OK);
     fs::write(store::extensions_dir(dir.path()).join("word-count/dist/main.js"), [0xff, 0xfe]).unwrap();
-    store::set_enabled(dir.path(), "word-count", true).unwrap();
-    assert!(store::read_entry(dir.path(), "word-count").is_err());
+    let machine = dir.path().join("machine.txt");
+    store::set_enabled_with(dir.path(), "word-count", true, &machine).unwrap();
+    assert!(store::read_entry_with(dir.path(), "word-count", &machine).unwrap_err().to_string().contains("UTF-8"));
 }
 
 #[test]

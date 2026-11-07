@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde::Serialize;
 
-use super::{default_dir, entries_in, fail, legacy_dir, restore_from, SUFFIX};
+use super::{default_dir, entries_in, fail, legacy_dir, try_restore, SUFFIX};
 use crate::services::debug_log::valid_stamp;
 use crate::domain::error::R;
 
@@ -32,11 +32,18 @@ pub fn restore_latest(root: &Path, stamp: &str) -> R<()> {
         return Err(fail(format!("Invalid backup stamp {stamp}")));
     }
     let dirs = [default_dir(root), legacy_dir(root)];
-    let Some(latest) = newest_default(root)? else {
-        return Err(fail(format!("There is no backup in {}", dirs[0].display())));
-    };
-    let dir = dirs.iter().find(|d| d.join(&latest.name).is_file()).unwrap_or(&dirs[0]);
-    restore_from(root, dir, &latest.name, stamp)
+    let mut damaged = None;
+    for entry in entries_in(&dirs)? {
+        let dir = Path::new(&entry.path).parent().unwrap_or(&dirs[0]);
+        match try_restore(root, dir, &entry.name, stamp)? {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                eprintln!("Skipping backup {}: {e}", entry.name);
+                damaged = Some(e);
+            }
+        }
+    }
+    Err(damaged.unwrap_or_else(|| fail(format!("There is no backup in {}", dirs[0].display()))))
 }
 
 #[cfg(test)]

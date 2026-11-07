@@ -1,5 +1,5 @@
 // Sends a deleted folder or file to the Recycle Bin from where it sits, so a restore puts it back in place.
-use std::path::Path;
+use std::path::{Component, Path, PathBuf, Prefix};
 
 // SHFileOperationW reports failed or cancelled recycles; flags 0x4454 (ALLOWUNDO|NOCONFIRMATION|WANTNUKEWARNING|NOERRORUI|SILENT) leave only the permanent-delete warning.
 const RECYCLE_TYPE: &str = r#"
@@ -49,7 +49,55 @@ const RECYCLE_SCRIPT: &str = "$ErrorActionPreference = 'Stop'; \
 
 const RECYCLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
 
+// The shell and DriveInfo refuse \\?\ paths, and without the prefix Windows rewrites a name like "notes." into what may be another file.
+fn shell_path(path: &Path) -> Result<PathBuf, String> {
+    let mut parts = path.components();
+    let Some(Component::Prefix(prefix)) = parts.next() else { return Ok(path.to_path_buf()) };
+    let mut plain = match prefix.kind() {
+        Prefix::VerbatimDisk(drive) => PathBuf::from(format!("{}:", char::from(drive))),
+        Prefix::VerbatimUNC(host, share) => {
+            let mut root = std::ffi::OsString::from(r"\\");
+            root.push(host);
+            root.push(r"\");
+            root.push(share);
+            PathBuf::from(root)
+        }
+        _ => return Ok(path.to_path_buf()),
+    };
+    plain.extend(parts);
+    match std::path::absolute(&plain) {
+        Ok(full) if full == plain => Ok(plain),
+        _ => Err(format!("{} cannot be sent to the Recycle Bin", path.display())),
+    }
+}
+
 pub(crate) fn send_to_recycle_bin(path: &Path) -> Result<(), String> {
+    let path = shell_path(path)?;
     let env = [("ANT_RECYCLE_PATH", path.as_os_str()), ("ANT_RECYCLE_TYPE", std::ffi::OsStr::new(RECYCLE_TYPE))];
     crate::platform::windows::powershell::run_powershell(RECYCLE_SCRIPT, &env, None, RECYCLE_TIMEOUT).map(|_| ())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn plain(path: &str) -> String {
+        shell_path(Path::new(path)).unwrap().display().to_string()
+    }
+
+    #[test]
+    fn the_shell_gets_a_path_without_the_verbatim_prefix() {
+        assert_eq!(plain(r"\\?\D:\Work\notes.txt"), r"D:\Work\notes.txt");
+        assert_eq!(plain(r"\\?\D:\"), r"D:\");
+        assert_eq!(plain(r"\\?\UNC\host\share\Work\notes.txt"), r"\\host\share\Work\notes.txt");
+        assert_eq!(plain(r"\\host\share\Work\notes.txt"), r"\\host\share\Work\notes.txt");
+        assert_eq!(plain(r"D:\Work\notes.txt"), r"D:\Work\notes.txt");
+    }
+
+    #[test]
+    fn a_name_the_shell_would_rewrite_is_refused() {
+        for path in [r"\\?\D:\Work\notes.", r"\\?\D:\Work\notes ", r"\\?\D:\Work\..\notes.txt"] {
+            assert!(shell_path(Path::new(path)).is_err(), "{path}");
+        }
+    }
 }

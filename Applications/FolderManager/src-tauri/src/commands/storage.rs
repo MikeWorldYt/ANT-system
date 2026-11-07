@@ -9,17 +9,33 @@ use crate::services::rename::{rename_flow, revert_target};
 use crate::domain::error::R;
 use crate::infra::storage::rename::{self, RenameStatus};
 use crate::infra::storage::{location, pointer};
+use crate::services::backup::{schedule, DEFAULT_FREQUENCY};
 use crate::services::{sync, updater};
 
 pub fn window_title(name: &str) -> String {
     format!("ANT System Manager v.{} ({name})", updater::CURRENT_VERSION)
 }
 
+// The old tasks hold a path that is gone and would only fail unseen; the frontend then creates the new ones.
+fn retire_tasks(old: &Path) {
+    let backup = schedule::apply(false, DEFAULT_FREQUENCY, old);
+    if let Err(e) = backup.and(sync::apply(false, old)) {
+        eprintln!("Could not remove the scheduled tasks of {}: {e}", old.display());
+    }
+}
+
+fn rename_and_retire(storage: &Storage, stamp: &str, target: impl FnOnce(&Path) -> R<String>, retire: impl FnOnce(&Path)) -> R<PathBuf> {
+    let old = storage.root()?;
+    let new = rename_flow(storage, stamp, target)?;
+    retire(&old);
+    Ok(new)
+}
+
 async fn renamed<F>(window: WebviewWindow, stamp: String, target: F) -> R<String>
 where
     F: FnOnce(&Path) -> R<String> + Send + 'static,
 {
-    switched(window, move |storage| rename_flow(storage, &stamp, target)).await
+    switched(window, move |storage| rename_and_retire(storage, &stamp, target, retire_tasks)).await
 }
 
 // Both a rename and a path change leave the window on a new root, which it then names and remembers.
@@ -72,4 +88,28 @@ pub async fn storage_rename_status(app: AppHandle) -> R<Option<RenameStatus>> {
 #[tauri::command]
 pub async fn sync_schedule(app: AppHandle, on: bool) -> R<()> {
     run_locked(app, move |root| sync::apply(on, root)).await
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+
+    use super::*;
+    use crate::domain::error::FmError;
+    use crate::test_support::{storage_in, TempDir};
+
+    const STAMP: &str = "26-10-24-09-05";
+
+    #[test]
+    fn a_rename_retires_the_tasks_of_the_old_path_and_a_failed_one_does_not() {
+        let dir = TempDir::new("rename-retire");
+        let old = storage_in(&dir, "A");
+        let storage = Storage::resolve(old.clone());
+        let retired = RefCell::new(Vec::new());
+        let refuse = |_: &Path| -> R<String> { Err(FmError::Internal { message: "refused".to_string() }) };
+        assert!(rename_and_retire(&storage, STAMP, refuse, |path| retired.borrow_mut().push(path.to_path_buf())).is_err());
+        assert!(retired.borrow().is_empty());
+        rename_and_retire(&storage, STAMP, |_| Ok("B".to_string()), |path| retired.borrow_mut().push(path.to_path_buf())).unwrap();
+        assert_eq!(*retired.borrow(), [old]);
+    }
 }

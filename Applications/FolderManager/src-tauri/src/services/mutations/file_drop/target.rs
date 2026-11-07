@@ -28,7 +28,7 @@ pub(crate) fn destination(rel: &[String], node: &Mapping) -> R<Vec<String>> {
     match type_base(raw) {
         "WKB" | "OUT" => Ok(rel.to_vec()),
         "NODE" if flags_in(node).iter().any(|f| f == DATA_FLAG) => Ok(rel.to_vec()),
-        "NODE" => review_child(node)
+        "NODE" => review_child(rel, node)
             .map(|review| child_rel(rel, review))
             .ok_or_else(|| refuse("the folder has no review folder to receive the files")),
         "" => Err(refuse("the folder has no type in the tree yet; refresh and retry")),
@@ -65,6 +65,12 @@ mod tests {
         assert_eq!(dest(&["100.A"], main).unwrap(), rel(&["100.A", "98.A"]));
         let other_flag = "type: NODE-L2\nflags: user\n98.B: {type: REV-L2}\n";
         assert_eq!(dest(&["100.A", "02.B"], other_flag).unwrap(), rel(&["100.A", "02.B", "98.B"]));
+    }
+
+    #[test]
+    fn an_extra_review_does_not_take_the_files_of_the_node() {
+        let yaml = "type: NODE-L2\n98.Old: {type: REV-L3}\nREV.Math: {type: REV-L3}\n";
+        assert_eq!(dest(&["100.A", "01.Math"], yaml).unwrap(), rel(&["100.A", "01.Math", "REV.Math"]));
     }
 
     #[test]

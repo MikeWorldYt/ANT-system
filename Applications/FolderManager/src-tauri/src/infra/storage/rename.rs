@@ -5,8 +5,9 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use crate::services::debug_log::{logs_dir, valid_stamp};
+use super::core_dir::logs_dir;
 use crate::domain::error::{FmError, R};
+use crate::domain::validation::valid_stamp;
 use crate::infra::fs_safe::{io_err, validate_component};
 
 const SUFFIX: &str = "_ANT-fm-storage-renamed";

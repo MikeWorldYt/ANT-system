@@ -65,8 +65,8 @@ export const shortcutsPage: SettingsPage = {
     })),
     {
       title: "Reset shortcuts",
-      description: "Go back to the shortcuts ANT ships with.",
-      control: () => buttonControl("Reset", () => void changeSetting("shortcuts", {}).then(ctx.refresh)),
+      description: "Go back to the shortcuts ANT ships with",
+      control: () => buttonControl("Reset", () => void changeSetting("shortcuts", {}).then(ctx.refresh), "danger"),
     },
   ],
 };

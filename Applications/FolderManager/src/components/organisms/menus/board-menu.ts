@@ -2,7 +2,7 @@
 import { addChild, manageHidden, pasteFiles, refresh } from "../../../hooks/ops";
 import { keyOf, setColumnSort, sortOf, state, type ColumnSort } from "../../../services/store/state";
 import { SORT_KEYS, orderedModes, type ViewPicker } from "../bars/toolbar";
-import { menuIcon, menuItem, separator, submenu, type Submenu } from "../../molecules/menu";
+import { menuIcon, closingItem, menuItem, separator, submenu, type Submenu } from "../../molecules/menu";
 import type { GuiIcon } from "../../atoms/gui-icons";
 import type { TreeNode } from "../../../services/ipc/types";
 
@@ -13,12 +13,10 @@ export interface MenuParts {
 }
 
 export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: boolean) => void): MenuParts {
+  const action = closingItem(close);
   const idle = !state.busy;
   // Enabled even on locked folders: the backend picks the real target and explains a refusal.
-  const paste = menuItem("Paste", "menuitem", true, () => {
-    close();
-    void pasteFiles(node.relParts);
-  });
+  const paste = action("Paste", true, () => void pasteFiles(node.relParts));
   const pasteItems = node.reserved || node.ghost ? [] : [paste];
 
   const viewChoices = orderedModes(views).map((m) =>
@@ -46,25 +44,13 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   ascending.before(separator());
   if (views.active() !== "tree") subs.push(sort);
 
-  const reload = menuItem("Refresh", "menuitem", idle, () => {
-    close();
-    void refresh();
-  });
+  const reload = action("Refresh", idle, () => void refresh());
   const canAdd = node.actions.addChild || node.actions.addFolder;
-  const newNode = menuItem(node.actions.addFolder ? "New folder" : "New node", "menuitem", canAdd, () => {
-    close();
-    void addChild(node, "node");
-  });
-  const newWorkboard = menuItem("New workboard", "menuitem", canAdd, () => {
-    close();
-    void addChild(node, "workboard");
-  });
+  const newNode = action(node.actions.addFolder ? "New folder" : "New node", canAdd, () => void addChild(node, "node"));
+  const newWorkboard = action("New workboard", canAdd, () => void addChild(node, "workboard"));
   // Like the toolbar's Add menu, a main category gets no workboard.
   const addItems = node.relParts.length === 1 ? [newNode] : [newNode, newWorkboard];
-  const manage = menuItem("Manage hidden nodes", "menuitem", true, () => {
-    close();
-    void manageHidden(node.relParts);
-  });
+  const manage = action("Manage hidden nodes", true, () => void manageHidden(node.relParts));
 
   return {
     items: [...pasteItems, ...subs.map((s) => s.trigger), reload, ...addItems, manage],

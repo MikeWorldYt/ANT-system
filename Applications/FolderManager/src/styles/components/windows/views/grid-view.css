@@ -15,3 +15,16 @@
 .grid-art .imp-mark { position: absolute; right: -6px; top: -4px; }
 .grid-item .name { max-width: 100%; justify-content: center; }
 .grid-item .name-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: normal; overflow-wrap: anywhere; text-align: center; }
+.grid.list { display: flex; flex-direction: column; gap: 0; }
+.grid.list .grid-item { flex-direction: row; gap: 8px; padding: 2px 8px; }
+.grid.list .grid-art .icon, .grid.list .grid-art .thumb, .grid.list .grid-item .virtual-icon .gui-icon { width: 18px; height: 18px; }
+.grid.list .grid-art .status-mark { position: static; }
+.grid.list .grid-item .name { justify-content: flex-start; }
+.grid.list .grid-item .name-text { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.grid.cards { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 4px 8px; }
+.grid.cards .grid-item { flex-direction: row; gap: 10px; padding: 6px 8px; }
+.grid.cards .grid-art .icon, .grid.cards .grid-art .thumb, .grid.cards .grid-item .virtual-icon .gui-icon { width: 44px; height: 44px; }
+.card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.card-detail { color: var(--muted); font-size: 9pt; }
+.grid.cards .grid-item .name { justify-content: flex-start; }
+.grid.cards .grid-item .name-text { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }

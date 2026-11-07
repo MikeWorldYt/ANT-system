@@ -2,8 +2,9 @@ use std::fs;
 
 use super::*;
 use crate::domain::config::{DATA_DIR, DB_FILENAME};
+use crate::infra::storage::db::db_path;
 use crate::infra::fs_safe::LOCK_FILE;
-use crate::test_support::{academic, TempDir};
+use crate::test_support::{academic, names, remove_db, TempDir};
 
 const STAMP: &str = "26-10-24-09-05";
 
@@ -56,6 +57,197 @@ fn restoring_brings_the_data_back_and_skips_missing_folders() {
     assert!(stage::has_db(out.path()));
     fs::remove_file(out.path().join(DATA_DIR).join(DB_FILENAME)).unwrap();
     assert!(!stage::has_db(out.path()));
+}
+
+fn wal(root: &Path) -> PathBuf {
+    db_path(root).with_file_name(format!("{DB_FILENAME}-wal"))
+}
+
+#[test]
+fn a_failing_copy_leaves_the_wal_and_the_db_in_place() {
+    let dir = academic("restore-copy");
+    let root = dir.path();
+    fs::write(wal(root), "committed pages").unwrap();
+    let before = fs::read(db_path(root)).unwrap();
+    let empty = TempDir::new("restore-copy-stage");
+    assert!(stage::apply(root, empty.path()).is_err());
+    assert_eq!(fs::read_to_string(wal(root)).unwrap(), "committed pages");
+    assert_eq!(fs::read(db_path(root)).unwrap(), before);
+}
+
+#[test]
+fn a_damaged_db_is_refused_before_the_wal_goes() {
+    let dir = academic("restore-damaged");
+    let root = dir.path();
+    fs::write(wal(root), "committed pages").unwrap();
+    let before = fs::read(db_path(root)).unwrap();
+    let bad = TempDir::new("restore-damaged-stage");
+    bad.mkdir(DATA_DIR);
+    fs::write(bad.path().join(DATA_DIR).join(DB_FILENAME), "not a database ".repeat(512)).unwrap();
+    assert!(stage::apply(root, bad.path()).is_err());
+    assert_eq!(fs::read_to_string(wal(root)).unwrap(), "committed pages");
+    assert_eq!(fs::read(db_path(root)).unwrap(), before);
+    assert!(!names(&root.join(DATA_DIR)).iter().any(|n| n.contains("restore")));
+}
+
+#[test]
+fn a_blocked_rename_puts_the_wal_back() {
+    let (dir, out) = staged_copy("restore-blocked");
+    let root = dir.path();
+    remove_db(root);
+    fs::create_dir(db_path(root)).unwrap();
+    fs::write(wal(root), "committed pages").unwrap();
+    assert!(stage::apply(root, out.path()).is_err());
+    assert_eq!(fs::read_to_string(wal(root)).unwrap(), "committed pages");
+    assert!(!names(&root.join(DATA_DIR)).iter().any(|n| n.contains("restore")));
+}
+
+#[test]
+fn a_finished_restore_leaves_no_old_wal() {
+    let (dir, out) = staged_copy("restore-wal");
+    let root = dir.path();
+    fs::write(wal(root), "stale pages").unwrap();
+    stage::apply(root, out.path()).unwrap();
+    assert!(!wal(root).exists());
+    assert!(!names(&root.join(DATA_DIR)).iter().any(|n| n.contains("restore")));
+    assert!(settings(root).is_ok());
+}
+
+const GARBAGE: &str = "not a database ";
+
+fn corrupt_files(root: &Path) -> Vec<String> {
+    names(&root.join(DATA_DIR)).into_iter().filter(|name| name.contains(".corrupt-")).collect()
+}
+
+fn zip_failing_the_check(root: &Path, name: &str) {
+    let bad = TempDir::new("bad-backup");
+    bad.mkdir(DATA_DIR);
+    fs::write(bad.path().join(DATA_DIR).join(DB_FILENAME), GARBAGE.repeat(512)).unwrap();
+    fs::create_dir_all(root.join("backup")).unwrap();
+    archive::compress(bad.path(), &root.join("backup").join(name)).unwrap();
+}
+
+// A folder where the backup holds a file stops the restore after its ant.db went in.
+fn zip_failing_to_apply(tag: &str) -> (TempDir, String) {
+    let (dir, out) = staged_copy(tag);
+    fs::write(out.path().join("999.Settings/00.Core/blocked"), "x").unwrap();
+    dir.mkdir("999.Settings/00.Core/blocked");
+    dir.mkdir("backup");
+    let name = format!("{STAMP}{SUFFIX}.zip");
+    archive::compress(out.path(), &dir.path().join("backup").join(&name)).unwrap();
+    (dir, name)
+}
+
+fn raise_version(root: &Path) {
+    rusqlite::Connection::open(db_path(root)).unwrap().pragma_update(None, "user_version", 99).unwrap();
+}
+
+#[test]
+fn a_restore_that_fails_after_the_safety_backup_names_it() {
+    let (dir, name) = zip_failing_to_apply("restore-safety");
+    let root = dir.path();
+    let err = restore_from(root, &root.join("backup"), &name, "26-10-24-09-06").unwrap_err().to_string();
+    assert!(err.contains("26-10-24-09-06_ANT-fm-backup.zip"), "{err}");
+    assert!(settings(root).is_ok());
+}
+
+#[test]
+fn a_backup_failing_the_check_makes_restore_latest_use_the_previous_one() {
+    let dir = academic("backup-check-fallback");
+    let root = dir.path();
+    Store::open_or_create(root).unwrap().set_setting("backupFrequency", "week").unwrap();
+    create(root, STAMP).unwrap();
+    zip_failing_the_check(root, "26-10-25-09-05_ANT-fm-backup.zip");
+    fs::write(db_path(root), GARBAGE.repeat(512)).unwrap();
+    restore_latest(root, "26-10-26-09-05").unwrap();
+    assert_eq!(settings(root).unwrap().get("backupFrequency").map(String::as_str), Some("week"));
+    assert_eq!(corrupt_files(root), ["ant.db.corrupt-26-10-26-09-05"]);
+}
+
+#[test]
+fn a_damaged_db_stays_in_place_when_no_backup_passes_the_check() {
+    let dir = academic("backup-check-none");
+    let root = dir.path();
+    zip_failing_the_check(root, &format!("{STAMP}{SUFFIX}.zip"));
+    fs::write(db_path(root), GARBAGE.repeat(512)).unwrap();
+    let err = restore_latest(root, "26-10-26-09-05").unwrap_err().to_string();
+    assert!(err.contains("not usable"), "{err}");
+    assert_eq!(fs::read_to_string(db_path(root)).unwrap(), GARBAGE.repeat(512));
+    assert_eq!(corrupt_files(root), Vec::<String>::new());
+}
+
+#[test]
+fn a_newer_db_is_not_set_aside_by_a_failed_restore() {
+    let (dir, name) = zip_failing_to_apply("restore-newer");
+    let root = dir.path();
+    raise_version(root);
+    let before = fs::read(db_path(root)).unwrap();
+    let err = restore_from(root, &root.join("backup"), &name, "26-10-24-09-06").unwrap_err().to_string();
+    assert!(err.contains("newer version"), "{err}");
+    assert_eq!(fs::read(db_path(root)).unwrap(), before);
+    assert_eq!(corrupt_files(root), Vec::<String>::new());
+
+    let bad = format!("26-10-25-09-05{SUFFIX}.zip");
+    zip_failing_the_check(root, &bad);
+    assert!(restore_from(root, &root.join("backup"), &bad, "26-10-24-09-06").is_err());
+    assert_eq!(fs::read(db_path(root)).unwrap(), before);
+    assert_eq!(corrupt_files(root), Vec::<String>::new());
+}
+
+#[test]
+fn a_locked_db_is_not_set_aside_by_a_failed_restore() {
+    let (dir, name) = zip_failing_to_apply("restore-locked");
+    let root = dir.path();
+    let holder = rusqlite::Connection::open(db_path(root)).unwrap();
+    holder.execute_batch("PRAGMA locking_mode = EXCLUSIVE; BEGIN EXCLUSIVE;").unwrap();
+    assert!(restore_from(root, &root.join("backup"), &name, "26-10-24-09-06").is_err());
+    holder.execute_batch("COMMIT;").unwrap();
+    drop(holder);
+    assert!(db_path(root).is_file());
+    assert_eq!(corrupt_files(root), Vec::<String>::new());
+    assert!(settings(root).is_ok());
+}
+
+const SHARE: &str = r"\\ant-test.invalid\share";
+
+fn folder_setting(folder: &str) -> HashMap<String, String> {
+    HashMap::from([("backupFolder".to_string(), folder.to_string())])
+}
+
+#[cfg(windows)]
+#[test]
+fn a_share_from_a_foreign_db_is_refused_before_anything_touches_it() {
+    let dir = academic("backup-foreign");
+    let root = dir.path();
+    let refused = chosen_dir(root, &folder_setting(SHARE), |_| Ok(false)).unwrap_err().to_string();
+    assert!(refused.contains("not set on this computer"), "{refused}");
+    let mut store = Store::open_or_create(root).unwrap();
+    store.set_setting("backupFolder", SHARE).unwrap();
+    store.set_setting("backupAuto", "true").unwrap();
+    drop(store);
+    for err in [create(root, STAMP).unwrap_err(), if_due(root, STAMP).unwrap_err()] {
+        assert!(err.to_string().contains("not set on this computer"), "{err}");
+    }
+    assert!(list(root).is_err());
+    assert!(!settings(root).unwrap().contains_key("backupLast"));
+}
+
+#[cfg(windows)]
+#[test]
+fn a_share_listed_on_this_machine_and_a_local_folder_keep_working() {
+    let dir = TempDir::new("backup-confirmed");
+    let file = dir.path().join("data/list.txt");
+    assert!(!confirmed::listed(&file, SHARE).unwrap());
+    confirmed::add(&file, SHARE).unwrap();
+    confirmed::add(&file, SHARE).unwrap();
+    confirmed::add(&file, r"\\other.invalid\share").unwrap();
+    assert!(confirmed::listed(&file, SHARE).unwrap());
+    assert!(!confirmed::listed(&file, r"\\ant-test.invalid\share\sub").unwrap());
+    assert_eq!(fs::read_to_string(&file).unwrap().lines().count(), 2);
+    let is_confirmed = |folder: &str| confirmed::listed(&file, folder);
+    assert_eq!(chosen_dir(dir.path(), &folder_setting(SHARE), is_confirmed).unwrap(), PathBuf::from(SHARE));
+    let unasked = |_: &str| -> R<bool> { panic!("a local folder needs no confirmation") };
+    assert_eq!(chosen_dir(dir.path(), &folder_setting(r"D:\Backups"), unasked).unwrap(), PathBuf::from(r"D:\Backups"));
 }
 
 #[test]
@@ -126,6 +318,56 @@ fn restore_rejects_names_outside_the_backup_folder() {
     assert!(restore(dir.path(), "26-10-24-09-05_ANT-fm-backup.zip", "bad").is_err());
     fs::write(backups.join("26-10-24-09-05_ANT-fm-backup.zip"), "").unwrap();
     assert!(backup_zip(&backups, "26-10-24-09-05_ANT-fm-backup.zip").is_ok());
+}
+
+#[test]
+fn a_zip_cut_short_never_takes_its_final_name_and_a_stale_part_does_not_block_the_next() {
+    let dir = TempDir::new("backup-part");
+    let zip = dir.path().join(format!("{STAMP}{SUFFIX}.zip"));
+    let cut = write_zip(&zip, |part| {
+        fs::write(part, "half").unwrap();
+        Err(fail("disk full".to_string()))
+    });
+    assert!(cut.is_err());
+    assert_eq!(names(dir.path()), Vec::<String>::new());
+    let stale = dir.path().join(format!("{STAMP}{SUFFIX}.zip.part"));
+    fs::write(&stale, "killed").unwrap();
+    assert!(entries(dir.path()).unwrap().is_empty());
+    write_zip(&zip, |part| {
+        assert_eq!(part, stale);
+        assert!(!part.exists());
+        fs::write(part, "whole").map_err(|e| fail(e.to_string()))
+    })
+    .unwrap();
+    assert_eq!(fs::read_to_string(&zip).unwrap(), "whole");
+    assert_eq!(names(dir.path()), [format!("{STAMP}{SUFFIX}.zip")]);
+}
+
+#[test]
+fn create_goes_through_the_part_name() {
+    let dir = academic("backup-create-part");
+    let root = dir.path();
+    let part = format!("backup/{STAMP}{SUFFIX}.zip.part");
+    dir.mkdir(&part);
+    assert!(create(root, STAMP).is_err());
+    assert!(!root.join(format!("backup/{STAMP}{SUFFIX}.zip")).exists());
+    fs::remove_dir(root.join(&part)).unwrap();
+    let zip = create(root, STAMP).unwrap();
+    assert_eq!(names(&root.join("backup")), [zip.file_name().unwrap().to_string_lossy().into_owned()]);
+}
+
+#[test]
+fn a_truncated_newest_zip_makes_restore_latest_use_the_previous_one() {
+    let dir = academic("backup-truncated");
+    let root = dir.path();
+    Store::open_or_create(root).unwrap().set_setting("backupFrequency", "week").unwrap();
+    let good = create(root, STAMP).unwrap();
+    let bytes = fs::read(&good).unwrap();
+    fs::write(good.with_file_name("26-10-25-09-05_ANT-fm-backup.zip"), &bytes[..bytes.len() / 2]).unwrap();
+    remove_db(root);
+    restore_latest(root, "26-10-26-09-05").unwrap();
+    assert_eq!(settings(root).unwrap().get("backupFrequency").map(String::as_str), Some("week"));
+    assert_eq!(names(&root.join("backup")).len(), 2);
 }
 
 #[test]

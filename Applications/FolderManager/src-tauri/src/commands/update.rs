@@ -50,7 +50,7 @@ pub async fn check_update(app: AppHandle, manual: bool) -> R<Option<UpdateInfo>>
 
 #[tauri::command]
 pub async fn start_update(app: AppHandle) -> R<()> {
-    run_locked(app.clone(), |root| updater::launch_updater(root)).await?;
+    run_locked(app.clone(), updater::launch_updater).await?;
     app.exit(0);
     Ok(())
 }

@@ -15,7 +15,7 @@ interface Crumb {
   go(): void;
 }
 
-export function createNavigator(): { element: HTMLElement; render(): void; editPath(): void; goUp(): void; trail(): Trail; enter(trail: Trail, place: Place): Promise<void> } {
+export function createNavigator(): { element: HTMLElement; render(): void; editPath(): void; goUp(): void; trail(): Trail; setTrail(trail: Trail): void; enter(trail: Trail, place: Place): Promise<void> } {
   let history: Place[] = [];
   let at = -1;
   // Restoring a place passes through others (the entry, its favorite), which must not become entries.
@@ -135,12 +135,16 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
     path.scrollLeft = path.scrollWidth;
   }
 
-  // A tab brings its own history, so reaching its place adds nothing to it.
-  async function enter(trail: Trail, place: Place): Promise<void> {
+  function setTrail(trail: Trail): void {
     history = trail.history;
     at = trail.at;
+  }
+
+  // A tab brings its own history, so reaching its place adds nothing to it.
+  async function enter(trail: Trail, place: Place): Promise<void> {
+    setTrail(trail);
     await restore(place.key === null && place.virtual === null ? undefined : place);
   }
 
-  return { element, render, editPath: pathInput.start, goUp, trail: () => ({ history, at }), enter };
+  return { element, render, editPath: pathInput.start, goUp, trail: () => ({ history, at }), setTrail, enter };
 }

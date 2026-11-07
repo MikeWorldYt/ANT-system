@@ -23,9 +23,10 @@ export function markNodeItem(item: HTMLElement, n: TreeNode): void {
   item.title = nodeSummary(n);
 }
 
-// Items in Downloads cannot be renamed, so the double click that edits a name opens a file there instead.
-export function editOrOpen(n: TreeNode): void {
-  if (!inDownloads(n.relParts)) startEdit(n.relParts);
+// As in Explorer the name renames and the icon opens; names in Downloads are not ours, so there a file opens either way.
+export function editOrOpen(n: TreeNode, ev: MouseEvent): void {
+  const onName = ev.target instanceof Element && ev.target.closest(".name") !== null;
+  if (onName && !inDownloads(n.relParts)) startEdit(n.relParts);
   else if (n.file) void openFolder(n);
 }
 

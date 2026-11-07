@@ -64,7 +64,7 @@ mod tests {
     use std::fs;
 
     use super::*;
-    use crate::test_support::{names, rel, storage, yaml, yaml_type, TempDir};
+    use crate::test_support::{reason, names, rel, storage, yaml, yaml_type, TempDir};
 
     const TREE: &str = "100.WORK:\n  type: NODE-L1\n  01.Plain: {type: NODE-L2}\n  98.WORK: {type: REV}\n\
         200.HOME:\n  type: NODE-L1\n  98.HOME: {type: REV}\n";
@@ -82,13 +82,6 @@ mod tests {
         assert_eq!(disk, names(dir.path()), "{err:?}");
         assert_eq!(tree, yaml(dir.path()), "{err:?}");
         err
-    }
-
-    fn reason(err: FmError) -> String {
-        match err {
-            FmError::InvalidPath { reason, .. } => reason,
-            other => panic!("{other:?}"),
-        }
     }
 
     #[test]

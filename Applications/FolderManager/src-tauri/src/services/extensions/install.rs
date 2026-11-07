@@ -57,19 +57,39 @@ fn with_staging<T>(dir: &Path, f: impl FnOnce() -> R<T>) -> R<T> {
     result
 }
 
-pub fn from_registry(root: &Path, item: &RegistryItem, bytes: &[u8]) -> R<ExtensionInfo> {
-    let (_, dir) = staging::create(root, bytes)?;
-    with_staging(&dir, || {
+pub struct StagedItem {
+    item: RegistryItem,
+    token: String,
+    hash: String,
+}
+
+pub fn stage_registry(root: &Path, item: RegistryItem, bytes: &[u8]) -> R<StagedItem> {
+    let (token, dir) = staging::create(root, bytes)?;
+    let hash = (|| {
         let hash = sha256_file(&dir.join(ARCHIVE_FILE))?;
         if !same_hash(&hash, &item.sha256) {
             return Err(fail(format!("The download of {} does not match the library checksum", item.id)));
         }
-        let content = staging::manifest_dir(&dir)?;
-        let manifest = load(&content)?;
+        let manifest = load(&staging::manifest_dir(&dir)?)?;
         if manifest.id != item.id {
             return Err(fail(format!("The archive holds {} instead of {}", manifest.id, item.id)));
         }
-        place(root, &content, &item.id, &source_json("registry", &item.url, &hash, "validated"))
+        Ok(hash)
+    })();
+    match hash {
+        Ok(hash) => Ok(StagedItem { item, token, hash }),
+        Err(e) => {
+            staging::discard(&dir);
+            Err(e)
+        }
+    }
+}
+
+pub fn from_registry(root: &Path, staged: &StagedItem) -> R<ExtensionInfo> {
+    let dir = staging::open(root, &staged.token)?;
+    let item = &staged.item;
+    with_staging(&dir, || {
+        place(root, &staging::manifest_dir(&dir)?, &item.id, &source_json("registry", &item.url, &staged.hash, "validated"))
     })
 }
 

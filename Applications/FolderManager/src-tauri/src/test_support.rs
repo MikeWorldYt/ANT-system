@@ -41,6 +41,10 @@ pub fn rel(parts: &[&str]) -> Vec<String> {
     parts.iter().map(|s| s.to_string()).collect()
 }
 
+pub fn remove_db(root: &Path) {
+    fs::remove_file(crate::infra::storage::db::db_path(root)).unwrap();
+}
+
 // A storage root inside `dir`, recognised by its 999.Settings folder.
 pub fn storage_in(dir: &TempDir, name: &str) -> PathBuf {
     let root = dir.path().join(name);
@@ -128,4 +132,11 @@ pub fn delete_with(
     recycle: impl FnOnce(&Path) -> Result<(), String>,
 ) -> R<Mutation> {
     delete_node(root, rel, expect_ghost, confirm, recycle)
+}
+
+pub fn reason(err: crate::domain::error::FmError) -> String {
+    match err {
+        crate::domain::error::FmError::InvalidPath { reason, .. } => reason,
+        other => panic!("{other:?}"),
+    }
 }

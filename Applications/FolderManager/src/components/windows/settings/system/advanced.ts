@@ -30,16 +30,16 @@ export const advancedPage: SettingsPage = {
   title: "Advanced",
   icon: "pageAdvanced",
   rows: (ctx) => [
+    { title: "Developer tools", control: () => buttonControl("Open devtools", () => void report(openDevtools)) },
     {
       title: "Debug logging",
-      description: "Save more detail to help track down errors.",
+      description: "Save more detail to help track down errors",
       control: () => switchControl("Debug logging", state.settings.debugLogging, toggleLogging),
     },
     { title: "Log files", control: () => buttonControl("Open logs folder", () => void report(openLogsFolder)) },
-    { title: "Developer tools", description: "Open the app console.", control: () => buttonControl("Open", () => void report(openDevtools)) },
     {
       title: "Reset preferences",
-      description: "Does not delete your Workboards, only the settings in this panel.",
+      description: "Does not delete your Workboards, only the settings in this panel",
       control: () =>
         buttonControl(
           "Reset",

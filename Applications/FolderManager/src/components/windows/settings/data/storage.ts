@@ -90,7 +90,7 @@ function depthControl(storage: StorageInfo | null, row: RowHandle, done: () => v
   if (storage.depthWarning) row.describe(storage.depthWarning);
   const [fallback] = storage.depthOptions;
   const options = storage.depthOptions.map((n): [string, string] => [String(n), n === fallback ? `${n} levels (default)` : `${n} levels`]);
-  return selectControl("Tree depth", options, String(storage.maxDepth), (value) => {
+  return selectControl("Index", options, String(storage.maxDepth), (value) => {
     row.describe("Reloading the tree…");
     // Re-reading the storage info shows the depth that was really saved, also after a failure.
     void changeTreeDepth(Number(value)).then(done);
@@ -105,18 +105,17 @@ export const storagePage: SettingsPage = {
   rows: (ctx) => [
     {
       title: "Storage name",
-      description: "The name of the Storage folder.",
       control: (row: RowHandle) => renameControl(ctx.storage?.root, row, ctx.refresh),
     },
-    { title: "Storage location", description: "Folder where ANT keeps your Workboards.", control: () => pathControl(ctx.storage?.root ?? "Unknown") },
+    { title: "Storage location", description: "Folder where the app init your storage", control: () => pathControl(ctx.storage?.root ?? "Unknown") },
     {
-      title: "Tree depth",
-      description: "How many folder levels the tree shows and indexes. More levels mean more folders read on each refresh.",
+      title: "Index",
+      description: "Depth levels of the tree indexing in DB, more levels mean more folders read on each refresh",
       control: (row: RowHandle) => depthControl(ctx.storage, row, ctx.refresh),
     },
     {
       title: "Reindex Storage",
-      description: "Use this if you moved files outside of ANT.",
+      description: "Use for force the indexation",
       control: (row: RowHandle) =>
         buttonControl("Reindex", () => {
           row.describe("Reindexing…");
@@ -125,7 +124,7 @@ export const storagePage: SettingsPage = {
     },
     {
       title: "Watch for external changes",
-      description: "Check every day if files changed on disk and update the Storage.",
+      description: "Autocheck every day if files changed on disk and update DB",
       control: () => switchControl("Watch for external changes", state.settings.watchExternal, toggleWatch),
     },
   ],

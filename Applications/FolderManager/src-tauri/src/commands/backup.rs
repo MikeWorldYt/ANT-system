@@ -18,7 +18,7 @@ pub async fn backup_if_due(app: AppHandle, stamp: String) -> R<Option<String>> {
 
 #[tauri::command]
 pub async fn list_backups(app: AppHandle) -> R<Vec<BackupEntry>> {
-    run_locked(app, |root| backup::list(root)).await
+    run_locked(app, backup::list).await
 }
 
 #[tauri::command]

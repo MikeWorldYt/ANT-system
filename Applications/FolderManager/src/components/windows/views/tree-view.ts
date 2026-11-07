@@ -14,6 +14,7 @@ import { openVirtual } from "../../../hooks/virtual-nav";
 import { entryBeside, headEntry, rootEntries, virtualEntry } from "../../molecules/virtual-entry";
 import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
+import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
 
 export function createTreeView(): ViewMode {
@@ -54,9 +55,13 @@ export function createTreeView(): ViewMode {
       select(n.relParts);
       void toggleExpand(n);
     });
+    // Its two clicks already toggled twice, so the double click ends open.
+    toggle?.addEventListener("dblclick", () => {
+      if (!state.expanded.has(key)) void toggleExpand(n);
+    });
     onItemClick(row, n, () => rows.map((r) => keyOf(r.relParts)), () => pick(i), fromToggle);
     row.addEventListener("dblclick", (ev) => {
-      if (!fromToggle(ev)) editOrOpen(n);
+      if (!fromToggle(ev)) editOrOpen(n, ev);
     });
     row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, tree));
     return row;
@@ -129,7 +134,8 @@ export function createTreeView(): ViewMode {
         }
         break;
       case "Enter":
-        if (n) void toggleExpand(n);
+        if (n?.file) void openFolder(n);
+        else if (n) void toggleExpand(n);
         else if (head && onHead) void (headOpen ? select(null) : openVirtual(head.id));
         break;
       case "F2":

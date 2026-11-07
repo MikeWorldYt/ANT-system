@@ -44,11 +44,13 @@ impl Storage {
     }
 
     // Runs a read on the kept connection, opened on first use and again after the root changes.
-    pub fn with_reader<T>(&self, f: impl FnOnce(&Store) -> R<T>) -> R<T> {
+    // A missing db answers empty and stays missing: only the load after the health check may create it.
+    pub fn with_reader<T: Default>(&self, f: impl FnOnce(&Store) -> R<T>) -> R<T> {
         let root = self.root()?;
         let mut slot = self.reader.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         if !slot.as_ref().is_some_and(|(open_root, _)| *open_root == root) {
-            *slot = Some((root.clone(), Store::open_or_create(&root)?));
+            let Some(store) = Store::open_existing(&root)? else { return Ok(T::default()) };
+            *slot = Some((root.clone(), store));
         }
         match slot.as_ref() {
             Some((_, store)) => f(store),
@@ -83,4 +85,28 @@ pub struct StorageInfo {
     pub max_depth: usize,
     pub depth_options: Vec<usize>,
     pub depth_warning: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infra::storage::db::db_path;
+    use crate::test_support::{remove_db, work};
+
+    #[test]
+    fn a_read_without_a_db_answers_empty_and_does_not_create_it() {
+        let dir = work("reader-no-db");
+        remove_db(dir.path());
+        let storage = Storage::resolve(dir.path().to_path_buf());
+        assert_eq!(storage.with_reader(Store::favorites).unwrap(), Vec::<Vec<String>>::new());
+        assert!(!db_path(dir.path()).exists());
+    }
+
+    #[test]
+    fn a_read_opens_the_db_once_it_exists() {
+        let dir = work("reader-db");
+        let storage = Storage::resolve(dir.path().to_path_buf());
+        assert_eq!(storage.with_reader(Store::favorites).unwrap(), Vec::<Vec<String>>::new());
+        assert!(storage.reader.lock().unwrap().is_some());
+    }
 }

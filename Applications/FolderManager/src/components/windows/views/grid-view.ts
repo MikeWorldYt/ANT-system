@@ -1,4 +1,4 @@
-// Grid view: large icons for the contents of one folder, entered with double click or Enter.
+// Grid, List and Cards views: the contents of one folder as large icons, plain rows or icons with details, entered with double click or Enter.
 import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "../../organisms/menus/context-menu";
 import { el } from "../../dom";
 import { folderIcon } from "../../atoms/icons";
@@ -14,11 +14,12 @@ import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { openEntry, rootEntries, virtualEntries, virtualEntry, type VirtualEntry } from "../../molecules/virtual-entry";
 import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
-import { inDownloads, type TreeNode } from "../../../services/ipc/types";
+import type { TreeNode } from "../../../services/ipc/types";
+import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
 
-export function createGridView(): ViewMode {
-  const root = el("div", { class: "grid", role: "listbox", "aria-label": "Folder contents" });
+function createFolderView(id: string, label: string, rootClass: string, detail?: (n: TreeNode) => string): ViewMode {
+  const root = el("div", { class: rootClass, role: "listbox", "aria-label": "Folder contents" });
   const loading = new Set<string>();
   // Key of the folder being shown; null is the Storage root.
   let folder: string | null = null;
@@ -33,6 +34,13 @@ export function createGridView(): ViewMode {
     }
     const parts = key.split("/");
     const parent = parts.length > 1 ? parts.slice(0, -1).join("/") : null;
+    if (key === state.entering) {
+      state.entering = null;
+      if (selectedNode()?.hasChildren) {
+        folder = key;
+        return;
+      }
+    }
     if (key === folder || parent === folder) return;
     folder = selectedNode()?.hasChildren ? key : parent;
   }
@@ -78,12 +86,12 @@ export function createGridView(): ViewMode {
     if (n.favorite) art.append(favoriteMark());
     if (n.important) art.append(importantMark());
     if (n.status) art.append(statusMark(n.status));
-    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, nameCell(n, false));
+    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, detail ? el("div", { class: "card-text" }, nameCell(n, false), el("span", { class: "card-detail" }, detail(n))) : nameCell(n, false));
     markNodeItem(item, n);
     item.prepend(...manageBox(n, item));
     onItemClick(item, n, () => shownNodes().map((s) => keyOf(s.relParts)), () => select(n.relParts));
     // As in Explorer, the name renames and the rest of the tile opens.
-    item.addEventListener("dblclick", (ev) => (ev.target instanceof Element && ev.target.closest(".name") ? editOrOpen(n) : n.hasChildren || !inDownloads(n.relParts) ? enter(n) : editOrOpen(n)));
+    item.addEventListener("dblclick", (ev) => (n.file || (ev.target instanceof Element && ev.target.closest(".name")) ? editOrOpen(n, ev) : enter(n)));
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
     return item;
   }
@@ -147,6 +155,7 @@ export function createGridView(): ViewMode {
         break;
       case "Enter":
         if (i < 0) go(0);
+        else if (n?.file) void openFolder(n);
         else if (n) enter(n);
         break;
       default:
@@ -156,8 +165,8 @@ export function createGridView(): ViewMode {
   }
 
   return {
-    id: "grid",
-    label: "Grid",
+    id,
+    label,
     mount(host) {
       root.addEventListener("keydown", onKey);
       root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, folderNode(), root));
@@ -196,3 +205,13 @@ export function createGridView(): ViewMode {
     },
   };
 }
+
+export const createGridView = () => createFolderView("grid", "Grid", "grid");
+function fileKind(n: TreeNode): string {
+  if (!n.file) return "Folder";
+  const dot = n.name.lastIndexOf(".");
+  return dot > 0 ? `${n.name.slice(dot + 1).toUpperCase()} file` : "File";
+}
+
+export const createCardsView = () => createFolderView("cards", "Cards", "grid cards", fileKind);
+export const createListView = () => createFolderView("list", "List", "grid list");
