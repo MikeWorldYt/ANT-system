@@ -14,6 +14,10 @@
 .tab::after { right: 0; border-right-width: 1px; border-radius: 0 var(--radius-md) 0 0; transform: skewX(18deg); transform-origin: right bottom; }
 .tab-name { flex: 1; min-width: 0; padding: 5px 10px; border: 0; background: transparent; color: var(--text); font: inherit; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .tab.active .tab-name { font-weight: 600; }
+.tab-dots { display: flex; align-items: center; justify-content: space-around; }
+.tab-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.tab-dot.on { background: var(--button); }
+.tab-dots-bar { width: 1px; height: 14px; background: var(--tab-outline); }
 .tab-close { margin-right: 4px; padding: 0 5px; border: 0; border-radius: 3px; background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
 .tab-close:hover { color: var(--text); }
 .tab-name:focus-visible, .tab-close:focus-visible { outline: 2px solid var(--button); outline-offset: -2px; }

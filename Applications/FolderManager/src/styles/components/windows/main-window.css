@@ -1,3 +1,9 @@
 /* Main window layout: the views beside the board and the side panel. */
 .app-main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 0 12px 12px; }
+.panes { flex: 1; min-width: 0; display: flex; }
+.pane-divider { flex: 0 0 10px; cursor: col-resize; }
+.pane-divider[hidden] { display: none; }
+.pane-divider:hover, .pane-divider:focus-visible { background: var(--tab-outline); background-clip: content-box; padding: 0 4px; outline: none; }
+.panes[hidden] { display: none; }
+.tree-host.focused { box-shadow: inset 0 0 0 1px var(--button); }
 .tree-host { flex: 1; min-width: 0; background: var(--tree-bg); overflow: auto; border-radius: var(--radius-md); }

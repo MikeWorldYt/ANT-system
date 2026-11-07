@@ -1,24 +1,44 @@
 // Strip of open tabs above the navigation bar.
 import { el } from "../../dom";
 import { iconButton } from "../../atoms/icon-button";
-import { closeTab, moveTab, openTab, selectTab, tabViews, type TabView } from "../../../hooks/tabs";
+import { closeSplit, openSplit } from "../../../hooks/split";
+import { closingItem } from "../../molecules/menu";
+import { openMenuWith } from "../menus/context-menu";
+import { closeTab, duplicateTab, moveTab, openTab, selectTab, tabViews, type TabView } from "../../../hooks/tabs";
 
 const DRAG_START_PX = 5;
 // Matches the negative margin in tab-bar.css.
 const TAB_OVERLAP_PX = 8;
 
+function splitDots(focused: "left" | "right"): HTMLElement {
+  const dot = (on: boolean) => el("span", { class: on ? "tab-dot on" : "tab-dot" });
+  return el("span", { class: "tab-dots" }, dot(focused === "left"), el("span", { class: "tab-dots-bar" }), dot(focused === "right"));
+}
+
+function tabMenu(ev: MouseEvent, index: number, split: boolean): void {
+  ev.preventDefault();
+  selectTab(index);
+  openMenuWith((close) => {
+    const action = closingItem(close);
+    const items = [action("Split tab", !split, openSplit), action("Duplicate tab", true, () => duplicateTab(index))];
+    return { items, subs: [], content: items };
+  }, "Tab", ev.clientX, ev.clientY, () => undefined);
+}
+
 function tabItem(tab: TabView, index: number, closable: boolean, drag: (ev: PointerEvent, item: HTMLElement) => void): HTMLElement {
-  const name = el("button", { type: "button", class: "tab-name", role: "tab", "aria-selected": String(tab.active), title: tab.title }, tab.label);
+  const name = el("button", { type: "button", class: "tab-name", role: "tab", "aria-selected": String(tab.active), title: tab.title, "aria-label": tab.split ? `Split: ${tab.label}` : tab.label }, tab.split ? splitDots(tab.split) : tab.label);
   name.addEventListener("click", () => selectTab(index));
   const item = el("div", { class: tab.active ? "tab active" : "tab", role: "presentation" }, name);
-  if (closable) {
-    const close = el("button", { type: "button", class: "tab-close", "aria-label": `Close ${tab.label}`, title: "Close tab" }, "×");
-    close.addEventListener("click", () => closeTab(index));
+  if (closable || tab.split) {
+    const closeLabel = tab.split ? "Close split" : "Close tab";
+    const close = el("button", { type: "button", class: "tab-close", "aria-label": tab.split ? closeLabel : `Close ${tab.label}`, title: closeLabel }, "×");
+    close.addEventListener("click", () => (tab.split ? closeSplit() : closeTab(index)));
     item.append(close);
   }
   item.addEventListener("pointerdown", (ev) => {
     if (ev.button === 0 && !(ev.target instanceof Element && ev.target.closest(".tab-close"))) drag(ev, item);
   });
+  item.addEventListener("contextmenu", (ev) => tabMenu(ev, index, tab.split !== null));
   item.addEventListener("auxclick", (ev) => {
     if (ev.button === 1) closeTab(index);
   });

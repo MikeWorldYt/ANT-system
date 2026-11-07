@@ -5,6 +5,7 @@ import { reportError } from "../components/organisms/bars/status-line";
 import { currentPlace, type Place } from "../services/store/place";
 import { isWorkboard } from "../services/store/node-info";
 import { readPref, savePref } from "../services/store/prefs";
+import { currentSplit, parkedSplit, restoreSplit, savedSplit, type SavedSplit, type Split } from "./split";
 import type { ViewSwitcher } from "./view-switch";
 import { findNode, isVirtualShown, keyOf, leaveVirtual, notify, state } from "../services/store/state";
 
@@ -15,6 +16,7 @@ export interface Trail {
 
 export interface TabNavigator {
   trail(): Trail;
+  setTrail(trail: Trail): void;
   enter(trail: Trail, place: Place): Promise<void>;
 }
 
@@ -23,19 +25,21 @@ interface Tab {
   expanded: Set<string>;
   trail: Trail;
   view: string;
+  split: Split | null;
 }
 
 export interface TabView {
   label: string;
   title: string;
   active: boolean;
+  split: "left" | "right" | null;
 }
 
 const PREF = "fm.tabs";
 let navigator: TabNavigator | null = null;
 let views: Pick<ViewSwitcher, "current" | "switchTo"> | null = null;
 const currentView = () => views?.current().id ?? "";
-const newTab = (place: Place, expanded: Set<string>, view = currentView()): Tab => ({ place, expanded, trail: { history: [], at: -1 }, view });
+const newTab = (place: Place, expanded: Set<string>, view = currentView()): Tab => ({ place, expanded, trail: { history: [], at: -1 }, view, split: null });
 
 let tabs: Tab[] = [newTab(currentPlace(), state.expanded)];
 let active = 0;
@@ -49,29 +53,34 @@ export function bindTabs(nav: TabNavigator, switcher: Pick<ViewSwitcher, "curren
   views = switcher;
 }
 
-function readSaved(): { places: Place[]; views: string[]; active: number } {
+function readSaved(): { places: Place[]; views: string[]; splits: (SavedSplit | null)[]; active: number } {
   const raw = readPref(`${PREF}:${root}`);
-  if (raw === null) return { places: [], views: [], active: 0 };
+  if (raw === null) return { places: [], views: [], splits: [], active: 0 };
   try {
-    const saved = JSON.parse(raw) as { places?: Place[]; views?: string[]; active?: number };
-    return { places: Array.isArray(saved.places) ? saved.places : [], views: Array.isArray(saved.views) ? saved.views : [], active: saved.active ?? 0 };
+    const saved = JSON.parse(raw) as { places?: Place[]; views?: string[]; splits?: (SavedSplit | null)[]; active?: number };
+    return { places: Array.isArray(saved.places) ? saved.places : [], views: Array.isArray(saved.views) ? saved.views : [], splits: Array.isArray(saved.splits) ? saved.splits : [], active: saved.active ?? 0 };
   } catch (e) {
     console.warn("Saved tabs are unreadable", e);
-    return { places: [], views: [], active: 0 };
+    return { places: [], views: [], splits: [], active: 0 };
   }
 }
 
 // The current tab stays as it is, because the launch restores its place on its own.
 function loadTabs(): void {
-  const saved = state.settings.onLaunch === "continue" ? readSaved() : { places: [], views: [], active: 0 };
+  const saved = state.settings.onLaunch === "continue" ? readSaved() : { places: [], views: [], splits: [], active: 0 };
   const usable = saved.places.map((place, i) => ({ place, i })).filter(({ place }) => place.virtual === null || isVirtualShown(place.virtual));
   const current = tabs[active] ?? newTab(currentPlace(), state.expanded);
   const at = usable.findIndex(({ i }) => i === saved.active);
   tabs = usable.length > 0 ? usable.map(({ place }, i) => (i === Math.max(at, 0) ? current : newTab(place, new Set(), saved.views[usable[i]?.i ?? -1]))) : [current];
   active = usable.length > 0 ? Math.max(at, 0) : 0;
+  tabs.forEach((tab, i) => {
+    const split = saved.splits[usable[i]?.i ?? -1];
+    if (split) tab.split = parkedSplit(split);
+  });
+  restoreSplit(tabs[active]?.split ?? null);
 }
 
-const saveTabs = () => savePref(`${PREF}:${root}`, JSON.stringify({ places: tabs.map((t) => t.place), views: tabs.map((t) => t.view), active }));
+const saveTabs = () => savePref(`${PREF}:${root}`, JSON.stringify({ places: tabs.map((t) => t.place), views: tabs.map((t) => t.view), splits: tabs.map((t) => savedSplit(t.split)), active }));
 
 // Follows the store after every change, so the labels and what the next launch restores stay current.
 export function syncTabs(): void {
@@ -85,6 +94,7 @@ export function syncTabs(): void {
   if (tab) {
     tab.place = currentPlace();
     tab.view = currentView();
+    tab.split = currentSplit();
   }
   saveTabs();
 }
@@ -96,6 +106,7 @@ function capture(): void {
   tab.expanded = state.expanded;
   tab.trail = navigator.trail();
   tab.view = currentView();
+  tab.split = currentSplit();
 }
 
 async function activate(index: number): Promise<void> {
@@ -109,6 +120,7 @@ async function activate(index: number): Promise<void> {
   state.pasteKey = null;
   state.managing = null;
   state.hiddenChoices = [];
+  restoreSplit(tab.split);
   views?.switchTo(tab.view);
   try {
     await navigator.enter(tab.trail, tab.place);
@@ -141,6 +153,17 @@ export function openTab(parts?: string[]): void {
     state.entering = place.key;
     leaveVirtual();
   }
+  void activate(tabs.length - 1);
+}
+
+export function duplicateTab(index: number): void {
+  if (moving) return;
+  capture();
+  const tab = tabs[index];
+  if (!tab) return;
+  const copy = newTab(tab.place, new Set(tab.expanded), tab.view);
+  copy.trail = { history: [...tab.trail.history], at: tab.trail.at };
+  tabs.push(copy);
   void activate(tabs.length - 1);
 }
 
@@ -186,4 +209,4 @@ function labelOf(place: Place): string {
 }
 
 export const tabViews = (): TabView[] =>
-  tabs.map((t, i) => ({ label: labelOf(t.place), title: t.place.key ?? labelOf(t.place), active: i === active }));
+  tabs.map((t, i) => ({ label: labelOf(t.place), title: t.place.key ?? labelOf(t.place), active: i === active, split: t.split ? (t.split.right ? "right" : "left") : null }));
