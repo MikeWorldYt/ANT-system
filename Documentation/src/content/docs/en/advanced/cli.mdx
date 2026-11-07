@@ -1,0 +1,109 @@
+---
+title: CLI
+description: Every option of CreateNewStorage, the command-line tool that builds a new storage.
+---
+
+`CreateNewStorage` builds a complete ANT storage from one command. Get it from the [Downloads page](/en/start-here/download); the quick start is in [Getting Started](/en/start-here/getting-started).
+
+## Usage
+
+```bash
+create-new-storage <path> [options]
+```
+
+On Windows the file is `CreateNewStorage.exe`; on Linux and macOS it is `create-new-storage`. Run it with `--help` to see the same summary in the terminal.
+
+## What it creates
+
+1. The storage folder and its essentials: `998.Review`, `999.Settings/00.Core` and `.ant`.
+2. `.ant/ant.db`, the storage database, downloaded from the official template.
+3. The whole folder tree described by that database, plus `.ant/info.json` for folders that carry an owner, date or status.
+4. `FM_Updater.bat` in `999.Settings/00.Core`, used by FolderManager updates on Windows.
+5. The latest FolderManager for your system in the storage root.
+
+Steps 1 to 3 are essential: if one fails, the tool removes only the folders it created in this run and leaves anything that was already there. Steps 4 and 5 only warn when they fail, so the storage is still usable.
+
+## Arguments
+
+### `<path>`
+
+Where the storage goes. Without `--name` it is the storage folder itself; with `--name` it is the parent folder that receives a new folder.
+
+```bash
+create-new-storage ~/ANT
+```
+
+## Options
+
+### `--name <name>`
+
+Names the storage folder created inside `<path>`. The name is cleaned to Pascal_Snake_Case: characters Windows forbids are removed, spaces and underscores become one `_`, and each word starts with a capital letter while the rest of it is lowercase.
+
+| You type | Folder on disk |
+| --- | --- |
+| `"my storage"` | `My_Storage` |
+| `My-storage` | `My-storage` |
+| `MyStorage` | `Mystorage` |
+
+```bash
+create-new-storage ~ --name "My Storage"
+```
+
+### `--local-database <file>`
+
+Builds the storage from an `ant.db` on your computer instead of downloading the official template. Use it to reuse the structure of another storage or to work without internet for the template. The file is copied to `.ant/ant.db` unchanged.
+
+```bash
+create-new-storage ~ --name Work --local-database ./ant.db
+```
+
+### `--yes`
+
+Allows creating the storage inside a folder that already exists. Without it, the tool stops if the target folder is there, so it never mixes a new storage with your files by accident. Existing files are kept; only missing folders are added.
+
+```bash
+create-new-storage D:\Files --yes
+```
+
+### `--dry-run`
+
+Prints the folders that would be created, with their type, and writes nothing to disk. It still needs the template, so it downloads it unless you pass `--local-database`.
+
+```bash
+create-new-storage ~ --name Test --dry-run
+```
+
+```text
+Dry run: nothing is written.
+/home/you/Test
+  100.PERSONAL  [NODE]
+    01.Documents  [NODE]
+      REV.Documents  [REV]
+```
+
+### `--no-folder-manager`
+
+Skips the FolderManager download. The database and `FM_Updater.bat` are still downloaded. Use it when you already have FolderManager or plan to install it later.
+
+```bash
+create-new-storage ~ --name Work --no-folder-manager
+```
+
+### `-h`, `--help`
+
+Shows the summary of arguments and options.
+
+### `-V`, `--version`
+
+Shows the installed version, for example `create-new-storage 3.3.0`.
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | The storage was created, or the help, version or dry run was shown. |
+| `1` | Invalid options, the target exists without `--yes`, or an essential step failed. |
+
+## Network
+
+The tool only downloads over HTTPS from GitHub and `r2.mikeworld.dev`, through the system `curl`. On Linux and macOS it also uses the system `tar` to unpack FolderManager.
