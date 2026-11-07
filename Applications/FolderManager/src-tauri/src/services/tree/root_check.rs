@@ -10,6 +10,7 @@ use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{flags_in, type_base};
 use crate::domain::config::{TypeBase, DATA_DIR, HIDDEN_FLAG, INFO_FILENAME, WKB_IDENTIFIERS};
 use crate::domain::error::R;
+use crate::infra::fs_safe::StorageLock;
 use crate::services::tree::depth;
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::{self, infer_type};
@@ -32,13 +33,21 @@ pub struct RootCheck {
 pub fn check_root(root: &Path) -> R<RootCheck> {
     let limit = depth::limit(root)?;
     let mut data = tree_store::load(root)?;
-    let changed = tree_store::sync(root, &mut data)? | tree_store::reconcile_portfolios_all(root, &mut data)?;
-    if changed {
-        tree_store::save(root, &data)?;
+    if resync(root, &mut data)? {
+        // Reloading under the file lock keeps this save from overwriting another process's edit.
+        let _lock = StorageLock::acquire(root)?;
+        data = tree_store::load(root)?;
+        if resync(root, &mut data)? {
+            tree_store::save(root, &data)?;
+        }
     }
     let mut invalid = Vec::new();
     walk(root, root, Some(&data), &mut Vec::new(), limit, &mut invalid)?;
     Ok(RootCheck { invalid })
+}
+
+fn resync(root: &Path, data: &mut Mapping) -> R<bool> {
+    Ok(tree_store::sync(root, data)? | tree_store::reconcile_portfolios_all(root, data)?)
 }
 
 // Node and workboard folders are checked; review and app folders keep their own names. Workboards hold no nodes, so they are not entered.
@@ -170,6 +179,24 @@ mod tests {
             dir.mkdir(d);
         }
         assert_eq!(check_root(dir.path()).unwrap(), RootCheck { invalid: Vec::new() });
+    }
+
+    #[test]
+    fn the_save_waits_for_the_storage_lock_and_keeps_a_change_made_meanwhile() {
+        let dir = storage("root-check-lock", &["100.WORK/01.A", "100.WORK/02.B"], "100.WORK:\n  type: NODE-L1\n  01.A: {type: NODE-L2}\n");
+        let lock = StorageLock::acquire(dir.path()).unwrap();
+        let root = dir.path().to_path_buf();
+        let check = std::thread::spawn(move || check_root(&root));
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        assert!(!check.is_finished());
+        let mut data = tree_store::load(dir.path()).unwrap();
+        tree_store::get_node_mut(&mut data, &rel(&["100.WORK", "01.A"])).unwrap().insert("type".into(), "WKB-L2".into());
+        tree_store::save(dir.path(), &data).unwrap();
+        drop(lock);
+        check.join().unwrap().unwrap();
+        let data = tree_store::load(dir.path()).unwrap();
+        assert_eq!(tree_store::get_type(&data, &rel(&["100.WORK", "01.A"])), "WKB-L2");
+        assert_eq!(tree_store::get_type(&data, &rel(&["100.WORK", "02.B"])), "NODE-L2");
     }
 
     #[test]
