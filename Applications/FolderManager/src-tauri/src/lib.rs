@@ -7,6 +7,7 @@ mod infra;
 mod ipc_parity_tests;
 #[cfg(test)]
 mod layer_tests;
+mod mcp;
 #[cfg(test)]
 mod tool_path_tests;
 mod platform;
@@ -29,6 +30,9 @@ pub fn run() {
     }
     if std::env::args_os().nth(1).is_some_and(|a| a == "--watch") {
         std::process::exit(services::watch::run_headless(std::env::args_os().nth(2)));
+    }
+    if std::env::args_os().nth(1).is_some_and(|a| a == "--mcp") {
+        std::process::exit(mcp::run_headless(std::env::args_os().nth(2)));
     }
     let arg = std::env::args_os().nth(1).map(std::path::PathBuf::from);
     let cwd = std::env::current_dir().unwrap_or_default();

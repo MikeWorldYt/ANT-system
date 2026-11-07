@@ -6,16 +6,15 @@ use tauri::{AppHandle, Manager};
 
 use super::{off_thread, review_emitter, run_locked, run_unlocked};
 use crate::app::storage_session::Storage;
-use crate::domain::config::REVIEW_FOLDER;
 use crate::services::tree::media;
 use crate::domain::model::Copies;
 use crate::domain::error::R;
-use crate::infra::fs_safe::{resolve, validate_component};
+use crate::infra::fs_safe::resolve;
 use crate::services::index::{node_names, reindex_data, review_folders, review_index, Emit};
 use crate::services::snapshot::{snapshot, snapshot_data};
 use crate::services::tree::root_check::{self, RootCheck};
-use crate::services::tree::tree_node::{build_children, fill_children, lists_files, TreeNode, TreeSnapshot};
-use crate::services::tree::tree_store;
+use crate::services::tree::level;
+use crate::services::tree::tree_node::{lists_files, TreeNode, TreeSnapshot};
 
 // Only a manual refresh (`full`) rebuilds the search and review indexes; automatic ones just sync the tree.
 pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>, full: bool) -> R<TreeSnapshot> {
@@ -59,18 +58,7 @@ pub async fn check_root(app: AppHandle) -> R<RootCheck> {
 
 #[tauri::command]
 pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<TreeNode>> {
-    run_unlocked(app, move |_, root| {
-        rel_parts.iter().try_for_each(|part| validate_component(part))?;
-        // The review folder lists links to owners anywhere in the tree; every other level needs only its own branch.
-        let data = match rel_parts.as_slice() {
-            [top] if top.eq_ignore_ascii_case(REVIEW_FOLDER) => tree_store::load(root)?,
-            _ => tree_store::load_level(root, &rel_parts)?,
-        };
-        let mut kids = build_children(root, &data, &rel_parts)?;
-        fill_children(root, &data, &mut kids)?;
-        Ok(kids)
-    })
-    .await
+    run_unlocked(app, move |_, root| level::children(root, &rel_parts)).await
 }
 
 // Reads without the storage lock, so a slow shell thumbnail never holds up a change.

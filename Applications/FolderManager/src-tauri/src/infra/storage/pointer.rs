@@ -42,6 +42,11 @@ pub fn write(file: &Path, root: &Path) -> std::io::Result<()> {
     fs::write(file, render(root))
 }
 
+// The same file `app_file` names, found without an AppHandle so the headless modes read what the app remembered.
+pub fn remembered(data_dir: &Path) -> Option<PathBuf> {
+    read(&file(data_dir, &std::env::current_exe().ok()?))
+}
+
 pub fn app_file(app: &AppHandle) -> Result<PathBuf, String> {
     let data_dir = app.path().app_local_data_dir().map_err(|e| e.to_string())?;
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
@@ -69,6 +74,14 @@ mod tests {
         let root = Path::new("C:\\Users\\Me\\My \"Storage\"");
         write(&f, root).unwrap();
         assert_eq!(read(&f).as_deref(), Some(root));
+    }
+
+    #[test]
+    fn the_headless_read_finds_the_pointer_of_this_executable() {
+        let dir = TempDir::new("pointer-headless");
+        assert_eq!(remembered(dir.path()), None);
+        write(&file(dir.path(), &std::env::current_exe().unwrap()), Path::new("D:\\Storage")).unwrap();
+        assert_eq!(remembered(dir.path()).as_deref(), Some(Path::new("D:\\Storage")));
     }
 
     #[test]
