@@ -236,6 +236,71 @@ mod tests {
         assert!(!review.join("stale.lnk").exists());
     }
 
+    #[cfg(windows)]
+    const LINKS: [&str; 3] = ["a-corrupt.lnk", "b-user.lnk", "c-stale.lnk"];
+
+    #[cfg(windows)]
+    fn three_links(tag: &str) -> (crate::test_support::TempDir, PathBuf, String) {
+        let dir = storage(tag, &["998.Review", "100.A/REV.A"], "100.A: {type: NODE-L1}\n");
+        let review = dir.path().join("998.Review");
+        for name in LINKS {
+            fs::write(review.join(name), "").unwrap();
+        }
+        let stale = dir.path().join("100.A/REV.Gone").to_string_lossy().into_owned();
+        (dir, review, stale)
+    }
+
+    #[cfg(windows)]
+    fn rebuild_from_stdout(root: &Path, stdout: &str) -> Vec<String> {
+        use crate::platform::windows::shortcuts::paired_targets;
+        rebuild_using(root, &yaml(root), |_| Vec::new(), |links| paired_targets(stdout, links.len()))
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn output_without_indexes_keeps_every_link_when_a_blank_first_target_shifted_the_rest() {
+        let (dir, review, stale) = three_links("review-shift");
+        let raw = format!("\r\nC:/Users/me/report.pdf\r\n{stale}\r\n");
+        let failures = rebuild_from_stdout(dir.path(), raw.trim());
+        for name in LINKS {
+            assert!(review.join(name).is_file(), "{name}");
+        }
+        assert_eq!(failures.len(), 1, "{failures:?}");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn each_target_stays_with_its_link_whatever_the_blank_lines() {
+        let (dir, review, stale) = three_links("review-pair");
+        let raw = format!("\r\n\r\n0:\r\n1:C:/Users/me/report.pdf\r\n2:{stale}\r\n");
+        assert_eq!(rebuild_from_stdout(dir.path(), &raw), Vec::<String>::new());
+        assert!(review.join(LINKS[0]).is_file() && review.join(LINKS[1]).is_file());
+        assert!(!review.join(LINKS[2]).exists());
+
+        let (dir, review, stale) = three_links("review-pair-trimmed");
+        let raw = format!("0:{stale}\r\n1:C:/Users/me/report.pdf\r\n2:\r\n");
+        assert_eq!(rebuild_from_stdout(dir.path(), raw.trim()), Vec::<String>::new());
+        assert!(!review.join(LINKS[0]).exists());
+        assert!(review.join(LINKS[1]).is_file() && review.join(LINKS[2]).is_file());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_count_or_order_that_does_not_match_keeps_every_link() {
+        let cases = [
+            ("review-few", "0:\r\n1:{stale}"),
+            ("review-many", "0:\r\n1:{stale}\r\n2:\r\n3:{stale}"),
+            ("review-order", "1:{stale}\r\n0:\r\n2:"),
+            ("review-twice", "0:\r\n1:{stale}\r\n1:{stale}"),
+        ];
+        for (tag, raw) in cases {
+            let (dir, review, stale) = three_links(tag);
+            let failures = rebuild_from_stdout(dir.path(), &raw.replace("{stale}", &stale));
+            assert_eq!(fs::read_dir(&review).unwrap().count(), LINKS.len(), "{tag}");
+            assert_eq!(failures.len(), 1, "{tag}: {failures:?}");
+        }
+    }
+
     #[test]
     fn targets_storage_accepts_only_links_into_the_storage() {
         let root = Path::new("/st");
