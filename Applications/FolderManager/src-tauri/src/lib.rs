@@ -7,6 +7,8 @@ mod infra;
 mod ipc_parity_tests;
 #[cfg(test)]
 mod layer_tests;
+#[cfg(test)]
+mod tool_path_tests;
 mod platform;
 mod services;
 #[cfg(test)]

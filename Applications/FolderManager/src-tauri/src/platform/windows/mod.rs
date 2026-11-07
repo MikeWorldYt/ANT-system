@@ -11,6 +11,7 @@ pub mod recycle;
 pub mod review_links;
 pub mod schtasks;
 pub mod shortcuts;
+pub mod system;
 #[cfg(not(test))]
 pub mod tray;
 pub mod updater;

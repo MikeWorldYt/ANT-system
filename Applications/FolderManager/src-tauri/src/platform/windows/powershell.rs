@@ -1,6 +1,7 @@
 // Hidden, time-limited PowerShell for the shell tasks std has no API for.
-use std::path::PathBuf;
 use std::time::Duration;
+
+use super::system::system_tool;
 
 pub(crate) const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
@@ -16,10 +17,7 @@ pub(crate) fn run_powershell(
     use std::process::{Command, Stdio};
     use std::time::Instant;
 
-    // An absolute path keeps a powershell.exe planted next to the app or on PATH from running.
-    let exe = std::env::var_os("SystemRoot")
-        .map(|r| PathBuf::from(r).join(r"System32\WindowsPowerShell\v1.0\powershell.exe"))
-        .unwrap_or_else(|| PathBuf::from("powershell.exe"));
+    let exe = system_tool(r"WindowsPowerShell\v1.0\powershell.exe").map_err(|e| format!("Could not start PowerShell: {e}"))?;
     let mut child = Command::new(exe)
         .args(["-NoProfile", "-NonInteractive", "-Command", script])
         .envs(env.iter().copied())
