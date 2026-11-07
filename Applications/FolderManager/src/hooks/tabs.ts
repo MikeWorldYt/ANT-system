@@ -148,7 +148,9 @@ export function openTab(parts?: string[]): void {
   if (moving) return;
   capture();
   const place: Place = { virtual: null, via: null, key: parts ? keyOf(parts) : null };
-  tabs.push(newTab(place, new Set(parts ? state.expanded : [])));
+  const { tabView, startView } = state.settings;
+  const view = tabView === "default" && startView !== "continue" ? startView : currentView();
+  tabs.push(newTab(place, new Set(parts ? state.expanded : []), view));
   if (parts) {
     state.entering = place.key;
     leaveVirtual();

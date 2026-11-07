@@ -118,7 +118,10 @@ export async function init(): Promise<boolean> {
   const ok = await run(async () => {
     if (!(await checkStorage())) return;
     try {
-      applySettings(await api.getSettings());
+      const saved = await api.getSettings();
+      applySettings(saved);
+      // The watch is on by default, so a Storage that never chose gets its task once.
+      if (saved.watchExternal === undefined && (await changeSetting("watchExternal", true))) await api.syncSchedule(true);
     } catch (e) {
       reportError("warning", e, "Settings");
     }

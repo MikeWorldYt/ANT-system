@@ -36,6 +36,8 @@ interface State {
 
 export type VirtualId = "favorites" | "downloads" | "review" | "board";
 
+const START_VIEWS: StartView[] = ["tree", "columns", "grid", "list", "cards"];
+
 export interface KeyCombo {
   code: string;
   mod: boolean;
@@ -47,7 +49,8 @@ export type BackupFrequency = "day" | "week" | "month";
 export type Theme = "system" | "light" | "dark";
 export type AccentId = "green" | "blue" | "purple" | "coral" | "gold";
 export type TextSize = "small" | "medium" | "large";
-export type StartView = "continue" | "tree" | "columns";
+export type TabView = "last" | "default";
+export type StartView = "continue" | "tree" | "columns" | "grid" | "list" | "cards";
 
 export interface Settings {
   pinFavorites: boolean;
@@ -71,6 +74,7 @@ export interface Settings {
   backupFolder: string;
   onLaunch: OnLaunch;
   startView: StartView;
+  tabView: TabView;
   // Only the shortcuts the user changed; the rest keep their defaults.
   shortcuts: Record<string, KeyCombo>;
 }
@@ -109,7 +113,7 @@ export const state: State = {
   hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: false, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
   virtual: null,
   virtualKeys: [],
   downloads: [],
@@ -213,7 +217,7 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.autoUpdate = saved.autoUpdate !== "false";
   state.settings.debugLogging = saved.debugLogging === "true";
   state.settings.backupAuto = saved.backupAuto === "true";
-  state.settings.watchExternal = saved.watchExternal === "true";
+  state.settings.watchExternal = saved.watchExternal !== "false";
   state.settings.autoOpenColumns = saved.autoOpenColumns === "true";
   state.settings.showFavorites = saved.showFavorites !== "false";
   state.settings.showDownloads = saved.showDownloads !== "false";
@@ -225,7 +229,8 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.backupFrequency = saved.backupFrequency === "week" || saved.backupFrequency === "month" ? saved.backupFrequency : "day";
   state.settings.backupFolder = saved.backupFolder ?? "";
   state.settings.onLaunch = saved.onLaunch === "root" ? "root" : "continue";
-  state.settings.startView = saved.startView === "tree" || saved.startView === "columns" ? saved.startView : "continue";
+  state.settings.tabView = saved.tabView === "default" ? "default" : "last";
+  state.settings.startView = START_VIEWS.includes(saved.startView as StartView) ? (saved.startView as StartView) : "continue";
   state.settings.shortcuts = readShortcuts(saved.shortcuts);
 }
 

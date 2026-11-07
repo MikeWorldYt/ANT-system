@@ -25,7 +25,8 @@ const BOOLEAN_SETTINGS: [&str; 12] = [
     "pinFavorites", "hideDone", "hideDirectoryIdentifiers", "confirmDelete", "autoUpdate", "debugLogging", "backupAuto", "watchExternal", "autoOpenColumns", "showFavorites", "showDownloads", "showReview",
 ];
 const ON_LAUNCH_VALUES: [&str; 2] = ["continue", "root"];
-const START_VIEW_VALUES: [&str; 3] = ["continue", "tree", "columns"];
+const START_VIEW_VALUES: [&str; 6] = ["continue", "tree", "columns", "grid", "list", "cards"];
+const TAB_VIEW_VALUES: [&str; 2] = ["last", "default"];
 const THEME_VALUES: [&str; 3] = ["system", "light", "dark"];
 const ACCENT_VALUES: [&str; 5] = ["green", "blue", "purple", "coral", "gold"];
 const TEXT_SIZE_VALUES: [&str; 3] = ["small", "medium", "large"];
@@ -81,6 +82,7 @@ fn check(key: &str, value: &str) -> R<()> {
     let valid = match key {
         "onLaunch" => ON_LAUNCH_VALUES.contains(&value),
         "startView" => START_VIEW_VALUES.contains(&value),
+        "tabView" => TAB_VIEW_VALUES.contains(&value),
         "theme" => THEME_VALUES.contains(&value),
         "accent" | "iconColor" => ACCENT_VALUES.contains(&value),
         "textSize" => TEXT_SIZE_VALUES.contains(&value),
@@ -176,7 +178,10 @@ mod tests {
         assert!(check("onLaunch", "root").is_ok());
         assert!(check("onLaunch", "home").is_err());
         assert!(check("startView", "columns").is_ok());
-        assert!(check("startView", "list").is_err());
+        assert!(check("startView", "list").is_ok());
+        assert!(check("startView", "wall").is_err());
+        assert!(check("tabView", "default").is_ok());
+        assert!(check("tabView", "wall").is_err());
         assert!(check("theme", "light").is_ok() && check("theme", "sepia").is_err());
         assert!(check("accent", "coral").is_ok() && check("accent", "#fff").is_err());
         assert!(check("textSize", "large").is_ok() && check("textSize", "huge").is_err());

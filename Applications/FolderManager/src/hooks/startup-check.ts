@@ -10,7 +10,7 @@ async function followNewPath(): Promise<void> {
   try {
     const saved = await api.getSettings();
     if (saved.backupAuto === "true") await api.backupSchedule(true);
-    if (saved.watchExternal === "true") await api.syncSchedule(true);
+    if (saved.watchExternal !== "false") await api.syncSchedule(true);
   } catch (e) {
     reportError("warning", e, "Scheduled tasks");
   }
