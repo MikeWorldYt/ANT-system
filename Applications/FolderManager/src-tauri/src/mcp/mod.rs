@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 use serde_json::Value;
 
-use retry::{retrying, Retry, RETRY};
+use retry::{Retry, RETRY};
 use crate::app::storage_session::Storage;
 use crate::domain::error::{FmError, R};
 use crate::infra::storage::pointer;
@@ -46,14 +46,6 @@ impl Server {
     fn read<T: Serialize>(&self, f: impl FnOnce(&Storage, &Path) -> R<T>) -> R<Value> {
         let storage = self.storage()?;
         json(f(storage, &storage.root()?)?)
-    }
-
-    // The mutation takes the cross-process lock itself, as in the app; the in-process guard only mirrors `commands::locked`.
-    fn write<T: Serialize>(&self, f: impl Fn(&Path) -> R<T>) -> R<Value> {
-        let storage = self.storage()?;
-        let _guard = storage.guard();
-        let root = storage.root()?;
-        json(retrying(self.retry, || f(&root))?)
     }
 }
 

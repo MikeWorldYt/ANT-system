@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::domain::model::Copies;
 use crate::domain::error::R;
+use crate::infra::storage::changes;
 use crate::infra::storage::db::db_path;
 use crate::services::index::review_index;
 use crate::services::scheduler::{self, Task};
@@ -34,9 +35,17 @@ fn sync(root: &Path) -> R<()> {
         eprintln!("Sync skipped: {} has no ant.db", root.display());
         return Ok(());
     }
+    let before = tree_store::load(root)?;
     snapshot(root, Copies::Ignore)?;
-    for failure in review_index::rebuild(root, &tree_store::load(root)?) {
+    let after = tree_store::load(root)?;
+    for failure in review_index::rebuild(root, &after) {
         eprintln!("Review index: {failure}");
+    }
+    // The sync does not know which levels it changed, so an open window rescans.
+    if after != before {
+        if let Err(e) = changes::record(root, &[], true) {
+            eprintln!("The open Folder Manager was not told about the sync: {e}");
+        }
     }
     Ok(())
 }
@@ -121,5 +130,19 @@ mod tests {
         assert_eq!(run_headless(Some(dir.path().into())), 0);
         let data = tree_store::load(dir.path()).unwrap();
         assert!(tree_store::get_node(&data, &rel(&["100.WORK", "06.New"])).is_some());
+    }
+
+    #[test]
+    fn a_sync_that_changed_the_tree_asks_an_open_window_to_rescan() {
+        let dir = work("sync-signal");
+        sync(dir.path()).unwrap();
+        let quiet = changes::read(dir.path()).unwrap();
+        dir.mkdir("100.WORK/06.New");
+        sync(dir.path()).unwrap();
+        let log = changes::read(dir.path()).unwrap();
+        assert_eq!(log.len(), quiet.len() + 1);
+        assert!(log.last().is_some_and(|e| e.rescan && e.levels.is_empty()));
+        sync(dir.path()).unwrap();
+        assert_eq!(changes::read(dir.path()).unwrap(), log);
     }
 }

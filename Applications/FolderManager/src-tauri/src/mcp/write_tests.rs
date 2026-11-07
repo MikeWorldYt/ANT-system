@@ -9,6 +9,7 @@ use super::retry::Retry;
 use super::tests::{call, exchange, failed, names, ok, request, server};
 use super::Server;
 use crate::infra::fs_safe::{StorageLock, LOCK_FILE};
+use crate::infra::storage::changes;
 use crate::services::tree::tree_store::{get_node, get_type};
 use crate::test_support::{rel, storage, work, yaml};
 
@@ -206,4 +207,20 @@ fn a_busy_lock_is_retried_then_reported_and_a_stale_one_at_once() {
     let started = Instant::now();
     let stale = failed(&call(&s, "rename", json!({ "relParts": ["100.WORK", "02.Bee"], "name": "B" })));
     assert!(stale["message"].as_str().unwrap().contains("delete this file") && started.elapsed() < Duration::from_secs(2), "{stale}");
+}
+
+#[test]
+fn each_change_is_logged_for_the_open_window_and_a_refusal_is_not() {
+    let dir = work("mcp-w-log");
+    let s = writer(dir.path());
+    let typed = ok(&call(&s, "set_type", json!({ "relParts": ["100.WORK", "02.B"], "type": "WKB", "status": "hold" })));
+    let owned = ok(&call(&s, "set_owner", json!({ "relParts": ["100.WORK", "02.B"], "owner": "Ana" })));
+    failed(&call(&s, "add_node", json!({ "parent": ["999.Settings"], "name": "X" })));
+    ok(&call(&s, "get_node", json!({ "relParts": ["100.WORK", "02.B"] })));
+    let log = changes::read(dir.path()).unwrap();
+    assert_eq!(log.iter().map(|e| e.seq).collect::<Vec<_>>(), [1, 2]);
+    for (entry, reply) in log.iter().zip([typed, owned]) {
+        assert_eq!((json!(entry.levels), json!(entry.rescan)), (reply["levels"].clone(), reply["fullTree"].clone()));
+        assert_eq!(entry.writer, std::process::id());
+    }
 }

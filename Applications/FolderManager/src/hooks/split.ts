@@ -3,6 +3,7 @@ import { el } from "../components/dom";
 import { reportError } from "../components/organisms/bars/status-line";
 import { listChildren } from "../services/ipc/api";
 import { findNode, notify, state } from "../services/store/state";
+import { virtualKeys } from "../services/store/virtual";
 import type { ViewSwitcher } from "./view-switch";
 import type { TabNavigator, Trail } from "./tabs";
 
@@ -126,7 +127,7 @@ export function parkedSplit({ key, view, right: onRight, ratio }: SavedSplit): S
 }
 
 // The parked pane may stand deeper than anything the focused pane loaded.
-async function loadOther(): Promise<void> {
+export async function loadOther(): Promise<void> {
   const parts = split?.other.selectedKey?.split("/") ?? [];
   let loaded = false;
   try {
@@ -140,6 +141,14 @@ async function loadOther(): Promise<void> {
     reportError("warning", e);
   }
   if (loaded) notify();
+}
+
+// Read without swapping the parked state in, as the user may act on the focused pane while the list loads.
+export async function loadOtherVirtual(): Promise<void> {
+  const id = split?.other.virtual ?? null;
+  if (id === null) return;
+  const keys = await virtualKeys(id);
+  if (split?.other.virtual === id) split.other.virtualKeys = keys;
 }
 
 export function openSplit(): void {

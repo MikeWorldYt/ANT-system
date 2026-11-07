@@ -25,13 +25,18 @@ export async function loadPath(parts: string[]): Promise<void> {
   }
 }
 
+export async function virtualKeys(id: VirtualId): Promise<string[]> {
+  const paths = await SOURCES[id]();
+  for (const parts of paths) await loadPath(parts);
+  return paths.filter((p) => findNode(p) !== null).map(keyOf);
+}
+
 export async function loadVirtual(): Promise<void> {
   const id = state.virtual;
   if (id === null) return;
-  const paths = await SOURCES[id]();
-  for (const parts of paths) await loadPath(parts);
+  const keys = await virtualKeys(id);
   // Another entry may have been opened, or this one closed, while the list loaded.
-  if (state.virtual === id) state.virtualKeys = paths.filter((p) => findNode(p) !== null).map(keyOf);
+  if (state.virtual === id) state.virtualKeys = keys;
 }
 
 export function virtualNodes(): TreeNode[] {

@@ -10,6 +10,7 @@ import { checkRootFolders } from "./root-check";
 import { checkExtraReviews } from "./extra-reviews";
 import { checkSupportUpgrade } from "./support-upgrade";
 import { relist, visibleLevels } from "./relist";
+import { loadOther, loadOtherVirtual } from "./split";
 import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../services/store/state";
 import { sortedForColumns } from "../services/store/sort";
@@ -32,6 +33,8 @@ async function reload(snapshot?: TreeSnapshot, full = true): Promise<void> {
   await hydrate();
   await loadVirtual();
   pruneSelection();
+  await loadOther();
+  await loadOtherVirtual();
   await askAboutCopies(tree.copies);
 }
 
@@ -210,11 +213,17 @@ export async function refresh(full = true): Promise<boolean> {
   return ok;
 }
 
+const BUSY_RETRY_MS = 1_000;
+
 // Folders the backend has no say over are listed from disk; the intake checks only run when one actually appeared.
 export async function relistLevels(folders: string[][] | null): Promise<void> {
-  if (state.busy) return;
+  if (state.busy) {
+    // A watcher batch may carry another process's change, which nothing else would bring in, so it waits for the operation.
+    if (folders !== null) window.setTimeout(() => void relistLevels(folders), BUSY_RETRY_MS);
+    return;
+  }
   try {
-    const added = await relist(folders ?? visibleLevels());
+    const added = await relist(folders ?? visibleLevels(), folders !== null);
     if (added && folders !== null) {
       void runIntake(reload);
       void checkRootFolders(resolveInvalid, deleteInvalid);

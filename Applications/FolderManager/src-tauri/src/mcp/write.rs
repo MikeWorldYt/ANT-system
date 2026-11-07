@@ -7,9 +7,11 @@ use serde_json::{json, Value};
 use super::protocol::{RpcError, INVALID_PARAMS};
 use super::tools::args;
 use super::view::Change;
+use super::retry::retrying;
 use super::{write_schema as schema, Server};
 use crate::domain::config::{EditableType, NewKind, WkbStatus};
 use crate::domain::error::R;
+use crate::infra::storage::changes;
 use crate::platform::shortcuts::create_shortcuts;
 use crate::services::edit;
 use crate::services::index::{review_index, ReviewIndexEvent};
@@ -136,8 +138,17 @@ fn needs<T>(tool: &str, field: &str, value: Option<T>) -> Result<T, RpcError> {
 }
 
 impl Server {
+    // The mutation takes the cross-process lock itself, as in the app; the in-process guard only mirrors `commands::locked`.
     fn change(&self, changed: String, f: impl Fn(&Path) -> R<Mutation>) -> R<Value> {
-        self.write(|root| f(root).map(|m| Change::of(changed.clone(), m)))
+        let storage = self.storage()?;
+        let _guard = storage.guard();
+        let root = storage.root()?;
+        let mut change = Change::of(changed, retrying(self.retry, || f(&root))?);
+        // Logged after the retries, so a busy log never runs the mutation twice.
+        if let Err(e) = changes::record(&root, &change.levels, change.full_tree) {
+            change.warnings.push(format!("The open Folder Manager may show this change only after its next refresh: {e}"));
+        }
+        super::json(change)
     }
 }
 
