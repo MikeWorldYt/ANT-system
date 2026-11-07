@@ -75,8 +75,6 @@ fn trackers_keep_counting_past_three_digits() {
 #[test]
 fn add_node_refuses_depth_ghost_locked_and_reserved_parents() {
     let dir = academic("add-refuse");
-    let too_deep = add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "01.Algebra"]), NewKind::Node);
-    assert!(matches!(too_deep, Err(FmError::DepthLimit)));
     let ghost = add_node(dir.path(), &rel(&["100.ACADEMIC", "03.Ghost"]), NewKind::Node);
     assert!(matches!(ghost, Err(FmError::GhostNotAllowed { .. })));
     let locked = add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "98.Math"]), NewKind::Node);
@@ -96,7 +94,9 @@ fn a_raised_depth_limit_moves_the_last_level_down() {
     assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "01.Algebra", "01.New-Node"]), "NODE-L4");
     assert!(dir.path().join("100.ACADEMIC/01.Math/01.Algebra/01.New-Node/REV.New-Node").is_dir());
     assert!(get_node(&yaml(dir.path()), &l4).unwrap().get("REV.New-Node").is_none());
-    assert!(matches!(add_node(dir.path(), &l4, NewKind::Node), Err(FmError::DepthLimit)));
+    let past = add_node(dir.path(), &l4, NewKind::Node).unwrap();
+    assert_eq!(past.select, Some(rel(&["100.ACADEMIC", "01.Math", "01.Algebra", "01.New-Node", "New folder"])));
+    assert!(get_node(&yaml(dir.path()), &l4).unwrap().get("New folder").is_none());
 }
 
 #[test]

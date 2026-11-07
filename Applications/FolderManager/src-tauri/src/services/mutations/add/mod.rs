@@ -10,7 +10,7 @@ use serde_yaml::{Mapping, Value};
 use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, persist, register_ids, scope, Mutation};
 use crate::domain::names::{editable_part, next_available_id, next_main_category_id, next_track_number};
 use crate::infra::scan::list_subdirs;
-use crate::domain::tree_types::child_entries;
+use crate::domain::tree_types::{child_entries, META_KEYS};
 use crate::services::backup::stamp::local_date;
 use crate::domain::config::{NewKind, DATA_DIR, DATA_FLAG, OWNER_KEYS, REVIEW_PREFIX};
 use crate::domain::error::{FmError, R};
@@ -124,6 +124,11 @@ fn add_past_limit(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> 
     if is_reserved(&parent[..1]) {
         return Err(FmError::Reserved { rel_parts: parent.to_vec() });
     }
+    if let Some(meta) = parent.iter().find(|p| META_KEYS.contains(&p.as_str())) {
+        return Err(FmError::InvalidName { name: meta.clone(), reason: "reserved name".to_string() });
+    }
+    let data = tree_store::load(root)?;
+    guard_frozen(parent, &tree_store::get_type(&data, parent))?;
     let dir = resolve(root, parent)?;
     if !dir.is_dir() {
         return Err(FmError::NotFound { rel_parts: parent.to_vec() });
@@ -143,7 +148,6 @@ fn add_past_limit(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> 
         }
     }
     let new_rel = child_rel(parent, &name);
-    let data = tree_store::load(root)?;
     Ok(finish(root, &data, false, Some(new_rel.clone()), warnings, vec![new_rel]))
 }
 
