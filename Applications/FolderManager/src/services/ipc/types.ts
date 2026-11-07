@@ -1,5 +1,5 @@
 // IPC contract shared with the Rust backend; mirror of the serde types.
-export type TypeBase = "NODE" | "WKB" | "OUT" | "REV" | "RES" | "TPL" | "CFG" | "UNKNOWN";
+export type TypeBase = "NODE" | "WKB" | "OUT" | "REV" | "RES" | "TPL" | "CFG" | "SS" | "REC" | "UNKNOWN";
 export type EditableType = "NODE" | "WKB";
 export type NewKind = "node" | "workboard";
 export type WkbStatus = "in-progress" | "for-review" | "hold" | "done";

@@ -10,9 +10,9 @@ export interface ColumnSort {
 
 export const SORT_BYS: readonly SortBy[] = ["track", "name", "status"];
 
-// Support folders (REV., RES., TPL. and the 90/97/98 ids of older storages) and 998/999 stay at the end of a list whatever the sort direction.
+// Support folders (REV., RES., TPL., SS., REC. and the 90/97/98 ids of older storages) and 998/999 stay at the end of a list whatever the sort direction.
 export function isTail(name: string): boolean {
-  return /^(REV|RES|TPL)\./i.test(name) || /^(90|97|98|998|999)\./.test(name);
+  return /^(REV|RES|TPL|SS|REC|ANT)\./i.test(name) || /^(90|97|98|998|999)\./.test(name);
 }
 
 const statusRank = (n: TreeNode): number => STATUSES.findIndex(([v]) => v === n.status) + 1 || STATUSES.length + 1;

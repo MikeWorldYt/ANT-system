@@ -8,7 +8,7 @@ import { columnSortToggle } from "../../atoms/column-sort";
 import { favoriteMark, hideBox, importantMark, nameCell } from "../../molecules/name-cell";
 import { fromToggle, nodeToggle } from "../../atoms/node-toggle";
 import { hiddenCategories, isReviewRoot, isWorkboard, linkCategory } from "../../../services/store/node-info";
-import { sortedForColumns } from "../../../services/store/sort";
+import { sortedForColumns, isTail } from "../../../services/store/sort";
 import { buildColumns, type Column } from "../../../hooks/column-model";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
@@ -35,6 +35,10 @@ export function createColumnsView(): ViewMode {
   let openKey: string | null = null;
   let built: ManageSnapshot | null = null;
   let revealed: string | null = null;
+  // A pane that opens or changes width shows the deepest column, which is the one in use.
+  const resized = new ResizeObserver(() => {
+    root.scrollLeft = root.scrollWidth;
+  });
 
   function isOpen(n: TreeNode): boolean {
     const key = keyOf(n.relParts);
@@ -109,8 +113,9 @@ export function createColumnsView(): ViewMode {
       const prev = nodes[i - 1];
       // Review links are grouped by category, so a change of category gets a line between the groups.
       const groupStart = prev && (listing?.id === "review" ? reviewGroup(prev) !== reviewGroup(n) : prev.linked && n.linked && linkCategory(prev) !== linkCategory(n));
+      const tailStart = prev && !prev.file && !n.file && !isTail(prev.name) && isTail(n.name);
       const item = buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey, siblings);
-      return groupStart ? [el("div", { class: "col-sep", role: "separator" }), item] : [item];
+      return groupStart || tailStart ? [el("div", { class: "col-sep", role: "separator" }), item] : [item];
     });
     column.append(
       ...(listing ? [] : [columnSortToggle(column.dataset.key ?? "")]),
@@ -246,6 +251,7 @@ export function createColumnsView(): ViewMode {
       // Space beside the columns belongs to the deepest one.
       root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, buildColumns(openKey).at(-1)?.parent ?? null, root));
       host.append(root);
+      resized.observe(root);
     },
     render() {
       // An opened column lasts only while its folder stays selected; selecting another row closes it.
@@ -279,6 +285,7 @@ export function createColumnsView(): ViewMode {
     },
     destroy() {
       revealed = null;
+      resized.disconnect();
       root.remove();
     },
   };

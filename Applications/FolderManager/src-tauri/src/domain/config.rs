@@ -26,7 +26,7 @@ pub const FOOTPRINT_FILENAME: &str = "dragpath.json";
 pub const MAX_DEPTH: usize = 3;
 pub const DEPTH_CEILING: usize = 6;
 
-pub const LOCKED_TYPES: &[&str] = &["REV", "RES", "TPL", "CFG"];
+pub const LOCKED_TYPES: &[&str] = &["REV", "RES", "TPL", "CFG", "SS", "REC"];
 pub const DATA_FLAG: &str = "data";
 // A hidden folder stays in the storage but is not listed, searched or read.
 pub const HIDDEN_FLAG: &str = "hidden";
@@ -35,6 +35,8 @@ pub const WKB_IDENTIFIERS: &[&str] = &["PJ.", "PR.", "HW.", "CR.", "TK."];
 // Support nodes: the word prefix, the numeric one older storages still use, and the type it gives.
 pub const SUPPORT_NODES: &[(&str, &str, &str)] = &[("RES.", "90.", "RES"), ("TPL.", "97.", "TPL"), ("REV.", "98.", "REV")];
 pub const REVIEW_PREFIX: &str = "REV.";
+// Media folders: the word prefix of a category's folder, the type it gives, and the global folder at the root.
+pub const MEDIA_NODES: &[(&str, &str, &str)] = &[("SS.", "SS", "ANT.SCREENSHOTS"), ("REC.", "REC", "ANT.RECORDINGS")];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
@@ -46,11 +48,13 @@ pub enum TypeBase {
     Res,
     Tpl,
     Cfg,
+    Ss,
+    Rec,
     Unknown,
 }
 
 impl TypeBase {
-    const ALL: [Self; 8] = [Self::Node, Self::Wkb, Self::Out, Self::Rev, Self::Res, Self::Tpl, Self::Cfg, Self::Unknown];
+    const ALL: [Self; 10] = [Self::Node, Self::Wkb, Self::Out, Self::Rev, Self::Res, Self::Tpl, Self::Cfg, Self::Ss, Self::Rec, Self::Unknown];
 
     pub fn as_str(self) -> &'static str {
         match self {
@@ -61,6 +65,8 @@ impl TypeBase {
             Self::Res => "RES",
             Self::Tpl => "TPL",
             Self::Cfg => "CFG",
+            Self::Ss => "SS",
+            Self::Rec => "REC",
             Self::Unknown => "UNKNOWN",
         }
     }

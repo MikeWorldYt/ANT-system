@@ -19,7 +19,7 @@ pub(crate) fn destination(rel: &[String], node: &Mapping) -> R<Vec<String>> {
         return Err(FmError::Reserved { rel_parts: rel.to_vec() });
     }
     let raw = node_type(node);
-    if type_base(raw) == "REV" {
+    if matches!(type_base(raw), "REV" | "SS" | "REC") {
         return Ok(rel.to_vec());
     }
     if is_locked_type(raw) {

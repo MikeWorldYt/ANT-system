@@ -7,6 +7,7 @@ use tauri::{AppHandle, Manager};
 use super::{off_thread, review_emitter, run_locked, run_unlocked};
 use crate::app::storage_session::Storage;
 use crate::domain::config::REVIEW_FOLDER;
+use crate::services::tree::media;
 use crate::domain::model::Copies;
 use crate::domain::error::R;
 use crate::infra::fs_safe::{resolve, validate_component};
@@ -34,13 +35,21 @@ pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, 
 
 #[tauri::command]
 pub async fn load_tree(app: AppHandle) -> R<TreeSnapshot> {
-    run_locked(app, |root| snapshot(root, Copies::Tail)).await
+    run_locked(app, |root| {
+        media::ensure(root)?;
+        snapshot(root, Copies::Tail)
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn refresh(app: AppHandle, full: bool) -> R<TreeSnapshot> {
     let emitter = app.clone();
-    run_locked(app, move |root| refresh_flow(root, &review_emitter(&emitter), review_index::rebuild, full)).await
+    run_locked(app, move |root| {
+        media::ensure(root)?;
+        refresh_flow(root, &review_emitter(&emitter), review_index::rebuild, full)
+    })
+    .await
 }
 
 #[tauri::command]
