@@ -462,7 +462,7 @@ fn the_tree_gets_the_destination_level_back() {
     let m = drop_at(&dir, &src, &["100.PERSONAL", "03.Toki"], &["notes"], false).unwrap().mutation;
     assert!(m.tree.is_none());
     let review = rel(&["100.PERSONAL", "03.Toki", "98.Toki"]);
-    assert_eq!(m.touched, [review.clone()]);
+    assert_eq!(m.touched, [review.clone(), rel(&["100.PERSONAL", "03.Toki"])]);
     assert_eq!(m.levels[0].parent, rel(&["100.PERSONAL", "03.Toki"]));
     assert!(m.levels[0].children.iter().any(|n| n.rel_parts == review));
 }
