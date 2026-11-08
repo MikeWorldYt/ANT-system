@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager, WebviewWindow};
 
-use super::{off_thread, run_locked};
+use super::{off_thread, run_locked, run_unlocked};
 use crate::app::storage_session::Storage;
 use crate::services::rename::{rename_flow, revert_target};
 use crate::domain::error::R;
@@ -82,7 +82,7 @@ pub async fn revert_storage_rename(window: WebviewWindow, stamp: String) -> R<St
 
 #[tauri::command]
 pub async fn storage_rename_status(app: AppHandle) -> R<Option<RenameStatus>> {
-    run_locked(app, |root| Ok(rename::status(root))).await
+    run_unlocked(app, |_, root| Ok(rename::status(root))).await
 }
 
 #[tauri::command]

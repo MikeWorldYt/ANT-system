@@ -102,5 +102,5 @@ fn review_emitter(app: &AppHandle) -> impl Fn(&ReviewIndexEvent) -> Result<(), S
 
 #[tauri::command]
 pub async fn get_storage(app: AppHandle) -> R<StorageInfo> {
-    run_locked(app, StorageInfo::of).await
+    run_unlocked(app, |_, root| StorageInfo::of(root)).await
 }
