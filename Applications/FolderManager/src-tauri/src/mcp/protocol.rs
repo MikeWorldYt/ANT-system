@@ -28,9 +28,10 @@ pub(super) fn serve(server: &Server, mut input: impl BufRead, mut output: impl W
         if input.read_until(b'\n', &mut line)? == 0 {
             return Ok(());
         }
-        let reply = match std::str::from_utf8(&line) {
-            Ok(text) if text.trim().is_empty() => None,
-            Ok(text) => handle(server, text.trim()),
+        // Windows PowerShell starts what it pipes with a byte order mark.
+        let reply = match std::str::from_utf8(&line).map(|text| text.trim_start_matches('\u{feff}').trim()) {
+            Ok("") => None,
+            Ok(text) => handle(server, text),
             Err(e) => Some(error(Value::Null, PARSE_ERROR, &format!("Parse error: {e}"))),
         };
         if let Some(reply) = reply {

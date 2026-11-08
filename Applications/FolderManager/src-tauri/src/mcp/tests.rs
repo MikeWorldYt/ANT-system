@@ -101,6 +101,15 @@ fn bad_json_unknown_methods_and_bad_calls_are_protocol_errors() {
 }
 
 #[test]
+fn a_byte_order_mark_before_the_first_message_is_ignored() {
+    let dir = work("mcp-bom");
+    let mut input = "\u{feff}".as_bytes().to_vec();
+    input.extend_from_slice(request(1, "ping", json!({})).as_bytes());
+    let replies = exchange(&server(dir.path()), &input);
+    assert_eq!((replies[0]["id"].clone(), replies[0]["error"].is_null()), (json!(1), true));
+}
+
+#[test]
 fn a_tool_failure_is_a_result_carrying_the_fm_error() {
     let dir = work("mcp-tool-error");
     let missing = failed(&call(&server(dir.path()), "get_node", json!({ "relParts": ["100.WORK", "99.Missing"] })));
