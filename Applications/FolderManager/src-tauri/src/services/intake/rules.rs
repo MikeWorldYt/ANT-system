@@ -24,7 +24,7 @@ pub(super) fn rule<'a>(rel: &[String], node: &'a Mapping) -> Rule<'a> {
         return Rule::Root;
     }
     let raw = node_type(node);
-    if is_reserved(rel) || is_locked_type(raw) || type_base(raw) == "WKB" {
+    if is_reserved(rel) || is_locked_type(raw) || matches!(type_base(raw), "WKB" | "OUT") {
         return Rule::Skip;
     }
     if rel.len() == 1 {
