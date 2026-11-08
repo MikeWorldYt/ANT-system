@@ -3,6 +3,8 @@ use std::path::Path;
 
 use crate::domain::error::R;
 
+pub mod media;
+
 #[cfg(windows)]
 mod shell;
 
@@ -12,6 +14,16 @@ mod external;
 #[cfg(windows)]
 pub fn file_image(path: &Path, large: bool) -> R<Option<String>> {
     shell::image(path, large)
+}
+
+#[cfg(windows)]
+pub fn preview_image(path: &Path) -> R<Option<String>> {
+    shell::preview(path)
+}
+
+#[cfg(not(windows))]
+pub fn preview_image(path: &Path) -> R<Option<String>> {
+    file_image(path, true)
 }
 
 // Images are read as they are; other types go to a platform tool, and the small icons stay generic.

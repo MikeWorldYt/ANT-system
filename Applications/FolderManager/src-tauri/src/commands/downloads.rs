@@ -45,13 +45,13 @@ pub async fn copy_downloads(app: AppHandle, targets: Vec<Vec<String>>) -> R<()> 
 }
 
 #[tauri::command]
-pub async fn download_image(app: AppHandle, rel_parts: Vec<String>, large: bool) -> R<Option<String>> {
+pub async fn download_image(app: AppHandle, rel_parts: Vec<String>, large: bool, preview: Option<bool>) -> R<Option<String>> {
     off_thread(move || {
         let path = downloads::path_of(&base(&app)?, &rel_parts)?;
         if !path.is_file() {
             return Ok(None);
         }
-        preview::file_image(&path, large)
+        if preview == Some(true) { preview::preview_image(&path) } else { preview::file_image(&path, large) }
     })
     .await?
 }

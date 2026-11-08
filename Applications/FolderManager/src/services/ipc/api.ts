@@ -63,6 +63,8 @@ export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("
 export const setImportant = (relParts: string[], on: boolean) => call<Mutation>("set_important", { relParts, on });
 export const fileImage = (relParts: string[], large: boolean) =>
   inDownloads(relParts) ? call<string | null>("download_image", { relParts: belowDownloads(relParts), large }) : call<string | null>("file_image", { relParts, large });
+export const previewImage = (relParts: string[]) =>
+  inDownloads(relParts) ? call<string | null>("download_image", { relParts: belowDownloads(relParts), large: true, preview: true }) : call<string | null>("file_image", { relParts, large: true, preview: true });
 export const setLinkHidden =(relParts: string[], on: boolean) => call<Mutation>("set_link_hidden", { relParts, on });
 export const setUserFlag = (relParts: string[], on: boolean) => call<Mutation>("set_user_flag", { relParts, on });
 export const answerCopy = (relParts: string[], answer: CopyAnswer) => call<void>("answer_copy", { relParts, answer });

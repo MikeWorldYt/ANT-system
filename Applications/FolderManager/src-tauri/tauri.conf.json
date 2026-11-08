@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://raw.githubusercontent.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src extsandbox: http://extsandbox.localhost"
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://raw.githubusercontent.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: fmmedia: http://fmmedia.localhost; media-src fmmedia: http://fmmedia.localhost; frame-src extsandbox: http://extsandbox.localhost"
     }
   },
   "bundle": {

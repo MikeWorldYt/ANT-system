@@ -11,6 +11,7 @@ import { quickActionsShown, railLayout, type RailId } from "../../../services/st
 import { selectedNode, state, toggleHidingLinks } from "../../../services/store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
 import { createAutomationsPanel } from "./automations-panel";
+import { createPreviewPanel } from "./preview-panel";
 import { createReviewAutomations } from "./review-automations";
 import { goToReal, openVirtual, toggleBoard } from "../../../hooks/virtual-nav";
 import { sideAction } from "../../molecules/side-action";
@@ -44,6 +45,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
 
   const automations = createAutomationsPanel();
   const reviewTools = createReviewAutomations();
+  const preview = createPreviewPanel();
   const details = createDetailsPanel(() => {
     if (!collapseAfterEdit) return;
     collapseAfterEdit = false;
@@ -80,7 +82,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     toggleHidingLinks();
   });
   const categoriesSection = section("side-categories", "Filters", categories, hideLinks);
-  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, categoriesSection, details.element, automations.element, reviewTools.element, order, foot);
+  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, categoriesSection, details.element, automations.element, reviewTools.element, preview.element, order, foot);
 
   // ─────────♦ COLLAPSED RAIL ───────────────────────────────────────────────────
   const railExpand = iconButton("Expand side panel", "chevronsLeft", () => {
@@ -202,6 +204,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     details.render();
     automations.render();
     reviewTools.render();
+    preview.render();
     layoutRail();
     const n = selectedNode();
     const idle = !state.busy;

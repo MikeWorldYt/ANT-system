@@ -43,6 +43,11 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(storage)
         .register_uri_scheme_protocol(services::extensions::sandbox_page::SCHEME, |_ctx, _request| services::extensions::sandbox_page::response())
+        .register_uri_scheme_protocol(services::preview::media::SCHEME, |ctx, request| {
+            use tauri::Manager;
+            let app = ctx.app_handle();
+            services::preview::media::response(app.state::<Storage>().root().ok().as_deref(), app.path().download_dir().ok().as_deref(), &request)
+        })
         .setup(move |app| {
             use tauri::Manager;
             let remembered = infra::storage::pointer::app_file(app.handle()).ok().and_then(|f| infra::storage::pointer::read(&f));

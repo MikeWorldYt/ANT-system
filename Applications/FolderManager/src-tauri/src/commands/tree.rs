@@ -63,9 +63,13 @@ pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<Tree
 
 // Reads without the storage lock, so a slow shell thumbnail never holds up a change.
 #[tauri::command]
-pub async fn file_image(app: AppHandle, rel_parts: Vec<String>, large: bool) -> R<Option<String>> {
+pub async fn file_image(app: AppHandle, rel_parts: Vec<String>, large: bool, preview: Option<bool>) -> R<Option<String>> {
     off_thread(move || {
         let root = app.state::<Storage>().root()?;
+        // The side panel previews any media the user selects, inside the indexed levels or not.
+        if preview == Some(true) {
+            return crate::services::preview::preview_image(&resolve(&root, &rel_parts)?);
+        }
         let parent = &rel_parts[..rel_parts.len().saturating_sub(1)];
         if !lists_files(parent) {
             return Ok(None);
