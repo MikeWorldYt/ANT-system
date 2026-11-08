@@ -1,0 +1,195 @@
+---
+title: Integraciones de IA
+description: Conecta FolderManager a cualquier cliente de IA como servidor MCP, prueba la conexión y resuelve los fallos habituales.
+---
+
+FolderManager también es un servidor [MCP](https://modelcontextprotocol.io). Inícialo con la opción `--mcp` y un cliente de IA podrá buscar en tu almacenamiento, leer los detalles de las carpetas y hacer cambios mediante herramientas, con las mismas reglas, el mismo bloqueo y los mismos índices que la app.
+
+- **Un proceso por stdio:** el cliente inicia `FolderManager.exe --mcp` y habla con él por la entrada y la salida estándar. No hay un puerto de red que abrir para esto y funciona solo en local.
+- **Funciona con la app abierta o cerrada:** las herramientas de segundo plano nunca necesitan la ventana. Con la app abierta, los cambios aparecen sin mover tu selección, pestaña ni vista.
+- **Segundo plano por defecto:** solo las herramientas `ui_*` mueven la ventana, y solo cuando el cliente las llama. Necesitan la app en ejecución.
+
+## Requisitos
+
+- FolderManager 2.4.4-beta o posterior, la primera versión con `--mcp`. **About** muestra la versión que tienes.
+- La ruta completa del ejecutable. En Windows es `FolderManager.exe`; sirve la copia que `CreateNewStorage` 3.3.1 o posterior deja en la raíz del almacenamiento.
+- Un almacenamiento ANT. Mira [Primeros pasos](/es/start-here/getting-started) si aún no tienes uno.
+
+## Configuración
+
+Todos los clientes necesitan lo mismo: el comando (el ejecutable) y sus argumentos.
+
+```json
+{
+  "command": "C:\\Tools\\FolderManager.exe",
+  "args": ["--mcp", "C:\\Storages\\ANT"]
+}
+```
+
+`--mcp` es el primer argumento; la ruta del almacenamiento que va después es opcional.
+
+- **Con ruta:** el servidor abre el almacenamiento que encuentra en esa carpeta o en su carpeta padre.
+- **Sin ruta:** abre el último almacenamiento que recuerda esta copia del ejecutable, el que abriste en la app. Si no hay ninguno, cada herramienta responde con un error que lo indica.
+
+Dónde pone el cliente estos dos valores depende del cliente. Los ejemplos de abajo son disposiciones comunes; los menús y nombres de archivo pueden cambiar entre versiones, así que consulta la documentación MCP del cliente.
+
+### Claude Desktop
+
+Añade el servidor al objeto `mcpServers` del archivo de configuración del cliente, `claude_desktop_config.json`, y reinicia el cliente.
+
+```json
+{
+  "mcpServers": {
+    "ant-system": {
+      "command": "C:\\Tools\\FolderManager.exe",
+      "args": ["--mcp", "C:\\Storages\\ANT"]
+    }
+  }
+}
+```
+
+### Claude Code
+
+```bash
+claude mcp add ant-system -- "C:\Tools\FolderManager.exe" --mcp "C:\Storages\ANT"
+```
+
+### Cursor y VS Code
+
+Cursor lee el mismo objeto `mcpServers` de arriba desde su `mcp.json`. VS Code usa su propio `mcp.json` con un objeto `servers`:
+
+```json
+{
+  "servers": {
+    "ant-system": {
+      "type": "stdio",
+      "command": "C:\\Tools\\FolderManager.exe",
+      "args": ["--mcp", "C:\\Storages\\ANT"]
+    }
+  }
+}
+```
+
+:::note[Rutas en JSON]
+Escribe cada barra invertida dos veces (`C:\\Tools`) o usa barras normales (`C:/Tools`). Deja el ejecutable y cada argumento como entradas separadas; no los envuelvas en comillas extra dentro de la lista.
+:::
+
+## Herramientas
+
+Los argumentos de las herramientas usan camelCase. Una carpeta siempre se identifica con `relParts`: sus nombres de carpeta desde la raíz del almacenamiento hacia abajo, por ejemplo `["100.WORK", "01.Project"]`.
+
+### Lectura
+
+Las herramientas de lectura nunca toman el bloqueo del almacenamiento y nunca escriben.
+
+| Herramienta | Qué hace | Argumentos |
+| --- | --- | --- |
+| `get_storage` | El almacenamiento abierto: ruta raíz, versión de la app y límite de profundidad del árbol. | ninguno |
+| `get_tree` | Las carpetas desde la raíz hacia abajo, hasta el límite de profundidad. | `depth` |
+| `list_children` | Las carpetas y archivos directamente dentro de una carpeta; un `relParts` vacío lista la raíz. | `relParts` |
+| `get_node` | Una carpeta o archivo con su tipo, estado, responsable, marcas, campos de `info.json` y acciones permitidas. | `relParts` |
+| `search_folders` | Carpetas cuyos nombres o campos coinciden con la consulta, desde el índice o recorriendo el disco. | `query`, `disk` |
+| `search_files` | Archivos cuyos nombres contienen todas las palabras de la consulta. | `query` |
+| `suggest_search` | Sugerencias para un filtro `clave:`, como en el cuadro de búsqueda de la app. | `key`, `prefix` |
+
+### Escritura
+
+Las herramientas de escritura toman el bloqueo del almacenamiento en cada cambio y actualizan los índices, como hace la app. Las marcadas como destructivas se anuncian así al cliente para que pueda preguntarte antes.
+
+| Herramienta | Qué hace | Argumentos |
+| --- | --- | --- |
+| `add_node` | Crea una carpeta dentro de `parent`; un padre vacío añade una categoría raíz. | `parent`, `name` |
+| `add_workboard` | Crea un tablero dentro de `parent`; la app lo numera. | `parent`, `name` |
+| `rename` | Renombra una carpeta; sus carpetas de soporte y revisión vinculadas la siguen. | `relParts`, `name` |
+| `move` (destructiva) | Mueve una carpeta a `destination`, donde toma el siguiente id libre. | `source`, `destination` |
+| `copy` | Copia una carpeta a `destination`, conservando su id bajo el siguiente nombre libre `(n)`. | `source`, `destination` |
+| `reorder` (destructiva) | Intercambia el id de una carpeta con el de su hermana de arriba o de abajo. | `relParts`, `direction` |
+| `delete` (destructiva) | Envía una carpeta a la Papelera de reciclaje. | `relParts`, `confirmNonEmpty`, `expectGhost` |
+| `set_type` | Convierte una carpeta en `NODE` o en tablero (`WKB`), opcionalmente con un estado. | `relParts`, `type`, `status` |
+| `set_status` | Fija el estado de un tablero: `in-progress`, `for-review`, `hold` o `done`. | `relParts`, `status` |
+| `set_owner` | Fija el responsable de un tablero. | `relParts`, `owner` |
+| `set_favorite` | Marca o desmarca una carpeta como favorita. | `relParts`, `on` |
+| `set_important` | Marca o desmarca un tablero como importante. | `relParts`, `on` |
+| `hide` | Oculta o muestra una carpeta por debajo del nivel raíz. | `relParts`, `hidden` |
+| `set_board` | Coloca tableros en las columnas y el orden del tablero de tareas. | `cards` |
+| `rename_file` | Renombra un archivo dentro de una carpeta del almacenamiento, extensión incluida. | `relParts`, `name` |
+| `delete_file` (destructiva) | Envía un archivo a la Papelera de reciclaje. | `relParts` |
+
+`delete` y `delete_file` nunca borran de forma definitiva. Una carpeta que contiene archivos o carpetas se rechaza indicando cuántos son, salvo que la llamada incluya `confirmNonEmpty: true`. `expectGhost` sirve para olvidar una carpeta que falta en el disco y debe coincidir con lo que `get_node` informa.
+
+Cada escritura responde con una nota breve de lo que cambió, las carpetas que conviene volver a leer y los avisos.
+
+### Automatización de revisión
+
+Trabajan con los archivos sueltos de una carpeta de revisión, como `998.Review`.
+
+| Herramienta | Qué hace | Argumentos |
+| --- | --- | --- |
+| `preview_project_groups` | Los proyectos en los que se ordenarían los archivos sueltos; solo lectura, no cambia nada. | `folder` |
+| `apply_project_groups` (destructiva) | Mueve los archivos sueltos a tableros nuevos, tal como se previsualizó o se ajustó. | `folder`, `plans` |
+| `undo_project_sort` (destructiva) | Devuelve los archivos de la última clasificación y elimina las carpetas que creó. | ninguno |
+
+### Interfaz
+
+Actúan sobre la ventana abierta y solo cuando el cliente las llama. Necesitan FolderManager en ejecución con el mismo almacenamiento abierto.
+
+| Herramienta | Qué hace | Argumentos |
+| --- | --- | --- |
+| `ui_get_state` | Lee la ventana: almacenamiento, pestañas, panel dividido, vista y selección. No mueve nada. | ninguno |
+| `ui_reveal` | Selecciona una carpeta o archivo en el panel activo, expandiendo las carpetas de arriba. | `relParts` |
+| `ui_open_tab` | Abre una pestaña nueva en una carpeta, o en la raíz sin `relParts`. | `relParts` |
+| `ui_split` | Abre el panel dividido; con `relParts` abre ahí esa carpeta. | `relParts` |
+| `ui_set_view` | Cambia el panel activo a `cards`, `tree`, `columns`, `grid` o `list`. | `view` |
+
+## Seguridad
+
+- **Solo Papelera de reciclaje:** los borrados van a la Papelera de reciclaje, donde puedes restaurarlos. En Linux y macOS van a la papelera del sistema.
+- **Las mismas reglas que la app:** el límite de profundidad, las carpetas bloqueadas y reservadas, las colisiones de nombre y la reversión se aplican a todas las herramientas. Un rechazo vuelve como resultado de error y no cambia nada.
+- **Bloqueo ocupado:** cada cambio toma el bloqueo del almacenamiento solo durante ese cambio, nunca entre llamadas. Si la app u otro proceso lo tiene, el servidor lo intenta tres veces, esperando hasta 3 segundos el bloqueo cada vez, y luego responde que no se cambió nada; vuelve a llamar a la herramienta.
+- **Los nombres son datos:** el servidor le indica al cliente que los nombres de carpetas y archivos y los valores de `info.json` son texto, nunca instrucciones. Un nombre que parezca una orden no debe obedecerse.
+- **El puente con la ventana:** la app escucha en `127.0.0.1` en un puerto libre y comparte un token aleatorio con el servidor mediante un archivo en los datos locales de tu app. Una petición sin el token no recibe respuesta. Cualquier programa que se ejecute como tu usuario puede leer ese archivo, así que el riesgo que queda es que otro programa local mueva tu ventana; por el puente no puede cambiar archivos.
+- **Revisa las confirmaciones:** mantén activo el paso de aprobación de tu cliente para las herramientas marcadas como destructivas, y lee lo que un agente va a mover o borrar antes de permitirlo.
+
+## Probar la conexión
+
+Usa primero una copia desechable de un almacenamiento, para no arriesgar nada real.
+
+1. **Haz una copia.** Copia la carpeta de un almacenamiento, `.ant` incluida, a un lugar nuevo como `C:\Test\ANT_Copy`.
+2. **Comprueba el saludo inicial.** Envía los tres mensajes de abajo. Con Git Bash o cualquier shell POSIX:
+
+   ```bash
+   printf '%s\n' \
+     '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"manual-test","version":"0"}}}' \
+     '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+     '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+     | "C:/Tools/FolderManager.exe" --mcp "C:/Test/ANT_Copy"
+   ```
+
+   En Windows PowerShell, guarda las mismas tres líneas como `req.jsonl` y ejecuta:
+
+   ```powershell
+   cmd /c '"C:\Tools\FolderManager.exe" --mcp "C:\Test\ANT_Copy" < req.jsonl' | Out-String
+   ```
+
+   La primera respuesta trae `serverInfo` y la versión. La segunda lista las herramientas. Una línea que empieza con `MCP: serving` en stderr muestra el almacenamiento que abrió.
+3. **Lee.** Envía `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_storage","arguments":{}}}`. La respuesta trae la raíz de la copia. Luego llama a `get_tree` o a `list_children` con `{"relParts":[]}`.
+4. **Escribe en la copia.** Abre la copia en FolderManager y, desde tu cliente, pide `add_node` con un `parent` dentro de la copia y un nombre de prueba. La respuesta lista los `levels` que cambiaron.
+5. **Comprueba la actualización.** La carpeta nueva debe aparecer en la app abierta sin pulsar Actualizar, y tu selección, pestaña y panel dividido siguen donde estaban.
+6. **Prueba las herramientas de interfaz.** Con la app abierta sobre la copia, llama a `ui_get_state` y luego a `ui_reveal` sobre la carpeta nueva. Con la app cerrada, la misma llamada responde `Folder Manager is not running`; las demás herramientas siguen funcionando.
+7. **Limpia.** Llama a `delete` sobre la carpeta de prueba y compruébala en la Papelera de reciclaje. Cuando todos los pasos funcionen, apunta el cliente a tu almacenamiento real.
+
+## Solución de problemas
+
+| Síntoma | Causa | Solución |
+| --- | --- | --- |
+| Cada herramienta responde `storageNotFound`, o dice `No storage given`. | La ruta no tiene un almacenamiento ANT, o no se dio ruta y el ejecutable no recuerda ninguno. | Pasa la carpeta del almacenamiento después de `--mcp`, o abre el almacenamiento una vez en la app para que se recuerde. |
+| Una escritura responde que el almacenamiento estaba bloqueado y no se cambió nada. | La app u otro proceso mantuvo el bloqueo durante los tres intentos. | Vuelve a llamar a la herramienta en un momento. Si dice que el almacenamiento lleva minutos bloqueado y no hay otro FolderManager abierto, borra el archivo `.FolderManager.lock` de la carpeta `.ant` del almacenamiento. |
+| `ui_*` dice `Folder Manager is not running`. | La app está cerrada, o este cliente inicia una copia del ejecutable distinta de la que está en ejecución. | Abre la app. Usa en el cliente la misma ruta de ejecutable que la que ejecutas. |
+| `ui_*` dice que la app tiene otro almacenamiento abierto. | La ventana muestra un almacenamiento distinto del del servidor. | Abre el mismo almacenamiento en la app, o cambia la ruta que sigue a `--mcp`. |
+| `ui_*` dice que la app está ocupada. | La ventana estaba en medio de una operación. | Vuelve a llamar a la herramienta. |
+| El cliente no muestra herramientas. | El comando o la ruta son incorrectos, no se guardó el archivo o no se reinició el cliente. | Ejecuta la comprobación del saludo inicial; si responde, corrige la configuración del cliente y reinícialo. Lee el registro MCP del cliente para ver las líneas `MCP:`. |
+| Un `Parse error` (`-32700`) en el primer mensaje desde PowerShell. | Antes de la 2.4.4-beta el servidor no ignoraba la marca de orden de bytes que Windows PowerShell añade al canalizar texto. | Actualiza FolderManager, o usa la forma con `cmd` y un archivo. |
+| La app no muestra un cambio. | No se pudo escribir el registro de cambios; la respuesta de la escritura trae un aviso. | Usa **Actualizar** en la app. |
+| El cliente no encuentra el ejecutable, o la ruta del almacenamiento se corta en un espacio. | Barras invertidas sin duplicar en el JSON, o la ruta se unió en una sola cadena. | Duplica cada barra invertida o usa barras normales. Deja el ejecutable y cada argumento como entradas separadas. |
+
+Para problemas de la app que no tengan que ver con MCP, mira [Datos y solución de problemas](/es/folder-manager/troubleshooting).
