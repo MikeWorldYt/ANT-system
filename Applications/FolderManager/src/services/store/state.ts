@@ -18,6 +18,8 @@ interface State {
   busy: boolean;
   // Lists every review link so the hidden ones can be selected again, instead of only the shown ones.
   hidingLinks: boolean;
+  // Folders deeper than this are shown but not indexed in the database.
+  depthLimit: number;
   // The folder whose children the side panel lists for hiding, with each child's hidden state.
   managing: string[] | null;
   hiddenChoices: HiddenChoice[];
@@ -109,6 +111,7 @@ export const state: State = {
   expanded: new Set(),
   busy: false,
   hidingLinks: false,
+  depthLimit: 3,
   managing: null,
   hiddenChoices: [],
   editing: null,

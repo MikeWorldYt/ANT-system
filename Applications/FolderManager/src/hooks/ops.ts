@@ -129,7 +129,8 @@ export async function init(): Promise<boolean> {
       reportError("warning", e, "Settings");
     }
     try {
-      const { depthWarning } = await api.getStorage();
+      const { depthWarning, maxDepth } = await api.getStorage();
+      state.depthLimit = maxDepth;
       if (depthWarning) setStatus("warning", depthWarning);
     } catch (e) {
       reportError("warning", e, "Storage info");
@@ -177,6 +178,7 @@ export const changeSetting = <K extends keyof Settings>(key: K, value: Settings[
 export const changeTreeDepth = (depth: number) =>
   run(async () => {
     await api.setSetting("treeDepth", String(depth));
+    state.depthLimit = depth;
     await reload();
     clearStatus();
   });
