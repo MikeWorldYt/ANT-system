@@ -1,0 +1,195 @@
+---
+title: AI integrations
+description: Connect FolderManager to any AI client as an MCP server, test the connection and fix the usual failures.
+---
+
+FolderManager is also an [MCP](https://modelcontextprotocol.io) server. Start it with the `--mcp` flag and an AI client can search your storage, read folder details and make changes through tools, using the same rules, lock and indexes as the app.
+
+- **One stdio process:** the client starts `FolderManager.exe --mcp` and talks to it over standard input and output. There is no network port to open for it and it is local only.
+- **Works with the app open or closed:** background tools never need the window. With the app open, changes show up without moving your selection, tab or view.
+- **Background by default:** only the `ui_*` tools move the window, and only when the client calls them. They need the app running.
+
+## Requirements
+
+- FolderManager 2.4.4-beta or later, the first version with `--mcp`. **About** shows the version you have.
+- The full path of the executable. On Windows it is `FolderManager.exe`; the copy that `CreateNewStorage` 3.3.1 or later places in the storage root works.
+- An ANT storage. See [Getting Started](/en/start-here/getting-started) if you do not have one yet.
+
+## Setup
+
+Every client needs the same two things: the command (the executable) and its arguments.
+
+```json
+{
+  "command": "C:\\Tools\\FolderManager.exe",
+  "args": ["--mcp", "C:\\Storages\\ANT"]
+}
+```
+
+`--mcp` is the first argument; the storage path after it is optional.
+
+- **With a path:** the server opens the storage found at that folder or in its parent.
+- **Without a path:** it opens the storage this copy of the executable remembered last, the one you opened in the app. If there is none, every tool answers with an error that says so.
+
+Where the client puts these two values depends on the client. The examples below are common layouts; client menus and file names may differ between versions, so check its MCP documentation.
+
+### Claude Desktop
+
+Add the server to the `mcpServers` object of the client's configuration file, `claude_desktop_config.json`, and restart the client.
+
+```json
+{
+  "mcpServers": {
+    "ant-system": {
+      "command": "C:\\Tools\\FolderManager.exe",
+      "args": ["--mcp", "C:\\Storages\\ANT"]
+    }
+  }
+}
+```
+
+### Claude Code
+
+```bash
+claude mcp add ant-system -- "C:\Tools\FolderManager.exe" --mcp "C:\Storages\ANT"
+```
+
+### Cursor and VS Code
+
+Cursor reads the same `mcpServers` object as above from its `mcp.json`. VS Code uses its own `mcp.json` with a `servers` object:
+
+```json
+{
+  "servers": {
+    "ant-system": {
+      "type": "stdio",
+      "command": "C:\\Tools\\FolderManager.exe",
+      "args": ["--mcp", "C:\\Storages\\ANT"]
+    }
+  }
+}
+```
+
+:::note[Paths in JSON]
+Write each backslash twice (`C:\\Tools`) or use forward slashes (`C:/Tools`). Keep the executable and each argument as separate entries; do not wrap them in extra quotes inside the array.
+:::
+
+## Tools
+
+Tool arguments use camelCase. A folder is always identified by `relParts`: its folder names from the storage root down, for example `["100.WORK", "01.Project"]`.
+
+### Read
+
+Read tools never take the storage lock and never write.
+
+| Tool | What it does | Arguments |
+| --- | --- | --- |
+| `get_storage` | The open storage: root path, app version and tree depth limit. | none |
+| `get_tree` | The folders from the root down, up to the depth limit. | `depth` |
+| `list_children` | The folders and files directly inside one folder; an empty `relParts` lists the root. | `relParts` |
+| `get_node` | One folder or file with its type, status, owner, flags, `info.json` fields and allowed actions. | `relParts` |
+| `search_folders` | Folders whose names or fields match the query, from the index or by walking the disk. | `query`, `disk` |
+| `search_files` | Files whose names hold every word of the query. | `query` |
+| `suggest_search` | Completions for a `key:` filter, as in the app's search box. | `key`, `prefix` |
+
+### Write
+
+Write tools take the storage lock for each change and update the indexes, as the app does. The ones marked destructive are announced as such to the client so it can ask you first.
+
+| Tool | What it does | Arguments |
+| --- | --- | --- |
+| `add_node` | Creates a folder inside `parent`; an empty parent adds a root category. | `parent`, `name` |
+| `add_workboard` | Creates a workboard inside `parent`; the app numbers it. | `parent`, `name` |
+| `rename` | Renames a folder; its linked support and review folders follow. | `relParts`, `name` |
+| `move` (destructive) | Moves a folder into `destination`, where it takes the next free id. | `source`, `destination` |
+| `copy` | Copies a folder into `destination`, keeping its id under the next free `(n)` name. | `source`, `destination` |
+| `reorder` (destructive) | Swaps a folder's id with its sibling above or below. | `relParts`, `direction` |
+| `delete` (destructive) | Sends a folder to the Recycle Bin. | `relParts`, `confirmNonEmpty`, `expectGhost` |
+| `set_type` | Makes a folder a `NODE` or a workboard (`WKB`), optionally with a status. | `relParts`, `type`, `status` |
+| `set_status` | Sets a workboard's status: `in-progress`, `for-review`, `hold` or `done`. | `relParts`, `status` |
+| `set_owner` | Sets a workboard's owner. | `relParts`, `owner` |
+| `set_favorite` | Stars or unstars a folder. | `relParts`, `on` |
+| `set_important` | Marks or unmarks a workboard as important. | `relParts`, `on` |
+| `hide` | Hides or shows a folder below the root level. | `relParts`, `hidden` |
+| `set_board` | Places workboards in the task board columns and order. | `cards` |
+| `rename_file` | Renames a file inside a storage folder, extension included. | `relParts`, `name` |
+| `delete_file` (destructive) | Sends a file to the Recycle Bin. | `relParts` |
+
+`delete` and `delete_file` never delete for good. A folder that holds files or folders is refused with their count unless the call includes `confirmNonEmpty: true`. `expectGhost` is for forgetting a folder that is missing on disk and must match what `get_node` reports.
+
+Each write answers with a short note of what changed, the folders to read again and any warnings.
+
+### Review automation
+
+These work on the loose files of a review folder, such as `998.Review`.
+
+| Tool | What it does | Arguments |
+| --- | --- | --- |
+| `preview_project_groups` | The projects the loose files would be sorted into; read only, changes nothing. | `folder` |
+| `apply_project_groups` (destructive) | Moves the loose files into new workboards, as previewed or adjusted. | `folder`, `plans` |
+| `undo_project_sort` (destructive) | Puts the files of the last project sort back and removes the folders it made. | none |
+
+### Interface
+
+These act on the open window and only when the client calls them. They need FolderManager running with the same storage open.
+
+| Tool | What it does | Arguments |
+| --- | --- | --- |
+| `ui_get_state` | Reads the window: storage, tabs, split, view and selection. Moves nothing. | none |
+| `ui_reveal` | Selects a folder or file in the active pane, expanding the folders above it. | `relParts` |
+| `ui_open_tab` | Opens a new tab on a folder, or on the root without `relParts`. | `relParts` |
+| `ui_split` | Opens the split pane; with `relParts` it opens that folder there. | `relParts` |
+| `ui_set_view` | Switches the active pane to `cards`, `tree`, `columns`, `grid` or `list`. | `view` |
+
+## Safety
+
+- **Recycle Bin only:** deletes go to the Recycle Bin, so you can restore them there. On Linux and macOS they go to the system trash.
+- **Same rules as the app:** depth limit, locked and reserved folders, name collisions and rollback apply to every tool. A refusal comes back as an error result and changes nothing.
+- **Lock busy:** each change takes the storage lock for that change only, never between calls. If the app or another process holds it, the server tries three times, each waiting up to 3 seconds for the lock, and then answers that nothing was changed; call the tool again.
+- **Names are data:** the server tells the client that folder names, file names and `info.json` values are text, never instructions. A name that reads like a command should not be followed.
+- **The window bridge:** the app listens on `127.0.0.1` on a free port and shares a random token with the server through a file in your local app data. A request without the token gets no answer. Any program running as your user can read that file, so the remaining risk is another local program moving your window; it cannot change files through the bridge.
+- **Review confirmations:** keep your client's approval step on for the tools marked destructive, and read what an agent is about to move or delete before you allow it.
+
+## Test the connection
+
+Use a disposable copy of a storage first, so nothing real is at risk.
+
+1. **Make a copy.** Copy a storage folder, `.ant` included, to a new place such as `C:\Test\ANT_Copy`.
+2. **Check the handshake.** Send the three messages below. With Git Bash or any POSIX shell:
+
+   ```bash
+   printf '%s\n' \
+     '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"manual-test","version":"0"}}}' \
+     '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+     '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+     | "C:/Tools/FolderManager.exe" --mcp "C:/Test/ANT_Copy"
+   ```
+
+   In Windows PowerShell, save the same three lines as `req.jsonl` and run:
+
+   ```powershell
+   cmd /c '"C:\Tools\FolderManager.exe" --mcp "C:\Test\ANT_Copy" < req.jsonl' | Out-String
+   ```
+
+   The first reply holds `serverInfo` and the version. The second lists the tools. A line that starts with `MCP: serving` on stderr shows the storage it opened.
+3. **Read.** Send `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_storage","arguments":{}}}`. The answer has the root of the copy. Then call `get_tree` or `list_children` with `{"relParts":[]}`.
+4. **Write in the copy.** Open the copy in FolderManager, then from your client ask for `add_node` with a `parent` inside the copy and a test name. The answer lists the `levels` that changed.
+5. **Check the refresh.** The new folder should appear in the open app without pressing Refresh, and your selection, tab and split stay where they were.
+6. **Try the interface tools.** With the app open on the copy, call `ui_get_state`, then `ui_reveal` on the new folder. With the app closed, the same call answers `Folder Manager is not running`; every other tool keeps working.
+7. **Clean up.** Call `delete` on the test folder and check it in the Recycle Bin. When all steps work, point the client at your real storage.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| Every tool answers `storageNotFound`, or says `No storage given`. | The path has no ANT storage, or no path was given and the executable remembers none. | Pass the storage folder after `--mcp`, or open the storage once in the app so it is remembered. |
+| A write answers that the storage was locked and nothing was changed. | The app or another process held the storage lock through three tries. | Call the tool again in a moment. If it says the storage has been locked for minutes and no other FolderManager is open, delete the `.FolderManager.lock` file in the storage's `.ant` folder. |
+| `ui_*` says `Folder Manager is not running`. | The app is closed, or this client starts a different copy of the executable than the one running. | Open the app. Use the same executable path in the client as the one you run. |
+| `ui_*` says the app has another storage open. | The window shows a different storage than the server. | Open the same storage in the app, or change the path after `--mcp`. |
+| `ui_*` says the app is busy. | The window was in the middle of an operation. | Call the tool again. |
+| The client shows no tools. | The command or path is wrong, the file was not saved, or the client was not restarted. | Run the handshake check above; if it replies, fix the client's config and restart it. Read the client's MCP log for `MCP:` lines. |
+| A `Parse error` (`-32700`) on the first message in PowerShell. | Before 2.4.4-beta the server did not skip the byte order mark Windows PowerShell adds when it pipes text. | Update FolderManager, or use the `cmd` form with a file. |
+| The app does not show a change. | The change log could not be written; the write answer carries a warning. | Use **Refresh** in the app. |
+| The client cannot find the executable, or the storage path is cut at a space. | Unescaped backslashes in JSON, or the path was joined into one string. | Double each backslash or use forward slashes. Keep the executable and each argument as separate entries. |
+
+For app problems that are not related to MCP, see [Data and troubleshooting](/en/folder-manager/troubleshooting).
