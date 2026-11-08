@@ -8,6 +8,8 @@ import folderLockedSvg from "../../assets/icons/folder-locked.svg?raw";
 import folderWkbSvg from "../../assets/icons/folder-wkb.svg?raw";
 import folderWkbGitSvg from "../../assets/icons/folder-wkb-git.svg?raw";
 import gitSvg from "../../assets/icons/git.svg?raw";
+import recordingsSvg from "../../assets/gui/recordings.svg?raw";
+import screenshotsSvg from "../../assets/gui/screenshots.svg?raw";
 import fileUrl from "../../assets/icons/file.svg?url";
 import { el } from "../dom";
 import { nativeImage } from "../../services/file-images";
@@ -56,12 +58,16 @@ export function setIconColor(base: string | null): void {
 const kindOf = (n: TreeNode, open: boolean): Kind =>
   inDownloads(n.relParts) ? (open ? "open" : "folder") : n.linked ? "lnk" : n.locked ? "locked" : isWorkboard(n) ? (n.isGit ? "wkbGit" : "wkb") : n.isGit ? "git" : n.flags.includes("data") ? (open ? "open" : "folder") : open ? "openNoflag" : "noflag";
 
+// The global media folders at the root show the same icons as their side panel shortcuts.
+const MEDIA_URLS: Record<string, string> = { REC: `data:image/svg+xml,${encodeURIComponent(recordingsSvg)}`, SS: `data:image/svg+xml,${encodeURIComponent(screenshotsSvg)}` };
+
 // Files show the shell's icon for their type, or the generic page where no native icon exists.
 export const folderIcon = (n: TreeNode, open = false) => {
   if (painted === undefined) setIconColor(null);
   // Shortcuts get the review-link arrow, which reads better than the shell's blank page for a .lnk.
   const shortcut = n.file && n.name.toLowerCase().endsWith(".lnk");
-  const src = shortcut ? urlOf("lnk") : n.file ? (nativeImage(n, false) ?? fileUrl) : urlOf(kindOf(n, open));
+  const media = !n.file && n.relParts.length === 1 ? MEDIA_URLS[n.nodeType?.base ?? ""] : undefined;
+  const src = media ?? (shortcut ? urlOf("lnk") : n.file ? (nativeImage(n, false) ?? fileUrl) : urlOf(kindOf(n, open)));
   const locked = !n.file && !n.linked && n.locked;
   const img = el("img", { class: "icon", src, alt: locked ? LOCKED_LABEL : "", width: "16", height: "16", draggable: "false" });
   if (locked) img.title = LOCKED_LABEL;

@@ -2,7 +2,7 @@
 import { readPref, savePref } from "./prefs";
 import { notify } from "./state";
 
-export const RAIL_IDS = ["settings", "board", "favorite", "edit", "moveUp", "moveDown", "delete"] as const;
+export const RAIL_IDS = ["settings", "board", "downloads", "recordings", "screenshots", "review", "favorite", "edit", "moveUp", "moveDown", "delete"] as const;
 export type RailId = (typeof RAIL_IDS)[number];
 
 export interface RailItem {

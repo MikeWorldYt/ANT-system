@@ -11,6 +11,7 @@ import { toggleExpand } from "../../../hooks/ops";
 import { keyOf, leaveVirtual, select, startEdit, state, visibleRows } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
+import { isTail } from "../../../services/store/sort";
 import { entryBeside, headEntry, rootEntries, virtualEntry } from "../../molecules/virtual-entry";
 import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
@@ -165,7 +166,7 @@ export function createTreeView(): ViewMode {
       listCount = list.length;
       rows = [...list, ...visibleRows()];
       const listRows = list.flatMap((n, i) => [buildRow(n, i), ...emptyLegend(n, listDepths[i] ?? 1)]);
-      const entries = rootEntries().flatMap((e) => {
+      const groups = rootEntries().map((e) => {
         const open = state.virtual === e.id;
         const entry = virtualEntry(e, "row", "treeitem", { toggle: true, marker: "caret" });
         entry.id = `row-${e.id}`;
@@ -173,7 +174,13 @@ export function createTreeView(): ViewMode {
         if (!open) return [entry];
         return [entry, ...(listRows.length > 0 ? listRows : [listLegend(e.empty)])];
       });
-      tree.replaceChildren(...entries, ...rows.slice(listCount).flatMap((n, i) => [buildRow(n, i + listCount), ...emptyLegend(n, n.depth)]));
+      const own = rows.slice(listCount);
+      const ownRows = own.map((n, i) => [buildRow(n, i + listCount), ...emptyLegend(n, n.depth)]);
+      const tail = own.findIndex((n) => n.relParts.length === 1 && !n.file && isTail(n.name));
+      const cut = tail < 0 ? ownRows.length : tail;
+      // Favorites heads the root; Downloads opens the tail group and Review closes it, as in the other views.
+      const group = (id: string) => groups.filter((g) => g[0]?.dataset.entry === id).flat();
+      tree.replaceChildren(...group("favorites"), ...ownRows.slice(0, cut).flat(), ...group("downloads"), ...ownRows.slice(cut).flat(), ...group("review"));
       const i = indexOfSelected();
       const head = rootEntries().find((e) => state.virtual === e.id);
       if (i >= 0) {
