@@ -75,6 +75,13 @@ export default defineConfig({
 						],
 					},
 					{
+						label: 'Advanced',
+						translations: { es: 'Avanzado' },
+						items: [
+							{ label: 'CLI', slug: 'advanced/cli', translations: { es: 'CLI' } },
+						],
+					},
+					{
 						label: 'Reference',
 						translations: { es: 'Referencias' },
 						items: [{ autogenerate: { directory: 'reference' } }],

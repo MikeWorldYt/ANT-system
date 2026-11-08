@@ -13,6 +13,7 @@ import type { Trail } from "../../../hooks/tabs";
 interface Crumb {
   label: string;
   go(): void;
+  depth?: number;
 }
 
 export function createNavigator(): { element: HTMLElement; render(): void; editPath(): void; goUp(): void; trail(): Trail; setTrail(trail: Trail): void; enter(trail: Trail, place: Place): Promise<void> } {
@@ -97,7 +98,7 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
   function trail(): Crumb[] {
     // A selected file cannot be opened as a folder, so the trail ends at the folder that holds it.
     const parts = (state.selectedKey?.split("/") ?? []).slice(0, selectedNode()?.file ? -1 : undefined);
-    const crumb = (end: number): Crumb => ({ label: parts[end - 1] ?? "", go: () => select(parts.slice(0, end)) });
+    const crumb = (end: number): Crumb => ({ label: parts[end - 1] ?? "", go: () => select(parts.slice(0, end)), depth: end });
     const entry = openEntry();
     if (entry === null) return parts.map((_, i) => crumb(i + 1));
     const head: Crumb = { label: entry.label, go: () => void openVirtual(entry.id) };
@@ -108,7 +109,8 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
 
   function crumbs(): (Node | string)[] {
     const out: (Node | string)[] = [];
-    const sep = () => el("span", { class: "crumb-sep", "aria-hidden": "true" }, guiIcon("separator"));
+    // Steps inside the levels the database indexes are marked, so where its scope ends shows.
+    const sep = (depth = 1) => el("span", { class: depth <= state.depthLimit ? "crumb-sep db-edge" : "crumb-sep", "aria-hidden": "true" }, guiIcon("separator"));
     const rootBtn = el("button", { type: "button", class: "crumb crumb-btn crumb-root", title: state.tree?.root ?? "" }, rootName(state.tree?.root));
     rootBtn.addEventListener("click", () => select(null));
     out.push(rootBtn);
@@ -120,7 +122,7 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
       if (leaf) b.setAttribute("aria-current", "location");
       b.addEventListener("click", s.go);
       out.push(b);
-      if (!leaf) out.push(sep());
+      if (!leaf) out.push(sep(steps[i + 1]?.depth));
     });
     return out;
   }

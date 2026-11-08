@@ -8,6 +8,7 @@ use std::time::Duration;
 use serde::Serialize;
 
 use super::{log, watch, ApplyReport};
+use crate::infra::storage::changes::{self, News};
 
 // A rename or location change only swaps the root in memory, so polling it is how the watcher notices.
 const FOLLOW: Duration = Duration::from_millis(500);
@@ -20,8 +21,30 @@ pub struct StorageChanged {
 }
 
 // Our own writes are filtered out before this point, so any remaining path is news; files alone save no tree.
-fn changed_event(report: &ApplyReport) -> Option<StorageChanged> {
-    (report.saved || report.paths > 0).then(|| StorageChanged { paths: report.paths, folders: report.folders.clone(), rescan: report.full })
+fn changed_event(report: &ApplyReport, news: Option<News>) -> Option<StorageChanged> {
+    let Some(news) = news else {
+        return (report.saved || report.paths > 0).then(|| StorageChanged { paths: report.paths, folders: report.folders.clone(), rescan: report.full });
+    };
+    let mut folders = report.folders.clone();
+    folders.extend(news.levels);
+    folders.sort();
+    folders.dedup();
+    Some(StorageChanged { paths: report.paths, folders, rescan: report.full || news.rescan })
+}
+
+// Read on every batch rather than on its own event, so a log write that landed in an earlier batch is still found.
+fn news_since(root: &Path, seen: &mut u64) -> Option<News> {
+    match changes::read(root) {
+        Ok(entries) => {
+            let news = changes::news(&entries, *seen, std::process::id());
+            *seen = changes::newest(&entries);
+            news
+        }
+        Err(e) => {
+            log("warning", &format!("Watch: change log not read: {e}"));
+            None
+        }
+    }
 }
 
 struct Running {
@@ -62,8 +85,11 @@ impl Follower {
 
 fn run(root: &Path, stop: &AtomicBool, on_changed: &dyn Fn(StorageChanged)) {
     log("info", &format!("Watch: window watcher started on {}", root.display()));
+    // Changes made before the window opened are already in what it loaded.
+    let mut seen = 0;
+    news_since(root, &mut seen);
     let mut on_applied = |report: &ApplyReport| {
-        if let Some(event) = changed_event(report) {
+        if let Some(event) = changed_event(report, news_since(root, &mut seen)) {
             on_changed(event);
         }
     };
@@ -121,12 +147,38 @@ mod tests {
     #[test]
     fn only_a_batch_that_changed_something_reaches_the_window() {
         let quiet = ApplyReport { paths: 0, full: false, skipped: 3, saved: false, folders: vec![] };
-        assert_eq!(changed_event(&quiet), None);
+        assert_eq!(changed_event(&quiet, None), None);
         let folders = vec![vec!["100.WORK".to_string()]];
         let files = ApplyReport { paths: 2, full: false, skipped: 1, saved: false, folders: folders.clone() };
-        assert_eq!(changed_event(&files), Some(StorageChanged { paths: 2, folders, rescan: false }));
+        assert_eq!(changed_event(&files, None), Some(StorageChanged { paths: 2, folders, rescan: false }));
         let saved = ApplyReport { saved: true, full: true, folders: vec![], ..files };
-        assert_eq!(changed_event(&saved), Some(StorageChanged { paths: 2, folders: vec![], rescan: true }));
+        assert_eq!(changed_event(&saved, None), Some(StorageChanged { paths: 2, folders: vec![], rescan: true }));
+    }
+
+    #[test]
+    fn a_metadata_change_from_another_process_reaches_the_window_merged_with_the_batch() {
+        let quiet = ApplyReport { paths: 0, full: false, skipped: 1, saved: false, folders: vec![] };
+        let level = |p: &str| vec![p.to_string()];
+        let news = News { levels: vec![level("200.HOME"), level("100.WORK")], rescan: false };
+        assert_eq!(changed_event(&quiet, Some(news)), Some(StorageChanged { paths: 0, folders: vec![level("100.WORK"), level("200.HOME")], rescan: false }));
+        let disk = ApplyReport { paths: 1, folders: vec![level("100.WORK")], ..quiet };
+        let rescan = News { levels: vec![level("100.WORK")], rescan: true };
+        assert_eq!(changed_event(&disk, Some(rescan)), Some(StorageChanged { paths: 1, folders: vec![level("100.WORK")], rescan: true }));
+    }
+
+    #[test]
+    fn the_log_is_read_from_where_the_window_last_stopped() {
+        let dir = crate::test_support::TempDir::new("watch-news");
+        let mut seen = 0;
+        assert_eq!(news_since(dir.path(), &mut seen), None);
+        changes::record(dir.path(), &[vec!["100.WORK".to_string()]], false).unwrap();
+        assert_eq!(news_since(dir.path(), &mut seen), None);
+        assert_eq!(seen, 1);
+        let log = std::fs::read_to_string(dir.path().join(".ant").join(changes::CHANGES_FILE)).unwrap();
+        let foreign = log.replace(&format!("\"writer\":{}", std::process::id()), "\"writer\":0").replace("\"seq\":1", "\"seq\":2");
+        std::fs::write(dir.path().join(".ant").join(changes::CHANGES_FILE), foreign).unwrap();
+        assert_eq!(news_since(dir.path(), &mut seen), Some(News { levels: vec![vec!["100.WORK".to_string()]], rescan: false }));
+        assert_eq!(news_since(dir.path(), &mut seen), None);
     }
 
     #[test]

@@ -12,6 +12,8 @@ pub(crate) const LOCK_FILE: &str = ".FolderManager.lock";
 const STALE_LOCK: Duration = Duration::from_secs(120);
 const LOCK_WAIT: Duration = Duration::from_secs(3);
 const LOCK_POLL: Duration = Duration::from_millis(50);
+const LOCK_OP: &str = "lock storage";
+const BUSY: &str = "another Folder Manager is changing this storage; retry in a moment";
 
 // Serialises mutations across processes, which the in-process Mutex cannot see.
 pub struct StorageLock {
@@ -46,11 +48,11 @@ impl StorageLock {
         let mut file = match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
             Ok(file) => file,
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => return Err(Attempt::Held(path)),
-            Err(e) => return Err(Attempt::Failed(io_err("lock storage", &path, &e))),
+            Err(e) => return Err(Attempt::Failed(io_err(LOCK_OP, &path, &e))),
         };
         let lock = Self { path };
         std::io::Write::write_all(&mut file, std::process::id().to_string().as_bytes())
-            .map_err(|e| Attempt::Failed(io_err("lock storage", &lock.path, &e)))?;
+            .map_err(|e| Attempt::Failed(io_err(LOCK_OP, &lock.path, &e)))?;
         Ok(lock)
     }
 }
@@ -78,9 +80,14 @@ fn busy_error(path: &Path) -> FmError {
             "the storage has been locked for {} minutes; if no other Folder Manager is open, delete this file and retry",
             age.as_secs() / 60
         ),
-        _ => "another Folder Manager is changing this storage; retry in a moment".to_string(),
+        _ => BUSY.to_string(),
     };
-    FmError::Io { op: "lock storage".to_string(), path: path.display().to_string(), message, os_code: None }
+    FmError::Io { op: LOCK_OP.to_string(), path: path.display().to_string(), message, os_code: None }
+}
+
+// Only a lock held by a live change is worth waiting for again; a stale one needs the user.
+pub(crate) fn is_busy(err: &FmError) -> bool {
+    matches!(err, FmError::Io { op, message, .. } if op == LOCK_OP && message == BUSY)
 }
 
 #[cfg(test)]

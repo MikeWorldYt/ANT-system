@@ -14,6 +14,7 @@ pub struct CreateOptions {
     pub template: Option<Vec<u8>>,
     pub allow_existing: bool,
     pub download: bool,
+    pub folder_manager: bool,
 }
 
 pub type Progress<'a> = &'a mut dyn FnMut(Level, &str);
@@ -28,7 +29,7 @@ pub fn create(opts: &CreateOptions, progress: Progress) -> Result<(), String> {
 }
 
 // Nothing touches the disk until the template is fetched and readable.
-fn load_template(opts: &CreateOptions) -> Result<Vec<u8>, String> {
+pub fn load_template(opts: &CreateOptions) -> Result<Vec<u8>, String> {
     match (&opts.template, opts.download) {
         (Some(bytes), _) => Ok(bytes.clone()),
         (None, true) => download(TEMPLATE_DB_URL, MAX_TEXT_BYTES, 60).map_err(|e| format!("Failed to download essential file 'ant.db': {e}")),
@@ -76,7 +77,7 @@ fn build(opts: &CreateOptions, template: &[u8], tree: &[TreeNode], created: &mut
     progress(Level::Step, "Generating an ANT Storage Template ...");
     make_tree(tree, root, created, progress)?;
     if opts.download {
-        downloads::optional_downloads(root, &core, progress);
+        downloads::optional_downloads(root, &core, opts.folder_manager, progress);
     }
     progress(Level::Ok, "Congrats, ANT Storage successfully created!");
     Ok(())

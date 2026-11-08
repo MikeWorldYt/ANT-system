@@ -12,7 +12,7 @@ use crate::infra::storage::db::{db_path, Store};
 use crate::domain::error::R;
 use crate::infra::fs_safe::{io_err, join_rel};
 use crate::infra::footprint_file;
-use crate::domain::names::{is_system_root_name, support_kind};
+use crate::domain::names::{is_system_root_name, support_kind, untracked_parts};
 use crate::infra::scan::list_subdirs;
 use crate::services::tree::depth;
 
@@ -60,7 +60,7 @@ pub fn infer_type(name: &str, depth: usize) -> String {
     if basename.starts_with("00.") {
         return "OUT".to_string();
     }
-    if WKB_IDENTIFIERS.iter().any(|p| basename.starts_with(p)) {
+    if WKB_IDENTIFIERS.iter().any(|p| basename.starts_with(p)) || untracked_parts(basename).is_some() {
         return "WKB".to_string();
     }
     match support_kind(basename) {

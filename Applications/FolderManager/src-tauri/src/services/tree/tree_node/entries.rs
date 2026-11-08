@@ -76,7 +76,8 @@ pub(super) fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R
         Vec::new()
     };
 
-    let file_entries: Vec<Entry> = if lists_files(parent) {
+    // The root holds only the folders and the app itself, whose files are not the user's to browse.
+    let file_entries: Vec<Entry> = if !parent.is_empty() && lists_files(parent) {
         disk_files(&disk_dir)?
             .into_iter()
             .map(|name| Entry { name, on_disk: true, in_yaml: false, link: None, favorite: false, hidden: false, file: true })
@@ -99,7 +100,7 @@ pub(super) fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R
         .chain(link_entries)
         .chain(file_entries)
         .collect();
-    entries.sort_by_cached_key(|e| (is_tail(&e.name), natural_key(&e.name)));
+    entries.sort_by_cached_key(|e| (tail_rank(&e.name), natural_key(&e.name)));
     Ok(entries)
 }
 
@@ -116,8 +117,18 @@ fn is_tail(name: &str) -> bool {
     support_kind(name).is_some() || numeric_id(name).is_some_and(|n| n == 998 || n == 999)
 }
 
+// Inside the tail, support folders keep a fixed order so every level reads the same way.
+const SUPPORT_ORDER: [&str; 5] = ["REC", "SS", "RES", "REV", "TPL"];
+
+fn tail_rank(name: &str) -> usize {
+    if !is_tail(name) {
+        return 0;
+    }
+    support_kind(name).and_then(|kind| SUPPORT_ORDER.iter().position(|k| *k == kind)).map_or(SUPPORT_ORDER.len() + 1, |at| at + 1)
+}
+
 fn is_linked_folder(name: &str) -> bool {
-    matches!(support_kind(name), Some("REV" | "RES"))
+    matches!(support_kind(name), Some("REV" | "RES" | "SS" | "REC"))
 }
 
 // Review folders also list their files; hidden files and the Windows desktop.ini stay out.

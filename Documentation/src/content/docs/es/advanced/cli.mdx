@@ -1,0 +1,109 @@
+---
+title: CLI
+description: Todas las opciones de CreateNewStorage, la herramienta de línea de comandos que crea un almacenamiento nuevo.
+---
+
+`CreateNewStorage` crea un almacenamiento ANT completo con un solo comando. Descárgalo desde la [página de descargas](/es/start-here/download); el inicio rápido está en [Primeros pasos](/es/start-here/getting-started).
+
+## Uso
+
+```bash
+create-new-storage <ruta> [opciones]
+```
+
+En Windows el archivo es `CreateNewStorage.exe`; en Linux y macOS es `create-new-storage`. Ejecútalo con `--help` para ver el mismo resumen en la terminal.
+
+## Qué crea
+
+1. La carpeta del almacenamiento y sus esenciales: `998.Review`, `999.Settings/00.Core` y `.ant`.
+2. `.ant/ant.db`, la base de datos del almacenamiento, descargada de la plantilla oficial.
+3. Todo el árbol de carpetas que describe esa base de datos, más `.ant/info.json` en las carpetas que tienen responsable, fecha o estado.
+4. `FM_Updater.bat` en `999.Settings/00.Core`, que usan las actualizaciones de FolderManager en Windows.
+5. El FolderManager más reciente para tu sistema en la raíz del almacenamiento.
+
+Los pasos 1 a 3 son esenciales: si uno falla, la herramienta borra solo las carpetas que creó en esa ejecución y deja lo que ya existía. Los pasos 4 y 5 solo avisan si fallan, así que el almacenamiento sigue siendo usable.
+
+## Argumentos
+
+### `<ruta>`
+
+Dónde va el almacenamiento. Sin `--name` es la carpeta del almacenamiento; con `--name` es la carpeta padre que recibe una carpeta nueva.
+
+```bash
+create-new-storage ~/ANT
+```
+
+## Opciones
+
+### `--name <nombre>`
+
+Da nombre a la carpeta del almacenamiento creada dentro de `<ruta>`. El nombre se limpia a Pascal_Snake_Case: se quitan los caracteres que Windows prohíbe, los espacios y guiones bajos pasan a ser un solo `_`, y cada palabra empieza en mayúscula con el resto en minúsculas.
+
+| Escribes | Carpeta en disco |
+| --- | --- |
+| `"mi almacenamiento"` | `Mi_Almacenamiento` |
+| `My-storage` | `My-storage` |
+| `MyStorage` | `Mystorage` |
+
+```bash
+create-new-storage ~ --name "Mi Almacenamiento"
+```
+
+### `--local-database <archivo>`
+
+Crea el almacenamiento a partir de un `ant.db` de tu equipo en lugar de descargar la plantilla oficial. Úsalo para reutilizar la estructura de otro almacenamiento o para no depender de internet para la plantilla. El archivo se copia sin cambios a `.ant/ant.db`.
+
+```bash
+create-new-storage ~ --name Trabajo --local-database ./ant.db
+```
+
+### `--yes`
+
+Permite crear el almacenamiento dentro de una carpeta que ya existe. Sin esta opción, la herramienta se detiene si la carpeta de destino existe, para no mezclar por accidente un almacenamiento nuevo con tus archivos. Los archivos existentes se conservan; solo se añaden las carpetas que faltan.
+
+```bash
+create-new-storage D:\Files --yes
+```
+
+### `--dry-run`
+
+Muestra las carpetas que se crearían, con su tipo, sin escribir nada en disco. Aun así necesita la plantilla, así que la descarga salvo que uses `--local-database`.
+
+```bash
+create-new-storage ~ --name Prueba --dry-run
+```
+
+```text
+Dry run: nothing is written.
+/home/tu-usuario/Prueba
+  100.PERSONAL  [NODE]
+    01.Documents  [NODE]
+      REV.Documents  [REV]
+```
+
+### `--no-folder-manager`
+
+Omite la descarga de FolderManager. La base de datos y `FM_Updater.bat` se siguen descargando. Úsalo si ya tienes FolderManager o lo instalarás después.
+
+```bash
+create-new-storage ~ --name Trabajo --no-folder-manager
+```
+
+### `-h`, `--help`
+
+Muestra el resumen de argumentos y opciones.
+
+### `-V`, `--version`
+
+Muestra la versión instalada, por ejemplo `create-new-storage 3.3.0`.
+
+## Códigos de salida
+
+| Código | Significado |
+| --- | --- |
+| `0` | Se creó el almacenamiento, o se mostró la ayuda, la versión o la simulación. |
+| `1` | Opciones inválidas, el destino existe sin `--yes`, o falló un paso esencial. |
+
+## Red
+
+La herramienta solo descarga por HTTPS desde GitHub y `r2.mikeworld.dev`, con el `curl` del sistema. En Linux y macOS también usa el `tar` del sistema para descomprimir FolderManager.

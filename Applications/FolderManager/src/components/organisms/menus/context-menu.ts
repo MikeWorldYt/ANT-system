@@ -8,7 +8,7 @@ import { suggestSearch } from "../../../services/ipc/api";
 import { reportError } from "../bars/status-line";
 import { createShortcut, putOnClipboard } from "../../../hooks/folder-share";
 import { openTab } from "../../../hooks/tabs";
-import { copyPath, openFolder, openInApp } from "../../../hooks/path-actions";
+import { copyPath, openFolder, openInApp, openInSplit } from "../../../hooks/path-actions";
 import { isSelected, keyOf, selectedNodes, startEdit, state } from "../../../services/store/state";
 import { menuItems, runMenuItem } from "../../../extensions/host";
 import { autoDismiss, focusInitial, closingItem, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
@@ -116,6 +116,7 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   const shortcut = action("Create shortcut", true, () => void createShortcut(node));
   const openHere = action("Open", true, () => void openInApp(node));
   const newTab = action("Open in new tab", true, () => openTab(node.relParts));
+  const splitTab = action("Open in split tab", true, () => void openInSplit(node));
   const shareItems = node.reserved || node.ghost ? [] : [paste, shortcut];
   const allowsFiles = node.flags.includes("data");
   const files = action(allowsFiles ? "Deny files" : "Allow files", a.editFlags, () => void setUserFlag(node, !allowsFiles));
@@ -160,10 +161,10 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [openHere, newTab, open, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, hideElement, del, ...extras],
+    items: [openHere, open, newTab, splitTab, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, hideElement, del, ...extras],
     subs,
     content: [
-      openHere, newTab, open, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
+      openHere, open, newTab, splitTab, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
       rename, copy, cut, ...shareItems, separator(),
       ...subs.map((s) => s.element), ...fileItems, separator(),
       newNode, newWorkboard, separator(),

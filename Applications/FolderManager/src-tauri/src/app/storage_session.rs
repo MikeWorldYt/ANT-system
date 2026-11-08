@@ -1,11 +1,14 @@
 // The storage the app has open: its root, the start path it was found from, the in-process lock and the read connection that serves searches.
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, RwLock};
 
 use serde::Serialize;
 
+use crate::domain::config::{DEPTH_CEILING, MAX_DEPTH};
 use crate::domain::error::{FmError, R};
 use crate::infra::storage::db::Store;
+use crate::services::tree::depth;
+use crate::services::updater;
 
 pub struct Storage {
     pub start: RwLock<PathBuf>,
@@ -85,6 +88,19 @@ pub struct StorageInfo {
     pub max_depth: usize,
     pub depth_options: Vec<usize>,
     pub depth_warning: Option<String>,
+}
+
+impl StorageInfo {
+    pub fn of(root: &Path) -> R<Self> {
+        let setting = depth::read(root)?;
+        Ok(Self {
+            root: root.to_string_lossy().into_owned(),
+            app_version: updater::CURRENT_VERSION.to_string(),
+            max_depth: setting.limit,
+            depth_options: (MAX_DEPTH..=DEPTH_CEILING).collect(),
+            depth_warning: setting.warning,
+        })
+    }
 }
 
 #[cfg(test)]

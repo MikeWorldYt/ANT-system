@@ -11,49 +11,8 @@ use crate::platform::shortcuts::create_shortcuts;
 use crate::domain::config::{EditableType, NewKind, WkbStatus};
 use crate::services::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
 use crate::domain::error::R;
-use crate::services::index::{reindex, reindex_paths, review_index, search_index, Emit};
-use crate::services::tree::tree_store;
-
-pub(super) fn with_index(
-    root: &Path,
-    result: R<Mutation>,
-    emit: Emit,
-    create: impl FnOnce(&[(PathBuf, PathBuf)]) -> Vec<String>,
-    rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>,
-) -> R<Mutation> {
-    let mut m = result?;
-    // An unknown scope (no touched paths) or a failed reload leaves nothing to update in place, so it is rebuilt in full.
-    let failures = if known_scope(&m) {
-        reindex_paths(root, emit, &m.before, &m.touched, create, rebuild)
-    } else {
-        reindex(root, emit, rebuild)
-    };
-    m.warnings.extend(failures.into_iter().map(|f| format!("Review index: {f}")));
-    with_search_index(root, Ok(m))
-}
-
-pub(super) fn with_search_index(root: &Path, result: R<Mutation>) -> R<Mutation> {
-    let mut m = result?;
-    if known_scope(&m) {
-        match search_index::update_paths(root, &m.touched_nodes(), &m.touched) {
-            Ok(()) => return Ok(m),
-            Err(e) => m.warnings.push(format!("Search index: the quick update failed, so it was rebuilt in full. {e}")),
-        }
-    }
-    // after_commit's empty fallback has no tree, so the tree is indexed instead of wiping the index.
-    let indexed = match m.tree.as_ref().filter(|t| !t.nodes.is_empty()) {
-        Some(tree) => search_index::rebuild_from_nodes(root, &tree.nodes),
-        None => tree_store::load(root).and_then(|data| search_index::rebuild(root, &data)),
-    };
-    if let Err(e) = indexed {
-        m.warnings.push(format!("Search index: {e}"));
-    }
-    Ok(m)
-}
-
-fn known_scope(m: &Mutation) -> bool {
-    !m.touched.is_empty() && m.tree.as_ref().is_none_or(|t| !t.nodes.is_empty())
-}
+use crate::services::edit;
+use crate::services::index::{review_index, Emit};
 
 // Mutations that can add, move or drop 998.Review links rebuild that index along with the search fields.
 async fn run_indexed<F>(app: AppHandle, f: F) -> R<Mutation>
@@ -61,17 +20,14 @@ where
     F: FnOnce(&Path) -> R<Mutation> + Send + 'static,
 {
     let emitter = app.clone();
-    run_locked(app, move |root| {
-        with_index(root, f(root), &review_emitter(&emitter), create_shortcuts, review_index::rebuild)
-    })
-    .await
+    run_locked(app, move |root| edit::indexed(root, &review_emitter(&emitter), f)).await
 }
 
 async fn run_search_indexed<F>(app: AppHandle, f: F) -> R<Mutation>
 where
     F: FnOnce(&Path) -> R<Mutation> + Send + 'static,
 {
-    run_locked(app, move |root| with_search_index(root, f(root))).await
+    run_locked(app, move |root| edit::search_indexed(root, f)).await
 }
 
 pub(super) fn delete_flow(
@@ -83,10 +39,7 @@ pub(super) fn delete_flow(
     rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>,
     recycle: impl FnOnce(&Path) -> Result<(), String>,
 ) -> R<Mutation> {
-    locked(storage, |root| {
-        let m = mutations::delete_node(root, rel, flags.0, flags.1, recycle)?;
-        with_index(root, Ok(m), emit, create, rebuild)
-    })
+    locked(storage, |root| edit::delete_node(root, rel, flags, emit, create, rebuild, recycle))
 }
 
 #[tauri::command]
@@ -226,6 +179,26 @@ pub async fn apply_support_upgrade(app: AppHandle, rel_parts: Vec<String>) -> R<
 #[tauri::command]
 pub async fn merge_extra_review(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
     run_indexed(app, move |root| crate::services::upgrade::merge_extra_review(root, &rel_parts)).await
+}
+
+#[tauri::command]
+pub async fn preview_project_groups(app: AppHandle, folder: Vec<String>) -> R<Vec<mutations::ProjectGroup>> {
+    run_locked(app, move |root| mutations::preview_project_groups(root, &folder)).await
+}
+
+#[tauri::command]
+pub async fn apply_project_groups(app: AppHandle, folder: Vec<String>, plans: Vec<mutations::ProjectPlan>) -> R<Mutation> {
+    run_indexed(app, move |root| mutations::apply_project_groups(root, &folder, &plans)).await
+}
+
+#[tauri::command]
+pub async fn can_undo_project_sort(app: AppHandle) -> R<bool> {
+    run_locked(app, |root| Ok(mutations::can_undo_project_sort(root))).await
+}
+
+#[tauri::command]
+pub async fn undo_project_sort(app: AppHandle) -> R<Mutation> {
+    run_indexed(app, mutations::undo_project_sort).await
 }
 
 #[tauri::command]

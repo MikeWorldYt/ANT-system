@@ -8,6 +8,10 @@ import { switchControl } from "../../../atoms/switch";
 const ROWS: Record<RailId, { label: string; icon: GuiIcon }> = {
   settings: { label: "Settings", icon: "settings" },
   board: { label: "Board", icon: "layout" },
+  downloads: { label: "Downloads", icon: "download" },
+  recordings: { label: "Recordings", icon: "recordings" },
+  screenshots: { label: "Screenshots", icon: "screenshots" },
+  review: { label: "Review", icon: "statusReview" },
   favorite: { label: "Favorite", icon: "starred" },
   edit: { label: "Edit details", icon: "pencil" },
   moveUp: { label: "Move up", icon: "moveUp" },

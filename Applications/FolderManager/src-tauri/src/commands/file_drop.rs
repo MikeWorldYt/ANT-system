@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use tauri::AppHandle;
 
-use super::edit::with_search_index;
+use crate::services::index::after_mutation::with_search_index;
 use super::run_locked;
 use crate::domain::error::R;
 use crate::platform::clipboard::{self, Paste};

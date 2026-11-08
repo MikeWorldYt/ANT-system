@@ -50,7 +50,7 @@ export function virtualEntry(entry: VirtualEntry, cls: string, role: string, { t
   const lead = marker === "caret" ? [nodeToggle(`${open ? "Collapse" : "Expand"} ${entry.label}`, open, el("span", { class: "caret", "aria-hidden": "true" }, guiIcon(open ? "chevronDown" : "chevronRight")), icon)] : [icon];
   const item = el(
     "div",
-    { class: `${cls} virtual-entry`, role, title: entry.hint, "aria-selected": String(open && state.selectedKey === null) },
+    { class: `${cls} virtual-entry`, "data-entry": entry.id, role, title: entry.hint, "aria-selected": String(open && state.selectedKey === null) },
     ...lead,
     el("span", { class: "name" }, el("span", { class: "name-text" }, entry.label)),
   );
@@ -76,6 +76,12 @@ export function virtualEntry(entry: VirtualEntry, cls: string, role: string, { t
     ev.stopPropagation();
   });
   return item;
+}
+
+// Favorites heads the root; Downloads opens the tail group at `cut` and Review closes it, beside the folders they gather.
+export function placeEntries(entries: HTMLElement[], items: HTMLElement[], cut: number): HTMLElement[] {
+  const pick = (id: string) => entries.filter((e) => e.dataset.entry === id);
+  return [...pick("favorites"), ...items.slice(0, cut), ...pick("downloads"), ...items.slice(cut), ...pick("review")];
 }
 
 // Only the head entry can hold the roving focus.

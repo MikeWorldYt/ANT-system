@@ -8,13 +8,13 @@ use std::path::Path;
 use serde_yaml::{Mapping, Value};
 
 use super::{child_rel, ensure_free, finish, guard_frozen, load_synced_at, locate, persist, register_ids, scope, Mutation};
-use crate::domain::names::{editable_part, next_available_id, next_main_category_id, next_track_number};
+use crate::domain::names::{editable_part, next_available_id, next_main_category_id, next_track_number, sanitize_train_case, sanitize_upper};
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{child_entries, META_KEYS};
 use crate::services::backup::stamp::local_date;
 use crate::domain::config::{NewKind, DATA_DIR, DATA_FLAG, OWNER_KEYS, REVIEW_PREFIX};
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{io_err, resolve, Journal, StorageLock};
+use crate::infra::fs_safe::{io_err, resolve, validate_component, Journal, StorageLock};
 use crate::infra::naming::free_name;
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store;
@@ -25,6 +25,10 @@ use crate::services::tree::tree_store::{get_node, get_node_mut};
 
 // A selected Level 1 node creates a sibling category at the Storage root.
 pub fn add_next(root: &Path, rel: &[String], kind: NewKind) -> R<Mutation> {
+    add_next_named(root, rel, kind, None)
+}
+
+pub fn add_next_named(root: &Path, rel: &[String], kind: NewKind, name: Option<&str>) -> R<Mutation> {
     if rel.is_empty() {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the storage root is not a node".to_string() });
     }
@@ -32,13 +36,19 @@ pub fn add_next(root: &Path, rel: &[String], kind: NewKind) -> R<Mutation> {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "workboards cannot be created at the storage root".to_string() });
     }
     let parent = if rel.len() == 1 { &[][..] } else { &rel[..rel.len() - 1] };
-    add_node(root, parent, kind)
+    add_node_named(root, parent, kind, name)
 }
 
 pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
+    add_node_named(root, parent, kind, None)
+}
+
+// A given name is cleaned as a rename does and replaces only the editable part; the id or tracker stays the app's.
+pub fn add_node_named(root: &Path, parent: &[String], kind: NewKind, name: Option<&str>) -> R<Mutation> {
+    let editable = editable_of(name, parent.is_empty())?;
     let _lock = StorageLock::acquire(root)?;
     if !parent.is_empty() && parent.len() >= depth::limit(root)? {
-        return add_past_limit(root, parent, kind);
+        return add_past_limit(root, parent, kind, editable);
     }
     let (mut data, synced) = load_synced_at(root, parent)?;
     if parent.is_empty() && kind == NewKind::Workboard {
@@ -64,13 +74,15 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     let mut taken = list_subdirs(&target.abs)?;
     taken.extend(child_entries(parent_yaml).map(|(k, _)| k.to_string()));
     let workboard = kind == NewKind::Workboard;
+    let named = editable.as_deref();
     let new_name = if parent.is_empty() {
-        format!("{:03}.NEW-CATEGORY", next_main_category_id(&taken))
+        format!("{:03}.{}", next_main_category_id(&taken), named.unwrap_or("NEW-CATEGORY"))
     } else if workboard {
-        format!("PJ.{:03}_New-Workboard", next_track_number("PJ.", &taken))
+        format!("PJ.{:03}_{}", next_track_number("PJ.", &taken), named.unwrap_or("New-Workboard"))
     } else {
-        format!("{:02}.New-Node", next_available_id(&taken))
+        format!("{:02}.{}", next_available_id(&taken), named.unwrap_or("New-Node"))
     };
+    validate_component(&new_name)?;
     ensure_free(&target.abs, Some(parent_yaml), &new_name, &[])?;
 
     let new_abs = target.abs.join(&new_name);
@@ -119,8 +131,17 @@ pub fn add_node(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
     Ok(finish(root, &data, false, Some(new_rel.clone()), warnings, scope(&synced.or_unscoped(moved), vec![new_rel])))
 }
 
+fn editable_of(name: Option<&str>, root_level: bool) -> R<Option<String>> {
+    let Some(raw) = name else { return Ok(None) };
+    let editable = if root_level { sanitize_upper(raw) } else { sanitize_train_case(raw) };
+    if editable.is_empty() {
+        return Err(FmError::InvalidName { name: raw.to_string(), reason: "name cannot be empty".to_string() });
+    }
+    Ok(Some(editable))
+}
+
 // Past the depth limit the database tracks nothing, so a node is a plain folder.
-fn add_past_limit(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> {
+fn add_past_limit(root: &Path, parent: &[String], kind: NewKind, editable: Option<String>) -> R<Mutation> {
     if is_reserved(&parent[..1]) {
         return Err(FmError::Reserved { rel_parts: parent.to_vec() });
     }
@@ -134,11 +155,13 @@ fn add_past_limit(root: &Path, parent: &[String], kind: NewKind) -> R<Mutation> 
         return Err(FmError::NotFound { rel_parts: parent.to_vec() });
     }
     let workboard = kind == NewKind::Workboard;
-    let name = if workboard {
-        format!("PJ.{:03}_New-Workboard", next_track_number("PJ.", &list_subdirs(&dir)?))
-    } else {
-        free_name(&dir, "New folder", &[])?
+    let name = match (workboard, editable) {
+        (true, named) => format!("PJ.{:03}_{}", next_track_number("PJ.", &list_subdirs(&dir)?), named.as_deref().unwrap_or("New-Workboard")),
+        (false, Some(named)) => named,
+        (false, None) => free_name(&dir, "New folder", &[])?,
     };
+    validate_component(&name)?;
+    ensure_free(&dir, None, &name, &[])?;
     let abs = dir.join(&name);
     fs::create_dir(&abs).map_err(|e| io_err("create folder", &abs, &e))?;
     let mut warnings = Vec::new();

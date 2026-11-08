@@ -22,7 +22,7 @@ pub(super) fn relative(root: &Path, path: &Path) -> Option<Vec<String>> {
         .collect()
 }
 
-// ant.db also covers its -journal, -wal and -shm files, which SQLite writes next to it.
+// ant.db also covers its -journal, -wal and -shm files, which SQLite writes next to it; the change log syncs nothing, the window reads it per batch.
 pub(super) fn is_own_write(rel: &[String]) -> bool {
     let in_review = rel.first().is_some_and(|first| first.eq_ignore_ascii_case(REVIEW_FOLDER));
     let own_file = rel.last().is_some_and(|name| {
@@ -46,6 +46,7 @@ mod tests {
             &[".ANT"],
             &["ant.db-journal"],
             &[".ant", "ant.db-wal"],
+            &[".ant", "changes.json"],
             &["100.WORK", "Tree.yaml"],
             &["998.Review"],
             &["998.review", "01.Math.lnk"],

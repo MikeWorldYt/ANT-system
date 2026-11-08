@@ -21,6 +21,9 @@ const TREE: &str = "100.PERSONAL:
     type: NODE-L2
   PJ.Board:
     type: WKB
+  00.Outcomes:
+    type: OUT
+    (26-11-05)_Clip: {type: NODE-L3}
 ";
 const DIRS: &[&str] = &[
     "100.PERSONAL/.ant",
@@ -31,6 +34,7 @@ const DIRS: &[&str] = &[
     "100.PERSONAL/04.Data",
     "100.PERSONAL/05.Bare/.ant",
     "100.PERSONAL/PJ.Board",
+    "100.PERSONAL/00.Outcomes/(26-11-05)_Clip",
 ];
 
 fn fixture(tag: &str) -> TempDir {
@@ -70,10 +74,12 @@ fn files_in_data_nodes_and_workboards_stay() {
     put(&dir, "100.PERSONAL/04.Data/table.csv", "t");
     put(&dir, "100.PERSONAL/03.Toki/01.Sub/raw.bin", "r");
     put(&dir, "100.PERSONAL/PJ.Board/plan.txt", "p");
+    put(&dir, "100.PERSONAL/00.Outcomes/(26-11-05)_Clip/clip.mp4", "c");
     let report = run(dir.path()).unwrap();
     assert!(has(&dir, "100.PERSONAL/04.Data/table.csv"));
     assert!(has(&dir, "100.PERSONAL/03.Toki/01.Sub/raw.bin"));
     assert!(has(&dir, "100.PERSONAL/PJ.Board/plan.txt"));
+    assert!(has(&dir, "100.PERSONAL/00.Outcomes/(26-11-05)_Clip/clip.mp4"));
     assert!(report.moved.is_empty() && report.loose.is_empty() && report.warnings.is_empty(), "{report:?}");
 }
 

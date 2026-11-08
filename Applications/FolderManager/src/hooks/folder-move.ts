@@ -33,7 +33,7 @@ export const canDropOn = (n: Movable | null): boolean =>
   !inDownloads(n.relParts) &&
   !n.reserved &&
   !n.ghost &&
-  ((!n.locked && (isPlain(n) || n.nodeType?.base === "NODE" || n.nodeType?.base === "WKB")) || n.nodeType?.base === "REV");
+  ((!n.locked && (isPlain(n) || n.nodeType?.base === "NODE" || n.nodeType?.base === "WKB")) || ["REV", "SS", "REC"].includes(n.nodeType?.base ?? ""));
 
 // Neither a folder nor anything inside it can become its own destination.
 const holds = (source: string[], target: string[]): boolean => source.length <= target.length && source.every((part, i) => part === target[i]);

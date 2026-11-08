@@ -11,14 +11,15 @@ import { quickActionsShown, railLayout, type RailId } from "../../../services/st
 import { selectedNode, state, toggleHidingLinks } from "../../../services/store/state";
 import { canEdit, createDetailsPanel } from "./details-panel";
 import { createAutomationsPanel } from "./automations-panel";
+import { createPreviewPanel } from "./preview-panel";
 import { createReviewAutomations } from "./review-automations";
-import { toggleBoard } from "../../../hooks/virtual-nav";
+import { goToReal, openVirtual, toggleBoard } from "../../../hooks/virtual-nav";
 import { sideAction } from "../../molecules/side-action";
 import type { TreeNode } from "../../../services/ipc/types";
 
 const PANEL_PREF = "fm.details";
-// Function groups of the collapsed rail: view settings, item state, ordering, removal.
-const RAIL_GROUP: Record<RailId, number> = { settings: 0, board: 0, favorite: 1, edit: 1, moveUp: 2, moveDown: 2, delete: 3 };
+// Function groups of the collapsed rail: view settings, shortcuts, item state, ordering, removal.
+const RAIL_GROUP: Record<RailId, number> = { settings: 0, board: 0, downloads: 1, recordings: 1, screenshots: 1, review: 1, favorite: 2, edit: 2, moveUp: 3, moveDown: 3, delete: 4 };
 
 export interface SidePanelActions {
   openSelected(): void;
@@ -44,6 +45,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
 
   const automations = createAutomationsPanel();
   const reviewTools = createReviewAutomations();
+  const preview = createPreviewPanel();
   const details = createDetailsPanel(() => {
     if (!collapseAfterEdit) return;
     collapseAfterEdit = false;
@@ -80,7 +82,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     toggleHidingLinks();
   });
   const categoriesSection = section("side-categories", "Filters", categories, hideLinks);
-  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, categoriesSection, details.element, automations.element, reviewTools.element, order, foot);
+  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, categoriesSection, details.element, automations.element, reviewTools.element, preview.element, order, foot);
 
   // ─────────♦ COLLAPSED RAIL ───────────────────────────────────────────────────
   const railExpand = iconButton("Expand side panel", "chevronsLeft", () => {
@@ -105,7 +107,17 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     moveUp: railUp,
     moveDown: railDown,
     delete: railDelete,
+    downloads: iconButton("Downloads", "download", () => void openVirtual("downloads")),
+    recordings: iconButton("Recordings", "recordings", () => openMedia("REC")),
+    screenshots: iconButton("Screenshots", "screenshots", () => openMedia("SS")),
+    review: iconButton("Review", "statusReview", () => void openVirtual("review")),
   };
+
+  // The global media folders sit at the root under their type, whatever their exact name.
+  function openMedia(base: string): void {
+    const node = state.tree?.nodes.find((n) => !n.file && n.nodeType?.base === base);
+    if (node) void goToReal(node.relParts);
+  }
   const rail = el("aside", { class: "side-rail", "aria-label": "Side panel" });
   let railKey: string | null = null;
 
@@ -192,6 +204,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     details.render();
     automations.render();
     reviewTools.render();
+    preview.render();
     layoutRail();
     const n = selectedNode();
     const idle = !state.busy;

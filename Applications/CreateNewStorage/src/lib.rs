@@ -15,7 +15,7 @@ mod test_dir;
 #[cfg(test)]
 mod tests;
 
-pub use create::{create, CreateOptions, Progress};
+pub use create::{create, load_template, CreateOptions, Progress};
 pub use name::sanitize_name;
 pub use plan::{plan, PlanNode};
 
