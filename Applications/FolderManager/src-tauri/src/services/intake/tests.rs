@@ -1,6 +1,9 @@
 // Intake rules checked on a throwaway storage with one node of each kind.
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
+
+use proptest::prelude::*;
 
 use super::*;
 use crate::test_support::{storage, yaml, TempDir};
@@ -175,4 +178,43 @@ fn subfolders_are_never_moved_and_a_second_run_changes_nothing() {
     assert!(dir.path().join("100.PERSONAL/03.Toki/loose-folder").is_dir());
     assert!(report.moved.is_empty() && report.warnings.is_empty(), "{report:?}");
     assert_eq!(yaml(dir.path()), before);
+}
+
+const SKIP_TREE: &str = "100.PERSONAL:
+  type: NODE-L1
+  98.PERSONAL: {type: REV-L2}
+  PJ.Board: {type: WKB}
+  00.Outcomes: {type: OUT}
+  RES.Brand: {type: RES}
+  TPL.Video: {type: TPL}
+  SS.Shots: {type: SS}
+  REC.Calls: {type: REC}
+";
+const SKIPPED: [&str; 7] = ["98.PERSONAL", "PJ.Board", "00.Outcomes", "RES.Brand", "TPL.Video", "SS.Shots", "REC.Calls"];
+
+fn folder() -> impl Strategy<Value = String> {
+    prop_oneof!["[a-z]{2,8}-[0-9]{1,2}", "[0-9]{2}[.][A-Z][a-z]{1,6}", "(REV|RES|PJ)[.][A-Z][a-z]{1,5}"]
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(24))]
+
+    #[test]
+    fn files_below_workboards_outcomes_and_locked_folders_are_never_moved_or_reported(top in prop::sample::select(SKIPPED.to_vec()), nested in prop::collection::vec(folder(), 0..4), files in prop::collection::vec((0usize..5, "f[a-z]{0,7}[.](txt|pdf|mp4)"), 1..6)) {
+        let dirs: Vec<String> = ["100.PERSONAL/.ant".to_string()].into_iter().chain(SKIPPED.iter().map(|d| format!("100.PERSONAL/{d}"))).collect();
+        let dir = storage("intake-skip-prop", &dirs.iter().map(String::as_str).collect::<Vec<_>>(), SKIP_TREE);
+        let mut placed = BTreeSet::new();
+        for (depth, name) in &files {
+            let rel = std::iter::once(format!("100.PERSONAL/{top}")).chain(nested.iter().take(*depth).cloned()).collect::<Vec<_>>().join("/");
+            dir.mkdir(&rel);
+            let path = format!("{rel}/{name}");
+            put(&dir, &path, &path);
+            placed.insert(path);
+        }
+        let report = run(dir.path()).unwrap();
+        prop_assert!(report.moved.is_empty() && report.loose.is_empty() && report.waiting.is_empty(), "{:?}", report);
+        for path in &placed {
+            prop_assert_eq!(&read(&dir.path().join(path)), path);
+        }
+    }
 }

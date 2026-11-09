@@ -2,9 +2,10 @@
 use std::fs;
 use std::path::Path;
 
+use proptest::prelude::*;
 use serde_json::{json, Value};
 
-use super::protocol::serve;
+use super::protocol::{handle, serve};
 use super::Server;
 use crate::domain::model::Copies;
 use crate::services::snapshot::snapshot;
@@ -109,6 +110,23 @@ fn a_byte_order_mark_before_the_first_message_is_ignored() {
     assert_eq!((replies[0]["id"].clone(), replies[0]["error"].is_null()), (json!(1), true));
 }
 
+// An agent may close stdin right after its last request, with no newline after it.
+#[test]
+fn a_tool_call_on_the_last_line_gets_one_reply_before_eof_with_or_without_a_bom() {
+    let dir = work("mcp-eof");
+    let s = server(dir.path());
+    let tree = json!({ "name": "get_tree", "arguments": {} });
+    let add = |name: &str| json!({ "name": "add_node", "arguments": { "parent": ["100.WORK"], "name": name } });
+    for (id, bom, params) in [(1, false, tree.clone()), (2, true, tree), (3, false, add("late one")), (4, true, add("late two"))] {
+        let line = request(id, "tools/call", params);
+        let input = format!("{}{}", if bom { "\u{feff}" } else { "" }, line.trim_end());
+        let replies = exchange(&s, input.as_bytes());
+        assert_eq!(replies.len(), 1, "{id}: {replies:?}");
+        assert_eq!((replies[0]["id"].clone(), replies[0]["result"]["isError"].clone()), (json!(id), json!(false)), "{}", replies[0]);
+    }
+    assert_eq!(names(&ok(&call(&s, "list_children", json!({ "relParts": ["100.WORK"] })))["nodes"]).iter().filter(|n| n.contains("Late")).count(), 2);
+}
+
 #[test]
 fn a_tool_failure_is_a_result_carrying_the_fm_error() {
     let dir = work("mcp-tool-error");
@@ -191,4 +209,76 @@ fn search_tools_use_the_index_the_disk_and_the_suggestions() {
     assert_eq!(hits, json!([{ "folder": ["100.WORK", "02.B"], "name": "notes.txt" }]));
     let suggestions = ok(&call(&s, "suggest_search", json!({ "key": "IN", "prefix": "Wk" })))["suggestions"].clone();
     assert!(suggestions.as_array().unwrap().iter().any(|x| x["value"] == "100.WORK/04.Wkb"), "{suggestions}");
+}
+
+const METHODS: [&str; 4] = ["initialize", "ping", "tools/list", "tools/call"];
+const VERSIONS: [&str; 3] = ["2025-06-18", "2025-03-26", "2024-11-05"];
+
+fn id() -> impl Strategy<Value = Value> {
+    prop_oneof![any::<i64>().prop_map(Value::from), "[a-z0-9-]{0,8}".prop_map(Value::from), Just(Value::Null)]
+}
+
+fn method() -> impl Strategy<Value = String> {
+    prop_oneof![prop::sample::select(METHODS.to_vec()).prop_map(String::from), Just("notifications/initialized".to_string()), "[a-z/_]{1,16}"]
+}
+
+// No storage is open, so a tools/call drawn here can never touch a folder.
+fn offline() -> Server {
+    Server::open(None, || None)
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(64))]
+
+    #[test]
+    fn requests_get_one_reply_with_their_id_and_notifications_none(id in prop::option::of(id()), method in method()) {
+        let mut message = json!({ "jsonrpc": "2.0", "method": method });
+        if let Some(id) = &id {
+            message["id"] = id.clone();
+        }
+        let reply = handle(&offline(), &message.to_string());
+        match id {
+            None => prop_assert!(reply.is_none(), "{:?}", reply),
+            Some(id) => {
+                let reply = reply.unwrap();
+                prop_assert_eq!((&reply["jsonrpc"], &reply["id"]), (&json!("2.0"), &id));
+                prop_assert!(reply.get("result").is_some() != reply.get("error").is_some(), "{}", reply);
+            }
+        }
+    }
+
+    #[test]
+    fn an_unknown_method_is_method_not_found(id in id(), method in "[a-z/_]{1,16}") {
+        prop_assume!(!METHODS.contains(&method.as_str()));
+        let reply = handle(&offline(), &json!({ "jsonrpc": "2.0", "id": id, "method": method }).to_string()).unwrap();
+        prop_assert_eq!(&reply["error"]["code"], &json!(-32601));
+    }
+
+    #[test]
+    fn json_that_is_not_an_object_is_an_invalid_request(value in prop_oneof![Just(Value::Null), any::<i64>().prop_map(Value::from), any::<bool>().prop_map(Value::from), ".{0,8}".prop_map(Value::from), prop::collection::vec(any::<i32>(), 0..4).prop_map(|v| json!(v))]) {
+        let reply = handle(&offline(), &value.to_string()).unwrap();
+        prop_assert_eq!((&reply["id"], &reply["error"]["code"]), (&Value::Null, &json!(-32600)));
+    }
+
+    #[test]
+    fn any_line_gets_at_most_one_well_formed_reply(line in any::<String>()) {
+        if let Some(reply) = handle(&offline(), &line) {
+            prop_assert_eq!(&reply["jsonrpc"], &json!("2.0"));
+            prop_assert!(reply.get("result").is_some() != reply.get("error").is_some(), "{}", reply);
+        }
+    }
+
+    #[test]
+    fn initialize_echoes_a_known_version_and_offers_the_newest_otherwise(asked in prop_oneof![prop::sample::select(VERSIONS.to_vec()).prop_map(String::from), "[0-9]{4}-[0-9]{2}-[0-9]{2}"]) {
+        let replies = exchange(&offline(), request(1, "initialize", json!({ "protocolVersion": asked })).as_bytes());
+        let expected = if VERSIONS.contains(&asked.as_str()) { asked.as_str() } else { VERSIONS[0] };
+        prop_assert_eq!(&replies[0]["result"]["protocolVersion"], &json!(expected));
+    }
+
+    #[test]
+    fn serve_answers_each_request_line_in_order_and_skips_blank_ones(ids in prop::collection::vec(any::<u32>(), 0..8), blank in any::<bool>()) {
+        let input: String = ids.iter().map(|&id| request(id.into(), "ping", json!({})) + if blank { "\n" } else { "" }).collect();
+        let replies = exchange(&offline(), input.as_bytes());
+        prop_assert_eq!(replies.iter().map(|r| r["id"].clone()).collect::<Vec<_>>(), ids.iter().map(|&id| json!(id)).collect::<Vec<_>>());
+    }
 }

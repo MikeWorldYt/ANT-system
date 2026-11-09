@@ -1,3 +1,5 @@
+use proptest::prelude::*;
+
 use super::*;
 
 const NAMES: &[&str] = &[
@@ -86,7 +88,48 @@ fn accents_and_typos_do_not_split_a_project() {
     assert_eq!(group(&names)[0].members.len(), 3);
 }
 
-#[test]
-fn nothing_groups_in_an_empty_list() {
-    assert!(group(&[]).is_empty());
+const GENERIC: [&str; 2] = ["project", "client"];
+const WORDS: &[&str] = &["alpha", "beta", "gamma", "delta", "pool", "plans", "summer", "winter", "podcast", "calculo"];
+
+// Few words, ids and tags, so random names often share enough to group.
+fn name() -> impl Strategy<Value = String> {
+    let words = prop::collection::vec(prop::sample::select(WORDS), 1..4);
+    let tag = prop::option::of(prop::sample::select(vec!["Ana", "Luis", "c004"]));
+    (words, prop::option::of(1000u32..1100), tag, prop::sample::select(vec!["pdf", "mp4", "docx"])).prop_map(|(words, id, tag, ext)| {
+        format!("{}{}{}.{ext}", words.join(" "), id.map(|n| format!(" {n}")).unwrap_or_default(), tag.map(|t| format!(" [{t}]")).unwrap_or_default())
+    })
+}
+
+proptest! {
+    #[test]
+    fn every_name_lands_in_at_most_one_group_of_two_or_more(names in prop::collection::vec(name(), 0..14)) {
+        let mut seen = BTreeSet::new();
+        for g in group(&names) {
+            prop_assert!(g.members.len() >= 2 && g.members.windows(2).all(|w| w[0] < w[1]), "{:?}", g);
+            prop_assert!(g.members.iter().all(|&m| m < names.len() && seen.insert(m)), "{:?}", g);
+            prop_assert!(g.title.chars().count() <= MAX_TITLE && !g.title.ends_with('-'), "{:?}", g);
+            prop_assert!(!(g.owner_conflict && g.owner.is_some()), "{:?}", g);
+        }
+    }
+
+    #[test]
+    fn numbered_copies_of_one_name_are_one_sure_project(words in prop::collection::btree_set(prop::sample::select(WORDS), 2..5), copies in 2usize..5) {
+        let name = words.into_iter().collect::<Vec<_>>().join(" ");
+        let names: Vec<String> = (0..copies).map(|i| if i == 0 { format!("{name}.pdf") } else { format!("{name} ({i}).pdf") }).collect();
+        let groups = group(&names);
+        prop_assert_eq!(groups.len(), 1);
+        prop_assert_eq!((groups[0].members.len(), groups[0].tier), (copies, Tier::Sure));
+    }
+
+    // Each name also holds words of its own, far apart so no typo rule joins them.
+    #[test]
+    fn names_that_share_only_generic_words_stay_loose(rows in prop::collection::vec((prop::sample::subsequence(GENERIC.to_vec(), 1..=2), any::<bool>(), prop::sample::select(vec!["pdf", "mp4", "docx"])), 8..20)) {
+        let share = |word: &&str| rows.iter().filter(|(g, ..)| g.contains(word)).count() * 10 > rows.len() * 3;
+        prop_assume!(GENERIC.iter().filter(|w| rows.iter().any(|(g, ..)| g.contains(w))).all(|w| share(w)));
+        let names: Vec<String> = rows.iter().enumerate().map(|(i, (generic, second, ext))| {
+            let own = char::from(b'b' + i as u8).to_string();
+            format!("{} {}{}.{ext}", generic.join(" "), own.repeat(6), if *second { format!(" {}x", own.repeat(3)) } else { String::new() })
+        }).collect();
+        prop_assert!(group(&names).is_empty(), "{:?}", names);
+    }
 }
