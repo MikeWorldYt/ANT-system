@@ -94,6 +94,7 @@ impl Store {
             1 => migrate_v1(&mut conn).map_err(fail)?,
             _ => {}
         }
+        drop_yaml_hash(&conn).map_err(fail)?;
         Ok(Store { conn, path })
     }
 }
@@ -118,6 +119,15 @@ fn migrate_v1(conn: &mut Connection) -> rusqlite::Result<()> {
     }
     tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     tx.commit()
+}
+
+// Builds that mirrored Tree.yaml kept its hash here; nothing reads it now, and the write happens only while the row exists.
+fn drop_yaml_hash(conn: &Connection) -> rusqlite::Result<()> {
+    let stale: bool = conn.query_row("SELECT EXISTS (SELECT 1 FROM meta WHERE key = 'yaml_hash')", [], |r| r.get(0))?;
+    if stale {
+        conn.execute("DELETE FROM meta WHERE key = 'yaml_hash'", [])?;
+    }
+    Ok(())
 }
 
 // Earlier builds wrote user_version after this commit, so a crash between them left a migrated db on version 1.
@@ -164,6 +174,16 @@ mod tests {
 
     fn uid_of_a(conn: &Connection) -> String {
         conn.query_row("SELECT uid FROM nodes WHERE name = 'A'", [], |r| r.get(0)).unwrap()
+    }
+
+    #[test]
+    fn the_old_tree_yaml_hash_is_dropped_on_open() {
+        let dir = TempDir::new("db-yaml-hash");
+        drop(Store::open_or_create(dir.path()).unwrap());
+        Connection::open(db_path(dir.path())).unwrap().execute("INSERT INTO meta VALUES ('yaml_hash', '88cd30f2a1046524')", []).unwrap();
+        let store = Store::open_existing(dir.path()).unwrap().unwrap();
+        let left: i64 = store.conn.query_row("SELECT COUNT(*) FROM meta WHERE key = 'yaml_hash'", [], |r| r.get(0)).unwrap();
+        assert_eq!(left, 0);
     }
 
     #[test]
