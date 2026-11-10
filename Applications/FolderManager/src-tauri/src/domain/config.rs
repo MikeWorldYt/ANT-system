@@ -31,6 +31,9 @@ pub const DATA_FLAG: &str = "data";
 // A hidden folder stays in the storage but is not listed, searched or read.
 pub const HIDDEN_FLAG: &str = "hidden";
 pub const MAIN_FLAG: &str = "main";
+// A review folder with one of these runs that automation on every file that lands in it.
+pub const AUTO_REDUCE_FLAG: &str = "auto-reduce";
+pub const AUTO_SORT_FLAG: &str = "auto-sort";
 pub const WKB_IDENTIFIERS: &[&str] = &["PJ.", "PR.", "HW.", "CR.", "TK."];
 // Support nodes: the word prefix, the numeric one older storages still use, and the type it gives.
 pub const SUPPORT_NODES: &[(&str, &str, &str)] = &[("RES.", "90.", "RES"), ("TPL.", "97.", "TPL"), ("REV.", "98.", "REV")];

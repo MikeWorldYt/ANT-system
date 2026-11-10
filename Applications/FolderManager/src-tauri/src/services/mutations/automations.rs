@@ -1,15 +1,17 @@
-// An Outcomes folder keeps the defaults its node gives every new workboard: output folder, status and owner.
+// An Outcomes folder keeps the defaults its node gives every new workboard; a review folder keeps which of its automations run on their own.
 use std::fs;
 use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use super::{editable_target, finish, scope, load_synced_at, parent_of, Mutation};
-use crate::domain::config::OWNER_KEYS;
+use super::{editable_target, finish, locate, scope, load_synced_at, parent_of, Mutation};
+use crate::domain::config::{AUTO_REDUCE_FLAG, AUTO_SORT_FLAG, FOOTPRINT_FILENAME, OWNER_KEYS};
 use crate::domain::error::{FmError, R};
-use crate::domain::tree_types::{child_entries, type_base};
+use crate::domain::tree_types::{child_entries, flags_in, type_base};
 use crate::infra::fs_safe::{io_err, StorageLock};
+use crate::infra::footprint_file::mirror_flags;
 use crate::infra::storage::info::{field_of, read_info, write_info};
+use crate::services::tree::tree_store::{self, get_node_mut, set_flag};
 use crate::services::tree::tree_node::parse_status;
 
 pub const DEFAULT_OUTPUT: &str = "defaultOutput";
@@ -42,6 +44,27 @@ pub fn set_default(root: &Path, rel: &[String], key: &str, value: Option<&str>) 
     }
     write_info(&target.abs, &[(&[key][..], key, value.map(Value::from))])?;
     Ok(finish(root, &data, false, Some(rel.to_vec()), Vec::new(), scope(&synced, vec![rel.to_vec()])))
+}
+
+pub fn set_review_automation(root: &Path, rel: &[String], automation: &str, on: bool) -> R<Mutation> {
+    let flag = match automation {
+        "reduce" => AUTO_REDUCE_FLAG,
+        "sort" => AUTO_SORT_FLAG,
+        _ => return Err(FmError::Internal { message: format!("unknown automation {automation}") }),
+    };
+    let _lock = StorageLock::acquire(root)?;
+    let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
+    let target = locate(root, &data, rel)?;
+    if target.ghost || type_base(&target.node_type) != "REV" {
+        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only a review folder runs automations".to_string() });
+    }
+    let node = get_node_mut(&mut data, rel).ok_or_else(|| FmError::NotFound { rel_parts: rel.to_vec() })?;
+    set_flag(node, flag, on);
+    let flags = flags_in(node);
+    tree_store::save(root, &data)?;
+    // The tree already holds the flag, so a failed mirror into dragpath.json is only reported.
+    let warnings = mirror_flags(&target.abs, &flags).err().map(|e| format!("Could not update {FOOTPRINT_FILENAME}: {e}")).into_iter().collect();
+    Ok(finish(root, &data, false, Some(rel.to_vec()), warnings, scope(&synced, vec![rel.to_vec()])))
 }
 
 // Fills a new workboard from its node's Outcomes defaults; an unset status keeps the in-progress it was created with.

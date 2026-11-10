@@ -70,16 +70,12 @@ export interface TreeNode {
   actions: NodeActions;
 }
 
-export interface ProjectPlan {
+// `name` is the file's name after the run; `project` the folder the sort would put it in.
+export interface PlannedFile {
+  file: string;
   name: string;
-  files: string[];
-  owner: string | null;
-  created: string | null;
-}
-
-export interface ProjectGroup extends ProjectPlan {
-  tier: "sure" | "likely";
-  ownerConflict: boolean;
+  project: string | null;
+  sure: boolean;
 }
 
 export interface TreeSnapshot {

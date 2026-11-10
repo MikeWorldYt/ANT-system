@@ -27,5 +27,9 @@
   --delete-hover: #ff6b5b;
   --ghost-text: #d77a7a;
   --field-bg: #3a3a3a;
+  --diff-del-bg: #3a1c1e;
+  --diff-del-mark: #a8282d;
+  --diff-add-bg: #12332a;
+  --diff-add-mark: #1d8a4c;
   color-scheme: dark;
 }

@@ -1,5 +1,6 @@
 // Event-driven Storage watching: folder changes on disk update only the affected part of the stored tree.
 mod apply;
+mod auto_run;
 mod filter;
 mod guard;
 mod gui;

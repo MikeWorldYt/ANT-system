@@ -445,6 +445,9 @@ export function setReviewFilter(hidden: string[], favorites: boolean): void {
 export const setUserFlag = (node: TreeNode, on: boolean) =>
   mutate(() => api.setUserFlag(node.relParts, on), node.relParts);
 
+export const setReviewAutomation = (node: TreeNode, automation: "reduce" | "sort", on: boolean) =>
+  mutate(() => api.setReviewAutomation(node.relParts, automation, on), node.relParts);
+
 // What comes in from outside may break the storage's rules, so the refresh checks run right after it lands, keeping the drop notice.
 async function revalidate(): Promise<void> {
   const ok = await run(reload);

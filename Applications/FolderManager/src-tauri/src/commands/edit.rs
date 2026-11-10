@@ -11,7 +11,7 @@ use crate::platform::shortcuts::create_shortcuts;
 use crate::domain::config::{EditableType, NewKind, WkbStatus};
 use crate::services::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
 use crate::domain::error::R;
-use crate::services::edit;
+use crate::services::{automations, edit};
 use crate::services::index::{review_index, Emit};
 
 // Mutations that can add, move or drop 998.Review links rebuild that index along with the search fields.
@@ -119,6 +119,21 @@ pub async fn deliver_output(app: AppHandle, rel_parts: Vec<String>, date: String
 #[tauri::command]
 pub async fn restore_output(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
     run_search_indexed(app, move |root| mutations::restore(root, &rel_parts)).await
+}
+
+#[tauri::command]
+pub async fn set_review_automation(app: AppHandle, rel_parts: Vec<String>, automation: String, on: bool) -> R<Mutation> {
+    run_locked(app, move |root| mutations::set_review_automation(root, &rel_parts, &automation, on)).await
+}
+
+#[tauri::command]
+pub async fn plan_automations(app: AppHandle, folder: Vec<String>, only: Vec<String>, reduce: bool, sort: bool) -> R<Vec<automations::PlannedFile>> {
+    run_locked(app, move |root| automations::plan(root, &folder, &only, reduce, sort)).await
+}
+
+#[tauri::command]
+pub async fn apply_automations(app: AppHandle, folder: Vec<String>, rows: Vec<automations::PlannedFile>) -> R<usize> {
+    run_locked(app, move |root| automations::apply(root, &folder, &rows)).await
 }
 
 #[tauri::command]

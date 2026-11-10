@@ -22,6 +22,7 @@ import pageGeneral from "../../assets/gui/page-general.svg?raw";
 import pageStorage from "../../assets/gui/page-storage.svg?raw";
 import pageShortcuts from "../../assets/gui/page-shortcuts.svg?raw";
 import pencil from "../../assets/gui/pencil.svg?raw";
+import play from "../../assets/gui/play.svg?raw";
 import moveDown from "../../assets/gui/move-down.svg?raw";
 import moveUp from "../../assets/gui/move-up.svg?raw";
 import refresh from "../../assets/gui/refresh.svg?raw";
@@ -45,7 +46,7 @@ import viewList from "../../assets/gui/view-list.svg?raw";
 import viewTree from "../../assets/gui/view-tree.svg?raw";
 import warning from "../../assets/gui/warning.svg?raw";
 
-const SOURCES = { add, back, chevronDown, chevronRight, chevronsLeft, chevronsRight, download, forward, hide, important, layout, link, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, recordings, refresh, screenshots, search, separator, settings, sortName, sortStatus, sortTrack, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, viewColumns, viewCards, viewGrid, viewList, viewTree, warning };
+const SOURCES = { add, back, chevronDown, chevronRight, chevronsLeft, chevronsRight, download, forward, hide, important, layout, link, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, play, recordings, refresh, screenshots, search, separator, settings, sortName, sortStatus, sortTrack, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, viewColumns, viewCards, viewGrid, viewList, viewTree, warning };
 
 export type GuiIcon = keyof typeof SOURCES;
 

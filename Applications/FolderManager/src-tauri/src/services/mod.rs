@@ -1,4 +1,5 @@
 // Use cases that combine the app session with the storage and index layers.
+pub mod automations;
 pub mod backup;
 pub mod bridge;
 pub mod debug_log;

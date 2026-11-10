@@ -72,7 +72,10 @@ pub fn watch(root: &Path, stop: &AtomicBool, on_applied: &mut dyn FnMut(&ApplyRe
                 None => apply_batch(root, &paths),
             };
             match applied {
-                Ok(report) => on_applied(&report),
+                Ok(report) => {
+                    on_applied(&report);
+                    super::auto_run::run(root, &paths);
+                }
                 Err(e) => log("error", &format!("Watch: batch of {} paths not applied: {e}", paths.len())),
             }
         }

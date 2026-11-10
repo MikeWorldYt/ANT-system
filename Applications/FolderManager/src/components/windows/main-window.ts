@@ -17,6 +17,7 @@ import { createViewSwitcher } from "../../hooks/view-switch";
 import { openFolder } from "../../hooks/path-actions";
 import { selectedNode } from "../../services/store/state";
 import { openSettings } from "./settings";
+import { createBatchView } from "./views/batch-view";
 import { createBoardView } from "./views/board-view";
 import { createColumnsView } from "./views/columns-view";
 import { createCardsView, createGridView, createListView } from "./views/grid-view";
@@ -58,8 +59,9 @@ export function createMainWindow(app: HTMLElement) {
   const panel = createSidePanel({ openSelected, openSettings: (pageId) => void openSettings(pageId) });
   // The board stands beside the views, outside the host, so their drag, drop and marquee never reach its cards.
   const board = createBoardView(panes, panel.editDetails);
-  const main = el("main", { class: "app-main" }, panes, board.element, ...panel.elements);
+  const batch = createBatchView(panes);
+  const main = el("main", { class: "app-main" }, panes, board.element, batch.element, ...panel.elements);
   app.append(tabBar.element, navigator.element, main, createStatusLine());
   installContextMenu(panes, () => views.current().focus(), viewPicker);
-  return { views, toolbar, navigator, tabBar, search, panel, board, openSelected };
+  return { views, toolbar, navigator, tabBar, search, panel, board, batch, openSelected };
 }
