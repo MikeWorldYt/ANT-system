@@ -18,6 +18,9 @@ use crate::services::tree::tree_node::{lists_files, TreeNode, TreeSnapshot};
 
 // Only a manual refresh (`full`) rebuilds the search and review indexes; automatic ones just sync the tree.
 pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>, full: bool) -> R<TreeSnapshot> {
+    if full {
+        crate::infra::fs_safe::clear_stale(root)?;
+    }
     node_names::tidy(root)?;
     let (mut tree, mut data) = snapshot_data(root, Copies::Tail, full)?;
     if review_folders::restore(root)? {

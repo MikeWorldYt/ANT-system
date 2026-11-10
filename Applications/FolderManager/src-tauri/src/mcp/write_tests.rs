@@ -206,7 +206,7 @@ fn a_busy_lock_is_retried_then_reported_and_a_stale_one_at_once() {
     fs::File::create(&lock).unwrap().set_modified(SystemTime::now() - Duration::from_secs(600)).unwrap();
     let started = Instant::now();
     let stale = failed(&call(&s, "rename", json!({ "relParts": ["100.WORK", "02.Bee"], "name": "B" })));
-    assert!(stale["message"].as_str().unwrap().contains("delete this file") && started.elapsed() < Duration::from_secs(2), "{stale}");
+    assert!(stale["message"].as_str().unwrap().contains("press Refresh") && started.elapsed() < Duration::from_secs(2), "{stale}");
 }
 
 #[test]
