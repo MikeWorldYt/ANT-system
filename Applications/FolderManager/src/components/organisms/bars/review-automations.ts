@@ -26,18 +26,20 @@ function action(label: string, icon: "play" | "layout", onClick: () => void): HT
 
 export function createReviewAutomations(): { element: HTMLElement; render(): void } {
   let scope: ReviewScope | null = null;
-  const reduce = pick("reduce", "Reduce name", "Strip hashes, site ids and other noise from file names");
+  const reduce = pick("reduce", "Clean up names", "Strip hashes, site ids and other noise from file names");
   const sort = pick("sort", "Sort by projects", "Group files that look like one project into a folder");
+  const group = pick("group", "Group by dictionary", "Move files into the folders the nearest dictionary.md names");
+  const picks = () => ({ reduce: reduce.box.checked, sort: sort.box.checked, group: group.box.checked });
   const auto = checkbox({ id: "review-auto-always" });
   const autoRow = el("label", { class: "side-action automation-row", for: "review-auto-always", title: "Run the ticked automations, without a dry run, on every file that lands in this folder" }, auto, el("span", { class: "side-action-label" }, "Run on every new file"));
   const enter = action("Batch mode", "layout", () => {
-    if (scope) void openBatch(scope, reduce.box.checked, sort.box.checked);
+    if (scope) void openBatch(scope, picks());
   });
-  const run = action("Run", "play", () => void runBatch(reduce.box.checked, sort.box.checked, auto.checked));
+  const run = action("Run", "play", () => void runBatch(picks(), auto.checked));
   const leave = textButton("Leave batch mode", "side-action", closeBatch);
-  const element = el("section", { class: "side-section", "aria-labelledby": "review-automations-title" }, el("h3", { id: "review-automations-title", class: "side-label" }, "Automations"), leave, reduce.element, sort.element, autoRow, enter, run);
+  const element = el("section", { class: "side-section", "aria-labelledby": "review-automations-title" }, el("h3", { id: "review-automations-title", class: "side-label" }, "Automations"), leave, reduce.element, sort.element, group.element, autoRow, enter, run);
 
-  for (const box of [reduce.box, sort.box]) box.addEventListener("change", () => (batch ? void replanBatch(reduce.box.checked, sort.box.checked) : render()));
+  for (const box of [reduce.box, sort.box, group.box]) box.addEventListener("change", () => (batch ? void replanBatch(picks()) : render()));
   auto.addEventListener("change", async () => {
     if (auto.checked && !(await confirmAutomation())) auto.checked = false;
   });
@@ -47,14 +49,14 @@ export function createReviewAutomations(): { element: HTMLElement; render(): voi
     if (batch && scope?.review?.relParts.join("/") !== batch.review.relParts.join("/")) closeBatch();
     element.hidden = scope === null;
     const inBatch = batch !== null;
-    const none = !reduce.box.checked && !sort.box.checked;
-    reduce.element.hidden = sort.element.hidden = autoRow.hidden = run.hidden = leave.hidden = !inBatch;
+    const none = !reduce.box.checked && !sort.box.checked && !group.box.checked;
+    reduce.element.hidden = sort.element.hidden = group.element.hidden = autoRow.hidden = run.hidden = leave.hidden = !inBatch;
     enter.hidden = inBatch;
     enter.disabled = state.busy || !scope?.review;
     run.disabled = state.busy || none;
     if (!inBatch) {
       const flags = scope?.review?.flags ?? [];
-      auto.checked = flags.includes("auto-reduce") || flags.includes("auto-sort");
+      auto.checked = ["auto-reduce", "auto-sort", "auto-group"].some((f) => flags.includes(f));
     }
   }
 

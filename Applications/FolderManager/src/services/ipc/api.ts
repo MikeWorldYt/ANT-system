@@ -21,6 +21,7 @@ import type {
   TreeNode,
   TreeSnapshot,
   WkbStatus,
+  Picks,
   PlannedFile,
 } from "./types";
 
@@ -133,8 +134,8 @@ export const copyItems = (targets: string[][], cut: boolean) =>
   targets.every(inDownloads) ? call<void>("copy_downloads", { targets: targets.map(belowDownloads) }) : call<void>("copy_items", { targets, cut });
 export const createFileShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_file_shortcut_in", { target, folder });
-export const setReviewAutomation = (relParts: string[], automation: "reduce" | "sort", on: boolean) => call<Mutation>("set_review_automation", { relParts, automation, on });
-export const planAutomations = (folder: string[], only: string[], reduce: boolean, sort: boolean) => call<PlannedFile[]>("plan_automations", { folder, only, reduce, sort });
+export const setReviewAutomation = (relParts: string[], automation: keyof Picks, on: boolean) => call<Mutation>("set_review_automation", { relParts, automation, on });
+export const planAutomations = (folder: string[], only: string[], picks: Picks) => call<PlannedFile[]>("plan_automations", { folder, only, ...picks });
 export const applyAutomations = (folder: string[], rows: PlannedFile[]) => call<number>("apply_automations", { folder, rows });
 export const renameFile = (relParts: string[], newName: string) => call<Mutation>("rename_file", { relParts, newName });
 export const deleteFile = (relParts: string[]) => call<Mutation>("delete_file", { relParts });

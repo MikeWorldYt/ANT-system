@@ -5,7 +5,7 @@ use std::path::Path;
 use serde_yaml::{Mapping, Value};
 
 use super::{editable_target, finish, locate, scope, load_synced_at, parent_of, Mutation};
-use crate::domain::config::{AUTO_REDUCE_FLAG, AUTO_SORT_FLAG, FOOTPRINT_FILENAME, OWNER_KEYS};
+use crate::domain::config::{AUTO_GROUP_FLAG, AUTO_REDUCE_FLAG, AUTO_SORT_FLAG, FOOTPRINT_FILENAME, OWNER_KEYS};
 use crate::domain::error::{FmError, R};
 use crate::domain::tree_types::{child_entries, flags_in, type_base};
 use crate::infra::fs_safe::{io_err, StorageLock};
@@ -50,6 +50,7 @@ pub fn set_review_automation(root: &Path, rel: &[String], automation: &str, on: 
     let flag = match automation {
         "reduce" => AUTO_REDUCE_FLAG,
         "sort" => AUTO_SORT_FLAG,
+        "group" => AUTO_GROUP_FLAG,
         _ => return Err(FmError::Internal { message: format!("unknown automation {automation}") }),
     };
     let _lock = StorageLock::acquire(root)?;

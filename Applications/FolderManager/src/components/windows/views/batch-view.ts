@@ -10,7 +10,7 @@ import { keyOf, select, state } from "../../../services/store/state";
 import { batchRow, setRowTicked } from "./batch-row";
 import type { BatchRow } from "./batch-row";
 
-function groupBody(project: string, files: BatchRow[], collapsed: Set<string>, onToggle: () => void): HTMLTableSectionElement {
+function groupBody(project: string, kind: "wkb" | "folder", files: BatchRow[], collapsed: Set<string>, onToggle: () => void): HTMLTableSectionElement {
   const box = checkbox({ "aria-label": `All files moving to ${project}` });
   const shut = collapsed.has(project);
   const toggle = nodeToggle(`${shut ? "Show" : "Hide"} the files of ${project}`, !shut, guiIcon(shut ? "chevronRight" : "chevronDown"));
@@ -44,7 +44,7 @@ function groupBody(project: string, files: BatchRow[], collapsed: Set<string>, o
     { class: "batch-group" },
     el("td", { class: "batch-check" }, box),
     el("td", {}),
-    el("th", { scope: "rowgroup" }, el("span", { class: "batch-group-head" }, kindIcon("wkb"), el("span", { class: "batch-group-name" }, `${project}/ (${plural(files.length, "file")})`), toggle)),
+    el("th", { scope: "rowgroup" }, el("span", { class: "batch-group-head" }, kindIcon(kind), el("span", { class: "batch-group-name" }, `${project}/ (${plural(files.length, "file")})`), toggle)),
   );
   for (const r of files) r.tr.hidden = shut;
   return el("tbody", {}, header, ...files.map((r) => r.tr));
@@ -77,9 +77,11 @@ export function createBatchView(host: HTMLElement): { element: HTMLElement; rend
     if (!batch) return;
     const loose: BatchRow[] = [];
     const groups = new Map<string, BatchRow[]>();
+    const kinds = new Map(batch.rows.map((f) => [f.folder ?? f.project, f.folder !== null ? "folder" : "wkb"] as const));
     rows = [];
     for (const file of batch.rows) {
-      const row = batchRow(file, file.project !== null);
+      const home = file.folder ?? file.project;
+      const row = batchRow(file, home !== null);
       rows.push(row);
       row.box.addEventListener("change", syncAll);
       const parts = [...batch.folder, file.file];
@@ -88,10 +90,10 @@ export function createBatchView(host: HTMLElement): { element: HTMLElement; rend
       row.tr.addEventListener("click", (ev) => {
         if (!(ev.target instanceof HTMLInputElement)) select(parts);
       });
-      if (file.project === null) loose.push(row);
-      else groups.set(file.project, [...(groups.get(file.project) ?? []), row]);
+      if (home === null) loose.push(row);
+      else groups.set(home, [...(groups.get(home) ?? []), row]);
     }
-    const sections = [...(loose.length > 0 ? [el("tbody", {}, ...loose.map((r) => r.tr))] : []), ...[...groups].map(([project, files]) => groupBody(project, files, collapsed, render))];
+    const sections = [...(loose.length > 0 ? [el("tbody", {}, ...loose.map((r) => r.tr))] : []), ...[...groups].map(([project, files]) => groupBody(project, kinds.get(project) ?? "wkb", files, collapsed, render))];
     for (const section of sections) section.querySelector(".batch-group input")?.addEventListener("change", syncAll);
     table.replaceChildren(head, ...sections);
     syncAll();

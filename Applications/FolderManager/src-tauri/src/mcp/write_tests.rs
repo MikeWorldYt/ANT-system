@@ -41,7 +41,7 @@ fn write_tools_declare_what_they_do() {
     let dir = work("mcp-w-list");
     let replies = exchange(&server(dir.path()), request(1, "tools/list", json!({})).as_bytes());
     let tools = replies[0]["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 31);
+    assert_eq!(tools.len(), 33);
     let hints = |name: &str| {
         let a = &tools.iter().find(|t| t["name"] == name).unwrap()["annotations"];
         (a["readOnlyHint"].clone(), a["destructiveHint"].clone(), a["idempotentHint"].clone())
@@ -49,13 +49,14 @@ fn write_tools_declare_what_they_do() {
     for name in ["move", "reorder", "delete", "delete_file", "apply_project_groups", "undo_project_sort"] {
         assert_eq!(hints(name), (json!(false), json!(true), json!(false)), "{name}");
     }
-    for name in ["set_type", "set_status", "set_owner", "set_favorite", "set_important", "hide", "set_board"] {
+    for name in ["set_type", "set_status", "set_owner", "set_favorite", "set_important", "hide", "set_board", "set_dictionary"] {
         assert_eq!(hints(name), (json!(false), json!(false), json!(true)), "{name}");
     }
     for name in ["add_node", "add_workboard", "rename", "copy", "rename_file"] {
         assert_eq!(hints(name), (json!(false), json!(false), json!(false)), "{name}");
     }
     assert_eq!(hints("preview_project_groups").0, json!(true));
+    assert_eq!(hints("get_dictionary").0, json!(true));
 }
 
 #[test]

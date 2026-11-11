@@ -131,3 +131,30 @@ pub(super) fn apply_project_groups() -> (Value, Value) {
 pub(super) fn undo_project_sort() -> (Value, Value) {
     (object(json!({}), &[]), change())
 }
+
+fn entry() -> Value {
+    let words = |description: &str| json!({ "type": "array", "items": { "type": "string", "minLength": 1 }, "description": description });
+    object(
+        json!({
+            "folder": text("The subfolder its files group into, also the entry's heading; \"Do not group\" keeps them in place"),
+            "term": words("Names of the subject; matched as whole words ignoring case and accents, and removed from the file name"),
+            "topics": words("Related names, such as characters; matched like terms, kept once in the name and their repeats removed"),
+            "only": words("Exact words, case and symbols included; kept in the name"),
+            "exclude": words("Words removed from the name of a grouped file; they never decide the group"),
+            "ext": words("Extensions such as \".jpg\""),
+            "pattern": words("Case-insensitive regular expressions on the name without extension; the match is removed"),
+        }),
+        &["folder"],
+    )
+}
+
+pub(super) fn get_dictionary() -> (Value, Value) {
+    let list = json!({ "type": "array", "items": entry() });
+    let own = json!({ "type": ["array", "null"], "items": entry(), "description": "This folder's own entries; null when it has no dictionary.md" });
+    (object(json!({ "relParts": rel_parts(0) }), &["relParts"]), output(json!({ "own": own, "inherited": list }), &["own", "inherited"]))
+}
+
+pub(super) fn set_dictionary() -> (Value, Value) {
+    let input = object(json!({ "relParts": rel_parts(0), "entries": { "type": "array", "items": entry() } }), &["relParts", "entries"]);
+    (input, output(json!({ "changed": { "type": "string" } }), &["changed"]))
+}

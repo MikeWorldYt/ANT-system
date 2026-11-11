@@ -127,8 +127,8 @@ pub async fn set_review_automation(app: AppHandle, rel_parts: Vec<String>, autom
 }
 
 #[tauri::command]
-pub async fn plan_automations(app: AppHandle, folder: Vec<String>, only: Vec<String>, reduce: bool, sort: bool) -> R<Vec<automations::PlannedFile>> {
-    run_locked(app, move |root| automations::plan(root, &folder, &only, reduce, sort)).await
+pub async fn plan_automations(app: AppHandle, folder: Vec<String>, only: Vec<String>, reduce: bool, sort: bool, group: bool) -> R<Vec<automations::PlannedFile>> {
+    run_locked(app, move |root| automations::plan(root, &folder, &only, reduce, sort, group)).await
 }
 
 #[tauri::command]

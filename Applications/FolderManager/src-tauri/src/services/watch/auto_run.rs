@@ -4,10 +4,10 @@ use std::path::{Path, PathBuf};
 
 use super::filter::{is_own_write, relative};
 use super::log;
-use crate::domain::config::{AUTO_REDUCE_FLAG, AUTO_SORT_FLAG};
+use crate::domain::config::{AUTO_GROUP_FLAG, AUTO_REDUCE_FLAG, AUTO_SORT_FLAG};
 use crate::domain::project_group::Tier;
 use crate::domain::tree_types::{flags_in, type_base};
-use crate::services::automations::reduce_files;
+use crate::services::automations::{self, reduce_files};
 use crate::services::mutations::{self, ProjectPlan};
 use crate::services::tree::tree_store;
 
@@ -33,6 +33,9 @@ pub(super) fn run(root: &Path, changed: &[PathBuf]) {
         let flags = flags_in(node);
         if flags.iter().any(|f| f == AUTO_REDUCE_FLAG) {
             reduce(root, &folder, &files);
+        }
+        if flags.iter().any(|f| f == AUTO_GROUP_FLAG) {
+            group(root, &folder, &files);
         }
         if flags.iter().any(|f| f == AUTO_SORT_FLAG) {
             sort(root, &folder);
@@ -60,5 +63,16 @@ fn sort(root: &Path, folder: &[String]) {
     }
     if let Err(e) = mutations::apply_project_groups(root, folder, &plans) {
         log("error", &format!("Automations: {} not sorted: {e}", folder.join("/")));
+    }
+}
+
+// A file the reduce renamed in this same batch is gone under its old name, so only the names still there are grouped.
+fn group(root: &Path, folder: &[String], files: &[String]) {
+    let result = automations::plan(root, folder, files, false, false, true).and_then(|rows| {
+        let moving: Vec<_> = rows.into_iter().filter(|r| r.folder.is_some()).collect();
+        if moving.is_empty() { Ok(0) } else { automations::apply(root, folder, &moving) }
+    });
+    if let Err(e) = result {
+        log("error", &format!("Automations: {} not grouped: {e}", folder.join("/")));
     }
 }

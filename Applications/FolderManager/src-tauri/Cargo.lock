@@ -1033,6 +1033,7 @@ version = "2.4.4-beta"
 dependencies = [
  "notify",
  "proptest",
+ "regex",
  "rusqlite",
  "serde",
  "serde_json",

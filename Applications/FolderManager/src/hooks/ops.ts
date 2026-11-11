@@ -22,7 +22,7 @@ import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
 import { inDownloads, isFmError } from "../services/ipc/types";
 import { plural } from "../services/plural";
 import { localStamp } from "../services/stamp";
-import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../services/ipc/types";
+import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Picks, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../services/ipc/types";
 
 async function reload(snapshot?: TreeSnapshot, full = true): Promise<void> {
   markRefreshed();
@@ -449,7 +449,7 @@ export function setReviewFilter(hidden: string[], favorites: boolean): void {
 export const setUserFlag = (node: TreeNode, on: boolean) =>
   mutate(() => api.setUserFlag(node.relParts, on), node.relParts);
 
-export const setReviewAutomation = (node: TreeNode, automation: "reduce" | "sort", on: boolean) =>
+export const setReviewAutomation = (node: TreeNode, automation: keyof Picks, on: boolean) =>
   mutate(() => api.setReviewAutomation(node.relParts, automation, on), node.relParts);
 
 // What comes in from outside may break the storage's rules, so the refresh checks run right after it lands, keeping the drop notice.

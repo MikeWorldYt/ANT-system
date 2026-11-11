@@ -50,7 +50,7 @@ fn undo_file(root: &Path) -> PathBuf {
     root.join(DATA_DIR).join(UNDO_FILENAME)
 }
 
-fn check_in_review(data: &Mapping, folder: &[String]) -> R<()> {
+pub(super) fn check_in_review(data: &Mapping, folder: &[String]) -> R<()> {
     let reviewed = (1..=folder.len()).any(|end| get_node(data, &folder[..end]).and_then(|n| n.get("type")).and_then(Value::as_str).is_some_and(|t| type_base(t) == "REV"));
     if reviewed {
         return Ok(());

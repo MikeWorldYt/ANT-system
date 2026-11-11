@@ -78,6 +78,13 @@ export interface PlannedFile {
   name: string;
   project: string | null;
   sure: boolean;
+  folder: string | null;
+}
+
+export interface Picks {
+  reduce: boolean;
+  sort: boolean;
+  group: boolean;
 }
 
 export interface TreeSnapshot {
