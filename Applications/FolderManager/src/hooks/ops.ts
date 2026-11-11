@@ -32,7 +32,11 @@ async function reload(snapshot?: TreeSnapshot, full = true): Promise<void> {
   followExpanded();
   await hydrate();
   await loadVirtual();
+  const before = state.selectedKey;
   pruneSelection();
+  // The sync fallback only sees loaded levels; a path past them is walked again before settling on a parent.
+  const after = state.selectedKey;
+  if (before !== null && before !== after && (after === null || before.startsWith(`${after}/`))) await reveal(before.split("/"));
   await loadOther();
   await loadOtherVirtual();
   await askAboutCopies(tree.copies);

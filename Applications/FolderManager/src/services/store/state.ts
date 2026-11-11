@@ -376,18 +376,23 @@ export function stopEdit(): void {
 }
 
 // Expands every ancestor, loads what is missing and selects the folder.
+// Walks down loading each level on the way, past the depth limit too; a folder renamed outside keeps its place through its id, and a gone one leaves its nearest parent.
 export async function reveal(parts: string[]): Promise<void> {
-  for (let i = 1; i < parts.length; i++) state.expanded.add(keyOf(parts.slice(0, i)));
   await hydrate();
-  // Folders past the depth limit are only read on demand, so each one on the way is loaded here.
-  for (let i = 1; i < parts.length; i++) {
-    const n = findNode(parts.slice(0, i));
-    if (!n) break;
-    if (n.children === null && n.hasChildren) n.children = await listChildren(n.relParts);
+  const resolved: string[] = [];
+  let level: TreeNode[] = topLevel(parts.slice(0, 1));
+  for (const part of inDownloads(parts) ? parts.slice(1) : parts) {
+    const id = inDownloads(parts) ? null : idOf(part);
+    const sameId = id === null ? [] : level.filter((n) => idOf(n.name) === id);
+    const found = level.find((n) => n.name === part) ?? (sameId.length === 1 ? sameId[0] : undefined);
+    if (!found) break;
+    if (found.children === null && found.hasChildren && resolved.length + 1 < parts.length) found.children = await listChildren(found.relParts);
+    resolved.push(found.name);
+    level = found.children ?? [];
   }
-  let at = parts.length;
-  while (at > 0 && !findNode(parts.slice(0, at))) at--;
-  select(at > 0 ? parts.slice(0, at) : null);
+  const path = inDownloads(parts) && resolved.length > 0 ? [parts[0] ?? "", ...resolved] : resolved;
+  for (let i = 1; i < path.length; i++) state.expanded.add(keyOf(path.slice(0, i)));
+  select(path.length > 0 && findNode(path) ? path : null);
 }
 
 export function setBusy(busy: boolean): void {
