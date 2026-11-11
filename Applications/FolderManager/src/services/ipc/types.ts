@@ -68,6 +68,8 @@ export interface TreeNode {
   children: TreeNode[] | null;
   absPath: string;
   actions: NodeActions;
+  // Milliseconds since the epoch; size only for files.
+  stamps: { modified: number | null; created: number | null; size: number | null };
 }
 
 // `name` is the file's name after the run; `project` the folder the sort would put it in.

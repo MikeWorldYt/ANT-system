@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::domain::error::R;
 use crate::infra::fs_safe::{dir_entries, io_err, resolve};
-use crate::services::tree::tree_node::{NodeActions, TreeNode};
+use crate::services::tree::tree_node::{stamps_of, NodeActions, TreeNode};
 
 // ':' cannot appear in a Windows file name, so no storage folder can share this first part.
 pub const ROOT: &str = "::Downloads";
@@ -49,6 +49,7 @@ fn node(parent: &[String], name: String, abs: PathBuf, file: bool) -> TreeNode {
     rel_parts.extend_from_slice(parent);
     rel_parts.push(name.clone());
     TreeNode {
+        stamps: stamps_of(&abs, file),
         abs_path: abs.to_string_lossy().into_owned(),
         depth: rel_parts.len() - 1,
         rel_parts,

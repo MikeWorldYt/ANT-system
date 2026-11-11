@@ -38,7 +38,7 @@ interface State {
 
 export type VirtualId = "favorites" | "downloads" | "review" | "board";
 
-const START_VIEWS: StartView[] = ["tree", "columns", "grid", "list", "cards"];
+const START_VIEWS: StartView[] = ["tree", "columns", "grid", "list", "details", "cards"];
 
 export interface KeyCombo {
   code: string;
@@ -52,7 +52,7 @@ export type Theme = "system" | "light" | "dark";
 export type AccentId = "green" | "blue" | "purple" | "coral" | "gold";
 export type TextSize = "small" | "medium" | "large";
 export type TabView = "last" | "default";
-export type StartView = "continue" | "tree" | "columns" | "grid" | "list" | "cards";
+export type StartView = "continue" | "tree" | "columns" | "grid" | "list" | "details" | "cards";
 
 export interface Settings {
   pinFavorites: boolean;

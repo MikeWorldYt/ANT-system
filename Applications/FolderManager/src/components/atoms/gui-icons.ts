@@ -29,7 +29,10 @@ import refresh from "../../assets/gui/refresh.svg?raw";
 import search from "../../assets/gui/search.svg?raw";
 import settings from "../../assets/gui/settings.svg?raw";
 import separator from "../../assets/gui/separator.svg?raw";
+import sortCreated from "../../assets/gui/sort-created.svg?raw";
+import sortModified from "../../assets/gui/sort-modified.svg?raw";
 import sortName from "../../assets/gui/sort-name.svg?raw";
+import sortSize from "../../assets/gui/sort-size.svg?raw";
 import sortStatus from "../../assets/gui/sort-status.svg?raw";
 import sortTrack from "../../assets/gui/sort-track.svg?raw";
 import starred from "../../assets/gui/starred.svg?raw";
@@ -42,11 +45,12 @@ import up from "../../assets/gui/up.svg?raw";
 import viewColumns from "../../assets/gui/view-columns.svg?raw";
 import viewCards from "../../assets/gui/view-cards.svg?raw";
 import viewGrid from "../../assets/gui/view-grid.svg?raw";
+import viewDetails from "../../assets/gui/view-details.svg?raw";
 import viewList from "../../assets/gui/view-list.svg?raw";
 import viewTree from "../../assets/gui/view-tree.svg?raw";
 import warning from "../../assets/gui/warning.svg?raw";
 
-const SOURCES = { add, back, chevronDown, chevronRight, chevronsLeft, chevronsRight, download, forward, hide, important, layout, link, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, play, recordings, refresh, screenshots, search, separator, settings, sortName, sortStatus, sortTrack, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, viewColumns, viewCards, viewGrid, viewList, viewTree, warning };
+const SOURCES = { add, back, chevronDown, chevronRight, chevronsLeft, chevronsRight, download, forward, hide, important, layout, link, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, play, recordings, refresh, screenshots, search, separator, settings, sortCreated, sortModified, sortName, sortSize, sortStatus, sortTrack, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, viewColumns, viewCards, viewDetails, viewGrid, viewList, viewTree, warning };
 
 export type GuiIcon = keyof typeof SOURCES;
 

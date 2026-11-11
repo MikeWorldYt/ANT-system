@@ -143,8 +143,6 @@ pub fn run() {
             commands::list_review,
             commands::list_workboards,
             commands::set_board,
-            commands::preview_project_groups,
-            commands::apply_project_groups,
             commands::can_undo_project_sort,
             commands::undo_project_sort,
             commands::search_disk,

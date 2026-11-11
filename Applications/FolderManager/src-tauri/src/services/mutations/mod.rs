@@ -43,7 +43,7 @@ pub(crate) use result::finish;
 pub use resolve::{preview_names, resolve_invalid, Pending, Resolution};
 pub use hidden::{hidden_choices, set_hidden, set_hidden_children, HiddenChoice};
 pub use outputs::{deliver, restore, set_output};
-pub use project_groups::{apply_project_groups, can_undo_project_sort, preview_project_groups, undo_project_sort, ProjectGroup, ProjectPlan};
+pub use project_groups::{apply_project_groups, can_undo_project_sort, preview_project_groups, undo_project_sort, ProjectPlan};
 pub use automations::{set_default, set_review_automation};
 pub use retype::{set_details, set_node_type};
 pub use mutation::Mutation;

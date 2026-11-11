@@ -2,13 +2,13 @@
 import { STATUSES } from "./node-info";
 import type { TreeNode } from "../ipc/types";
 
-export type SortBy = "track" | "name" | "status";
+export type SortBy = "track" | "name" | "status" | "modified" | "created" | "size";
 export interface ColumnSort {
   by: SortBy;
   dir: "asc" | "desc";
 }
 
-export const SORT_BYS: readonly SortBy[] = ["track", "name", "status"];
+export const SORT_BYS: readonly SortBy[] = ["track", "name", "status", "modified", "created", "size"];
 
 // Support folders (REV., RES., TPL., SS., REC. and the 90/97/98 ids of older storages) and 998/999 stay at the end of a list whatever the sort direction.
 export function isTail(name: string): boolean {
@@ -22,6 +22,10 @@ const sortValue: Record<SortBy, (n: TreeNode) => string | number> = {
   track: () => 0,
   name: (n) => (n.editableName || n.name).toLocaleLowerCase(),
   status: statusRank,
+  // Ghosts, links and folders have no size or stamp, so they sort as the smallest.
+  modified: (n) => n.stamps.modified ?? -1,
+  created: (n) => n.stamps.created ?? -1,
+  size: (n) => n.stamps.size ?? -1,
 };
 
 const isPortfolio = (n: TreeNode): boolean => n.nodeType?.base === "OUT";
@@ -56,7 +60,7 @@ export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort, pin
 export function sortedCards(nodes: TreeNode[], { by, dir }: ColumnSort): TreeNode[] {
   const text = (n: TreeNode) => (by === "name" ? n.editableName || n.name : n.name);
   const ordered = [...nodes].sort((a, b) =>
-    by === "status" ? statusRank(a) - statusRank(b) : text(a).localeCompare(text(b), undefined, { numeric: true, sensitivity: "base" }),
+    by === "status" || by === "modified" || by === "created" || by === "size" ? Number(sortValue[by](a)) - Number(sortValue[by](b)) : text(a).localeCompare(text(b), undefined, { numeric: true, sensitivity: "base" }),
   );
   return dir === "desc" ? ordered.reverse() : ordered;
 }

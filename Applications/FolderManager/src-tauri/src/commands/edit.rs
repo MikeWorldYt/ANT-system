@@ -197,16 +197,6 @@ pub async fn merge_extra_review(app: AppHandle, rel_parts: Vec<String>) -> R<Mut
 }
 
 #[tauri::command]
-pub async fn preview_project_groups(app: AppHandle, folder: Vec<String>) -> R<Vec<mutations::ProjectGroup>> {
-    run_locked(app, move |root| mutations::preview_project_groups(root, &folder)).await
-}
-
-#[tauri::command]
-pub async fn apply_project_groups(app: AppHandle, folder: Vec<String>, plans: Vec<mutations::ProjectPlan>) -> R<Mutation> {
-    run_indexed(app, move |root| mutations::apply_project_groups(root, &folder, &plans)).await
-}
-
-#[tauri::command]
 pub async fn can_undo_project_sort(app: AppHandle) -> R<bool> {
     run_locked(app, |root| Ok(mutations::can_undo_project_sort(root))).await
 }
