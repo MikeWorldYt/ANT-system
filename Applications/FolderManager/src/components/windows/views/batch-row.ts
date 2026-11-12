@@ -31,7 +31,7 @@ export function batchRow(file: PlannedFile, grouped = false): BatchRow {
     { class: changed ? "changed" : "unchanged" },
     el("td", { class: "batch-check" }, box),
     el("th", { scope: "row", class: "batch-before" }, ...(runs ? runNodes(runs.before, "del") : [file.file])),
-    el("td", { class: "batch-after" }, ...(grouped ? [el("span", { class: "batch-home" }, "~/")] : []), ...(runs ? runNodes(runs.after, "ins") : [file.name])),
+    el("td", { class: "batch-after" }, ...(grouped ? [el("span", { class: "batch-home" }, "~/")] : []), ...(runs ? runNodes(runs.after, "ins") : changed ? [file.name] : [])),
   );
   const row = { file, tr, box };
   tr.classList.toggle("skipped", changed && !isTicked(file));

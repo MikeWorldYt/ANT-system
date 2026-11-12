@@ -10,7 +10,7 @@ import { keyOf, select, state } from "../../../services/store/state";
 import { batchRow, setRowTicked } from "./batch-row";
 import type { BatchRow } from "./batch-row";
 
-function groupBody(project: string, kind: "wkb" | "folder", files: BatchRow[], collapsed: Set<string>, onToggle: () => void): HTMLTableSectionElement {
+function groupBody(project: string, kind: "wkb" | "folder" | "lnk", files: BatchRow[], collapsed: Set<string>, onToggle: () => void): HTMLTableSectionElement {
   const box = checkbox({ "aria-label": `All files moving to ${project}` });
   const shut = collapsed.has(project);
   const toggle = nodeToggle(`${shut ? "Show" : "Hide"} the files of ${project}`, !shut, guiIcon(shut ? "chevronRight" : "chevronDown"));
@@ -43,11 +43,14 @@ function groupBody(project: string, kind: "wkb" | "folder", files: BatchRow[], c
     "tr",
     { class: "batch-group" },
     el("td", { class: "batch-check" }, box),
-    el("td", {}),
-    el("th", { scope: "rowgroup" }, el("span", { class: "batch-group-head" }, kindIcon(kind), el("span", { class: "batch-group-name" }, `${project}/ (${plural(files.length, "file")})`), toggle)),
+    el("th", { scope: "rowgroup", colspan: "2" }, el("span", { class: "batch-group-head" }, kindIcon(kind), el("span", { class: "batch-group-name" }, `${kind === "lnk" ? "→ /" : ""}${project}/ (${plural(files.length, "file")})`), toggle)),
   );
+  header.addEventListener("dblclick", (ev) => {
+    if (ev.target instanceof Element && !ev.target.closest("input, .batch-group-toggle")) flip();
+  });
   for (const r of files) r.tr.hidden = shut;
-  return el("tbody", {}, header, ...files.map((r) => r.tr));
+  const gap = el("tr", { class: "batch-gap", "aria-hidden": "true" }, el("td", { colspan: "3" }));
+  return el("tbody", { class: shut ? "batch-box shut" : "batch-box" }, header, ...files.map((r) => r.tr), gap);
 }
 
 export function createBatchView(host: HTMLElement): { element: HTMLElement; render(): void } {
@@ -64,9 +67,12 @@ export function createBatchView(host: HTMLElement): { element: HTMLElement; rend
     render();
   });
   const head = el("thead", {}, el("tr", {}, el("th", { scope: "col", class: "batch-check" }, all), el("th", { scope: "col" }, "Current"), el("th", { scope: "col" }, "After")));
-  const table = el("table", { class: "batch-table" }, head);
-  const element = el("section", { class: "batch", "aria-label": "Batch mode" }, el("div", { class: "batch-scroll" }, table));
+  const table = el("table", { class: "batch-table batch-head" }, head);
+  const scroll = el("div", { class: "batch-scroll" }, table);
+  const element = el("section", { class: "batch", "aria-label": "Batch mode" }, scroll);
   element.hidden = true;
+  // Group headers stick right under the column headers, whose height follows the font and is unknown while hidden.
+  new ResizeObserver(() => scroll.style.setProperty("--batch-head-h", `${Math.floor(head.getBoundingClientRect().height) - 1}px`)).observe(head);
   // Which groups are folded survives the re-renders a new dry run brings.
   const collapsed = new Set<string>();
 
@@ -77,7 +83,7 @@ export function createBatchView(host: HTMLElement): { element: HTMLElement; rend
     if (!batch) return;
     const loose: BatchRow[] = [];
     const groups = new Map<string, BatchRow[]>();
-    const kinds = new Map(batch.rows.map((f) => [f.folder ?? f.project, f.folder !== null ? "folder" : "wkb"] as const));
+    const kinds = new Map(batch.rows.map((f) => [f.folder ?? f.project, f.target !== null ? "lnk" : f.folder !== null ? "folder" : "wkb"] as const));
     rows = [];
     for (const file of batch.rows) {
       const home = file.folder ?? file.project;
@@ -93,9 +99,10 @@ export function createBatchView(host: HTMLElement): { element: HTMLElement; rend
       if (home === null) loose.push(row);
       else groups.set(home, [...(groups.get(home) ?? []), row]);
     }
-    const sections = [...(loose.length > 0 ? [el("tbody", {}, ...loose.map((r) => r.tr))] : []), ...[...groups].map(([project, files]) => groupBody(project, kinds.get(project) ?? "wkb", files, collapsed, render))];
+    const sections = [...[...groups].map(([project, files]) => groupBody(project, kinds.get(project) ?? "wkb", files, collapsed, render)), ...(loose.length > 0 ? [el("tbody", {}, ...loose.map((r) => r.tr))] : [])];
     for (const section of sections) section.querySelector(".batch-group input")?.addEventListener("change", syncAll);
-    table.replaceChildren(head, ...sections);
+    // One table per section, because a sticky group header only lets go at the end of its own table.
+    scroll.replaceChildren(table, ...sections.map((section) => el("table", { class: "batch-table" }, section)));
     syncAll();
   }
 
