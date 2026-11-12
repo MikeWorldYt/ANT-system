@@ -156,5 +156,5 @@ pub(super) fn get_dictionary() -> (Value, Value) {
 
 pub(super) fn set_dictionary() -> (Value, Value) {
     let input = object(json!({ "relParts": rel_parts(0), "entries": { "type": "array", "items": entry() } }), &["relParts", "entries"]);
-    (input, output(json!({ "changed": { "type": "string" } }), &["changed"]))
+    (input, output(json!({ "changed": { "type": "string" }, "warnings": strings() }), &["changed", "warnings"]))
 }

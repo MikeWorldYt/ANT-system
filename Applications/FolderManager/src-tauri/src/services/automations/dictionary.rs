@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::error::{FmError, R};
 use crate::domain::names::editable_part;
-use crate::infra::fs_safe::{io_err, join_rel, write_atomic};
+use crate::infra::fs_safe::{io_err, join_rel, resolve, write_atomic, StorageLock};
 
 pub const DICTIONARY_FILE: &str = "dictionary.md";
 pub const NO_GROUP: &str = "do not group";
@@ -129,7 +129,16 @@ pub fn file_of(root: &Path, folder: &[String]) -> std::path::PathBuf {
     join_rel(root, folder).join(".ant").join(DICTIONARY_FILE)
 }
 
+// Callers outside the app (the MCP) pass any path, so it must name a folder inside the storage.
+fn checked_folder(root: &Path, folder: &[String]) -> R<()> {
+    if resolve(root, folder)?.is_dir() {
+        return Ok(());
+    }
+    Err(FmError::InvalidPath { rel_parts: folder.to_vec(), reason: "not a folder of the storage".to_string() })
+}
+
 pub fn read_specs(root: &Path, folder: &[String]) -> R<Option<Vec<Spec>>> {
+    checked_folder(root, folder)?;
     let path = file_of(root, folder);
     if !path.is_file() {
         return Ok(None);
@@ -139,6 +148,8 @@ pub fn read_specs(root: &Path, folder: &[String]) -> R<Option<Vec<Spec>>> {
 
 // A spec that would not read back the same, or whose pattern does not compile, is refused before anything is written.
 pub fn write(root: &Path, folder: &[String], specs: &[Spec]) -> R<std::path::PathBuf> {
+    let _lock = StorageLock::acquire(root)?;
+    checked_folder(root, folder)?;
     let path = file_of(root, folder);
     let mut names = HashSet::new();
     for spec in specs {
