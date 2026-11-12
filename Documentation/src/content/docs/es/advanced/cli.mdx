@@ -1,0 +1,135 @@
+---
+title: CLI
+description: Todas las opciones de CreateNewStorage, la herramienta de línea de comandos que crea un almacenamiento nuevo.
+---
+
+`CreateNewStorage` crea un almacenamiento ANT completo con un solo comando. Descárgalo desde la [página de descargas](/es/start-here/download); el inicio rápido está en [Primeros pasos](/es/start-here/getting-started).
+
+## Uso
+
+```bash
+create-new-storage <ruta> [opciones]
+```
+
+En Windows el archivo es `CreateNewStorage.exe`; en Linux y macOS es `create-new-storage`. Ejecútalo con `--help` para ver el mismo resumen en la terminal.
+
+## Qué crea
+
+1. La carpeta del almacenamiento y su carpeta `.ant`.
+2. La plantilla, `template.md`: se descarga la oficial o pasas la tuya con `--template`. Se guarda una copia en `.ant/template.md`.
+3. Todo el árbol de carpetas que describe la plantilla: una carpeta numerada por categoría (`100.PERSONAL`), subcategoría y tema, más las carpetas de apoyo. Cada categoría recibe `REC.<NOMBRE>`, `RES.Resources`, `REV.<NOMBRE>` y `SS.<NOMBRE>`, y cada subcategoría y tema recibe su `REV.<NOMBRE>`. La raíz también recibe `ANT.RECORDINGS` y `ANT.SCREENSHOTS`.
+4. `FM_Updater.bat` en `.ant`, que usan las actualizaciones de FolderManager en Windows.
+5. El FolderManager más reciente para tu sistema en la raíz del almacenamiento.
+
+Los pasos 1 a 3 son esenciales: si uno falla, la herramienta borra solo las carpetas que creó en esa ejecución y deja lo que ya existía. Los pasos 4 y 5 solo avisan si fallan, así que el almacenamiento sigue siendo usable.
+
+## La plantilla
+
+La plantilla es un archivo Markdown. Solo se leen los encabezados `##` y las listas con `-`; todo lo demás se ignora. Escribes nombres simples y la herramienta pone los números.
+
+```md
+## PERSONAL
+- Documents
+  - Identity
+  - Finance
+- Gallery
+
+## WORK
+- Projects
+  - PJ: Mary Website
+```
+
+| Escribes | Significado |
+| --- | --- |
+| `## Nombre` | Categoría (nivel 1), hasta 9. |
+| `- Nombre` | Subcategoría (nivel 2). |
+| `  - Nombre` | Tema (nivel 3), con dos espacios de sangría. |
+| `  - PJ: Nombre` | Proyecto; recibe el siguiente número libre `PJ.001_Nombre`. |
+| `  - RES` o `  - TPL` | Carpeta de apoyo con el nombre de su padre, como `TPL.Documents`. |
+
+Los nombres no pueden contener `/` ni `\`, y el anidado llega hasta tres niveles. Si la plantilla tiene un error, la herramienta indica la línea y no crea nada.
+
+## Argumentos
+
+### `<ruta>`
+
+Dónde va el almacenamiento. Sin `--name` es la carpeta del almacenamiento; con `--name` es la carpeta padre que recibe una carpeta nueva.
+
+```bash
+create-new-storage ~/ANT
+```
+
+## Opciones
+
+### `--name <nombre>`
+
+Da nombre a la carpeta del almacenamiento creada dentro de `<ruta>`. El nombre se limpia a Pascal_Snake_Case: se quitan los caracteres que Windows prohíbe, los espacios y guiones bajos pasan a ser un solo `_`, y cada palabra empieza en mayúscula con el resto en minúsculas.
+
+| Escribes | Carpeta en disco |
+| --- | --- |
+| `"mi almacenamiento"` | `Mi_Almacenamiento` |
+| `My-storage` | `My-storage` |
+| `MyStorage` | `Mystorage` |
+
+```bash
+create-new-storage ~ --name "Mi Almacenamiento"
+```
+
+### `--template <archivo>`
+
+Crea el almacenamiento a partir de un `template.md` de tu equipo en lugar de descargar el oficial. Úsalo para diseñar tu propia estructura o para no depender de internet para la plantilla.
+
+```bash
+create-new-storage ~ --name Trabajo --template ./template.md
+```
+
+### `--yes`
+
+Permite crear el almacenamiento dentro de una carpeta que ya existe. Sin esta opción, la herramienta se detiene si la carpeta de destino existe, para no mezclar por accidente un almacenamiento nuevo con tus archivos. Los archivos existentes se conservan; solo se añaden las carpetas que faltan.
+
+```bash
+create-new-storage D:\Files --yes
+```
+
+### `--dry-run`
+
+Muestra las carpetas que se crearían, con su tipo, sin escribir nada en disco. Aun así necesita la plantilla, así que la descarga salvo que uses `--template`.
+
+```bash
+create-new-storage ~ --name Prueba --dry-run
+```
+
+```text
+Dry run: nothing is written.
+/home/tu-usuario/Prueba
+  100.PERSONAL  [NODE]
+    01.Documents  [NODE]
+      REV.Documents  [REV]
+```
+
+### `--no-folder-manager`
+
+Omite la descarga de FolderManager. La plantilla y `FM_Updater.bat` se siguen usando. Úsalo si ya tienes FolderManager o lo instalarás después.
+
+```bash
+create-new-storage ~ --name Trabajo --no-folder-manager
+```
+
+### `-h`, `--help`
+
+Muestra el resumen de argumentos y opciones.
+
+### `-V`, `--version`
+
+Muestra la versión instalada, por ejemplo `create-new-storage 3.3.0`.
+
+## Códigos de salida
+
+| Código | Significado |
+| --- | --- |
+| `0` | Se creó el almacenamiento, o se mostró la ayuda, la versión o la simulación. |
+| `1` | Opciones inválidas, el destino existe sin `--yes`, o falló un paso esencial. |
+
+## Red
+
+La herramienta solo descarga por HTTPS desde GitHub y `r2.mikeworld.dev`, con el `curl` del sistema. En Linux y macOS también usa el `tar` del sistema para descomprimir FolderManager.

@@ -75,6 +75,14 @@ export default defineConfig({
 						],
 					},
 					{
+						label: 'Advanced',
+						translations: { es: 'Avanzado' },
+						items: [
+							{ label: 'CLI', slug: 'advanced/cli', translations: { es: 'CLI' } },
+							{ label: 'AI integrations', slug: 'advanced/ai-integrations', translations: { es: 'Integraciones de IA' } },
+						],
+					},
+					{
 						label: 'Reference',
 						translations: { es: 'Referencias' },
 						items: [{ autogenerate: { directory: 'reference' } }],
