@@ -18,18 +18,19 @@ pub struct StorageChanged {
     pub paths: usize,
     pub folders: Vec<Vec<String>>,
     pub rescan: bool,
+    pub dictionary: bool,
 }
 
 // Our own writes are filtered out before this point, so any remaining path is news; files alone save no tree.
 fn changed_event(report: &ApplyReport, news: Option<News>) -> Option<StorageChanged> {
     let Some(news) = news else {
-        return (report.saved || report.paths > 0).then(|| StorageChanged { paths: report.paths, folders: report.folders.clone(), rescan: report.full });
+        return (report.saved || report.paths > 0 || report.dictionary).then(|| StorageChanged { paths: report.paths, folders: report.folders.clone(), rescan: report.full, dictionary: report.dictionary });
     };
     let mut folders = report.folders.clone();
     folders.extend(news.levels);
     folders.sort();
     folders.dedup();
-    Some(StorageChanged { paths: report.paths, folders, rescan: report.full || news.rescan })
+    Some(StorageChanged { paths: report.paths, folders, rescan: report.full || news.rescan, dictionary: report.dictionary })
 }
 
 // Read on every batch rather than on its own event, so a log write that landed in an earlier batch is still found.
@@ -146,24 +147,24 @@ mod tests {
 
     #[test]
     fn only_a_batch_that_changed_something_reaches_the_window() {
-        let quiet = ApplyReport { paths: 0, full: false, skipped: 3, saved: false, folders: vec![] };
+        let quiet = ApplyReport { paths: 0, full: false, skipped: 3, saved: false, folders: vec![], dictionary: false };
         assert_eq!(changed_event(&quiet, None), None);
         let folders = vec![vec!["100.WORK".to_string()]];
-        let files = ApplyReport { paths: 2, full: false, skipped: 1, saved: false, folders: folders.clone() };
-        assert_eq!(changed_event(&files, None), Some(StorageChanged { paths: 2, folders, rescan: false }));
+        let files = ApplyReport { paths: 2, full: false, skipped: 1, saved: false, folders: folders.clone(), dictionary: false };
+        assert_eq!(changed_event(&files, None), Some(StorageChanged { paths: 2, folders, rescan: false, dictionary: false }));
         let saved = ApplyReport { saved: true, full: true, folders: vec![], ..files };
-        assert_eq!(changed_event(&saved, None), Some(StorageChanged { paths: 2, folders: vec![], rescan: true }));
+        assert_eq!(changed_event(&saved, None), Some(StorageChanged { paths: 2, folders: vec![], rescan: true, dictionary: false }));
     }
 
     #[test]
     fn a_metadata_change_from_another_process_reaches_the_window_merged_with_the_batch() {
-        let quiet = ApplyReport { paths: 0, full: false, skipped: 1, saved: false, folders: vec![] };
+        let quiet = ApplyReport { paths: 0, full: false, skipped: 1, saved: false, folders: vec![], dictionary: false };
         let level = |p: &str| vec![p.to_string()];
         let news = News { levels: vec![level("200.HOME"), level("100.WORK")], rescan: false };
-        assert_eq!(changed_event(&quiet, Some(news)), Some(StorageChanged { paths: 0, folders: vec![level("100.WORK"), level("200.HOME")], rescan: false }));
+        assert_eq!(changed_event(&quiet, Some(news)), Some(StorageChanged { paths: 0, folders: vec![level("100.WORK"), level("200.HOME")], rescan: false, dictionary: false }));
         let disk = ApplyReport { paths: 1, folders: vec![level("100.WORK")], ..quiet };
         let rescan = News { levels: vec![level("100.WORK")], rescan: true };
-        assert_eq!(changed_event(&disk, Some(rescan)), Some(StorageChanged { paths: 1, folders: vec![level("100.WORK")], rescan: true }));
+        assert_eq!(changed_event(&disk, Some(rescan)), Some(StorageChanged { paths: 1, folders: vec![level("100.WORK")], rescan: true, dictionary: false }));
     }
 
     #[test]

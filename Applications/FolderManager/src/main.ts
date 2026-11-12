@@ -18,7 +18,7 @@ import { checkForUpdates } from "./hooks/updates";
 import { startBackups } from "./hooks/backups";
 import { installDebugLog, startDebugLog } from "./hooks/debug-log";
 import { applyAppearance } from "./hooks/appearance";
-import { batch as batchMode } from "./hooks/automations/batch";
+import { batch as batchMode, replanAfterDictionary } from "./hooks/automations/batch";
 import { startExtensions } from "./extensions/host";
 import { plural } from "./services/plural";
 
@@ -94,7 +94,10 @@ onWindowFocus(() => {
   void (quick ? Promise.resolve() : relistLevels(null)).finally(() => restoreFocus(() => views.current().focus()));
 }).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
 
-onStorageChanged((e) => void (e.rescan ? autoRefresh(() => refresh(false)) : relistLevels(e.folders))).catch((e) =>
+onStorageChanged((e) => {
+  if (e.dictionary) replanAfterDictionary();
+  void (e.rescan ? autoRefresh(() => refresh(false)) : relistLevels(e.folders));
+}).catch((e) =>
   reportError("warning", e, "Live storage updates unavailable"),
 );
 

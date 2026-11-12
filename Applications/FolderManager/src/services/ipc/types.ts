@@ -79,6 +79,7 @@ export interface PlannedFile {
   project: string | null;
   sure: boolean;
   folder: string | null;
+  target: string[] | null;
 }
 
 export interface Picks {
@@ -226,6 +227,7 @@ export interface StorageChangedEvent {
   paths: number;
   folders: string[][];
   rescan: boolean;
+  dictionary: boolean;
 }
 
 export type UiCall =

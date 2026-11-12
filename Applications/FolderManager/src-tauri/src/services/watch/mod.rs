@@ -26,6 +26,8 @@ pub struct ApplyReport {
     pub skipped: usize,
     pub saved: bool,
     pub folders: Vec<Vec<String>>,
+    // A dictionary.md changed, so an open batch mode plans its groups again.
+    pub dictionary: bool,
 }
 
 pub fn apply_batch(root: &Path, changed: &[PathBuf]) -> R<ApplyReport> {

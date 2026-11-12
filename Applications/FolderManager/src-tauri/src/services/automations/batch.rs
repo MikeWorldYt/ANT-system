@@ -21,7 +21,7 @@ pub fn reduce_files(root: &Path, files: &[Vec<String>]) -> R<usize> {
         for entry in dir_entries(&dir, "read the folder")? {
             taken.insert(entry?.file_name().to_string_lossy().to_lowercase());
         }
-        for name in names {
+        for name in names.into_iter().filter(|n| !n.starts_with('~')) {
             let reduced = new_name(name);
             if reduced == *name {
                 continue;

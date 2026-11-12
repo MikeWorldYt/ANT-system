@@ -7,10 +7,13 @@ use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::{FmError, R};
+use crate::domain::names::editable_part;
 use crate::infra::fs_safe::{io_err, join_rel, write_atomic};
 
 pub const DICTIONARY_FILE: &str = "dictionary.md";
-const NO_GROUP: &str = "do not group";
+pub const NO_GROUP: &str = "do not group";
+const NODE_PREFIX: &str = "NODE.";
+const UP_PREFIX: &str = "NODE^.";
 
 #[derive(Debug, Clone, Default)]
 pub struct Entry {
@@ -23,6 +26,8 @@ pub struct Entry {
     pub patterns: Vec<Regex>,
     // A match on a "Do not group" entry keeps the file where it is, whatever else it names.
     pub group: bool,
+    // A `NODE.` or `NODE^.` heading sends its files to that node instead of a subfolder.
+    pub node: Option<Vec<String>>,
 }
 
 fn list(value: &str) -> impl Iterator<Item = String> + '_ {
@@ -97,6 +102,7 @@ pub fn compile(spec: &Spec, source: &Path) -> R<Entry> {
         exts: ext,
         patterns,
         group: spec.folder.to_lowercase() != NO_GROUP,
+        node: None,
     })
 }
 
@@ -159,6 +165,88 @@ pub fn write(root: &Path, folder: &[String], specs: &[Spec]) -> R<std::path::Pat
     Ok(path)
 }
 
+fn subdirs(dir: &Path) -> R<Vec<String>> {
+    let mut names = Vec::new();
+    for entry in fs::read_dir(dir).map_err(|e| io_err("list folder", dir, &e))? {
+        let entry = entry.map_err(|e| io_err("list folder", dir, &e))?;
+        if entry.path().is_dir() {
+            names.push(entry.file_name().to_string_lossy().into_owned());
+        }
+    }
+    names.sort();
+    Ok(names)
+}
+
+// Spaces, dashes and underscores read alike, so "Blue Archive" names "07.Blue-Archive".
+fn same_node(a: &str, b: &str) -> bool {
+    let key = |s: &str| s.trim().to_lowercase().replace([' ', '_'], "-");
+    key(a) == key(b)
+}
+
+// `NODE.` names a sibling of the review folder; `NODE^.` climbs one level and names a sibling of the dictionary's folder.
+fn node_name(heading: &str) -> Option<(bool, &str)> {
+    [(false, NODE_PREFIX), (true, UP_PREFIX)].into_iter().find_map(|(up, prefix)| {
+        heading.get(..prefix.len()).filter(|p| p.eq_ignore_ascii_case(prefix)).map(|_| (up, heading[prefix.len()..].trim()))
+    })
+}
+
+// Found by name, not id, so reordering never breaks the heading; the drop then decides between the node itself and its review folder.
+fn find_node(root: &Path, at: &[String], up: bool, name: &str) -> R<Option<Vec<String>>> {
+    if up && at.is_empty() {
+        return Ok(None);
+    }
+    let mut rel = if up { at[..at.len() - 1].to_vec() } else { at.to_vec() };
+    let start = rel.len();
+    // "Blue-Archive/Fanarts" walks down one folder per segment, each found by name too.
+    for segment in name.split('/').map(str::trim).filter(|s| !s.is_empty()) {
+        let Some(node) = subdirs(&join_rel(root, &rel))?.into_iter().find(|n| same_node(editable_part(n), segment)) else { return Ok(None) };
+        rel.push(node);
+    }
+    Ok((rel.len() > start).then_some(rel))
+}
+
+// A renamed node keeps the headings that reach it: `NODE.` in its parent's dictionary, `NODE^.` in its siblings'.
+pub fn rename_node_refs(root: &Path, parent: &[String], old: &str, new: &str) -> Vec<String> {
+    let base = join_rel(root, parent);
+    let siblings = match subdirs(&base) {
+        Ok(names) => names.into_iter().map(|n| (true, base.join(n))),
+        Err(e) => return vec![format!("Dictionaries not updated: {e}")],
+    };
+    let mut warnings = Vec::new();
+    for (up, path) in siblings.chain(std::iter::once((false, base.clone()))).map(|(up, d)| (up, d.join(".ant").join(DICTIONARY_FILE))).filter(|(_, p)| p.is_file()) {
+        let text = match fs::read_to_string(&path) {
+            Ok(text) => text,
+            Err(e) => {
+                warnings.push(format!("Dictionary not updated: {}", io_err("read the dictionary", &path, &e)));
+                continue;
+            }
+        };
+        let prefix = if up { UP_PREFIX } else { NODE_PREFIX };
+        let mut changed = false;
+        let lines: Vec<String> = text
+            .split_inclusive('\n')
+            .map(|line| {
+                let hashes = line.len() - line.trim_start_matches('#').len();
+                match node_name(line[hashes..].trim()) {
+                    Some((u, name)) if hashes > 0 && u == up && same_node(name.split('/').next().unwrap_or(name), old) => {
+                        changed = true;
+                        let end = &line[line.trim_end_matches(['\r', '\n']).len()..];
+                        let tail = name.find('/').map_or("", |i| &name[i..]);
+                        format!("{} {prefix}{new}{tail}{end}", &line[..hashes])
+                    }
+                    _ => line.to_string(),
+                }
+            })
+            .collect();
+        if changed {
+            if let Err(e) = write_atomic(&path, lines.concat().as_bytes()) {
+                warnings.push(format!("Dictionary not updated: {e}"));
+            }
+        }
+    }
+    warnings
+}
+
 // A closer dictionary adds to the farther ones and replaces their entries of the same name.
 pub fn load(root: &Path, folder: &[String]) -> R<Vec<Entry>> {
     let mut entries: Vec<Entry> = Vec::new();
@@ -169,7 +257,11 @@ pub fn load(root: &Path, folder: &[String]) -> R<Vec<Entry>> {
             continue;
         }
         let text = fs::read_to_string(&path).map_err(|e| io_err("read the dictionary", &path, &e))?;
-        for entry in parse(&text).iter().map(|spec| compile(spec, &path)).collect::<R<Vec<_>>>()? {
+        for mut entry in parse(&text).iter().map(|spec| compile(spec, &path)).collect::<R<Vec<_>>>()? {
+            if let Some((up, name)) = node_name(&entry.folder) {
+                entry.node = find_node(root, &folder[..end], up, name)?;
+                entry.group = entry.node.is_some();
+            }
             match at.get(&entry.folder.to_lowercase()) {
                 Some(&i) => entries[i] = entry,
                 None => {

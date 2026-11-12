@@ -23,6 +23,9 @@ pub struct PlannedFile {
     // The dictionary's subfolder the file moves into; such a file is left out of the project sort.
     #[serde(default)]
     pub folder: Option<String>,
+    // The review folder of another node the file is sent to, when its dictionary entry names a node.
+    #[serde(default)]
+    pub target: Option<Vec<String>>,
 }
 
 fn folder_files(root: &Path, folder: &[String]) -> R<Vec<String>> {
@@ -33,7 +36,8 @@ fn folder_files(root: &Path, folder: &[String]) -> R<Vec<String>> {
     let mut names = Vec::new();
     for entry in dir_entries(&dir, "list folder")? {
         let entry = entry?;
-        if entry.path().is_file() {
+        // "~$report.docx" and other "~" files are temporary copies an app holds open; no automation touches them.
+        if entry.path().is_file() && !entry.file_name().to_string_lossy().starts_with('~') {
             names.push(entry.file_name().to_string_lossy().into_owned());
         }
     }
@@ -57,7 +61,7 @@ pub fn plan(root: &Path, folder: &[String], only: &[String], reduce: bool, sort:
                     taken.insert(name.to_lowercase());
                 }
             }
-            PlannedFile { file: file.clone(), name, project: None, sure: false, folder: None }
+            PlannedFile { file: file.clone(), name, project: None, sure: false, folder: None, target: None }
         })
         .collect();
     if group {
@@ -86,11 +90,27 @@ fn group_by_dictionary(root: &Path, folder: &[String], rows: &mut [PlannedFile])
     }
     // Names already in each subfolder, so a moved file never lands on one.
     let mut taken: HashMap<String, HashSet<String>> = HashMap::new();
+    let mut here: HashSet<String> = rows.iter().map(|r| r.name.to_lowercase()).chain(folder_files(root, folder)?.iter().map(|f| f.to_lowercase())).collect();
     for row in rows.iter_mut() {
-        let Some(entry) = classify(&entries, &row.file).filter(|e| e.group) else { continue };
-        let sub = entry.folder.clone();
+        let Some(entry) = classify(&entries, &row.file) else { continue };
+        // "Do not group" still tidies the name, but the file stays in this folder.
+        if !entry.group {
+            if entry.folder.eq_ignore_ascii_case(dictionary::NO_GROUP) {
+                let wanted = renamed(entry, &row.name);
+                if wanted != row.name {
+                    here.remove(&row.name.to_lowercase());
+                    row.name = unique_name(&wanted, &here);
+                    here.insert(row.name.to_lowercase());
+                }
+            }
+            continue;
+        }
+        let (sub, dir) = match &entry.node {
+            Some(review) => (review.join("/"), review.clone()),
+            None => (entry.folder.clone(), [folder, std::slice::from_ref(&entry.folder)].concat()),
+        };
         if !taken.contains_key(&sub) {
-            let here = folder_files(root, &[folder, std::slice::from_ref(&sub)].concat())?;
+            let here = folder_files(root, &dir)?;
             taken.insert(sub.clone(), here.iter().map(|f| f.to_lowercase()).collect());
         }
         let names = taken.get_mut(&sub).expect("inserted above");
@@ -98,16 +118,33 @@ fn group_by_dictionary(root: &Path, folder: &[String], rows: &mut [PlannedFile])
         row.name = unique_name(&wanted, names);
         names.insert(row.name.to_lowercase());
         row.folder = Some(sub);
+        row.target = entry.node.clone();
     }
+    Ok(())
+}
+
+// Renamed where it is, then dropped into the other node's review folder, which runs that folder's own automations on it.
+fn send_to_node(root: &Path, folder: &[String], row: &PlannedFile) -> R<()> {
+    let Some(target) = &row.target else { return Ok(()) };
+    if row.name != row.file {
+        mutations::rename_file(root, &[folder, std::slice::from_ref(&row.file)].concat(), &row.name)?;
+    }
+    let path = join_rel(root, folder).join(&row.name);
+    let no_bin = |_: &Path| Err("a dictionary move never replaces anything".to_string());
+    mutations::drop_files(root, target, &[path], false, &[], &no_bin)?;
     Ok(())
 }
 
 pub fn apply(root: &Path, folder: &[String], rows: &[PlannedFile]) -> R<usize> {
     let mut changed = 0;
-    let moves: Vec<(String, String, String)> = rows.iter().filter_map(|r| r.folder.clone().map(|sub| (r.file.clone(), sub, r.name.clone()))).collect();
+    let moves: Vec<(String, String, String)> = rows.iter().filter(|r| r.target.is_none()).filter_map(|r| r.folder.clone().map(|sub| (r.file.clone(), sub, r.name.clone()))).collect();
     if !moves.is_empty() {
         mutations::move_into_folders(root, folder, &moves)?;
         changed += moves.len();
+    }
+    for row in rows.iter().filter(|r| r.target.is_some()) {
+        send_to_node(root, folder, row)?;
+        changed += 1;
     }
     for row in rows.iter().filter(|r| r.folder.is_none() && r.name != r.file) {
         mutations::rename_file(root, &[folder, std::slice::from_ref(&row.file)].concat(), &row.name)?;

@@ -136,7 +136,7 @@ fn entry() -> Value {
     let words = |description: &str| json!({ "type": "array", "items": { "type": "string", "minLength": 1 }, "description": description });
     object(
         json!({
-            "folder": text("The subfolder its files group into, also the entry's heading; \"Do not group\" keeps them in place"),
+            "folder": text("The subfolder its files group into, also the entry's heading; \"Do not group\" keeps them in place; a name starting with a node id (\"07.Name\") sends them to that node's review folder"),
             "term": words("Names of the subject; matched as whole words ignoring case and accents, and removed from the file name"),
             "topics": words("Related names, such as characters; matched like terms, kept once in the name and their repeats removed"),
             "only": words("Exact words, case and symbols included; kept in the name"),

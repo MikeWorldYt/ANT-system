@@ -12,6 +12,7 @@ interface Batch {
   folder: string[];
   only: string[];
   rows: PlannedFile[];
+  picks: Picks;
   // Files left unticked, kept by name so a new dry run does not tick them again.
   skipped: Set<string>;
 }
@@ -31,6 +32,7 @@ export function setTicked(row: PlannedFile, on: boolean): void {
 
 async function load(picks: Picks): Promise<void> {
   if (!batch) return;
+  batch.picks = picks;
   const before = new Set(batch.rows.map((r) => r.file));
   batch.rows = await api.planAutomations(batch.folder, batch.only, picks);
   for (const row of batch.rows) if (row.project !== null && !row.sure && !before.has(row.file)) batch.skipped.add(row.file);
@@ -40,7 +42,7 @@ async function load(picks: Picks): Promise<void> {
 export async function openBatch(scope: ReviewScope, picks: Picks): Promise<void> {
   const folder = scope.folders[0] ?? scope.files[0]?.relParts.slice(0, -1);
   if (!scope.review || !folder) return;
-  batch = { review: scope.review, folder, only: scope.files.map((f) => f.name), rows: [], skipped: new Set() };
+  batch = { review: scope.review, folder, only: scope.files.map((f) => f.name), rows: [], picks, skipped: new Set() };
   try {
     await load(picks);
   } catch (e) {
@@ -56,6 +58,11 @@ export async function replanBatch(picks: Picks): Promise<void> {
   } catch (e) {
     reportError("error", e);
   }
+}
+
+// An edited dictionary.md regroups the open dry run with the automations already ticked.
+export function replanAfterDictionary(): void {
+  if (batch) void replanBatch(batch.picks);
 }
 
 export function closeBatch(): void {

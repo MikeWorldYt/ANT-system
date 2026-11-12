@@ -297,6 +297,53 @@ fn collapse_separators(s: &[char]) -> Vec<char> {
     out
 }
 
+const EMBEDDED_EXTS: [&str; 22] = ["jpg", "jpeg", "png", "gif", "webp", "jfif", "bmp", "tif", "tiff", "heic", "avif", "svg", "mp4", "mkv", "mov", "webm", "avi", "mp3", "wav", "flac", "pdf", "zip"];
+const SYMBOLS: [char; 6] = ['_', '-', ' ', '.', '+', '~'];
+
+// "thumb.jpeg.13bc" and "6298292_jpg" carry an old extension in the stem; only the real one stays.
+fn drop_embedded_exts(s: &[char]) -> Vec<char> {
+    let text: String = s.iter().collect();
+    let mut out = String::new();
+    let mut word = String::new();
+    let flush = |word: &mut String, out: &mut String| {
+        if EMBEDDED_EXTS.contains(&word.to_lowercase().as_str()) && !out.is_empty() {
+            while out.ends_with(SYMBOLS) {
+                out.pop();
+            }
+        } else {
+            out.push_str(word);
+        }
+        word.clear();
+    };
+    for c in text.chars() {
+        if c.is_alphanumeric() {
+            word.push(c);
+        } else {
+            flush(&mut word, &mut out);
+            out.push(c);
+        }
+    }
+    flush(&mut word, &mut out);
+    out.chars().collect()
+}
+
+// A run of mixed symbols such as "_~_" or "+_-" keeps one, preferring one that is not a space; a leading dot stays for hidden files.
+fn collapse_symbol_runs(s: &[char]) -> Vec<char> {
+    let mut out: Vec<char> = Vec::with_capacity(s.len());
+    let mut i = 0;
+    while i < s.len() {
+        let run = s[i..].iter().take_while(|c| SYMBOLS.contains(c)).count();
+        if run < 2 || i == 0 {
+            out.extend(&s[i..i + run.max(1)]);
+            i += run.max(1);
+            continue;
+        }
+        out.push(s[i..i + run].iter().copied().find(|&c| c != ' ').unwrap_or(' '));
+        i += run;
+    }
+    out
+}
+
 fn short_md5(text: &str) -> String {
     md5::hex(text.as_bytes())[..KEEP].to_string()
 }
@@ -312,7 +359,7 @@ fn clean_stem(stem: &[char], original: &str) -> String {
     s = sub(&s, trailing_numbers);
     s = sub(&s, uuid);
     s = sub(&s, code);
-    s = collapse_separators(&cut_long_runs(&s));
+    s = collapse_symbol_runs(&collapse_separators(&cut_long_runs(&drop_embedded_exts(&s))));
     // Leading dots are kept: they mark hidden files such as ".bashrc"
     let joined: String = s.iter().collect();
     let trimmed = joined.trim_start_matches(is_sep).trim_end_matches(|c| is_sep(c) || c == '.');
