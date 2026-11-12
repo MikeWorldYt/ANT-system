@@ -130,7 +130,7 @@ pub fn classify<'a>(entries: &'a [Entry], file: &str) -> Option<&'a Entry> {
     let ext = ext.to_lowercase();
     let by_term = entries
         .iter()
-        .filter_map(|e| [longest(stem, &e.terms, find_term), longest(stem, &e.topics, find_term), longest(stem, &e.only, find_strict)].into_iter().flatten().max().map(|len| (e, len)))
+        .filter_map(|e| [longest(stem, &e.terms, find_term), longest(stem, &e.topics, find_term), longest(stem, &e.derived.iter().map(|(f, _)| f.clone()).collect::<Vec<_>>(), find_term), longest(stem, &e.only, find_strict)].into_iter().flatten().max().map(|len| (e, len)))
         .max_by_key(|&(_, len)| len)
         .map(|(e, _)| e);
     by_term.or_else(|| entries.iter().find(|e| e.exts.contains(&ext) || e.patterns.iter().any(|p| p.is_match(stem))))
@@ -184,7 +184,25 @@ pub fn renamed(entry: &Entry, name: &str) -> String {
     for pattern in &entry.patterns {
         name = cut_all(&name, |stem| pattern.find(stem).map(|m| (m.start(), m.end())));
     }
-    tidy_runs(&topic_first(&titled_topics(&dedupe_topics(&drop_empty_brackets(&name), &entry.topics), &entry.topics), &entry.topics))
+    let name = underived(&drop_empty_brackets(&name), &entry.derived);
+    tidy_runs(&topic_first(&titled_topics(&dedupe_topics(&name, &entry.topics), &entry.topics), &entry.topics))
+}
+
+// Each other form becomes its topic before the repeats are dropped, so "Sakuya-Izayoi_izayoi_sakuya" ends as one "Sakuya".
+fn underived(name: &str, derived: &[(String, String)]) -> String {
+    let (stem, ext) = split_ext(name);
+    let mut stem = stem.to_string();
+    let mut forms: Vec<&(String, String)> = derived.iter().collect();
+    // Longer forms first, so "Izayoi Sakuya" is not cut short by a shorter "Iza".
+    forms.sort_by_key(|(form, _)| std::cmp::Reverse(form.len()));
+    for (form, topic) in forms {
+        let mut from = 0;
+        while let Some((s, e)) = stem.get(from..).and_then(|rest| find_term(rest, form)) {
+            stem.replace_range(from + s..from + e, topic);
+            from += s + topic.len();
+        }
+    }
+    format!("{stem}{ext}")
 }
 
 // Cutting words out can leave "_~_" between what stays; such a run keeps one symbol, a dash or underscore when it has one.

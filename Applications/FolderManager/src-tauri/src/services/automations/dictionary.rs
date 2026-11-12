@@ -20,6 +20,8 @@ pub struct Entry {
     pub folder: String,
     pub terms: Vec<String>,
     pub topics: Vec<String>,
+    // Other spellings of a topic and the topic they are rewritten to: "Izayoi Sakuya" reads as "Sakuya".
+    pub derived: Vec<(String, String)>,
     pub only: Vec<String>,
     pub exclude: Vec<String>,
     pub exts: Vec<String>,
@@ -32,6 +34,33 @@ pub struct Entry {
 
 fn list(value: &str) -> impl Iterator<Item = String> + '_ {
     value.split(',').map(str::trim).filter(|t| !t.is_empty()).map(str::to_string)
+}
+
+// Commas inside parentheses belong to one topic: "Sakuya (Izayoi Sakuya, Sakuya Izayoi), Remilia" holds two.
+fn topic_list(value: &str) -> Vec<String> {
+    let (mut out, mut part, mut depth) = (Vec::new(), String::new(), 0usize);
+    for c in value.chars() {
+        match c {
+            '(' => depth += 1,
+            ')' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                out.push(std::mem::take(&mut part));
+                continue;
+            }
+            _ => {}
+        }
+        part.push(c);
+    }
+    out.push(part);
+    out.into_iter().map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect()
+}
+
+// "Sakuya (Izayoi Sakuya, Iza)" is the topic "Sakuya" and the forms it replaces.
+pub fn split_topic(raw: &str) -> (String, Vec<String>) {
+    match raw.split_once('(') {
+        Some((main, rest)) => (main.trim().to_string(), rest.trim_end_matches(')').split(',').map(str::trim).filter(|d| !d.is_empty()).map(str::to_string).collect()),
+        None => (raw.trim().to_string(), Vec::new()),
+    }
 }
 
 fn exts(value: &str) -> impl Iterator<Item = String> + '_ {
@@ -75,7 +104,7 @@ pub fn parse(text: &str) -> Vec<Spec> {
         let value = value.trim();
         match key.trim() {
             "term" => spec.term.extend(list(value)),
-            "topics" => spec.topics.extend(list(value)),
+            "topics" => spec.topics.extend(topic_list(value)),
             "only" => spec.only.extend(list(value)),
             "exclude" => spec.exclude.extend(list(value)),
             "ext" => spec.ext.extend(exts(value)),
@@ -96,7 +125,11 @@ pub fn compile(spec: &Spec, source: &Path) -> R<Entry> {
     Ok(Entry {
         folder: spec.folder.clone(),
         terms: spec.term.clone(),
-        topics: spec.topics.clone(),
+        topics: spec.topics.iter().map(|t| split_topic(t).0).collect(),
+        derived: spec.topics.iter().flat_map(|t| {
+            let (main, forms) = split_topic(t);
+            forms.into_iter().map(move |f| (f, main.clone()))
+        }).collect(),
         only: spec.only.clone(),
         exclude: spec.exclude.clone(),
         exts: ext,
@@ -161,8 +194,11 @@ pub fn write(root: &Path, folder: &[String], specs: &[Spec]) -> R<std::path::Pat
         if !names.insert(name.to_lowercase()) {
             return Err(bad("two entries share this folder name"));
         }
-        if spec.term.iter().chain(&spec.topics).chain(&spec.only).chain(&spec.exclude).any(|t| t.contains([',', '\n', '%'])) {
+        if spec.term.iter().chain(&spec.only).chain(&spec.exclude).any(|t| t.contains([',', '\n', '%'])) {
             return Err(bad("a term cannot hold a comma, % or a line break"));
+        }
+        if spec.topics.iter().any(|t| t.contains(['\n', '%']) || topic_list(t).len() != 1 || split_topic(t).0.is_empty()) {
+            return Err(bad("a topic is a name, optionally followed by its other forms in parentheses: Sakuya (Izayoi Sakuya, Iza)"));
         }
         if spec.term.is_empty() && spec.topics.is_empty() && spec.only.is_empty() && spec.ext.is_empty() && spec.pattern.is_empty() {
             return Err(bad("an entry needs at least one term, topic, only, ext or pattern"));

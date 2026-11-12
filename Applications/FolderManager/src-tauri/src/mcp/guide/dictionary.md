@@ -4,7 +4,7 @@
 
 Each entry is a `## Heading` naming where its files go, refined by keys:
 - `term`: matches and is removed from the name.
-- `topics`: match and stay once in the name; repeats leave, multi-word topics split into words.
+- `topics`: match and stay once in the name, in Train-Case and moved right after the date and owner; repeats leave. Other forms go in parentheses and are rewritten to the topic: `Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza)`.
 - `only`: matches case and symbols exactly, as a whole word, and stays.
 - `exclude`: only removed from the name; never decides the group.
 - `ext`: extensions, e.g. `.exe .msi`.

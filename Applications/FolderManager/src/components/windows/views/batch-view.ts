@@ -99,7 +99,9 @@ export function createBatchView(host: HTMLElement): { element: HTMLElement; rend
       if (home === null) loose.push(row);
       else groups.set(home, [...(groups.get(home) ?? []), row]);
     }
-    const sections = [...[...groups].map(([project, files]) => groupBody(project, kinds.get(project) ?? "wkb", files, collapsed, render)), ...(loose.length > 0 ? [el("tbody", {}, ...loose.map((r) => r.tr))] : [])];
+    // Inside a group the rows follow their new names, so files that end under the same topic sit together.
+    const byName = (a: BatchRow, b: BatchRow): number => a.file.name.localeCompare(b.file.name, undefined, { numeric: true, sensitivity: "base" });
+    const sections = [...[...groups].map(([project, files]) => groupBody(project, kinds.get(project) ?? "wkb", files.sort(byName), collapsed, render)), ...(loose.length > 0 ? [el("tbody", {}, ...loose.map((r) => r.tr))] : [])];
     for (const section of sections) section.querySelector(".batch-group input")?.addEventListener("change", syncAll);
     // One table per section, because a sticky group header only lets go at the end of its own table.
     scroll.replaceChildren(table, ...sections.map((section) => el("table", { class: "batch-table" }, section)));
