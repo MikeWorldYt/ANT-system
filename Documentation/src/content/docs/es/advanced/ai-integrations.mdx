@@ -91,6 +91,7 @@ Las herramientas de lectura nunca toman el bloqueo del almacenamiento y nunca es
 | `search_folders` | Carpetas cuyos nombres o campos coinciden con la consulta, desde el índice o recorriendo el disco. | `query`, `disk` |
 | `search_files` | Archivos cuyos nombres contienen todas las palabras de la consulta. | `query` |
 | `suggest_search` | Sugerencias para un filtro `clave:`, como en el cuadro de búsqueda de la app. | `key`, `prefix` |
+| `get_dictionary` | Las entradas del [diccionario](/es/advanced/automations#dictionaries) propio de una carpeta y las que hereda. | `relParts` |
 
 ### Escritura
 
@@ -114,6 +115,7 @@ Las herramientas de escritura toman el bloqueo del almacenamiento en cada cambio
 | `set_board` | Coloca tableros en las columnas y el orden del tablero de tareas. | `cards` |
 | `rename_file` | Renombra un archivo dentro de una carpeta del almacenamiento, extensión incluida. | `relParts`, `name` |
 | `delete_file` (destructiva) | Envía un archivo a la Papelera de reciclaje. | `relParts` |
+| `set_dictionary` | Reemplaza el archivo de [diccionario](/es/advanced/automations#dictionaries) de una carpeta a partir de entradas estructuradas. Se puede repetir sin riesgo; envía `[]` para vaciarlo. La ruta debe ser una carpeta dentro del almacenamiento. | `relParts`, `entries` (obligatorio) |
 
 `delete` y `delete_file` nunca borran de forma definitiva. Una carpeta que contiene archivos o carpetas se rechaza indicando cuántos son, salvo que la llamada incluya `confirmNonEmpty: true`. `expectGhost` sirve para olvidar una carpeta que falta en el disco y debe coincidir con lo que `get_node` informa.
 
@@ -121,7 +123,7 @@ Cada escritura responde con una nota breve de lo que cambió, las carpetas que c
 
 ### Automatización de revisión
 
-Trabajan con los archivos sueltos de una carpeta de revisión, como `998.Review`.
+Trabajan con los archivos sueltos de una carpeta de revisión, como `REV.<Título>` (los almacenamientos antiguos usan `98.`). Para el resto de las automatizaciones, mira [Automatizaciones](/es/advanced/automations).
 
 | Herramienta | Qué hace | Argumentos |
 | --- | --- | --- |
@@ -140,6 +142,14 @@ Actúan sobre la ventana abierta y solo cuando el cliente las llama. Necesitan F
 | `ui_open_tab` | Abre una pestaña nueva en una carpeta, o en la raíz sin `relParts`. | `relParts` |
 | `ui_split` | Abre el panel dividido; con `relParts` abre ahí esa carpeta. | `relParts` |
 | `ui_set_view` | Cambia el panel activo a `cards`, `tree`, `columns`, `grid` o `list`. | `view` |
+
+## Guía integrada
+
+El servidor le enseña al cliente cómo funciona ANT, para que no tengas que explicarlo en cada chat.
+
+- **Al conectar:** envía unas nociones básicas de ANT como `instructions` de MCP.
+- **Bajo demanda:** expone el recurso `ant://guide` (lo básico y un índice) y uno por tema: `ant://guide/model`, `ant://guide/review`, `ant://guide/dictionary`, `ant://guide/workboards` y `ant://guide/safety`.
+- **Lee solo lo necesario:** un agente lista los recursos (`resources/list`) y lee únicamente el tema que necesita (`resources/read`).
 
 ## Seguridad
 
