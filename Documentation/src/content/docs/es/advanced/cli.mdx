@@ -15,13 +15,39 @@ En Windows el archivo es `CreateNewStorage.exe`; en Linux y macOS es `create-new
 
 ## Qué crea
 
-1. La carpeta del almacenamiento y sus esenciales: `998.Review`, `999.Settings/00.Core` y `.ant`.
-2. `.ant/ant.db`, la base de datos del almacenamiento, descargada de la plantilla oficial.
-3. Todo el árbol de carpetas que describe esa base de datos, más `.ant/info.json` en las carpetas que tienen responsable, fecha o estado.
-4. `FM_Updater.bat` en `999.Settings/00.Core`, que usan las actualizaciones de FolderManager en Windows.
+1. La carpeta del almacenamiento y su carpeta `.ant`.
+2. La plantilla, `template.md`: se descarga la oficial o pasas la tuya con `--template`. Se guarda una copia en `.ant/template.md`.
+3. Todo el árbol de carpetas que describe la plantilla: una carpeta numerada por categoría (`100.PERSONAL`), subcategoría y tema, más las carpetas de apoyo. Cada categoría recibe `REC.<NOMBRE>`, `RES.Resources`, `REV.<NOMBRE>` y `SS.<NOMBRE>`, y cada subcategoría y tema recibe su `REV.<NOMBRE>`. La raíz también recibe `ANT.RECORDINGS` y `ANT.SCREENSHOTS`.
+4. `FM_Updater.bat` en `.ant`, que usan las actualizaciones de FolderManager en Windows.
 5. El FolderManager más reciente para tu sistema en la raíz del almacenamiento.
 
 Los pasos 1 a 3 son esenciales: si uno falla, la herramienta borra solo las carpetas que creó en esa ejecución y deja lo que ya existía. Los pasos 4 y 5 solo avisan si fallan, así que el almacenamiento sigue siendo usable.
+
+## La plantilla
+
+La plantilla es un archivo Markdown. Solo se leen los encabezados `##` y las listas con `-`; todo lo demás se ignora. Escribes nombres simples y la herramienta pone los números.
+
+```md
+## PERSONAL
+- Documents
+  - Identity
+  - Finance
+- Gallery
+
+## WORK
+- Projects
+  - PJ: Mary Website
+```
+
+| Escribes | Significado |
+| --- | --- |
+| `## Nombre` | Categoría (nivel 1), hasta 9. |
+| `- Nombre` | Subcategoría (nivel 2). |
+| `  - Nombre` | Tema (nivel 3), con dos espacios de sangría. |
+| `  - PJ: Nombre` | Proyecto; recibe el siguiente número libre `PJ.001_Nombre`. |
+| `  - RES` o `  - TPL` | Carpeta de apoyo con el nombre de su padre, como `TPL.Documents`. |
+
+Los nombres no pueden contener `/` ni `\`, y el anidado llega hasta tres niveles. Si la plantilla tiene un error, la herramienta indica la línea y no crea nada.
 
 ## Argumentos
 
@@ -49,12 +75,12 @@ Da nombre a la carpeta del almacenamiento creada dentro de `<ruta>`. El nombre s
 create-new-storage ~ --name "Mi Almacenamiento"
 ```
 
-### `--local-database <archivo>`
+### `--template <archivo>`
 
-Crea el almacenamiento a partir de un `ant.db` de tu equipo en lugar de descargar la plantilla oficial. Úsalo para reutilizar la estructura de otro almacenamiento o para no depender de internet para la plantilla. El archivo se copia sin cambios a `.ant/ant.db`.
+Crea el almacenamiento a partir de un `template.md` de tu equipo en lugar de descargar el oficial. Úsalo para diseñar tu propia estructura o para no depender de internet para la plantilla.
 
 ```bash
-create-new-storage ~ --name Trabajo --local-database ./ant.db
+create-new-storage ~ --name Trabajo --template ./template.md
 ```
 
 ### `--yes`
@@ -67,7 +93,7 @@ create-new-storage D:\Files --yes
 
 ### `--dry-run`
 
-Muestra las carpetas que se crearían, con su tipo, sin escribir nada en disco. Aun así necesita la plantilla, así que la descarga salvo que uses `--local-database`.
+Muestra las carpetas que se crearían, con su tipo, sin escribir nada en disco. Aun así necesita la plantilla, así que la descarga salvo que uses `--template`.
 
 ```bash
 create-new-storage ~ --name Prueba --dry-run
@@ -83,7 +109,7 @@ Dry run: nothing is written.
 
 ### `--no-folder-manager`
 
-Omite la descarga de FolderManager. La base de datos y `FM_Updater.bat` se siguen descargando. Úsalo si ya tienes FolderManager o lo instalarás después.
+Omite la descarga de FolderManager. La plantilla y `FM_Updater.bat` se siguen usando. Úsalo si ya tienes FolderManager o lo instalarás después.
 
 ```bash
 create-new-storage ~ --name Trabajo --no-folder-manager
