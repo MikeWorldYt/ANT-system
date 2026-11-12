@@ -89,7 +89,7 @@ fn bad_json_unknown_methods_and_bad_calls_are_protocol_errors() {
     let s = server(dir.path());
     let mut input = b"{not json\n[1, 2]\n".to_vec();
     input.extend_from_slice(b"\xff\xfe\n");
-    input.extend_from_slice(request(3, "resources/list", json!({})).as_bytes());
+    input.extend_from_slice(request(3, "prompts/list", json!({})).as_bytes());
     input.extend_from_slice(request(4, "tools/call", json!({ "name": "rm_rf" })).as_bytes());
     input.extend_from_slice(request(5, "tools/call", json!({ "name": "get_node", "arguments": { "path": "x" } })).as_bytes());
     input.extend_from_slice(b"{\"jsonrpc\":\"2.0\",\"id\":9,\"result\":{}}\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/unknown\"}\n");
