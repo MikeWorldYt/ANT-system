@@ -176,6 +176,25 @@ pub fn write(root: &Path, folder: &[String], specs: &[Spec]) -> R<std::path::Pat
     Ok(path)
 }
 
+// The file as the user wrote it, or a fresh one with the header and title when the folder has none yet.
+pub fn read_text(root: &Path, folder: &[String]) -> R<String> {
+    checked_folder(root, folder)?;
+    let path = file_of(root, folder);
+    if !path.is_file() {
+        return Ok(render(folder.last().map_or("the storage", String::as_str), &[]));
+    }
+    fs::read_to_string(&path).map_err(|e| io_err("read the dictionary", &path, &e))
+}
+
+// Saved as typed, mistakes included, so the editor never loses what the user wrote; the lint points the mistakes out.
+pub fn write_text(root: &Path, folder: &[String], text: &str) -> R<()> {
+    let _lock = StorageLock::acquire(root)?;
+    checked_folder(root, folder)?;
+    let dir = join_rel(root, folder).join(".ant");
+    fs::create_dir_all(&dir).map_err(|e| io_err("create the .ant folder", &dir, &e))?;
+    write_atomic(&file_of(root, folder), text.as_bytes())
+}
+
 fn subdirs(dir: &Path) -> R<Vec<String>> {
     let mut names = Vec::new();
     for entry in fs::read_dir(dir).map_err(|e| io_err("list folder", dir, &e))? {

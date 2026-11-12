@@ -23,6 +23,7 @@ import type {
   WkbStatus,
   Picks,
   PlannedFile,
+  DictionaryIssue,
 } from "./types";
 
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -136,6 +137,10 @@ export const createFileShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_file_shortcut_in", { target, folder });
 export const setReviewAutomation = (relParts: string[], automation: keyof Picks, on: boolean) => call<Mutation>("set_review_automation", { relParts, automation, on });
 export const planAutomations = (folder: string[], only: string[], picks: Picks) => call<PlannedFile[]>("plan_automations", { folder, only, ...picks });
+export const openDictionaryWindow = (folder: string[]) => call<void>("open_dictionary_window", { folder });
+export const readDictionary = (folder: string[]) => call<string>("read_dictionary", { folder });
+export const checkDictionary = (text: string) => call<DictionaryIssue[]>("check_dictionary", { text });
+export const saveDictionary = (folder: string[], text: string) => call<DictionaryIssue[]>("save_dictionary", { folder, text });
 export const applyAutomations = (folder: string[], rows: PlannedFile[]) => call<number>("apply_automations", { folder, rows });
 export const renameFile = (relParts: string[], newName: string) => call<Mutation>("rename_file", { relParts, newName });
 export const deleteFile = (relParts: string[]) => call<Mutation>("delete_file", { relParts });

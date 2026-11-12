@@ -2,6 +2,7 @@
 mod batch;
 mod dict_match;
 pub mod dictionary;
+pub mod dictionary_lint;
 mod plan;
 pub mod reduce_name;
 

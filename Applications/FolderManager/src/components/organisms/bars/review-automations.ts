@@ -6,6 +6,8 @@ import { guiIcon } from "../../atoms/gui-icons";
 import { confirmAutomation } from "../dialogs/action-dialog/automation-warning";
 import { batch, closeBatch, openBatch, replanBatch, runBatch } from "../../../hooks/automations/batch";
 import { reviewScope, type ReviewScope } from "../../../hooks/automations/scope/review-scope";
+import { openDictionaryWindow } from "../../../services/ipc/api";
+import { reportError } from "./status-line";
 import { readPref, savePref } from "../../../services/store/prefs";
 import { state } from "../../../services/store/state";
 
@@ -18,7 +20,7 @@ function pick(kind: string, label: string, hint: string): { element: HTMLElement
   return { element: el("label", { class: "side-action automation-row", for: id, title: hint }, box, el("span", { class: "side-action-label" }, label)), box };
 }
 
-function action(label: string, icon: "play" | "layout", onClick: () => void): HTMLButtonElement {
+function action(label: string, icon: "play" | "layout" | "pencil", onClick: () => void): HTMLButtonElement {
   const button = textButton("", "side-action accent automation-run", onClick);
   button.append(el("span", { class: "side-action-icon" }, guiIcon(icon)), el("span", { class: "side-action-label" }, label));
   return button;
@@ -41,7 +43,12 @@ export function createReviewAutomations(): { element: HTMLElement; render(): voi
   });
   const run = action("Run", "play", () => void runBatch(picks(), auto.checked));
   const leave = textButton("Leave batch mode", "side-action", closeBatch);
-  const element = el("section", { class: "side-section", "aria-labelledby": "review-automations-title" }, el("h3", { id: "review-automations-title", class: "side-label" }, "Automations"), leave, ...all.map((p) => p.element), autoRow, enter, run);
+  // The dictionary belongs to the node that holds the review folder, so it reaches that node's other folders too.
+  const dictionary = action("Edit dictionary", "pencil", () => {
+    const review = scope?.review;
+    if (review) openDictionaryWindow(review.relParts.slice(0, -1)).catch((e: unknown) => reportError("error", e, "Dictionary window"));
+  });
+  const element = el("section", { class: "side-section", "aria-labelledby": "review-automations-title" }, el("h3", { id: "review-automations-title", class: "side-label" }, "Automations"), leave, ...all.map((p) => p.element), autoRow, enter, run, dictionary);
 
   for (const { box } of all) box.addEventListener("change", () => (batch ? void replanBatch(picks()) : render()));
   auto.addEventListener("change", async () => {
@@ -59,6 +66,7 @@ export function createReviewAutomations(): { element: HTMLElement; render(): voi
     enter.hidden = inBatch;
     enter.disabled = state.busy || !scope?.review;
     run.disabled = state.busy || none;
+    dictionary.disabled = !scope?.review;
     if (!inBatch) {
       const flags = scope?.review?.flags ?? [];
       auto.checked = ["auto-reduce", "auto-add-date", "auto-remove-date", "auto-sort", "auto-group", "auto-remove-symbols"].some((f) => flags.includes(f));

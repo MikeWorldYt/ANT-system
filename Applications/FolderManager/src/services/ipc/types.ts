@@ -82,6 +82,12 @@ export interface PlannedFile {
   target: string[] | null;
 }
 
+export interface DictionaryIssue {
+  line: number;
+  level: "error" | "warning";
+  message: string;
+}
+
 export interface Picks {
   reduce: boolean;
   sort: boolean;
