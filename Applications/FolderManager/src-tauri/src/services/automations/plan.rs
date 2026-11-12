@@ -61,6 +61,24 @@ fn created_secs(path: &Path) -> Option<i64> {
     created.duration_since(std::time::UNIX_EPOCH).ok().and_then(|d| i64::try_from(d.as_secs()).ok())
 }
 
+// Last of the renames, so the dictionary still reads the "(date)" and "[owner]" it places the topic after; names stay unique per destination.
+fn drop_brackets(rows: &mut [PlannedFile]) {
+    let mut taken: HashMap<Option<String>, HashSet<String>> = HashMap::new();
+    for row in rows.iter() {
+        taken.entry(row.folder.clone()).or_default().insert(row.name.to_lowercase());
+    }
+    for row in rows.iter_mut() {
+        let wanted = unbracketed_name(&row.name);
+        if wanted == row.name {
+            continue;
+        }
+        let names = taken.entry(row.folder.clone()).or_default();
+        names.remove(&row.name.to_lowercase());
+        row.name = unique_name(&wanted, names);
+        names.insert(row.name.to_lowercase());
+    }
+}
+
 // `only` narrows the rows to the picked files; the sort still groups against every file of the folder.
 pub fn plan(root: &Path, folder: &[String], only: &[String], picks: Picks) -> R<Vec<PlannedFile>> {
     let files = folder_files(root, folder)?;
@@ -79,9 +97,6 @@ pub fn plan(root: &Path, folder: &[String], only: &[String], picks: Picks) -> R<
             } else if picks.add_date {
                 wanted = dated_name(&wanted, created_secs(&dir.join(file)));
             }
-            if picks.remove_symbols {
-                wanted = unbracketed_name(&wanted);
-            }
             let mut name = file.clone();
             if wanted != *file {
                 taken.remove(&file.to_lowercase());
@@ -93,6 +108,9 @@ pub fn plan(root: &Path, folder: &[String], only: &[String], picks: Picks) -> R<
         .collect();
     if picks.group {
         group_by_dictionary(root, folder, &mut rows)?;
+    }
+    if picks.remove_symbols {
+        drop_brackets(&mut rows);
     }
     if picks.sort {
         let loose: Vec<usize> = (0..rows.len()).filter(|&i| rows[i].folder.is_none()).collect();

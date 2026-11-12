@@ -184,7 +184,82 @@ pub fn renamed(entry: &Entry, name: &str) -> String {
     for pattern in &entry.patterns {
         name = cut_all(&name, |stem| pattern.find(stem).map(|m| (m.start(), m.end())));
     }
-    dedupe_topics(&drop_empty_brackets(&name), &entry.topics)
+    tidy_runs(&topic_first(&titled_topics(&dedupe_topics(&drop_empty_brackets(&name), &entry.topics), &entry.topics), &entry.topics))
+}
+
+// Cutting words out can leave "_~_" between what stays; such a run keeps one symbol, a dash or underscore when it has one.
+fn tidy_runs(name: &str) -> String {
+    let (stem, ext) = split_ext(name);
+    let is_mark = |c: char| SEPARATORS.contains(&c) || matches!(c, '~' | '+');
+    let mut out = String::new();
+    let mut run = String::new();
+    for c in stem.chars().chain(std::iter::once('\0')) {
+        if is_mark(c) {
+            run.push(c);
+            continue;
+        }
+        if !run.is_empty() {
+            out.push(if run.chars().count() > 1 { run.chars().find(|&r| matches!(r, '_' | '-')).or_else(|| run.chars().find(|&r| r != ' ')).unwrap_or(' ') } else { run.chars().next().unwrap_or(' ') });
+            run.clear();
+        }
+        if c != '\0' {
+            out.push(c);
+        }
+    }
+    format!("{}{ext}", out.trim_matches(|c: char| is_mark(c) && c != '.'))
+}
+
+// The storage names files "(date)-[owner]_topic-keywords (n)", so the first topic found moves right after the date and owner.
+fn topic_first(name: &str, topics: &[String]) -> String {
+    let (stem, ext) = split_ext(name);
+    let lead_end = lead_len(stem);
+    let first = topics.iter().filter_map(|t| find_term(&stem[lead_end..], t).map(|(s, e)| (s + lead_end, e + lead_end))).min_by_key(|&(s, _)| s);
+    let Some((s, e)) = first.filter(|&(s, _)| stem[lead_end..s].trim_matches(SEPARATORS).chars().any(char::is_alphanumeric)) else { return name.to_string() };
+    let topic = &stem[s..e];
+    let lead = stem[..lead_end].trim_end_matches(SEPARATORS);
+    let rest = drop_span(&stem[lead_end..], s - lead_end, e - lead_end).unwrap_or_default();
+    let rest = rest.trim_matches(SEPARATORS);
+    let head = if lead.is_empty() { topic.to_string() } else { format!("{lead}_{topic}") };
+    if rest.is_empty() { format!("{head}{ext}") } else { format!("{head}-{rest}{ext}") }
+}
+
+// A leading "(date)" and "[owner]", with the separators after them, already stand where they belong.
+fn lead_len(stem: &str) -> usize {
+    let mut end = 0;
+    for (open, close) in [('(', ')'), ('[', ']')] {
+        let rest = &stem[end..];
+        if rest.starts_with(open) {
+            if let Some(c) = rest.find(close) {
+                end += c + 1;
+                end += stem[end..].len() - stem[end..].trim_start_matches(SEPARATORS).len();
+            }
+        }
+    }
+    end
+}
+
+// "noa ushio" reads as "Noa-Ushio": each word capitalized, joined by dashes.
+fn train_case(topic: &str) -> String {
+    let words = topic.split([' ', '_', '-']).filter(|w| !w.is_empty()).map(|w| {
+        let mut chars = w.chars();
+        chars.next().map_or_else(String::new, |c| c.to_uppercase().chain(chars).collect())
+    });
+    words.collect::<Vec<_>>().join("-")
+}
+
+// The topics a name keeps are written alike everywhere, so "yuuka" and "noa ushio" become "Yuuka" and "Noa-Ushio".
+fn titled_topics(name: &str, topics: &[String]) -> String {
+    let (stem, ext) = split_ext(name);
+    let mut stem = stem.to_string();
+    for topic in topics {
+        let tidy = train_case(topic);
+        let mut from = 0;
+        while let Some((s, e)) = stem.get(from..).and_then(|rest| find_term(rest, topic)) {
+            stem.replace_range(from + s..from + e, &tidy);
+            from += s + tidy.len();
+        }
+    }
+    format!("{stem}{ext}")
 }
 
 // "chihiro (blue archive) 624658" loses its term and would keep a bare "( )".

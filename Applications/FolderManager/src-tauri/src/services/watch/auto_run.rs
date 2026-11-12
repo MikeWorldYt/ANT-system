@@ -35,12 +35,10 @@ pub(super) fn run(root: &Path, changed: &[PathBuf]) {
             reduce(root, &folder, &files);
         }
         let has = |flag: &str| flags.iter().any(|f| f == flag);
-        let picks = automations::Picks { add_date: has(AUTO_ADD_DATE_FLAG), remove_date: has(AUTO_REMOVE_DATE_FLAG), remove_symbols: has(AUTO_REMOVE_SYMBOLS_FLAG), ..Default::default() };
-        if picks.add_date || picks.remove_date || picks.remove_symbols {
+        // One plan for dates, grouping and symbols, so symbols go only after the dictionary placed the topic.
+        let picks = automations::Picks { add_date: has(AUTO_ADD_DATE_FLAG), remove_date: has(AUTO_REMOVE_DATE_FLAG), group: has(AUTO_GROUP_FLAG), remove_symbols: has(AUTO_REMOVE_SYMBOLS_FLAG), ..Default::default() };
+        if picks.add_date || picks.remove_date || picks.group || picks.remove_symbols {
             retouch(root, &folder, &files, picks);
-        }
-        if flags.iter().any(|f| f == AUTO_GROUP_FLAG) {
-            group(root, &folder, &files);
         }
         if flags.iter().any(|f| f == AUTO_SORT_FLAG) {
             sort(root, &folder);
@@ -74,21 +72,11 @@ fn sort(root: &Path, folder: &[String]) {
 // A file the reduce renamed in this same batch is gone under its old name, so only the names still there are retouched.
 fn retouch(root: &Path, folder: &[String], files: &[String], picks: automations::Picks) {
     let result = automations::plan(root, folder, files, picks).and_then(|rows| {
-        let renamed: Vec<_> = rows.into_iter().filter(|r| r.name != r.file).collect();
-        if renamed.is_empty() { Ok(0) } else { automations::apply(root, folder, &renamed) }
+        let changed: Vec<_> = rows.into_iter().filter(|r| r.name != r.file || r.folder.is_some()).collect();
+        if changed.is_empty() { Ok(0) } else { automations::apply(root, folder, &changed) }
     });
     if let Err(e) = result {
         log("error", &format!("Automations: names in {} not retouched: {e}", folder.join("/")));
     }
 }
 
-// A file the reduce renamed in this same batch is gone under its old name, so only the names still there are grouped.
-fn group(root: &Path, folder: &[String], files: &[String]) {
-    let result = automations::plan(root, folder, files, automations::Picks { group: true, ..Default::default() }).and_then(|rows| {
-        let moving: Vec<_> = rows.into_iter().filter(|r| r.folder.is_some()).collect();
-        if moving.is_empty() { Ok(0) } else { automations::apply(root, folder, &moving) }
-    });
-    if let Err(e) = result {
-        log("error", &format!("Automations: {} not grouped: {e}", folder.join("/")));
-    }
-}
