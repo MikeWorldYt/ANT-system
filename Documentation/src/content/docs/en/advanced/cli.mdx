@@ -15,13 +15,39 @@ On Windows the file is `CreateNewStorage.exe`; on Linux and macOS it is `create-
 
 ## What it creates
 
-1. The storage folder and its essentials: `998.Review`, `999.Settings/00.Core` and `.ant`.
-2. `.ant/ant.db`, the storage database, downloaded from the official template.
-3. The whole folder tree described by that database, plus `.ant/info.json` for folders that carry an owner, date or status.
-4. `FM_Updater.bat` in `999.Settings/00.Core`, used by FolderManager updates on Windows.
+1. The storage folder and its `.ant` folder.
+2. The template, `template.md`: the official one is downloaded, or you pass your own with `--template`. A copy is kept in `.ant/template.md`.
+3. The whole folder tree described by the template: one numbered folder per category (`100.PERSONAL`), subcategory and topic, plus the support folders. Each category gets `REC.<NAME>`, `RES.Resources`, `REV.<NAME>` and `SS.<NAME>`, and every subcategory and topic gets its `REV.<NAME>`. The root also gets `ANT.RECORDINGS` and `ANT.SCREENSHOTS`.
+4. `FM_Updater.bat` in `.ant`, used by FolderManager updates on Windows.
 5. The latest FolderManager for your system in the storage root.
 
 Steps 1 to 3 are essential: if one fails, the tool removes only the folders it created in this run and leaves anything that was already there. Steps 4 and 5 only warn when they fail, so the storage is still usable.
+
+## The template
+
+The template is a Markdown file. Only the `##` headings and the `-` lists are read; everything else is ignored. You write plain names and the tool adds the numbers.
+
+```md
+## PERSONAL
+- Documents
+  - Identity
+  - Finance
+- Gallery
+
+## WORK
+- Projects
+  - PJ: Mary Website
+```
+
+| You write | Meaning |
+| --- | --- |
+| `## Name` | Category (level 1), up to 9. |
+| `- Name` | Subcategory (level 2). |
+| `  - Name` | Topic (level 3), indented two spaces. |
+| `  - PJ: Name` | Project; it gets the next free `PJ.001_Name` number. |
+| `  - RES` or `  - TPL` | Support folder named after its parent, such as `TPL.Documents`. |
+
+Names can't contain `/` or `\`, and nesting stops at three levels. If the template has an error, the tool names the line and creates nothing.
 
 ## Arguments
 
@@ -49,12 +75,12 @@ Names the storage folder created inside `<path>`. The name is cleaned to Pascal_
 create-new-storage ~ --name "My Storage"
 ```
 
-### `--local-database <file>`
+### `--template <file>`
 
-Builds the storage from an `ant.db` on your computer instead of downloading the official template. Use it to reuse the structure of another storage or to work without internet for the template. The file is copied to `.ant/ant.db` unchanged.
+Builds the storage from a `template.md` on your computer instead of downloading the official one. Use it to design your own structure or to work without internet for the template.
 
 ```bash
-create-new-storage ~ --name Work --local-database ./ant.db
+create-new-storage ~ --name Work --template ./template.md
 ```
 
 ### `--yes`
@@ -67,7 +93,7 @@ create-new-storage D:\Files --yes
 
 ### `--dry-run`
 
-Prints the folders that would be created, with their type, and writes nothing to disk. It still needs the template, so it downloads it unless you pass `--local-database`.
+Prints the folders that would be created, with their type, and writes nothing to disk. It still needs the template, so it downloads it unless you pass `--template`.
 
 ```bash
 create-new-storage ~ --name Test --dry-run
@@ -83,7 +109,7 @@ Dry run: nothing is written.
 
 ### `--no-folder-manager`
 
-Skips the FolderManager download. The database and `FM_Updater.bat` are still downloaded. Use it when you already have FolderManager or plan to install it later.
+Skips the FolderManager download. The template and `FM_Updater.bat` are still used. Use it when you already have FolderManager or plan to install it later.
 
 ```bash
 create-new-storage ~ --name Work --no-folder-manager
@@ -95,7 +121,7 @@ Shows the summary of arguments and options.
 
 ### `-V`, `--version`
 
-Shows the installed version, for example `create-new-storage 3.3.0`.
+Shows the installed version, for example `create-new-storage 3.3.1`.
 
 ## Exit codes
 

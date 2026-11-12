@@ -21,7 +21,7 @@ This page is for you if you already have files spread across folders and the des
 | Order folders among their siblings | Automated | Move up and Move down |
 | Set status and owner of a workboard | Automated | Details panel, saved in `.ant/info.json` |
 | Find folders by name, status or owner | Automated | Search (`Ctrl+F`) with `in:`, `status:` and `owner:` filters |
-| Keep the `998.Review` shortcuts up to date | Automated | The app rebuilds them after rename, move and delete |
+| Create the `Outcomes` folders and keep the review shortcuts up to date | Automated | The app handles them after rename, move and delete |
 | Move your existing folders into the storage | Manual | Planned for FolderManager |
 | Rename old files to the ANT file format | Manual | Planned for FolderManager |
 | Date, holder and area of a file | Manual | Planned, in the file properties |
@@ -42,11 +42,11 @@ Keep your original files where they are. You will copy or move them in the next 
 
 ## Phase 3: Map your folders to categories
 
-Match each group of content to one of the top-level categories, such as `100.PERSONAL`, `200.WORK`, `300.PROJECTS`, `400.ACADEMIC` or `500.HOBBIES`. The full list and the naming of each level are in [Folder Structure](/en/foundationals/folder-structure).
+Match each group of content to one of the top-level categories, such as `100.PERSONAL`, `200.WORK`, `300.STUDY` or `400.HOBBIES`, the ones in the default template. The full list and the naming of each level are in [Folder Structure](/en/foundationals/folder-structure).
 
 - Level 1 is named once and not renamed again, so choose carefully.
 - Inside a category, create the sub-categories you need with **Add node**. They follow Chill Naming: `01.Documents`, `02.Gallery`.
-- Reference material that serves a whole node goes in its `90` resources folder. See [Support Nodes](/en/foundationals/support-nodes).
+- Reference material that serves a whole node goes in its `RES.` resources folder. See [Support Nodes](/en/foundationals/support-nodes).
 - Levels 1 and 2 hold no loose files. Whatever you cannot place yet waits in a review folder (Phase 5).
 
 ## Phase 4: Turn projects into workboards
@@ -70,7 +70,7 @@ FolderManager only creates workboards with the `PJ` identifier. For `HW`, `PR`, 
 
 1. Work one source folder at a time, in batches of a size you can finish in one sitting.
 2. Copy first, then delete the original when you have checked the result.
-3. Anything you cannot classify right away goes into the `98.Review` folder of the closest node, or into `998.Review`. Do not leave it in the source folder.
+3. Anything you cannot classify right away goes into the `REV.` folder of the closest node, which CreateNewStorage already created. Do not leave it in the source folder.
 4. Press **Refresh** in FolderManager after moving files in your file explorer. The app also refreshes by itself when its window gets focus.
 
 File names do not need to be changed in one go. When you touch a file, give it the [file format](/en/foundationals/naming-conventions#control-naming-for-files). Reformatter (see [Downloads](/en/start-here/download)) can rename many files at once, but it writes the date, holder and identifier into the file name, which is not where file metadata is meant to live in the end. Use it only if you want that long name.
@@ -81,12 +81,12 @@ Go through this checklist before you delete anything from the original location.
 
 - [ ] Level 1 holds only the numbered categories and the support nodes.
 - [ ] Every project you still work on is a workboard with a status and an owner.
-- [ ] `998.Review` has no forgotten items, or you have a date to clear them.
+- [ ] The `REV.` folders have no forgotten items, or you have a date to clear them.
 - [ ] You can find three random files with the search box (`Ctrl+F`).
 - [ ] Your original files are copied to a drive that is not the one you migrated to.
 
 <Callout type="warning" title="FolderManager does not back up your files">
-  Its backup is a zip of the ANT data only: `ant.db`, the `.ant` files and `999.Settings`. Back up your own files with your usual tool, before you start and again when you finish.
+  Its backup is a zip of the ANT data only: the `.ant` folder, with `ant.db` and its other files. Back up your own files with your usual tool, before you start and again when you finish.
 </Callout>
 
 ## What comes next

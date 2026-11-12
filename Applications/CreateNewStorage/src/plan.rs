@@ -47,7 +47,7 @@ mod tests {
         assert_eq!(nodes[0].name, "100.PERSONAL");
         assert_eq!(nodes[0].kind, "NODE");
         assert_eq!(nodes[0].children[0].name, "01.Documents");
-        assert_eq!(nodes[0].children[0].children[0].kind, "REV");
+        assert_eq!(nodes[0].children[0].children.last().unwrap().kind, "REV");
     }
 
     #[test]

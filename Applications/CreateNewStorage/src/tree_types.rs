@@ -1,4 +1,4 @@
-// The folder tree a template describes; stored node types carry a level suffix ("NODE-L2", "REV-L3", "CFG").
+// The folder tree a template describes; stored node types carry a level suffix ("NODE-L2", "REV-L3").
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TreeNode {
     pub name: String,
@@ -20,6 +20,6 @@ mod tests {
     #[test]
     fn base_kind_drops_the_level_suffix() {
         assert_eq!(node("a", "NODE-L2", vec![]).base_kind(), "NODE");
-        assert_eq!(node("a", "CFG", vec![]).base_kind(), "CFG");
+        assert_eq!(node("a", "REV", vec![]).base_kind(), "REV");
     }
 }

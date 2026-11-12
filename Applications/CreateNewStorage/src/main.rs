@@ -5,7 +5,7 @@ use std::process::ExitCode;
 use create_new_storage::{create, load_template, plan, sanitize_name, CreateOptions, Level, PlanNode};
 
 const HELP: &str = "\
-create-new-storage: build a new ANT Storage from the ant.db template.
+create-new-storage: build a new ANT Storage from a Markdown template.
 
 Usage:
   create-new-storage <path> [options]
@@ -17,8 +17,8 @@ Arguments:
 Options:
   --name <name>        Storage folder name, cleaned to Pascal_Snake_Case
                        (\"my storage\" becomes My_Storage).
-  --local-database <file>
-                       Use a local ant.db instead of downloading the official one.
+  --template <file>
+                       Use a local template.md instead of downloading the official one.
   --yes                Allow creating inside a folder that already exists.
   --dry-run            Print the folders that would be created and touch nothing.
   --no-folder-manager  Do not download FolderManager into the storage.
@@ -28,11 +28,14 @@ Options:
 Examples:
   create-new-storage ~ --name \"My Storage\"
   create-new-storage D:\\ --name Work --dry-run
-  create-new-storage ./Store --local-database ant.db --no-folder-manager --yes
+  create-new-storage ./Store --template template.md --no-folder-manager --yes
 
 What it creates:
-  The folder tree from the template, .ant/ant.db with the storage database,
-  999.Settings/00.Core with the updater and FolderManager in the storage root.
+  The folder tree from the template; each category also gets REC.<NAME>,
+  RES.Resources, REV.<NAME> and SS.<NAME>; each subcategory and topic gets
+  REV.<NAME>. The root gets ANT.RECORDINGS and
+  ANT.SCREENSHOTS, .ant/ with template.md (a copy) and FM_Updater.bat, and
+  FolderManager in the storage root. Up to 9 categories (100 to 900).
   If an essential step fails, only the folders made by this run are removed.
 
 Full reference: https://ant.mikeworld.dev/en/advanced/cli/";
@@ -54,7 +57,7 @@ fn parse_args() -> Result<Parsed, String> {
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--name" => name = Some(args.next().ok_or("--name needs a value")?),
-            "--local-database" => template = Some(args.next().ok_or("--local-database needs a value")?),
+            "--template" | "--local-database" => template = Some(args.next().ok_or("--template needs a value")?),
             "--yes" => yes = true,
             "--dry-run" => dry_run = true,
             "--no-folder-manager" => folder_manager = false,
