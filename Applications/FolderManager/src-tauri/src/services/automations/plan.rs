@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::dict_match::{classify, renamed};
 use super::dictionary;
-use super::reduce_name::{new_name, unique_name};
+use super::reduce_name::{dated_name, new_name, undated_name, unique_name};
 use crate::domain::error::R;
 use crate::domain::project_group::{self, Tier};
 use crate::infra::fs_safe::{dir_entries, join_rel};
@@ -45,29 +45,52 @@ fn folder_files(root: &Path, folder: &[String]) -> R<Vec<String>> {
     Ok(names)
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Picks {
+    pub reduce: bool,
+    pub sort: bool,
+    pub group: bool,
+    pub add_date: bool,
+    pub remove_date: bool,
+}
+
+// A file whose creation time cannot be read keeps its name rather than a made-up date.
+fn created_secs(path: &Path) -> Option<i64> {
+    let created = std::fs::metadata(path).and_then(|m| m.created()).ok()?;
+    created.duration_since(std::time::UNIX_EPOCH).ok().and_then(|d| i64::try_from(d.as_secs()).ok())
+}
+
 // `only` narrows the rows to the picked files; the sort still groups against every file of the folder.
-pub fn plan(root: &Path, folder: &[String], only: &[String], reduce: bool, sort: bool, group: bool) -> R<Vec<PlannedFile>> {
+pub fn plan(root: &Path, folder: &[String], only: &[String], picks: Picks) -> R<Vec<PlannedFile>> {
     let files = folder_files(root, folder)?;
+    let dir = join_rel(root, folder);
     let mut taken: HashSet<String> = files.iter().map(|f| f.to_lowercase()).collect();
     let mut rows: Vec<PlannedFile> = files
         .iter()
         .map(|file| {
+            let mut wanted = file.clone();
+            if picks.reduce {
+                wanted = new_name(&wanted);
+            }
+            // Removing wins over adding, so ticking both leaves names without a date.
+            if picks.remove_date {
+                wanted = undated_name(&wanted);
+            } else if picks.add_date {
+                wanted = dated_name(&wanted, created_secs(&dir.join(file)));
+            }
             let mut name = file.clone();
-            if reduce {
-                let reduced = new_name(file);
-                if reduced != *file {
-                    taken.remove(&file.to_lowercase());
-                    name = unique_name(&reduced, &taken);
-                    taken.insert(name.to_lowercase());
-                }
+            if wanted != *file {
+                taken.remove(&file.to_lowercase());
+                name = unique_name(&wanted, &taken);
+                taken.insert(name.to_lowercase());
             }
             PlannedFile { file: file.clone(), name, project: None, sure: false, folder: None, target: None }
         })
         .collect();
-    if group {
+    if picks.group {
         group_by_dictionary(root, folder, &mut rows)?;
     }
-    if sort {
+    if picks.sort {
         let loose: Vec<usize> = (0..rows.len()).filter(|&i| rows[i].folder.is_none()).collect();
         let names: Vec<String> = loose.iter().map(|&i| rows[i].name.clone()).collect();
         for g in project_group::group(&names) {

@@ -86,6 +86,8 @@ export interface Picks {
   reduce: boolean;
   sort: boolean;
   group: boolean;
+  addDate: boolean;
+  removeDate: boolean;
 }
 
 export interface TreeSnapshot {

@@ -6,4 +6,4 @@ mod plan;
 pub mod reduce_name;
 
 pub use batch::reduce_files;
-pub use plan::{apply, plan, PlannedFile};
+pub use plan::{apply, plan, Picks, PlannedFile};

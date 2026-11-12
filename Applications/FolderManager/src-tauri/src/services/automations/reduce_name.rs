@@ -1,5 +1,6 @@
 // Strips noise codes (hashes, site ids, long non-date digit runs) from file names, keeping 4 chars per code.
 // Port of the Reformatter's truncate_long_name.py; the regexes are hand-written because the crate has no regex dependency.
+mod dated;
 mod md5;
 
 use std::collections::HashSet;
@@ -379,9 +380,32 @@ fn split_ext(name: &str) -> (&str, &str) {
     }
 }
 
+// The add-date automation: a name without a date gets its file's creation time in front; one with a date gets that date moved to the front.
+pub fn dated_name(name: &str, created: Option<i64>) -> String {
+    let (stem, suffix) = split_ext(name);
+    if dated::has_date(stem) {
+        return dated::split_date(stem).map_or_else(|| name.to_string(), |(date, rest)| if rest.is_empty() { format!("({date}){suffix}") } else { format!("({date})_{rest}{suffix}") });
+    }
+    created.map_or_else(|| name.to_string(), |secs| format!("({})_{stem}{suffix}", dated::stamp(secs)))
+}
+
+// A name that is only a date keeps it, since nothing else would be left.
+pub fn undated_name(name: &str) -> String {
+    let (stem, suffix) = split_ext(name);
+    let rest = dated::without_date(stem);
+    if rest.trim_matches(['_', '-', ' ', '.']).is_empty() { name.to_string() } else { format!("{rest}{suffix}") }
+}
+
 pub fn new_name(name: &str) -> String {
     let (stem, suffix) = split_ext(name);
-    clean_stem(&stem.chars().collect::<Vec<_>>(), name) + suffix
+    let Some((date, rest)) = dated::split_date(stem) else {
+        return clean_stem(&stem.chars().collect::<Vec<_>>(), name) + suffix;
+    };
+    // With a date in front, a generic or empty rest adds nothing, so no hash stands in for it.
+    let chars: Vec<char> = rest.chars().collect();
+    let cleaned = if chars.is_empty() || is_generic(&chars) { String::new() } else { clean_stem(&chars, name) };
+    let extra = if cleaned.is_empty() || cleaned == short_md5(name) { String::new() } else { format!("_{cleaned}") };
+    format!("({date}){extra}{suffix}")
 }
 
 pub fn unique_name(name: &str, taken: &HashSet<String>) -> String {

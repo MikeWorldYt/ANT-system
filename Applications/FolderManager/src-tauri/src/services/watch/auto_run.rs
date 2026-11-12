@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use super::filter::{is_own_write, relative};
 use super::log;
-use crate::domain::config::{AUTO_GROUP_FLAG, AUTO_REDUCE_FLAG, AUTO_SORT_FLAG};
+use crate::domain::config::{AUTO_ADD_DATE_FLAG, AUTO_GROUP_FLAG, AUTO_REDUCE_FLAG, AUTO_REMOVE_DATE_FLAG, AUTO_SORT_FLAG};
 use crate::domain::project_group::Tier;
 use crate::domain::tree_types::{flags_in, type_base};
 use crate::services::automations::{self, reduce_files};
@@ -33,6 +33,10 @@ pub(super) fn run(root: &Path, changed: &[PathBuf]) {
         let flags = flags_in(node);
         if flags.iter().any(|f| f == AUTO_REDUCE_FLAG) {
             reduce(root, &folder, &files);
+        }
+        let (add, remove) = (flags.iter().any(|f| f == AUTO_ADD_DATE_FLAG), flags.iter().any(|f| f == AUTO_REMOVE_DATE_FLAG));
+        if add || remove {
+            date(root, &folder, &files, automations::Picks { add_date: add, remove_date: remove, ..Default::default() });
         }
         if flags.iter().any(|f| f == AUTO_GROUP_FLAG) {
             group(root, &folder, &files);
@@ -66,9 +70,20 @@ fn sort(root: &Path, folder: &[String]) {
     }
 }
 
+// A file the reduce renamed in this same batch is gone under its old name, so only the names still there are dated.
+fn date(root: &Path, folder: &[String], files: &[String], picks: automations::Picks) {
+    let result = automations::plan(root, folder, files, picks).and_then(|rows| {
+        let renamed: Vec<_> = rows.into_iter().filter(|r| r.name != r.file).collect();
+        if renamed.is_empty() { Ok(0) } else { automations::apply(root, folder, &renamed) }
+    });
+    if let Err(e) = result {
+        log("error", &format!("Automations: dates in {} not changed: {e}", folder.join("/")));
+    }
+}
+
 // A file the reduce renamed in this same batch is gone under its old name, so only the names still there are grouped.
 fn group(root: &Path, folder: &[String], files: &[String]) {
-    let result = automations::plan(root, folder, files, false, false, true).and_then(|rows| {
+    let result = automations::plan(root, folder, files, automations::Picks { group: true, ..Default::default() }).and_then(|rows| {
         let moving: Vec<_> = rows.into_iter().filter(|r| r.folder.is_some()).collect();
         if moving.is_empty() { Ok(0) } else { automations::apply(root, folder, &moving) }
     });
