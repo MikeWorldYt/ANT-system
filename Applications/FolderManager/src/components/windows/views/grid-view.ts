@@ -12,7 +12,8 @@ import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot,
 import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
-import { openEntry, rootEntries, virtualEntries, virtualEntry, type VirtualEntry } from "../../molecules/virtual-entry";
+import { isTail } from "../../../services/store/sort";
+import { openEntry, placeEntries, rootEntries, virtualEntries, virtualEntry, type VirtualEntry } from "../../molecules/virtual-entry";
 import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
@@ -190,8 +191,10 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       const header = isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : [];
       // The open entry heads its own list, so the grid tells where it is.
       const entryOptions = { tabbable: entryTabbable };
-      const entries = listing ? [virtualEntry(listing, "grid-item", "option", entryOptions)] : folder === null ? virtualEntries("grid-item", "option", entryOptions) : [];
-      root.replaceChildren(...header, ...entries, ...nodes.map((n) => buildItem(n, n === tabbable)), ...(legend ? [el("p", { class: "grid-legend" }, legend)] : []));
+      const items = nodes.map((n) => buildItem(n, n === tabbable));
+      const tail = nodes.findIndex((n) => !n.file && isTail(n.name));
+      const placed = listing ? [virtualEntry(listing, "grid-item", "option", entryOptions), ...items] : folder === null ? placeEntries(virtualEntries("grid-item", "option", entryOptions), items, tail < 0 ? items.length : tail) : items;
+      root.replaceChildren(...header, ...placed, ...(legend ? [el("p", { class: "grid-legend" }, legend)] : []));
       built = manageSnapshot();
       root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus({ preventScroll: true });

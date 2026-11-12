@@ -1,5 +1,5 @@
 // IPC contract shared with the Rust backend; mirror of the serde types.
-export type TypeBase = "NODE" | "WKB" | "OUT" | "REV" | "RES" | "TPL" | "CFG" | "UNKNOWN";
+export type TypeBase = "NODE" | "WKB" | "OUT" | "REV" | "RES" | "TPL" | "CFG" | "SS" | "REC" | "UNKNOWN";
 export type EditableType = "NODE" | "WKB";
 export type NewKind = "node" | "workboard";
 export type WkbStatus = "in-progress" | "for-review" | "hold" | "done";
@@ -68,6 +68,18 @@ export interface TreeNode {
   children: TreeNode[] | null;
   absPath: string;
   actions: NodeActions;
+}
+
+export interface ProjectPlan {
+  name: string;
+  files: string[];
+  owner: string | null;
+  created: string | null;
+}
+
+export interface ProjectGroup extends ProjectPlan {
+  tier: "sure" | "likely";
+  ownerConflict: boolean;
 }
 
 export interface TreeSnapshot {
@@ -209,6 +221,18 @@ export interface StorageChangedEvent {
   paths: number;
   folders: string[][];
   rescan: boolean;
+}
+
+export type UiCall =
+  | { action: "getState" }
+  | { action: "reveal"; relParts: string[] }
+  | { action: "openTab"; relParts: string[] | null }
+  | { action: "split"; relParts: string[] | null }
+  | { action: "setView"; view: string };
+
+export interface UiRequest {
+  id: number;
+  call: UiCall;
 }
 
 export type FmError =

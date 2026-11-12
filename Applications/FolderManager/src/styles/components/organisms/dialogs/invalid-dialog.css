@@ -2,6 +2,11 @@
 .dialog-table td:not(:first-child) .invalid-pick { width: auto; margin-left: 6px; padding: 2px 4px; }
 .invalid-path { display: inline; padding: 2px 4px; color: var(--text); background: none; border: 0; border-radius: var(--radius-sm); font: inherit; text-align: left; cursor: pointer; }
 .invalid-path:hover { color: var(--accent); }
+.project-list { max-height: 50vh; overflow-y: auto; margin: 10px 0; }
+.project-row { padding: 8px 0; border-top: 1px solid var(--disabled-text); }
+.project-head { display: flex; align-items: center; gap: 8px; }
+.project-summary { margin-left: auto; color: var(--muted); font-size: 9pt; }
+.project-files { margin: 4px 0 0 26px; padding: 0; list-style: none; color: var(--muted); font-size: 9pt; }
 .invalid-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 20px; }
 .invalid-apply { padding: 4px 14px; }
 /* Kept apart from Apply and quiet until hovered, so a delete is never a slip of the pointer. */

@@ -23,3 +23,5 @@
 .side-rail-end { margin-top: auto; }
 .side-rail .danger:not([aria-disabled="true"]) { color: var(--delete-hover); }
 .details-panel[hidden], .side-rail[hidden], .side-section[hidden] { display: none; }
+.side-preview { min-width: 0; overflow: hidden; }
+.side-preview img, .side-preview video { display: block; width: 100%; max-width: 100%; height: auto; max-height: 240px; object-fit: contain; border-radius: var(--radius-md); background: var(--input-bg); }

@@ -7,6 +7,11 @@ pub fn canonical_key(key: &str) -> String {
     if OWNER_KEYS.contains(&key.as_str()) { OWNER_KEYS[0].to_string() } else { key }
 }
 
+// `in` completes folders rather than a field, so it is not folded into a field name.
+pub fn suggest_key(key: &str) -> String {
+    if key.eq_ignore_ascii_case("in") { "in".to_string() } else { canonical_key(key) }
+}
+
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Query {
     pub scope: Option<String>,

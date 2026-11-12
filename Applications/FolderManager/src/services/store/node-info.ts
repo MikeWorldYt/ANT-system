@@ -26,7 +26,36 @@ export const nameWithoutIdentifier = (n: TreeNode): string => {
   return isDirectoryIdentifier ? n.name.slice(n.fixedPrefix.length) : n.name;
 };
 // Review links always drop their identifier: their numbers repeat the category's, which reads as noise.
-export const displayNodeName = (n: TreeNode): string => (n.linked || state.settings.hideDirectoryIdentifiers ? nameWithoutIdentifier(n) : n.name);
+const GLOBAL_PREFIX = /^ANT\./i;
+const SUPPORT_LABELS: Record<string, string> = { REC: "Recordings", SS: "Screenshots", REV: "Review", RES: "Resources" };
+
+// Folder names keep their prefix on disk; the app reads them as words: "REC.WORK" is "Work Recordings".
+function readable(text: string): string {
+  return text
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((word) => (word === word.toUpperCase() ? word.charAt(0) + word.slice(1).toLowerCase() : word))
+    .join(" ");
+}
+
+function supportLabel(n: TreeNode): string | null {
+  const match = /^(REC|SS|REV|RES)\.(.*)$/i.exec(n.name);
+  if (!match || n.file || n.linked) return null;
+  const kind = (match[1] ?? "").toUpperCase();
+  const rest = match[2] ?? "";
+  const label = SUPPORT_LABELS[kind] ?? "";
+  // A resources folder may already say what it holds ("RES.edition-resources"), so only the default one takes its parent's name.
+  if (kind === "RES" && rest.toLowerCase() !== label.toLowerCase()) return readable(rest);
+  const owner = kind === "RES" ? (n.relParts[n.relParts.length - 2] ?? "").replace(/^[^.]*\./, "") : rest;
+  return `${readable(owner)} ${label}`.trim();
+}
+
+export const displayNodeName = (n: TreeNode): string => {
+  if (n.relParts.length === 1 && GLOBAL_PREFIX.test(n.name)) return n.name.replace(GLOBAL_PREFIX, "");
+  const support = supportLabel(n);
+  if (support) return support;
+  return n.linked || state.settings.hideDirectoryIdentifiers ? nameWithoutIdentifier(n) : n.name;
+};
 const OWNER_KEYS = ["owner", "holder", "client"];
 
 export const isWorkboard = (n: TreeNode) => n.nodeType?.base === "WKB";
@@ -56,6 +85,8 @@ export const typeLabel = (n: TreeNode): string => {
 // A tooltip is one line in plain words, so the internal type names give way to what the folder is for.
 export const nodeSummary = (n: TreeNode): string => {
   if (!n.file && n.nodeType?.base === "REV") return "Review Folder";
+  if (!n.file && n.nodeType?.base === "SS") return "Screenshots Folder";
+  if (!n.file && n.nodeType?.base === "REC") return "Recordings Folder";
   if (!n.file && n.nodeType?.base === "NODE" && n.flags.includes("data") && nodeFlags(n).length === 1) return "Node with free files unsorted";
   return typeLabel(n).replace(/\s*\n\s*/, " ");
 };

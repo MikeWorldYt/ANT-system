@@ -6,7 +6,7 @@ use std::process::Command;
 use serde::Deserialize;
 use tauri::AppHandle;
 
-use crate::commands::run_locked;
+use crate::commands::{run_locked, run_unlocked};
 use crate::domain::validation::valid_backup_folder;
 use crate::services::backup;
 use crate::services::index::review_index;
@@ -100,7 +100,8 @@ fn check(key: &str, value: &str) -> R<()> {
 
 #[tauri::command]
 pub async fn get_settings(app: AppHandle) -> R<HashMap<String, String>> {
-    run_locked(app, |root| match Store::open_existing(root)? {
+    // A read, so the Settings window opens while a long change holds the lock.
+    run_unlocked(app, |_, root| match Store::open_existing(root)? {
         Some(store) => store.settings(),
         None => Ok(HashMap::new()),
     })

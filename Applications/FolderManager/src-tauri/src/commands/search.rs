@@ -3,7 +3,7 @@ use tauri::{AppHandle, Manager};
 
 use super::{off_thread, run_unlocked};
 use crate::app::storage_session::Storage;
-use crate::domain::search::{canonical_key, parse_query};
+use crate::domain::search::{parse_query, suggest_key};
 use crate::domain::error::R;
 use crate::services::index::disk_search::{self, FileHit};
 use crate::infra::storage::db::{Store, Suggestion};
@@ -50,9 +50,5 @@ pub async fn search_files(app: AppHandle, query: String) -> R<Vec<FileHit>> {
 
 #[tauri::command]
 pub async fn suggest_search(app: AppHandle, key: String, prefix: String) -> R<Vec<Suggestion>> {
-    run_unlocked(app, move |storage, _| {
-        let key = if key.eq_ignore_ascii_case("in") { "in".to_string() } else { canonical_key(&key) };
-        storage.with_reader(|store| store.suggest(&key, &prefix))
-    })
-    .await
+    run_unlocked(app, move |storage, _| storage.with_reader(|store| store.suggest(&suggest_key(&key), &prefix))).await
 }

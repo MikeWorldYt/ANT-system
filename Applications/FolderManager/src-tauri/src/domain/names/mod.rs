@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::domain::config::{SUPPORT_NODES, WKB_IDENTIFIERS};
+use crate::domain::config::{MEDIA_NODES, SUPPORT_NODES, WKB_IDENTIFIERS};
 use crate::domain::tree_types::type_base;
 
 pub(crate) const FORBIDDEN: &[char] = &['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
@@ -36,7 +36,9 @@ pub fn next_available_id(siblings: &[String]) -> u32 {
 
 // A moved node takes the lowest free slot of its new level and a workboard the next track; other names are kept as they are.
 pub fn with_next_slot(name: &str, siblings: &[String]) -> String {
-    if has_node_id(name) {
+    if let Some((tracker, title)) = untracked_parts(name) {
+        format!("{tracker}{:03}_{title}", next_track_number(tracker, siblings))
+    } else if has_node_id(name) {
         format!("{:02}.{}", next_available_id(siblings), &name[3..])
     } else if is_track_name(name) {
         next_track(name, siblings)
@@ -83,15 +85,18 @@ pub fn is_system_root_name(name: &str) -> bool {
 }
 
 pub fn is_valid_root_name(name: &str) -> bool {
-    is_main_category(name) || is_system_root_name(name)
+    is_main_category(name) || is_system_root_name(name) || is_global_media(name)
+}
+
+pub fn is_global_media(name: &str) -> bool {
+    MEDIA_NODES.iter().any(|(_, _, global)| name.eq_ignore_ascii_case(global))
 }
 
 // The type a support folder gives ("REV", "RES", "TPL"): the word prefix in any case, or the numeric one of older storages.
 pub fn support_kind(name: &str) -> Option<&'static str> {
-    SUPPORT_NODES.iter().find_map(|(word, legacy, kind)| {
-        let is_word = name.get(..word.len()).is_some_and(|head| head.eq_ignore_ascii_case(word));
-        (is_word || name.starts_with(legacy)).then_some(*kind)
-    })
+    let has_word = |word: &str| name.get(..word.len()).is_some_and(|head| head.eq_ignore_ascii_case(word));
+    let media = MEDIA_NODES.iter().find_map(|(word, kind, global)| (has_word(word) || name.eq_ignore_ascii_case(global)).then_some(*kind));
+    media.or_else(|| SUPPORT_NODES.iter().find_map(|(word, legacy, kind)| (has_word(word) || name.starts_with(legacy)).then_some(*kind)))
 }
 
 // A support folder still on its numeric id waits for the upgrade to rename it.
@@ -107,6 +112,11 @@ pub fn has_node_id(name: &str) -> bool {
 
 pub fn is_workboard_name(name: &str) -> bool {
     WKB_IDENTIFIERS.iter().any(|tracker| name.starts_with(tracker))
+}
+
+// A workboard still in a review folder ("PJ_Name") has its tracker but no number until it enters the storage.
+pub fn untracked_parts(name: &str) -> Option<(&'static str, &str)> {
+    WKB_IDENTIFIERS.iter().find_map(|tracker| name.strip_prefix(tracker.trim_end_matches('.')).and_then(|rest| rest.strip_prefix('_')).map(|title| (*tracker, title)))
 }
 
 // A tracker and its number ("PJ.001", "PJ.1007_Name"); the title after the number is free.

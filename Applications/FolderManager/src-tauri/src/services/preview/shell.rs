@@ -16,10 +16,20 @@ use crate::domain::error::{FmError, R};
 
 const THUMBNAIL_PIXELS: i32 = 128;
 const ICON_PIXELS: i32 = 16;
+// Enough for the side panel width, far below a photo's own size.
+const PREVIEW_PIXELS: i32 = 320;
 
 // The grid gets the file's thumbnail, falling back to its type icon; list rows get the small icon only.
 pub fn image(path: &Path, large: bool) -> R<Option<String>> {
     let (pixels, flags) = if large { (THUMBNAIL_PIXELS, SIIGBF(0)) } else { (ICON_PIXELS, SIIGBF_ICONONLY) };
+    sized(path, pixels, flags)
+}
+
+pub fn preview(path: &Path) -> R<Option<String>> {
+    sized(path, PREVIEW_PIXELS, SIIGBF(0))
+}
+
+fn sized(path: &Path, pixels: i32, flags: SIIGBF) -> R<Option<String>> {
     let initialized = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) }.is_ok();
     let result = bitmap_url(path, pixels, flags);
     if initialized {

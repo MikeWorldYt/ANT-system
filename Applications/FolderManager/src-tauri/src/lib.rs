@@ -7,6 +7,7 @@ mod infra;
 mod ipc_parity_tests;
 #[cfg(test)]
 mod layer_tests;
+mod mcp;
 #[cfg(test)]
 mod tool_path_tests;
 mod platform;
@@ -30,6 +31,9 @@ pub fn run() {
     if std::env::args_os().nth(1).is_some_and(|a| a == "--watch") {
         std::process::exit(services::watch::run_headless(std::env::args_os().nth(2)));
     }
+    if std::env::args_os().nth(1).is_some_and(|a| a == "--mcp") {
+        std::process::exit(mcp::run_headless(std::env::args_os().nth(2)));
+    }
     let arg = std::env::args_os().nth(1).map(std::path::PathBuf::from);
     let cwd = std::env::current_dir().unwrap_or_default();
     let storage = Storage::resolve(cwd.clone());
@@ -39,6 +43,11 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(storage)
         .register_uri_scheme_protocol(services::extensions::sandbox_page::SCHEME, |_ctx, _request| services::extensions::sandbox_page::response())
+        .register_uri_scheme_protocol(services::preview::media::SCHEME, |ctx, request| {
+            use tauri::Manager;
+            let app = ctx.app_handle();
+            services::preview::media::response(app.state::<Storage>().root().ok().as_deref(), app.path().download_dir().ok().as_deref(), &request)
+        })
         .setup(move |app| {
             use tauri::Manager;
             let remembered = infra::storage::pointer::app_file(app.handle()).ok().and_then(|f| infra::storage::pointer::read(&f));
@@ -62,6 +71,12 @@ pub fn run() {
                     }
                 },
             ));
+            match app::ui_bridge::UiBridge::start(app.handle()) {
+                Ok(bridge) => {
+                    app.manage(bridge);
+                }
+                Err(e) => eprintln!("UI bridge unavailable, so ui_* tools will report the app as closed: {e}"),
+            }
             if let Some(window) = app.get_webview_window("main") {
                 window_state::restore(&window);
                 let saved = window.clone();
@@ -125,6 +140,10 @@ pub fn run() {
             commands::list_review,
             commands::list_workboards,
             commands::set_board,
+            commands::preview_project_groups,
+            commands::apply_project_groups,
+            commands::can_undo_project_sort,
+            commands::undo_project_sort,
             commands::search_disk,
             commands::search_files,
             commands::suggest_search,
@@ -166,6 +185,7 @@ pub fn run() {
             commands::paste_files,
             commands::start_drag_out,
             commands::create_shortcut_in,
+            commands::answer_ui_request,
         ])
         .build(tauri::generate_context!())
         .expect("error while running Folder Manager")
@@ -174,6 +194,9 @@ pub fn run() {
                 use tauri::Manager;
                 if let Some(watcher) = app.try_state::<services::watch::GuiWatch>() {
                     watcher.shutdown();
+                }
+                if let Some(bridge) = app.try_state::<app::ui_bridge::UiBridge>() {
+                    bridge.stop();
                 }
             }
         });

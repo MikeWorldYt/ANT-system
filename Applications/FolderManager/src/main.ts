@@ -2,13 +2,14 @@
 import "./styles/index.css";
 import { createMainWindow } from "./components/windows/main-window";
 import { openSettings } from "./components/windows/settings";
-import { onFileDrag, onReviewIndex, onStorageChanged, onWindowFocus } from "./services/ipc/events";
+import { onFileDrag, onReviewIndex, onStorageChanged, onUiRequest, onWindowFocus } from "./services/ipc/events";
 import { rememberSelection, state, subscribe } from "./services/store/state";
 import { clearStatus, currentOperationStatus, setStatus, reportError } from "./components/organisms/bars/status-line";
 import { init, refresh, relistLevels } from "./hooks/ops";
 import { autoRefresh } from "./hooks/auto-refresh";
 import { startIdleRefresh } from "./hooks/idle-refresh";
 import { handleFileDrag } from "./hooks/file-drop";
+import { answerAgent } from "./hooks/agent-ui";
 import { installShortcuts } from "./hooks/shortcuts";
 import { isRenderingOther, renderOther } from "./hooks/split";
 import { closeTab, nextTab, openTab, syncTabs } from "./hooks/tabs";
@@ -83,6 +84,8 @@ onStorageChanged((e) => void (e.rescan ? autoRefresh(() => refresh(false)) : rel
 );
 
 onFileDrag(handleFileDrag).catch((e) => reportError("warning", e, "File drop unavailable"));
+
+onUiRequest((r) => void answerAgent(views, r)).catch((e) => reportError("warning", e, "Agent window tools unavailable"));
 
 installDebugLog();
 

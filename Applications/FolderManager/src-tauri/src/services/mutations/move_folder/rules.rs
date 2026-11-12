@@ -45,7 +45,7 @@ pub(super) fn check_destination(rel: &[String], target: &Target) -> R<()> {
     // A review folder takes moved folders as it takes dropped files; the other locked types do not.
     guard(rel, target, "move into", true)?;
     match type_base(&target.node_type) {
-        "NODE" | "WKB" | "REV" => Ok(()),
+        "NODE" | "WKB" | "REV" | "SS" | "REC" => Ok(()),
         "" => Err(refuse(rel, "the folder has no type in the tree yet; refresh and retry")),
         other => Err(refuse(rel, format!("{other} folders do not take moved folders"))),
     }

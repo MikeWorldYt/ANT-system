@@ -15,3 +15,5 @@
 .col-item.ghost { opacity: 0.7; }
 .col-item.ghost .name { color: var(--ghost-text); font-style: italic; }
 .col-item.locked .name { color: var(--muted); }
+/* Only the top third of the edge is yellow; the background stays put while the column scrolls. */
+.column.db-edge { border-right-color: transparent; background: linear-gradient(#e8b931 33.33%, var(--border) 33.33%) right / 1px 100% no-repeat border-box; }

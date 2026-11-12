@@ -7,7 +7,7 @@ use super::{child_rel, editable_target, ensure_free, finish, load_synced_at, per
 use crate::domain::names::{compose_name, editable_part, is_legacy_support, name_parts, sanitize_train_case, sanitize_upper};
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::type_base;
-use crate::domain::config::SUPPORT_NODES;
+use crate::domain::config::{MEDIA_NODES, SUPPORT_NODES};
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{join_rel, same_name, validate_component, Journal, StorageLock};
 use crate::services::tree::tree_store::{self, get_node, get_node_mut, rename_key};
@@ -75,7 +75,8 @@ fn cascade_linked(
         Err(e) => return vec![format!("Linked folders not renamed: {e}")],
     };
     let mut warnings = Vec::new();
-    for (word, legacy, _) in SUPPORT_NODES.iter().filter(|(_, _, kind)| *kind != "TPL") {
+    let linked = SUPPORT_NODES.iter().filter(|(_, _, kind)| *kind != "TPL").map(|(word, legacy, _)| (word, legacy)).chain(MEDIA_NODES.iter().map(|(word, _, _)| (word, word)));
+    for (word, legacy) in linked {
         let Some(child_old) = existing.iter().find(|n| same_name(n, &format!("{word}{old_ed}")) || same_name(n, &format!("{legacy}{old_ed}"))) else { continue };
         // A folder still on its numeric id keeps it until the upgrade renames it.
         let prefix = if is_legacy_support(child_old) { legacy } else { word };

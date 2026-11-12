@@ -2,6 +2,7 @@
 import * as api from "../services/ipc/api";
 import { findNode, hydrate, keyOf, notify, patchLevels, pruneSelection, state } from "../services/store/state";
 import { loadVirtual } from "../services/store/virtual";
+import { loadOtherVirtual } from "./split";
 import type { TreeNode } from "../services/ipc/types";
 
 // Levels on screen: the root, the open folders and the path down to the selection.
@@ -36,7 +37,7 @@ async function relistLevel(parent: string[]): Promise<{ added: boolean; changed:
 let queue: Promise<unknown> = Promise.resolve();
 
 // Resolves to whether any level gained a folder; levels are read one after another so batches never overlap.
-export function relist(parents: string[][]): Promise<boolean> {
+export function relist(parents: string[][], reloadLists = false): Promise<boolean> {
   const run = async (): Promise<boolean> => {
     let added = false;
     let changed = false;
@@ -46,7 +47,11 @@ export function relist(parents: string[][]): Promise<boolean> {
       changed ||= result.changed;
     }
     pruneSelection();
-    if (changed) await loadVirtual();
+    // A change that may be metadata only leaves the listing the same size, so the entry lists are read again on request.
+    if (changed || reloadLists) {
+      await loadVirtual();
+      await loadOtherVirtual();
+    }
     notify();
     return added;
   };

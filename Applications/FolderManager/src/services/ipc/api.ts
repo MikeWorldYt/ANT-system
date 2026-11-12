@@ -21,6 +21,8 @@ import type {
   TreeNode,
   TreeSnapshot,
   WkbStatus,
+  ProjectGroup,
+  ProjectPlan,
 } from "./types";
 
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -61,6 +63,8 @@ export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("
 export const setImportant = (relParts: string[], on: boolean) => call<Mutation>("set_important", { relParts, on });
 export const fileImage = (relParts: string[], large: boolean) =>
   inDownloads(relParts) ? call<string | null>("download_image", { relParts: belowDownloads(relParts), large }) : call<string | null>("file_image", { relParts, large });
+export const previewImage = (relParts: string[]) =>
+  inDownloads(relParts) ? call<string | null>("download_image", { relParts: belowDownloads(relParts), large: true, preview: true }) : call<string | null>("file_image", { relParts, large: true, preview: true });
 export const setLinkHidden =(relParts: string[], on: boolean) => call<Mutation>("set_link_hidden", { relParts, on });
 export const setUserFlag = (relParts: string[], on: boolean) => call<Mutation>("set_user_flag", { relParts, on });
 export const answerCopy = (relParts: string[], answer: CopyAnswer) => call<void>("answer_copy", { relParts, answer });
@@ -135,10 +139,15 @@ export const deleteFile = (relParts: string[]) => call<Mutation>("delete_file", 
 export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
 export const deleteNode = (relParts: string[], expectGhost: boolean, confirmNonEmpty: boolean) =>
   call<Mutation>("delete_node", { relParts, expectGhost, confirmNonEmpty });
+export const answerUiRequest = (id: number, value: unknown, error: string | null) => call<void>("answer_ui_request", { id, value, error });
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
 export const listFavorites = () => call<string[][]>("list_favorites");
 export const listReview = () => call<string[][]>("list_review");
 export const listWorkboards = () => call<string[][]>("list_workboards");
+export const previewProjectGroups = (folder: string[]) => call<ProjectGroup[]>("preview_project_groups", { folder });
+export const applyProjectGroups = (folder: string[], plans: ProjectPlan[]) => call<Mutation>("apply_project_groups", { folder, plans });
+export const canUndoProjectSort = () => call<boolean>("can_undo_project_sort");
+export const undoProjectSort = () => call<Mutation>("undo_project_sort");
 export const setBoard = (cards: BoardCard[]) => call<Mutation>("set_board", { cards });
 export const searchDisk = (query: string) => call<string[][]>("search_disk", { query });
 export interface FileHit {

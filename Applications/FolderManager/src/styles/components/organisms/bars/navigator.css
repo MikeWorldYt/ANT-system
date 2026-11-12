@@ -17,3 +17,4 @@
 .crumb-btn { border: 0; background: transparent; padding: 0 2px; font: inherit; cursor: pointer; border-radius: 3px; }
 .crumb-btn:hover { background: var(--field-bg); }
 .crumb-btn.current { font-weight: 600; }
+.crumb-sep.db-edge { color: #e8b931; }

@@ -16,6 +16,7 @@ mod storage;
 #[cfg(test)]
 mod tests;
 mod tree;
+mod ui_bridge;
 mod update;
 mod upgrade;
 
@@ -23,12 +24,9 @@ use std::path::Path;
 
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::domain::config::{DEPTH_CEILING, MAX_DEPTH};
 use crate::app::storage_session::{Storage, StorageInfo};
 use crate::domain::error::{FmError, R};
 use crate::services::index::ReviewIndexEvent;
-use crate::services::tree::depth;
-use crate::services::updater;
 
 pub use backup::*;
 pub use debug::*;
@@ -44,6 +42,7 @@ pub use search::*;
 pub use share::*;
 pub use storage::*;
 pub use tree::*;
+pub use ui_bridge::*;
 pub use update::*;
 pub use upgrade::*;
 
@@ -103,15 +102,5 @@ fn review_emitter(app: &AppHandle) -> impl Fn(&ReviewIndexEvent) -> Result<(), S
 
 #[tauri::command]
 pub async fn get_storage(app: AppHandle) -> R<StorageInfo> {
-    run_locked(app, |root| {
-        let setting = depth::read(root)?;
-        Ok(StorageInfo {
-            root: root.to_string_lossy().into_owned(),
-            app_version: updater::CURRENT_VERSION.to_string(),
-            max_depth: setting.limit,
-            depth_options: (MAX_DEPTH..=DEPTH_CEILING).collect(),
-            depth_warning: setting.warning,
-        })
-    })
-    .await
+    run_unlocked(app, |_, root| StorageInfo::of(root)).await
 }
