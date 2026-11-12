@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use super::filter::{is_own_write, relative};
 use super::log;
-use crate::domain::config::{AUTO_ADD_DATE_FLAG, AUTO_GROUP_FLAG, AUTO_REDUCE_FLAG, AUTO_REMOVE_DATE_FLAG, AUTO_SORT_FLAG};
+use crate::domain::config::{AUTO_ADD_DATE_FLAG, AUTO_GROUP_FLAG, AUTO_REDUCE_FLAG, AUTO_REMOVE_DATE_FLAG, AUTO_REMOVE_SYMBOLS_FLAG, AUTO_SORT_FLAG};
 use crate::domain::project_group::Tier;
 use crate::domain::tree_types::{flags_in, type_base};
 use crate::services::automations::{self, reduce_files};
@@ -34,9 +34,10 @@ pub(super) fn run(root: &Path, changed: &[PathBuf]) {
         if flags.iter().any(|f| f == AUTO_REDUCE_FLAG) {
             reduce(root, &folder, &files);
         }
-        let (add, remove) = (flags.iter().any(|f| f == AUTO_ADD_DATE_FLAG), flags.iter().any(|f| f == AUTO_REMOVE_DATE_FLAG));
-        if add || remove {
-            date(root, &folder, &files, automations::Picks { add_date: add, remove_date: remove, ..Default::default() });
+        let has = |flag: &str| flags.iter().any(|f| f == flag);
+        let picks = automations::Picks { add_date: has(AUTO_ADD_DATE_FLAG), remove_date: has(AUTO_REMOVE_DATE_FLAG), remove_symbols: has(AUTO_REMOVE_SYMBOLS_FLAG), ..Default::default() };
+        if picks.add_date || picks.remove_date || picks.remove_symbols {
+            retouch(root, &folder, &files, picks);
         }
         if flags.iter().any(|f| f == AUTO_GROUP_FLAG) {
             group(root, &folder, &files);
@@ -70,14 +71,14 @@ fn sort(root: &Path, folder: &[String]) {
     }
 }
 
-// A file the reduce renamed in this same batch is gone under its old name, so only the names still there are dated.
-fn date(root: &Path, folder: &[String], files: &[String], picks: automations::Picks) {
+// A file the reduce renamed in this same batch is gone under its old name, so only the names still there are retouched.
+fn retouch(root: &Path, folder: &[String], files: &[String], picks: automations::Picks) {
     let result = automations::plan(root, folder, files, picks).and_then(|rows| {
         let renamed: Vec<_> = rows.into_iter().filter(|r| r.name != r.file).collect();
         if renamed.is_empty() { Ok(0) } else { automations::apply(root, folder, &renamed) }
     });
     if let Err(e) = result {
-        log("error", &format!("Automations: dates in {} not changed: {e}", folder.join("/")));
+        log("error", &format!("Automations: names in {} not retouched: {e}", folder.join("/")));
     }
 }
 

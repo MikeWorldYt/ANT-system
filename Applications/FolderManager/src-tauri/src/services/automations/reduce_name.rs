@@ -7,7 +7,7 @@ use std::collections::HashSet;
 
 const KEEP: usize = 4;
 const GENERIC: [&str; 5] = ["image", "images", "download", "unnamed", "untitled"];
-const NOISE_KEYWORDS: [&str; 13] = ["ezgif", "facebook", "fb_img", "pixiv", "pixai", "yande.re", "yander.re", "ssstiktok", "tiktok", "pexels", "whatsapp", "image", "video"];
+const NOISE_KEYWORDS: [&str; 14] = ["ezgif", "facebook", "fb_img", "pixiv", "pixai", "yande.re", "yander.re", "ssstiktok", "tiktok", "pexels", "whatsapp", "image", "video", "sample"];
 // First code point of every Unicode decimal-digit block (Python's `\d`), each block spanning 10 digits.
 const DIGIT_BLOCKS: [u32; 68] = [
     0x30, 0x660, 0x6F0, 0x7C0, 0x966, 0x9E6, 0xA66, 0xAE6, 0xB66, 0xBE6, 0xC66, 0xCE6, 0xD66, 0xDE6, 0xE50, 0xED0, 0xF20, 0x1040, 0x1090, 0x17E0, 0x1810, 0x1946, 0x19D0, 0x1A80, 0x1A90, 0x1B50, 0x1BB0, 0x1C40,
@@ -135,7 +135,8 @@ fn reddit(s: &[char], i: usize) -> Replaced {
 fn trailing_numbers(s: &[char], i: usize) -> Replaced {
     let first = digit_run_end(s, lit(s, i, ".")?);
     let second = digit_run_end(s, lit(s, first, ".")?);
-    ((3..=4).contains(&(first - i - 1)) && second - first - 1 >= 4 && second == s.len()).then(|| (second, vec![]))
+    // "Ganyu.600.3545662": the size code goes and the id keeps its first chars, so copies stay apart.
+    ((3..=4).contains(&(first - i - 1)) && second - first - 1 >= 4 && second == s.len()).then(|| (second, std::iter::once('_').chain(s[first + 1..first + 1 + KEEP].iter().copied()).collect()))
 }
 
 fn uuid(s: &[char], i: usize) -> Replaced {
@@ -172,7 +173,8 @@ fn is_code(t: &[char]) -> bool {
 
 fn code(s: &[char], i: usize) -> Replaced {
     let underscores = s[i..].iter().take_while(|&&c| c == '_').count();
-    let prefixed = lit(s, i + underscores, "sample-");
+    // "sample" goes with whatever symbol follows it: "sample-", "sample_", "sample*".
+    let prefixed = lit_ci(s, i + underscores, "sample").map(|e| e + usize::from(s.get(e).is_some_and(|c| !c.is_alphanumeric())));
     let bare = (i == 0 || !s[i - 1].is_ascii_alphanumeric()).then_some(i);
     for from in [prefixed, bare].into_iter().flatten() {
         let end = from + s[from..].iter().take_while(|c| c.is_ascii_alphanumeric()).count();
@@ -394,6 +396,15 @@ pub fn undated_name(name: &str) -> String {
     let (stem, suffix) = split_ext(name);
     let rest = dated::without_date(stem);
     if rest.trim_matches(['_', '-', ' ', '.']).is_empty() { name.to_string() } else { format!("{rest}{suffix}") }
+}
+
+// The remove-symbols automation: opening and closing marks go, as owner tags "[Mike]" or a date "(26-05-04)" the user does not want.
+pub fn unbracketed_name(name: &str) -> String {
+    let (stem, suffix) = split_ext(name);
+    let bare: Vec<char> = stem.chars().filter(|c| !matches!(c, '(' | ')' | '[' | ']' | '{' | '}')).collect();
+    let joined: String = collapse_symbol_runs(&bare).into_iter().collect();
+    let trimmed = joined.trim_matches(|c| is_sep(c) || c == '.');
+    if trimmed.is_empty() { name.to_string() } else { format!("{trimmed}{suffix}") }
 }
 
 pub fn new_name(name: &str) -> String {

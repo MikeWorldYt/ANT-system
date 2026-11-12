@@ -38,6 +38,7 @@ pub const AUTO_GROUP_FLAG: &str = "auto-group";
 pub const AUTO_ADD_DATE_FLAG: &str = "auto-add-date";
 // Removing a date wins over adding one when a review folder has both.
 pub const AUTO_REMOVE_DATE_FLAG: &str = "auto-remove-date";
+pub const AUTO_REMOVE_SYMBOLS_FLAG: &str = "auto-remove-symbols";
 pub const WKB_IDENTIFIERS: &[&str] = &["PJ.", "PR.", "HW.", "CR.", "TK."];
 // Support nodes: the word prefix, the numeric one older storages still use, and the type it gives.
 pub const SUPPORT_NODES: &[(&str, &str, &str)] = &[("RES.", "90.", "RES"), ("TPL.", "97.", "TPL"), ("REV.", "98.", "REV")];

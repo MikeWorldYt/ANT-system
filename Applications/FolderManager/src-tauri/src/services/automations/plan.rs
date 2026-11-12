@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::dict_match::{classify, renamed};
 use super::dictionary;
-use super::reduce_name::{dated_name, new_name, undated_name, unique_name};
+use super::reduce_name::{dated_name, new_name, unbracketed_name, undated_name, unique_name};
 use crate::domain::error::R;
 use crate::domain::project_group::{self, Tier};
 use crate::infra::fs_safe::{dir_entries, join_rel};
@@ -52,6 +52,7 @@ pub struct Picks {
     pub group: bool,
     pub add_date: bool,
     pub remove_date: bool,
+    pub remove_symbols: bool,
 }
 
 // A file whose creation time cannot be read keeps its name rather than a made-up date.
@@ -77,6 +78,9 @@ pub fn plan(root: &Path, folder: &[String], only: &[String], picks: Picks) -> R<
                 wanted = undated_name(&wanted);
             } else if picks.add_date {
                 wanted = dated_name(&wanted, created_secs(&dir.join(file)));
+            }
+            if picks.remove_symbols {
+                wanted = unbracketed_name(&wanted);
             }
             let mut name = file.clone();
             if wanted != *file {

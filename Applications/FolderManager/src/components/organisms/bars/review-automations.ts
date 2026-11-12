@@ -31,8 +31,9 @@ export function createReviewAutomations(): { element: HTMLElement; render(): voi
   const removeDate = pick("removeDate", "Remove date", "Take every date out of the names; it wins over Add date");
   const sort = pick("sort", "Sort by projects", "Group files that look like one project into a folder");
   const group = pick("group", "Group by dictionary", "Move files into the folders the nearest dictionary.md names");
-  const all = [reduce, addDate, removeDate, sort, group];
-  const picks = () => ({ reduce: reduce.box.checked, addDate: addDate.box.checked, removeDate: removeDate.box.checked, sort: sort.box.checked, group: group.box.checked });
+  const removeSymbols = pick("removeSymbols", "Remove symbols", "Take the brackets ( ) [ ] { } out of the names");
+  const all = [reduce, addDate, removeDate, sort, group, removeSymbols];
+  const picks = () => ({ reduce: reduce.box.checked, addDate: addDate.box.checked, removeDate: removeDate.box.checked, sort: sort.box.checked, group: group.box.checked, removeSymbols: removeSymbols.box.checked });
   const auto = checkbox({ id: "review-auto-always" });
   const autoRow = el("label", { class: "side-action automation-row", for: "review-auto-always", title: "Run the ticked automations, without a dry run, on every file that lands in this folder" }, auto, el("span", { class: "side-action-label" }, "Run on every new file"));
   const enter = action("Batch mode", "layout", () => {
@@ -60,7 +61,7 @@ export function createReviewAutomations(): { element: HTMLElement; render(): voi
     run.disabled = state.busy || none;
     if (!inBatch) {
       const flags = scope?.review?.flags ?? [];
-      auto.checked = ["auto-reduce", "auto-add-date", "auto-remove-date", "auto-sort", "auto-group"].some((f) => flags.includes(f));
+      auto.checked = ["auto-reduce", "auto-add-date", "auto-remove-date", "auto-sort", "auto-group", "auto-remove-symbols"].some((f) => flags.includes(f));
     }
   }
 

@@ -88,6 +88,7 @@ export interface Picks {
   group: boolean;
   addDate: boolean;
   removeDate: boolean;
+  removeSymbols: boolean;
 }
 
 export interface TreeSnapshot {

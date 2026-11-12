@@ -128,8 +128,8 @@ pub async fn set_review_automation(app: AppHandle, rel_parts: Vec<String>, autom
 
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
-pub async fn plan_automations(app: AppHandle, folder: Vec<String>, only: Vec<String>, reduce: bool, sort: bool, group: bool, add_date: bool, remove_date: bool) -> R<Vec<automations::PlannedFile>> {
-    let picks = automations::Picks { reduce, sort, group, add_date, remove_date };
+pub async fn plan_automations(app: AppHandle, folder: Vec<String>, only: Vec<String>, reduce: bool, sort: bool, group: bool, add_date: bool, remove_date: bool, remove_symbols: bool) -> R<Vec<automations::PlannedFile>> {
+    let picks = automations::Picks { reduce, sort, group, add_date, remove_date, remove_symbols };
     run_locked(app, move |root| automations::plan(root, &folder, &only, picks)).await
 }
 
