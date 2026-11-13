@@ -50,7 +50,7 @@ fn undo_file(root: &Path) -> PathBuf {
     root.join(DATA_DIR).join(UNDO_FILENAME)
 }
 
-fn check_in_review(data: &Mapping, folder: &[String]) -> R<()> {
+pub(super) fn check_in_review(data: &Mapping, folder: &[String]) -> R<()> {
     let reviewed = (1..=folder.len()).any(|end| get_node(data, &folder[..end]).and_then(|n| n.get("type")).and_then(Value::as_str).is_some_and(|t| type_base(t) == "REV"));
     if reviewed {
         return Ok(());
@@ -208,6 +208,10 @@ pub fn undo_project_sort(root: &Path) -> R<Mutation> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
+    use proptest::prelude::*;
+
     use super::*;
     use crate::test_support::{rel, storage, TempDir};
 
@@ -264,6 +268,49 @@ mod tests {
     fn only_review_folders_are_sorted() {
         let dir = ready("pg-refuse");
         assert!(apply_project_groups(dir.path(), &rel(&["100.WORK", "01.Plain"]), &[plan()]).is_err());
+    }
+
+    fn contents(dir: &Path) -> BTreeMap<PathBuf, Option<Vec<u8>>> {
+        let mut out = BTreeMap::new();
+        let mut stack = vec![dir.to_path_buf()];
+        while let Some(at) = stack.pop() {
+            for path in fs::read_dir(&at).unwrap().map(|e| e.unwrap().path()) {
+                let key = path.strip_prefix(dir).unwrap().to_path_buf();
+                if path.is_dir() {
+                    out.insert(key, None);
+                    stack.push(path);
+                } else {
+                    out.insert(key, Some(fs::read(&path).unwrap()));
+                }
+            }
+        }
+        out
+    }
+
+    // Few words and ids, so the preview finds projects to sort in most cases.
+    fn file_name() -> impl Strategy<Value = String> {
+        let words = prop::collection::vec(prop::sample::select(vec!["Alpha", "beta", "Gamma", "pool", "plans", "summer"]), 1..4);
+        (words, prop::option::of(1040u32..1045), prop::option::of(2u32..4), prop::sample::select(vec!["pdf", "png", "docx"])).prop_map(|(words, id, copy, ext)| {
+            format!("{}{}{}.{ext}", words.join(" "), id.map(|n| format!(" {n}")).unwrap_or_default(), copy.map(|n| format!(" ({n})")).unwrap_or_default())
+        })
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(16))]
+
+        #[test]
+        fn apply_then_undo_leaves_the_review_folder_as_it_was(files in prop::collection::btree_map(file_name(), prop::collection::vec(any::<u8>(), 0..64), 1..10)) {
+            let dir = ready("pg-prop");
+            let review = dir.path().join("100.WORK/98.WORK");
+            for (name, bytes) in &files {
+                fs::write(review.join(name), bytes).unwrap();
+            }
+            let before = contents(&review);
+            let plans: Vec<ProjectPlan> = preview_project_groups(dir.path(), &rel(REVIEW)).unwrap().into_iter().map(|g| ProjectPlan { name: g.name, files: g.files, owner: g.owner, created: g.created }).collect();
+            apply_project_groups(dir.path(), &rel(REVIEW), &plans).unwrap();
+            undo_project_sort(dir.path()).unwrap();
+            prop_assert_eq!(contents(&review), before);
+        }
     }
 
     #[test]

@@ -28,3 +28,14 @@
 .card-detail { color: var(--muted); font-size: 9pt; }
 .grid.cards .grid-item .name { justify-content: flex-start; }
 .grid.cards .grid-item .name-text { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.grid.details .grid-item .name, .details-head .detail-name { flex: 1; min-width: 0; }
+.detail-cell { flex: none; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--muted); font-size: 9pt; }
+.detail-date { width: 140px; }
+.detail-type { width: 100px; }
+.detail-size { width: 80px; text-align: right; padding-right: 12px; }
+.details-head { position: sticky; top: -12px; z-index: 1; display: flex; gap: 8px; padding: 4px 8px 4px 34px; background: var(--tree-bg); border-bottom: 1px solid var(--border); }
+.details-head .detail-cell { color: var(--muted); font-weight: 600; }
+.detail-sort { padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.detail-sort.detail-size { text-align: right; }
+.detail-sort:hover, .detail-sort[aria-pressed="true"] { color: var(--text); }
+.detail-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

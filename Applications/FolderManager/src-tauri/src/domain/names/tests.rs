@@ -1,3 +1,5 @@
+use proptest::prelude::*;
+
 use super::*;
 
 #[test]
@@ -10,22 +12,6 @@ fn numeric_id_reads_leading_ascii_digits() {
     assert_eq!(numeric_id("a1.x"), None);
     assert_eq!(numeric_id(".x"), None);
     assert_eq!(numeric_id("\u{0663}.x"), None);
-}
-
-#[test]
-fn next_available_id_fills_gaps_within_slots() {
-    let siblings = vec!["01.A".to_string(), "03.B".to_string(), "90.RES".to_string()];
-    assert_eq!(next_available_id(&siblings), 2);
-    let outside = vec!["00.A".to_string(), "90.R".to_string()];
-    assert_eq!(next_available_id(&outside), 1);
-    let empty: Vec<String> = Vec::new();
-    assert_eq!(next_available_id(&empty), 1);
-}
-
-#[test]
-fn next_available_id_falls_back_when_all_slots_full() {
-    let full: Vec<String> = (1..=99).map(|i| format!("{i:02}.X")).collect();
-    assert_eq!(next_available_id(&full), 99);
 }
 
 #[test]
@@ -143,4 +129,92 @@ fn editable_part_and_build_new_name_keep_prefix() {
     assert_eq!(name_parts("01.Math", false), ("01.".to_string(), "Math".to_string()));
     assert_eq!(name_parts("Math", false), (String::new(), "Math".to_string()));
     assert_eq!(compose_name("01.", "Physics", false), "01.Physics");
+}
+
+const SAMPLES: &str = include_str!("sample_names.txt");
+
+fn real() -> impl Strategy<Value = String> {
+    prop::sample::select(SAMPLES.lines().map(String::from).collect::<Vec<_>>())
+}
+
+fn mutate(name: &str, kind: usize, at: usize, extra: &str) -> String {
+    let chars: Vec<char> = name.chars().collect();
+    let at = at % (chars.len() + 1);
+    match kind {
+        0 => chars.iter().map(|c| if c.is_ascii_uppercase() { c.to_ascii_lowercase() } else { c.to_ascii_uppercase() }).collect(),
+        1 => chars[..at].iter().chain(&extra.chars().collect::<Vec<_>>()).chain(&chars[at..]).collect(),
+        2 => chars.iter().enumerate().filter(|(i, _)| *i != at).map(|(_, c)| c).collect(),
+        3 => format!("{}{}", at % 1000, name.trim_start_matches(|c: char| c.is_ascii_digit())),
+        _ => name.replace(['-', ' '], "_"),
+    }
+}
+
+// Real names from Test_Storage, the same names slightly broken, and random text; boxed, as the bare union type crashes rustc.
+fn mixed() -> BoxedStrategy<String> {
+    let mutated = (real(), 0usize..5, any::<usize>(), "[^\n]{0,4}").prop_map(|(name, kind, at, extra)| mutate(&name, kind, at, &extra));
+    prop_oneof![2 => real(), 2 => mutated, 1 => any::<String>()].boxed()
+}
+
+fn opens_with_an_id(name: &str) -> bool {
+    let digits = name.bytes().take_while(u8::is_ascii_digit).count();
+    digits > 0 && name.as_bytes().get(digits) == Some(&b'.')
+}
+
+// A full level is drawn on purpose: random masks almost never fill all 99 slots.
+fn slot_mask() -> impl Strategy<Value = Vec<bool>> {
+    prop_oneof![1 => Just(vec![true; 99]), 9 => prop::collection::vec(any::<bool>(), 99)]
+}
+
+proptest! {
+    #[test]
+    fn numeric_id_reads_any_ascii_number_before_the_dot(n in 0u32..1_000_000, zeros in 0usize..3, rest in mixed()) {
+        prop_assert_eq!(numeric_id(&format!("{}{n}.{rest}", "0".repeat(zeros))), Some(n));
+    }
+
+    #[test]
+    fn a_name_not_opening_with_digits_and_a_dot_has_no_numeric_id(name in mixed().prop_filter("opens with an id", |n| !opens_with_an_id(n))) {
+        prop_assert_eq!(numeric_id(&name), None);
+    }
+
+    #[test]
+    fn the_next_slot_is_the_lowest_one_no_sibling_takes_or_the_last(mask in slot_mask(), noise in prop::collection::vec(mixed(), 0..5)) {
+        let taken: Vec<u32> = (1..=99).filter(|i| mask[*i as usize - 1]).chain(noise.iter().filter_map(|n| numeric_id(n))).collect();
+        let siblings: Vec<String> = (1..=99).filter(|i| mask[*i as usize - 1]).map(|i| format!("{i:02}.X")).chain(noise).collect();
+        prop_assert_eq!(next_available_id(&siblings), (1..=99).find(|i| !taken.contains(i)).unwrap_or(99));
+    }
+
+    #[test]
+    fn sanitized_names_hold_no_forbidden_characters_spaces_or_loose_dashes(raw in mixed()) {
+        for clean in [sanitize_train_case(&raw), sanitize_upper(&raw)] {
+            prop_assert!(!clean.chars().any(|c| FORBIDDEN.contains(&c) || c.is_whitespace()), "{:?}", clean);
+            prop_assert!(!clean.starts_with('-') && !clean.ends_with('-') && !clean.contains("--"), "{:?}", clean);
+        }
+    }
+
+    #[test]
+    fn sanitizing_twice_changes_nothing(raw in mixed()) {
+        let once = sanitize_train_case(&raw);
+        prop_assert_eq!(sanitize_train_case(&once), once.clone());
+        let upper = sanitize_upper(&raw);
+        prop_assert_eq!(sanitize_upper(&upper), upper);
+    }
+
+    // A workboard ending in its first "_" drops it on purpose, as it goes back to the bare tracker.
+    #[test]
+    fn splitting_a_name_and_composing_it_again_gives_it_back(name in mixed(), workboard in any::<bool>()) {
+        prop_assume!(!(workboard && name.ends_with('_')));
+        let (fixed, editable) = name_parts(&name, workboard);
+        prop_assert_eq!(compose_name(&fixed, &editable, workboard), name.clone());
+        if !workboard {
+            prop_assert_eq!(editable, editable_part(&name));
+        }
+    }
+
+    #[test]
+    fn a_moved_workboard_continues_past_the_highest_number_of_its_tracker(numbers in prop::collection::vec(0u32..5000, 0..8), mine in 0u32..5000, title in mixed(), noise in prop::collection::vec(mixed(), 0..4)) {
+        let other = |n: &String| !n.get(..3).is_some_and(|head| head.eq_ignore_ascii_case("PJ."));
+        let siblings: Vec<String> = numbers.iter().map(|n| format!("PJ.{n:03}_X")).chain(noise.into_iter().filter(other)).collect();
+        let (next, width) = (numbers.iter().max().map_or(1, |n| n + 1), format!("{mine:03}").len());
+        prop_assert_eq!(next_track(&format!("PJ.{mine:03}_{title}"), &siblings), format!("PJ.{next:0width$}_{title}"));
+    }
 }

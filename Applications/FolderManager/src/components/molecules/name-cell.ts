@@ -11,6 +11,10 @@ import { displayNodeName, isTopLink, linkDashes } from "../../services/store/nod
 
 export const favoriteMark = () => el("span", { class: "fav-mark", title: "Favorite" }, guiIcon("starred"));
 
+// A review folder that changes every file landing in it says so in the tree, not only in its panel.
+const autoMark = () => el("span", { class: "auto-mark", title: "Automations run on new files" }, guiIcon("play"), el("span", { class: "sr-only" }, "Automations run on new files"));
+const runsAuto = (n: TreeNode): boolean => n.flags.some((f) => f.startsWith("auto-"));
+
 export const importantMark = () => el("span", { class: "imp-mark", title: "Important" }, guiIcon("important"), el("span", { class: "sr-only" }, "Important"));
 
 // Checked means the link is hidden; the box sits beside the icon and keeps its clicks from selecting the row.
@@ -28,7 +32,7 @@ export function nameCell(n: TreeNode, inlineStar = true, staircase = false): HTM
   if (!edit || edit.key !== key) {
     const review = inReviewList(n);
     const text = review ? (staircase ? "-".repeat(reviewLevel(n) - 1) : "") + reviewName(n) : (staircase ? linkDashes(n) : "") + displayNodeName(n);
-    return el("span", { class: isTopLink(n) || (review && reviewLevel(n) === 1) ? "name top-link" : "name" }, el("span", { class: "name-text" }, text), ...(n.favorite && inlineStar ? [favoriteMark()] : []), ...(n.important && inlineStar ? [importantMark()] : []));
+    return el("span", { class: isTopLink(n) || (review && reviewLevel(n) === 1) ? "name top-link" : "name" }, el("span", { class: "name-text" }, text), ...(n.favorite && inlineStar ? [favoriteMark()] : []), ...(n.important && inlineStar ? [importantMark()] : []), ...(runsAuto(n) ? [autoMark()] : []));
   }
 
   const input = textInput({ class: "name-input", "aria-label": `Rename ${n.name}` });

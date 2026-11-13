@@ -21,8 +21,9 @@ import type {
   TreeNode,
   TreeSnapshot,
   WkbStatus,
-  ProjectGroup,
-  ProjectPlan,
+  Picks,
+  PlannedFile,
+  DictionaryIssue,
 } from "./types";
 
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -134,6 +135,13 @@ export const copyItems = (targets: string[][], cut: boolean) =>
   targets.every(inDownloads) ? call<void>("copy_downloads", { targets: targets.map(belowDownloads) }) : call<void>("copy_items", { targets, cut });
 export const createFileShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_file_shortcut_in", { target, folder });
+export const setReviewAutomation = (relParts: string[], automation: keyof Picks, on: boolean) => call<Mutation>("set_review_automation", { relParts, automation, on });
+export const planAutomations = (folder: string[], only: string[], picks: Picks) => call<PlannedFile[]>("plan_automations", { folder, only, ...picks });
+export const openDictionaryWindow = (folder: string[]) => call<void>("open_dictionary_window", { folder });
+export const readDictionary = (folder: string[]) => call<string>("read_dictionary", { folder });
+export const checkDictionary = (text: string) => call<DictionaryIssue[]>("check_dictionary", { text });
+export const saveDictionary = (folder: string[], text: string) => call<DictionaryIssue[]>("save_dictionary", { folder, text });
+export const applyAutomations = (folder: string[], rows: PlannedFile[]) => call<number>("apply_automations", { folder, rows });
 export const renameFile = (relParts: string[], newName: string) => call<Mutation>("rename_file", { relParts, newName });
 export const deleteFile = (relParts: string[]) => call<Mutation>("delete_file", { relParts });
 export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
@@ -144,8 +152,6 @@ export const searchNodes = (query: string) => call<string[][]>("search_nodes", {
 export const listFavorites = () => call<string[][]>("list_favorites");
 export const listReview = () => call<string[][]>("list_review");
 export const listWorkboards = () => call<string[][]>("list_workboards");
-export const previewProjectGroups = (folder: string[]) => call<ProjectGroup[]>("preview_project_groups", { folder });
-export const applyProjectGroups = (folder: string[], plans: ProjectPlan[]) => call<Mutation>("apply_project_groups", { folder, plans });
 export const canUndoProjectSort = () => call<boolean>("can_undo_project_sort");
 export const undoProjectSort = () => call<Mutation>("undo_project_sort");
 export const setBoard = (cards: BoardCard[]) => call<Mutation>("set_board", { cards });

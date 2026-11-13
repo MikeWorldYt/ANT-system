@@ -61,6 +61,22 @@ pub struct TreeNode {
     pub children: Option<Vec<TreeNode>>,
     pub abs_path: String,
     pub actions: NodeActions,
+    pub stamps: Stamps,
+}
+
+// Milliseconds since the epoch; size is only read for files, as a folder's would mean walking it.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Stamps {
+    pub modified: Option<u64>,
+    pub created: Option<u64>,
+    pub size: Option<u64>,
+}
+
+pub(crate) fn stamps_of(path: &Path, file: bool) -> Stamps {
+    let Ok(meta) = std::fs::metadata(path) else { return Stamps::default() };
+    let ms = |t: std::io::Result<std::time::SystemTime>| t.ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_millis() as u64);
+    Stamps { modified: ms(meta.modified()), created: ms(meta.created()), size: file.then(|| meta.len()) }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -153,8 +169,10 @@ pub(crate) fn lists_files(rel: &[String]) -> bool {
 fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
     let mut rel_parts = parent.to_vec();
     rel_parts.push(name.clone());
+    let abs = join_rel(root, &rel_parts);
     TreeNode {
-        abs_path: join_rel(root, &rel_parts).to_string_lossy().into_owned(),
+        stamps: stamps_of(&abs, true),
+        abs_path: abs.to_string_lossy().into_owned(),
         rel_parts,
         depth: parent.len(),
         ghost: false,
@@ -253,6 +271,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
         file: false,
         info,
         children: None,
+        stamps: if ghost || linked { Stamps::default() } else { stamps_of(&abs_path, false) },
         abs_path: abs_path.to_string_lossy().into_owned(),
     })
 }

@@ -1,0 +1,31 @@
+/* Batch mode: the dry run of a review folder's automations as a diff, current name in red beside the one it would get in green. */
+.batch { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--tree-bg); border-radius: var(--radius-md); overflow: hidden; }
+.batch[hidden] { display: none; }
+.batch-scroll { flex: 1; min-height: 0; overflow: auto; }
+.batch-table { width: 100%; border-collapse: collapse; font-size: 10pt; table-layout: fixed; }
+.batch-table th, .batch-table td { padding: 4px 10px; text-align: left; font-weight: 400; overflow-wrap: anywhere; }
+.batch-table thead th { position: sticky; top: 0; z-index: 2; background: var(--input-bg); color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); }
+.batch-table .batch-check { width: 32px; }
+.batch-table tr.unchanged th, .batch-table tr.unchanged td { color: var(--muted); border-bottom: 1px solid var(--border); }
+.batch-table tr.changed .batch-before { background: var(--diff-del-bg); }
+.batch-table tr.changed .batch-after { background: var(--diff-add-bg); }
+.batch-table tr.changed .batch-check { background: var(--diff-del-bg); }
+.batch-table del, .batch-table ins { text-decoration: none; border-radius: 2px; color: inherit; }
+.batch-table del { background: var(--diff-del-mark); }
+.batch-table ins { background: var(--diff-add-mark); }
+.batch-table tr.skipped th, .batch-table tr.skipped td { opacity: 0.45; }
+.batch-group th, .batch-group td { background: var(--input-bg); color: var(--text); font-weight: 600; border-bottom: 1px solid var(--border); }
+.batch-table input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.batch-group-head { display: flex; align-items: center; gap: 6px; }
+.batch-group-name { flex: 1; min-width: 0; }
+.batch-group-toggle { flex: none; }
+.batch-home { color: var(--muted); }
+.batch-table tr[hidden] { display: none; }
+.batch-table tbody tr:not(.batch-group) { cursor: default; }
+.batch-table tr.selected { outline: 1px solid var(--text); outline-offset: -1px; }
+.batch-table tbody tr:not(.batch-gap) > * { border-bottom: 1px solid color-mix(in srgb, var(--text) 22%, transparent); }
+.batch-table tr.changed > .batch-check, .batch-table tr.changed > .batch-before { border-bottom-color: hsl(from var(--diff-del-bg) h min(100, calc(s * 1.6)) calc(l * 0.6)); }
+.batch-table tr.changed > .batch-after { border-bottom-color: hsl(from var(--diff-add-bg) h min(100, calc(s * 1.6)) calc(l * 0.6)); }
+.batch-gap td { height: 6px; padding: 0; border: 0; background: transparent; }
+.batch-group > * { position: sticky; top: var(--batch-head-h, 0); z-index: 1; user-select: none; }
+.batch-head { position: sticky; top: 0; z-index: 2; }

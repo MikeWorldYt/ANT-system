@@ -30,7 +30,7 @@ pub(super) fn apply(root: &Path, changed: &[PathBuf], rescan: Option<&str>) -> R
     let reason = rescan.map(str::to_string).or_else(|| needs_full(rels.len()).then(|| format!("{} changed paths", rels.len())));
     // A full sync tells the window to rescan, so listing every parent would only be noise.
     let folders = if reason.is_some() { Vec::new() } else { parents(&rels) };
-    let mut report = ApplyReport { paths: rels.len(), full: reason.is_some(), skipped, saved: false, folders };
+    let mut report = ApplyReport { paths: rels.len(), full: reason.is_some(), skipped, saved: false, folders, dictionary: false };
     if let Some(reason) = &reason {
         log("info", &format!("Watch: full sync ({reason})"));
     }
@@ -62,7 +62,7 @@ fn skip_without_db(root: &Path, changed: usize) -> Option<ApplyReport> {
         return None;
     }
     log("warning", &format!("Watch: {changed} changed paths skipped, {} has no ant.db", root.display()));
-    Some(ApplyReport { paths: 0, full: false, skipped: changed, saved: false, folders: Vec::new() })
+    Some(ApplyReport { paths: 0, full: false, skipped: changed, saved: false, folders: Vec::new(), dictionary: false })
 }
 
 // The window re-lists these levels: a path appearing, vanishing or renaming changes its parent's listing.
@@ -98,7 +98,7 @@ mod tests {
         dir.mkdir("100.WORK/06.New/01.Deep");
         dir.mkdir("200.Other");
         let report = apply_batch(dir.path(), &[dir.path().join("100.WORK/06.New")]).unwrap();
-        assert_eq!(report, ApplyReport { paths: 1, full: false, skipped: 0, saved: true, folders: vec![rel(&["100.WORK"])] });
+        assert_eq!(report, ApplyReport { paths: 1, full: false, skipped: 0, saved: true, folders: vec![rel(&["100.WORK"])], dictionary: false });
         let data = yaml(dir.path());
         assert_eq!(tree_store::get_type(&data, &rel(&["100.WORK", "06.New"])), "NODE-L2");
         assert_eq!(tree_store::get_type(&data, &rel(&["100.WORK", "06.New", "01.Deep"])), "NODE-L3");
@@ -110,7 +110,7 @@ mod tests {
         let dir = work("watch-no-db");
         remove_db(dir.path());
         dir.mkdir("100.WORK/06.New");
-        let quiet = ApplyReport { paths: 0, full: false, skipped: 1, saved: false, folders: vec![] };
+        let quiet = ApplyReport { paths: 0, full: false, skipped: 1, saved: false, folders: vec![], dictionary: false };
         assert_eq!(apply_batch(dir.path(), &[dir.path().join("100.WORK/06.New")]).unwrap(), quiet);
         assert!(!db_path(dir.path()).exists());
         let report = apply(dir.path(), &[], Some("overflow")).unwrap();
@@ -127,7 +127,7 @@ mod tests {
         let before = std::fs::metadata(db_path(dir.path())).unwrap().modified().unwrap();
         let own = [".ant/ant.db", ".ant/ant.db-journal", "999.Settings/00.Core/.FolderManager.lock"].map(|p| dir.path().join(p));
         let report = apply_batch(dir.path(), &own).unwrap();
-        assert_eq!(report, ApplyReport { paths: 0, full: false, skipped: 3, saved: false, folders: vec![] });
+        assert_eq!(report, ApplyReport { paths: 0, full: false, skipped: 3, saved: false, folders: vec![], dictionary: false });
         assert_eq!(std::fs::metadata(db_path(dir.path())).unwrap().modified().unwrap(), before);
     }
 

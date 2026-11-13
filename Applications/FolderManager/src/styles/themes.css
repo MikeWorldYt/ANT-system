@@ -16,6 +16,10 @@
   --st-hold: #3f86c4;
   --st-review: #d46f1c;
   --shadow-pop: 0 4px 14px rgb(0 0 0 / 0.18);
+  --diff-del-bg: #fde9e9;
+  --diff-del-mark: #f4a6a6;
+  --diff-add-bg: #e2f5e8;
+  --diff-add-mark: #8fd7a8;
   color-scheme: light;
 }
 
@@ -37,6 +41,10 @@
     --st-hold: #3f86c4;
     --st-review: #d46f1c;
     --shadow-pop: 0 4px 14px rgb(0 0 0 / 0.18);
+    --diff-del-bg: #fde9e9;
+    --diff-del-mark: #f4a6a6;
+    --diff-add-bg: #e2f5e8;
+    --diff-add-mark: #8fd7a8;
     color-scheme: light;
   }
 }

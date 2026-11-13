@@ -78,6 +78,8 @@ pub fn news(entries: &[Entry], seen: u64, me: u32) -> Option<News> {
 
 #[cfg(test)]
 mod tests {
+    use proptest::prelude::*;
+
     use super::*;
     use crate::test_support::{rel, TempDir};
 
@@ -85,19 +87,32 @@ mod tests {
         Entry { seq, writer, levels: vec![rel(level)], rescan }
     }
 
-    #[test]
-    fn changes_from_other_writers_since_the_last_read_are_merged() {
-        let log = [entry(1, 7, &["100.WORK"], false), entry(2, 8, &["200.HOME"], false), entry(3, 8, &["100.WORK"], false)];
-        assert_eq!(news(&log, 3, 1), None);
-        assert_eq!(news(&log, 1, 1), Some(News { levels: vec![rel(&["100.WORK"]), rel(&["200.HOME"])], rescan: false }));
-        assert_eq!(news(&log, 2, 1), Some(News { levels: vec![rel(&["100.WORK"])], rescan: false }));
+    // Seqs run 1, 2, 3... as record() writes them; writer 1 is the window reading the log.
+    fn gapless_log() -> impl Strategy<Value = Vec<Entry>> {
+        let level = prop::collection::vec(prop::sample::select(vec!["100.WORK", "200.HOME", "02.B"]), 0..3);
+        prop::collection::vec((1u32..3, level, any::<bool>()), 0..10).prop_map(|rows| {
+            rows.into_iter().enumerate().map(|(i, (writer, level, rescan))| Entry { seq: i as u64 + 1, writer, levels: vec![level.into_iter().map(String::from).collect()], rescan }).collect()
+        })
     }
 
-    #[test]
-    fn the_windows_own_entries_never_come_back_to_it() {
-        let log = [entry(1, 7, &["100.WORK"], false), entry(2, 1, &["200.HOME"], true)];
-        assert_eq!(news(&log, 1, 1), None);
-        assert_eq!(news(&log, 0, 1), Some(News { levels: vec![rel(&["100.WORK"])], rescan: false }));
+    proptest! {
+        #[test]
+        fn a_gapless_log_brings_back_only_what_other_writers_did_since_the_last_read(log in gapless_log(), seen in 0u64..10) {
+            prop_assume!(seen <= newest(&log));
+            let others: Vec<&Entry> = log.iter().filter(|e| e.seq > seen && e.writer != 1).collect();
+            let mut levels: Vec<Vec<String>> = others.iter().flat_map(|e| e.levels.clone()).collect();
+            levels.sort();
+            levels.dedup();
+            let expected = (!others.is_empty()).then(|| News { levels, rescan: others.iter().any(|e| e.rescan) });
+            prop_assert_eq!(news(&log, seen, 1), expected);
+        }
+
+        #[test]
+        fn the_log_reads_back_as_it_was_written(log in gapless_log(), seq in any::<u64>(), writer in any::<u32>(), level in prop::collection::vec(".{0,8}", 0..4)) {
+            let log: Vec<Entry> = log.into_iter().chain([Entry { seq, writer, levels: vec![level], rescan: false }]).collect();
+            let bytes = serde_json::to_vec(&log).unwrap();
+            prop_assert_eq!(serde_json::from_slice::<Vec<Entry>>(&bytes).unwrap(), log);
+        }
     }
 
     #[test]

@@ -120,6 +120,8 @@ export function installShortcuts(go: ShortcutTargets): void {
     if (!hit) return;
     if (hit.plain && !onViews(ev.target)) return;
     if (!hit.inFields && isField(ev.target)) return;
+    // Text the user selected, such as an error in the status line, copies as text instead of the selected folders.
+    if (hit.code === "KeyC" && hit.mod && window.getSelection()?.toString()) return;
     ev.preventDefault();
     hit.run();
   });

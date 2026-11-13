@@ -1,4 +1,5 @@
 // Recursive notify watcher that gathers events into batches separated by a quiet period.
+use crate::services::automations::dictionary::DICTIONARY_FILE;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -72,7 +73,11 @@ pub fn watch(root: &Path, stop: &AtomicBool, on_applied: &mut dyn FnMut(&ApplyRe
                 None => apply_batch(root, &paths),
             };
             match applied {
-                Ok(report) => on_applied(&report),
+                Ok(mut report) => {
+                    report.dictionary = paths.iter().any(|p| p.file_name().is_some_and(|n| n.eq_ignore_ascii_case(DICTIONARY_FILE)));
+                    on_applied(&report);
+                    super::auto_run::run(root, &paths);
+                }
                 Err(e) => log("error", &format!("Watch: batch of {} paths not applied: {e}", paths.len())),
             }
         }

@@ -9,3 +9,4 @@
 .dialog-table input[type="radio"] { accent-color: var(--accent); }
 .dialog-table input[type="radio"]:disabled { opacity: 0.35; }
 .dialog-table thead tr + tr th { top: 30px; }
+.dialog-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; }

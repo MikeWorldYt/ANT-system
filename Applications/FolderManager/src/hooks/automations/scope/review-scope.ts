@@ -8,6 +8,8 @@ export interface ReviewScope {
   folders: string[][];
   files: TreeNode[];
   label: string;
+  // The one review folder the selection sits in, whose automations can be switched on.
+  review: TreeNode | null;
 }
 
 const isReview = (n: TreeNode | null | undefined): n is TreeNode => !!n && !n.file && !n.ghost && n.nodeType?.base === "REV";
@@ -24,17 +26,17 @@ function reviewAbove(n: TreeNode): TreeNode | null {
 export function reviewScope(): ReviewScope | null {
   const picked = selectedNodes();
   if (picked.length > 1) {
-    if (!picked.every((n) => reviewAbove(n))) return null;
-    return { folders: picked.filter((n) => !n.file).map((n) => n.relParts), files: picked.filter((n) => n.file), label: `${picked.length} selected items` };
+    const reviews = picked.map(reviewAbove);
+    if (!reviews.every((r) => r)) return null;
+    const same = (r: TreeNode | null) => r?.relParts.join("/") === reviews[0]?.relParts.join("/");
+    const one = reviews.every(same) ? (reviews[0] ?? null) : null;
+    return { folders: picked.filter((n) => !n.file).map((n) => n.relParts), files: picked.filter((n) => n.file), label: `${picked.length} selected items`, review: one };
   }
   const n = selectedNode();
-  if (!n) return null;
-  const owned = n.children?.find(isReview);
-  if (!reviewAbove(n) && owned) return { folders: [owned.relParts], files: [], label: `Files in ${owned.name}` };
-  if (!reviewAbove(n)) return null;
-  if (!n.file) return { folders: [n.relParts], files: [], label: `Files in ${n.name}` };
-  const parent = n.relParts.slice(0, -1);
-  return { folders: [parent], files: [], label: `Files beside ${n.name}` };
+  const review = n ? reviewAbove(n) : null;
+  if (!n || !review) return null;
+  if (!n.file) return { folders: [n.relParts], files: [], label: `Files in ${n.name}`, review };
+  return { folders: [n.relParts.slice(0, -1)], files: [], label: `Files beside ${n.name}`, review };
 }
 
 // Every file the scope reaches, listed fresh from disk so nothing the tree has not loaded yet is missed.

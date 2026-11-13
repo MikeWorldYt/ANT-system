@@ -3,7 +3,7 @@ import { el } from "../dom";
 import { iconButton } from "../atoms/icon-button";
 import type { GuiIcon } from "../atoms/gui-icons";
 
-export const VIEW_ICONS: Record<string, GuiIcon> = { tree: "viewTree", columns: "viewColumns", grid: "viewGrid", list: "viewList", cards: "viewCards" };
+export const VIEW_ICONS: Record<string, GuiIcon> = { tree: "viewTree", columns: "viewColumns", grid: "viewGrid", list: "viewList", details: "viewDetails", cards: "viewCards" };
 
 export function viewChoice(label: string, icon: GuiIcon, onClick: () => void): HTMLButtonElement {
   const button = iconButton(label, icon, onClick);

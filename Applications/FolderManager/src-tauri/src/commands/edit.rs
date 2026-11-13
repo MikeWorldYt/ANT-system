@@ -11,7 +11,7 @@ use crate::platform::shortcuts::create_shortcuts;
 use crate::domain::config::{EditableType, NewKind, WkbStatus};
 use crate::services::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
 use crate::domain::error::R;
-use crate::services::edit;
+use crate::services::{automations, edit};
 use crate::services::index::{review_index, Emit};
 
 // Mutations that can add, move or drop 998.Review links rebuild that index along with the search fields.
@@ -122,6 +122,23 @@ pub async fn restore_output(app: AppHandle, rel_parts: Vec<String>) -> R<Mutatio
 }
 
 #[tauri::command]
+pub async fn set_review_automation(app: AppHandle, rel_parts: Vec<String>, automation: String, on: bool) -> R<Mutation> {
+    run_locked(app, move |root| mutations::set_review_automation(root, &rel_parts, &automation, on)).await
+}
+
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn plan_automations(app: AppHandle, folder: Vec<String>, only: Vec<String>, reduce: bool, sort: bool, group: bool, add_date: bool, remove_date: bool, remove_symbols: bool) -> R<Vec<automations::PlannedFile>> {
+    let picks = automations::Picks { reduce, sort, group, add_date, remove_date, remove_symbols };
+    run_locked(app, move |root| automations::plan(root, &folder, &only, picks)).await
+}
+
+#[tauri::command]
+pub async fn apply_automations(app: AppHandle, folder: Vec<String>, rows: Vec<automations::PlannedFile>) -> R<usize> {
+    run_locked(app, move |root| automations::apply(root, &folder, &rows)).await
+}
+
+#[tauri::command]
 pub async fn set_node_hidden(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
     run_search_indexed(app, move |root| mutations::set_hidden(root, &rel_parts, on)).await
 }
@@ -179,16 +196,6 @@ pub async fn apply_support_upgrade(app: AppHandle, rel_parts: Vec<String>) -> R<
 #[tauri::command]
 pub async fn merge_extra_review(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
     run_indexed(app, move |root| crate::services::upgrade::merge_extra_review(root, &rel_parts)).await
-}
-
-#[tauri::command]
-pub async fn preview_project_groups(app: AppHandle, folder: Vec<String>) -> R<Vec<mutations::ProjectGroup>> {
-    run_locked(app, move |root| mutations::preview_project_groups(root, &folder)).await
-}
-
-#[tauri::command]
-pub async fn apply_project_groups(app: AppHandle, folder: Vec<String>, plans: Vec<mutations::ProjectPlan>) -> R<Mutation> {
-    run_indexed(app, move |root| mutations::apply_project_groups(root, &folder, &plans)).await
 }
 
 #[tauri::command]

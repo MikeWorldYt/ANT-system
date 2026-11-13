@@ -97,6 +97,30 @@ fn sync_adds_new_dirs_keeps_ghosts_and_settles() {
     assert!(!sync(dir.path(), &mut data).unwrap());
 }
 
+#[test]
+fn gone_support_and_system_records_drop_but_a_gone_review_stays() {
+    let dir = TempDir::new("sync-gone-support");
+    dir.mkdir("100.WORK/RES.Client Assets");
+    dir.mkdir("998.Review");
+    let mut data = parse("100.WORK:
+  type: NODE-L1
+  RES.Costumers Assets: {type: RES}
+  TPL.Work: {type: TPL}
+  SS.Work: {type: SS}
+  REV.WORK: {type: REV-L2}
+  01.Gone: {type: NODE-L2}
+998.REVIEW:
+  type: REV
+");
+    assert!(sync(dir.path(), &mut data).unwrap());
+    let work = get_node(&data, &rel(&["100.WORK"])).unwrap();
+    let names: Vec<&str> = work.keys().filter_map(Value::as_str).collect();
+    assert!(names.contains(&"RES.Client Assets") && names.contains(&"REV.WORK") && names.contains(&"01.Gone"));
+    assert!(!names.iter().any(|n| ["RES.Costumers Assets", "TPL.Work", "SS.Work"].contains(n)));
+    assert!(data.get("998.REVIEW").is_none() && data.get("998.Review").is_some());
+    assert!(!sync(dir.path(), &mut data).unwrap());
+}
+
 fn settle(root: &Path, data: &mut Mapping) -> bool {
     sync(root, data).unwrap() | reconcile_portfolios_all(root, data).unwrap()
 }

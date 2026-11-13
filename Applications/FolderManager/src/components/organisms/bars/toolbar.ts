@@ -3,6 +3,7 @@ import { VIEW_ICONS, viewChoice } from "../../molecules/view-choice";
 import { el, setDisabled } from "../../dom";
 import { guiIcon, type GuiIcon } from "../../atoms/gui-icons";
 import { iconButton } from "../../atoms/icon-button";
+import { batch } from "../../../hooks/automations/batch";
 import { attachMenu } from "../menus/anchored-menu";
 import { EDGE, openPopup, place, popupTrigger } from "../../molecules/menu";
 import { addNext, refresh } from "../../../hooks/ops";
@@ -15,8 +16,8 @@ export interface ViewPicker {
   onSelect(id: string): void;
 }
 
-export const SORT_KEYS: [SortBy, string, GuiIcon][] = [["track", "Track", "sortTrack"], ["name", "Name", "sortName"], ["status", "Status", "sortStatus"]];
-const VIEW_ORDER = ["tree", "list", "cards", "grid", "columns"];
+export const SORT_KEYS: [SortBy, string, GuiIcon][] = [["track", "Track", "sortTrack"], ["name", "Name", "sortName"], ["status", "Status", "sortStatus"], ["modified", "Date modified", "sortModified"], ["created", "Date created", "sortCreated"], ["size", "Size", "sortSize"]];
+const VIEW_ORDER = ["tree", "list", "details", "cards", "grid", "columns"];
 export const orderedModes = (views: ViewPicker) => [...views.modes].sort((a, b) => VIEW_ORDER.indexOf(a.id) - VIEW_ORDER.indexOf(b.id));
 
 export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trailing: HTMLElement[]; render(): void } {
@@ -51,6 +52,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
 
   let closeViewPopup: ((restore?: boolean) => void) | null = null;
   const modeButtons = orderedModes(views).map((m): [string, HTMLButtonElement] => [m.id, viewChoice(m.label, VIEW_ICONS[m.id] ?? "layout", () => {
+    if (batch !== null && m.id !== "list") return;
     views.onSelect(m.id);
     closeViewPopup?.(true);
   })]);
@@ -96,7 +98,11 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
       viewLabel.textContent = mode;
       viewBtn.setAttribute("aria-label", `View: ${mode}`);
       viewBtn.replaceChildren(viewLabel, guiIcon(VIEW_ICONS[views.active()] ?? "layout"));
-      modeButtons.forEach(([id, b]) => b.setAttribute("aria-pressed", String(id === views.active())));
+      modeButtons.forEach(([id, b]) => {
+        b.setAttribute("aria-pressed", String(id === views.active()));
+        // Batch mode is drawn only as a list for now.
+        setDisabled(b, batch !== null && id !== "list");
+      });
     },
   };
 }

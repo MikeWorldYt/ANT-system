@@ -38,6 +38,7 @@ export const generalPage: SettingsPage = {
             ["continue", "Last used", "layout"],
             ["tree", "Tree", VIEW_ICONS.tree ?? "layout"],
             ["list", "List", VIEW_ICONS.list ?? "layout"],
+            ["details", "Details", VIEW_ICONS.details ?? "layout"],
             ["cards", "Cards", VIEW_ICONS.cards ?? "layout"],
             ["grid", "Grid", VIEW_ICONS.grid ?? "layout"],
             ["columns", "Columns", VIEW_ICONS.columns ?? "layout"],

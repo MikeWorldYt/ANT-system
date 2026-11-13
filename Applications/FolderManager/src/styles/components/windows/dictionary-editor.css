@@ -1,0 +1,16 @@
+/* Dictionary editor window: numbered text beside a gutter that marks the lines with problems, the list of problems, then the status line. */
+.dict-editor { display: flex; flex-direction: column; height: 100vh; background: var(--tree-bg); color: var(--text); }
+.dict-title { margin: 0; padding: 8px 12px; font-size: 10pt; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.dict-body { flex: 1; min-height: 0; display: flex; font: 10pt/1.6 Consolas, "Cascadia Mono", monospace; }
+.dict-gutter { flex: none; min-width: 3.5em; padding: 8px 6px; overflow: hidden; text-align: right; color: var(--muted); border-right: 1px solid var(--border); user-select: none; }
+.dict-line { padding-right: 4px; border-radius: 2px; }
+.dict-line.error { color: var(--text); background: var(--diff-del-bg); box-shadow: inset 3px 0 var(--delete-hover); }
+.dict-line.warning { color: var(--text); box-shadow: inset 3px 0 var(--st-review); }
+.dict-text { flex: 1; min-width: 0; margin: 0; padding: 8px 10px; border: 0; resize: none; background: transparent; color: inherit; font: inherit; white-space: pre; overflow: auto; tab-size: 2; }
+.dict-text:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dict-issues { flex: none; max-height: 30%; margin: 0; padding: 0; list-style: none; overflow: auto; border-top: 1px solid var(--border); }
+.dict-issues:empty { display: none; }
+.dict-issue { display: block; width: 100%; padding: 4px 12px; border: 0; background: transparent; color: var(--text); font-size: 9pt; text-align: left; cursor: pointer; }
+.dict-issue:hover, .dict-issue:focus-visible { background: var(--input-bg); outline: none; }
+.dict-issue.error { box-shadow: inset 3px 0 var(--delete-hover); }
+.dict-issue.warning { box-shadow: inset 3px 0 var(--st-review); }

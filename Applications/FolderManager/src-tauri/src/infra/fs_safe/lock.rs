@@ -77,12 +77,22 @@ fn lock_age(path: &Path) -> Option<Duration> {
 fn busy_error(path: &Path) -> FmError {
     let message = match lock_age(path) {
         Some(age) if age >= STALE_LOCK => format!(
-            "the storage has been locked for {} minutes; if no other Folder Manager is open, delete this file and retry",
+            "the storage has been locked for {} minutes; if no other Folder Manager is open, press Refresh to unlock it",
             age.as_secs() / 60
         ),
         _ => BUSY.to_string(),
     };
     FmError::Io { op: LOCK_OP.to_string(), path: path.display().to_string(), message, os_code: None }
+}
+
+// The manual refresh lifts a lock left by a crash, so no one has to find and delete the file; a lock younger than the wait may be a live change and stays.
+pub(crate) fn clear_stale(root: &Path) -> R<bool> {
+    let path = data_dir(root).join(LOCK_FILE);
+    if !lock_age(&path).is_some_and(|age| age >= LOCK_WAIT) {
+        return Ok(false);
+    }
+    fs::remove_file(&path).map_err(|e| io_err(LOCK_OP, &path, &e))?;
+    Ok(true)
 }
 
 // Only a lock held by a live change is worth waiting for again; a stale one needs the user.
@@ -93,6 +103,18 @@ pub(crate) fn is_busy(err: &FmError) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_refresh_clears_an_old_lock_and_leaves_a_fresh_one() {
+        let dir = crate::test_support::TempDir::new("lock-clear");
+        let path = data_dir(dir.path()).join(LOCK_FILE);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, "1").unwrap();
+        assert!(!clear_stale(dir.path()).unwrap() && path.exists());
+        fs::File::options().write(true).open(&path).unwrap().set_modified(std::time::SystemTime::now() - LOCK_WAIT * 2).unwrap();
+        assert!(clear_stale(dir.path()).unwrap() && !path.exists());
+        assert!(StorageLock::acquire(dir.path()).is_ok());
+    }
     use crate::test_support::TempDir;
 
     #[test]
@@ -129,7 +151,7 @@ mod tests {
         file.set_modified(std::time::SystemTime::now() - Duration::from_secs(600)).unwrap();
         drop(file);
         let err = StorageLock::acquire(dir.path()).err().unwrap();
-        assert!(matches!(&err, FmError::Io { message, .. } if message.contains("delete this file")), "{err:?}");
+        assert!(matches!(&err, FmError::Io { message, .. } if message.contains("press Refresh")), "{err:?}");
         assert!(path.is_file());
     }
 }

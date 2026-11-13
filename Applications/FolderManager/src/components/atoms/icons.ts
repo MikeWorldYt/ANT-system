@@ -77,3 +77,6 @@ export const folderIcon = (n: TreeNode, open = false) => {
 // A search hit past the loaded levels has only its name, so the icon is guessed from the naming convention.
 export const nameIcon = (name: string) =>
   el("img", { class: "icon", src: urlOf(/^[A-Z]{2}\.\d+_/.test(name) ? "wkb" : "folder"), alt: "", width: "16", height: "16", draggable: "false" });
+
+// Folders that do not exist yet, such as the projects a sort would make, have only their kind.
+export const kindIcon = (kind: "wkb" | "folder" | "lnk") => el("img", { class: "icon", src: urlOf(kind), alt: "", width: "16", height: "16", draggable: "false" });
