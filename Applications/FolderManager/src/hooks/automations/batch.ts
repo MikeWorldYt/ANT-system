@@ -70,17 +70,34 @@ export function closeBatch(): void {
   notify();
 }
 
-// `auto` keeps the ticked automations running on every file that lands later.
-export async function runBatch(picks: Picks, auto: boolean): Promise<void> {
+// Panel order, which is also the order they apply in; each kind's flag makes it run on every file that lands in the folder.
+export const AUTOMATIONS: { kind: keyof Picks; label: string; flag: string }[] = [
+  { kind: "reduce", label: "Clean up names", flag: "auto-reduce" },
+  { kind: "addDate", label: "Add date", flag: "auto-add-date" },
+  { kind: "removeDate", label: "Remove date", flag: "auto-remove-date" },
+  { kind: "sort", label: "Sort by projects", flag: "auto-sort" },
+  { kind: "group", label: "Group by dictionary", flag: "auto-group" },
+  { kind: "removeSymbols", label: "Remove symbols", flag: "auto-remove-symbols" },
+];
+
+export const autoKinds = (node: TreeNode): (keyof Picks)[] => AUTOMATIONS.filter((a) => node.flags.includes(a.flag)).map((a) => a.kind);
+
+export const labelsOf = (kinds: (keyof Picks)[]): string => AUTOMATIONS.filter((a) => kinds.includes(a.kind)).map((a) => a.label).join(", ");
+
+// Writes only the flags that differ, so switching one automation does not touch the others.
+export async function setAuto(review: TreeNode, kinds: (keyof Picks)[]): Promise<void> {
+  for (const { kind, flag } of AUTOMATIONS) {
+    const on = kinds.includes(kind);
+    if (review.flags.includes(flag) !== on) await setReviewAutomation(review, kind, on);
+  }
+}
+
+export async function runBatch(): Promise<void> {
   if (!batch) return;
-  const { review, folder, rows } = batch;
+  const { folder, rows } = batch;
   try {
     const picked = rows.filter(isTicked);
     const changed = picked.length > 0 ? await api.applyAutomations(folder, picked) : 0;
-    const kinds = Object.keys(picks) as (keyof Picks)[];
-    if (auto || kinds.some((k) => review.flags.includes(`auto-${k}`))) {
-      for (const kind of kinds) await setReviewAutomation(review, kind, auto && picks[kind]);
-    }
     batch = null;
     await refresh();
     setStatus("info", changed > 0 ? `Automations changed ${plural(changed, "file")}.` : "No file changed.");
