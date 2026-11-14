@@ -13,7 +13,7 @@ import { installMarquee } from "../../hooks/marquee";
 import { trackPasteTarget } from "../../hooks/paste-target";
 import { bindPanes, focusedViews } from "../../hooks/split";
 import { bindTabs } from "../../hooks/tabs";
-import { createViewSwitcher } from "../../hooks/view-switch";
+import { createViewSwitcher, rememberView } from "../../hooks/view-switch";
 import { openFolder } from "../../hooks/path-actions";
 import { selectedNode } from "../../services/store/state";
 import { openSettings } from "./settings";
@@ -42,6 +42,7 @@ export function createMainWindow(app: HTMLElement) {
     active: () => views.current().id,
     onSelect: (id) => {
       views.switchTo(id);
+      rememberView(id);
       toolbar.render();
     },
   };
