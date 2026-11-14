@@ -42,7 +42,7 @@ export const generalPage: SettingsPage = {
             ["cards", "Cards", VIEW_ICONS.cards ?? "layout"],
             ["grid", "Grid", VIEW_ICONS.grid ?? "layout"],
             ["columns", "Columns", VIEW_ICONS.columns ?? "layout"],
-            ["map", "Map", VIEW_ICONS.map ?? "layout"],
+            ["graph", "Graph", VIEW_ICONS.graph ?? "layout"],
           ],
           state.settings.startView,
           (value) => void changeSetting("startView", value),

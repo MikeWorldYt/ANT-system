@@ -47,11 +47,11 @@ import viewCards from "../../assets/gui/view-cards.svg?raw";
 import viewGrid from "../../assets/gui/view-grid.svg?raw";
 import viewDetails from "../../assets/gui/view-details.svg?raw";
 import viewList from "../../assets/gui/view-list.svg?raw";
-import viewMap from "../../assets/gui/view-map.svg?raw";
+import viewGraph from "../../assets/gui/view-graph.svg?raw";
 import viewTree from "../../assets/gui/view-tree.svg?raw";
 import warning from "../../assets/gui/warning.svg?raw";
 
-const SOURCES = { add, back, chevronDown, chevronRight, chevronsLeft, chevronsRight, download, forward, hide, important, layout, link, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, play, recordings, refresh, screenshots, search, separator, settings, sortCreated, sortModified, sortName, sortSize, sortStatus, sortTrack, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, viewColumns, viewCards, viewDetails, viewGrid, viewList, viewMap, viewTree, warning };
+const SOURCES = { add, back, chevronDown, chevronRight, chevronsLeft, chevronsRight, download, forward, hide, important, layout, link, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, play, recordings, refresh, screenshots, search, separator, settings, sortCreated, sortModified, sortName, sortSize, sortStatus, sortTrack, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, viewColumns, viewCards, viewDetails, viewGrid, viewList, viewGraph, viewTree, warning };
 
 export type GuiIcon = keyof typeof SOURCES;
 

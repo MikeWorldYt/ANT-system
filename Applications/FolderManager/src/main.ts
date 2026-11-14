@@ -112,7 +112,8 @@ void init().then(() => {
   startBackups();
   startIdleRefresh(() => refresh(false));
   startExtensions();
-  if (state.settings.startView !== "continue") {
+  // Continuing where the user left off keeps the last view; the default view is for a fresh start and new windows.
+  if (state.settings.startView !== "continue" && state.settings.onLaunch !== "continue") {
     views.switchTo(state.settings.startView);
     toolbar.render();
   }

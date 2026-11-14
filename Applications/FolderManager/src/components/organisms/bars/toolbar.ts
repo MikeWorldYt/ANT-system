@@ -17,7 +17,7 @@ export interface ViewPicker {
 }
 
 export const SORT_KEYS: [SortBy, string, GuiIcon][] = [["track", "Track", "sortTrack"], ["name", "Name", "sortName"], ["status", "Status", "sortStatus"], ["modified", "Date modified", "sortModified"], ["created", "Date created", "sortCreated"], ["size", "Size", "sortSize"]];
-const VIEW_ORDER = ["tree", "list", "details", "cards", "grid", "columns", "map"];
+const VIEW_ORDER = ["tree", "list", "details", "cards", "grid", "columns", "graph"];
 export const orderedModes = (views: ViewPicker) => [...views.modes].sort((a, b) => VIEW_ORDER.indexOf(a.id) - VIEW_ORDER.indexOf(b.id));
 
 export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trailing: HTMLElement[]; render(): void } {
