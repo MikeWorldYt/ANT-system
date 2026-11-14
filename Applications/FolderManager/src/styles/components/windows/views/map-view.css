@@ -1,0 +1,43 @@
+/* Map view: NODE cards laid out left to right, with curves drawn in an SVG behind them. */
+.map { position: relative; min-height: 100%; overflow: auto; outline-offset: -2px; padding: 24px; }
+.map-stage { position: relative; width: max-content; }
+.map-lines { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+.map-lines path { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.map-canvas { position: relative; width: max-content; }
+.map-branch { display: flex; align-items: center; }
+.map-kids { display: flex; flex-direction: column; gap: 10px; margin-left: 56px; }
+.map-card { transition: transform 320ms ease, border-color 320ms ease; position: relative; display: flex; align-items: center; gap: 6px; min-width: 120px; max-width: 240px; padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); cursor: pointer; }
+.map-card:hover { border-color: var(--button); }
+.map-card.selected { border-color: var(--button); background: var(--highlight); }
+.map:focus-visible .map-card.selected { outline: 2px solid var(--button); outline-offset: 2px; }
+.map-card.ghost .map-name { color: var(--ghost-text); font-style: italic; }
+.map-root { cursor: default; color: var(--muted); }
+.map-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.map-card[data-status="in-progress"] { border-color: var(--st-progress); }
+.map-card[data-status="hold"] { border-color: var(--st-hold); }
+.map-card[data-status="for-review"] { border-color: var(--st-review); }
+.map-card[data-status="done"] { border-color: var(--st-done); }
+.map-files { list-style: none; margin: 0; padding: 6px; min-width: 200px; max-width: 320px; max-height: 320px; overflow: auto; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); }
+.map-file { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+.map-file:hover { background: var(--highlight); }
+.map-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-file-empty { padding: 3px 6px; color: var(--muted); }
+@keyframes map-breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@keyframes map-glow { 0%, 100% { box-shadow: 0 0 3px 0 var(--button); } 50% { box-shadow: 0 0 10px 2px var(--button); } }
+.map-card.on-path { border-color: var(--button); animation: map-glow 2.4s ease-in-out infinite; }
+.map-lines path.map-path-lit { stroke: var(--button); stroke-width: 2; filter: drop-shadow(0 0 3px var(--button)); animation: map-breathe 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .map-card.on-path, .map-lines path.map-path-lit { animation: none; } }
+.map-card.shift { transform: translateX(10px); }
+@media (prefers-reduced-motion: reduce) { .map-card { transition: none; } }
+.map-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+/* Support cards and their opened contents share the same 28px step right of the node. */
+.map-under, .map-above { display: flex; flex-direction: column; gap: 8px; margin-left: 28px; }
+.map-kids { position: relative; }
+.map-kids > .map-branch { transition: filter 320ms ease, opacity 320ms ease; }
+.map-kids.behind > .map-branch { filter: blur(2px); opacity: 0.3; pointer-events: none; }
+.map-support { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; position: absolute; top: 50%; left: 28px; z-index: 1; transform: translateY(-50%); animation: map-rise 320ms ease; }
+.map-kids.alone > .map-support { position: static; transform: none; margin-left: 28px; }
+.map-support .map-files, .map-support .map-card { background: var(--bg, var(--input-bg)); box-shadow: 0 6px 24px rgb(0 0 0 / 0.45); }
+@keyframes map-rise { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .map-kids > .map-branch, .map-support { transition: none; animation: none; } }
+.map-lines path.map-path-faded { opacity: 0.3; filter: blur(2px); }

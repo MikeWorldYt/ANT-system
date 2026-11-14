@@ -25,6 +25,7 @@
 @import "./components/windows/views/columns-view.css";
 @import "./components/atoms/column-sort.css";
 @import "./components/windows/views/grid-view.css";
+@import "./components/windows/views/map-view.css";
 @import "./components/windows/views/drag-drop.css";
 @import "./components/molecules/menu.css";
 @import "./components/molecules/status-picker.css";
