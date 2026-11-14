@@ -21,9 +21,9 @@ use crate::infra::scan::list_subdirs;
 use crate::infra::storage::info::{field_of, read_info, NodeInfo};
 use crate::services::tree::depth;
 use crate::services::tree::review_links;
-use crate::services::tree::tree_store::{get_node, get_type, is_locked_type};
+use crate::services::tree::tree_store::{get_node, is_locked_type};
 use actions::{compute_actions, file_actions, link_actions, mark_moves};
-use entries::{is_unmanaged, level_entries, Entry};
+use entries::{level_entries, Entry};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -127,12 +127,10 @@ pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<(
 
 fn children_at(root: &Path, data: &Mapping, parent: &[String], limit: usize) -> R<Vec<TreeNode>> {
     let mut nodes = Vec::new();
-    // A review folder at the depth limit shows its files and the folders the database does not track, so they can be browsed.
-    let past_limit_review = parent.len() >= limit && holds_files(data, parent);
     for entry in level_entries(root, data, parent)? {
         if entry.file {
             nodes.push(file_node(root, parent, entry.name));
-        } else if !past_limit_review || is_unmanaged(&entry) {
+        } else {
             nodes.push(make_node(root, data, parent, entry, limit)?);
         }
     }
@@ -154,11 +152,6 @@ fn fill_at(root: &Path, data: &Mapping, nodes: &mut [TreeNode], limit: usize) ->
 
 // Any of these inside a folder means it holds a git project.
 const GIT_MARKERS: [&str; 3] = [".git", ".github", ".gitignore"];
-
-// Review folders and workboards hold files, so they open even when empty.
-fn holds_files(data: &Mapping, rel: &[String]) -> bool {
-    matches!(type_base(&get_type(data, rel)), "REV" | "WKB")
-}
 
 // Every folder lists the files inside it, except the app's own reserved folders and what they hold.
 pub(crate) fn lists_files(rel: &[String]) -> bool {
