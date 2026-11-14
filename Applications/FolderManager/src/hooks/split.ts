@@ -154,7 +154,10 @@ export async function loadOtherVirtual(): Promise<void> {
 export function openSplit(): void {
   if (split || !focusedPane()) return;
   const here = read();
-  const view = focusedPane()?.views.current().id ?? "";
+  const current = focusedPane()?.views.current().id ?? "";
+  // The map is too wide for half a window, so the new pane opens in the default view instead.
+  const fallback = state.settings.startView === "continue" || state.settings.startView === "map" ? "tree" : state.settings.startView;
+  const view = current === "map" ? fallback : current;
   split = { other: { ...here, expanded: new Set(here.expanded), editing: null }, trail: { history: [], at: -1 }, view, right: false, ratio: 50 };
   otherPane()?.views.switchTo(view);
   showPanes();

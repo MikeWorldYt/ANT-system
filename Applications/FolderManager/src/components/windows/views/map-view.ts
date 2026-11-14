@@ -76,11 +76,70 @@ export function createMapView(): ViewMode {
     }
   }
 
+  // Whichever of the map or its host actually scrolls.
+  const scroller = (): HTMLElement => (root.scrollWidth > root.clientWidth + 1 || root.scrollHeight > root.clientHeight + 1 ? root : (root.parentElement ?? root));
+
+  // As in Columns, a new selection or fold brings what it opened in from the right; what is left behind matters less.
+  let revealed = "";
+  function reveal(): void {
+    const mark = `${state.selectedKey}|${state.expanded.size}`;
+    if (mark === revealed || state.selectedKey === null) return;
+    revealed = mark;
+    const card = canvas.querySelector<HTMLElement>(`[data-key="${CSS.escape(state.selectedKey)}"]`);
+    const branchBox = card?.closest(".map-branch")?.getBoundingClientRect();
+    const cardBox = card?.getBoundingClientRect();
+    if (!branchBox || !cardBox) return;
+    const view = scroller().getBoundingClientRect();
+    const over = branchBox.right + 24 - view.right;
+    if (over > 0) scroller().scrollBy({ left: Math.min(over, cardBox.left - view.left - 24), behavior: "smooth" });
+  }
+
+  // Holding Space turns a drag into panning, the way back to what scrolled away on the left.
+  let spaceHeld = false;
+  // A click that ends a pan is not a pick.
+  root.addEventListener("click", (ev) => {
+    if (spaceHeld) ev.stopPropagation();
+  }, true);
+  root.addEventListener("keyup", (ev) => {
+    if (ev.key !== " ") return;
+    spaceHeld = false;
+    root.classList.remove("panning");
+  });
+  root.addEventListener("blur", () => {
+    spaceHeld = false;
+    root.classList.remove("panning");
+  });
+  root.addEventListener("pointerdown", (ev) => {
+    if (spaceHeld) ev.stopPropagation();
+  }, true);
+  root.addEventListener("mousedown", (ev) => {
+    if (!spaceHeld || ev.button !== 0) return;
+    ev.preventDefault();
+    // The pan owns this drag, so the marquee never starts.
+    ev.stopPropagation();
+    let x = ev.clientX;
+    let y = ev.clientY;
+    const move = (m: MouseEvent) => {
+      // Each axis may scroll on a different element, so both get the move.
+      for (const el of [root, root.parentElement]) el?.scrollBy(x - m.clientX, y - m.clientY);
+      x = m.clientX;
+      y = m.clientY;
+    };
+    const up = () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  });
+
   function settle(): void {
     for (const k of canvas.querySelectorAll<HTMLElement>(".map-kids[data-owner]")) k.classList.toggle("behind", k.dataset.support === "1");
     blurred = new Set([...canvas.querySelectorAll<HTMLElement>(".map-kids[data-support='1']")].map((k) => k.dataset.owner ?? ""));
-    for (const c of canvas.querySelectorAll<HTMLElement>(".map-card")) c.classList.toggle("shift", c.classList.contains("on-path"));
+    // The root has nothing beside it to stand out from, so it never shifts.
+    for (const c of canvas.querySelectorAll<HTMLElement>(".map-card:not(.map-root)")) c.classList.toggle("shift", c.classList.contains("on-path"));
     shifted = new Set([...canvas.querySelectorAll<HTMLElement>(".map-card.on-path")].map((c) => c.dataset.key ?? ""));
+    reveal();
     const end = performance.now() + SHIFT_MS;
     const follow = () => {
       drawLines();
@@ -302,6 +361,12 @@ export function createMapView(): ViewMode {
   }
 
   function onKey(ev: KeyboardEvent): void {
+    if (ev.key === " ") {
+      spaceHeld = true;
+      root.classList.add("panning");
+      ev.preventDefault();
+      return;
+    }
     if (ev.ctrlKey && (ev.key === "+" || ev.key === "=" || ev.key === "-")) {
       zoomBy(ev.key === "-" ? -0.1 : 0.1);
       ev.preventDefault();
@@ -341,14 +406,23 @@ export function createMapView(): ViewMode {
       parents = new Map();
       const tops = nodesOf(state.tree?.nodes);
       const top = el("div", { class: "map-card map-root" }, el("span", { class: "map-name" }, rootName(state.tree?.root) || "Storage"));
+      // The selected card is held in place on screen, so the centred layout reflowing around it does not look like a jump.
+      const sel = state.selectedKey;
+      const at = (k: string | null) => (k === null ? undefined : canvas.querySelector(`[data-key="${CSS.escape(k)}"]`)?.getBoundingClientRect());
+      const before = at(sel);
       canvas.replaceChildren(el("div", { class: "map-branch" }, el("div", { class: "map-head" }, top), ...(tops.length > 0 ? [el("div", { class: "map-kids", role: "group" }, ...tops.map((n) => branch(n, null)))] : [])));
       top.classList.toggle("on-path", state.selectedKey !== null && parents.has(state.selectedKey));
       if (state.selectedKey && parents.has(state.selectedKey)) {
         root.setAttribute("aria-activedescendant", `map-${state.selectedKey}`);
-        canvas.querySelector(`[data-key="${CSS.escape(state.selectedKey)}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+        const after = at(sel);
+        if (before && after) {
+          for (const scroller of [root, root.parentElement]) {
+            const now = at(sel);
+            if (now) scroller?.scrollBy(now.left - before.left, now.top - before.top);
+          }
+        } else canvas.querySelector(`[data-key="${CSS.escape(state.selectedKey)}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
       } else root.removeAttribute("aria-activedescendant");
       top.dataset.key = "";
-      top.classList.toggle("shift", shifted.has(""));
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(settle);
     },
