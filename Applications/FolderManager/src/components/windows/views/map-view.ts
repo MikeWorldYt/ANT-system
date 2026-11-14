@@ -38,7 +38,7 @@ export function createMapView(): ViewMode {
   // Parent of each shown node, so the arrow keys can walk the map.
   let parents = new Map<string, TreeNode | null>();
   let frame = 0;
-  // Cards on the lit path stand a little to the right; new cards start where the last render left them so the move animates.
+  // The lit path stands a little to the right; ids say which element moved (branch, column or card).
   let shifted = new Set<string>();
   const SHIFT_MS = 320;
 
@@ -133,12 +133,46 @@ export function createMapView(): ViewMode {
     window.addEventListener("mouseup", up);
   });
 
+  // What moves for a lit card: the selected one takes its whole branch along, an ancestor only its own column, a stacked support card only itself.
+  function shiftTarget(c: HTMLElement): [string, Element] | null {
+    const key = c.dataset.key ?? "";
+    const head = c.parentElement?.classList.contains("map-head") ? c.parentElement : null;
+    const selected = key === state.selectedKey;
+    if (c.classList.contains("map-root")) return null;
+    if (!head) return selected ? [`${key}|c`, c] : null;
+    if (selected) {
+      const b = head.parentElement;
+      return b ? [`${key}|b`, b] : null;
+    }
+    return [`${key}|h`, head];
+  }
+
+  function shiftTargets(): Map<string, Element> {
+    const found = new Map<string, Element>();
+    for (const c of canvas.querySelectorAll<HTMLElement>(".map-card.on-path")) {
+      const t = shiftTarget(c);
+      if (t) found.set(t[0], t[1]);
+    }
+    return found;
+  }
+
+  // New elements start where the last render left them, so the move animates instead of jumping.
+  function restoreShift(): void {
+    for (const id of shifted) {
+      const [key, kind] = id.split("|");
+      const c = canvas.querySelector<HTMLElement>(`.map-card[data-key="${CSS.escape(key ?? "")}"]`);
+      const e = kind === "c" ? c : kind === "h" ? c?.parentElement : c?.parentElement?.parentElement;
+      e?.classList.add("shift");
+    }
+  }
+
   function settle(): void {
     for (const k of canvas.querySelectorAll<HTMLElement>(".map-kids[data-owner]")) k.classList.toggle("behind", k.dataset.support === "1");
     blurred = new Set([...canvas.querySelectorAll<HTMLElement>(".map-kids[data-support='1']")].map((k) => k.dataset.owner ?? ""));
-    // The root has nothing beside it to stand out from, so it never shifts.
-    for (const c of canvas.querySelectorAll<HTMLElement>(".map-card:not(.map-root)")) c.classList.toggle("shift", c.classList.contains("on-path"));
-    shifted = new Set([...canvas.querySelectorAll<HTMLElement>(".map-card.on-path")].map((c) => c.dataset.key ?? ""));
+    const now = shiftTargets();
+    for (const e of canvas.querySelectorAll(".shift")) e.classList.remove("shift");
+    for (const e of now.values()) e.classList.add("shift");
+    shifted = new Set(now.keys());
     reveal();
     const end = performance.now() + SHIFT_MS;
     const follow = () => {
@@ -191,14 +225,16 @@ export function createMapView(): ViewMode {
     if (n.hasChildren) item.setAttribute("aria-expanded", String(open));
     item.classList.toggle("selected", state.selectedKey === key);
     item.classList.toggle("on-path", onPath(key));
-    item.classList.toggle("shift", shifted.has(key));
     item.classList.toggle("ghost", n.ghost);
     if (n.status) item.dataset.status = n.status;
     // In the map one click both selects a card and unfolds it, since browsing is the point of the view.
     item.addEventListener("click", () => {
+      // Clicking an open card that is not selected only moves to it; it closes from a click once selected.
+      const wasSelected = state.selectedKey === key;
       select(n.relParts);
       // With a support folder open, the parent's click brings its sub-nodes back instead of folding it.
       const open = (n.children ?? []).filter((c) => isSupport(c) && state.expanded.has(keyOf(c.relParts)));
+      if (open.length === 0 && !wasSelected && state.expanded.has(key)) return;
       if (open.length > 0) {
         for (const c of open) state.expanded.delete(keyOf(c.relParts));
         notify();
@@ -234,10 +270,10 @@ export function createMapView(): ViewMode {
       const files = inside.filter((c) => c.file);
       const items = [...folders.map((f) => branch(f, support)), ...(files.length > 0 || folders.length === 0 ? [fileList({ ...support, children: files })] : [])];
       const overlay = el("div", { class: "map-support", "data-for": keyOf(support.relParts) }, ...items);
-      return el("div", { class: "map-branch" }, head(n), el("div", { class: `map-kids${blurred.has(keyOf(n.relParts)) ? " behind" : ""}${kids.length > 0 ? "" : " alone"}`, role: "group", "data-owner": keyOf(n.relParts), "data-support": "1" }, ...kids.map((k) => branch(k, n)), overlay));
+      return el("div", { class: `map-branch${onPath(keyOf(n.relParts)) ? " open-path" : ""}${state.selectedKey === keyOf(n.relParts) ? " selected-branch" : ""}` }, head(n), el("div", { class: `map-kids${blurred.has(keyOf(n.relParts)) ? " behind" : ""}${kids.length > 0 ? "" : " alone"}`, role: "group", "data-owner": keyOf(n.relParts), "data-support": "1" }, ...kids.map((k) => branch(k, n)), overlay));
     }
     const items = [...kids.map((k) => branch(k, n)), ...filesBox(n, kids.length)];
-    return el("div", { class: "map-branch" }, head(n), ...(items.length > 0 ? [el("div", { class: `map-kids${blurred.has(keyOf(n.relParts)) ? " behind" : ""}`, role: "group", "data-owner": keyOf(n.relParts) }, ...items)] : []));
+    return el("div", { class: `map-branch${onPath(keyOf(n.relParts)) ? " open-path" : ""}${state.selectedKey === keyOf(n.relParts) ? " selected-branch" : ""}` }, head(n), ...(items.length > 0 ? [el("div", { class: `map-kids${blurred.has(keyOf(n.relParts)) ? " behind" : ""}`, role: "group", "data-owner": keyOf(n.relParts) }, ...items)] : []));
   }
 
   // Curves are drawn after layout, from each card's right edge to its children's left edges.
@@ -252,6 +288,9 @@ export function createMapView(): ViewMode {
     // Lines of sub-nodes standing behind an open support folder fade with their cards.
     const faded: string[] = [];
     const behind = (e: Element) => e.closest(".map-kids.behind > .map-branch") !== null;
+    // Lines inside the selected card's branch take a soft accent, so its group reads as one.
+    const group: string[] = [];
+    const rest = (e: Element) => (e.closest(".map-branch.selected-branch") ? group : paths);
     for (const b of canvas.querySelectorAll<HTMLElement>(".map-branch")) {
       const fromCard = b.querySelector(":scope > .map-head > .map-card");
       const from = fromCard?.getBoundingClientRect();
@@ -261,6 +300,8 @@ export function createMapView(): ViewMode {
       // The split runs past the whole head column, so the bracket clears the cards stacked under the node.
       const headRight = b.querySelector(":scope > .map-head")?.getBoundingClientRect().right ?? from.right;
       const tx = (headRight - box.left) / unit + 10;
+      // One split line per fan, taken from the column's edge, so a shifted lit child does not bend its own trunk.
+      const split = (tx + (kids.getBoundingClientRect().left - box.left) / unit) / 2;
       const y1 = (from.top + from.height / 2 - box.top) / unit;
       const fromLit = fromCard?.classList.contains("on-path") ?? false;
       const overlay = kids.querySelector<HTMLElement>(":scope > .map-support");
@@ -272,7 +313,7 @@ export function createMapView(): ViewMode {
           if (k === overlay || !target) continue;
           const r = target.getBoundingClientRect();
           const x2 = (r.left - box.left) / unit;
-          faded.push(bracket(x1, y1, (tx + x2) / 2, x2, (r.top + r.height / 2 - box.top) / unit));
+          faded.push(bracket(x1, y1, split, x2, (r.top + r.height / 2 - box.top) / unit));
         }
         const o = owner?.getBoundingClientRect();
         if (!owner || !o) continue;
@@ -283,7 +324,7 @@ export function createMapView(): ViewMode {
           const to = (target ?? k).getBoundingClientRect();
           const litHere = owner.classList.contains("on-path") && (target ? target.classList.contains("on-path") : true);
           const x2 = (to.left - box.left) / unit;
-          (behind(b) ? faded : litHere ? lit : paths).push(bracket(ox, oy, (tx + x2) / 2, x2, (to.top + to.height / 2 - box.top) / unit));
+          (behind(b) ? faded : litHere ? lit : rest(b)).push(bracket(ox, oy, split + 14, x2, (to.top + to.height / 2 - box.top) / unit));
         }
         continue;
       }
@@ -293,8 +334,8 @@ export function createMapView(): ViewMode {
         if (!to) continue;
         const x2 = (to.left - box.left) / unit;
         const y2 = (to.top + to.height / 2 - box.top) / unit;
-        const mid = (tx + x2) / 2;
-        (behind(b) ? faded : fromLit && (target ? target.classList.contains("on-path") : true) ? lit : paths).push(bracket(x1, y1, mid, x2, y2));
+        const mid = split;
+        (behind(b) ? faded : fromLit && (target ? target.classList.contains("on-path") : true) ? lit : rest(b)).push(bracket(x1, y1, mid, x2, y2));
       }
     }
     for (const h of canvas.querySelectorAll<HTMLElement>(".map-head")) {
@@ -307,25 +348,29 @@ export function createMapView(): ViewMode {
         const r = u.getBoundingClientRect();
         const uy = (r.top + r.height / 2 - box.top) / unit;
         const ux = (r.left - box.left) / unit;
-        (behind(h) ? faded : owner.classList.contains("on-path") && u.classList.contains("on-path") ? lit : paths).push(`M${x},${y} V${uy - 6} Q${x},${uy} ${x + 6},${uy} H${ux}`);
+        (behind(h) ? faded : owner.classList.contains("on-path") && u.classList.contains("on-path") ? lit : rest(h)).push(`M${x},${y} V${uy - 6} Q${x},${uy} ${x + 6},${uy} H${ux}`);
       }
       const top = (rect.top - box.top) / unit;
       for (const u of h.querySelectorAll<HTMLElement>(":scope > .map-above > .map-card")) {
         const r = u.getBoundingClientRect();
         const uy = (r.top + r.height / 2 - box.top) / unit;
         const ux = (r.left - box.left) / unit;
-        (behind(h) ? faded : owner.classList.contains("on-path") && u.classList.contains("on-path") ? lit : paths).push(`M${x},${top} V${uy + 6} Q${x},${uy} ${x + 6},${uy} H${ux}`);
+        (behind(h) ? faded : owner.classList.contains("on-path") && u.classList.contains("on-path") ? lit : rest(h)).push(`M${x},${top} V${uy + 6} Q${x},${uy} ${x + 6},${uy} H${ux}`);
       }
     }
     const path = document.createElementNS(SVG, "path");
     path.setAttribute("d", paths.join(" "));
+    path.classList.add("map-path-rest");
     const glow = document.createElementNS(SVG, "path");
     glow.setAttribute("d", lit.join(" "));
     glow.classList.add("map-path-lit");
     const dim = document.createElementNS(SVG, "path");
     dim.setAttribute("d", faded.join(" "));
     dim.classList.add("map-path-faded");
-    lines.replaceChildren(dim, path, glow);
+    const soft = document.createElementNS(SVG, "path");
+    soft.setAttribute("d", group.join(" "));
+    soft.classList.add("map-path-group");
+    lines.replaceChildren(dim, path, soft, glow);
   }
 
   function step(dir: "up" | "down" | "left" | "right"): void {
@@ -411,6 +456,7 @@ export function createMapView(): ViewMode {
       const at = (k: string | null) => (k === null ? undefined : canvas.querySelector(`[data-key="${CSS.escape(k)}"]`)?.getBoundingClientRect());
       const before = at(sel);
       canvas.replaceChildren(el("div", { class: "map-branch" }, el("div", { class: "map-head" }, top), ...(tops.length > 0 ? [el("div", { class: "map-kids", role: "group" }, ...tops.map((n) => branch(n, null)))] : [])));
+      restoreShift();
       top.classList.toggle("on-path", state.selectedKey !== null && parents.has(state.selectedKey));
       if (state.selectedKey && parents.has(state.selectedKey)) {
         root.setAttribute("aria-activedescendant", `map-${state.selectedKey}`);
