@@ -1,19 +1,68 @@
 ---
 title: Vistas y orden
-description: Cambia entre las vistas de árbol y columnas y ordena tus carpetas.
+description: Cambia entre las siete vistas de FolderManager y ordena tus carpetas.
 ---
 import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
 
 ## Vistas
 
-Usa el botón de vista de la barra de herramientas para cambiar entre dos vistas del mismo almacenamiento.
-
-<ImagePlaceholder label="Captura: Vistas" />
-
-- **Tree (Árbol):** filas expandibles con el teclado (flechas para moverte, izquierda y derecha para contraer y expandir).
-- **Columns (Columnas):** una columna por nivel. Cada columna tiene su propio orden, mira [Orden](#orden).
+Usa el botón de vista de la barra de herramientas, o haz clic derecho en el fondo, para cambiar entre siete vistas del mismo almacenamiento: Tree, List, Details, Cards, Grid, Columns y Graph.
 
 La ruta de navegación muestra el camino seleccionado. Haz doble clic, o pulsa `Ctrl+L`, para escribir una ruta. Los botones atrás, adelante y subir recorren el historial de tu selección. El panel de detalles de la derecha muestra la carpeta seleccionada y se oculta con su botón de la barra.
+
+### Tree (Árbol)
+
+Filas expandibles e indentadas: todo el almacenamiento en una sola lista. Úsala para moverte por estructuras profundas sin salir de la página. Muévete con las flechas, contrae y expande con izquierda y derecha, abre con `Enter` y renombra con `F2`.
+
+<ImagePlaceholder label="Captura: Vista Tree" />
+
+### List (Lista)
+
+El contenido de una carpeta como filas simples. Úsala para un listado compacto y sobrio. Haz doble clic en una carpeta, o pulsa `Enter`, para entrar en ella.
+
+<ImagePlaceholder label="Captura: Vista List" />
+
+### Details (Detalles)
+
+Como List, con columnas junto a cada nombre: fecha de modificación, tipo, tamaño y fecha de creación. Haz clic en el encabezado de una columna para ordenar por ella; otro clic invierte la dirección. Úsala cuando necesites comparar fechas o tamaños.
+
+<ImagePlaceholder label="Captura: Vista Details" />
+
+### Cards (Tarjetas)
+
+El contenido de una carpeta como iconos con el tipo de elemento bajo cada nombre. Úsala para una vista general visual que aun así distingue carpetas de archivos.
+
+<ImagePlaceholder label="Captura: Vista Cards" />
+
+### Grid (Cuadrícula)
+
+El contenido de una carpeta como iconos grandes, con miniaturas para los archivos que la tienen. Úsala para explorar imágenes y documentos. Las flechas se mueven por filas y columnas.
+
+<ImagePlaceholder label="Captura: Vista Grid" />
+
+### Columns (Columnas)
+
+Una columna por nivel, con la selección siempre a la derecha a medida que bajas. Cada columna tiene su propio orden, mira [Orden](#orden). Úsala para tener a la vista los niveles superiores mientras exploras.
+
+<ImagePlaceholder label="Captura: Vista Columns" />
+
+### Graph (Grafo)
+
+Un mapa mental de las carpetas NODE y WKB que se despliega hacia la derecha desde la raíz del almacenamiento, unidas con líneas de corchete. Úsala para leer la estructura de un almacenamiento de un vistazo.
+
+- **Clic en una tarjeta** para seleccionarla y desplegarla. Un clic en una tarjeta abierta que no está seleccionada solo mueve la selección a ella; un clic en la tarjeta seleccionada la pliega.
+- **Las carpetas de soporte** (`00.*`, `REC`, `SS`, `RES`, `REV`) se apilan encima o debajo de su nodo. Al abrir una, su contenido aparece en lugar de los subnodos, que se difuminan al fondo. Solo hay una carpeta de soporte abierta a la vez.
+- **Los workboards y las carpetas normales** se despliegan en una tarjeta por subcarpeta más una caja con sus archivos.
+- **El camino** desde la raíz hasta la selección brilla y se desplaza un poco a la derecha, y las líneas de la rama seleccionada se tiñen.
+- **Zoom** con `Ctrl` + rueda del ratón, o `Ctrl` + `+` / `Ctrl` + `−`. Mantén `Espacio` y arrastra para desplazar la vista.
+
+El grafo recuerda qué carpetas dejaste abiertas, por almacenamiento. Abrir un panel dividido desde el Graph usa la vista predeterminada.
+
+<ImagePlaceholder label="Captura: Vista Graph" />
+
+### Vista predeterminada
+
+En **Settings → General → Default View** elige la vista con la que empiezan las ventanas y pestañas nuevas: Last used, Tree, List, Details, Cards, Grid, Columns o Graph. Con **On launch: Continue where I left off**, la aplicación reabre la última vista que usaste.
 
 ## Orden
 
