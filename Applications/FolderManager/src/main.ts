@@ -21,6 +21,7 @@ import { applyAppearance } from "./hooks/appearance";
 import { batch as batchMode, replanAfterDictionary } from "./hooks/automations/batch";
 import { startExtensions } from "./extensions/host";
 import { plural } from "./services/plural";
+import { onTourStart, startTour, tourSeen } from "./components/organisms/tour/onboarding-tour";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
@@ -107,7 +108,7 @@ onUiRequest((r) => void answerAgent(views, r)).catch((e) => reportError("warning
 
 installDebugLog();
 
-void init().then(() => {
+void init().then((ready) => {
   if (state.settings.debugLogging) void startDebugLog();
   startBackups();
   startIdleRefresh(() => refresh(false));
@@ -118,5 +119,17 @@ void init().then(() => {
     toolbar.render();
   }
   views.current().focus();
+  onTourStart({
+    prepare: () => {
+      views.switchTo("columns");
+      toolbar.render();
+    },
+    currentView: () => views.current().id,
+    showView: (id) => {
+      views.switchTo(id);
+      toolbar.render();
+    },
+  });
+  if (ready && !tourSeen()) void startTour();
   if (state.settings.autoUpdate) void checkForUpdates();
 });

@@ -26,7 +26,15 @@ import type {
   DictionaryIssue,
 } from "./types";
 
+// The tutorial serves its in-memory Storage here, so while it runs no command reaches the backend.
+type DemoHandler = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+let demo: DemoHandler | null = null;
+export function setDemoHandler(handler: DemoHandler | null): void {
+  demo = handler;
+}
+
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  if (demo) return (await demo(cmd, args)) as T;
   try {
     return await invoke<T>(cmd, args);
   } catch (e) {
