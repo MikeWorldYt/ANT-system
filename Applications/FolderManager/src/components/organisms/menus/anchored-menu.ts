@@ -1,7 +1,7 @@
 // Small dropdown menu that opens under a button and closes on pick, Escape or an outside click.
 import { el } from "../../dom";
 import type { GuiIcon } from "../../atoms/gui-icons";
-import { focusInitial, menuIcon, menuItem, openPopup, placeUnder, popupTrigger, rove, separator } from "../../molecules/menu";
+import { focusInitial, menuIcon, menuItem, openPopup, place, placeUnder, popupTrigger, rove, separator } from "../../molecules/menu";
 
 export interface MenuChoice {
   label: string;
@@ -12,12 +12,14 @@ export interface MenuChoice {
   flip?: boolean;
   // Draws a separator above this choice.
   divider?: boolean;
+  danger?: boolean;
   run(): void;
 }
 
 let menuCount = 0;
 
-export function attachMenu(anchor: HTMLElement, label: string, choices: () => MenuChoice[]): void {
+// `over` opens the menu from the anchor's corner, covering it, as row kebab menus do.
+export function attachMenu(anchor: HTMLElement, label: string, choices: () => MenuChoice[], over = false): void {
   let closeMenu: ((restore?: boolean) => void) | null = null;
   const menuId = `anchored-menu-${++menuCount}`;
   const close = (restore = true) => closeMenu?.(restore);
@@ -28,7 +30,7 @@ export function attachMenu(anchor: HTMLElement, label: string, choices: () => Me
       const item = menuItem(c.label, c.checked !== undefined ? "menuitemradio" : "menuitem", true, () => {
         close();
         c.run();
-      }, c.icon ? "ctx-item ctx-iconed" : "ctx-item", c.checked);
+      }, ["ctx-item", ...(c.icon ? ["ctx-iconed"] : []), ...(c.danger ? ["danger"] : [])].join(" "), c.checked);
       if (c.icon) item.prepend(menuIcon(c.icon, c.flip));
       return item;
     });
@@ -49,7 +51,7 @@ export function attachMenu(anchor: HTMLElement, label: string, choices: () => Me
     // Keeps a press on the menu padding from blurring the focused item, which would close the menu.
     menu.addEventListener("mousedown", (ev) => ev.preventDefault());
     const r = anchor.getBoundingClientRect();
-    closeMenu = openPopup(anchor, menu, () => placeUnder(menu, r), () => (closeMenu = null));
+    closeMenu = openPopup(anchor, menu, () => (over ? place(menu, r.left, r.top) : placeUnder(menu, r)), () => (closeMenu = null));
     focusInitial(items);
   }
 

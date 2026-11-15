@@ -58,6 +58,9 @@ pub fn remember(app: &AppHandle, root: &Path) {
     if let Err(e) = app_file(app).and_then(|f| write(&f, root).map_err(|e| e.to_string())) {
         eprintln!("Could not remember the Storage path: {e}");
     }
+    if let Err(e) = super::known::app_file(app).and_then(|f| super::known::touch(&f, root).map_err(|e| e.to_string())) {
+        eprintln!("Could not add the Storage to the list: {e}");
+    }
 }
 
 #[cfg(test)]

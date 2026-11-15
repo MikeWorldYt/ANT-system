@@ -84,6 +84,22 @@ export const storageHealth = () => call<StorageHealth>("storage_health");
 export const useLatestBackup = (stamp: string) => call<void>("use_latest_backup", { stamp });
 export const prepareScan = (stamp: string) => call<void>("prepare_scan", { stamp });
 export const changeStoragePath = (path: string) => call<string>("change_storage_path", { path });
+export interface KnownStorage {
+  path: string;
+  name: string;
+  exists: boolean;
+}
+export const knownStorages = () => call<KnownStorage[]>("known_storages");
+export const forgetStorage = (path: string) => call<void>("forget_storage", { path });
+export const createStorage = (parent: string, name: string) => call<string>("create_storage", { parent, name });
+export const renameListedStorage = (path: string, name: string) => call<string>("rename_listed_storage", { path, name });
+export const moveListedStorage = (path: string, destination: string) => call<string>("move_listed_storage", { path, destination });
+export const revealStorage = (path: string) => call<void>("reveal_storage", { path });
+export interface StorageLocation {
+  label: string;
+  path: string;
+}
+export const storageLocations = () => call<StorageLocation[]>("storage_locations");
 export interface RenameStatus {
   old: string;
   new: string;
@@ -216,6 +232,7 @@ export const listRegistry = () => call<RegistryEntry[]>("list_registry");
 export const installRegistryExtension = (id: string) => call<ExtensionInfo>("install_registry_extension", { id });
 export const inspectExtensionRepo = (url: string) => call<ExtensionPreview>("inspect_extension_repo", { url });
 export const installInspectedExtension = (token: string) => call<ExtensionInfo>("install_inspected_extension", { token });
+
 
 const path = (parts: string[]) => parts.join("/") || "root";
 
