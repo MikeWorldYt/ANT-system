@@ -1,9 +1,9 @@
 // Fixed folder names, tree layout rules and update endpoints shared by the core modules.
 use serde::{Deserialize, Serialize};
 
-pub const VERSION_URL: &str =
-    "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Applications/FolderManager/version.txt";
-// The build-apps workflow publishes each version as the release `folder-manager-v<version>` with this installer.
+// The build-apps workflow publishes each version as the release `folder-manager-v<version>`, then points this channel at its latest.json.
+pub const LATEST_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/download/folder-manager-latest/latest.json";
+pub const RELEASE_APP: &str = "FolderManager";
 pub const RELEASE_API_URL: &str = "https://api.github.com/repos/MikeWorldYt/ANT-system/releases/tags/";
 pub const RELEASE_DOWNLOAD_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/download/";
 pub const RELEASE_TAG_PREFIX: &str = "folder-manager-";

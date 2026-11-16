@@ -1,16 +1,16 @@
-// Windows update path: the version check, then the official installer from the GitHub Release, checked against its SHA-256 and started by its own path.
+// Windows update path: the channel's latest.json, then the installer it names, checked against its SHA-256 and started by its own path.
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 
 use serde_json::Value;
 
-use crate::domain::config::{INSTALLER_ASSET, RELEASE_API_URL, RELEASE_DOWNLOAD_URL, RELEASE_TAG_PREFIX, VERSION_URL};
+use crate::domain::config::{INSTALLER_ASSET, LATEST_URL, RELEASE_API_URL, RELEASE_TAG_PREFIX};
 use crate::domain::error::{FmError, R};
-use crate::domain::version::parse_file_version;
 use crate::infra::fs_safe::io_err;
 use crate::platform::random::hex_token;
 use crate::platform::windows::powershell::run_powershell;
+use crate::services::updater::{newer_release, Release};
 
 const FETCH: &str = "(Invoke-WebRequest -UseBasicParsing -Uri $env:FM_URL -TimeoutSec 5 -Headers @{'User-Agent'='FolderManager-Updater'}).Content";
 // Windows PowerShell 5.1 downloads a large file many times slower while it draws the progress bar.
@@ -24,26 +24,34 @@ fn fetch(url: &str) -> Result<String, String> {
     run_powershell(FETCH, &[("FM_URL", url.as_ref())], None, Duration::from_secs(10))
 }
 
-// Offline or unparsable means no update, as in the Python app.
-pub fn latest_version() -> Option<String> {
-    parse_file_version(&fetch(VERSION_URL).ok()?)
+pub fn latest_version() -> R<Option<String>> {
+    Ok(newer_release(fetch(LATEST_URL).ok())?.map(|r| r.version))
 }
 
-// Nothing in the storage takes part: the installer is the published release's asset, run only when it matches the SHA-256 GitHub lists for it.
+// Nothing in the storage takes part: the installer is the asset latest.json names, run only when it matches the SHA-256 listed there.
 pub fn launch_updater() -> R<()> {
-    let version = latest_version().ok_or_else(|| fail("the published version could not be read"))?;
-    let tag = format!("{RELEASE_TAG_PREFIX}{version}");
-    let release = fetch(&format!("{RELEASE_API_URL}{tag}")).map_err(|e| fail(format!("the release {tag} could not be read ({e})")))?;
-    let expected = asset_sha256(&release, INSTALLER_ASSET).map_err(fail)?;
+    let json = fetch(LATEST_URL).map_err(|e| fail(format!("the update channel could not be read ({e})")))?;
+    let release = newer_release(Some(json))?.ok_or_else(|| fail("the update channel offers no newer version"))?;
+    check_api_digest(&release)?;
     let dir = std::env::temp_dir().join(format!("FolderManager-update-{}", hex_token(8).map_err(fail)?));
     std::fs::create_dir(&dir).map_err(|e| io_err("create the update folder", &dir, &e))?;
     let installer = dir.join(INSTALLER_ASSET);
-    let checked = download(&format!("{RELEASE_DOWNLOAD_URL}{tag}/{INSTALLER_ASSET}"), &installer).and_then(|()| verify(&installer, &expected));
+    let checked = download(&release.installer_url, &installer).and_then(|()| verify(&installer, &release.sha256));
     if let Err(e) = checked {
         discard(&dir);
         return Err(e);
     }
     Command::new(&installer).current_dir(&dir).spawn().map(drop).map_err(|e| io_err("start the installer", &installer, &e))
+}
+
+// Extra defense: when the Releases API answers (it is rate limited), its digest must agree with latest.json.
+fn check_api_digest(release: &Release) -> R<()> {
+    let tag = format!("{RELEASE_TAG_PREFIX}v{}", release.version);
+    let Ok(json) = fetch(&format!("{RELEASE_API_URL}{tag}")) else { return Ok(()) };
+    match asset_sha256(&json, INSTALLER_ASSET) {
+        Ok(api) if api != release.sha256 => Err(fail(format!("latest.json and the release {tag} list different SHA-256 values for {INSTALLER_ASSET}"))),
+        _ => Ok(()),
+    }
 }
 
 // GitHub computes the digest when the asset is uploaded; a release without one is refused.
