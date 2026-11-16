@@ -2,13 +2,13 @@
 use std::path::{Path, PathBuf};
 
 use crate::config::{ANT_DIR, INFO_NAME};
-use crate::fs_ops::{make_dirs_tracked, write_file_atomic};
+use crate::fs_ops::{make_dirs_tracked, Backups};
 use crate::{Level, Progress};
 
 // Same order the file is written in.
 pub(crate) const FIELDS: [&str; 3] = ["owner", "created", "status"];
 
-pub fn write_info(folder: &Path, fields: &[(String, String)], created: &mut Vec<PathBuf>, progress: Progress) -> Result<(), String> {
+pub fn write_info(folder: &Path, fields: &[(String, String)], created: &mut Vec<PathBuf>, backups: &mut Backups, progress: Progress) -> Result<(), String> {
     let pairs: Vec<(&str, String)> = FIELDS
         .iter()
         .filter_map(|key| fields.iter().rfind(|(k, _)| k == key).map(|(_, v)| (*key, short_date(key, v))))
@@ -19,9 +19,13 @@ pub fn write_info(folder: &Path, fields: &[(String, String)], created: &mut Vec<
     let dir = folder.join(ANT_DIR);
     make_dirs_tracked(&dir, created)?;
     let dest = dir.join(INFO_NAME);
-    write_file_atomic(&dest, render(&pairs).as_bytes())?;
+    backups.write(&dest, render(&pairs).as_bytes())?;
     progress(Level::Info, &format!("  ✔ {}", dest.display()));
     Ok(())
+}
+
+pub(crate) fn info_path(folder: &Path, fields: &[(String, String)]) -> Option<PathBuf> {
+    FIELDS.iter().any(|key| fields.iter().any(|(k, _)| k == key)).then(|| folder.join(ANT_DIR).join(INFO_NAME))
 }
 
 // 2024-06-01 is stored as 24-06-01, the short form the app reads.
@@ -60,7 +64,7 @@ mod tests {
         let entry = [("status", "in-progress"), ("created", "2024-06-01"), ("owner", "Mike Diaz")].map(|(k, v)| (k.to_string(), v.to_string()));
         let mut made = Vec::new();
         let tmp = crate::test_dir::TempDir::new("info");
-        write_info(tmp.path(), &entry, &mut made, &mut |_, _| {}).unwrap();
+        write_info(tmp.path(), &entry, &mut made, &mut Backups::default(), &mut |_, _| {}).unwrap();
         let text = std::fs::read_to_string(tmp.path().join(".ant/info.json")).unwrap();
         assert_eq!(text, "{\n  \"owner\": \"Mike Diaz\",\n  \"created\": \"24-06-01\",\n  \"status\": \"in-progress\"\n}\n");
     }
@@ -68,7 +72,7 @@ mod tests {
     #[test]
     fn entries_without_fields_write_nothing_and_quotes_are_escaped() {
         let tmp = crate::test_dir::TempDir::new("info-none");
-        write_info(tmp.path(), &[], &mut Vec::new(), &mut |_, _| {}).unwrap();
+        write_info(tmp.path(), &[], &mut Vec::new(), &mut Backups::default(), &mut |_, _| {}).unwrap();
         assert!(!tmp.path().join(".ant").exists());
         assert_eq!(quote("a\"b\\c"), "\"a\\\"b\\\\c\"");
     }

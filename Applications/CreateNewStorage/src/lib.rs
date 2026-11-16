@@ -6,7 +6,9 @@ mod fetch;
 mod fs_ops;
 mod info;
 mod name;
+mod overwrite;
 mod plan;
+mod sha256;
 mod template;
 mod tree_types;
 #[cfg(test)]
@@ -14,7 +16,7 @@ mod test_dir;
 #[cfg(test)]
 mod tests;
 
-pub use create::{create, load_template, CreateOptions, Progress};
+pub use create::{create, load_template, Confirm, CreateOptions, Progress};
 pub use name::sanitize_name;
 pub use plan::{plan, PlanNode};
 

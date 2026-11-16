@@ -90,27 +90,6 @@ pub fn download_text(url: &str) -> Result<String, String> {
     String::from_utf8(download(url, MAX_TEXT_BYTES, 30)?).map_err(|_| format!("{url} is not UTF-8 text"))
 }
 
-// Highest stable `<prefix>X.Y.Z` tag in a releases listing (pre-releases like `-rc1` are skipped). The text is scanned
-// for "tag_name" instead of parsed, because only this one field is needed.
-pub fn latest_release_tag(listing: &str, prefix: &str) -> Option<String> {
-    let mut best: Option<((u64, u64, u64), String)> = None;
-    for part in listing.split("\"tag_name\"").skip(1) {
-        let Some(value) = part.trim_start().strip_prefix(':').map(str::trim_start).and_then(|v| v.strip_prefix('"')) else { continue };
-        let Some(tag) = value.split('"').next() else { continue };
-        let Some(version) = tag.strip_prefix(prefix).and_then(parse_version) else { continue };
-        if best.as_ref().map_or(true, |(top, _)| version > *top) {
-            best = Some((version, tag.to_string()));
-        }
-    }
-    best.map(|(_, tag)| tag)
-}
-
-fn parse_version(text: &str) -> Option<(u64, u64, u64)> {
-    let mut parts = text.split('.').map(|p| p.parse::<u64>().ok());
-    let version = (parts.next()??, parts.next()??, parts.next()??);
-    parts.next().is_none().then_some(version)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,13 +105,5 @@ mod tests {
     #[test]
     fn release_assets_hosts_are_allowed() {
         assert!(allowed_url("https://release-assets.githubusercontent.com/github-production-release-asset/1"));
-    }
-
-    #[test]
-    fn latest_tag_picks_the_highest_stable_version_of_the_prefix() {
-        let json = r#"[{"tag_name":"core-v9.0.0"},{"tag_name":"folder-manager-v2.4.0","body":"say \"tag_name\" \ud83d\ude00"},{"tag_name":"folder-manager-v2.10.1"},{"tag_name":"folder-manager-v3.0.0-rc1"},{"tag_name":"folder-manager-v2.9.9"}]"#;
-        assert_eq!(latest_release_tag(json, "folder-manager-v").as_deref(), Some("folder-manager-v2.10.1"));
-        assert_eq!(latest_release_tag("[]", "folder-manager-v"), None);
-        assert_eq!(latest_release_tag(r#"[{"tag_name": "folder-manager-v1.2.3"}]"#, "folder-manager-v").as_deref(), Some("folder-manager-v1.2.3"));
     }
 }
