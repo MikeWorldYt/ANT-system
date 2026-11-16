@@ -13,7 +13,7 @@ use crate::domain::error::R;
 use crate::infra::fs_safe::{io_err, join_rel};
 use crate::infra::footprint_file;
 use crate::domain::names::{is_system_root_name, support_kind, untracked_parts};
-use crate::infra::scan::{is_real_dir, list_subdirs};
+use crate::infra::scan::{is_real_dir, list_tracked_subdirs};
 use crate::services::tree::depth;
 
 pub fn load(root: &Path) -> R<Mapping> {
@@ -212,7 +212,7 @@ pub fn sync_branch_paths(root: &Path, data: &mut Mapping, dir: &[String]) -> R<(
     let renamed = rename_legacy_types(data);
     let (mut node, mut path, mut changed) = (data, root.to_path_buf(), Vec::new());
     for depth in 0..=dir.len().min(limit - 1) {
-        let names = list_subdirs(&path)?;
+        let names = list_tracked_subdirs(&path)?;
         for name in names.iter().filter(|n| !META_KEYS.contains(&n.as_str())) {
             let mut touched = add_missing(node, name, depth, fresh);
             if let Some(Value::Mapping(child)) = node.get_mut(name.as_str()) {
@@ -246,7 +246,7 @@ fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool, limit: 
     if depth >= limit {
         return Ok(false);
     }
-    let disk = list_subdirs(dir)?;
+    let disk = list_tracked_subdirs(dir)?;
     let mut changed = drop_gone_support(node, &disk, depth);
     for name in disk {
         // A folder named like a meta key would overwrite the node's own type or status.

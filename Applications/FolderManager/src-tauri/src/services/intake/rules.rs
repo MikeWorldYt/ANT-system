@@ -7,7 +7,8 @@ use crate::domain::names::{editable_part, support_kind};
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::is_locked_type;
 
-const SYSTEM_FILES: [&str; 2] = ["desktop.ini", "Thumbs.db"];
+// Files other programs keep beside the folder they work on (OS metadata, AI agent instructions, editor configs); moving them breaks those programs.
+const SYSTEM_FILES: [&str; 9] = ["desktop.ini", "Thumbs.db", "CLAUDE.md", "CLAUDE.local.md", "AGENTS.md", "GEMINI.md", "CODEX.md", "copilot-instructions.md", "llms.txt"];
 const ROOT_EXEMPT_MARKER: &str = "foldermanager";
 
 pub(super) enum Rule<'a> {
@@ -42,7 +43,7 @@ pub(super) fn is_root_exempt_file(name: &str) -> bool {
 }
 
 pub(super) fn is_skipped_file(name: &str) -> bool {
-    name.starts_with('.') || SYSTEM_FILES.iter().any(|s| name.eq_ignore_ascii_case(s))
+    name.starts_with(['.', '~']) || SYSTEM_FILES.iter().any(|s| name.eq_ignore_ascii_case(s))
 }
 
 // An extra review stays beside the node's own until the user merges it, so the one named after the node goes first.

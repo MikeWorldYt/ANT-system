@@ -10,7 +10,7 @@ use std::path::Path;
 use serde::Serialize;
 use serde_yaml::Mapping;
 
-use crate::infra::scan::list_subdirs;
+use crate::infra::scan::list_tracked_subdirs;
 use crate::domain::tree_types::{child_entries, flags_in};
 use crate::domain::config::{DATA_DIR, HIDDEN_FLAG, REVIEW_PREFIX};
 use crate::domain::names::support_kind;
@@ -70,7 +70,7 @@ pub fn run(root: &Path) -> R<IntakeReport> {
 }
 
 fn walk(dir: &Path, node: &Mapping, rel: &[String], report: &mut IntakeReport) -> R<()> {
-    let subdirs = list_subdirs(dir)?;
+    let subdirs = list_tracked_subdirs(dir)?;
     match rule(rel, node) {
         Rule::Root => report_root_loose(dir, report)?,
         Rule::Skip => return Ok(()),

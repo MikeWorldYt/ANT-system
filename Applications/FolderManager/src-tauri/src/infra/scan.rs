@@ -54,6 +54,12 @@ pub fn list_subdirs(dir: &Path) -> R<Vec<String>> {
     Ok(names)
 }
 
+// Dot folders (.git, .claude, .vscode) belong to other programs: the views list them, but the tree, the index and the review
+// rules leave them alone, since renaming or filling them would break those programs.
+pub fn list_tracked_subdirs(dir: &Path) -> R<Vec<String>> {
+    Ok(list_subdirs(dir)?.into_iter().filter(|n| !n.starts_with('.')).collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

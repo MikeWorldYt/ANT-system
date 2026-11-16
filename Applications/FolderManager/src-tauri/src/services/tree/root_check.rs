@@ -6,7 +6,7 @@ use serde_yaml::{Mapping, Value};
 
 use crate::domain::names::{has_node_id, is_main_category, is_track_name, is_valid_root_name};
 
-use crate::infra::scan::list_subdirs;
+use crate::infra::scan::{list_subdirs, list_tracked_subdirs};
 use crate::domain::tree_types::{flags_in, type_base};
 use crate::domain::config::{TypeBase, DATA_DIR, HIDDEN_FLAG, INFO_FILENAME, WKB_IDENTIFIERS};
 use crate::domain::error::R;
@@ -52,7 +52,7 @@ fn resync(root: &Path, data: &mut Mapping) -> R<bool> {
 
 // Node and workboard folders are checked; review and app folders keep their own names. Workboards hold no nodes, so they are not entered.
 fn walk(root: &Path, dir: &Path, node: Option<&Mapping>, rel: &mut Vec<String>, limit: usize, out: &mut Vec<Invalid>) -> R<()> {
-    for name in list_subdirs(dir)? {
+    for name in list_tracked_subdirs(dir)? {
         if rel.is_empty() && is_reserved(std::slice::from_ref(&name)) {
             continue;
         }
@@ -130,6 +130,19 @@ fn category_reviews(root: &Path) -> R<Vec<Vec<String>>> {
 mod tests {
     use super::*;
     use crate::test_support::{rel, storage, TempDir};
+
+    #[test]
+    fn dot_folders_are_neither_flagged_nor_added_to_the_tree() {
+        let dir = storage("root-check-dot", &["100.WORK/01.English/.claude", "100.WORK/.git"], "100.WORK:
+  type: NODE-L1
+  01.English: {type: NODE-L2}
+");
+        assert!(check_root(dir.path()).unwrap().invalid.is_empty());
+        let data = tree_store::load(dir.path()).unwrap();
+        let work = data.get("100.WORK").and_then(Value::as_mapping).unwrap();
+        assert!(work.get(".git").is_none());
+        assert!(work.get("01.English").and_then(Value::as_mapping).unwrap().get(".claude").is_none());
+    }
 
     #[test]
     fn a_workboard_outside_the_track_format_is_flagged_with_its_tracker() {
