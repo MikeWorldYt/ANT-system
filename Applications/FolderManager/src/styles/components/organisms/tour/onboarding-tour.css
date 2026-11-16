@@ -39,4 +39,27 @@ body.tour-restrict .ctx-menu .ctx-item:not(.tour-allow), body.tour-restrict dial
 @media (prefers-reduced-motion: reduce) { .fx-hint { display: none; } }
 .tour-tip[data-side="bottom"] .tour-arrow { bottom: -7px; left: calc(var(--arrow) - 6px); border-left: none; border-top: none; }
 .tour-tip[data-side="none"] .tour-arrow { display: none; }
-.tour-count { flex: 1; text-align: right; color: var(--muted); font-size: 9pt; }
+.tour-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.tour-count { color: var(--muted); font-size: 9pt; white-space: nowrap; }
+.tour-actions .tour-skip[hidden] { display: none; }
+.tour-quit:hover, .tour-quit:focus-visible { color: var(--delete-hover); }
+/* Chapter checklist in the bottom-left corner. */
+.tour-checklist { position: fixed; z-index: 903; left: 16px; bottom: 16px; width: 250px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg); box-shadow: var(--shadow-pop); overflow: hidden; }
+.tour-check-head { padding: 12px 14px; background: color-mix(in srgb, var(--accent) 22%, var(--bg)); color: var(--text); }
+.tour-progress { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 9pt; }
+.tour-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--input-bg); overflow: hidden; }
+.tour-bar-fill { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.3s ease; }
+.tour-chapters { list-style: none; margin: 0; padding: 4px 0; }
+.tour-chapter { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 14px; border: none; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.tour-chapter:hover, .tour-chapter:focus-visible { background: var(--highlight); }
+.tour-chapter.is-current { color: var(--title); font-weight: 600; }
+.tour-chapter.is-done { color: var(--muted); text-decoration: line-through; }
+.tour-mark { flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--input-bg); border: 1px solid var(--border); }
+.tour-chapter.is-current .tour-mark { border-color: var(--accent); }
+.tour-chapter.is-done .tour-mark { background: var(--accent) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat; border-color: var(--accent); }
+.tour-forward { display: flex; align-items: center; gap: 12px; }
+/* "Good job" mark between chapters. */
+.tour-cheer { position: fixed; z-index: 906; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 12px; pointer-events: none; color: var(--title); font-size: 18pt; font-weight: 700; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); animation: tour-pop 0.3s ease-out; }
+.tour-cheer-mark { width: 64px; height: 64px; border-radius: 50%; background: var(--accent) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 40px no-repeat; }
+@keyframes tour-pop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); } }
+@media (prefers-reduced-motion: reduce) { .tour-cheer { animation: none; } }

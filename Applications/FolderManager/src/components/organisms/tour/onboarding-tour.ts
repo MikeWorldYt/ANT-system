@@ -13,6 +13,8 @@ const DONE_KEY = "fm.tour.done";
 
 // A step lights every element `targets` gives; a click on `advanceOn` (by default the targets) moves on, and Next runs `onNext` instead.
 interface Step {
+  // Steps of one part teach one subject; Next Chapter jumps to the next one.
+  part: number;
   targets: () => Element[];
   title: string;
   text: string;
@@ -39,6 +41,8 @@ interface Step {
   // Polled while the step shows; the tour moves on once it holds, and clicks alone no longer do.
   done?: () => boolean;
 }
+
+const PARTS = ["Levels and nodes", "Projects", "Sorting", "Views", "Adding files", "Shortcuts"];
 
 const one = (selector: string) => (): Element[] => [...document.querySelectorAll(selector)].slice(0, 1);
 const menuItems = (danger: boolean) => (): Element[] => [...document.querySelectorAll(danger ? ".ctx-menu .ctx-item.danger" : ".ctx-menu .ctx-item")];
@@ -107,11 +111,11 @@ function steps(): Step[] {
     return parent && key?.startsWith(`${parent}/`) && key.endsWith(".New-Node") ? key : null;
   };
   return [
-    { targets: categories, title: "Main categories", text: "These are the main categories of your Storage, the top level of everything you keep. Double-click the arrow of one to open it.", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0 },
-    { targets: rowsIn(1), title: "Subcategories (Level 2)", text: "Each category holds its subcategories. Click one to select level 2.", onNext: selectRow, done: () => depth() >= 2 },
+    { targets: categories, part: 0, title: "Main categories", text: "These are the main categories of your Storage, the top level of everything you keep. Double-click the arrow of one to open it.", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0 },
+    { targets: rowsIn(1), part: 0, title: "Subcategories (Level 2)", text: "Each category holds its subcategories. Click one to select level 2.", onNext: selectRow, done: () => depth() >= 2 },
     {
       targets: one(".nav-add"),
-      title: "Create a node",
+      part: 0, title: "Create a node",
       text: "Press + and choose New node. A numbered folder appears next to the open subcategory.",
       advanceOn: newNode,
       allow: newNode,
@@ -123,7 +127,7 @@ function steps(): Step[] {
     },
     {
       targets: () => rowOf(doomed),
-      title: "Delete a node",
+      part: 0, title: "Delete a node",
       text: "Right-click your new node and choose Delete. In a real Storage it goes to the Recycle Bin.",
       confirmText: "Confirm with Delete. Here it only leaves the tutorial Storage.",
       pointAt: deleteControl,
@@ -137,7 +141,7 @@ function steps(): Step[] {
     },
     {
       targets: one(".nav-add"),
-      title: "Create a workboard",
+      part: 1, title: "Create a workboard",
       text: "Projects live in workboards. Press + and choose New workboard; it takes the next project number.",
       enter: openProjects,
       advanceOn: newWorkboard,
@@ -145,7 +149,7 @@ function steps(): Step[] {
     },
     {
       targets: () => rowOf(state.selectedKey?.endsWith("_New-Workboard") ? state.selectedKey : null),
-      title: "Your project",
+      part: 1, title: "Your project",
       when: () => {
         if (state.selectedKey?.endsWith("_New-Workboard")) project = state.selectedKey;
         return true;
@@ -154,15 +158,15 @@ function steps(): Step[] {
     },
     {
       targets: editButton,
-      title: "Edit your project",
+      part: 1, title: "Edit your project",
       text: "Press the pencil to edit the details of your project.",
       onNext: (els) => (els[0] as HTMLElement | undefined)?.click(),
       done: () => nameField().length > 0,
     },
-    { targets: nameField, title: "Name it", text: "Type a name you like. The PJ number stays; it is how ANT tracks the project. Then press Next.", advanceOn: () => [], left: true },
+    { targets: nameField, part: 1, title: "Name it", text: "Type a name you like. The PJ number stays; it is how ANT tracks the project. Then press Next.", advanceOn: () => [], left: true },
     {
       targets: one(".details-panel .status-picker"),
-      title: "Set the status",
+      part: 1, title: "Set the status",
       left: true,
       text: "Open the status list and choose In progress.",
       allow: () => [...document.querySelectorAll(".ctx-menu .ctx-status.st-in-progress")],
@@ -171,7 +175,7 @@ function steps(): Step[] {
     },
     {
       targets: saveButton,
-      title: "Save",
+      part: 1, title: "Save",
       left: true,
       text: "Save to apply the new name and status.",
       done: () => {
@@ -182,7 +186,7 @@ function steps(): Step[] {
     },
     {
       targets: one(".sort-btn"),
-      title: "Sort",
+      part: 2, title: "Sort",
       text: "We added more projects to try it. Open Sort and order them by track, name, date or status as many times as you like, then press Next.",
       enter: () => void seedProjects().then(() => document.querySelector<HTMLElement>(".sort-btn")?.click()),
       advanceOn: () => [],
@@ -190,7 +194,7 @@ function steps(): Step[] {
     },
     {
       targets: one(".view-picker:not(.sort-btn)"),
-      title: "Views",
+      part: 3, title: "Views",
       text: "Columns is not the only view. Open the views and switch between Cards, Tree, Grid, List, Details and Graph as you like, then press Next.",
       enter: () => document.querySelector<HTMLElement>(".view-picker:not(.sort-btn)")?.click(),
       advanceOn: () => [],
@@ -198,7 +202,7 @@ function steps(): Step[] {
     },
     {
       targets: () => itemOf(projectKey()),
-      title: "Select your project",
+      part: 4, title: "Select your project",
       text: "Click your project to select it; files go into the folder you pick.",
       enter: easyDropView,
       onNext: (els) => (els[0] as HTMLElement | undefined)?.click(),
@@ -207,7 +211,7 @@ function steps(): Step[] {
     {
       targets: () => dropZones(projectKey()),
       separate: true,
-      title: "Drop your files",
+      part: 4, title: "Drop your files",
       text: "Drag files from the explorer window onto your project or into its open column. In a real Storage this moves them in. Press Next when you are done.",
       advanceOn: () => [],
       enter: () => {
@@ -230,8 +234,8 @@ function steps(): Step[] {
         explorer = null;
       },
     },
-    { targets: one(".search-box"), title: "Search", text: "Find any folder or file in the Storage by its name." },
-    { targets: one(".side-rail"), title: "Side panel", text: "Settings, the board, your downloads, recordings, screenshots and review folders are one click away." },
+    { targets: one(".search-box"), part: 5, title: "Search", text: "Find any folder or file in the Storage by its name." },
+    { targets: one(".side-rail"), part: 5, title: "Side panel", text: "Settings, the board, your downloads, recordings, screenshots and review folders are one click away." },
   ];
 }
 
@@ -241,6 +245,16 @@ function union(elements: Element[]): DOMRect | null {
   const left = Math.min(...rects.map((r) => r.left));
   const top = Math.min(...rects.map((r) => r.top));
   return new DOMRect(left, top, Math.max(...rects.map((r) => r.right)) - left, Math.max(...rects.map((r) => r.bottom)) - top);
+}
+
+// A check and "Good job!" float in the centre for a moment, then the next chapter starts.
+function cheer(then: () => void): void {
+  const mark = el("div", { class: "tour-cheer", role: "status" }, el("div", { class: "tour-cheer-mark", "aria-hidden": "true" }), el("span", {}, "Good job!"));
+  document.body.append(mark);
+  window.setTimeout(() => {
+    mark.remove();
+    then();
+  }, 2600);
 }
 
 export const tourSeen = (): boolean => readPref(DONE_KEY) === "true";
@@ -270,7 +284,7 @@ let activeDemo: DemoStorage | null = null;
 
 // The made-up projects land next to the user's own one, and the tree is read again to show them.
 async function seedProjects(): Promise<void> {
-  const parent = state.selectedKey?.split("/").slice(0, -1) ?? [];
+  const parent = (state.selectedKey?.includes("_") ? state.selectedKey : firstWorkboard(state.tree?.nodes ?? [])?.join("/"))?.split("/").slice(0, -1) ?? [];
   if (!activeDemo || parent.length === 0) return;
   activeDemo.seedProjects(parent);
   await reloadWhenIdle();
@@ -319,12 +333,52 @@ export async function startTour(): Promise<void> {
     if (step?.onNext) step.onNext(step.targets());
     else goOn();
   });
-  const skip = el("button", { type: "button", class: "tour-skip" }, "Skip tour");
+  const skip = el("button", { type: "button", class: "tour-skip tour-quit" }, "Skip tour");
   const count = el("span", { class: "tour-count" });
-  // Steps passed over (no new node to delete, say) leave the count, so it still ends on "N of N".
-  let skipped = 0;
+  const skipPart = el("button", { type: "button", class: "tour-skip" }, "Next Chapter");
+  skipPart.addEventListener("click", () => {
+    const part = all[index]?.part ?? 0;
+    if (part + 1 >= PARTS.length) finish();
+    else jumpTo(part + 1);
+  });
   skip.addEventListener("click", finish);
-  const tip = el("div", { class: "tour-tip", role: "dialog", tabindex: "-1", "aria-labelledby": "tour-title", "aria-describedby": "tour-text" }, el("div", { class: "tour-arrow" }), title, text, el("div", { class: "tour-actions" }, skip, count, next));
+  const tip = el("div", { class: "tour-tip", role: "dialog", tabindex: "-1", "aria-labelledby": "tour-title", "aria-describedby": "tour-text" }, el("div", { class: "tour-arrow" }), el("div", { class: "tour-head" }, title, count), text, el("div", { class: "tour-actions" }, skip, el("span", { class: "tour-forward" }, skipPart, next)));
+
+  // The chapter checklist: done chapters are ticked, any chapter can be opened again, and the bar shows how far the user got.
+  const finished = new Set<number>();
+  const cheered = new Set<number>();
+  const bar = el("span", { class: "tour-bar-fill" });
+  const percent = el("span", { class: "tour-percent" });
+  const chapters = el("ul", { class: "tour-chapters" });
+  const checklist = el(
+    "aside",
+    { class: "tour-checklist", "aria-label": "Tutorial chapters" },
+    el("div", { class: "tour-check-head" }, el("strong", {}, "Getting started with ANT"), el("div", { class: "tour-progress" }, percent, el("span", { class: "tour-bar" }, bar))),
+    chapters,
+  );
+  let jumping = false;
+  const jumpTo = (part: number): void => {
+    const first = all.findIndex((s) => s.part === part);
+    if (first < 0) return;
+    jumping = true;
+    show(first);
+  };
+  function paintChecklist(): void {
+    const current = all[index]?.part ?? -1;
+    const share = Math.round((finished.size / PARTS.length) * 100);
+    percent.textContent = `${share}%`;
+    bar.style.width = `${share}%`;
+    chapters.replaceChildren(
+      ...PARTS.map((name, part) => {
+        const item = el("button", { type: "button", class: "tour-chapter" }, el("span", { class: "tour-mark", "aria-hidden": "true" }), name);
+        item.classList.toggle("is-done", finished.has(part));
+        item.classList.toggle("is-current", part === current);
+        if (part === current) item.setAttribute("aria-current", "step");
+        item.addEventListener("click", () => jumpTo(part));
+        return el("li", {}, item);
+      }),
+    );
+  }
 
   function place(): void {
     // A modal sits in the top layer above the page, so the tip joins it to stay visible and clickable.
@@ -368,8 +422,8 @@ export async function startTour(): Promise<void> {
     left = Math.max(margin, Math.min(left, window.innerWidth - t.width - margin));
     top = Math.max(margin, Math.min(top, window.innerHeight - t.height - margin));
     // The tip keeps clear of the pretend explorer: the first spot around the target that it does not cover wins.
-    const fx = document.querySelector(".fx-window")?.getBoundingClientRect();
-    const hits = (x: number, y: number): boolean => fx !== undefined && x < fx.right && x + t.width > fx.left && y < fx.bottom && y + t.height > fx.top;
+    const blockers = [...document.querySelectorAll(".fx-window, .tour-checklist")].map((e) => e.getBoundingClientRect());
+    const hits = (x: number, y: number): boolean => blockers.some((b) => x < b.right && x + t.width > b.left && y < b.bottom && y + t.height > b.top);
     if (hits(left, top)) {
       const spots: [number, number, string][] = [
         [r.right + margin, r.top, "left"],
@@ -422,19 +476,40 @@ export async function startTour(): Promise<void> {
     }
   }, 150);
 
+  // A "Good job" card may call back after the user already left the tour.
+  let over = false;
   function show(from: number): void {
+    if (over) return;
     const i = all.findIndex((s, n) => n >= from && (s.when?.() ?? true) && s.targets().length > 0);
     const step = all[i];
     if (!step) return finish();
     if (i !== index) all[index]?.leave?.();
-    skipped += i - from;
+    // Walking out of a chapter's last step finishes it; a jump from the checklist or Next Chapter does not.
+    const left = all[index]?.part;
+    if (!jumping && left !== undefined && left !== step.part) {
+      finished.add(left);
+      // A chapter of several steps ends on a short "Good job" before the next one starts.
+      if (all.filter((s) => s.part === left).length > 1 && !cheered.has(left)) {
+        cheered.add(left);
+        paintChecklist();
+        tip.style.visibility = "hidden";
+        cheer(() => show(from));
+        return;
+      }
+    }
+    jumping = false;
     index = i;
     step.enter?.();
     watching = Boolean(step.done);
     title.textContent = step.title;
     text.textContent = step.text;
     next.textContent = i === all.length - 1 ? "Finish" : "Next";
-    count.textContent = `${i + 1 - skipped} of ${all.length - skipped}`;
+    // The count runs inside the chapter; a one-step chapter needs none.
+    const inPart = all.filter((s) => s.part === step.part);
+    count.textContent = inPart.length > 1 ? `${inPart.indexOf(step) + 1} of ${inPart.length}` : "";
+    paintChecklist();
+    skipPart.hidden = step.part === PARTS.length - 1;
+    tip.style.visibility = "";
     place();
     tip.focus();
   }
@@ -444,6 +519,8 @@ export async function startTour(): Promise<void> {
   }
 
   function finish(): void {
+    over = true;
+    document.querySelector(".tour-cheer")?.remove();
     savePref(DONE_KEY, "true");
     all[index]?.leave?.();
     window.clearInterval(watch);
@@ -454,6 +531,7 @@ export async function startTour(): Promise<void> {
     shields.forEach((pane) => pane.remove());
     document.body.classList.remove("touring", "tour-restrict");
     tip.remove();
+    checklist.remove();
     window.removeEventListener("resize", place);
     window.removeEventListener("tour-explorer-moved", place);
     document.removeEventListener("keydown", onKey);
@@ -462,13 +540,13 @@ export async function startTour(): Promise<void> {
 
   // Menus open and close outside the tour's control, so the tip is placed again whenever the page's top-level children change.
   // The tour's own nodes are skipped, since placing the tip changes them and would call itself again.
-  const ours = (n: Node): boolean => n === tip || tip.contains(n) || n === spot || spot.contains(n) || n === shield;
+  const ours = (n: Node): boolean => n === tip || tip.contains(n) || n === checklist || checklist.contains(n) || n === spot || spot.contains(n) || n === shield;
   const menus = new MutationObserver((records) => {
     const moved = (r: MutationRecord): boolean => r.type === "attributes" || ![...r.addedNodes, ...r.removedNodes].every(ours);
     if (records.some((r) => !ours(r.target) && moved(r))) place();
   });
   menus.observe(document.body, { childList: true, subtree: true, attributeFilter: ["open"] });
-  document.body.append(...shields, spot, tip);
+  document.body.append(...shields, spot, checklist, tip);
   document.body.classList.add("touring");
   window.addEventListener("resize", place);
   window.addEventListener("tour-explorer-moved", place);
