@@ -4,6 +4,8 @@ use std::collections::HashSet;
 use regex::RegexBuilder;
 use serde::Serialize;
 
+use crate::infra::fs_safe::validate_component;
+
 const KEYS: [&str; 6] = ["term", "topics", "only", "exclude", "ext", "pattern"];
 const NODE_PREFIXES: [&str; 2] = ["NODE^.", "NODE."];
 
@@ -95,6 +97,9 @@ pub fn lint(text: &str) -> Vec<Issue> {
             }
             if NODE_PREFIXES.iter().any(|p| name.len() >= p.len() && name[..p.len()].eq_ignore_ascii_case(p) && name[p.len()..].trim().is_empty()) {
                 push(Level::Error, "A NODE heading needs the node name after the dot".to_string());
+            }
+            if !name.to_ascii_uppercase().starts_with("NODE") && validate_component(name).is_err() {
+                push(Level::Error, format!("`{name}` cannot be a folder name, so the entry is ignored"));
             }
             if !names.insert(name.to_lowercase()) {
                 push(Level::Error, format!("`{name}` is already an entry; the second one replaces nothing and is confusing"));

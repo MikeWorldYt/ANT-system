@@ -9,7 +9,7 @@ use super::dictionary;
 use super::reduce_name::{dated_name, new_name, unbracketed_name, undated_name, unique_name};
 use crate::domain::error::R;
 use crate::domain::project_group::{self, Tier};
-use crate::infra::fs_safe::{dir_entries, join_rel};
+use crate::infra::fs_safe::{dir_entries, join_rel, validate_component};
 use crate::services::mutations::{self, ProjectPlan};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,9 +62,13 @@ fn created_secs(path: &Path) -> Option<i64> {
 }
 
 // Last of the renames, so the dictionary still reads the "(date)" and "[owner]" it places the topic after; names stay unique per destination.
-fn drop_brackets(rows: &mut [PlannedFile]) {
+fn drop_brackets(root: &Path, folder: &[String], rows: &mut [PlannedFile]) -> R<()> {
     let mut taken: HashMap<Option<String>, HashSet<String>> = HashMap::new();
     for row in rows.iter() {
+        if row.folder.is_some() && !taken.contains_key(&row.folder) {
+            let dir = row.target.clone().unwrap_or_else(|| [folder, std::slice::from_ref(row.folder.as_ref().expect("checked above"))].concat());
+            taken.insert(row.folder.clone(), folder_files(root, &dir)?.iter().map(|f| f.to_lowercase()).collect());
+        }
         taken.entry(row.folder.clone()).or_default().insert(row.name.to_lowercase());
     }
     for row in rows.iter_mut() {
@@ -77,6 +81,7 @@ fn drop_brackets(rows: &mut [PlannedFile]) {
         row.name = unique_name(&wanted, names);
         names.insert(row.name.to_lowercase());
     }
+    Ok(())
 }
 
 // `only` narrows the rows to the picked files; the sort still groups against every file of the folder.
@@ -110,7 +115,7 @@ pub fn plan(root: &Path, folder: &[String], only: &[String], picks: Picks) -> R<
         group_by_dictionary(root, folder, &mut rows)?;
     }
     if picks.remove_symbols {
-        drop_brackets(&mut rows);
+        drop_brackets(root, folder, &mut rows)?;
     }
     if picks.sort {
         let loose: Vec<usize> = (0..rows.len()).filter(|&i| rows[i].folder.is_none()).collect();
@@ -148,6 +153,10 @@ fn group_by_dictionary(root: &Path, folder: &[String], rows: &mut [PlannedFile])
                     here.insert(row.name.to_lowercase());
                 }
             }
+            continue;
+        }
+        // A heading like ".." is no folder; the file stays and the lint flags it.
+        if entry.node.is_none() && validate_component(&entry.folder).is_err() {
             continue;
         }
         let (sub, dir) = match &entry.node {

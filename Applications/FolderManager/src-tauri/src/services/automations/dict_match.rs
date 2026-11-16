@@ -224,7 +224,8 @@ fn tidy_runs(name: &str) -> String {
             out.push(c);
         }
     }
-    format!("{}{ext}", out.trim_matches(|c: char| is_mark(c) && c != '.'))
+    let trimmed = out.trim_matches(|c: char| is_mark(c) && c != '.');
+    if trimmed.is_empty() { name.to_string() } else { format!("{trimmed}{ext}") }
 }
 
 // The storage names files "(date)-[owner]_topic-keywords (n)", so the first topic found moves right after the date and owner.
@@ -284,12 +285,19 @@ fn titled_topics(name: &str, topics: &[String]) -> String {
 fn drop_empty_brackets(name: &str) -> String {
     let (stem, ext) = split_ext(name);
     let mut stem = stem.to_string();
-    for empty in ["( )", "()", "[ ]", "[]"] {
-        while let Some(s) = stem.find(empty) {
-            match drop_span(&stem, s, s + empty.len()) {
-                Some(rest) => stem = rest,
-                None => break,
+    // Dropping an inner pair can leave an outer one empty, so it repeats until nothing changes.
+    loop {
+        let before = stem.clone();
+        for empty in ["( )", "()", "[ ]", "[]"] {
+            while let Some(s) = stem.find(empty) {
+                match drop_span(&stem, s, s + empty.len()) {
+                    Some(rest) => stem = rest,
+                    None => break,
+                }
             }
+        }
+        if stem == before {
+            break;
         }
     }
     format!("{stem}{ext}")

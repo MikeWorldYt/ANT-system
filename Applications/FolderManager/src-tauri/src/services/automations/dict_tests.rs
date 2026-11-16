@@ -93,13 +93,11 @@ fn a_cut_that_would_empty_the_name_keeps_it() {
 }
 
 #[test]
-#[ignore = "BUG: a name whose stem is only symbols after the cut, like '_.png', loses its stem and becomes the hidden file '.png'"]
 fn a_symbol_only_stem_is_not_trimmed_away() {
     assert_ne!(renamed(&entry("# D\n## F\n- term: x\n")[0], "_.png"), ".png");
 }
 
 #[test]
-#[ignore = "BUG: empty brackets nested in each other leave '( )' behind on the first pass, so a second pass changes the name again"]
 fn nested_empty_brackets_are_dropped_in_one_pass() {
     let e = &entry("# D\n## F\n- term: x\n")[0];
     assert_eq!(renamed(e, &renamed(e, "( ())0")), renamed(e, "( ())0"));

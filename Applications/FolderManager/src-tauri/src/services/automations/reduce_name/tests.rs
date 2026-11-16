@@ -131,7 +131,6 @@ fn unbracketed_name_table() {
 }
 
 #[test]
-#[ignore = "BUG: drops the leading dot of a hidden file, so '.bashrc' is renamed to 'bashrc'"]
 fn unbracketed_name_keeps_hidden_files_hidden() {
     assert_eq!(unbracketed_name(".bashrc"), ".bashrc");
 }

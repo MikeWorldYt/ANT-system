@@ -407,7 +407,7 @@ pub fn unbracketed_name(name: &str) -> String {
     let (stem, suffix) = split_ext(name);
     let bare: Vec<char> = stem.chars().filter(|c| !matches!(c, '(' | ')' | '[' | ']' | '{' | '}')).collect();
     let joined: String = collapse_symbol_runs(&bare).into_iter().collect();
-    let trimmed = joined.trim_matches(|c| is_sep(c) || c == '.');
+    let trimmed = joined.trim_start_matches(is_sep).trim_end_matches(|c| is_sep(c) || c == '.');
     if trimmed.is_empty() { name.to_string() } else { format!("{trimmed}{suffix}") }
 }
 

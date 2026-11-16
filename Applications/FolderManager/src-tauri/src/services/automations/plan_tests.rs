@@ -117,7 +117,6 @@ fn grouped_files_are_left_out_of_the_project_sort() {
 }
 
 #[test]
-#[ignore = "BUG: the symbol pass only checks the names of the plan, so a file grouped into a subfolder can land on an existing file there and apply fails with AlreadyExists"]
 fn removing_symbols_never_lands_on_a_file_already_in_the_subfolder() {
     let dir = storage(&["sensei-a (b).png"], Some(DICT));
     dir.mkdir(&format!("{FOLDER}/Fans"));
@@ -127,7 +126,6 @@ fn removing_symbols_never_lands_on_a_file_already_in_the_subfolder() {
 }
 
 #[test]
-#[ignore = "BUG: plan trusts a dictionary heading as a path, so '## ..' plans a move to '..' and lists the parent folder; only apply validates"]
 fn a_dictionary_heading_cannot_point_outside_the_folder() {
     let dir = storage(&["sensei-a.png"], Some("# D\n## ..\n- term: sensei\n"));
     let rows = run(&dir, &[], group());
