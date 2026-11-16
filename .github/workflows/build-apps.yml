@@ -58,8 +58,56 @@ jobs:
           [ "$json" = "[]" ] && echo "any=false" >> "$GITHUB_OUTPUT" || echo "any=true" >> "$GITHUB_OUTPUT"
           echo "Apps: $json"
 
-  build:
+  # Releases only come from a green test run
+  test:
     needs: plan
+    if: needs.plan.outputs.any == 'true'
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.plan.outputs.matrix) }}
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: Applications/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - name: Detect app kind
+        id: kind
+        run: |
+          $tauri = Test-Path src-tauri/tauri.conf.json
+          "tauri=$($tauri.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          "crate=Applications/${{ matrix.app }}$(if ($tauri) { '/src-tauri' })" >> $env:GITHUB_OUTPUT
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+        if: steps.kind.outputs.tauri == 'true'
+        with:
+          version: 10
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        if: steps.kind.outputs.tauri == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: Applications/${{ matrix.app }}/pnpm-lock.yaml
+      # The Rust build embeds web-dist, so the frontend is built before cargo test
+      - name: Typecheck and build the frontend
+        if: steps.kind.outputs.tauri == 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run typecheck
+          pnpm exec vite build
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: ${{ steps.kind.outputs.crate }} -> target
+      - name: Test
+        working-directory: ${{ steps.kind.outputs.crate }}
+        run: cargo test --locked
+
+  build:
+    needs: [plan, test]
     if: needs.plan.outputs.any == 'true'
     runs-on: windows-latest
     strategy:
@@ -109,7 +157,6 @@ jobs:
         shell: pwsh
         run: |
           rustup toolchain install stable --profile minimal
-          cargo test --locked
           cargo build --release --locked
           New-Item -ItemType Directory -Force build-dist | Out-Null
           Copy-Item target/release/create-new-storage.exe "build-dist/${{ matrix.app }}.exe"
@@ -147,7 +194,7 @@ jobs:
           if-no-files-found: error
 
   build-unix:
-    needs: plan
+    needs: [plan, test]
     if: needs.plan.outputs.any == 'true'
     name: ${{ matrix.app }}-${{ matrix.label }}
     runs-on: ${{ matrix.os }}

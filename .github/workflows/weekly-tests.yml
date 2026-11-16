@@ -1,0 +1,50 @@
+# Runs the Windows-only #[ignore] tests (Recycle Bin, PowerShell, updater) that the per-push run skips.
+name: Weekly Windows tests
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ignored:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { app: FolderManager, crate: Applications/FolderManager/src-tauri, tauri: true }
+          - { app: CreateNewStorage, crate: Applications/CreateNewStorage, tauri: false }
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: Applications/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+        if: matrix.tauri
+        with:
+          version: 10
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        if: matrix.tauri
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: Applications/${{ matrix.app }}/pnpm-lock.yaml
+      - name: Build the frontend
+        if: matrix.tauri
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec vite build
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: ${{ matrix.crate }} -> target
+      - name: Test, ignored ones included
+        working-directory: ${{ matrix.crate }}
+        run: cargo test --locked -- --include-ignored
