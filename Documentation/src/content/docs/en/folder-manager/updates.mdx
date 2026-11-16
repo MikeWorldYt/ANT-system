@@ -4,10 +4,10 @@ description: How the app updates.
 ---
 import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
 
-On open, the app compares its version with the one published on GitHub, unless you turned off **Check for updates automatically** in About. If there is a newer one, choose **Update**, **Remind me later** or **Skip version**. **Check for updates** in About runs the check on demand, even for a skipped version.
+On open, the app compares its version with the latest one published on the `folder-manager-latest` channel of GitHub Releases (a small `latest.json` file), unless you turned off **Check for updates automatically** in About. A release counts as newer by its version numbers, and a release beats its own `-beta`. The channel also offers prereleases. If the channel does not answer, there is no update. If there is a newer one, choose **Update**, **Remind me later** or **Skip version**. **Check for updates** in About runs the check on demand, even for a skipped version.
 
 <ImagePlaceholder label="Screenshot: Updates" />
 
-- **Windows:** FolderManager installs like any other program. Update downloads `FolderManager_installer.exe` from the matching GitHub release (`folder-manager-v<version>`), checks its SHA-256 against the digest GitHub lists for that file, and then runs the installer directly. If the release has no digest, or the check fails, the update stops and the app stays open.
+- **Windows:** FolderManager installs like any other program. Update downloads `FolderManager_installer.exe` from the matching GitHub release (`folder-manager-v<version>`), using the address and SHA-256 listed in `latest.json`. It checks the installer against that SHA-256 (and against the digest of the Releases API, when it answers) and then runs the installer directly. If a value is missing or the check fails, the update stops and the app stays open.
 - **Portable copy:** it no longer replaces itself. Install the app with the installer, or download the new version from the [Downloads page](/en/start-here/download).
 - **Linux and macOS:** the in-app update is not available. Download the new archive from the [Downloads page](/en/start-here/download) and replace the old file.

@@ -18,7 +18,7 @@ En Windows el archivo es `CreateNewStorage.exe`; en Linux y macOS es `create-new
 1. La carpeta del almacenamiento y su carpeta `.ant`.
 2. La plantilla, `template.md`: se descarga la oficial o pasas la tuya con `--template`. Se guarda una copia en `.ant/template.md`.
 3. Todo el árbol de carpetas que describe la plantilla: una carpeta numerada por categoría (`100.PERSONAL`), subcategoría y tema, más las carpetas de apoyo. Cada categoría recibe `REC.<NOMBRE>`, `RES.Resources`, `REV.<NOMBRE>` y `SS.<NOMBRE>`, y cada subcategoría y tema recibe su `REV.<NOMBRE>`. La raíz también recibe `ANT.RECORDINGS` y `ANT.SCREENSHOTS`.
-4. El FolderManager más reciente para tu sistema en la raíz del almacenamiento. Las actualizaciones posteriores las hace la propia app, ver [Actualizaciones](/es/folder-manager/updates).
+4. El FolderManager portable más reciente para tu sistema en la raíz del almacenamiento, localizado con `latest.json` y verificado con su SHA-256. Las actualizaciones posteriores las hace la propia app, ver [Actualizaciones](/es/folder-manager/updates).
 
 Los pasos 1 a 3 son esenciales: si uno falla, la herramienta borra solo las carpetas que creó en esa ejecución y deja lo que ya existía. El paso 4 solo avisa si falla, así que el almacenamiento sigue siendo usable.
 
@@ -84,7 +84,7 @@ create-new-storage ~ --name Trabajo --template ./template.md
 
 ### `--yes`
 
-Permite crear el almacenamiento dentro de una carpeta que ya existe. Sin esta opción, la herramienta se detiene si la carpeta de destino existe, para no mezclar por accidente un almacenamiento nuevo con tus archivos. Los archivos existentes se conservan; solo se añaden las carpetas que faltan.
+Permite crear el almacenamiento dentro de una carpeta que ya existe. Sin esta opción, la herramienta se detiene si la carpeta de destino existe, para no mezclar por accidente un almacenamiento nuevo con tus archivos. Los archivos existentes se conservan; solo se añaden las carpetas que faltan. Antes de sobrescribir archivos existentes la herramienta pide confirmación; con `--yes` se salta la pregunta y solo avisa. Si la ejecución falla, los archivos que reemplazó se restauran.
 
 ```bash
 create-new-storage D:\Files --yes

@@ -4,10 +4,10 @@ description: Cómo se actualiza la app.
 ---
 import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
 
-Al abrir, la app compara su versión con la publicada en GitHub, salvo que hayas desactivado **Check for updates automatically** en About. Si hay una más nueva, elige **Update**, **Remind me later** o **Skip version**. **Check for updates** en About hace la comprobación cuando quieras, incluso para una versión omitida.
+Al abrir, la app compara su versión con la última publicada en el canal `folder-manager-latest` de GitHub Releases (un pequeño archivo `latest.json`), salvo que hayas desactivado **Check for updates automatically** en About. Una versión es más nueva según sus números, y un release gana a su propio `-beta`. El canal también ofrece prereleases. Si el canal no responde, no hay actualización. Si hay una más nueva, elige **Update**, **Remind me later** o **Skip version**. **Check for updates** en About hace la comprobación cuando quieras, incluso para una versión omitida.
 
 <ImagePlaceholder label="Captura: Actualizaciones" />
 
-- **Windows:** FolderManager se instala como cualquier otro programa. Update descarga `FolderManager_installer.exe` del release de GitHub correspondiente (`folder-manager-v<versión>`), verifica su SHA-256 con el digest que GitHub lista para ese archivo y luego ejecuta el instalador directamente. Si el release no trae digest, o la verificación falla, la actualización se detiene y la app sigue abierta.
+- **Windows:** FolderManager se instala como cualquier otro programa. Update descarga `FolderManager_installer.exe` del release de GitHub correspondiente (`folder-manager-v<versión>`), con la dirección y el SHA-256 que lista `latest.json`. Verifica el instalador contra ese SHA-256 (y contra el digest de la API de Releases, cuando responde) y luego lo ejecuta directamente. Si falta un valor o la verificación falla, la actualización se detiene y la app sigue abierta.
 - **Copia portable:** ya no se reemplaza sola. Instala la app con el instalador o descarga la versión nueva desde la [página de Descargas](/es/start-here/download).
 - **Linux y macOS:** la actualización desde la app no está disponible. Descarga el archivo nuevo desde la [página de Descargas](/es/start-here/download) y reemplaza el anterior.
