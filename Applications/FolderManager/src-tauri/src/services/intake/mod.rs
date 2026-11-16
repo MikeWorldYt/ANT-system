@@ -15,8 +15,8 @@ use crate::domain::tree_types::{child_entries, flags_in};
 use crate::domain::config::{DATA_DIR, HIDDEN_FLAG, REVIEW_PREFIX};
 use crate::domain::names::support_kind;
 use crate::domain::error::R;
-use crate::infra::fs_safe::{io_err, join_rel, Journal, StorageLock};
-use crate::services::index::review_folders;
+use crate::infra::fs_safe::{io_err, resolve, Journal, StorageLock};
+use crate::services::index::{node_names, review_folders};
 use crate::infra::naming::free_name;
 use crate::services::mutations::child_rel;
 use crate::services::tree::tree_store::load_synced;
@@ -58,8 +58,9 @@ pub struct LooseFile {
     pub file: String,
 }
 
-// Intake moves files, never folders; the only folder it makes is a missing REV.* review folder, so every node has one to take files.
+// Intake moves files, never folders; it only brings names to their id form and makes a missing REV.* review folder, so every node has one to take files.
 pub fn run(root: &Path) -> R<IntakeReport> {
+    node_names::tidy(root)?;
     review_folders::restore(root)?;
     let _lock = StorageLock::acquire(root)?;
     let (data, _) = load_synced(root)?;
@@ -107,7 +108,7 @@ pub(crate) fn waiting_files(dir: &Path, rel: &[String], node: &Mapping) -> R<usi
 // The user let intake take a node's loose files; the marker folder lets footprint track the node like the others.
 pub fn acknowledge(root: &Path, rel: &[String]) -> R<()> {
     let _lock = StorageLock::acquire(root)?;
-    let dir = join_rel(root, rel).join(DATA_DIR);
+    let dir = resolve(root, rel)?.join(DATA_DIR);
     if !dir.is_dir() {
         fs::create_dir(&dir).map_err(|e| io_err("create info folder", &dir, &e))?;
         hide(&dir);

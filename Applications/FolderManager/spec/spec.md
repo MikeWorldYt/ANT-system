@@ -48,6 +48,8 @@ commands → services → infra → domain
 - `platform` is the only place for OS-specific code; new Windows code goes in `platform/windows/` behind a wrapper with a non-Windows fallback.
 - `commands` only validate arguments, call a service and return a DTO; logic found there moves to `services`.
 - `lib.rs` keeps `run()` and the `generate_handler!` list; a new command is added there and in `src/services/ipc/api.ts` together.
+- Refresh only syncs `ant.db` with the disk: it never makes review folders, renames folders or moves files. Its only writes are the app's own (`ant.db`, node ids in `<node>/.ant`, the `998.Review` links, `00.Portfolio` beside workboards). Name tidying and missing `REV.*` folders belong to the intake (`run_intake`, after a drop or a new folder seen by the watcher).
+- Listing and indexing never cross a link or junction: `infra/scan.rs` `is_real_dir` (listed folders) and `resolves_to_dir` (paths from the tree) apply the same test as `resolve()`.
 - Shared helpers live in the lowest layer that uses them: command plumbing in `commands/mod.rs`, mutation checks in `services/mutations/checks.rs`, test setup in `test_support.rs`.
 
 Guard tests:

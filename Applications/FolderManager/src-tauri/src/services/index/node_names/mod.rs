@@ -15,6 +15,7 @@ use crate::services::debug_log::logs_dir;
 use crate::domain::config::OWNER_KEYS;
 use crate::domain::error::R;
 use crate::infra::fs_safe::{io_err, Journal, StorageLock};
+use crate::infra::scan::is_real_dir;
 use crate::infra::storage::info::{field_of, read_info, write_info};
 use crate::services::tree::depth;
 use crate::services::tree::tree_node::is_reserved;
@@ -58,7 +59,7 @@ fn walk(dir: &Path, node: &mut Mapping, rel: &mut Vec<String>, limit: usize, jou
     let names: Vec<String> = node.iter().filter(|(_, v)| v.is_mapping()).filter_map(|(k, _)| k.as_str().map(str::to_string)).collect();
     for name in names {
         // A tree entry whose folder is gone has nothing to rename or record; the sync reports it as a ghost.
-        if !dir.join(&name).is_dir() || (rel.is_empty() && is_reserved(std::slice::from_ref(&name))) {
+        if !is_real_dir(&dir.join(&name)) || (rel.is_empty() && is_reserved(std::slice::from_ref(&name))) {
             continue;
         }
         let level = rel.len() + 1;

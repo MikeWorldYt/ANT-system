@@ -7,7 +7,7 @@ use serde_yaml::{Mapping, Value};
 use crate::domain::config::REVIEW_PREFIX;
 use crate::domain::names::{editable_part, is_legacy_support, support_kind};
 
-use crate::infra::scan::list_subdirs;
+use crate::infra::scan::{list_subdirs, resolves_to_dir};
 use crate::domain::tree_types::{child_entries, type_base};
 use crate::domain::error::R;
 use crate::infra::fs_safe::{io_err, join_rel, StorageLock};
@@ -25,7 +25,7 @@ pub fn restore(root: &Path) -> R<bool> {
     for owner in owners {
         let editable = editable_part(owner.last().map_or("", String::as_str));
         let dir = join_rel(root, &owner);
-        if !dir.is_dir() {
+        if !resolves_to_dir(root, &owner) {
             continue;
         }
         let (keep, renamed) = review_name(&mut data, &owner, &dir, editable)?;

@@ -223,10 +223,7 @@ export async function refresh(full = true): Promise<boolean> {
     await reload(undefined, full);
     clearStatus();
   });
-  if (ok) {
-    void runIntake(reload);
-    void checkRootFolders(resolveInvalid, deleteInvalid);
-  }
+  if (ok) void checkRootFolders(resolveInvalid, deleteInvalid);
   return ok;
 }
 

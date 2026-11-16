@@ -15,7 +15,7 @@ use crate::domain::tree_types::{child_entries, flags_in, type_base, META_KEYS};
 use crate::domain::config::{DATA_DIR, HIDDEN_FLAG};
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{io_err, join_rel};
-use crate::infra::scan::list_subdirs;
+use crate::infra::scan::{list_subdirs, resolves_to_dir};
 use crate::domain::model::{Copied, Copies};
 use crate::infra::footprint_file::{read_id, replace_id};
 use crate::infra::storage::db::hide;
@@ -81,7 +81,7 @@ fn unmarked(root: &Path, nodes: &[(String, &Mapping)]) -> R<Vec<String>> {
         }
         let rel = rel_of(path);
         let dir = join_rel(root, &rel);
-        if dir.is_dir() && !dir.join(DATA_DIR).exists() && crate::services::intake::waiting_files(&dir, &rel, node)? == 0 {
+        if resolves_to_dir(root, &rel) && !dir.join(DATA_DIR).exists() && crate::services::intake::waiting_files(&dir, &rel, node)? == 0 {
             out.push(path.clone());
         }
     }

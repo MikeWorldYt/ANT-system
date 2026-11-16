@@ -188,6 +188,55 @@ fn refresh_syncs_new_folders_then_rebuilds_the_index() {
     assert!(get_node(&yaml(dir.path()), &rel(&["100.WORK", "05.Fresh"])).is_some());
 }
 
+// Every path below `dir` but the app's own .ant data, which is where the database and node ids live.
+fn disk_paths(dir: &Path) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(d) = stack.pop() {
+        for entry in std::fs::read_dir(&d).unwrap() {
+            let path = entry.unwrap().path();
+            if path.file_name().is_some_and(|n| n == ".ant") {
+                continue;
+            }
+            out.push(path.strip_prefix(dir).unwrap().display().to_string());
+            if std::fs::symlink_metadata(&path).unwrap().is_dir() {
+                stack.push(path);
+            }
+        }
+    }
+    out.sort();
+    out
+}
+
+#[test]
+fn refresh_creates_renames_and_moves_nothing_on_disk() {
+    let dir = storage("cmd-refresh-disk", &["100.WORK/01.A", "100.WORK/02.B/REV.B", "100.WORK/Old05.Fresh"], TREE);
+    std::fs::write(dir.path().join("100.WORK/01.A/loose.txt"), "l").unwrap();
+    std::fs::write(dir.path().join("100.WORK/02.B/loose.txt"), "l").unwrap();
+    let outside = TempDir::new("cmd-refresh-outside");
+    std::fs::write(outside.path().join("theirs.txt"), "t").unwrap();
+    #[cfg(windows)]
+    {
+        // `mklink` reads a forward slash as a switch, so the paths are rebuilt with native separators.
+        let link: PathBuf = dir.path().join("100.WORK").join("03.Link").components().collect();
+        let target: PathBuf = outside.path().components().collect();
+        let out = std::process::Command::new("cmd").args(["/C", "mklink", "/J"]).arg(&link).arg(&target).output().unwrap();
+        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    }
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(outside.path(), dir.path().join("100.WORK/03.Link")).unwrap();
+    let (before, theirs) = (disk_paths(dir.path()), std::fs::read_dir(outside.path()).unwrap().count());
+    let probe = Probe::new();
+    let emit = probe.emit();
+    refresh_flow(dir.path(), &emit, probe.rebuild(&[]), true).unwrap();
+    refresh_flow(dir.path(), &emit, probe.rebuild(&[]), false).unwrap();
+    assert_eq!(disk_paths(dir.path()), before);
+    assert_eq!(std::fs::read_dir(outside.path()).unwrap().count(), theirs, "nothing is written through the junction");
+    let data = yaml(dir.path());
+    assert!(get_node(&data, &rel(&["100.WORK", "03.Link"])).is_none(), "a junction is not indexed");
+    assert!(get_node(&data, &rel(&["100.WORK", "01.A"])).is_some());
+}
+
 #[test]
 fn details_and_type_edits_reach_the_search_index() {
     let dir = work("cmd-search");

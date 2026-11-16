@@ -10,25 +10,18 @@ use crate::services::tree::media;
 use crate::domain::model::Copies;
 use crate::domain::error::R;
 use crate::infra::fs_safe::resolve;
-use crate::services::index::{node_names, reindex_data, review_folders, review_index, Emit};
+use crate::services::index::{reindex_data, review_index, Emit};
 use crate::services::snapshot::{snapshot, snapshot_data};
 use crate::services::tree::root_check::{self, RootCheck};
 use crate::services::tree::level;
 use crate::services::tree::tree_node::{lists_files, TreeNode, TreeSnapshot};
 
-// Only a manual refresh (`full`) rebuilds the search and review indexes; automatic ones just sync the tree.
+// Refresh only syncs the database with the disk (renames and review folders are the intake's); a manual one (`full`) also rebuilds the indexes.
 pub(super) fn refresh_flow(root: &Path, emit: Emit, rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>, full: bool) -> R<TreeSnapshot> {
     if full {
         crate::infra::fs_safe::clear_stale(root)?;
     }
-    node_names::tidy(root)?;
-    let (mut tree, mut data) = snapshot_data(root, Copies::Tail, full)?;
-    if review_folders::restore(root)? {
-        let copies = tree.copies;
-        (tree, data) = snapshot_data(root, Copies::Tail, full)?;
-        tree.copies.extend(copies);
-        tree.yaml_changed = true;
-    }
+    let (tree, data) = snapshot_data(root, Copies::Tail, full)?;
     if full {
         reindex_data(root, emit, &data, rebuild);
     }
@@ -48,7 +41,6 @@ pub async fn load_tree(app: AppHandle) -> R<TreeSnapshot> {
 pub async fn refresh(app: AppHandle, full: bool) -> R<TreeSnapshot> {
     let emitter = app.clone();
     run_locked(app, move |root| {
-        media::ensure(root)?;
         refresh_flow(root, &review_emitter(&emitter), review_index::rebuild, full)
     })
     .await

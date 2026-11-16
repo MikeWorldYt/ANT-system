@@ -13,7 +13,7 @@ use crate::domain::error::R;
 use crate::infra::fs_safe::{io_err, join_rel};
 use crate::infra::footprint_file;
 use crate::domain::names::{is_system_root_name, support_kind, untracked_parts};
-use crate::infra::scan::list_subdirs;
+use crate::infra::scan::{is_real_dir, list_subdirs};
 use crate::services::tree::depth;
 
 pub fn load(root: &Path) -> R<Mapping> {
@@ -144,7 +144,7 @@ fn reconcile_level(dir: &Path, node: &mut Mapping, depth: usize, limit: usize) -
             continue;
         }
         if let Some(Value::Mapping(child)) = node.get_mut(name.as_str()) {
-            if !flags_in(child).iter().any(|f| f == HIDDEN_FLAG) {
+            if !flags_in(child).iter().any(|f| f == HIDDEN_FLAG) && is_real_dir(&dir.join(&name)) {
                 changed |= reconcile_level(&dir.join(&name), child, depth + 1, limit)?;
             }
         }

@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::domain::config::{is_hidden_dir, BACKUP_FOLDER, DATA_DIR, DB_FILENAME, FOOTPRINT_FILENAME, INFO_FILENAME, SETTINGS_FOLDER};
 use crate::domain::error::R;
-use crate::infra::fs_safe::io_err;
+use crate::infra::fs_safe::{io_err, redirects, resolve};
 
 // A root has its own .ant/ (older storages: 999.Settings); a node's .ant/ holds only its info and drag files, so it does not count.
 pub fn is_storage_root(dir: &Path) -> bool {
@@ -25,6 +25,16 @@ pub fn find_root(start: &Path) -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
+// The test resolve() applies: a link or junction leads out of the storage, and one that cannot be resolved counts as one.
+pub fn is_real_dir(path: &Path) -> bool {
+    std::fs::symlink_metadata(path).is_ok_and(|meta| meta.is_dir() && !redirects(path, &meta).unwrap_or(true))
+}
+
+// For paths taken from the tree, whose parents were never listed: no part of the way may cross a link.
+pub fn resolves_to_dir(root: &Path, rel: &[String]) -> bool {
+    resolve(root, rel).is_ok_and(|path| is_real_dir(&path))
+}
+
 pub fn list_subdirs(dir: &Path) -> R<Vec<String>> {
     let entries = match std::fs::read_dir(dir) {
         Ok(entries) => entries,
@@ -36,7 +46,7 @@ pub fn list_subdirs(dir: &Path) -> R<Vec<String>> {
         let entry = entry.map_err(|e| io_err("list folder", dir, &e))?;
         let name = entry.file_name().to_string_lossy().into_owned();
         // The root's backup folder is the app's, so its views never list it.
-        if !is_hidden_dir(&name) && entry.path().is_dir() && !(name.eq_ignore_ascii_case(BACKUP_FOLDER) && is_storage_root(dir)) {
+        if !is_hidden_dir(&name) && is_real_dir(&entry.path()) && !(name.eq_ignore_ascii_case(BACKUP_FOLDER) && is_storage_root(dir)) {
             names.push(name);
         }
     }
