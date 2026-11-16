@@ -61,6 +61,11 @@ fn kept(cause: impl std::fmt::Display) -> FmError {
     FmError::Internal { message: format!("ant.db was left in place: {cause}") }
 }
 
+// A newer db keeps its own kind so the window can tell it apart from a lock or an I/O error.
+fn kept_db(e: FmError) -> FmError {
+    if matches!(e, FmError::NewerDatabase { .. }) { e } else { kept(e) }
+}
+
 // ant.db is the only copy of the tree, so only proof of damage moves it; a lock or a newer version is reported.
 pub fn prepare_scan(root: &Path, stamp: &str) -> R<()> {
     check_stamp(stamp)?;
@@ -69,7 +74,7 @@ pub fn prepare_scan(root: &Path, stamp: &str) -> R<()> {
         return Ok(());
     }
     match passes_quick_check(&path) {
-        Ok(true) => Store::open_existing(root).map(|_| ()).map_err(kept),
+        Ok(true) => Store::open_existing(root).map(|_| ()).map_err(kept_db),
         Ok(false) => set_aside(root, stamp),
         Err(e) if is_damage(&e) => set_aside(root, stamp),
         Err(e) => Err(kept(e)),
@@ -101,8 +106,8 @@ mod tests {
         let dir = TempDir::new("prepare-newer");
         Store::open_or_create(dir.path()).unwrap();
         Connection::open(db_path(dir.path())).unwrap().pragma_update(None, "user_version", 99).unwrap();
-        let message = internal_message(prepare_scan(dir.path(), STAMP).unwrap_err());
-        assert!(message.contains("newer version"), "{message}");
+        let err = prepare_scan(dir.path(), STAMP).unwrap_err();
+        assert!(matches!(&err, FmError::NewerDatabase { path } if *path == db_path(dir.path()).display().to_string()), "{err:?}");
         assert!(db_path(dir.path()).is_file());
         assert_eq!(set_aside_files(&dir), Vec::<String>::new());
         let version: i64 = Connection::open(db_path(dir.path())).unwrap().query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();

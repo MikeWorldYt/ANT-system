@@ -281,5 +281,7 @@ export function describeError(e: unknown): string {
       return `Internal error: ${e.message}`;
     case "clipboardEmpty":
       return "The clipboard has no files to paste";
+    case "newerDatabase":
+      return `${e.path} was written by a newer Folder Manager. Update the app to open this Storage`;
   }
 }

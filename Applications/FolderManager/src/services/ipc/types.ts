@@ -268,7 +268,8 @@ export type FmError =
   | { kind: "rolledBack"; op: string; cause: string }
   | { kind: "inconsistent"; op: string; cause: string; rollbackErrors: string[] }
   | { kind: "internal"; message: string }
-  | { kind: "clipboardEmpty" };
+  | { kind: "clipboardEmpty" }
+  | { kind: "newerDatabase"; path: string };
 
 export function isFmError(e: unknown): e is FmError {
   return typeof e === "object" && e !== null && typeof (e as { kind?: unknown }).kind === "string";

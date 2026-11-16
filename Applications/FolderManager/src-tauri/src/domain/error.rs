@@ -21,6 +21,7 @@ pub enum FmError {
     Inconsistent { op: String, cause: String, rollback_errors: Vec<String> },
     Internal { message: String },
     ClipboardEmpty,
+    NewerDatabase { path: String },
 }
 
 // Readable text for causes nested inside RolledBack, Inconsistent and warnings.
@@ -52,6 +53,7 @@ impl std::fmt::Display for FmError {
             }
             Self::Internal { message } => write!(f, "{message}"),
             Self::ClipboardEmpty => write!(f, "The clipboard has no files to paste"),
+            Self::NewerDatabase { path } => write!(f, "{path} was written by a newer version of the app"),
         }
     }
 }

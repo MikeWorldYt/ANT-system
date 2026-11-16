@@ -7,7 +7,7 @@ mod tree;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use rusqlite::{Connection, TransactionBehavior};
+use rusqlite::{Connection, ErrorCode, TransactionBehavior};
 
 use crate::domain::config::{DATA_DIR, DB_FILENAME};
 use crate::domain::error::{FmError, R};
@@ -84,19 +84,55 @@ impl Store {
         conn.pragma_update_and_check(None, "journal_mode", "WAL", |_| Ok(())).map_err(fail)?;
         let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).map_err(fail)?;
         if version > SCHEMA_VERSION {
-            return Err(FmError::Internal { message: "ant.db was written by a newer version of the app".to_string() });
+            return Err(FmError::NewerDatabase { path: path.display().to_string() });
         }
         match version {
             0 => {
                 conn.execute_batch(SCHEMA).map_err(fail)?;
                 conn.pragma_update(None, "user_version", SCHEMA_VERSION).map_err(fail)?;
             }
-            1 => migrate_v1(&mut conn).map_err(fail)?,
+            1 => {
+                let copy = pre_migration_copy(&conn, &path)?;
+                if let Err(e) = migrate_v1(&mut conn) {
+                    drop(conn);
+                    // A busy db is another process migrating it, so its file is never replaced under it.
+                    if !matches!(e.sqlite_error_code(), Some(ErrorCode::DatabaseBusy | ErrorCode::DatabaseLocked)) {
+                        put_back_copy(&copy, &path)?;
+                    }
+                    return Err(fail(e));
+                }
+            }
             _ => {}
         }
         drop_yaml_hash(&conn).map_err(fail)?;
         Ok(Store { conn, path })
     }
+}
+
+// The copy stays beside ant.db after the migration, as the only way back to the v1 tree.
+fn pre_migration_copy(conn: &Connection, path: &Path) -> R<PathBuf> {
+    let copy = path.with_file_name(format!("{DB_FILENAME}.pre-v{SCHEMA_VERSION}"));
+    match std::fs::remove_file(&copy) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(io_err("delete file", &copy, &e)),
+        _ => {}
+    }
+    let target = copy.to_string_lossy().replace('\'', "''");
+    conn.execute_batch(&format!("VACUUM INTO '{target}'")).map_err(|e| db_err("copy ant.db before its migration", path, &e))?;
+    Ok(copy)
+}
+
+// The copy holds every committed page, so the journals beside ant.db go with the file they belong to; the copy itself stays.
+fn put_back_copy(copy: &Path, path: &Path) -> R<()> {
+    let tmp = path.with_file_name(format!(".{DB_FILENAME}.migrate.tmp"));
+    std::fs::copy(copy, &tmp).map_err(|e| io_err("copy file", &tmp, &e))?;
+    for journal in ["-wal", "-shm"] {
+        let file = path.with_file_name(format!("{DB_FILENAME}{journal}"));
+        match std::fs::remove_file(&file) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(io_err("delete file", &file, &e)),
+            _ => {}
+        }
+    }
+    std::fs::rename(&tmp, path).map_err(|e| io_err("replace file", path, &e))
 }
 
 // v1 kept folder ids in a footprints table; they move onto their nodes so one row carries the whole folder.
@@ -148,6 +184,8 @@ pub(crate) fn hide(_dir: &Path) {}
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use super::*;
     use crate::test_support::TempDir;
 
@@ -213,5 +251,48 @@ mod tests {
         let conn = Connection::open(db_path(dir.path())).unwrap();
         assert_eq!(version(&conn), 1);
         assert!(conn.prepare("SELECT uid FROM nodes").is_err());
+        assert!(pre_v2(&dir).is_file());
+    }
+
+    fn pre_v2(dir: &TempDir) -> PathBuf {
+        db_path(dir.path()).with_file_name(format!("{DB_FILENAME}.pre-v2"))
+    }
+
+    #[test]
+    fn a_v1_db_is_copied_before_its_migration() {
+        let dir = TempDir::new("db-pre-migration");
+        v1_db(&dir, &[V1_SHAPE, FOOTPRINTS]);
+        drop(Store::open_existing(dir.path()).unwrap().unwrap());
+        let copy = Connection::open(pre_v2(&dir)).unwrap();
+        assert_eq!(version(&copy), 1);
+        let ids: String = copy.query_row("SELECT id FROM footprints", [], |r| r.get(0)).unwrap();
+        assert_eq!(ids, "kept-uid");
+    }
+
+    #[test]
+    fn the_copy_goes_back_over_a_db_left_changed() {
+        let dir = TempDir::new("db-put-back");
+        v1_db(&dir, &[V1_SHAPE, FOOTPRINTS]);
+        let path = db_path(dir.path());
+        let copy = pre_migration_copy(&Connection::open(&path).unwrap(), &path).unwrap();
+        Connection::open(&path).unwrap().execute_batch("DROP TABLE footprints;").unwrap();
+        fs::write(path.with_file_name(format!("{DB_FILENAME}-wal")), "stale pages").unwrap();
+        put_back_copy(&copy, &path).unwrap();
+        let conn = Connection::open(&path).unwrap();
+        assert_eq!(version(&conn), 1);
+        assert!(conn.prepare("SELECT id FROM footprints").is_ok());
+        assert!(copy.is_file());
+    }
+
+    #[test]
+    fn a_newer_db_gives_its_own_error_kind() {
+        let dir = TempDir::new("db-newer");
+        drop(Store::open_or_create(dir.path()).unwrap());
+        Connection::open(db_path(dir.path())).unwrap().pragma_update(None, "user_version", 99).unwrap();
+        let err = Store::open_existing(dir.path()).err().unwrap();
+        assert!(matches!(&err, FmError::NewerDatabase { path } if *path == db_path(dir.path()).display().to_string()), "{err:?}");
+        let json = serde_json::to_value(&err).unwrap();
+        assert_eq!(json["kind"], "newerDatabase");
+        assert_eq!(json["path"], db_path(dir.path()).display().to_string());
     }
 }
