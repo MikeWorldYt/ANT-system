@@ -118,8 +118,9 @@ export function submenu(label: string, choices: HTMLButtonElement[], enabled: bo
 }
 
 // Shows a popup that belongs to its anchor; the returned close runs once, and an outside press or a resize also calls it.
+// Inside a modal the popup must join the dialog, since the body sits under the top layer.
 export function openPopup(anchor: HTMLElement, popup: HTMLElement, position: () => void, onClose: () => void): (restore?: boolean) => void {
-  document.body.append(popup);
+  (anchor.closest("dialog") ?? document.body).append(popup);
   position();
   let open = true;
   const close = (restore = true): void => {

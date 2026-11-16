@@ -21,11 +21,20 @@ import type {
   TreeNode,
   TreeSnapshot,
   WkbStatus,
-  ProjectGroup,
-  ProjectPlan,
+  Picks,
+  PlannedFile,
+  DictionaryIssue,
 } from "./types";
 
+// The tutorial serves its in-memory Storage here, so while it runs no command reaches the backend.
+type DemoHandler = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+let demo: DemoHandler | null = null;
+export function setDemoHandler(handler: DemoHandler | null): void {
+  demo = handler;
+}
+
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  if (demo) return (await demo(cmd, args)) as T;
   try {
     return await invoke<T>(cmd, args);
   } catch (e) {
@@ -83,6 +92,22 @@ export const storageHealth = () => call<StorageHealth>("storage_health");
 export const useLatestBackup = (stamp: string) => call<void>("use_latest_backup", { stamp });
 export const prepareScan = (stamp: string) => call<void>("prepare_scan", { stamp });
 export const changeStoragePath = (path: string) => call<string>("change_storage_path", { path });
+export interface KnownStorage {
+  path: string;
+  name: string;
+  exists: boolean;
+}
+export const knownStorages = () => call<KnownStorage[]>("known_storages");
+export const forgetStorage = (path: string) => call<void>("forget_storage", { path });
+export const createStorage = (parent: string, name: string) => call<string>("create_storage", { parent, name });
+export const renameListedStorage = (path: string, name: string) => call<string>("rename_listed_storage", { path, name });
+export const moveListedStorage = (path: string, destination: string) => call<string>("move_listed_storage", { path, destination });
+export const revealStorage = (path: string) => call<void>("reveal_storage", { path });
+export interface StorageLocation {
+  label: string;
+  path: string;
+}
+export const storageLocations = () => call<StorageLocation[]>("storage_locations");
 export interface RenameStatus {
   old: string;
   new: string;
@@ -134,6 +159,13 @@ export const copyItems = (targets: string[][], cut: boolean) =>
   targets.every(inDownloads) ? call<void>("copy_downloads", { targets: targets.map(belowDownloads) }) : call<void>("copy_items", { targets, cut });
 export const createFileShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_file_shortcut_in", { target, folder });
+export const setReviewAutomation = (relParts: string[], automation: keyof Picks, on: boolean) => call<Mutation>("set_review_automation", { relParts, automation, on });
+export const planAutomations = (folder: string[], only: string[], picks: Picks) => call<PlannedFile[]>("plan_automations", { folder, only, ...picks });
+export const openDictionaryWindow = (folder: string[]) => call<void>("open_dictionary_window", { folder });
+export const readDictionary = (folder: string[]) => call<string>("read_dictionary", { folder });
+export const checkDictionary = (text: string) => call<DictionaryIssue[]>("check_dictionary", { text });
+export const saveDictionary = (folder: string[], text: string) => call<DictionaryIssue[]>("save_dictionary", { folder, text });
+export const applyAutomations = (folder: string[], rows: PlannedFile[]) => call<number>("apply_automations", { folder, rows });
 export const renameFile = (relParts: string[], newName: string) => call<Mutation>("rename_file", { relParts, newName });
 export const deleteFile = (relParts: string[]) => call<Mutation>("delete_file", { relParts });
 export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
@@ -144,8 +176,6 @@ export const searchNodes = (query: string) => call<string[][]>("search_nodes", {
 export const listFavorites = () => call<string[][]>("list_favorites");
 export const listReview = () => call<string[][]>("list_review");
 export const listWorkboards = () => call<string[][]>("list_workboards");
-export const previewProjectGroups = (folder: string[]) => call<ProjectGroup[]>("preview_project_groups", { folder });
-export const applyProjectGroups = (folder: string[], plans: ProjectPlan[]) => call<Mutation>("apply_project_groups", { folder, plans });
 export const canUndoProjectSort = () => call<boolean>("can_undo_project_sort");
 export const undoProjectSort = () => call<Mutation>("undo_project_sort");
 export const setBoard = (cards: BoardCard[]) => call<Mutation>("set_board", { cards });
@@ -210,6 +240,7 @@ export const listRegistry = () => call<RegistryEntry[]>("list_registry");
 export const installRegistryExtension = (id: string) => call<ExtensionInfo>("install_registry_extension", { id });
 export const inspectExtensionRepo = (url: string) => call<ExtensionPreview>("inspect_extension_repo", { url });
 export const installInspectedExtension = (token: string) => call<ExtensionInfo>("install_inspected_extension", { token });
+
 
 const path = (parts: string[]) => parts.join("/") || "root";
 

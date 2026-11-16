@@ -13,6 +13,7 @@ use crate::domain::config::{EditableType, NewKind, WkbStatus};
 use crate::domain::error::R;
 use crate::infra::storage::changes;
 use crate::platform::shortcuts::create_shortcuts;
+use crate::services::automations::dictionary::{self, Spec};
 use crate::services::edit;
 use crate::services::index::{review_index, ReviewIndexEvent};
 use crate::services::mutations::{self, BoardCard, MoveDirection, Mutation, ProjectPlan};
@@ -27,7 +28,7 @@ enum Kind {
     Destructive,
 }
 
-const TOOLS: [(&str, &str, &str, Schemas, Kind); 19] = [
+const TOOLS: [(&str, &str, &str, Schemas, Kind); 21] = [
     ("add_node", "Add folder", "Creates a folder inside `parent` (an empty parent adds a root category) with the given name.", schema::add_node, Kind::Change),
     ("add_workboard", "Add workboard", "Creates a workboard inside `parent` with the given name; the app numbers it.", schema::add_workboard, Kind::Change),
     ("rename", "Rename folder", "Renames a folder; its linked support and review folders follow.", schema::rename, Kind::Change),
@@ -46,6 +47,8 @@ const TOOLS: [(&str, &str, &str, Schemas, Kind); 19] = [
     ("delete_file", "Delete file", "Sends a file to the Recycle Bin, never deleting it for good.", schema::delete_file, Kind::Destructive),
     ("preview_project_groups", "Preview project sort", "The projects a review folder's loose files would be sorted into; changes nothing.", schema::preview_project_groups, Kind::Read),
     ("apply_project_groups", "Sort into projects", "Moves a review folder's loose files into new workboards, as previewed or adjusted.", schema::apply_project_groups, Kind::Destructive),
+    ("get_dictionary", "Read dictionary", "A folder's own `.ant/dictionary.md` and the entries in force there, inherited from the folders above; changes nothing.", schema::get_dictionary, Kind::Read),
+    ("set_dictionary", "Write dictionary", "Writes a folder's `.ant/dictionary.md` from structured entries, replacing it whole; the app lays out the file and its header. Read ant://guide/dictionary for what each key and heading does, and the current entries with get_dictionary first, then send them all back with the changes.", schema::set_dictionary, Kind::Idempotent),
     ("undo_project_sort", "Undo project sort", "Puts the files of the last project sort back and removes the folders it made.", schema::undo_project_sort, Kind::Destructive),
 ];
 
@@ -109,12 +112,25 @@ struct BoardArgs {
 struct GroupArgs {
     folder: Vec<String>,
     #[serde(default)]
-    plans: Vec<ProjectPlan>,
+    plans: Option<Vec<ProjectPlan>>,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct NoArgs {}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct DictionaryArgs {
+    rel_parts: Vec<String>,
+    #[serde(default)]
+    entries: Option<Vec<Spec>>,
+}
+
+// A missing list would otherwise read as an empty one and wipe or skip everything without a word.
+fn required<T>(name: &str, field: &str, value: Option<T>) -> Result<T, RpcError> {
+    value.ok_or_else(|| (INVALID_PARAMS, format!("{name}: `{field}` is required")))
+}
 
 // The app shows review index progress; here no one listens, and its failures already come back as warnings.
 fn quiet(_: &ReviewIndexEvent) -> Result<(), String> {
@@ -180,8 +196,30 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
         }
         "apply_project_groups" => {
             let a: GroupArgs = args(name, arguments)?;
-            server.change(format!("Sorted {} projects in {}", a.plans.len(), path(&a.folder)), |root| {
-                indexed(root, |root| mutations::apply_project_groups(root, &a.folder, &a.plans))
+            let plans = required(name, "plans", a.plans)?;
+            server.change(format!("Sorted {} projects in {}", plans.len(), path(&a.folder)), |root| {
+                indexed(root, |root| mutations::apply_project_groups(root, &a.folder, &plans))
+            })
+        }
+        "get_dictionary" => {
+            let a: DictionaryArgs = args(name, arguments)?;
+            server.read(|_, root| {
+                let inherited: Vec<Spec> = (0..=a.rel_parts.len()).filter_map(|end| dictionary::read_specs(root, &a.rel_parts[..end]).transpose()).collect::<R<Vec<_>>>()?.into_iter().flatten().collect();
+                Ok(json!({ "own": dictionary::read_specs(root, &a.rel_parts)?, "inherited": inherited }))
+            })
+        }
+        "set_dictionary" => {
+            let a: DictionaryArgs = args(name, arguments)?;
+            let entries = required(name, "entries", a.entries)?;
+            server.storage().and_then(|storage| {
+                let _guard = storage.guard();
+                let root = storage.root()?;
+                retrying(server.retry, || dictionary::write(&root, &a.rel_parts, &entries))?;
+                let mut warnings = Vec::new();
+                if let Err(e) = changes::record(&root, std::slice::from_ref(&a.rel_parts), false) {
+                    warnings.push(format!("The open Folder Manager may show this change only after its next refresh: {e}"));
+                }
+                Ok(json!({ "changed": format!("Wrote the dictionary of /{} with {} entries", path(&a.rel_parts), entries.len()), "warnings": warnings }))
             })
         }
         "undo_project_sort" => {

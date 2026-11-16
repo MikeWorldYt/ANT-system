@@ -116,9 +116,12 @@ jobs:
           if (-not $conf.StartsWith($expected)) { throw "tauri.conf.json version '$conf' does not match version.txt '$expected'" }
           rustup toolchain install stable --profile minimal
           pnpm install --frozen-lockfile
-          pnpm tauri build --no-bundle -- --locked
+          pnpm tauri build --bundles nsis -- --locked
           New-Item -ItemType Directory -Force build-dist | Out-Null
           Copy-Item src-tauri/target/release/folder-manager.exe "build-dist/${{ matrix.app }}.exe"
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          if (-not $setup) { throw "The NSIS installer was not built" }
+          Copy-Item $setup.FullName "build-dist/${{ matrix.app }}_installer.exe"
       - name: Build (Rust)
         if: steps.kind.outputs.rust == 'true'
         working-directory: Applications/${{ matrix.app }}
@@ -152,8 +155,14 @@ jobs:
           "Built ${{ matrix.app }} $expected ($size bytes)"
       - uses: actions/upload-artifact@v6
         with:
-          name: ${{ matrix.app }}
+          name: ${{ matrix.app }}_portable
           path: Applications/${{ matrix.app }}/build-dist/${{ matrix.app }}.exe
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v6
+        if: steps.kind.outputs.tauri == 'true'
+        with:
+          name: ${{ matrix.app }}_installer
+          path: Applications/${{ matrix.app }}/build-dist/${{ matrix.app }}_installer.exe
           if-no-files-found: error
 
   build-unix:
@@ -167,8 +176,8 @@ jobs:
         app: ${{ fromJson(needs.plan.outputs.native) }}
         os: [ubuntu-latest, macos-latest]
         include:
-          - { os: ubuntu-latest, label: linux }
-          - { os: macos-latest, label: macos }
+          - { os: ubuntu-latest, label: linux, bundle: deb }
+          - { os: macos-latest, label: macos, bundle: dmg }
     defaults:
       run:
         shell: bash
@@ -197,8 +206,11 @@ jobs:
         if: steps.kind.outputs.tauri == 'true'
         run: |
           pnpm install --frozen-lockfile
-          pnpm tauri build --no-bundle -- --locked
+          pnpm tauri build --bundles ${{ matrix.bundle }} -- --locked
           echo "BIN=src-tauri/target/release/folder-manager" >> "$GITHUB_ENV"
+          setup=$(ls src-tauri/target/release/bundle/${{ matrix.bundle }}/*.${{ matrix.bundle }} | head -n 1)
+          [ -n "$setup" ] || { echo "The ${{ matrix.bundle }} installer was not built"; exit 1; }
+          cp "$setup" "${{ matrix.app }}-${{ matrix.label }}_installer.${{ matrix.bundle }}"
       - name: Build (Rust)
         if: steps.kind.outputs.tauri == 'false'
         run: |
@@ -207,11 +219,17 @@ jobs:
           echo "BIN=target/release/create-new-storage" >> "$GITHUB_ENV"
       # tar keeps the executable bit, which an artifact upload would drop
       - name: Pack
-        run: tar -czf "${{ matrix.app }}-${{ matrix.label }}.tar.gz" -C "$(dirname "$BIN")" "$(basename "$BIN")"
+        run: tar -czf "${{ matrix.app }}-${{ matrix.label }}_portable.tar.gz" -C "$(dirname "$BIN")" "$(basename "$BIN")"
       - uses: actions/upload-artifact@v6
         with:
-          name: unix-${{ matrix.app }}-${{ matrix.label }}
-          path: Applications/${{ matrix.app }}/${{ matrix.app }}-${{ matrix.label }}.tar.gz
+          name: ${{ matrix.app }}-${{ matrix.label }}_portable
+          path: Applications/${{ matrix.app }}/${{ matrix.app }}-${{ matrix.label }}_portable.tar.gz
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v6
+        if: steps.kind.outputs.tauri == 'true'
+        with:
+          name: ${{ matrix.app }}-${{ matrix.label }}_installer
+          path: Applications/${{ matrix.app }}/${{ matrix.app }}-${{ matrix.label }}_installer.${{ matrix.bundle }}
           if-no-files-found: error
 
   publish:
@@ -221,21 +239,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      # Every artifact holds one file named for the release, except the Windows portable, which keeps the dist/ name the updater reads
       - uses: actions/download-artifact@v6
         with:
           path: built
-          pattern: "!unix-*"
-      - uses: actions/download-artifact@v6
-        with:
-          path: built-unix
-          pattern: unix-*
           merge-multiple: true
-      # download-artifact v5+ unpacks a single artifact straight into the folder, so each app folder is rebuilt here
       - name: Put each executable in its app folder
         shell: bash
         run: |
           for exe in built/*.exe; do
-            [ -e "$exe" ] || continue
+            case "$exe" in *_installer.exe) continue ;; esac
             app=$(basename "$exe" .exe)
             mkdir -p "built/$app"
             mv "$exe" "built/$app/"
@@ -275,13 +288,14 @@ jobs:
             fi
             slug=$(echo "$app" | sed -E 's/([a-z])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')
             tag="$slug-v$version"
+            cp "$dir$app.exe" "built/${app}_portable.exe"
+            assets=("built/${app}_portable.exe")
+            for f in "built/${app}_installer.exe" built/$app-*_portable.* built/$app-*_installer.*; do
+              [ -e "$f" ] && assets+=("$f")
+            done
             if gh release view "$tag" >/dev/null 2>&1; then
-              gh release upload "$tag" "$dir$app.exe" --clobber
+              gh release upload "$tag" "${assets[@]}" --clobber
             else
-              gh release create "$tag" "$dir$app.exe" --title "$app v$version" --notes "Built from $GITHUB_SHA." --latest=false
-            fi
-            # Linux and macOS builds belong to the release created above
-            if compgen -G "built-unix/$app-*.tar.gz" >/dev/null; then
-              gh release upload "$tag" built-unix/$app-*.tar.gz --clobber
+              gh release create "$tag" "${assets[@]}" --title "$app v$version" --notes "Built from $GITHUB_SHA." --latest=false
             fi
           done

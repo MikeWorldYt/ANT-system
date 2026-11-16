@@ -1,0 +1,44 @@
+/* Storage picker: known Storages in a side list, brand and create or open on the right. */
+dialog.picker-dialog { padding: 0; overflow: hidden; }
+dialog.picker-dialog form { padding: 0; }
+.picker { display: grid; grid-template-columns: minmax(220px, 280px) 1fr; min-height: 460px; width: min(820px, calc(100vw - 32px)); }
+.picker-side { background: var(--tree-bg); border-right: 1px solid var(--border); padding: 16px 8px; overflow: auto; }
+.picker-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.picker-item { display: flex; align-items: stretch; gap: 2px; }
+.picker-open { flex: 1; display: grid; gap: 2px; text-align: left; padding: 8px 10px; border: 1px solid transparent; border-radius: var(--radius-md); background: none; color: inherit; cursor: pointer; min-width: 0; }
+.picker-open:hover:not(:disabled), .picker-open:focus-visible { background: var(--highlight); }
+.picker-open:disabled { cursor: default; opacity: 0.6; }
+.picker-path { color: var(--muted); font-size: 9pt; overflow-wrap: anywhere; }
+.picker-tag { color: var(--accent); font-size: 9pt; }
+.picker-more { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0 8px; border-radius: var(--radius-md); font-size: 14pt; line-height: 1; }
+.picker-more:hover, .picker-more:focus-visible, .picker-more[aria-expanded="true"] { color: var(--title); background: none; }
+.picker-empty { color: var(--muted); padding: 8px 10px; }
+.picker-main { display: flex; flex-direction: column; align-items: center; padding: 32px 32px 24px; gap: 16px; }
+.picker-brand { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.picker-logo { width: 96px; height: 96px; }
+.picker-welcome { margin: 8px 0 0; font-size: 20pt; font-weight: 600; color: var(--text); }
+dialog.picker-dialog .picker-brand h2 { margin: 0; font-size: 13pt; color: var(--title); }
+.picker-version { margin: 0; color: var(--muted); font-size: 9pt; }
+.picker-panel { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 10px; }
+.picker-panel h3 { margin: 0; font-size: 11pt; color: var(--title); }
+.picker-card { display: grid; background: var(--field-bg); border-radius: var(--radius-md); padding: 4px 16px; }
+.picker-option { display: flex; align-items: center; gap: 16px; padding: 12px 0; }
+.picker-option + .picker-option { border-top: 1px solid var(--border); }
+.picker-option > div { flex: 1; }
+.picker-option p { margin: 2px 0 0; color: var(--muted); font-size: 9pt; }
+.picker-option .dialog-input, .picker-location .sw-select { background: var(--input-bg); border: 1px solid var(--border); }
+.picker-option .dialog-input { width: 180px; }
+.picker-location { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 220px; }
+.picker-location .sw-select { min-width: 180px; }
+.picker-back { align-self: flex-start; background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px 0; }
+.picker-back:hover, .picker-back:focus-visible { color: var(--text); }
+.picker-submit { display: flex; justify-content: center; }
+.picker-feedback { margin: 0; color: var(--delete-hover); text-align: center; }
+.picker-feedback:empty { display: none; }
+dialog.picker-dialog .dialog-buttons { padding: 0 16px 16px; }
+dialog.picker-dialog .dialog-buttons:empty { display: none; }
+dialog.picker-onboarding { width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; border: none; border-radius: 0; background: var(--bg); }
+dialog.picker-onboarding::backdrop { background: var(--bg); }
+dialog.picker-onboarding form, dialog.picker-onboarding .picker { height: 100%; width: 100%; }
+dialog.picker-onboarding .picker-main { justify-content: center; }
+@media (max-width: 640px) { .picker { grid-template-columns: 1fr; } .picker-side { border-right: none; border-bottom: 1px solid var(--border); } }

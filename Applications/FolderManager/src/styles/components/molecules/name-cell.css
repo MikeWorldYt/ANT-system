@@ -11,3 +11,5 @@
   flex: 1; min-width: 0; padding: 0 4px; font: inherit; color: var(--text); background: var(--field-bg);
   border: 1px solid var(--button); border-radius: 3px; outline: none; box-shadow: 0 0 0 1px var(--button);
 }
+.auto-mark { display: inline-flex; flex: none; color: var(--accent); }
+.auto-mark .gui-icon { width: 10px; height: 10px; }

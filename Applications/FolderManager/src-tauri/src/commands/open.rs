@@ -33,7 +33,7 @@ pub(super) fn launcher(dir: &Path) -> Command {
 
 // Other systems have no select flag, so the parent folder opens instead.
 #[cfg(not(windows))]
-fn revealer(path: &Path) -> Command {
+pub(super) fn revealer(path: &Path) -> Command {
     launcher(path.parent().unwrap_or(path))
 }
 

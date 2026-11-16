@@ -1,4 +1,5 @@
 // The `--mcp [storage]` mode: a stdio MCP server that lets an agent read and change the storage through the app's own services.
+mod guide;
 mod protocol;
 mod retry;
 mod schema;

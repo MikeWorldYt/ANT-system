@@ -21,9 +21,9 @@ use crate::infra::scan::list_subdirs;
 use crate::infra::storage::info::{field_of, read_info, NodeInfo};
 use crate::services::tree::depth;
 use crate::services::tree::review_links;
-use crate::services::tree::tree_store::{get_node, get_type, is_locked_type};
+use crate::services::tree::tree_store::{get_node, is_locked_type};
 use actions::{compute_actions, file_actions, link_actions, mark_moves};
-use entries::{is_unmanaged, level_entries, Entry};
+use entries::{level_entries, Entry};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -61,6 +61,22 @@ pub struct TreeNode {
     pub children: Option<Vec<TreeNode>>,
     pub abs_path: String,
     pub actions: NodeActions,
+    pub stamps: Stamps,
+}
+
+// Milliseconds since the epoch; size is only read for files, as a folder's would mean walking it.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Stamps {
+    pub modified: Option<u64>,
+    pub created: Option<u64>,
+    pub size: Option<u64>,
+}
+
+pub(crate) fn stamps_of(path: &Path, file: bool) -> Stamps {
+    let Ok(meta) = std::fs::metadata(path) else { return Stamps::default() };
+    let ms = |t: std::io::Result<std::time::SystemTime>| t.ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_millis() as u64);
+    Stamps { modified: ms(meta.modified()), created: ms(meta.created()), size: file.then(|| meta.len()) }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -111,12 +127,10 @@ pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<(
 
 fn children_at(root: &Path, data: &Mapping, parent: &[String], limit: usize) -> R<Vec<TreeNode>> {
     let mut nodes = Vec::new();
-    // A review folder at the depth limit shows its files and the folders the database does not track, so they can be browsed.
-    let past_limit_review = parent.len() >= limit && holds_files(data, parent);
     for entry in level_entries(root, data, parent)? {
         if entry.file {
             nodes.push(file_node(root, parent, entry.name));
-        } else if !past_limit_review || is_unmanaged(&entry) {
+        } else {
             nodes.push(make_node(root, data, parent, entry, limit)?);
         }
     }
@@ -139,11 +153,6 @@ fn fill_at(root: &Path, data: &Mapping, nodes: &mut [TreeNode], limit: usize) ->
 // Any of these inside a folder means it holds a git project.
 const GIT_MARKERS: [&str; 3] = [".git", ".github", ".gitignore"];
 
-// Review folders and workboards hold files, so they open even when empty.
-fn holds_files(data: &Mapping, rel: &[String]) -> bool {
-    matches!(type_base(&get_type(data, rel)), "REV" | "WKB")
-}
-
 // Every folder lists the files inside it, except the app's own reserved folders and what they hold.
 pub(crate) fn lists_files(rel: &[String]) -> bool {
     !rel.first().is_some_and(|top| is_reserved(std::slice::from_ref(top)))
@@ -153,8 +162,10 @@ pub(crate) fn lists_files(rel: &[String]) -> bool {
 fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
     let mut rel_parts = parent.to_vec();
     rel_parts.push(name.clone());
+    let abs = join_rel(root, &rel_parts);
     TreeNode {
-        abs_path: join_rel(root, &rel_parts).to_string_lossy().into_owned(),
+        stamps: stamps_of(&abs, true),
+        abs_path: abs.to_string_lossy().into_owned(),
         rel_parts,
         depth: parent.len(),
         ghost: false,
@@ -253,6 +264,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
         file: false,
         info,
         children: None,
+        stamps: if ghost || linked { Stamps::default() } else { stamps_of(&abs_path, false) },
         abs_path: abs_path.to_string_lossy().into_owned(),
     })
 }

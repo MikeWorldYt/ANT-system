@@ -10,6 +10,9 @@ export interface ViewSwitcher {
   switchTo(id: string): void;
 }
 
+// Only the user's own pick is remembered; tabs, split panes and batch mode switch views too and must not overwrite it.
+export const rememberView = (id: string): void => savePref(STORAGE_KEY, id);
+
 export function createViewSwitcher(host: HTMLElement, modes: ViewMode[]): ViewSwitcher {
   const first = modes[0];
   if (!first) throw new Error("No view modes registered");
@@ -27,7 +30,6 @@ export function createViewSwitcher(host: HTMLElement, modes: ViewMode[]): ViewSw
       active = next;
       active.mount(host);
       active.render();
-      savePref(STORAGE_KEY, id);
     },
   };
 }

@@ -68,18 +68,33 @@ export interface TreeNode {
   children: TreeNode[] | null;
   absPath: string;
   actions: NodeActions;
+  // Milliseconds since the epoch; size only for files.
+  stamps: { modified: number | null; created: number | null; size: number | null };
 }
 
-export interface ProjectPlan {
+// `name` is the file's name after the run; `project` the folder the sort would put it in.
+export interface PlannedFile {
+  file: string;
   name: string;
-  files: string[];
-  owner: string | null;
-  created: string | null;
+  project: string | null;
+  sure: boolean;
+  folder: string | null;
+  target: string[] | null;
 }
 
-export interface ProjectGroup extends ProjectPlan {
-  tier: "sure" | "likely";
-  ownerConflict: boolean;
+export interface DictionaryIssue {
+  line: number;
+  level: "error" | "warning";
+  message: string;
+}
+
+export interface Picks {
+  reduce: boolean;
+  sort: boolean;
+  group: boolean;
+  addDate: boolean;
+  removeDate: boolean;
+  removeSymbols: boolean;
 }
 
 export interface TreeSnapshot {
@@ -221,6 +236,7 @@ export interface StorageChangedEvent {
   paths: number;
   folders: string[][];
   rescan: boolean;
+  dictionary: boolean;
 }
 
 export type UiCall =

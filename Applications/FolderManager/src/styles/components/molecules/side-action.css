@@ -13,3 +13,5 @@
 .side-action.danger { color: var(--delete-hover); }
 .side-action[aria-disabled="true"] { color: var(--disabled-text); cursor: default; }
 .side-action[hidden] { display: none; }
+.automation-run:disabled { color: var(--disabled-text); cursor: default; }
+.automation-row input { margin: 0; flex: none; }

@@ -1,6 +1,7 @@
 // Guards every disk change: name validation, paths kept inside the storage, atomic writes and an undo journal.
 mod journal;
 mod lock;
+mod lock_os;
 mod validate;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -8,7 +9,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::domain::error::{FmError, R};
 
 pub(crate) use journal::{rename_no_replace, Journal};
-pub(crate) use lock::{is_busy, StorageLock, LOCK_FILE};
+pub(crate) use lock::{clear_stale, is_busy, StorageLock, LOCK_FILE};
 pub(crate) use validate::{
     is_link, join_rel, redirects, resolve, same_name, validate_component,
 };

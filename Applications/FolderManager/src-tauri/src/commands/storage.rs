@@ -1,4 +1,4 @@
-// Commands of the Storage settings page: rename the root folder, undo the last rename and the daily sync task.
+// Commands of the Storage settings page and the Storage picker: switch, create, rename the root folder and the daily sync task.
 use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager, WebviewWindow};
@@ -6,9 +6,9 @@ use tauri::{AppHandle, Manager, WebviewWindow};
 use super::{off_thread, run_locked, run_unlocked};
 use crate::app::storage_session::Storage;
 use crate::services::rename::{rename_flow, revert_target};
-use crate::domain::error::R;
+use crate::domain::error::{FmError, R};
 use crate::infra::storage::rename::{self, RenameStatus};
-use crate::infra::storage::{location, pointer};
+use crate::infra::storage::{known, location, pointer};
 use crate::services::backup::{schedule, DEFAULT_FREQUENCY};
 use crate::services::{sync, updater};
 
@@ -68,6 +68,108 @@ pub fn change_flow(storage: &Storage, text: &str) -> R<PathBuf> {
 #[tauri::command]
 pub async fn change_storage_path(window: WebviewWindow, path: String) -> R<String> {
     switched(window, move |storage| change_flow(storage, &path)).await
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KnownStorage {
+    path: String,
+    name: String,
+    exists: bool,
+}
+
+#[tauri::command]
+pub async fn known_storages(app: AppHandle) -> R<Vec<KnownStorage>> {
+    off_thread(move || {
+        let file = known_file(&app)?;
+        let list = known::read(&file).into_iter().map(|p| KnownStorage { name: rename::folder_name(&p), exists: crate::infra::scan::find_root(&p).is_some(), path: p.to_string_lossy().into_owned() });
+        Ok(list.collect())
+    })
+    .await?
+}
+
+#[tauri::command]
+pub async fn forget_storage(app: AppHandle, path: String) -> R<()> {
+    off_thread(move || {
+        let file = known_file(&app)?;
+        known::forget(&file, Path::new(&path)).map_err(|e| crate::infra::fs_safe::io_err("update the Storage list", &file, &e))
+    })
+    .await?
+}
+
+fn known_file(app: &AppHandle) -> R<PathBuf> {
+    known::app_file(app).map_err(|message| FmError::Internal { message })
+}
+
+// Only Storages on the list are touched, and never the open one, whose watchers and tasks hold its path.
+fn listed_other(app: &AppHandle, path: &Path) -> R<PathBuf> {
+    let file = known_file(app)?;
+    if !known::listed(&file, path) {
+        return Err(FmError::Internal { message: "That Storage is not on the list.".to_string() });
+    }
+    if app.state::<Storage>().root().is_ok_and(|r| r.to_string_lossy().eq_ignore_ascii_case(&path.to_string_lossy())) {
+        return Err(FmError::Internal { message: "Switch to another Storage before changing this one.".to_string() });
+    }
+    Ok(file)
+}
+
+fn relocate_listed(app: &AppHandle, from: &Path, to: &Path) -> R<String> {
+    let file = listed_other(app, from)?;
+    location::relocate(from, to)?;
+    known::replace(&file, from, to).map_err(|e| crate::infra::fs_safe::io_err("update the Storage list", &file, &e))?;
+    Ok(to.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub async fn rename_listed_storage(app: AppHandle, path: String, name: String) -> R<String> {
+    off_thread(move || {
+        let from = PathBuf::from(&path);
+        let parent = from.parent().ok_or_else(|| FmError::Internal { message: "A drive cannot be renamed.".to_string() })?;
+        relocate_listed(&app, &from, &parent.join(location::check_name(&name)?))
+    })
+    .await?
+}
+
+#[tauri::command]
+pub async fn move_listed_storage(app: AppHandle, path: String, destination: String) -> R<String> {
+    off_thread(move || {
+        let from = PathBuf::from(&path);
+        let name = from.file_name().ok_or_else(|| FmError::Internal { message: "A drive cannot be moved.".to_string() })?.to_owned();
+        relocate_listed(&app, &from, &location::clean_path(&destination)?.join(name))
+    })
+    .await?
+}
+
+#[tauri::command]
+pub async fn reveal_storage(app: AppHandle, path: String) -> R<()> {
+    off_thread(move || {
+        let path = PathBuf::from(path);
+        if !known::listed(&known_file(&app)?, &path) {
+            return Err(FmError::Internal { message: "That Storage is not on the list.".to_string() });
+        }
+        super::open::revealer(&path).spawn().map(|_| ()).map_err(|e| FmError::Internal { message: format!("Could not show the folder: {e}") })
+    })
+    .await?
+}
+
+#[derive(serde::Serialize)]
+pub struct StorageLocation {
+    label: String,
+    path: String,
+}
+
+#[tauri::command]
+pub fn storage_locations(app: AppHandle) -> Vec<StorageLocation> {
+    location::locations(app.path().home_dir().ok()).into_iter().map(|(label, p)| StorageLocation { label, path: p.to_string_lossy().into_owned() }).collect()
+}
+
+#[tauri::command]
+pub async fn create_storage(window: WebviewWindow, parent: String, name: String) -> R<String> {
+    switched(window, move |storage| {
+        let root = location::create(&location::clean_path(&parent)?, &name)?;
+        change_flow(storage, &root.to_string_lossy())
+    })
+    .await
 }
 
 #[tauri::command]
