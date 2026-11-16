@@ -34,7 +34,7 @@ jobs:
       matrix: ${{ steps.pick.outputs.matrix }}
       any: ${{ steps.pick.outputs.any }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -72,7 +72,7 @@ jobs:
         shell: pwsh
         working-directory: Applications/${{ matrix.app }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Detect app kind
@@ -81,11 +81,11 @@ jobs:
           $tauri = Test-Path src-tauri/tauri.conf.json
           "tauri=$($tauri.ToString().ToLower())" >> $env:GITHUB_OUTPUT
           "crate=Applications/${{ matrix.app }}$(if ($tauri) { '/src-tauri' })" >> $env:GITHUB_OUTPUT
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         if: steps.kind.outputs.tauri == 'true'
         with:
           version: 10
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           node-version: 24
@@ -115,7 +115,7 @@ jobs:
       matrix:
         app: ${{ fromJson(needs.plan.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Detect app kind
@@ -126,11 +126,11 @@ jobs:
           $rust = (-not $tauri) -and (Test-Path "Applications/${{ matrix.app }}/Cargo.toml")
           "tauri=$($tauri.ToString().ToLower())" >> $env:GITHUB_OUTPUT
           "rust=$($rust.ToString().ToLower())" >> $env:GITHUB_OUTPUT
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         if: steps.kind.outputs.tauri == 'true'
         with:
           version: 10
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           node-version: 24
@@ -184,12 +184,12 @@ jobs:
           if (-not $sameVersion) { throw "exe FileVersion '$actual' does not match version.txt '$expected'" }
           "version=$expected" >> $env:GITHUB_OUTPUT
           "Built ${{ matrix.app }} $expected ($size bytes)"
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ matrix.app }}_portable
           path: Applications/${{ matrix.app }}/build-dist/${{ matrix.app }}.exe
           if-no-files-found: error
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: steps.kind.outputs.tauri == 'true'
         with:
           name: ${{ matrix.app }}_installer
@@ -214,7 +214,7 @@ jobs:
         shell: bash
         working-directory: Applications/${{ matrix.app }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Detect app kind
@@ -226,11 +226,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential curl wget file libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         if: steps.kind.outputs.tauri == 'true'
         with:
           version: 10
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           node-version: 24
@@ -253,12 +253,12 @@ jobs:
       # tar keeps the executable bit, which an artifact upload would drop
       - name: Pack
         run: tar -czf "${{ matrix.app }}-${{ matrix.label }}_portable.tar.gz" -C "$(dirname "$BIN")" "$(basename "$BIN")"
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ matrix.app }}-${{ matrix.label }}_portable
           path: Applications/${{ matrix.app }}/${{ matrix.app }}-${{ matrix.label }}_portable.tar.gz
           if-no-files-found: error
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: steps.kind.outputs.tauri == 'true'
         with:
           name: ${{ matrix.app }}-${{ matrix.label }}_installer
@@ -280,11 +280,11 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # Every artifact holds one file named for the release, except the Windows portable, which keeps the dist/ name
-      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: built
           merge-multiple: true
@@ -354,8 +354,8 @@ jobs:
         shell: bash
     steps:
       # The token stays in this checkout because the job pushes to main
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: FolderManager_portable
           path: built
