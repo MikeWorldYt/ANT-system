@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager};
 
+use crate::infra::fs_safe::write_atomic_io;
+
 const FILE: &str = "storages.json";
 
 fn same(a: &Path, b: &Path) -> bool {
@@ -23,7 +25,7 @@ fn save(file: &Path, list: &[PathBuf]) -> std::io::Result<()> {
     if let Some(dir) = file.parent() {
         fs::create_dir_all(dir)?;
     }
-    fs::write(file, serde_json::to_string_pretty(list).map_err(std::io::Error::other)?)
+    write_atomic_io(file, serde_json::to_string_pretty(list).map_err(std::io::Error::other)?.as_bytes())
 }
 
 pub fn touch(file: &Path, root: &Path) -> std::io::Result<()> {
@@ -75,5 +77,16 @@ mod tests {
         assert_eq!(read(&f), vec![PathBuf::from("c:\\a")]);
         fs::write(&f, "not json").unwrap();
         assert!(read(&f).is_empty());
+    }
+
+    #[test]
+    fn a_save_replaces_the_list_whole_and_leaves_no_temp_file() {
+        let dir = TempDir::new("known-atomic");
+        let f = file(dir.path());
+        fs::write(&f, "not json").unwrap();
+        touch(&f, Path::new("C:\\A")).unwrap();
+        assert_eq!(read(&f), vec![PathBuf::from("C:\\A")]);
+        let left: Vec<String> = fs::read_dir(dir.path()).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+        assert_eq!(left, [FILE]);
     }
 }

@@ -6,7 +6,7 @@ use tauri::AppHandle;
 
 use super::{log_failure, off_thread, run_locked};
 use crate::domain::error::R;
-use crate::infra::fs_safe::io_err;
+use crate::infra::fs_safe::{io_err, write_atomic_io};
 use crate::infra::storage::core_dir::{data_dir, root_file};
 use crate::services::updater;
 
@@ -60,7 +60,7 @@ pub async fn start_update(app: AppHandle) -> R<()> {
 pub async fn skip_version(app: AppHandle, version: String) -> R<()> {
     run_locked(app, move |root| {
         let path = data_dir(root).join(SKIP_FILE);
-        std::fs::write(&path, version.trim()).map_err(|e| io_err("save skipped version", &path, &e))
+        write_atomic_io(&path, version.trim().as_bytes()).map_err(|e| io_err("save skipped version", &path, &e))
     })
     .await
 }

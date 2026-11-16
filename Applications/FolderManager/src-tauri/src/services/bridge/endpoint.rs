@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::infra::fs_safe::write_atomic_io;
 use crate::infra::storage::db::hash;
 use crate::platform::random;
 
@@ -28,7 +29,7 @@ pub fn write(file: &Path, endpoint: &Endpoint) -> std::io::Result<()> {
     if let Some(dir) = file.parent() {
         fs::create_dir_all(dir)?;
     }
-    fs::write(file, serde_json::to_string(endpoint)?)
+    write_atomic_io(file, serde_json::to_string(endpoint)?.as_bytes())
 }
 
 pub fn read(file: &Path) -> Option<Endpoint> {

@@ -6,6 +6,7 @@ use serde::Deserialize;
 use tauri::{AppHandle, Manager};
 
 use super::db::hash;
+use crate::infra::fs_safe::write_atomic_io;
 
 const DIR: &str = "storage-pointers";
 
@@ -39,7 +40,7 @@ pub fn write(file: &Path, root: &Path) -> std::io::Result<()> {
     if let Some(dir) = file.parent() {
         fs::create_dir_all(dir)?;
     }
-    fs::write(file, render(root))
+    write_atomic_io(file, render(root).as_bytes())
 }
 
 // The same file `app_file` names, found without an AppHandle so the headless modes read what the app remembered.
