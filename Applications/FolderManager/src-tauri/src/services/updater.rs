@@ -5,7 +5,7 @@ use crate::domain::config::{INSTALLER_ASSET, RELEASE_APP, RELEASE_DOWNLOAD_URL, 
 #[cfg(not(windows))]
 use crate::domain::config::LATEST_URL;
 use crate::domain::error::{FmError, R};
-use crate::domain::version::parse_version;
+use crate::domain::version::compare_versions;
 #[cfg(windows)]
 pub use crate::platform::windows::updater::{latest_version, launch_updater};
 
@@ -50,10 +50,9 @@ pub fn parse_manifest(json: &str) -> R<Option<Release>> {
     Ok(Some(Release { version: version.to_string(), installer_url, sha256: sha256.to_ascii_lowercase() }))
 }
 
-// Numeric parts first, then a release beats its own -suffix; the channel carries prereleases too.
+// Semver order, so a release beats its own -beta; the channel carries prereleases too.
 pub fn is_newer(latest: &str, current: &str) -> bool {
-    let key = |v: &str| (parse_version(v), !v.contains('-'));
-    key(latest) > key(current)
+    compare_versions(latest, current).is_gt()
 }
 
 // An unreachable channel means no update (it can 404 while CI replaces it); a broken one is an error.
@@ -95,6 +94,10 @@ mod tests {
         assert!(!is_newer("2.0.1-beta", "2.0.1"));
         assert!(!is_newer("2.4.5-beta", "2.4.5-beta"));
         assert!(!is_newer("1.3.0", "2.0.1-beta"));
+        assert!(is_newer("2.4.5-beta.2", "2.4.5-beta.1"));
+        assert!(is_newer("2.4.5-beta.1", "2.4.5-beta"));
+        assert!(!is_newer("2.4.5-beta", "2.4.5-beta.1"));
+        assert!(!is_newer("2.4.5-beta+b", "2.4.5-beta+a"));
     }
 
     #[test]
