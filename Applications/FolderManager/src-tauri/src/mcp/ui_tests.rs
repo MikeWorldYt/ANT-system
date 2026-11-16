@@ -49,7 +49,24 @@ fn the_ui_tools_are_listed_and_only_ui_get_state_is_read_only() {
         assert_eq!((tool["annotations"]["readOnlyHint"].clone(), tool["annotations"]["destructiveHint"].clone()), (json!(false), json!(false)), "{tool}");
     }
     assert_eq!(tools[2]["annotations"]["idempotentHint"], false);
-    assert_eq!(tools[4]["inputSchema"]["properties"]["view"]["enum"], json!(["cards", "tree", "columns", "grid", "list"]));
+    assert_eq!(tools[4]["inputSchema"]["properties"]["view"]["enum"], json!(["cards", "tree", "columns", "grid", "list", "details", "graph"]));
+}
+
+// The window's view list lives in the frontend; both sides must offer the same views.
+#[test]
+fn the_mcp_views_match_the_views_the_window_offers() {
+    let toolbar = include_str!("../../../src/components/organisms/bars/toolbar.ts");
+    let line = toolbar.lines().find(|l| l.starts_with("const VIEW_ORDER = [")).expect("VIEW_ORDER in toolbar.ts");
+    let mut ui: Vec<&str> = line.split('"').skip(1).step_by(2).collect();
+    let mut mcp = super::ui_schema::VIEWS.to_vec();
+    ui.sort_unstable();
+    mcp.sort_unstable();
+    assert_eq!(mcp, ui);
+    let window = include_str!("../../../src/components/windows/main-window.ts");
+    for view in super::ui_schema::VIEWS {
+        let factory = format!("create{}{}View()", view[..1].to_uppercase(), &view[1..]);
+        assert!(window.contains(&factory), "main-window.ts does not mount {factory}");
+    }
 }
 
 #[test]
