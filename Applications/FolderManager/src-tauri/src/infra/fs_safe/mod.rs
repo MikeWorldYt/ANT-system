@@ -1,6 +1,7 @@
 // Guards every disk change: name validation, paths kept inside the storage, atomic writes and an undo journal.
 mod journal;
 mod lock;
+mod lock_os;
 mod validate;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
