@@ -1,7 +1,5 @@
-// Where the storage template and tools are downloaded from, and the hidden folder it fills.
+// Where the storage template is downloaded from, and the hidden folder it fills.
 pub const TEMPLATE_URL: &str = "https://r2.mikeworld.dev/core/template.md";
-pub const CORE_BASE_URL: &str = "https://r2.mikeworld.dev/core";
-pub const CORE_FILES: [&str; 1] = ["FM_Updater.bat"];
 // FolderManager comes from the GitHub releases tagged `folder-manager-vX.Y.Z`; the newest stable one is used.
 pub const RELEASES_API_URL: &str = "https://api.github.com/repos/MikeWorldYt/ANT-system/releases?per_page=100";
 pub const RELEASE_DOWNLOAD_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/download";

@@ -1,31 +1,19 @@
-// Core files and FolderManager: helpful but not essential, so failures only warn.
+// FolderManager download: helpful but not essential, so failures only warn.
 use std::path::Path;
 
 use crate::config::{
-    CORE_BASE_URL, CORE_FILES, FOLDER_MANAGER_ASSET, FOLDER_MANAGER_FALLBACK_TAG, FOLDER_MANAGER_NAME, FOLDER_MANAGER_TAG_PREFIX, RELEASES_API_URL,
+    FOLDER_MANAGER_ASSET, FOLDER_MANAGER_FALLBACK_TAG, FOLDER_MANAGER_NAME, FOLDER_MANAGER_TAG_PREFIX, RELEASES_API_URL,
     RELEASE_DOWNLOAD_URL,
 };
-use crate::fetch::{download, download_text, latest_release_tag, MAX_EXE_BYTES, MAX_TEXT_BYTES};
+use crate::fetch::{download, download_text, latest_release_tag, MAX_EXE_BYTES};
 use crate::fs_ops::write_file_atomic;
 use crate::Level;
 
-pub fn optional_downloads(root: &Path, ant: &Path, folder_manager: bool, progress: &mut dyn FnMut(Level, &str)) {
-    progress(Level::Step, "Downloading ANT Core and utility files ...");
-    if let Err(e) = core_files(ant, progress) {
-        progress(Level::Warn, &format!("⚠ Core files download failed: {e}"));
-    }
+pub fn optional_downloads(root: &Path, folder_manager: bool, progress: &mut dyn FnMut(Level, &str)) {
     if folder_manager {
+        progress(Level::Step, "Downloading FolderManager ...");
         download_folder_manager(root, progress);
     }
-}
-
-fn core_files(ant: &Path, progress: &mut dyn FnMut(Level, &str)) -> Result<(), String> {
-    for name in CORE_FILES {
-        let dest = ant.join(name);
-        download(&format!("{CORE_BASE_URL}/{name}"), MAX_TEXT_BYTES, 60).and_then(|b| write_file_atomic(&dest, &b))?;
-        progress(Level::Ok, &format!("✔ {} (downloaded)", dest.display()));
-    }
-    Ok(())
 }
 
 fn latest_folder_manager_tag() -> Option<String> {

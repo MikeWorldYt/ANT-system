@@ -34,7 +34,7 @@ What it creates:
   The folder tree from the template; each category also gets REC.<NAME>,
   RES.Resources, REV.<NAME> and SS.<NAME>; each subcategory and topic gets
   REV.<NAME>. The root gets ANT.RECORDINGS and
-  ANT.SCREENSHOTS, .ant/ with template.md (a copy) and FM_Updater.bat, and
+  ANT.SCREENSHOTS, .ant/ with template.md (a copy), and
   FolderManager in the storage root. Up to 9 categories (100 to 900).
   If an essential step fails, only the folders made by this run are removed.
 

@@ -73,7 +73,7 @@ fn build(opts: &CreateOptions, template: &[u8], tree: &[TreeNode], created: &mut
     progress(Level::Step, "Generating an ANT Storage Template ...");
     make_tree(tree, root, created, progress)?;
     if opts.download {
-        downloads::optional_downloads(root, &ant, opts.folder_manager, progress);
+        downloads::optional_downloads(root, opts.folder_manager, progress);
     }
     progress(Level::Ok, "Congrats, ANT Storage successfully created!");
     Ok(())
