@@ -1,7 +1,4 @@
-// Update check against the version published on main, and the hand-off to FM_Updater.bat.
-#[cfg(not(windows))]
-use std::path::Path;
-
+// Update check against the version published on main, and the hand-off to the verified release installer.
 #[cfg(not(windows))]
 use crate::domain::version::parse_file_version;
 use crate::domain::version::parse_version;
@@ -28,7 +25,7 @@ pub fn is_newer(latest: &str, current: &str) -> bool {
 }
 
 #[cfg(not(windows))]
-pub fn launch_updater(_root: &Path) -> R<()> {
+pub fn launch_updater() -> R<()> {
     Err(FmError::Internal { message: "Automatic update is only available on Windows".to_string() })
 }
 

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 use tauri::AppHandle;
 
-use super::{off_thread, run_locked};
+use super::{log_failure, off_thread, run_locked};
 use crate::domain::error::R;
 use crate::infra::fs_safe::io_err;
 use crate::infra::storage::core_dir::{data_dir, root_file};
@@ -50,7 +50,9 @@ pub async fn check_update(app: AppHandle, manual: bool) -> R<Option<UpdateInfo>>
 
 #[tauri::command]
 pub async fn start_update(app: AppHandle) -> R<()> {
-    run_locked(app.clone(), updater::launch_updater).await?;
+    let launched = off_thread(updater::launch_updater).await?;
+    log_failure(&launched);
+    launched?;
     app.exit(0);
     Ok(())
 }

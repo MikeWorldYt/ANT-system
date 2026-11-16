@@ -59,6 +59,25 @@ fn restoring_brings_the_data_back_and_skips_missing_folders() {
     assert!(!stage::has_db(out.path()));
 }
 
+#[test]
+fn scripts_and_programs_never_go_into_a_backup_or_back_out_of_one() {
+    let (dir, out) = staged_copy("backup-runnable");
+    let root = dir.path();
+    let planted = ["100.ACADEMIC/01.Math/.ant/FM_Updater.bat", "999.Settings/00.Core/Tool.EXE"];
+    for f in planted {
+        fs::write(root.join(f), "x").unwrap();
+        fs::write(out.path().join(f), "x").unwrap();
+    }
+    let again = TempDir::new("backup-runnable-again");
+    stage::stage(root, again.path(), &fs::canonicalize(root.join("999.Settings/03.Backup")).unwrap()).unwrap();
+    assert!(again.path().join("100.ACADEMIC/01.Math/.ant/info.json").is_file());
+    assert!(planted.iter().all(|f| !again.path().join(f).exists()));
+    planted.iter().for_each(|f| fs::remove_file(root.join(f)).unwrap());
+    stage::apply(root, out.path()).unwrap();
+    assert!(root.join("999.Settings/00.Core/config.yaml").is_file());
+    assert!(planted.iter().all(|f| !root.join(f).exists()));
+}
+
 fn wal(root: &Path) -> PathBuf {
     db_path(root).with_file_name(format!("{DB_FILENAME}-wal"))
 }

@@ -3,10 +3,11 @@ use serde::{Deserialize, Serialize};
 
 pub const VERSION_URL: &str =
     "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Applications/FolderManager/version.txt";
-pub const EXE_DOWNLOAD_URL: &str =
-    "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe";
-pub const UPDATER_SCRIPT: &str = "FM_Updater.bat";
-pub const UPDATER_SCRIPT_URL: &str = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Migration/Core/FM_Updater.bat";
+// The build-apps workflow publishes each version as the release `folder-manager-v<version>` with this installer.
+pub const RELEASE_API_URL: &str = "https://api.github.com/repos/MikeWorldYt/ANT-system/releases/tags/";
+pub const RELEASE_DOWNLOAD_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/download/";
+pub const RELEASE_TAG_PREFIX: &str = "folder-manager-";
+pub const INSTALLER_ASSET: &str = "FolderManager_installer.exe";
 
 // Legacy root folders: still read and recognised, never created.
 pub const SETTINGS_FOLDER: &str = "999.Settings";

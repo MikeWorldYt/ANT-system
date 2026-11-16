@@ -16,11 +16,6 @@ fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-// The owner keeps the launch of FM_Updater.bat as it is, so that one `cmd` call is the only exemption.
-fn exempt(file: &Path, line: &str) -> bool {
-    file.ends_with("platform/windows/updater.rs") && line.contains(r#"Command::new("cmd")"#)
-}
-
 #[test]
 fn no_windows_tool_starts_from_a_bare_name() {
     let mut files = Vec::new();
@@ -33,7 +28,7 @@ fn no_windows_tool_starts_from_a_bare_name() {
         for (n, line) in lines.iter().enumerate() {
             let other_os = lines[n.saturating_sub(3)..n].iter().any(|l| l.contains("not(windows)") || l.contains("unix") || l.contains("macos"));
             let bare = TOOLS.iter().any(|t| [format!("Command::new(\"{t}\")"), format!("Command::new(\"{t}.exe\")"), format!("from(\"{t}.exe\")"), format!("\"{t}.exe\".into()")].iter().any(|p| line.contains(p)));
-            if bare && !other_os && !exempt(file, line) {
+            if bare && !other_os {
                 found.push(format!("{}:{}: {}", file.display(), n + 1, line.trim()));
             }
         }

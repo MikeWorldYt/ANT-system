@@ -1,68 +1,90 @@
-// Windows update path: the version check and FM_Updater.bat run through PowerShell and cmd.
-use std::os::windows::process::CommandExt;
+// Windows update path: the version check, then the official installer from the GitHub Release, checked against its SHA-256 and started by its own path.
 use std::path::Path;
 use std::process::Command;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use crate::domain::config::{EXE_DOWNLOAD_URL, UPDATER_SCRIPT, UPDATER_SCRIPT_URL, VERSION_URL};
-use crate::infra::storage::core_dir::{data_dir, root_file};
+use serde_json::Value;
+
+use crate::domain::config::{INSTALLER_ASSET, RELEASE_API_URL, RELEASE_DOWNLOAD_URL, RELEASE_TAG_PREFIX, VERSION_URL};
 use crate::domain::error::{FmError, R};
 use crate::domain::version::parse_file_version;
-use crate::infra::fs_safe::{io_err, write_atomic};
-use crate::platform::windows::powershell::{run_powershell, CREATE_NO_WINDOW};
+use crate::infra::fs_safe::io_err;
+use crate::platform::random::hex_token;
+use crate::platform::windows::powershell::run_powershell;
 
-// Same grace period the Python app used: an updater that dies sooner than this has failed.
-const EARLY_EXIT: Duration = Duration::from_millis(1500);
+const FETCH: &str = "(Invoke-WebRequest -UseBasicParsing -Uri $env:FM_URL -TimeoutSec 5 -Headers @{'User-Agent'='FolderManager-Updater'}).Content";
+// Windows PowerShell 5.1 downloads a large file many times slower while it draws the progress bar.
+const DOWNLOAD: &str = "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Uri $env:FM_URL -OutFile $env:FM_OUT -TimeoutSec 60 -Headers @{'User-Agent'='FolderManager-Updater'}";
+
+fn fail(detail: impl std::fmt::Display) -> FmError {
+    FmError::Internal { message: format!("Could not update FolderManager: {detail}. FolderManager stays open") }
+}
+
+fn fetch(url: &str) -> Result<String, String> {
+    run_powershell(FETCH, &[("FM_URL", url.as_ref())], None, Duration::from_secs(10))
+}
 
 // Offline or unparsable means no update, as in the Python app.
 pub fn latest_version() -> Option<String> {
-    let script = "(Invoke-WebRequest -UseBasicParsing -Uri $env:FM_URL -TimeoutSec 5 -Headers @{'User-Agent'='FolderManager-Updater'}).Content";
-    let text = run_powershell(script, &[("FM_URL", VERSION_URL.as_ref())], None, Duration::from_secs(10)).ok()?;
-    parse_file_version(&text)
+    parse_file_version(&fetch(VERSION_URL).ok()?)
 }
 
-// Starts FM_Updater.bat, which waits for this app to close before it swaps the executable.
-pub fn launch_updater(root: &Path) -> R<()> {
-    let bat = root_file(root, UPDATER_SCRIPT);
-    if !bat.is_file() {
-        fetch_updater(&data_dir(root), UPDATER_SCRIPT_URL)?;
+// Nothing in the storage takes part: the installer is the published release's asset, run only when it matches the SHA-256 GitHub lists for it.
+pub fn launch_updater() -> R<()> {
+    let version = latest_version().ok_or_else(|| fail("the published version could not be read"))?;
+    let tag = format!("{RELEASE_TAG_PREFIX}{version}");
+    let release = fetch(&format!("{RELEASE_API_URL}{tag}")).map_err(|e| fail(format!("the release {tag} could not be read ({e})")))?;
+    let expected = asset_sha256(&release, INSTALLER_ASSET).map_err(fail)?;
+    let dir = std::env::temp_dir().join(format!("FolderManager-update-{}", hex_token(8).map_err(fail)?));
+    std::fs::create_dir(&dir).map_err(|e| io_err("create the update folder", &dir, &e))?;
+    let installer = dir.join(INSTALLER_ASSET);
+    let checked = download(&format!("{RELEASE_DOWNLOAD_URL}{tag}/{INSTALLER_ASSET}"), &installer).and_then(|()| verify(&installer, &expected));
+    if let Err(e) = checked {
+        discard(&dir);
+        return Err(e);
     }
-    let exe = std::env::current_exe().map_err(|e| io_err("find the app", &bat, &e))?;
-    // cmd /s strips only the outer quote pair, so every quoted path survives spaces.
-    let mut child = Command::new("cmd")
-        .raw_arg(format!(r#"/d /s /c ""{}" "{}" "{EXE_DOWNLOAD_URL}"""#, bat.display(), exe.display()))
-        .creation_flags(CREATE_NO_WINDOW)
-        .spawn()
-        .map_err(|e| io_err("start the updater", &bat, &e))?;
-    let started = Instant::now();
-    while started.elapsed() < EARLY_EXIT {
-        if let Some(status) = child.try_wait().map_err(|e| io_err("watch the updater", &bat, &e))? {
-            return Err(FmError::Internal { message: format!("The updater stopped right away ({status}). FolderManager stays open") });
-        }
-        std::thread::sleep(Duration::from_millis(100));
-    }
-    Ok(())
+    Command::new(&installer).current_dir(&dir).spawn().map(drop).map_err(|e| io_err("start the installer", &installer, &e))
 }
 
-// The published script is saved with CRLF endings, which cmd needs for its labels and jumps.
-fn fetch_updater(core: &Path, url: &str) -> R<()> {
-    std::fs::create_dir_all(core).map_err(|e| io_err("create the core folder", core, &e))?;
-    let bat = core.join(UPDATER_SCRIPT);
-    let part = core.join(format!("{UPDATER_SCRIPT}.part"));
-    let out = part.display().to_string();
-    let script = "Invoke-WebRequest -UseBasicParsing -Uri $env:FM_URL -OutFile $env:FM_OUT -TimeoutSec 30 -Headers @{'User-Agent'='FolderManager-Updater'}";
-    run_powershell(script, &[("FM_URL", url.as_ref()), ("FM_OUT", out.as_ref())], None, Duration::from_secs(45))
-        .map_err(|e| FmError::Internal { message: format!("Could not download {UPDATER_SCRIPT}: {e}") })?;
-    let text = std::fs::read_to_string(&part).map_err(|e| io_err("read the download", &part, &e))?;
-    if text.trim().is_empty() {
-        return Err(FmError::Internal { message: format!("Could not download {UPDATER_SCRIPT}: the file is empty") });
-    }
-    write_atomic(&bat, to_crlf(&text).as_bytes())?;
-    std::fs::remove_file(&part).map_err(|e| io_err("remove the download", &part, &e))
+// GitHub computes the digest when the asset is uploaded; a release without one is refused.
+fn asset_sha256(release: &str, name: &str) -> Result<String, String> {
+    let json: Value = serde_json::from_str(release).map_err(|e| format!("the release data is not valid ({e})"))?;
+    let asset = json["assets"].as_array().into_iter().flatten().find(|a| a["name"] == name).ok_or_else(|| format!("the release has no {name}"))?;
+    let hex = asset["digest"].as_str().and_then(|d| d.strip_prefix("sha256:")).filter(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit()));
+    hex.map(str::to_ascii_lowercase).ok_or_else(|| format!("the release lists no SHA-256 for {name}"))
 }
 
-fn to_crlf(text: &str) -> String {
-    text.replace("\r\n", "\n").replace('\n', "\r\n")
+fn download(url: &str, to: &Path) -> R<()> {
+    run_powershell(DOWNLOAD, &[("FM_URL", url.as_ref()), ("FM_OUT", to.as_os_str())], None, Duration::from_secs(600))
+        .map(drop)
+        .map_err(|e| fail(format!("the installer could not be downloaded ({e})")))
+}
+
+fn verify(file: &Path, expected: &str) -> R<()> {
+    let bytes = std::fs::read(file).map_err(|e| io_err("read the installer", file, &e))?;
+    let actual = sha256_hex(&bytes)?;
+    if actual == expected {
+        return Ok(());
+    }
+    Err(fail(format!("the installer does not match the SHA-256 of the release (expected {expected}, got {actual})")))
+}
+
+fn sha256_hex(data: &[u8]) -> R<String> {
+    use windows_sys::Win32::Security::Cryptography::{BCryptHash, BCRYPT_SHA256_ALG_HANDLE};
+    let len = u32::try_from(data.len()).map_err(|_| fail("the installer is too large"))?;
+    let mut out = [0u8; 32];
+    // SAFETY: the pointers and lengths describe `data` and `out`, and the SHA-256 pseudo-handle needs no opening.
+    let status = unsafe { BCryptHash(BCRYPT_SHA256_ALG_HANDLE, std::ptr::null(), 0, data.as_ptr(), len, out.as_mut_ptr(), 32) };
+    if status != 0 {
+        return Err(fail(format!("BCryptHash failed with status {status:#x}")));
+    }
+    Ok(out.iter().map(|b| format!("{b:02x}")).collect())
+}
+
+fn discard(dir: &Path) {
+    if let Err(e) = std::fs::remove_dir_all(dir) {
+        eprintln!("Could not remove {}: {e}", dir.display());
+    }
 }
 
 #[cfg(test)]
@@ -70,26 +92,32 @@ mod tests {
     use super::*;
     use crate::test_support::TempDir;
 
+    const ABC: &str = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+
     #[test]
-    fn a_missing_updater_script_that_cannot_be_downloaded_is_reported() {
-        let dir = TempDir::new("updater-missing");
-        let core = dir.path().join(".ant");
-        let err = fetch_updater(&core, "http://127.0.0.1:9/FM_Updater.bat").unwrap_err();
-        assert!(err.to_string().contains("Could not download"), "{err}");
-        assert!(!core.join(UPDATER_SCRIPT).exists());
+    fn sha256_matches_the_standard_vector() {
+        assert_eq!(sha256_hex(b"abc").unwrap(), ABC);
     }
 
     #[test]
-    fn the_downloaded_script_is_saved_with_crlf_endings() {
-        assert_eq!(to_crlf("@echo off\n:: x\r\n"), "@echo off\r\n:: x\r\n");
+    fn the_installer_digest_is_read_from_the_release_and_a_missing_one_is_refused() {
+        let release = format!(r#"{{"assets":[{{"name":"FolderManager_portable.exe","digest":"sha256:{}"}},{{"name":"{INSTALLER_ASSET}","digest":"sha256:{}"}}]}}"#, "0".repeat(64), ABC.to_uppercase());
+        assert_eq!(asset_sha256(&release, INSTALLER_ASSET).unwrap(), ABC);
+        let no_digest = format!(r#"{{"assets":[{{"name":"{INSTALLER_ASSET}","digest":null}}]}}"#);
+        let other_hash = format!(r#"{{"assets":[{{"name":"{INSTALLER_ASSET}","digest":"sha1:{}"}}]}}"#, "0".repeat(40));
+        for bad in [no_digest.as_str(), other_hash.as_str(), r#"{"assets":[]}"#, "not json"] {
+            assert!(asset_sha256(bad, INSTALLER_ASSET).is_err(), "{bad}");
+        }
     }
 
     #[test]
-    fn an_updater_that_exits_at_once_is_reported_as_failed() {
-        let dir = TempDir::new("updater-fails");
-        dir.mkdir(".ant");
-        std::fs::write(dir.path().join(".ant/FM_Updater.bat"), "@exit /b 7\r\n").unwrap();
-        let err = launch_updater(dir.path()).unwrap_err();
-        assert!(err.to_string().contains("stopped right away"), "{err}");
+    fn an_installer_that_does_not_match_the_release_is_refused() {
+        let dir = TempDir::new("updater-hash");
+        let file = dir.path().join(INSTALLER_ASSET);
+        std::fs::write(&file, "abc").unwrap();
+        assert!(verify(&file, ABC).is_ok());
+        std::fs::write(&file, "abd").unwrap();
+        let err = verify(&file, ABC).unwrap_err();
+        assert!(err.to_string().contains("does not match"), "{err}");
     }
 }

@@ -39,6 +39,13 @@ fn is_lock(rel: &Path) -> bool {
     rel == Path::new(DATA_DIR).join(LOCK_FILE) || rel == Path::new(SETTINGS_FOLDER).join(CORE_FOLDER).join(LOCK_FILE)
 }
 
+// Scripts and programs never travel in a backup, so a crafted zip cannot plant one in the storage's data folders.
+const RUNNABLE: [&str; 23] = ["bat", "cmd", "com", "exe", "msi", "msp", "ps1", "psm1", "vbs", "vbe", "js", "jse", "wsf", "wsh", "hta", "scr", "pif", "cpl", "msc", "lnk", "url", "reg", "dll"];
+
+fn runnable(rel: &Path) -> bool {
+    rel.extension().and_then(|e| e.to_str()).is_some_and(|e| RUNNABLE.iter().any(|r| e.eq_ignore_ascii_case(r)))
+}
+
 fn rel(base: &Path, path: &Path) -> PathBuf {
     path.strip_prefix(base).map(Path::to_path_buf).unwrap_or_default()
 }
@@ -99,7 +106,7 @@ pub fn stage(root: &Path, stage: &Path, skip: &Path) -> R<()> {
         // Older storages keep their backups beside the settings; they never go into a new backup.
         all_files(&base, &settings, &[skip, &settings.join(LEGACY_BACKUP_DIR)], &mut files)?;
     }
-    files.iter().try_for_each(|f| copy(&base.join(f), &stage.join(f)))
+    files.iter().filter(|f| !runnable(f)).try_for_each(|f| copy(&base.join(f), &stage.join(f)))
 }
 
 pub fn has_db(stage: &Path) -> bool {
@@ -175,7 +182,7 @@ pub fn apply(root: &Path, stage: &Path) -> R<()> {
     all_files(stage, stage, &[], &mut files)?;
     let db = Path::new(DATA_DIR).join(DB_FILENAME);
     replace_db(root, &stage.join(&db))?;
-    for file in files.iter().filter(|f| **f != db && !is_lock(f)) {
+    for file in files.iter().filter(|f| **f != db && !is_lock(f) && !runnable(f)) {
         if file.starts_with(SETTINGS_FOLDER) {
             copy(&stage.join(file), &root.join(file))?;
             continue;
