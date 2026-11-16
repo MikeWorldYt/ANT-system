@@ -1,37 +1,14 @@
 FolderManager
-Copyright (C) 2026 Mike World TM (MikeWorldYt)
+Copyright (C) 2026 Mike Diaz (MikeWorldYt)
 
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License, version 3, as published by the
-Free Software Foundation. See the LICENSE file.
+This program is licensed under the GNU Affero General Public License,
+version 3 only (AGPL-3.0-only). See the LICENSE file. No additional terms are
+added to the license.
 
-Additional terms under section 7 of GPL-3.0
+The name "mikeworld" and any logos are not licensed. See TRADEMARK.md at the
+repository root.
 
-These terms are added under section 7 of GPL-3.0. They do not restrict any
-right that GPL-3.0 grants.
-
-(b) Attribution. Every copy, whether or not it is sold, must keep the author
-attribution "FolderManager by Mike World TM (MikeWorldYt)" and the copyright
-notices of the original work.
-
-(c) Modified versions. A modified version must state that it was modified,
-by whom and when, as section 5(a) of GPL-3.0 requires. It must not use the
-names "FolderManager" or "ANT System", or the project logo, in its name or in a
-way that suggests it is the official version. See TRADEMARK.md.
-
-Responsibility
-
-The author is not responsible for copies or modified versions made by others.
-Each person who modifies or distributes the program is responsible for their
-own version, as sections 15 to 17 of GPL-3.0 state.
-
-Summary (informational, not part of the license)
-
-- Commercial project: you may sell the program and earn money from it, under
-  GPL-3.0.
-- Private project: you may modify the program and use it internally without
-  publishing your changes, as long as you do not distribute the software.
-- Notifying contact@mikeworld.dev is requested, not required. See
-  TRADEMARK.md.
+Releases published before the AGPL-3.0-only change under GPL-3.0 stay under
+GPL-3.0 for those who received them.
 
 Contact: contact@mikeworld.dev
