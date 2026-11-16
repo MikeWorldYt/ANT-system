@@ -7,6 +7,7 @@ mod fs_ops;
 mod info;
 mod name;
 mod plan;
+mod sha256;
 mod template;
 mod tree_types;
 #[cfg(test)]
