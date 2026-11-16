@@ -2,6 +2,8 @@
 // Port of the Reformatter's truncate_long_name.py; the regexes are hand-written because the crate has no regex dependency.
 mod dated;
 mod md5;
+#[cfg(test)]
+mod tests;
 
 use std::collections::HashSet;
 
