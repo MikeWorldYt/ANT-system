@@ -6,7 +6,7 @@ use rusqlite::{Connection, OpenFlags};
 
 use crate::domain::config::{is_hidden_dir, BACKUP_FOLDER, CORE_FOLDER, DATA_DIR, DB_FILENAME, SETTINGS_FOLDER};
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{dir_entries, io_err, is_link, LOCK_FILE};
+use crate::infra::fs_safe::{dir_entries, io_err, is_link, Journal, LOCK_FILE};
 use crate::infra::storage::db::{db_path, hide, Store};
 use crate::services::tree::depth;
 
@@ -127,77 +127,118 @@ fn check_db(path: &Path) -> R<()> {
     Err(refused(first))
 }
 
-fn put_back(aside: &[(PathBuf, PathBuf)]) {
-    for (path, kept) in aside {
-        if let Err(e) = fs::rename(kept, path) {
-            eprintln!("Could not put {} back: {e}", path.display());
-        }
+struct Swap {
+    tmp: PathBuf,
+    target: PathBuf,
+}
+
+fn remove_tmp(tmp: &Path) {
+    match fs::remove_file(tmp) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => eprintln!("Could not remove {}: {e}", tmp.display()),
+        _ => {}
     }
 }
 
-// SQLite would replay an old WAL over the new db, so the journals leave first and come back if the db cannot go in.
-fn swap_in(tmp: &Path, target: &Path) -> R<()> {
-    let mut aside = Vec::new();
-    for journal in ["-wal", "-shm"] {
-        let path = target.with_file_name(format!("{DB_FILENAME}{journal}"));
-        let kept = target.with_file_name(format!("{DB_FILENAME}{journal}.restore-old"));
-        match fs::rename(&path, &kept) {
-            Ok(()) => aside.push((path, kept)),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(e) => {
-                put_back(&aside);
-                return Err(io_err("rename file", &path, &e));
-            }
-        }
+// Only a regular file is ever replaced, so a folder or link in the way stops the restore before anything moved.
+fn copy_beside(from: &Path, target: &Path, tag: &str, swaps: &mut Vec<Swap>) -> R<()> {
+    if fs::symlink_metadata(target).is_ok_and(|m| !m.is_file() || is_link(&m)) {
+        return Err(FmError::Internal { message: format!("{} is not a file, so the backup cannot replace it", target.display()) });
     }
-    if let Err(e) = fs::rename(tmp, target) {
-        put_back(&aside);
-        return Err(io_err("replace file", target, &e));
-    }
-    for (_, kept) in &aside {
-        if let Err(e) = fs::remove_file(kept) {
-            eprintln!("Could not remove {}: {e}", kept.display());
-        }
-    }
-    Ok(())
+    let name = target.file_name().unwrap_or_default().to_string_lossy();
+    let tmp = target.with_file_name(format!("{name}.restore-new-{tag}"));
+    swaps.push(Swap { tmp: tmp.clone(), target: target.to_path_buf() });
+    fs::copy(from, &tmp).map(|_| ()).map_err(|e| io_err("copy file", &tmp, &e))
 }
 
-fn replace_db(root: &Path, from: &Path) -> R<()> {
-    let target = db_path(root);
-    let tmp = target.with_file_name(format!(".{DB_FILENAME}.restore.tmp"));
-    let replaced = copy(from, &tmp).and_then(|()| check_db(&tmp)).and_then(|()| swap_in(&tmp, &target));
-    if replaced.is_err() {
-        if let Err(e) = fs::remove_file(&tmp) {
-            if e.kind() != std::io::ErrorKind::NotFound {
-                eprintln!("Could not remove {}: {e}", tmp.display());
-            }
-        }
+fn make_dirs(dir: &Path, made: &mut Journal) -> R<()> {
+    if real_dir(dir) {
+        return Ok(());
     }
-    replaced
+    if let Some(parent) = dir.parent() {
+        make_dirs(parent, made)?;
+    }
+    made.mkdir(dir)
 }
 
 // Folders that are gone since the backup are skipped, so a restore never recreates the tree.
-pub fn apply(root: &Path, stage: &Path) -> R<()> {
+fn destination(root: &Path, file: &Path, made: &mut Journal) -> R<Option<PathBuf>> {
+    if file.starts_with(SETTINGS_FOLDER) {
+        make_dirs(root.join(file).parent().unwrap_or(root), made)?;
+        return Ok(Some(root.join(file)));
+    }
+    let Some(data) = file.parent().filter(|p| p.file_name().is_some_and(|n| n == DATA_DIR)) else { return Ok(None) };
+    let folder = root.join(data.parent().unwrap_or(Path::new("")));
+    if !real_dir(&folder) {
+        return Ok(None);
+    }
+    let data_dir = folder.join(DATA_DIR);
+    if !data_dir.is_dir() {
+        made.mkdir(&data_dir)?;
+        hide(&data_dir);
+    }
+    Ok(Some(root.join(file)))
+}
+
+// The first phase copies every file beside its target and checks the db, so a failure there leaves the storage as it was.
+fn prepare(root: &Path, stage: &Path, tag: &str, made: &mut Journal, swaps: &mut Vec<Swap>) -> R<()> {
     let mut files = Vec::new();
     all_files(stage, stage, &[], &mut files)?;
     let db = Path::new(DATA_DIR).join(DB_FILENAME);
-    replace_db(root, &stage.join(&db))?;
+    copy_beside(&stage.join(&db), &db_path(root), tag, swaps)?;
+    check_db(&swaps[0].tmp)?;
     for file in files.iter().filter(|f| **f != db && !is_lock(f) && !runnable(f)) {
-        if file.starts_with(SETTINGS_FOLDER) {
-            copy(&stage.join(file), &root.join(file))?;
-            continue;
+        if let Some(target) = destination(root, file, made)? {
+            copy_beside(&stage.join(file), &target, tag, swaps)?;
         }
-        let Some(data) = file.parent().filter(|p| p.file_name().is_some_and(|n| n == DATA_DIR)) else { continue };
-        let folder = root.join(data.parent().unwrap_or(Path::new("")));
-        if !real_dir(&folder) {
-            continue;
-        }
-        let data_dir = folder.join(DATA_DIR);
-        if !data_dir.is_dir() {
-            fs::create_dir_all(&data_dir).map_err(|e| io_err("create folder", &data_dir, &e))?;
-            hide(&data_dir);
-        }
-        copy(&stage.join(file), &root.join(file))?;
     }
     Ok(())
+}
+
+// SQLite would replay an old WAL over the new db, so the journals step aside with it.
+fn swap(journal: &mut Journal, s: &Swap, tag: &str, old: &mut Vec<PathBuf>) -> R<()> {
+    let name = s.target.file_name().unwrap_or_default().to_string_lossy().into_owned();
+    let journals: &[&str] = if name == DB_FILENAME { &["-wal", "-shm", ""] } else { &[""] };
+    for suffix in journals {
+        let path = s.target.with_file_name(format!("{name}{suffix}"));
+        if fs::symlink_metadata(&path).is_ok() {
+            let kept = s.target.with_file_name(format!("{name}{suffix}.restore-old-{tag}"));
+            journal.rename(&path, &kept)?;
+            old.push(kept);
+        }
+    }
+    journal.rename(&s.tmp, &s.target)
+}
+
+// The second phase only renames, and a failure renames everything back.
+fn commit(swaps: &[Swap], tag: &str) -> R<()> {
+    let mut journal = Journal::new();
+    let mut old = Vec::new();
+    if let Err(e) = swaps.iter().try_for_each(|s| swap(&mut journal, s, tag, &mut old)) {
+        return Err(journal.abort("restore backup", e));
+    }
+    journal.commit();
+    old.iter().for_each(|kept| remove_tmp(kept));
+    Ok(())
+}
+
+fn restore_tag() -> String {
+    let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    format!("{}-{nanos}", std::process::id())
+}
+
+pub fn apply(root: &Path, stage: &Path) -> R<()> {
+    apply_tagged(root, stage, &restore_tag())
+}
+
+pub(super) fn apply_tagged(root: &Path, stage: &Path, tag: &str) -> R<()> {
+    let mut made = Journal::new();
+    let mut swaps = Vec::new();
+    let result = prepare(root, stage, tag, &mut made, &mut swaps).and_then(|()| commit(&swaps, tag));
+    swaps.iter().for_each(|s| remove_tmp(&s.tmp));
+    if result.is_err() {
+        made.rollback().iter().for_each(|e| eprintln!("Could not undo a restore folder: {e}"));
+    } else {
+        made.commit();
+    }
+    result
 }

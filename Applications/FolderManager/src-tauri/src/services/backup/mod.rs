@@ -222,9 +222,10 @@ fn unpack(zip: &Path, staging: &Path, name: &str) -> R<()> {
 
 // A damaged ant.db is kept aside and a locked or newer one stops the restore, so whatever stays is healthy and worth a safety backup.
 fn install(root: &Path, staging: &Path, stamp: &str) -> R<()> {
+    // Taken first so no other process writes between the safety backup and the restore.
+    let _lock = StorageLock::acquire(root)?;
     prepare_scan(root, stamp)?;
     let safety = db_path(root).is_file().then(|| create(root, stamp)).transpose()?;
-    let _lock = StorageLock::acquire(root)?;
     let applied = stage::apply(root, staging);
     // The restored ant.db predates the safety backup, so its last-backup time is renewed.
     let restored = applied.and_then(|()| Store::open_or_create(root)?.set_setting("backupLast", &now().to_string()));

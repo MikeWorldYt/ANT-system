@@ -132,6 +132,59 @@ fn a_finished_restore_leaves_no_old_wal() {
     assert!(settings(root).is_ok());
 }
 
+fn leftovers(root: &Path) -> Vec<String> {
+    [root.join(DATA_DIR), root.join("100.ACADEMIC/01.Math/.ant"), root.join("999.Settings/00.Core")]
+        .iter().filter(|d| d.is_dir()).flat_map(|d| names(d)).filter(|n| n.contains(".restore-new-") || n.contains(".restore-old-")).collect()
+}
+
+#[test]
+fn a_restore_failing_midway_renames_everything_back() {
+    let (dir, out) = staged_copy("restore-midway");
+    let root = dir.path();
+    Store::open_or_create(root).unwrap().set_setting("hideDone", "true").unwrap();
+    fs::write(root.join("100.ACADEMIC/01.Math/.ant/info.json"), "changed").unwrap();
+    fs::write(wal(root), "committed pages").unwrap();
+    let before = fs::read(db_path(root)).unwrap();
+    let blocker = root.join("100.ACADEMIC/01.Math/.ant/info.json.restore-old-T");
+    fs::write(&blocker, "in the way").unwrap();
+    let err = stage::apply_tagged(root, out.path(), "T").unwrap_err();
+    assert!(matches!(err, FmError::RolledBack { .. }), "{err:?}");
+    assert_eq!(fs::read(db_path(root)).unwrap(), before);
+    assert_eq!(fs::read_to_string(wal(root)).unwrap(), "committed pages");
+    assert_eq!(fs::read_to_string(root.join("100.ACADEMIC/01.Math/.ant/info.json")).unwrap(), "changed");
+    fs::remove_file(&blocker).unwrap();
+    assert_eq!(leftovers(root), Vec::<String>::new());
+    fs::remove_file(wal(root)).unwrap();
+    assert_eq!(settings(root).unwrap().get("hideDone").map(String::as_str), Some("true"));
+}
+
+#[test]
+fn a_restore_failing_while_copying_touches_nothing() {
+    let (dir, out) = staged_copy("restore-copying");
+    let root = dir.path();
+    fs::remove_dir_all(root.join("999.Settings/00.Core")).unwrap();
+    fs::write(root.join("100.ACADEMIC/01.Math/.ant/info.json"), "changed").unwrap();
+    dir.mkdir("100.ACADEMIC/01.Math/.ant/info.json.restore-new-T");
+    let before = fs::read(db_path(root)).unwrap();
+    assert!(stage::apply_tagged(root, out.path(), "T").is_err());
+    assert_eq!(fs::read(db_path(root)).unwrap(), before);
+    assert_eq!(fs::read_to_string(root.join("100.ACADEMIC/01.Math/.ant/info.json")).unwrap(), "changed");
+    assert!(!root.join("999.Settings/00.Core").exists());
+    fs::remove_dir(root.join("100.ACADEMIC/01.Math/.ant/info.json.restore-new-T")).unwrap();
+    assert_eq!(leftovers(root), Vec::<String>::new());
+}
+
+#[test]
+fn a_restore_waits_for_the_lock_before_its_safety_backup() {
+    let (dir, name) = zip_failing_to_apply("restore-lock");
+    let root = dir.path();
+    let held = crate::infra::fs_safe::StorageLock::acquire(root).unwrap();
+    let err = restore_from(root, &root.join("backup"), &name, "26-10-24-09-06").unwrap_err().to_string();
+    assert!(err.contains("retry"), "{err}");
+    drop(held);
+    assert!(!root.join("backup/26-10-24-09-06_ANT-fm-backup.zip").exists());
+}
+
 const GARBAGE: &str = "not a database ";
 
 fn corrupt_files(root: &Path) -> Vec<String> {
