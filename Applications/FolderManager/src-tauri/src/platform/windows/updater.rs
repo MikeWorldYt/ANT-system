@@ -77,7 +77,7 @@ fn verify(file: &Path, expected: &str) -> R<()> {
     Err(fail(format!("the installer does not match the SHA-256 of the release (expected {expected}, got {actual})")))
 }
 
-fn sha256_hex(data: &[u8]) -> R<String> {
+pub(crate) fn sha256_hex(data: &[u8]) -> R<String> {
     use windows_sys::Win32::Security::Cryptography::{BCryptHash, BCRYPT_SHA256_ALG_HANDLE};
     let len = u32::try_from(data.len()).map_err(|_| fail("the installer is too large"))?;
     let mut out = [0u8; 32];

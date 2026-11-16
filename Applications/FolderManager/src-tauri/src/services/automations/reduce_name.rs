@@ -365,6 +365,8 @@ fn clean_stem(stem: &[char], original: &str) -> String {
     s = sub(&s, uuid);
     s = sub(&s, code);
     s = collapse_symbol_runs(&collapse_separators(&cut_long_runs(&drop_embedded_exts(&s))));
+    // Collapsing "a_~n" to "a_n" can expose a trailing "_n" again, so it is cut once more.
+    s = sub(&s, trailing_n);
     // Leading dots are kept: they mark hidden files such as ".bashrc"
     let joined: String = s.iter().collect();
     let trimmed = joined.trim_start_matches(is_sep).trim_end_matches(|c| is_sep(c) || c == '.');

@@ -220,7 +220,7 @@ fn refresh_creates_renames_and_moves_nothing_on_disk() {
         // `mklink` reads a forward slash as a switch, so the paths are rebuilt with native separators.
         let link: PathBuf = dir.path().join("100.WORK").join("03.Link").components().collect();
         let target: PathBuf = outside.path().components().collect();
-        let out = std::process::Command::new("cmd").args(["/C", "mklink", "/J"]).arg(&link).arg(&target).output().unwrap();
+        let out = std::process::Command::new(crate::platform::windows::system::system_tool("cmd.exe").unwrap()).args(["/C", "mklink", "/J"]).arg(&link).arg(&target).output().unwrap();
         assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     }
     #[cfg(unix)]
