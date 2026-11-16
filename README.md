@@ -143,6 +143,10 @@ Issues and pull requests are welcome. Read the [contributor guide](Project'sCola
 
 Each app is versioned and released on its own, with the executable attached: [all releases](https://github.com/MikeWorldYt/ANT-system/releases).
 
+## License
+
+Licensed under AGPL-3.0-only. See [LICENSE](LICENSE), [LICENSING.md](LICENSING.md) and [TRADEMARK.md](TRADEMARK.md).
+
 ---
 
 <div align="center">

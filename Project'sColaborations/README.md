@@ -13,6 +13,8 @@ Before you start, please make sure to read our [Contributing Guidelines](https:/
 - Merge to the module’s `master` when ready
 - `main` collects the complete structure for deployment or syncing
 
+Contributions are accepted under the project license, AGPL-3.0-only. See [LICENSING.md](../LICENSING.md).
+
 
 ## 📁 Project Structure
 
