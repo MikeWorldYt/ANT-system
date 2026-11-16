@@ -17,10 +17,8 @@ pub fn hash_from(output: &str) -> R<String> {
 
 #[cfg(windows)]
 pub fn sha256_file(file: &Path) -> R<String> {
-    let script = "$ErrorActionPreference = 'Stop'; (Get-FileHash -Algorithm SHA256 -LiteralPath $env:FM_FILE).Hash";
-    let out = crate::platform::windows::powershell::run_powershell(script, &[("FM_FILE", file.as_os_str())], None, std::time::Duration::from_secs(60))
-        .map_err(|e| fail(format!("Could not compute the sha256: {e}")))?;
-    hash_from(&out)
+    let bytes = std::fs::read(file).map_err(|e| fail(format!("Could not read the download to compute its sha256: {e}")))?;
+    crate::platform::windows::updater::sha256_hex(&bytes)
 }
 
 #[cfg(not(windows))]
