@@ -1,14 +1,9 @@
 FolderManager
 Copyright (C) 2026 Mike Diaz (MikeWorldYt)
 
-This program is dual licensed. You may use it under either of:
-
-1. The GNU Affero General Public License, version 3 only (AGPL-3.0-only).
-   See the LICENSE file.
-2. A separate commercial license granted by the owner.
-
-See LICENSING.md at the repository root for when each applies. No additional
-terms are added to the AGPL-3.0-only license.
+This program is licensed under the GNU Affero General Public License,
+version 3 only (AGPL-3.0-only). See the LICENSE file. No additional terms are
+added to the license.
 
 The name "mikeworld" and any logos are not licensed. See TRADEMARK.md at the
 repository root.

@@ -145,7 +145,7 @@ Each app is versioned and released on its own, with the executable attached: [al
 
 ## License
 
-Dual licensed under AGPL-3.0-only or a separate commercial license. See [LICENSE](LICENSE), [LICENSING.md](LICENSING.md) and [TRADEMARK.md](TRADEMARK.md).
+Licensed under AGPL-3.0-only. See [LICENSE](LICENSE), [LICENSING.md](LICENSING.md) and [TRADEMARK.md](TRADEMARK.md).
 
 ---
 

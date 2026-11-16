@@ -4,7 +4,7 @@
 
 ## What the license does not grant
 
-The AGPL-3.0 and any commercial license cover the code only. They grant no rights to the name, brand or logos.
+The AGPL-3.0 covers the code only. They grant no rights to the name, brand or logos.
 
 ## Permitted use
 

@@ -13,7 +13,7 @@ Before you start, please make sure to read our [Contributing Guidelines](https:/
 - Merge to the module’s `master` when ready
 - `main` collects the complete structure for deployment or syncing
 
-Contributions are accepted under a contributor license agreement that lets the owner relicense them, which is what makes the dual licensing (AGPL-3.0 and commercial) possible. See [LICENSING.md](../LICENSING.md).
+Contributions are accepted under the project license, AGPL-3.0-only. See [LICENSING.md](../LICENSING.md).
 
 
 ## 📁 Project Structure
