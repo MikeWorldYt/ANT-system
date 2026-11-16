@@ -25,6 +25,7 @@
 @import "./components/windows/views/columns-view.css";
 @import "./components/atoms/column-sort.css";
 @import "./components/windows/views/grid-view.css";
+@import "./components/windows/views/graph-view.css";
 @import "./components/windows/views/drag-drop.css";
 @import "./components/molecules/menu.css";
 @import "./components/molecules/status-picker.css";
@@ -35,6 +36,8 @@
 @import "./components/organisms/dialogs/dialog-shell.css";
 @import "./components/organisms/dialogs/action-dialog.css";
 @import "./components/organisms/dialogs/invalid-dialog.css";
+@import "./components/organisms/dialogs/storage-picker.css";
+@import "./components/organisms/tour/onboarding-tour.css";
 @import "./components/molecules/setting-row.css";
 @import "./components/molecules/button-row.css";
 @import "./components/atoms/label.css";
@@ -44,3 +47,5 @@
 @import "./components/molecules/choice-group.css";
 @import "./components/windows/settings.css";
 @import "./components/windows/board-view.css";
+@import "./components/windows/batch-view.css";
+@import "./components/windows/dictionary-editor.css";

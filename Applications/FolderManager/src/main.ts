@@ -18,13 +18,15 @@ import { checkForUpdates } from "./hooks/updates";
 import { startBackups } from "./hooks/backups";
 import { installDebugLog, startDebugLog } from "./hooks/debug-log";
 import { applyAppearance } from "./hooks/appearance";
+import { batch as batchMode, replanAfterDictionary } from "./hooks/automations/batch";
 import { startExtensions } from "./extensions/host";
 import { plural } from "./services/plural";
+import { onTourStart, startTour, tourSeen } from "./components/organisms/tour/onboarding-tour";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
 
-const { views, toolbar, navigator, tabBar, search, panel, board, openSelected } = createMainWindow(app);
+const { views, toolbar, navigator, tabBar, search, panel, board, batch, openSelected } = createMainWindow(app);
 installShortcuts({
   focusSearch: () => search.focus("folders"),
   searchFiles: () => search.focus("files"),
@@ -39,8 +41,21 @@ installShortcuts({
   nextTab,
 });
 
+// Batch mode is drawn as a list for now, so the picker shows List while it is open and gives back the view that was there.
+let viewBeforeBatch: string | null = null;
+function followBatch(): void {
+  if (batchMode && viewBeforeBatch === null) {
+    viewBeforeBatch = views.current().id;
+    if (viewBeforeBatch !== "list") views.switchTo("list");
+  } else if (!batchMode && viewBeforeBatch !== null) {
+    if (viewBeforeBatch !== "list") views.switchTo(viewBeforeBatch);
+    viewBeforeBatch = null;
+  }
+}
+
 subscribe(() => {
   if (isRenderingOther()) return;
+  followBatch();
   toolbar.render();
   navigator.render();
   syncTabs();
@@ -48,6 +63,7 @@ subscribe(() => {
   views.current().render();
   renderOther();
   board.render();
+  batch.render();
   panel.render();
   rememberSelection();
   applyAppearance();
@@ -79,7 +95,10 @@ onWindowFocus(() => {
   void (quick ? Promise.resolve() : relistLevels(null)).finally(() => restoreFocus(() => views.current().focus()));
 }).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
 
-onStorageChanged((e) => void (e.rescan ? autoRefresh(() => refresh(false)) : relistLevels(e.folders))).catch((e) =>
+onStorageChanged((e) => {
+  if (e.dictionary) replanAfterDictionary();
+  void (e.rescan ? autoRefresh(() => refresh(false)) : relistLevels(e.folders));
+}).catch((e) =>
   reportError("warning", e, "Live storage updates unavailable"),
 );
 
@@ -89,15 +108,28 @@ onUiRequest((r) => void answerAgent(views, r)).catch((e) => reportError("warning
 
 installDebugLog();
 
-void init().then(() => {
+void init().then((ready) => {
   if (state.settings.debugLogging) void startDebugLog();
   startBackups();
   startIdleRefresh(() => refresh(false));
   startExtensions();
-  if (state.settings.startView !== "continue") {
+  // Continuing where the user left off keeps the last view; the default view is for a fresh start and new windows.
+  if (state.settings.startView !== "continue" && state.settings.onLaunch !== "continue") {
     views.switchTo(state.settings.startView);
     toolbar.render();
   }
   views.current().focus();
+  onTourStart({
+    prepare: () => {
+      views.switchTo("columns");
+      toolbar.render();
+    },
+    currentView: () => views.current().id,
+    showView: (id) => {
+      views.switchTo(id);
+      toolbar.render();
+    },
+  });
+  if (ready && !tourSeen()) void startTour();
   if (state.settings.autoUpdate) void checkForUpdates();
 });

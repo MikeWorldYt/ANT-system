@@ -27,11 +27,6 @@ pub(super) struct Entry {
     pub(super) file: bool,
 }
 
-// A folder on disk with no database entry, and not a review link.
-pub(super) fn is_unmanaged(entry: &Entry) -> bool {
-    entry.on_disk && !entry.in_yaml && entry.link.is_none() && !entry.file
-}
-
 pub(super) fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>> {
     let disk_dir = join_rel(root, parent);
     let disk = if disk_dir.is_dir() { list_subdirs(&disk_dir)? } else { Vec::new() };

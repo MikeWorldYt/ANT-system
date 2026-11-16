@@ -1,4 +1,4 @@
-// Grid, List and Cards views: the contents of one folder as large icons, plain rows or icons with details, entered with double click or Enter.
+// Grid, List, Details and Cards views: the contents of one folder as large icons, plain rows, rows with columns or icons with details, entered with double click or Enter.
 import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "../../organisms/menus/context-menu";
 import { el } from "../../dom";
 import { folderIcon } from "../../atoms/icons";
@@ -18,8 +18,9 @@ import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
+import { detailCells, detailsHeader, fileKind } from "./details-cells";
 
-function createFolderView(id: string, label: string, rootClass: string, detail?: (n: TreeNode) => string): ViewMode {
+function createFolderView(id: string, label: string, rootClass: string, detail?: (n: TreeNode) => string, columns = false): ViewMode {
   const root = el("div", { class: rootClass, role: "listbox", "aria-label": "Folder contents" });
   const loading = new Set<string>();
   // Key of the folder being shown; null is the Storage root.
@@ -88,6 +89,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
     if (n.important) art.append(importantMark());
     if (n.status) art.append(statusMark(n.status));
     const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, detail ? el("div", { class: "card-text" }, nameCell(n, false), el("span", { class: "card-detail" }, detail(n))) : nameCell(n, false));
+    if (columns) item.append(...detailCells(n));
     markNodeItem(item, n);
     item.prepend(...manageBox(n, item));
     onItemClick(item, n, () => shownNodes().map((s) => keyOf(s.relParts)), () => select(n.relParts));
@@ -188,7 +190,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       const open = folderNode();
       const empty = nodes.length === 0 && open !== null && open.children !== null;
       const legend = listing && nodes.length === 0 ? listing.empty : empty ? "Empty" : null;
-      const header = isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : [];
+      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns && !listing ? [detailsHeader(folder ?? "")] : [])];
       // The open entry heads its own list, so the grid tells where it is.
       const entryOptions = { tabbable: entryTabbable };
       const items = nodes.map((n) => buildItem(n, n === tabbable));
@@ -210,11 +212,6 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
 }
 
 export const createGridView = () => createFolderView("grid", "Grid", "grid");
-function fileKind(n: TreeNode): string {
-  if (!n.file) return "Folder";
-  const dot = n.name.lastIndexOf(".");
-  return dot > 0 ? `${n.name.slice(dot + 1).toUpperCase()} file` : "File";
-}
-
 export const createCardsView = () => createFolderView("cards", "Cards", "grid cards", fileKind);
 export const createListView = () => createFolderView("list", "List", "grid list");
+export const createDetailsView = () => createFolderView("details", "Details", "grid list details", undefined, true);

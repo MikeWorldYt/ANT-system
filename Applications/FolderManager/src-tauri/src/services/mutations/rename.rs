@@ -46,13 +46,14 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
     let mut journal = Journal::new();
     journal.rename(&target.abs, &new_abs)?;
     rename_key(&mut data, parent, old_name, &new_name);
-    let warnings = cascade_linked(&mut journal, &mut data, &new_abs, &new_rel, old_name, &new_name);
+    let mut warnings = cascade_linked(&mut journal, &mut data, &new_abs, &new_rel, old_name, &new_name);
     if let Some(node) = get_node_mut(&mut data, &new_rel) {
         if type_base(node.get("type").and_then(Value::as_str).unwrap_or("")) != "WKB" {
             node.remove("status");
         }
     }
     persist(root, &data, journal, "rename", &scope(&synced, vec![rel.to_vec(), new_rel.clone()]))?;
+    warnings.extend(crate::services::automations::dictionary::rename_node_refs(root, parent, editable_part(old_name), editable_part(&new_name)));
     let m = finish(root, &data, false, Some(new_rel.clone()), warnings, scope(&synced, vec![rel.to_vec(), new_rel]));
     Ok(m.replacing(before))
 }

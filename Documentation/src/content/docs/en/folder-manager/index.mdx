@@ -9,7 +9,7 @@ Folder Manager (ANT System Manager) is the desktop app to browse an ANT storage,
 ## Install and open
 
 1. Download the file for your system from the [Downloads page](/en/start-here/download).
-2. **Windows:** run `FolderManager.exe`. **Linux and macOS:** extract the `.tar.gz` and run the file inside.
+2. **Installer:** run `FolderManager_installer.exe` (Windows), the `.deb` (Linux) or the `.dmg` (macOS). **Portable:** run `FolderManager_portable.exe`, or extract the `.tar.gz` and run the file inside.
 3. The app needs an ANT storage: a folder that holds `999.Settings`. If you do not have one yet, see [Getting Started](/en/start-here/getting-started).
 
 <ImagePlaceholder label="Screenshot: Install and open" />
@@ -19,12 +19,14 @@ Folder Manager (ANT System Manager) is the desktop app to browse an ANT storage,
 At launch the app picks where to look in this order, and the first one that applies wins:
 
 1. A folder path passed to the app as its first argument.
-2. The storage it remembered the last time it opened, kept per copy of the app outside your storage.
-3. The folder the app was started from, if that folder or its parent holds `999.Settings`.
-4. The folder where the executable lives.
+2. The storage that holds the executable, for a portable copy placed inside one.
+3. The storage it remembered the last time it opened, kept per copy of the app outside your storage.
+4. The folder the app was started from, if that folder or its parent holds `999.Settings`.
 
-From that start folder the app takes the folder itself, or its parent, as the root when it holds `999.Settings`. If it finds nothing, or the database cannot be read, it asks what to do:
+If it finds no storage, the **Storages** screen opens: pick one you opened before, open an existing storage folder, or create a new empty one. On Windows a new storage goes on a drive you choose; on the system drive it lands in your user folder. Each storage in the list has a menu to rename, move, show it in the file explorer or remove it from the list. You can reach the same screen later from **Settings → Storage → Switch**.
 
-- **Change path:** type the full path of the storage folder.
+If the database cannot be read, the app asks what to do:
+
+- **Other Storage:** open the Storages screen.
 - **Scan Storage:** read the folders on disk again. An unreadable `ant.db` is moved aside first.
 - **Use backup:** shown when the database is gone and a backup exists in the default backup folder. See [Backups](/en/folder-manager/backups).

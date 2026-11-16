@@ -3,6 +3,7 @@ pub mod changes;
 pub mod core_dir;
 pub mod db;
 pub mod info;
+pub mod known;
 pub mod location;
 pub mod pointer;
 pub mod recovery;

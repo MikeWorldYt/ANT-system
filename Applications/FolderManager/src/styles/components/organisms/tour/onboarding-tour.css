@@ -1,0 +1,42 @@
+/* First-run tour: a spotlight cut out of a dim layer and a tooltip pointing at it. */
+.tour-spot { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 900; pointer-events: none; }
+.tour-dim { fill: rgba(0, 0, 0, 0.55); fill-rule: evenodd; }
+.tour-rim { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.tour-tip { position: fixed; z-index: 903; width: 300px; padding: 16px; border-radius: var(--radius-md); background: var(--bg); color: var(--text); box-shadow: var(--shadow-pop); border: 1px solid var(--border); transition: left 0.25s ease, top 0.25s ease; }
+.tour-tip h2 { margin: 0 0 6px; font-size: 11pt; color: var(--title); }
+.tour-text { margin: 0 0 14px; line-height: 1.4; }
+.tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tour-actions .btn[hidden] { display: none; }
+.tour-skip { background: none; border: none; padding: 0; color: var(--muted); cursor: pointer; font: inherit; font-size: 9pt; }
+.tour-skip:hover, .tour-skip:focus-visible { color: var(--text); text-decoration: underline; }
+.tour-arrow { position: absolute; width: 12px; height: 12px; background: var(--bg); border: 1px solid var(--border); transform: rotate(45deg); }
+.tour-tip[data-side="top"] .tour-arrow { top: -7px; left: calc(var(--arrow) - 6px); border-right: none; border-bottom: none; }
+.tour-tip[data-side="left"] .tour-arrow { left: -7px; top: calc(var(--arrow) - 6px); border-right: none; border-top: none; }
+.tour-tip[data-side="right"] .tour-arrow { right: -7px; top: calc(var(--arrow) - 6px); border-left: none; border-bottom: none; }
+@media (prefers-reduced-motion: reduce) { .tour-tip { transition: none; } }
+.tour-shield { position: fixed; inset: 0; z-index: 899; }
+/* A menu the highlighted control opens stays usable above the shields. */
+body.touring .ctx-menu, body.touring .view-segment, body.touring .search-results { z-index: 902; }
+body.touring .tour-point { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-md); }
+body.tour-restrict .ctx-menu .ctx-item:not(.tour-allow), body.tour-restrict dialog[open] .dialog-buttons .btn:not(.tour-allow):not([value="cancel"]) { pointer-events: none; opacity: 0.4; }
+.tour-tip h2 { padding: 0; text-indent: 0; }
+/* The pretend file explorer the tour drags files from. */
+.fx-window { position: fixed; z-index: 904; right: 330px; top: 130px; width: 320px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg); box-shadow: var(--shadow-pop); overflow: hidden; }
+.fx-title { cursor: move; touch-action: none; user-select: none; display: flex; justify-content: space-between; padding: 8px 12px; background: var(--field-bg); color: var(--text); font-size: 9pt; }
+.fx-controls { color: var(--muted); letter-spacing: 6px; }
+.fx-list { list-style: none; margin: 0; padding: 6px; display: grid; gap: 2px; align-content: start; height: 150px; }
+.fx-file { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--radius-md); cursor: grab; }
+.fx-file:hover { background: var(--highlight); }
+.fx-icon { width: 22px; height: 22px; }
+.fx-name { flex: 1; }
+.fx-size { color: var(--muted); font-size: 9pt; }
+.fx-file { touch-action: none; user-select: none; }
+.fx-ghost { position: fixed; z-index: 905; pointer-events: none; padding: 4px 10px; border-radius: var(--radius-md); background: var(--field-bg); border: 1px solid var(--border); color: var(--text); font-size: 9pt; box-shadow: var(--shadow-pop); }
+.fx-ghost.is-over { border-color: var(--accent); color: var(--title); }
+.fx-hint { position: fixed; left: 0; top: 0; z-index: 905; pointer-events: none; display: flex; align-items: flex-start; gap: 2px; }
+.fx-hint .fx-ghost { position: static; margin-top: 14px; }
+.fx-cursor { width: 22px; height: 22px; fill: #fff; stroke: #000; stroke-width: 1.2; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); }
+@media (prefers-reduced-motion: reduce) { .fx-hint { display: none; } }
+.tour-tip[data-side="bottom"] .tour-arrow { bottom: -7px; left: calc(var(--arrow) - 6px); border-left: none; border-top: none; }
+.tour-tip[data-side="none"] .tour-arrow { display: none; }
+.tour-count { flex: 1; text-align: right; color: var(--muted); font-size: 9pt; }

@@ -25,3 +25,17 @@
 .details-panel[hidden], .side-rail[hidden], .side-section[hidden] { display: none; }
 .side-preview { min-width: 0; overflow: hidden; }
 .side-preview img, .side-preview video { display: block; width: 100%; max-width: 100%; height: auto; max-height: 240px; object-fit: contain; border-radius: var(--radius-md); background: var(--input-bg); }
+/* Automatic run: a box apart from the automation picks, so its state reads at a glance and can be stopped from there. */
+.automation-auto { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: var(--radius-md); }
+.automation-auto-state { color: var(--accent); font-size: 9pt; }
+.automation-auto-list { margin: 0; padding-left: 18px; color: var(--muted); font-size: 9pt; overflow-wrap: anywhere; }
+.automation-auto-actions { display: flex; gap: 6px; }
+.automation-auto-actions .side-action { flex: 1; }
+.side-action.accent.automation-run-auto, .automation-run-auto .side-action-icon, .automation-run-auto .side-action-label { color: var(--st-review); }
+.automation-dictionary { margin-bottom: 6px; }
+.automation-auto[hidden] { display: none; }
+.automation-batch { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-md); }
+.automation-batch[hidden] { display: none; }
+.automation-batch .side-action.automation-run-small { padding: 3px 6px; font-size: 8.5pt; }
+.automation-batch .automation-run-small .side-action-icon .gui-icon { width: 12px; height: 12px; }
+.automation-batch label:last-of-type { margin-bottom: 4px; }

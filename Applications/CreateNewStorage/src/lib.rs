@@ -1,4 +1,4 @@
-// Creates a new ANT Storage from the ant.db template; shared by the CLI and any future front end.
+// Creates a new ANT Storage from the Markdown template; shared by the CLI and any future front end.
 mod config;
 mod create;
 mod downloads;
@@ -6,8 +6,9 @@ mod fetch;
 mod fs_ops;
 mod info;
 mod name;
+mod overwrite;
 mod plan;
-mod sqlite;
+mod sha256;
 mod template;
 mod tree_types;
 #[cfg(test)]
@@ -15,7 +16,7 @@ mod test_dir;
 #[cfg(test)]
 mod tests;
 
-pub use create::{create, load_template, CreateOptions, Progress};
+pub use create::{create, load_template, Confirm, CreateOptions, Progress};
 pub use name::sanitize_name;
 pub use plan::{plan, PlanNode};
 

@@ -1,12 +1,13 @@
 // Fixed folder names, tree layout rules and update endpoints shared by the core modules.
 use serde::{Deserialize, Serialize};
 
-pub const VERSION_URL: &str =
-    "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Applications/FolderManager/version.txt";
-pub const EXE_DOWNLOAD_URL: &str =
-    "https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe";
-pub const UPDATER_SCRIPT: &str = "FM_Updater.bat";
-pub const UPDATER_SCRIPT_URL: &str = "https://raw.githubusercontent.com/MikeWorldYt/ANT-system/main/Migration/Core/FM_Updater.bat";
+// The build-apps workflow publishes each version as the release `folder-manager-v<version>`, then points this channel at its latest.json.
+pub const LATEST_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/download/folder-manager-latest/latest.json";
+pub const RELEASE_APP: &str = "FolderManager";
+pub const RELEASE_API_URL: &str = "https://api.github.com/repos/MikeWorldYt/ANT-system/releases/tags/";
+pub const RELEASE_DOWNLOAD_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/download/";
+pub const RELEASE_TAG_PREFIX: &str = "folder-manager-";
+pub const INSTALLER_ASSET: &str = "FolderManager_installer.exe";
 
 // Legacy root folders: still read and recognised, never created.
 pub const SETTINGS_FOLDER: &str = "999.Settings";
@@ -31,6 +32,14 @@ pub const DATA_FLAG: &str = "data";
 // A hidden folder stays in the storage but is not listed, searched or read.
 pub const HIDDEN_FLAG: &str = "hidden";
 pub const MAIN_FLAG: &str = "main";
+// A review folder with one of these runs that automation on every file that lands in it.
+pub const AUTO_REDUCE_FLAG: &str = "auto-reduce";
+pub const AUTO_SORT_FLAG: &str = "auto-sort";
+pub const AUTO_GROUP_FLAG: &str = "auto-group";
+pub const AUTO_ADD_DATE_FLAG: &str = "auto-add-date";
+// Removing a date wins over adding one when a review folder has both.
+pub const AUTO_REMOVE_DATE_FLAG: &str = "auto-remove-date";
+pub const AUTO_REMOVE_SYMBOLS_FLAG: &str = "auto-remove-symbols";
 pub const WKB_IDENTIFIERS: &[&str] = &["PJ.", "PR.", "HW.", "CR.", "TK."];
 // Support nodes: the word prefix, the numeric one older storages still use, and the type it gives.
 pub const SUPPORT_NODES: &[(&str, &str, &str)] = &[("RES.", "90.", "RES"), ("TPL.", "97.", "TPL"), ("REV.", "98.", "REV")];

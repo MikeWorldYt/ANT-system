@@ -116,6 +116,8 @@ pub(crate) fn same_name(a: &str, b: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use proptest::prelude::*;
+
     use super::*;
     use crate::test_support::{rel, TempDir};
 
@@ -178,26 +180,6 @@ mod tests {
     }
 
     #[test]
-    fn rejects_forbidden_and_control_characters() {
-        for name in ["a/b", "a\\b", "a:b", "a*", "a?", "a\"", "a<", "a>", "a|", "a\0b", "a\tb"] {
-            assert!(validate_component(name).is_err(), "{name:?} should be rejected");
-        }
-    }
-
-    #[test]
-    fn rejects_trailing_dot_or_space() {
-        assert!(validate_component("name.").is_err());
-        assert!(validate_component("name ").is_err());
-    }
-
-    #[test]
-    fn rejects_device_names_in_any_case_and_with_extension() {
-        for name in ["CON", "con", "Nul.txt", "COM1", "lpt9.log", "aux.tar.gz"] {
-            assert!(validate_component(name).is_err(), "{name:?} should be rejected");
-        }
-    }
-
-    #[test]
     fn name_limit_counts_utf16_units() {
         assert!(validate_component(&"a".repeat(256)).is_err());
         assert!(validate_component(&"é".repeat(255)).is_ok());
@@ -242,5 +224,59 @@ mod tests {
         let meta = fs::symlink_metadata(&link).unwrap();
         assert!(redirects(&link, &meta).unwrap());
         fs::remove_dir(&link).unwrap();
+    }
+
+    fn bad_char() -> impl Strategy<Value = char> {
+        prop_oneof![prop::sample::select(FORBIDDEN.to_vec()), prop::char::range('\0', '\u{1f}'), prop::char::range('\u{7f}', '\u{9f}')]
+    }
+
+    fn part() -> impl Strategy<Value = String> {
+        let tricky = ["..", ".", "", "a/b", "a\\b", "C:", "C:\\Windows", "\\\\server", ".ant-trash", ".ANT-Trash", "con", "Nul.txt", "x.", "x "];
+        prop_oneof![4 => "[A-Za-z0-9][A-Za-z0-9 ._-]{0,12}[A-Za-z0-9]", 1 => prop::sample::select(tricky.to_vec()).prop_map(String::from)]
+    }
+
+    proptest! {
+        #[test]
+        fn a_name_holding_a_forbidden_or_control_character_is_refused(head in ".{0,10}", bad in bad_char(), tail in ".{0,10}") {
+            let name = format!("{head}{bad}{tail}");
+            prop_assert!(validate_component(&name).is_err(), "{:?}", name);
+        }
+
+        #[test]
+        fn a_trailing_dot_or_space_is_refused(name in ".{0,20}", end in prop::sample::select(vec!['.', ' '])) {
+            let name = format!("{name}{end}");
+            prop_assert!(validate_component(&name).is_err(), "{:?}", name);
+        }
+
+        #[test]
+        fn device_names_are_refused_in_any_case_and_with_any_extension(device in prop::sample::select(RESERVED_DEVICES.to_vec()), upper in prop::collection::vec(any::<bool>(), 4), ext in "([.][A-Za-z0-9]{1,4}){0,2}") {
+            let cased: String = device.chars().zip(&upper).map(|(c, up)| if *up { c.to_ascii_uppercase() } else { c.to_ascii_lowercase() }).collect();
+            let name = format!("{cased}{ext}");
+            prop_assert!(validate_component(&name).is_err(), "{:?}", name);
+        }
+
+        #[test]
+        fn plain_names_within_the_limit_are_accepted(name in "[A-Za-z0-9\u{f1}\u{e9}_-][A-Za-z0-9\u{f1}\u{e9} _.-]{0,200}[A-Za-z0-9\u{f1}\u{e9}_-]") {
+            prop_assume!(!RESERVED_DEVICES.iter().any(|d| d.eq_ignore_ascii_case(name.split('.').next().unwrap_or(&name))));
+            prop_assert!(validate_component(&name).is_ok(), "{:?}", name);
+        }
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(64))]
+
+        #[test]
+        fn resolve_stays_inside_the_storage_and_refuses_any_bad_part(parts in prop::collection::vec(part(), 0..5)) {
+            let dir = TempDir::new("resolve-prop");
+            let valid = parts.iter().all(|p| validate_component(p).is_ok() && !is_hidden_dir(p));
+            match resolve(dir.path(), &parts) {
+                Ok(path) => {
+                    prop_assert!(valid, "{:?}", parts);
+                    prop_assert!(path.starts_with(dir.path()));
+                    prop_assert_eq!(path.components().count(), dir.path().components().count() + parts.len());
+                }
+                Err(e) => prop_assert!(!valid && matches!(e, FmError::InvalidPath { .. }), "{:?} gave {:?}", parts, e),
+            }
+        }
     }
 }

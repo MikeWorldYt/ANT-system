@@ -1,7 +1,7 @@
 // Before the tree loads: offers the way out when the Storage has no usable database or cannot be found.
 import * as api from "../services/ipc/api";
 import { choiceDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
-import { promptDialog } from "../components/organisms/dialogs/action-dialog/form-dialog";
+import { storagePicker } from "../components/organisms/dialogs/storage-picker/storage-picker";
 import { setStatus, reportError } from "../components/organisms/bars/status-line";
 import { localStamp } from "../services/stamp";
 
@@ -14,18 +14,6 @@ async function followNewPath(): Promise<void> {
   } catch (e) {
     reportError("warning", e, "Scheduled tasks");
   }
-}
-
-async function changePath(current: string): Promise<void> {
-  const typed = await promptDialog("Change path", "Full path of the Storage folder.", current, "Use this path");
-  if (typed === null || typed === "") return;
-  try {
-    await api.changeStoragePath(typed);
-  } catch (e) {
-    reportError("error", e);
-    return;
-  }
-  await followNewPath();
 }
 
 async function scan(): Promise<boolean> {
@@ -65,22 +53,29 @@ export async function checkStorage(): Promise<boolean> {
       else return false;
       continue;
     }
-    const noDatabase = health.state === "noDatabase";
+    if (health.state === "notFound") {
+      const picked = await storagePicker(null, true);
+      if (!picked) {
+        setStatus("warning", `No Storage found at ${health.path}`);
+        return false;
+      }
+      await followNewPath();
+      if (picked === "created") return scan();
+      continue;
+    }
     const choice = await choiceDialog(
-      noDatabase ? "Database problem" : "Storage not found",
-      noDatabase
-        ? `I found no usable database and no backup. Scan Storage builds one if it is missing or damaged, and keeps one that is only locked or from a newer version.\n\nPath: ${health.path}`
-        : `Hmm, it looks like ANT has not been initialized or the Storage is wrong.\n\nPath: ${health.path}`,
+      "Database problem",
+      `I found no usable database and no backup. Scan Storage builds one if it is missing or damaged, and keeps one that is only locked or from a newer version.\n\nPath: ${health.path}`,
       [
-        ["change", "Change path"],
+        ["switch", "Other Storage"],
         ["scan", "Scan Storage"],
       ],
     );
-    if (choice === "change") await changePath(health.path);
-    else if (choice === "scan") {
-      if (noDatabase) return scan();
-      setStatus("warning", `No Storage found at ${health.path}`);
-      return false;
-    } else return false;
+    if (choice === "scan") return scan();
+    if (choice !== "switch") return false;
+    const picked = await storagePicker(health.path);
+    if (!picked) return false;
+    await followNewPath();
+    if (picked === "created") return scan();
   }
 }

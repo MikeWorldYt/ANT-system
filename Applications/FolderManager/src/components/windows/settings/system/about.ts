@@ -4,6 +4,7 @@ import { checkForUpdates, type UpdateOutcome } from "../../../../hooks/updates";
 import { openLink } from "../../../../services/ipc/api";
 import { state } from "../../../../services/store/state";
 import { reportError } from "../../../organisms/bars/status-line";
+import { startTour } from "../../../organisms/tour/onboarding-tour";
 import { buttonControl } from "../../../atoms/button";
 import { pathControl, valueControl } from "../../../atoms/label";
 import { switchControl } from "../../../atoms/switch";
@@ -36,6 +37,17 @@ export const aboutPage: SettingsPage = {
     { title: "App", control: () => valueControl("ANT System Manager") },
     { title: "Version", control: () => valueControl(ctx.storage?.appVersion ?? "Unknown") },
     { title: "Storage", control: () => pathControl(ctx.storage?.root ?? "Unknown") },
+    {
+      title: "Tutorial",
+      description: "Walk through the basic controls again.",
+      control: () => {
+        const button = buttonControl("Show tutorial", () => {
+          button.closest("dialog")?.close();
+          void startTour();
+        }, "outline");
+        return button;
+      },
+    },
     {
       title: "Updates",
       description: "Look for a newer version.",

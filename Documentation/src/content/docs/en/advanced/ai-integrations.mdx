@@ -91,6 +91,7 @@ Read tools never take the storage lock and never write.
 | `search_folders` | Folders whose names or fields match the query, from the index or by walking the disk. | `query`, `disk` |
 | `search_files` | Files whose names hold every word of the query. | `query` |
 | `suggest_search` | Completions for a `key:` filter, as in the app's search box. | `key`, `prefix` |
+| `get_dictionary` | A folder's own [dictionary](/en/advanced/automations#dictionaries) entries and the ones it inherits. | `relParts` |
 
 ### Write
 
@@ -114,6 +115,7 @@ Write tools take the storage lock for each change and update the indexes, as the
 | `set_board` | Places workboards in the task board columns and order. | `cards` |
 | `rename_file` | Renames a file inside a storage folder, extension included. | `relParts`, `name` |
 | `delete_file` (destructive) | Sends a file to the Recycle Bin. | `relParts` |
+| `set_dictionary` | Replaces a folder's [dictionary](/en/advanced/automations#dictionaries) file from structured entries. Safe to repeat; send `[]` to empty it. The path must be a folder inside the storage. | `relParts`, `entries` (required) |
 
 `delete` and `delete_file` never delete for good. A folder that holds files or folders is refused with their count unless the call includes `confirmNonEmpty: true`. `expectGhost` is for forgetting a folder that is missing on disk and must match what `get_node` reports.
 
@@ -121,7 +123,7 @@ Each write answers with a short note of what changed, the folders to read again 
 
 ### Review automation
 
-These work on the loose files of a review folder, such as `998.Review`.
+These work on the loose files of a review folder, such as `REV.<Title>` (older storages use `98.`). For the rest of the automations, see [Automations](/en/advanced/automations).
 
 | Tool | What it does | Arguments |
 | --- | --- | --- |
@@ -140,6 +142,14 @@ These act on the open window and only when the client calls them. They need Fold
 | `ui_open_tab` | Opens a new tab on a folder, or on the root without `relParts`. | `relParts` |
 | `ui_split` | Opens the split pane; with `relParts` it opens that folder there. | `relParts` |
 | `ui_set_view` | Switches the active pane to `cards`, `tree`, `columns`, `grid` or `list`. | `view` |
+
+## Built-in guide
+
+The server teaches the client how ANT works, so you do not have to explain it in every chat.
+
+- **On connect:** it sends short ANT basics as MCP `instructions`.
+- **On demand:** it exposes the resource `ant://guide` (the basics and an index) and one per topic: `ant://guide/model`, `ant://guide/review`, `ant://guide/dictionary`, `ant://guide/workboards` and `ant://guide/safety`.
+- **Read only what is needed:** an agent lists the resources (`resources/list`) and reads just the topic it needs (`resources/read`).
 
 ## Safety
 

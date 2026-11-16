@@ -1,0 +1,296 @@
+// Finds which dictionary entry a file name belongs to, by words, extension or pattern, and tidies the name inside its folder.
+use std::collections::HashSet;
+
+use super::dictionary::Entry;
+
+const SHORT_TERM: usize = 4;
+const SEPARATORS: &[char] = &[' ', '_', '-', '.'];
+
+// One char in, one char out, so spans found on the folded text stay valid on the name.
+fn fold(c: char) -> char {
+    let lower = c.to_lowercase().next().unwrap_or(c);
+    match lower {
+        'á' | 'à' | 'ä' | 'â' | 'ã' => 'a',
+        'é' | 'è' | 'ë' | 'ê' => 'e',
+        'í' | 'ì' | 'ï' | 'î' => 'i',
+        'ó' | 'ò' | 'ö' | 'ô' | 'õ' => 'o',
+        'ú' | 'ù' | 'ü' | 'û' => 'u',
+        'ñ' => 'n',
+        'ç' => 'c',
+        other => other,
+    }
+}
+
+struct Token {
+    text: String,
+    start: usize,
+    end: usize,
+}
+
+// Runs of letters and digits; spans are byte offsets.
+fn coarse(text: &str) -> Vec<Token> {
+    let mut out: Vec<Token> = Vec::new();
+    let mut open: Option<usize> = None;
+    for (i, c) in text.char_indices().chain(std::iter::once((text.len(), ' '))) {
+        match (c.is_alphanumeric(), open) {
+            (true, None) => open = Some(i),
+            (false, Some(start)) => {
+                out.push(Token { text: text[start..i].chars().map(fold).collect(), start, end: i });
+                open = None;
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+#[derive(PartialEq, Clone, Copy)]
+enum Kind {
+    Upper,
+    Lower,
+    Digit,
+    Other,
+}
+
+fn kind(c: char) -> Kind {
+    if c.is_ascii_digit() {
+        Kind::Digit
+    } else if c.is_uppercase() {
+        Kind::Upper
+    } else if c.is_lowercase() {
+        Kind::Lower
+    } else {
+        Kind::Other
+    }
+}
+
+// "BlueArchive" reads as blue + archive and "HTMLPage" as html + page, as the words a name joins.
+fn fine(text: &str) -> Vec<Token> {
+    let mut out = Vec::new();
+    for word in coarse(text) {
+        let chars: Vec<(usize, char)> = text[word.start..word.end].char_indices().map(|(i, c)| (i + word.start, c)).collect();
+        let mut start = 0;
+        for i in 1..=chars.len() {
+            let split = i == chars.len() || {
+                let (a, b) = (kind(chars[i - 1].1), kind(chars[i].1));
+                let next_lower = chars.get(i + 1).is_some_and(|&(_, c)| kind(c) == Kind::Lower);
+                (a != b && !(a == Kind::Upper && b == Kind::Lower)) || (a == Kind::Upper && b == Kind::Upper && next_lower)
+            };
+            if split {
+                let (s, e) = (chars[start].0, chars.get(i).map_or(word.end, |&(p, _)| p));
+                out.push(Token { text: text[s..e].chars().map(fold).collect(), start: s, end: e });
+                start = i;
+            }
+        }
+    }
+    out
+}
+
+fn find_run(tokens: &[Token], key: &[String]) -> Vec<(usize, usize)> {
+    if key.is_empty() || key.len() > tokens.len() {
+        return Vec::new();
+    }
+    tokens.windows(key.len()).filter(|w| w.iter().zip(key).all(|(t, k)| t.text == *k)).map(|w| (w[0].start, w[w.len() - 1].end)).collect()
+}
+
+// A short term hides inside hashes ("ba3f"), so it only counts as a whole word or written in capitals.
+fn short_ok(stem: &str, (s, e): (usize, usize), words: &[Token]) -> bool {
+    words.iter().any(|w| w.start == s && w.end == e) || stem[s..e].chars().all(|c| !c.is_lowercase())
+}
+
+// `only` is literal: case and symbols must match as written, and only as a whole word.
+fn find_strict(stem: &str, term: &str) -> Option<(usize, usize)> {
+    let free = |c: Option<char>| c.is_none_or(|c| !c.is_alphanumeric());
+    stem.match_indices(term).map(|(s, _)| (s, s + term.len())).find(|&(s, e)| free(stem[..s].chars().next_back()) && free(stem[e..].chars().next()))
+}
+
+pub fn find_term(stem: &str, term: &str) -> Option<(usize, usize)> {
+    let words = coarse(stem);
+    let parts = fine(stem);
+    let split: Vec<String> = fine(term).into_iter().map(|t| t.text).collect();
+    let joined: Vec<String> = coarse(term).into_iter().map(|t| t.text).collect();
+    let short = split.iter().map(|t| t.chars().count()).sum::<usize>() < SHORT_TERM;
+    find_run(&parts, &split).into_iter().chain(find_run(&words, &joined)).find(|&span| !short || short_ok(stem, span, &words))
+}
+
+pub fn split_ext(name: &str) -> (&str, &str) {
+    match name.rfind('.') {
+        Some(dot) if dot > 0 => (&name[..dot], &name[dot..]),
+        _ => (name, ""),
+    }
+}
+
+fn longest<'a>(stem: &str, terms: &'a [String], find: fn(&str, &str) -> Option<(usize, usize)>) -> Option<usize> {
+    terms.iter().filter(|t| find(stem, t).is_some()).map(|t| t.len()).max()
+}
+
+// The longest matched term wins, so "Genshin Impact" beats a stray "ba"; an extension or pattern only decides when no term matched.
+pub fn classify<'a>(entries: &'a [Entry], file: &str) -> Option<&'a Entry> {
+    let (stem, ext) = split_ext(file);
+    let ext = ext.to_lowercase();
+    let by_term = entries
+        .iter()
+        .filter_map(|e| [longest(stem, &e.terms, find_term), longest(stem, &e.topics, find_term), longest(stem, &e.derived.iter().map(|(f, _)| f.clone()).collect::<Vec<_>>(), find_term), longest(stem, &e.only, find_strict)].into_iter().flatten().max().map(|len| (e, len)))
+        .max_by_key(|&(_, len)| len)
+        .map(|(e, _)| e);
+    by_term.or_else(|| entries.iter().find(|e| e.exts.contains(&ext) || e.patterns.iter().any(|p| p.is_match(stem))))
+}
+
+// Drops a span with the separators around it, joining what is left with the separator it had, as in "WAL_sensei-come" to "WAL_come".
+fn drop_span(stem: &str, s: usize, e: usize) -> Option<String> {
+    let left = stem[..s].trim_end_matches(SEPARATORS);
+    let right = stem[e..].trim_start_matches(SEPARATORS);
+    let joint = stem[left.len()..s].chars().next().or_else(|| stem[e..].chars().next().filter(|c| SEPARATORS.contains(c))).unwrap_or(' ');
+    match (left.is_empty(), right.is_empty()) {
+        (true, true) => None,
+        (true, false) => Some(right.to_string()),
+        (false, true) => Some(left.to_string()),
+        (false, false) => Some(format!("{left}{joint}{right}")),
+    }
+}
+
+// Every occurrence goes; a cut that would leave the name empty keeps it whole.
+fn cut_all(name: &str, span: impl Fn(&str) -> Option<(usize, usize)>) -> String {
+    let mut name = name.to_string();
+    loop {
+        let (stem, ext) = split_ext(&name);
+        let Some(rest) = span(stem).and_then(|(s, e)| drop_span(stem, s, e)) else { return name };
+        name = format!("{rest}{ext}");
+    }
+}
+
+// Each word of the topics stays where it first shows and leaves where it repeats: "mika-misono-mika-ixss" reads "mika-misono-ixss".
+fn dedupe_topics(name: &str, topics: &[String]) -> String {
+    let words: HashSet<String> = topics.iter().flat_map(|t| fine(t)).map(|t| t.text).collect();
+    let (stem, ext) = split_ext(name);
+    let mut seen = HashSet::new();
+    let repeats: Vec<(usize, usize)> = fine(stem).into_iter().filter(|t| words.contains(&t.text) && !seen.insert(t.text.clone())).map(|t| (t.start, t.end)).collect();
+    let mut stem = stem.to_string();
+    for &(s, e) in repeats.iter().rev() {
+        match drop_span(&stem, s, e) {
+            Some(rest) => stem = rest,
+            None => break,
+        }
+    }
+    format!("{stem}{ext}")
+}
+
+// Terms, excluded words and pattern matches leave the name; topics stay once and `only` terms stay as they are.
+pub fn renamed(entry: &Entry, name: &str) -> String {
+    let mut name = name.to_string();
+    for term in entry.terms.iter().chain(&entry.exclude) {
+        name = cut_all(&name, |stem| find_term(stem, term));
+    }
+    for pattern in &entry.patterns {
+        name = cut_all(&name, |stem| pattern.find(stem).map(|m| (m.start(), m.end())));
+    }
+    let name = underived(&drop_empty_brackets(&name), &entry.derived);
+    tidy_runs(&topic_first(&titled_topics(&dedupe_topics(&name, &entry.topics), &entry.topics), &entry.topics))
+}
+
+// Each other form becomes its topic before the repeats are dropped, so "Sakuya-Izayoi_izayoi_sakuya" ends as one "Sakuya".
+fn underived(name: &str, derived: &[(String, String)]) -> String {
+    let (stem, ext) = split_ext(name);
+    let mut stem = stem.to_string();
+    let mut forms: Vec<&(String, String)> = derived.iter().collect();
+    // Longer forms first, so "Izayoi Sakuya" is not cut short by a shorter "Iza".
+    forms.sort_by_key(|(form, _)| std::cmp::Reverse(form.len()));
+    for (form, topic) in forms {
+        let mut from = 0;
+        while let Some((s, e)) = stem.get(from..).and_then(|rest| find_term(rest, form)) {
+            stem.replace_range(from + s..from + e, topic);
+            from += s + topic.len();
+        }
+    }
+    format!("{stem}{ext}")
+}
+
+// Cutting words out can leave "_~_" between what stays; such a run keeps one symbol, a dash or underscore when it has one.
+fn tidy_runs(name: &str) -> String {
+    let (stem, ext) = split_ext(name);
+    let is_mark = |c: char| SEPARATORS.contains(&c) || matches!(c, '~' | '+');
+    let mut out = String::new();
+    let mut run = String::new();
+    for c in stem.chars().chain(std::iter::once('\0')) {
+        if is_mark(c) {
+            run.push(c);
+            continue;
+        }
+        if !run.is_empty() {
+            out.push(if run.chars().count() > 1 { run.chars().find(|&r| matches!(r, '_' | '-')).or_else(|| run.chars().find(|&r| r != ' ')).unwrap_or(' ') } else { run.chars().next().unwrap_or(' ') });
+            run.clear();
+        }
+        if c != '\0' {
+            out.push(c);
+        }
+    }
+    format!("{}{ext}", out.trim_matches(|c: char| is_mark(c) && c != '.'))
+}
+
+// The storage names files "(date)-[owner]_topic-keywords (n)", so the first topic found moves right after the date and owner.
+fn topic_first(name: &str, topics: &[String]) -> String {
+    let (stem, ext) = split_ext(name);
+    let lead_end = lead_len(stem);
+    let first = topics.iter().filter_map(|t| find_term(&stem[lead_end..], t).map(|(s, e)| (s + lead_end, e + lead_end))).min_by_key(|&(s, _)| s);
+    let Some((s, e)) = first.filter(|&(s, _)| stem[lead_end..s].trim_matches(SEPARATORS).chars().any(char::is_alphanumeric)) else { return name.to_string() };
+    let topic = &stem[s..e];
+    let lead = stem[..lead_end].trim_end_matches(SEPARATORS);
+    let rest = drop_span(&stem[lead_end..], s - lead_end, e - lead_end).unwrap_or_default();
+    let rest = rest.trim_matches(SEPARATORS);
+    let head = if lead.is_empty() { topic.to_string() } else { format!("{lead}_{topic}") };
+    if rest.is_empty() { format!("{head}{ext}") } else { format!("{head}-{rest}{ext}") }
+}
+
+// A leading "(date)" and "[owner]", with the separators after them, already stand where they belong.
+fn lead_len(stem: &str) -> usize {
+    let mut end = 0;
+    for (open, close) in [('(', ')'), ('[', ']')] {
+        let rest = &stem[end..];
+        if rest.starts_with(open) {
+            if let Some(c) = rest.find(close) {
+                end += c + 1;
+                end += stem[end..].len() - stem[end..].trim_start_matches(SEPARATORS).len();
+            }
+        }
+    }
+    end
+}
+
+// "noa ushio" reads as "Noa-Ushio": each word capitalized, joined by dashes.
+fn train_case(topic: &str) -> String {
+    let words = topic.split([' ', '_', '-']).filter(|w| !w.is_empty()).map(|w| {
+        let mut chars = w.chars();
+        chars.next().map_or_else(String::new, |c| c.to_uppercase().chain(chars).collect())
+    });
+    words.collect::<Vec<_>>().join("-")
+}
+
+// The topics a name keeps are written alike everywhere, so "yuuka" and "noa ushio" become "Yuuka" and "Noa-Ushio".
+fn titled_topics(name: &str, topics: &[String]) -> String {
+    let (stem, ext) = split_ext(name);
+    let mut stem = stem.to_string();
+    for topic in topics {
+        let tidy = train_case(topic);
+        let mut from = 0;
+        while let Some((s, e)) = stem.get(from..).and_then(|rest| find_term(rest, topic)) {
+            stem.replace_range(from + s..from + e, &tidy);
+            from += s + tidy.len();
+        }
+    }
+    format!("{stem}{ext}")
+}
+
+// "chihiro (blue archive) 624658" loses its term and would keep a bare "( )".
+fn drop_empty_brackets(name: &str) -> String {
+    let (stem, ext) = split_ext(name);
+    let mut stem = stem.to_string();
+    for empty in ["( )", "()", "[ ]", "[]"] {
+        while let Some(s) = stem.find(empty) {
+            match drop_span(&stem, s, s + empty.len()) {
+                Some(rest) => stem = rest,
+                None => break,
+            }
+        }
+    }
+    format!("{stem}{ext}")
+}

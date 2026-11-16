@@ -1,11 +1,12 @@
 // Command-line front end: parses the flags, then previews or creates the storage.
-use std::path::PathBuf;
+use std::io::{IsTerminal, Write};
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use create_new_storage::{create, load_template, plan, sanitize_name, CreateOptions, Level, PlanNode};
 
 const HELP: &str = "\
-create-new-storage: build a new ANT Storage from the ant.db template.
+create-new-storage: build a new ANT Storage from a Markdown template.
 
 Usage:
   create-new-storage <path> [options]
@@ -17,9 +18,12 @@ Arguments:
 Options:
   --name <name>        Storage folder name, cleaned to Pascal_Snake_Case
                        (\"my storage\" becomes My_Storage).
-  --local-database <file>
-                       Use a local ant.db instead of downloading the official one.
-  --yes                Allow creating inside a folder that already exists.
+  --template <file>
+                       Use a local template.md instead of downloading the official one.
+  --yes                Allow creating inside a folder that already exists, without
+                       asking; files it replaces are listed first and restored if
+                       the run fails. Without it, an existing folder asks for
+                       confirmation (and is refused when there is no terminal).
   --dry-run            Print the folders that would be created and touch nothing.
   --no-folder-manager  Do not download FolderManager into the storage.
   -h, --help           Show this help.
@@ -28,11 +32,14 @@ Options:
 Examples:
   create-new-storage ~ --name \"My Storage\"
   create-new-storage D:\\ --name Work --dry-run
-  create-new-storage ./Store --local-database ant.db --no-folder-manager --yes
+  create-new-storage ./Store --template template.md --no-folder-manager --yes
 
 What it creates:
-  The folder tree from the template, .ant/ant.db with the storage database,
-  999.Settings/00.Core with the updater and FolderManager in the storage root.
+  The folder tree from the template; each category also gets REC.<NAME>,
+  RES.Resources, REV.<NAME> and SS.<NAME>; each subcategory and topic gets
+  REV.<NAME>. The root gets ANT.RECORDINGS and
+  ANT.SCREENSHOTS, .ant/ with template.md (a copy), and
+  FolderManager in the storage root. Up to 9 categories (100 to 900).
   If an essential step fails, only the folders made by this run are removed.
 
 Full reference: https://ant.mikeworld.dev/en/advanced/cli/";
@@ -54,7 +61,7 @@ fn parse_args() -> Result<Parsed, String> {
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--name" => name = Some(args.next().ok_or("--name needs a value")?),
-            "--local-database" => template = Some(args.next().ok_or("--local-database needs a value")?),
+            "--template" | "--local-database" => template = Some(args.next().ok_or("--template needs a value")?),
             "--yes" => yes = true,
             "--dry-run" => dry_run = true,
             "--no-folder-manager" => folder_manager = false,
@@ -78,7 +85,7 @@ fn parse_args() -> Result<Parsed, String> {
         Some(file) => Some(std::fs::read(&file).map_err(|e| format!("Could not read {file}: {e}"))?),
         None => None,
     };
-    Ok(Parsed::Run(Args { opts: CreateOptions { root, template, allow_existing: yes, download: true, folder_manager }, dry_run }))
+    Ok(Parsed::Run(Args { opts: CreateOptions { root, template, allow_existing: yes, download: true, folder_manager, confirm: std::io::stdin().is_terminal().then_some(ask as create_new_storage::Confirm) }, dry_run }))
 }
 
 fn print_plan(nodes: &[PlanNode], depth: usize) {
@@ -96,6 +103,17 @@ fn dry_run(opts: &CreateOptions) -> Result<(), String> {
         println!("\n{} already exists; a real run needs --yes", opts.root.display());
     }
     Ok(())
+}
+
+fn ask(root: &Path, files: &[PathBuf]) -> bool {
+    eprintln!("{} already exists.", root.display());
+    if !files.is_empty() {
+        eprintln!("These existing files will be overwritten (restored if the run fails):");
+        files.iter().for_each(|f| eprintln!("  {}", f.display()));
+    }
+    eprint!("Create inside it? [y/N] ");
+    let mut answer = String::new();
+    std::io::stderr().flush().is_ok() && std::io::stdin().read_line(&mut answer).is_ok() && matches!(answer.trim().to_lowercase().as_str(), "y" | "yes")
 }
 
 fn main() -> ExitCode {
@@ -123,10 +141,6 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         };
-    }
-    if opts.root.exists() && !opts.allow_existing {
-        eprintln!("{} already exists; pass --yes to create inside it", opts.root.display());
-        return ExitCode::FAILURE;
     }
     let mut print = |level: Level, msg: &str| match level {
         Level::Step => println!("\n{msg}"),

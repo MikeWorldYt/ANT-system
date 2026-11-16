@@ -1,0 +1,56 @@
+/* Graph view: NODE cards laid out left to right, with curves drawn in an SVG behind them. */
+/* Room past every edge, so the view can always scroll to hold the selected card still while the graph grows or shrinks. */
+.graph { position: relative; min-height: 100%; overflow: auto; outline-offset: -2px; padding: 50vh 50vw 50vh 24px; }
+.graph-stage { position: relative; width: max-content; }
+.graph-lines { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+.graph-lines path { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.graph-canvas { position: relative; width: max-content; }
+.graph-branch { display: flex; align-items: center; }
+.graph-kids { display: flex; flex-direction: column; gap: 10px; margin-left: 56px; }
+.graph-card { transition: transform 320ms ease, border-color 320ms ease; position: relative; display: flex; align-items: center; gap: 6px; min-width: 120px; max-width: 240px; padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); cursor: pointer; }
+.graph-card:hover { border-color: var(--button); }
+.graph-card.selected { border-color: var(--button); background: var(--highlight); }
+.graph:focus-visible .graph-card.selected { outline: 2px solid var(--button); outline-offset: 2px; }
+.graph-card.ghost .graph-name { color: var(--ghost-text); font-style: italic; }
+.graph-root { cursor: default; color: var(--muted); }
+.graph-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.graph-card[data-status="in-progress"] { border-color: var(--st-progress); }
+.graph-card[data-status="hold"] { border-color: var(--st-hold); }
+.graph-card[data-status="for-review"] { border-color: var(--st-review); }
+.graph-card[data-status="done"] { border-color: var(--st-done); }
+.graph-files { list-style: none; margin: 0; padding: 6px; min-width: 200px; max-width: 320px; max-height: 320px; overflow: auto; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); }
+.graph-file { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+.graph-file:hover { background: var(--highlight); }
+.graph-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.graph-file-empty { padding: 3px 6px; color: var(--muted); }
+@keyframes graph-breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@keyframes graph-glow { 0%, 100% { box-shadow: 0 0 3px 0 var(--button); } 50% { box-shadow: 0 0 10px 2px var(--button); } }
+.graph-card.on-path { border-color: var(--button); animation: graph-glow 2.4s ease-in-out infinite; }
+.graph-lines path.graph-path-lit { stroke: var(--button); stroke-width: 3; filter: drop-shadow(0 0 3px var(--button)); animation: graph-breathe 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .graph-card.on-path, .graph-lines path.graph-path-lit { animation: none; } }
+.graph-head, .graph-branch { transition: transform 320ms ease; }
+.shift { transform: translateX(10px); }
+@media (prefers-reduced-motion: reduce) { .graph-card, .graph-head, .graph-branch { transition: none; } }
+.graph-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+/* Support cards and their opened contents share the same 28px step right of the node. */
+.graph-under, .graph-above { display: flex; flex-direction: column; gap: 8px; margin-left: 28px; }
+.graph-kids { position: relative; }
+.graph-kids > .graph-branch { transition: filter 320ms ease, opacity 320ms ease, transform 320ms ease; }
+.graph-kids.behind > .graph-branch { filter: blur(2px); opacity: 0.3; pointer-events: none; }
+.graph-kids[data-support] { display: grid; grid-template-columns: max-content; align-items: center; justify-items: start; }
+.graph-support { grid-column: 1; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-left: 28px; }
+.graph-support .graph-files, .graph-support .graph-card { background: var(--bg, var(--input-bg)); box-shadow: 0 6px 24px rgb(0 0 0 / 0.45); }
+@media (prefers-reduced-motion: reduce) { .graph-kids > .graph-branch, .graph-support { transition: none; } }
+.graph-lines path.graph-path-faded { opacity: 0.3; filter: blur(2px); }
+.graph.panning, .graph.panning * { cursor: grab; }
+/* The open route gets room from its siblings so it reads apart. */
+.graph-kids > .graph-branch.open-path { margin: 6px 0; }
+.graph-lines path.graph-path-group { stroke: color-mix(in srgb, var(--accent) 40%, var(--muted)); }
+.graph-lines path.graph-path-rest { opacity: 0.8; }
+/* The open route stacks above its siblings, so a long file list from another branch never covers it. */
+.graph-branch { position: relative; }
+.graph-kids > .graph-branch.open-path { z-index: 2; }
+.graph-ghost { position: absolute; margin: 0; pointer-events: none; z-index: 3; }
+@keyframes graph-loading { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.9; } }
+.graph-files.loading { min-width: 140px; animation: graph-loading 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .graph-files.loading { animation: none; } }

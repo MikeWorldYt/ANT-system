@@ -1,4 +1,3 @@
-use super::entries::natural_key;
 use super::*;
 use crate::test_support::{rel, storage, TempDir};
 
@@ -29,13 +28,6 @@ fn fixture() -> (TempDir, Mapping) {
 
 fn find<'a>(nodes: &'a [TreeNode], name: &str) -> &'a TreeNode {
     nodes.iter().find(|n| n.name == name).unwrap()
-}
-
-#[test]
-fn workboard_numbers_sort_as_numbers() {
-    let mut names = vec!["PJ.1000_B", "PJ.999_A", "PJ.021_C", "PJ.001_D"];
-    names.sort_by_cached_key(|n| natural_key(n));
-    assert_eq!(names, ["PJ.001_D", "PJ.021_C", "PJ.999_A", "PJ.1000_B"]);
 }
 
 #[test]

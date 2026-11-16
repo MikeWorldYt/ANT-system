@@ -79,6 +79,8 @@ fn decode(text: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use proptest::prelude::*;
+
     use super::*;
 
     #[test]
@@ -89,5 +91,14 @@ mod tests {
         assert_eq!(parse_range("bytes=8-2", 10), None);
         assert_eq!(decode("100.WORK%2F02.B%2F%C3%B1.png").as_deref(), Some("100.WORK/02.B/ñ.png"));
         assert_eq!(decode("%2"), None);
+    }
+
+    proptest! {
+        #[test]
+        fn a_read_range_always_lies_inside_the_file(value in "bytes=[0-9]{0,7}-[0-9]{0,7}(,[0-9]{0,3}-[0-9]{0,3})?", size in 0u64..1_000_000) {
+            if let Some((start, end)) = parse_range(&value, size) {
+                prop_assert!(start <= end && end < size, "{} on {} gave {}-{}", value, size, start, end);
+            }
+        }
     }
 }

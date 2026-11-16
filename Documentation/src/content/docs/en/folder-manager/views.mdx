@@ -1,19 +1,68 @@
 ---
 title: Views and sorting
-description: Switch between the Tree and Columns views and sort your folders.
+description: Switch between the seven views of FolderManager and sort your folders.
 ---
 import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
 
 ## Views
 
-Use the view button in the toolbar to switch between two views of the same storage.
-
-<ImagePlaceholder label="Screenshot: Views" />
-
-- **Tree:** expandable rows with the keyboard (arrow keys to move, left and right to collapse and expand).
-- **Columns:** one column per level. Each column has its own sort, see [Sorting](#sorting).
+Use the view button in the toolbar, or right-click the background, to switch between seven views of the same storage: Tree, List, Details, Cards, Grid, Columns and Graph.
 
 The breadcrumb shows the selected path. Double-click it, or press `Ctrl+L`, to type a path. The back, forward and up buttons walk your selection history. The details panel on the right shows the selected folder and can be hidden with its toolbar button.
+
+### Tree
+
+Expandable, indented rows: the whole storage in one list. Use it to move around deep structures without leaving the page. Move with the arrow keys, collapse and expand with left and right, open with `Enter` and rename with `F2`.
+
+<ImagePlaceholder label="Screenshot: Tree view" />
+
+### List
+
+The contents of one folder as plain rows. Use it for a compact, quiet listing. Double-click a folder, or press `Enter`, to go into it.
+
+<ImagePlaceholder label="Screenshot: List view" />
+
+### Details
+
+Like List, with columns beside each name: date modified, type, size and date created. Click a column header to sort by it; click it again to flip the direction. Use it when you need to compare dates or sizes.
+
+<ImagePlaceholder label="Screenshot: Details view" />
+
+### Cards
+
+The contents of one folder as icons with the kind of item under each name. Use it for a visual overview that still tells folders from files.
+
+<ImagePlaceholder label="Screenshot: Cards view" />
+
+### Grid
+
+The contents of one folder as large icons, with thumbnails for files that have one. Use it for browsing images and documents. Arrow keys move across rows and columns.
+
+<ImagePlaceholder label="Screenshot: Grid view" />
+
+### Columns
+
+One column per level, with the selection staying at the right as you go deeper. Each column has its own sort, see [Sorting](#sorting). Use it to keep the parent levels in sight while you browse.
+
+<ImagePlaceholder label="Screenshot: Columns view" />
+
+### Graph
+
+A mind map of the NODE and WKB folders that unfolds to the right from the storage root, joined with bracket lines. Use it to read the structure of a storage at a glance.
+
+- **Click a card** to select it and unfold it. Clicking an open card that is not selected only moves the selection to it; clicking the selected card folds it.
+- **Support folders** (`00.*`, `REC`, `SS`, `RES`, `REV`) stack above or below their node. Opening one shows its contents in place of the sub-nodes, which blur behind. Only one support folder is open at a time.
+- **Workboards and plain folders** unfold into a card per subfolder plus one box with their files.
+- **The path** from the root to the selection glows and shifts slightly right, and the lines of the selected branch are tinted.
+- **Zoom** with `Ctrl` + mouse wheel, or `Ctrl` + `+` / `Ctrl` + `−`. Hold `Space` and drag to pan.
+
+The graph remembers which folders you left open, per storage. Opening a split from the Graph uses the Default View.
+
+<ImagePlaceholder label="Screenshot: Graph view" />
+
+### Default view
+
+In **Settings → General → Default View** choose the view that new windows and tabs start with: Last used, Tree, List, Details, Cards, Grid, Columns or Graph. With **On launch: Continue where I left off**, the app reopens the last view you used.
 
 ## Sorting
 

@@ -7,7 +7,7 @@ use std::path::Path;
 use serde_yaml::{Mapping, Value};
 
 use crate::domain::tree_types::{flags_in, type_base, META_KEYS};
-use crate::domain::config::{DATA_FLAG, HIDDEN_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, WKB_IDENTIFIERS};
+use crate::domain::config::{DATA_FLAG, HIDDEN_FLAG, LOCKED_TYPES, PORTFOLIO_FOLDER, REVIEW_FOLDER, WKB_IDENTIFIERS};
 use crate::infra::storage::db::{db_path, Store};
 use crate::domain::error::R;
 use crate::infra::fs_safe::{io_err, join_rel};
@@ -246,8 +246,9 @@ fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool, limit: 
     if depth >= limit {
         return Ok(false);
     }
-    let mut changed = false;
-    for name in list_subdirs(dir)? {
+    let disk = list_subdirs(dir)?;
+    let mut changed = drop_gone_support(node, &disk, depth);
+    for name in disk {
         // A folder named like a meta key would overwrite the node's own type or status.
         if META_KEYS.contains(&name.as_str()) {
             continue;
@@ -301,6 +302,22 @@ fn reconcile_portfolios(dir: &Path, node: &mut Mapping, depth: usize) -> R<bool>
         changed = true;
     }
     Ok(changed)
+}
+
+// Only review folders are remade when gone; any other support or 99x root folder just follows the disk, so its record goes with it.
+fn drop_gone_support(node: &mut Mapping, disk: &[String], depth: usize) -> bool {
+    let gone: Vec<String> = node
+        .iter()
+        .filter(|(_, entry)| entry.is_mapping())
+        .filter_map(|(name, _)| name.as_str())
+        .filter(|name| !disk.iter().any(|d| d == name))
+        .filter(|name| support_kind(name).is_some_and(|kind| kind != "REV") || (depth == 0 && is_system_root_name(name) && *name != REVIEW_FOLDER))
+        .map(str::to_string)
+        .collect();
+    for name in &gone {
+        node.remove(name.as_str());
+    }
+    !gone.is_empty()
 }
 
 fn is_empty_dir(path: &Path) -> R<bool> {

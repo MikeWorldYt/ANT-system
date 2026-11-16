@@ -21,7 +21,7 @@ Esta página es para ti si ya tienes archivos repartidos entre carpetas y el esc
 | Ordenar carpetas entre sus hermanas | Automatizado | Subir y Bajar |
 | Definir estado y responsable de un tablero | Automatizado | Panel de detalles, guardado en `.ant/info.json` |
 | Encontrar carpetas por nombre, estado o responsable | Automatizado | Búsqueda (`Ctrl+F`) con los filtros `in:`, `status:` y `owner:` |
-| Mantener al día los accesos directos de `998.Review` | Automatizado | La app los reconstruye tras renombrar, mover y eliminar |
+| Crear las carpetas `Outcomes` y mantener al día los accesos directos de revisión | Automatizado | La app se encarga tras renombrar, mover y eliminar |
 | Mover tus carpetas existentes al almacenamiento | Manual | Planeado para FolderManager |
 | Renombrar archivos antiguos al formato de archivos ANT | Manual | Planeado para FolderManager |
 | Fecha, responsable y área de un archivo | Manual | Planeado, en las propiedades del archivo |
@@ -42,11 +42,11 @@ Deja tus archivos originales donde están. Los copiarás o moverás en las sigui
 
 ## Fase 3: Asigna tus carpetas a categorías
 
-Asigna cada grupo de contenido a una de las categorías de primer nivel, como `100.PERSONAL`, `200.WORK`, `300.PROJECTS`, `400.ACADEMIC` o `500.HOBBIES`. La lista completa y el nombre de cada nivel están en [Estructura de carpetas](/es/foundationals/folder-structure).
+Asigna cada grupo de contenido a una de las categorías de primer nivel, como `100.PERSONAL`, `200.WORK`, `300.STUDY` o `400.HOBBIES`, las de la plantilla por defecto. La lista completa y el nombre de cada nivel están en [Estructura de carpetas](/es/foundationals/folder-structure).
 
 - El nivel 1 se nombra una sola vez y no se vuelve a renombrar, así que elige con cuidado.
 - Dentro de una categoría, crea las subcategorías que necesites con **Añadir nodo**. Siguen el Chill Naming: `01.Documents`, `02.Gallery`.
-- El material de referencia que sirve a todo un nodo va en su carpeta de recursos `90`. Mira [Nodos de soporte](/es/foundationals/support-nodes).
+- El material de referencia que sirve a todo un nodo va en su carpeta de recursos `RES.`. Mira [Nodos de soporte](/es/foundationals/support-nodes).
 - Los niveles 1 y 2 no tienen archivos sueltos. Lo que aún no puedas ubicar espera en una carpeta de revisión (Fase 5).
 
 ## Fase 4: Convierte proyectos en tableros de trabajo
@@ -70,7 +70,7 @@ FolderManager solo crea tableros con el identificador `PJ`. Para `HW`, `PR`, `CR
 
 1. Trabaja una carpeta de origen a la vez, en lotes de un tamaño que puedas terminar en una sesión.
 2. Copia primero y borra el original cuando hayas revisado el resultado.
-3. Lo que no puedas clasificar de inmediato va a la carpeta `98` de revisión del nodo más cercano, o a `998.Review`. No lo dejes en la carpeta de origen.
+3. Lo que no puedas clasificar de inmediato va a la carpeta `REV.` del nodo más cercano, que CreateNewStorage ya creó. No lo dejes en la carpeta de origen.
 4. Pulsa **Actualizar** en FolderManager tras mover archivos en tu explorador. La app también se actualiza sola cuando su ventana recibe el foco.
 
 No hace falta cambiar los nombres de los archivos de una sola vez. Cuando toques un archivo, dale el [formato de archivos](/es/foundationals/naming-conventions#nomenclatura-control-para-archivos). Reformatter (mira [Descargas](/es/start-here/download)) puede renombrar muchos archivos a la vez, pero escribe la fecha, el responsable y el identificador en el nombre, que no es donde los metadatos del archivo deben vivir al final. Úsalo solo si quieres ese nombre largo.
@@ -81,12 +81,12 @@ Repasa esta lista antes de borrar nada de la ubicación original.
 
 - [ ] El nivel 1 contiene solo las categorías numeradas y los nodos de soporte.
 - [ ] Cada proyecto en el que sigues trabajando es un tablero con estado y responsable.
-- [ ] `998.Review` no tiene elementos olvidados, o tienes una fecha para vaciarlo.
+- [ ] Las carpetas `REV.` no tienen elementos olvidados, o tienes una fecha para vaciarlas.
 - [ ] Puedes encontrar tres archivos al azar con el cuadro de búsqueda (`Ctrl+F`).
 - [ ] Tus archivos originales están copiados en un disco distinto al que usaste para migrar.
 
 <Callout type="warning" title="FolderManager no respalda tus archivos">
-  Su respaldo es un zip solo de los datos de ANT: `ant.db`, los archivos `.ant` y `999.Settings`. Respalda tus propios archivos con tu herramienta habitual, antes de empezar y de nuevo al terminar.
+  Su respaldo es un zip solo de los datos de ANT: la carpeta `.ant`, con `ant.db` y sus demás archivos. Respalda tus propios archivos con tu herramienta habitual, antes de empezar y de nuevo al terminar.
 </Callout>
 
 ## Qué viene después

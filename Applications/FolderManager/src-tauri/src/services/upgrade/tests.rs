@@ -99,7 +99,7 @@ fn a_folder_that_is_not_a_numeric_support_one_is_refused() {
 fn finish_moves_the_root_data_writes_the_marker_and_ends_the_check() {
     let dir = storage("upgrade-finish", &["100.A", "998.Review/.ant", "999.Settings/03.Backup"], "100.A: {type: NODE-L1}\n998.Review: {type: CFG}\n999.Settings: {type: CFG}\n");
     fs::write(dir.path().join("999.Settings/00.Core/.skip_version"), "1.0.0").unwrap();
-    fs::write(dir.path().join("999.Settings/00.Core/FM_Updater.bat"), "").unwrap();
+    fs::write(dir.path().join("999.Settings/00.Core/lnk-favorites.json"), "").unwrap();
     fs::write(dir.path().join("999.Settings/00.Core/.FolderManager.lock"), "1").unwrap();
     fs::write(dir.path().join("999.Settings/03.Backup/old.zip"), "z").unwrap();
     fs::write(dir.path().join("998.Review/100.A.lnk"), dir.path().join("100.A/REV.A").to_string_lossy().as_bytes()).unwrap();
@@ -108,7 +108,7 @@ fn finish_moves_the_root_data_writes_the_marker_and_ends_the_check() {
     let warnings = finish_with(dir.path(), STAMP, text_targets).unwrap();
     assert!(warnings.is_empty(), "{warnings:?}");
     let data = dir.path().join(".ant");
-    assert!(data.join(".skip_version").is_file() && data.join("FM_Updater.bat").is_file());
+    assert!(data.join(".skip_version").is_file() && data.join("lnk-favorites.json").is_file());
     assert!(dir.path().join("backup/old.zip").is_file());
     assert!(!dir.path().join("998.Review").exists() && !dir.path().join("999.Settings").exists());
     assert!(data.join(MARKER).is_file());

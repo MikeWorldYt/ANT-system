@@ -2,10 +2,11 @@
 import { localStamp } from "../../../../services/stamp";
 import { changeSetting, changeTreeDepth, refresh } from "../../../../hooks/ops";
 import { startDebugLog } from "../../../../hooks/debug-log";
-import { backupSchedule, describeError, renameStorage, revertStorageRename, storageRenameStatus, syncSchedule } from "../../../../services/ipc/api";
+import { backupSchedule, describeError, prepareScan, renameStorage, revertStorageRename, storageRenameStatus, syncSchedule } from "../../../../services/ipc/api";
 import { state } from "../../../../services/store/state";
 import { confirmDialog } from "../../../organisms/dialogs/info-dialog/info-dialog";
 import { promptDialog } from "../../../organisms/dialogs/action-dialog/form-dialog";
+import { storagePicker } from "../../../organisms/dialogs/storage-picker/storage-picker";
 import { reportError } from "../../../organisms/bars/status-line";
 import type { StorageInfo } from "../../../../services/ipc/types";
 import { buttonControl } from "../../../atoms/button";
@@ -67,6 +68,19 @@ async function revert(row: RowHandle, done: () => void): Promise<void> {
   }
 }
 
+async function switchStorage(current: string | null, row: RowHandle, done: () => void): Promise<void> {
+  const picked = await storagePicker(current);
+  if (!picked) return;
+  try {
+    if (picked === "created") await prepareScan(localStamp());
+    await refresh();
+    await followNewPath();
+    done();
+  } catch (e) {
+    row.describe(describeError(e));
+  }
+}
+
 function renameControl(root: string | undefined, row: RowHandle, done: () => void): HTMLElement {
   const name = folderName(root);
   const undo = buttonControl("Revert last rename", () => void revert(row, done));
@@ -107,7 +121,11 @@ export const storagePage: SettingsPage = {
       title: "Storage name",
       control: (row: RowHandle) => renameControl(ctx.storage?.root, row, ctx.refresh),
     },
-    { title: "Storage location", description: "Folder where the app init your storage", control: () => pathControl(ctx.storage?.root ?? "Unknown") },
+    {
+      title: "Storage location",
+      description: "Folder where the app init your storage",
+      control: (row: RowHandle) => actions(pathControl(ctx.storage?.root ?? "Unknown"), buttonControl("Switch", () => void switchStorage(ctx.storage?.root ?? null, row, ctx.refresh))),
+    },
     {
       title: "Index",
       description: "Depth levels of the tree indexing in DB, more levels mean more folders read on each refresh",
