@@ -1,0 +1,49 @@
+---
+title: Code signing policy
+description: Who signs the ANT System programs, what is signed, who approves each signature and what the programs send over the network.
+---
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+This page is the code signing policy of ANT System, an open source project. It covers the Windows programs FolderManager and CreateNewStorage.
+
+## What is signed
+
+- The FolderManager installer (`FolderManager_installer.exe`, NSIS) and the FolderManager executable.
+- The `CreateNewStorage.exe` executable.
+
+Only binaries built by the CI of [github.com/MikeWorldYt/ANT-system](https://github.com/MikeWorldYt/ANT-system) from the source code in that repository are signed. Nothing built on a personal machine is submitted for signing.
+
+## Roles
+
+ANT System has a single maintainer, so every role is held by the same person.
+
+| Role | Who | What they do |
+| --- | --- | --- |
+| Authors | [@MikeWorldYt](https://github.com/MikeWorldYt) | Change the code without an extra review. |
+| Reviewers | [@MikeWorldYt](https://github.com/MikeWorldYt) | Review the changes that come from people who are not committers, such as pull requests. |
+| Approvers | [@MikeWorldYt](https://github.com/MikeWorldYt) | Approve each signing request. |
+
+## Verification
+
+Signing is never automatic. Each release is approved by hand by the Approver, who checks that the build comes from the official repository and the expected release before approving the signing request.
+
+## Privacy
+
+FolderManager and CreateNewStorage do not collect or send telemetry, and they never upload your files, folder names or storage contents. They only contact the network in the cases below, and every request goes to GitHub or to `r2.mikeworld.dev`, the host of the storage template.
+
+**FolderManager**
+
+- **Update check.** If **Check for updates automatically** is on (it is on by default), the app downloads the small `latest.json` file from the `folder-manager-latest` release of GitHub Releases each time it opens. You can turn it off in About, and **Check for updates** runs the check only when you ask. If you choose **Update** on Windows, the installer is downloaded from the matching GitHub release and verified with its SHA-256 before it runs.
+- **Extensions.** Opening the extension catalog, or installing an extension from a GitHub address, downloads the catalog or the extension from GitHub, and only when you do it.
+- **Local only.** The AI bridge listens on `127.0.0.1` with a session token, and the MCP server talks over standard input and output. Neither one opens a connection to another computer, and connecting an AI client only edits that client's local configuration.
+
+**CreateNewStorage**
+
+- To create a storage it downloads the template from `r2.mikeworld.dev`, and it downloads FolderManager from GitHub and checks its SHA-256. `--template` uses a local template instead, and `--no-folder-manager` skips the FolderManager download. It sends nothing else.
+
+See [Updates](/en/folder-manager/updates/) for the details of the update flow.
+
+## Report a problem
+
+Open an issue in [github.com/MikeWorldYt/ANT-system/issues](https://github.com/MikeWorldYt/ANT-system/issues).

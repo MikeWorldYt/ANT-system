@@ -1,0 +1,49 @@
+---
+title: Code signing policy (política de firma de código)
+description: Quién firma los programas de ANT System, qué se firma, quién aprueba cada firma y qué envían los programas por la red.
+---
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+Esta página es la Code signing policy (política de firma de código) de ANT System, un proyecto de código abierto. Cubre los programas de Windows FolderManager y CreateNewStorage.
+
+## Qué se firma
+
+- El instalador de FolderManager (`FolderManager_installer.exe`, NSIS) y el ejecutable de FolderManager.
+- El ejecutable `CreateNewStorage.exe`.
+
+Solo se firman los binarios compilados por el CI de [github.com/MikeWorldYt/ANT-system](https://github.com/MikeWorldYt/ANT-system) a partir del código fuente de ese repositorio. Nada compilado en un equipo personal se envía a firmar.
+
+## Roles
+
+ANT System tiene un solo mantenedor, así que todos los roles los ocupa la misma persona.
+
+| Rol | Quién | Qué hace |
+| --- | --- | --- |
+| Authors (autores) | [@MikeWorldYt](https://github.com/MikeWorldYt) | Modifican el código sin una revisión adicional. |
+| Reviewers (revisores) | [@MikeWorldYt](https://github.com/MikeWorldYt) | Revisan los cambios de personas que no son committers, como los pull requests. |
+| Approvers (aprobadores) | [@MikeWorldYt](https://github.com/MikeWorldYt) | Aprueban cada solicitud de firma. |
+
+## Verificación
+
+La firma nunca es automática. Cada release la aprueba a mano el Approver, que comprueba que la compilación viene del repositorio oficial y del release esperado antes de aprobar la solicitud de firma.
+
+## Privacidad
+
+FolderManager y CreateNewStorage no recopilan ni envían telemetría, y nunca suben tus archivos, nombres de carpetas ni el contenido de tu almacenamiento. Solo usan la red en los casos de abajo, y cada petición va a GitHub o a `r2.mikeworld.dev`, el host de la plantilla del almacenamiento.
+
+**FolderManager**
+
+- **Comprobación de actualizaciones.** Si **Check for updates automatically** (comprobar actualizaciones automáticamente) está activado, como lo está por defecto, la app descarga el pequeño archivo `latest.json` del release `folder-manager-latest` de GitHub Releases cada vez que se abre. Puedes desactivarlo en About, y **Check for updates** hace la comprobación solo cuando tú lo pides. Si eliges **Update** en Windows, el instalador se descarga del release de GitHub correspondiente y se verifica con su SHA-256 antes de ejecutarse.
+- **Extensiones.** Abrir el catálogo de extensiones, o instalar una extensión desde una dirección de GitHub, descarga el catálogo o la extensión de GitHub, y solo cuando tú lo haces.
+- **Solo local.** El puente de IA escucha en `127.0.0.1` con un token de sesión, y el servidor MCP habla por entrada y salida estándar. Ninguno abre conexiones con otro equipo, y conectar un cliente de IA solo edita la configuración local de ese cliente.
+
+**CreateNewStorage**
+
+- Para crear un almacenamiento descarga la plantilla de `r2.mikeworld.dev`, y descarga FolderManager de GitHub y comprueba su SHA-256. `--template` usa una plantilla local, y `--no-folder-manager` omite la descarga de FolderManager. No envía nada más.
+
+Mira [Actualizaciones](/es/folder-manager/updates/) para el detalle del flujo de actualización.
+
+## Reportar un problema
+
+Abre un issue en [github.com/MikeWorldYt/ANT-system/issues](https://github.com/MikeWorldYt/ANT-system/issues).
