@@ -1,7 +1,6 @@
-# Builds the Windows executables of the ANT apps whenever their version changes on main,
-# commits them to Applications/<App>/dist and publishes a per-app GitHub Release.
-# An app with src-tauri/ is built with Tauri and pnpm, one with only a Cargo.toml with cargo
-# (its version lives there), and any other app with PyInstaller (its version lives in version.txt).
+# Tests and builds the ANT apps whenever their version changes on main and publishes a per-app GitHub Release
+# with SHA256SUMS and latest.json (contract: spec/fm-security/plan.md section 6d).
+# An app with src-tauri/ is built with Tauri and pnpm, one with only a Cargo.toml with cargo (its version lives there).
 name: Build apps
 
 on:
@@ -22,7 +21,7 @@ on:
         default: "FolderManager,CreateNewStorage"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: build-apps-${{ github.ref }}
@@ -34,11 +33,11 @@ jobs:
     outputs:
       matrix: ${{ steps.pick.outputs.matrix }}
       any: ${{ steps.pick.outputs.any }}
-      native: ${{ steps.pick.outputs.native }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
+          persist-credentials: false
       - id: pick
         shell: bash
         env:
@@ -53,18 +52,14 @@ jobs:
             pull_request) apps=$(git diff --name-only "$BASE_SHA" HEAD -- Applications | cut -d/ -f2 | sort -u) ;;
             push) apps=$(git diff --name-only "$BEFORE" HEAD -- 'Applications/*/version.txt' Applications/CreateNewStorage/Cargo.toml | cut -d/ -f2 | sort -u) ;;
           esac
-          # ant_core is shared, so a change there rebuilds every app
-          if echo "$apps" | grep -qx ant_core; then apps="$all"; fi
           picked=$(for a in $apps; do echo " $all " | grep -q " $a " && echo "$a"; done | sort -u)
           json=$(printf '%s\n' $picked | jq -R . | jq -sc 'map(select(length > 0))')
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
           [ "$json" = "[]" ] && echo "any=false" >> "$GITHUB_OUTPUT" || echo "any=true" >> "$GITHUB_OUTPUT"
-          # Python apps only run on Windows; the Rust and Tauri ones also get Linux and macOS builds
-          native=$(for a in $picked; do { [ -f "Applications/$a/Cargo.toml" ] || [ -f "Applications/$a/src-tauri/tauri.conf.json" ]; } && echo "$a"; done | jq -R . | jq -sc 'map(select(length > 0))')
-          echo "native=$native" >> "$GITHUB_OUTPUT"
           echo "Apps: $json"
 
-  build:
+  # Releases only come from a green test run
+  test:
     needs: plan
     if: needs.plan.outputs.any == 'true'
     runs-on: windows-latest
@@ -72,8 +67,57 @@ jobs:
       fail-fast: false
       matrix:
         app: ${{ fromJson(needs.plan.outputs.matrix) }}
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: Applications/${{ matrix.app }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - name: Detect app kind
+        id: kind
+        run: |
+          $tauri = Test-Path src-tauri/tauri.conf.json
+          "tauri=$($tauri.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          "crate=Applications/${{ matrix.app }}$(if ($tauri) { '/src-tauri' })" >> $env:GITHUB_OUTPUT
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+        if: steps.kind.outputs.tauri == 'true'
+        with:
+          version: 10
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        if: steps.kind.outputs.tauri == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: Applications/${{ matrix.app }}/pnpm-lock.yaml
+      # The Rust build embeds web-dist, so the frontend is built before cargo test
+      - name: Typecheck and build the frontend
+        if: steps.kind.outputs.tauri == 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run typecheck
+          pnpm exec vite build
+      - run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: ${{ steps.kind.outputs.crate }} -> target
+      - name: Test
+        working-directory: ${{ steps.kind.outputs.crate }}
+        run: cargo test --locked
+
+  build:
+    needs: [plan, test]
+    if: needs.plan.outputs.any == 'true'
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
       - name: Detect app kind
         id: kind
         shell: pwsh
@@ -82,26 +126,11 @@ jobs:
           $rust = (-not $tauri) -and (Test-Path "Applications/${{ matrix.app }}/Cargo.toml")
           "tauri=$($tauri.ToString().ToLower())" >> $env:GITHUB_OUTPUT
           "rust=$($rust.ToString().ToLower())" >> $env:GITHUB_OUTPUT
-          "python=$((-not $tauri -and -not $rust).ToString().ToLower())" >> $env:GITHUB_OUTPUT
-      - uses: actions/setup-python@v6
-        if: steps.kind.outputs.python == 'true'
-        with:
-          python-version: "3.13"
-      - name: Install build tools
-        if: steps.kind.outputs.python == 'true'
-        run: python -m pip install --upgrade pip pyinstaller pyyaml
-      - name: Build
-        if: steps.kind.outputs.python == 'true'
-        working-directory: Applications/${{ matrix.app }}
-        shell: pwsh
-        run: |
-          $spec = Get-ChildItem *.spec | Select-Object -First 1
-          python -m PyInstaller $spec.Name --noconfirm --clean --distpath build-dist --workpath build-work
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           version: 10
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           node-version: 24
@@ -114,6 +143,9 @@ jobs:
           $expected = (Select-String -Path version.txt -Pattern "StringStruct\('FileVersion',\s*'([\d.]+)'\)").Matches[0].Groups[1].Value
           $conf = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
           if (-not $conf.StartsWith($expected)) { throw "tauri.conf.json version '$conf' does not match version.txt '$expected'" }
+          $pkg = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $crate = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "([^"]+)"').Matches[0].Groups[1].Value
+          if ($pkg -ne $conf -or $crate -ne $conf) { throw "package.json '$pkg' and Cargo.toml '$crate' must match tauri.conf.json '$conf'" }
           rustup toolchain install stable --profile minimal
           pnpm install --frozen-lockfile
           pnpm tauri build --bundles nsis -- --locked
@@ -128,7 +160,6 @@ jobs:
         shell: pwsh
         run: |
           rustup toolchain install stable --profile minimal
-          cargo test --locked
           cargo build --release --locked
           New-Item -ItemType Directory -Force build-dist | Out-Null
           Copy-Item target/release/create-new-storage.exe "build-dist/${{ matrix.app }}.exe"
@@ -149,16 +180,16 @@ jobs:
           if ($size -lt $minSize) { throw "$exe is only $size bytes" }
           $actual = (Get-Item $exe).VersionInfo.FileVersion
           # A Tauri executable may carry a pre-release tag after the numbers (2.0.1-beta); a Rust one carries none
-          $sameVersion = if ("${{ steps.kind.outputs.rust }}" -eq "true") { $true } elseif ("${{ steps.kind.outputs.tauri }}" -eq "true") { $actual.StartsWith($expected) } else { $actual -eq $expected }
+          $sameVersion = ("${{ steps.kind.outputs.rust }}" -eq "true") -or $actual.StartsWith($expected)
           if (-not $sameVersion) { throw "exe FileVersion '$actual' does not match version.txt '$expected'" }
           "version=$expected" >> $env:GITHUB_OUTPUT
           "Built ${{ matrix.app }} $expected ($size bytes)"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ matrix.app }}_portable
           path: Applications/${{ matrix.app }}/build-dist/${{ matrix.app }}.exe
           if-no-files-found: error
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           name: ${{ matrix.app }}_installer
@@ -166,14 +197,14 @@ jobs:
           if-no-files-found: error
 
   build-unix:
-    needs: plan
-    if: needs.plan.outputs.native != '[]'
+    needs: [plan, test]
+    if: needs.plan.outputs.any == 'true'
     name: ${{ matrix.app }}-${{ matrix.label }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        app: ${{ fromJson(needs.plan.outputs.native) }}
+        app: ${{ fromJson(needs.plan.outputs.matrix) }}
         os: [ubuntu-latest, macos-latest]
         include:
           - { os: ubuntu-latest, label: linux, bundle: deb }
@@ -183,7 +214,9 @@ jobs:
         shell: bash
         working-directory: Applications/${{ matrix.app }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
       - name: Detect app kind
         id: kind
         run: |
@@ -193,15 +226,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential curl wget file libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           version: 10
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           node-version: 24
-      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup toolchain install stable --profile minimal
       - name: Build (Tauri)
         if: steps.kind.outputs.tauri == 'true'
         run: |
@@ -220,12 +253,12 @@ jobs:
       # tar keeps the executable bit, which an artifact upload would drop
       - name: Pack
         run: tar -czf "${{ matrix.app }}-${{ matrix.label }}_portable.tar.gz" -C "$(dirname "$BIN")" "$(basename "$BIN")"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ matrix.app }}-${{ matrix.label }}_portable
           path: Applications/${{ matrix.app }}/${{ matrix.app }}-${{ matrix.label }}_portable.tar.gz
           if-no-files-found: error
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           name: ${{ matrix.app }}-${{ matrix.label }}_installer
@@ -234,68 +267,113 @@ jobs:
 
   publish:
     needs: [plan, build, build-unix]
-    # Pull requests only prove the build works; main gets the commit and the releases
-    if: ${{ !cancelled() && needs.build.result == 'success' && needs.build-unix.result != 'failure' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    # Pull requests only prove the build works; main gets the releases
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.build-unix.result == 'success' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      APPS: ${{ needs.plan.outputs.matrix }}
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v5
-      # Every artifact holds one file named for the release, except the Windows portable, which keeps the dist/ name the updater reads
-      - uses: actions/download-artifact@v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      # Every artifact holds one file named for the release, except the Windows portable, which keeps the dist/ name
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           path: built
           merge-multiple: true
-      - name: Put each executable in its app folder
-        shell: bash
+      # The tag carries the full version (2.4.5-beta), the one in tauri.conf.json or the CLI's Cargo.toml
+      - name: Resolve tags
         run: |
-          for exe in built/*.exe; do
-            case "$exe" in *_installer.exe) continue ;; esac
-            app=$(basename "$exe" .exe)
-            mkdir -p "built/$app"
-            mv "$exe" "built/$app/"
-          done
-      - name: Commit executables to main
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for dir in built/*/; do
-            app=$(basename "$dir")
-            if [ -f "Applications/$app/version.txt" ]; then
-              version=$(grep -oP "StringStruct\('FileVersion',\s*'\K[\d.]+" "Applications/$app/version.txt")
-            else
-              version=$(grep -m1 -oP '^version = "\K[\d.]+' "Applications/$app/Cargo.toml")
-            fi
-            mkdir -p "Applications/$app/dist"
-            cp "$dir$app.exe" "Applications/$app/dist/$app.exe"
-            # dist/ is gitignored for local builds; release binaries are the one tracked exception
-            git add -f "Applications/$app/dist/$app.exe"
-            if ! git diff --cached --quiet; then
-              git commit -m "release($app): Build v$version executable"
-            fi
-          done
-          git push
-      - name: Publish releases
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          for dir in built/*/; do
-            app=$(basename "$dir")
-            if [ -f "Applications/$app/version.txt" ]; then
-              version=$(grep -oP "StringStruct\('FileVersion',\s*'\K[\d.]+" "Applications/$app/version.txt")
-            else
-              version=$(grep -m1 -oP '^version = "\K[\d.]+' "Applications/$app/Cargo.toml")
-            fi
+          set -euo pipefail
+          for app in $(jq -r '.[]' <<< "$APPS"); do
+            conf="Applications/$app/src-tauri/tauri.conf.json"
+            if [ -f "$conf" ]; then version=$(jq -r .version "$conf"); else version=$(grep -m1 -oP '^version = "\K[^"]+' "Applications/$app/Cargo.toml"); fi
             slug=$(echo "$app" | sed -E 's/([a-z])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')
             tag="$slug-v$version"
-            cp "$dir$app.exe" "built/${app}_portable.exe"
-            assets=("built/${app}_portable.exe")
-            for f in "built/${app}_installer.exe" built/$app-*_portable.* built/$app-*_installer.*; do
-              [ -e "$f" ] && assets+=("$f")
-            done
-            if gh release view "$tag" >/dev/null 2>&1; then
-              gh release upload "$tag" "${assets[@]}" --clobber
-            else
-              gh release create "$tag" "${assets[@]}" --title "$app v$version" --notes "Built from $GITHUB_SHA." --latest=false
+            # A draft from a failed run never created its tag, so it is redone
+            if [ "$(gh release view "$tag" --json isDraft -q .isDraft 2>/dev/null)" = "true" ]; then gh release delete "$tag" --yes; fi
+            if gh release view "$tag" >/dev/null 2>&1 || gh api "repos/$GH_REPO/git/ref/tags/$tag" >/dev/null 2>&1; then
+              echo "::error::$tag already exists; bump the version of $app"
+              exit 1
             fi
+            echo "$app $version $slug $tag" >> tags.txt
           done
+      - name: Publish releases
+        run: |
+          set -euo pipefail
+          base="https://github.com/$GH_REPO/releases/download"
+          while read -r app version slug tag; do
+            out="release/$app"
+            mkdir -p "$out"
+            cp "built/$app.exe" "$out/${app}_portable.exe"
+            for f in "built/${app}_installer.exe" built/"$app"-*_portable.* built/"$app"-*_installer.*; do
+              if [ -e "$f" ]; then cp "$f" "$out/"; fi
+            done
+            files=()
+            for f in "$out"/*; do files+=("$(basename "$f")"); done
+            (cd "$out" && sha256sum -- "${files[@]}" > SHA256SUMS)
+            prerelease=false
+            case "$version" in *-*) prerelease=true ;; esac
+            jq -n --arg app "$app" --arg version "$version" --arg tag "$tag" --arg commit "$GITHUB_SHA" \
+              --arg url "$base/$tag" --argjson prerelease "$prerelease" --rawfile sums "$out/SHA256SUMS" '
+              {schema: 1, app: $app, version: $version, tag: $tag, prerelease: $prerelease, commit: $commit,
+               assets: ($sums | split("\n") | map(select(length > 0) | capture("^(?<sha256>[0-9a-f]{64}) [ *](?<name>.+)$"))
+                 | map({(.name): {sha256, url: "\($url)/\(.name)"}}) | add)}' > "$out/latest.json"
+            flags=(--latest=false)
+            if [ "$prerelease" = true ]; then flags+=(--prerelease); fi
+            # A draft is invisible to clients, so the release appears with every asset and latest.json at once
+            gh release create "$tag" "${files[@]/#/$out/}" "$out/SHA256SUMS" --draft --target "$GITHUB_SHA" \
+              --title "$app v$version" --notes "Built from $GITHUB_SHA." "${flags[@]}"
+            gh release upload "$tag" "$out/latest.json"
+            gh release edit "$tag" --draft=false --latest=false
+            # The channel release holds only latest.json, so its URL never changes; it is the one asset replaced in place
+            channel="$slug-latest"
+            if ! gh release view "$channel" >/dev/null 2>&1; then
+              gh release create "$channel" --target "$GITHUB_SHA" --title "$app update channel" \
+                --notes "latest.json of the newest $app release." --prerelease --latest=false
+            fi
+            gh release upload "$channel" "$out/latest.json" --clobber
+          done < tags.txt
+
+  # Clients older than the latest.json updater still download dist/FolderManager.exe from main; drop this job once they are gone
+  legacy-dist:
+    needs: [plan, publish]
+    if: ${{ !cancelled() && needs.publish.result == 'success' && contains(fromJson(needs.plan.outputs.matrix), 'FolderManager') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # The token stays in this checkout because the job pushes to main
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          name: FolderManager_portable
+          path: built
+      - name: Commit the executable to main
+        run: |
+          set -euo pipefail
+          version=$(jq -r .version Applications/FolderManager/src-tauri/tauri.conf.json)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p Applications/FolderManager/dist
+          cp built/FolderManager.exe Applications/FolderManager/dist/FolderManager.exe
+          # dist/ is gitignored for local builds; this binary is the one tracked exception
+          git add -f Applications/FolderManager/dist/FolderManager.exe
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "release(FolderManager): Build v$version executable"
+          for attempt in 1 2 3 4 5; do
+            if git pull --rebase origin main && git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 15))
+          done
+          echo "::error::Could not push dist/FolderManager.exe to main"
+          exit 1
