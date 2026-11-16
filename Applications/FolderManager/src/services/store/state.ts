@@ -67,6 +67,7 @@ export interface Settings {
   showFavorites: boolean;
   showDownloads: boolean;
   showReview: boolean;
+  mcpWrites: boolean;
   theme: Theme;
   accent: AccentId;
   iconColor: AccentId;
@@ -116,7 +117,7 @@ export const state: State = {
   hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, mcpWrites: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
   virtual: null,
   virtualKeys: [],
   downloads: [],
@@ -225,6 +226,7 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.showFavorites = saved.showFavorites !== "false";
   state.settings.showDownloads = saved.showDownloads !== "false";
   state.settings.showReview = saved.showReview !== "false";
+  state.settings.mcpWrites = saved.mcpWrites === "true";
   state.settings.theme = saved.theme === "light" || saved.theme === "system" ? saved.theme : "dark";
   state.settings.accent = ["blue", "purple", "coral", "gold"].includes(saved.accent ?? "") ? (saved.accent as AccentId) : "green";
   state.settings.iconColor = ["green", "blue", "coral", "gold"].includes(saved.iconColor ?? "") ? (saved.iconColor as AccentId) : "purple";

@@ -22,6 +22,7 @@ dialog.warning-confirm form { position: relative; }
 .warning-confirm-copy { display: grid; gap: 16px; }
 .warning-confirm-copy p { margin: 0; line-height: 1.45; }
 .warning-confirm-copy a { color: var(--st-review); text-underline-offset: 2px; }
+.agent-confirm-items { max-height: 200px; margin: 0; padding-left: 20px; overflow: auto; overflow-wrap: anywhere; }
 .warning-confirm .btn { border-radius: 6px; }
 .warning-confirm .dialog-buttons { margin-top: 24px; }
 .dialog-text { white-space: pre-line; }

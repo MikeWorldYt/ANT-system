@@ -4,7 +4,7 @@ use std::net::{Ipv4Addr, SocketAddr, TcpStream};
 use std::path::Path;
 use std::time::Duration;
 
-use super::{endpoint, Reply, Request, UiCall, REPLY_TIMEOUT};
+use super::{endpoint, Reply, Request, UiCall, REPLY_MARGIN};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -18,8 +18,9 @@ pub fn send(file: &Path, root: &Path, call: UiCall) -> Reply {
     // A refused connection is an app that closed without removing its file, for example after a crash.
     let stream = TcpStream::connect_timeout(&address, CONNECT_TIMEOUT).map_err(|_| NOT_RUNNING.to_string())?;
     let failed = |e: std::io::Error| format!("The UI bridge to Folder Manager failed: {e}");
-    stream.set_read_timeout(Some(REPLY_TIMEOUT)).map_err(failed)?;
-    stream.set_write_timeout(Some(REPLY_TIMEOUT)).map_err(failed)?;
+    let wait = call.wait() + REPLY_MARGIN;
+    stream.set_read_timeout(Some(wait)).map_err(failed)?;
+    stream.set_write_timeout(Some(wait)).map_err(failed)?;
     let text = serde_json::to_string(&Request { token: endpoint.token, root: root.to_path_buf(), call }).map_err(|e| e.to_string())?;
     let mut out = &stream;
     writeln!(out, "{text}").and_then(|()| out.flush()).map_err(failed)?;

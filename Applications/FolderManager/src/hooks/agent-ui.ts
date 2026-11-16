@@ -2,7 +2,9 @@
 import { answerUiRequest, describeError } from "../services/ipc/api";
 import type { UiCall, UiRequest } from "../services/ipc/types";
 import { notify, state } from "../services/store/state";
+import { el } from "../components/dom";
 import { reportError } from "../components/organisms/bars/status-line";
+import { timedConfirmDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
 import { openInSplit } from "./path-actions";
 import { currentSplit, openSplit } from "./split";
 import { openTab, tabStates } from "./tabs";
@@ -49,12 +51,24 @@ async function run(views: ViewSwitcher, call: UiCall): Promise<void> {
   }
 }
 
+// The names come from the agent and the storage, so they are shown only as text in a list.
+function confirmAgent(call: Extract<UiCall, { action: "confirm" }>): Promise<boolean> {
+  const intro = `An AI agent connected through MCP asks to run "${call.title}" in this storage. Allow it only if you asked for this change.`;
+  const list = el("ul", { class: "agent-confirm-items" }, ...call.items.map((item) => el("li", {}, item)));
+  return timedConfirmDialog(`AI agent: ${call.title}`, [intro, ...(call.items.length ? [list] : [])], "Allow", call.seconds);
+}
+
 export async function answerAgent(views: ViewSwitcher, { id, call }: UiRequest): Promise<void> {
-  let value: ReturnType<typeof uiState> | null = null;
+  let value: ReturnType<typeof uiState> | { confirmed: boolean } | null = null;
   let error: string | null = null;
   try {
-    await run(views, call);
-    value = uiState(views);
+    if (call.action === "confirm") {
+      if (state.busy) throw new Error("Folder Manager is busy with an operation; call the tool again in a moment");
+      value = { confirmed: await confirmAgent(call) };
+    } else {
+      await run(views, call);
+      value = uiState(views);
+    }
   } catch (e) {
     error = e instanceof Error ? e.message : describeError(e);
   }

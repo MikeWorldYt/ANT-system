@@ -1,4 +1,7 @@
 // The `--mcp [storage]` mode: a stdio MCP server that lets an agent read and change the storage through the app's own services.
+mod gate;
+#[cfg(test)]
+mod gate_tests;
 mod guide;
 mod protocol;
 mod retry;
@@ -18,10 +21,12 @@ mod write_tests;
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use serde::Serialize;
 use serde_json::Value;
 
+use gate::{Gate, CONFIRM_WAIT};
 use retry::{Retry, RETRY};
 use crate::app::storage_session::Storage;
 use crate::domain::error::{FmError, R};
@@ -36,12 +41,14 @@ pub struct Server {
     recycle: fn(&Path) -> Result<(), String>,
     retry: Retry,
     bridge: Result<PathBuf, String>,
+    gate: Gate,
+    confirm_wait: Duration,
 }
 
 impl Server {
     pub fn open(arg: Option<PathBuf>, remembered: impl FnOnce() -> Option<PathBuf>) -> Self {
         let storage = arg.or_else(remembered).map(Storage::resolve).ok_or_else(|| NO_STORAGE.to_string());
-        Self { storage, recycle: send_to_recycle_bin, retry: RETRY, bridge: ui::bridge_file() }
+        Self { storage, recycle: send_to_recycle_bin, retry: RETRY, bridge: ui::bridge_file(), gate: Gate::App, confirm_wait: CONFIRM_WAIT }
     }
 
     fn storage(&self) -> R<&Storage> {

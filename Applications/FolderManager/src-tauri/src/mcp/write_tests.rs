@@ -5,6 +5,7 @@ use std::time::{Duration, Instant, SystemTime};
 
 use serde_json::{json, Value};
 
+use super::gate::Gate;
 use super::retry::Retry;
 use super::tests::{call, exchange, failed, names, ok, request, server};
 use super::Server;
@@ -18,9 +19,11 @@ fn bin(path: &Path) -> Result<(), String> {
     if path.is_dir() { fs::remove_dir_all(path) } else { fs::remove_file(path) }.map_err(|e| e.to_string())
 }
 
+// Writes turned on and every confirmation granted; mcp/gate_tests.rs covers the gate itself.
 fn writer(root: &Path) -> Server {
     let mut s = server(root);
     s.recycle = bin;
+    s.gate = Gate::Open;
     s
 }
 
@@ -46,10 +49,10 @@ fn write_tools_declare_what_they_do() {
         let a = &tools.iter().find(|t| t["name"] == name).unwrap()["annotations"];
         (a["readOnlyHint"].clone(), a["destructiveHint"].clone(), a["idempotentHint"].clone())
     };
-    for name in ["move", "reorder", "delete", "delete_file", "apply_project_groups", "undo_project_sort"] {
+    for name in ["move", "reorder", "delete", "delete_file", "apply_project_groups", "undo_project_sort", "set_dictionary"] {
         assert_eq!(hints(name), (json!(false), json!(true), json!(false)), "{name}");
     }
-    for name in ["set_type", "set_status", "set_owner", "set_favorite", "set_important", "hide", "set_board", "set_dictionary"] {
+    for name in ["set_type", "set_status", "set_owner", "set_favorite", "set_important", "hide", "set_board"] {
         assert_eq!(hints(name), (json!(false), json!(false), json!(true)), "{name}");
     }
     for name in ["add_node", "add_workboard", "rename", "copy", "rename_file"] {

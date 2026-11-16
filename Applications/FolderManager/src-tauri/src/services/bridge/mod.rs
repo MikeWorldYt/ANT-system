@@ -11,9 +11,10 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-// The webview gets this long to act and answer; the MCP side waits a little longer so the app's own timeout reaches it.
+// The webview gets this long to act and answer; the MCP side waits REPLY_MARGIN longer so the app's own timeout reaches it.
 pub const ANSWER_TIMEOUT: Duration = Duration::from_secs(5);
-const REPLY_TIMEOUT: Duration = Duration::from_secs(8);
+const REPLY_MARGIN: Duration = Duration::from_secs(3);
+const MAX_CONFIRM: u64 = 120;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(tag = "action", rename_all = "camelCase", rename_all_fields = "camelCase", deny_unknown_fields)]
@@ -23,6 +24,17 @@ pub enum UiCall {
     OpenTab { rel_parts: Option<Vec<String>> },
     Split { rel_parts: Option<Vec<String>> },
     SetView { view: String },
+    Confirm { title: String, items: Vec<String>, seconds: u64 },
+}
+
+impl UiCall {
+    // A person answers a confirmation; every other call the window answers by itself.
+    pub fn wait(&self) -> Duration {
+        match self {
+            Self::Confirm { seconds, .. } => Duration::from_secs((*seconds).clamp(1, MAX_CONFIRM)),
+            _ => ANSWER_TIMEOUT,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -10,7 +10,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::app::storage_session::Storage;
 use crate::services::bridge::endpoint::{self, Endpoint};
-use crate::services::bridge::{server, Reply, UiCall, ANSWER_TIMEOUT};
+use crate::services::bridge::{server, Reply, UiCall};
 
 const UI_REQUEST: &str = "fm://ui-request";
 const WINDOW: &str = "main";
@@ -58,9 +58,10 @@ fn ask(app: &AppHandle, pending: &Pending, call: UiCall) -> Reply {
     let lock = || pending.lock().unwrap_or_else(PoisonError::into_inner);
     lock().insert(id, tx);
     // Sent to the main window only, not to every webview the app may open.
+    let wait = call.wait();
     let sent = app.emit_to(WINDOW, UI_REQUEST, json!({ "id": id, "call": call }));
     let reply = match sent {
-        Ok(()) => rx.recv_timeout(ANSWER_TIMEOUT).unwrap_or_else(|_| Err(format!("Folder Manager did not answer within {} s; its window may still be loading", ANSWER_TIMEOUT.as_secs()))),
+        Ok(()) => rx.recv_timeout(wait).unwrap_or_else(|_| Err(format!("Folder Manager did not answer within {} s; its window may still be loading or no one answered", wait.as_secs()))),
         Err(e) => Err(format!("Could not reach the Folder Manager window: {e}")),
     };
     lock().remove(&id);

@@ -100,7 +100,7 @@ fn check(root: &Path, call: &UiCall) -> R<()> {
     let (parts, folder) = match call {
         UiCall::Reveal { rel_parts } => (Some(rel_parts), false),
         UiCall::OpenTab { rel_parts } | UiCall::Split { rel_parts } => (rel_parts.as_ref(), true),
-        UiCall::GetState | UiCall::SetView { .. } => (None, false),
+        UiCall::GetState | UiCall::SetView { .. } | UiCall::Confirm { .. } => (None, false),
     };
     let Some(parts) = parts else { return Ok(()) };
     let found = node(root, parts.clone())?;

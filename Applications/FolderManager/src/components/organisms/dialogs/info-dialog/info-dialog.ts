@@ -26,7 +26,19 @@ export async function choiceDialog(title: string, message: string, choices: [val
 export const confirmDialog = (title: string, message: string, confirmLabel: string): Promise<boolean> =>
   confirmed({ title, body: [el("p", {}, message)] }, dialogButton(confirmLabel, "ok", "danger"));
 
+const warningCopy = (paragraphs: (string | HTMLElement)[]): HTMLElement =>
+  el("div", { class: "warning-confirm-copy" }, ...paragraphs.map((paragraph) => (typeof paragraph === "string" ? el("p", {}, paragraph) : paragraph)));
+
 export function warningConfirmDialog(title: string, paragraphs: (string | HTMLElement)[], confirmLabel: string, confirmTone: ButtonTone = "primary"): Promise<boolean> {
-  const copy = el("div", { class: "warning-confirm-copy" }, ...paragraphs.map((paragraph) => (typeof paragraph === "string" ? el("p", {}, paragraph) : paragraph)));
-  return confirmed({ title, tone: "warning", body: [copy] }, dialogButton(confirmLabel, "ok", confirmTone));
+  return confirmed({ title, tone: "warning", body: [warningCopy(paragraphs)] }, dialogButton(confirmLabel, "ok", confirmTone));
+}
+
+// Closes itself as declined once whoever asked has stopped waiting for the answer.
+export async function timedConfirmDialog(title: string, paragraphs: (string | HTMLElement)[], confirmLabel: string, seconds: number): Promise<boolean> {
+  const cancel = cancelButton();
+  const { dialog, closed } = openDialog({ title, tone: "warning", body: [warningCopy(paragraphs)], buttons: [dialogButton(confirmLabel, "ok", "danger"), cancel], focus: () => cancel.focus() });
+  const timer = window.setTimeout(() => dialog.close(""), Math.max(1, seconds - 1) * 1000);
+  const value = await closed;
+  window.clearTimeout(timer);
+  return value === "ok";
 }

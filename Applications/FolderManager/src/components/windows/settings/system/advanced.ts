@@ -1,4 +1,4 @@
-// Advanced page: the developer debug log, its folder, the webview console and the way back to default preferences.
+// Advanced page: the developer debug log, its folder, the webview console, AI agent write access and the way back to default preferences.
 import { resetPreferences, changeSetting } from "../../../../hooks/ops";
 import { startDebugLog } from "../../../../hooks/debug-log";
 import { openDevtools, openLogsFolder, stopDebugLog } from "../../../../services/ipc/api";
@@ -24,6 +24,12 @@ async function toggleLogging(on: boolean): Promise<boolean> {
   return true;
 }
 
+async function toggleAgentWrites(on: boolean): Promise<boolean> {
+  const message = "AI agents connected through MCP will be able to create, rename, move and change folders in this storage. Deletes, moves and changes to many items still wait for your OK in this window.";
+  if (on && !(await confirmDialog("Let AI agents change this storage?", message, "Allow changes"))) return false;
+  return changeSetting("mcpWrites", on);
+}
+
 export const advancedPage: SettingsPage = {
   id: "advanced",
   group: "System",
@@ -37,6 +43,11 @@ export const advancedPage: SettingsPage = {
       control: () => switchControl("Debug logging", state.settings.debugLogging, toggleLogging),
     },
     { title: "Log files", control: () => buttonControl("Open logs folder", () => void report(openLogsFolder)) },
+    {
+      title: "Let AI agents change this storage",
+      description: "Off: agents connected through MCP can only read. On: they can change folders, and deletes, moves and batches still ask you here first",
+      control: () => switchControl("Let AI agents change this storage", state.settings.mcpWrites, toggleAgentWrites),
+    },
     {
       title: "Reset preferences",
       description: "Does not delete your Workboards, only the settings in this panel",

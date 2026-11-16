@@ -244,7 +244,8 @@ export type UiCall =
   | { action: "reveal"; relParts: string[] }
   | { action: "openTab"; relParts: string[] | null }
   | { action: "split"; relParts: string[] | null }
-  | { action: "setView"; view: string };
+  | { action: "setView"; view: string }
+  | { action: "confirm"; title: string; items: string[]; seconds: number };
 
 export interface UiRequest {
   id: number;

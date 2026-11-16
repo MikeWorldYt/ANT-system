@@ -8,6 +8,7 @@ use super::protocol::{RpcError, INVALID_PARAMS};
 use super::tools::args;
 use super::view::Change;
 use super::retry::retrying;
+use super::gate::{MAX_BATCH, MAX_FILES};
 use super::{write_schema as schema, Server};
 use crate::domain::config::{EditableType, NewKind, WkbStatus};
 use crate::domain::error::R;
@@ -48,7 +49,7 @@ const TOOLS: [(&str, &str, &str, Schemas, Kind); 21] = [
     ("preview_project_groups", "Preview project sort", "The projects a review folder's loose files would be sorted into; changes nothing.", schema::preview_project_groups, Kind::Read),
     ("apply_project_groups", "Sort into projects", "Moves a review folder's loose files into new workboards, as previewed or adjusted.", schema::apply_project_groups, Kind::Destructive),
     ("get_dictionary", "Read dictionary", "A folder's own `.ant/dictionary.md` and the entries in force there, inherited from the folders above; changes nothing.", schema::get_dictionary, Kind::Read),
-    ("set_dictionary", "Write dictionary", "Writes a folder's `.ant/dictionary.md` from structured entries, replacing it whole; the app lays out the file and its header. Read ant://guide/dictionary for what each key and heading does, and the current entries with get_dictionary first, then send them all back with the changes.", schema::set_dictionary, Kind::Idempotent),
+    ("set_dictionary", "Write dictionary", "Writes a folder's `.ant/dictionary.md` from structured entries, replacing it whole; the app lays out the file and its header. Read ant://guide/dictionary for what each key and heading does, and the current entries with get_dictionary first, then send them all back with the changes.", schema::set_dictionary, Kind::Destructive),
     ("undo_project_sort", "Undo project sort", "Puts the files of the last project sort back and removes the folders it made.", schema::undo_project_sort, Kind::Destructive),
 ];
 
@@ -145,20 +146,44 @@ fn search<'a>(f: &'a dyn Fn(&Path) -> R<Mutation>) -> impl Fn(&Path) -> R<Mutati
     move |root| edit::search_indexed(root, f)
 }
 
-fn path(rel: &[String]) -> String {
+fn plain(rel: &[String]) -> String {
     rel.join("/")
+}
+
+// Names are the user's data: quoted as JSON strings, a name holding quotes or line breaks cannot pass for the server's own words.
+fn quoted(text: &str) -> String {
+    Value::String(text.to_string()).to_string()
+}
+
+fn path(rel: &[String]) -> String {
+    quoted(&plain(rel))
 }
 
 fn needs<T>(tool: &str, field: &str, value: Option<T>) -> Result<T, RpcError> {
     value.ok_or_else(|| (INVALID_PARAMS, format!("Invalid arguments for {tool}: missing field `{field}`")))
 }
 
+fn limit(tool: &str, what: &str, count: usize, max: usize) -> Result<(), RpcError> {
+    if count <= max {
+        return Ok(());
+    }
+    Err((INVALID_PARAMS, format!("Invalid arguments for {tool}: {count} {what} in one call, at most {max}; nothing was changed, send them in smaller calls")))
+}
+
+// Destructive tools and any call that touches more than one item wait for the user's yes.
+fn asks(name: &str, items: &[String]) -> (&'static str, bool) {
+    let tool = TOOLS.iter().find(|t| t.0 == name);
+    (tool.map_or("Change", |t| t.1), tool.is_some_and(|t| matches!(t.4, Kind::Destructive)) || items.len() > 1)
+}
+
 impl Server {
     // The mutation takes the cross-process lock itself, as in the app; the in-process guard only mirrors `commands::locked`.
-    fn change(&self, changed: String, f: impl Fn(&Path) -> R<Mutation>) -> R<Value> {
+    fn change(&self, name: &str, items: Vec<String>, changed: String, f: impl Fn(&Path) -> R<Mutation>) -> R<Value> {
         let storage = self.storage()?;
-        let _guard = storage.guard();
         let root = storage.root()?;
+        let (title, confirm) = asks(name, &items);
+        self.allow(&root, title, confirm, items)?;
+        let _guard = storage.guard();
         let mut change = Change::of(changed, retrying(self.retry, || f(&root))?);
         // Logged after the retries, so a busy log never runs the mutation twice.
         if let Err(e) = changes::record(&root, &change.levels, change.full_tree) {
@@ -174,7 +199,7 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
             let a: AddArgs = args(name, arguments)?;
             let kind = if name == "add_node" { NewKind::Node } else { NewKind::Workboard };
             let what = if name == "add_node" { "folder" } else { "workboard" };
-            server.change(format!("Added a {what} \"{}\" in /{}", a.name, path(&a.parent)), |root| {
+            server.change(name, Vec::new(), format!("Added a {what} {} in {}", quoted(&a.name), quoted(&format!("/{}", plain(&a.parent)))), |root| {
                 indexed(root, |root| mutations::add_node_named(root, &a.parent, kind, Some(&a.name)))
             })
         }
@@ -182,13 +207,16 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
             let a: MoveArgs = args(name, arguments)?;
             let copy = name == "copy";
             let verb = if copy { "Copied" } else { "Moved" };
-            server.change(format!("{verb} {} into {}", path(&a.source), path(&a.destination)), |root| {
+            let items = vec![format!("{} → {}", plain(&a.source), plain(&a.destination))];
+            server.change(name, items, format!("{verb} {} into {}", path(&a.source), path(&a.destination)), |root| {
                 indexed(root, |root| mutations::move_folder(root, &a.source, &a.destination, copy))
             })
         }
         "set_board" => {
             let a: BoardArgs = args(name, arguments)?;
-            server.change(format!("Placed {} board cards", a.cards.len()), |root| edit::search_indexed(root, |root| mutations::set_board(root, &a.cards)))
+            limit(name, "cards", a.cards.len(), MAX_BATCH)?;
+            let items = a.cards.iter().map(|c| plain(&c.rel_parts)).collect();
+            server.change(name, items, format!("Placed {} board cards", a.cards.len()), |root| edit::search_indexed(root, |root| mutations::set_board(root, &a.cards)))
         }
         "preview_project_groups" => {
             let a: GroupArgs = args(name, arguments)?;
@@ -197,7 +225,10 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
         "apply_project_groups" => {
             let a: GroupArgs = args(name, arguments)?;
             let plans = required(name, "plans", a.plans)?;
-            server.change(format!("Sorted {} projects in {}", plans.len(), path(&a.folder)), |root| {
+            limit(name, "plans", plans.len(), MAX_BATCH)?;
+            limit(name, "files", plans.iter().map(|p| p.files.len()).sum(), MAX_FILES)?;
+            let items = plans.iter().map(|p| format!("{} ({} files)", p.name, p.files.len())).collect();
+            server.change(name, items, format!("Sorted {} projects in {}", plans.len(), path(&a.folder)), |root| {
                 indexed(root, |root| mutations::apply_project_groups(root, &a.folder, &plans))
             })
         }
@@ -212,19 +243,21 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
             let a: DictionaryArgs = args(name, arguments)?;
             let entries = required(name, "entries", a.entries)?;
             server.storage().and_then(|storage| {
-                let _guard = storage.guard();
                 let root = storage.root()?;
+                let (title, confirm) = asks(name, &[]);
+                server.allow(&root, title, confirm, vec![format!("{} ({} entries)", plain(&a.rel_parts), entries.len())])?;
+                let _guard = storage.guard();
                 retrying(server.retry, || dictionary::write(&root, &a.rel_parts, &entries))?;
                 let mut warnings = Vec::new();
                 if let Err(e) = changes::record(&root, std::slice::from_ref(&a.rel_parts), false) {
                     warnings.push(format!("The open Folder Manager may show this change only after its next refresh: {e}"));
                 }
-                Ok(json!({ "changed": format!("Wrote the dictionary of /{} with {} entries", path(&a.rel_parts), entries.len()), "warnings": warnings }))
+                Ok(json!({ "changed": format!("Wrote the dictionary of {} with {} entries", quoted(&format!("/{}", plain(&a.rel_parts))), entries.len()), "warnings": warnings }))
             })
         }
         "undo_project_sort" => {
             args::<NoArgs>(name, arguments)?;
-            server.change("Undid the last project sort".to_string(), |root| indexed(root, mutations::undo_project_sort))
+            server.change(name, vec!["The last project sort".to_string()], "Undid the last project sort".to_string(), |root| indexed(root, mutations::undo_project_sort))
         }
         _ => return node_call(server, name, arguments),
     })
@@ -237,52 +270,53 @@ fn node_call(server: &Server, name: &str, arguments: &Value) -> Result<R<Value>,
     let a: NodeArgs = args(name, arguments)?;
     let rel = &a.rel_parts;
     let at = path(rel);
+    let one = || vec![plain(rel)];
     Ok(match name {
         "rename" => {
             let new = needs(name, "name", a.name.as_deref())?;
-            server.change(format!("Renamed {at}"), |root| indexed(root, |root| mutations::rename_node(root, rel, new)))
+            server.change(name, one(), format!("Renamed {at}"), |root| indexed(root, |root| mutations::rename_node(root, rel, new)))
         }
         "reorder" => {
             let dir = needs(name, "direction", a.direction)?;
-            server.change(format!("Moved {at} {}", if dir == MoveDirection::Up { "up" } else { "down" }), |root| {
+            server.change(name, one(), format!("Moved {at} {}", if dir == MoveDirection::Up { "up" } else { "down" }), |root| {
                 indexed(root, |root| mutations::move_node(root, rel, dir))
             })
         }
         "delete" => {
             let flags = (a.expect_ghost, a.confirm_non_empty);
-            server.change(format!("Sent {at} to the Recycle Bin"), |root| {
+            server.change(name, one(), format!("Sent {at} to the Recycle Bin"), |root| {
                 edit::delete_node(root, rel, flags, &quiet, create_shortcuts, review_index::rebuild, server.recycle)
             })
         }
         "set_type" => {
             let base = needs(name, "type", a.node_type)?;
-            server.change(format!("Set the type of {at} to {}", base.as_str()), search(&|root| mutations::set_node_type(root, rel, base, a.status)))
+            server.change(name, one(), format!("Set the type of {at} to {}", base.as_str()), search(&|root| mutations::set_node_type(root, rel, base, a.status)))
         }
         "set_status" => {
             let status = needs(name, "status", a.status)?;
-            server.change(format!("Set the status of {at} to {}", status.as_str()), search(&|root| mutations::set_details(root, rel, Some(status), None)))
+            server.change(name, one(), format!("Set the status of {at} to {}", status.as_str()), search(&|root| mutations::set_details(root, rel, Some(status), None)))
         }
         "set_owner" => {
             let owner = needs(name, "owner", a.owner.as_deref())?;
-            server.change(format!("Set the owner of {at}"), search(&|root| mutations::set_details(root, rel, None, Some(owner))))
+            server.change(name, one(), format!("Set the owner of {at}"), search(&|root| mutations::set_details(root, rel, None, Some(owner))))
         }
         "set_favorite" => {
             let on = needs(name, "on", a.on)?;
-            server.change(format!("Set favorite {on} on {at}"), search(&|root| mutations::set_favorite(root, rel, on)))
+            server.change(name, one(), format!("Set favorite {on} on {at}"), search(&|root| mutations::set_favorite(root, rel, on)))
         }
         "set_important" => {
             let on = needs(name, "on", a.on)?;
-            server.change(format!("Set important {on} on {at}"), search(&|root| mutations::set_important(root, rel, on)))
+            server.change(name, one(), format!("Set important {on} on {at}"), search(&|root| mutations::set_important(root, rel, on)))
         }
         "hide" => {
             let on = needs(name, "hidden", a.hidden)?;
-            server.change(format!("Set hidden {on} on {at}"), search(&|root| mutations::set_hidden(root, rel, on)))
+            server.change(name, one(), format!("Set hidden {on} on {at}"), search(&|root| mutations::set_hidden(root, rel, on)))
         }
         "rename_file" => {
             let new = needs(name, "name", a.name.as_deref())?;
-            server.change(format!("Renamed the file {at}"), |root| mutations::rename_file(root, rel, new))
+            server.change(name, one(), format!("Renamed the file {at}"), |root| mutations::rename_file(root, rel, new))
         }
-        "delete_file" => server.change(format!("Sent the file {at} to the Recycle Bin"), |root| mutations::delete_file(root, rel, server.recycle)),
+        "delete_file" => server.change(name, one(), format!("Sent the file {at} to the Recycle Bin"), |root| mutations::delete_file(root, rel, server.recycle)),
         _ => return Err((INVALID_PARAMS, format!("Unknown tool: {name}"))),
     })
 }

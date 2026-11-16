@@ -114,7 +114,8 @@ fn a_byte_order_mark_before_the_first_message_is_ignored() {
 #[test]
 fn a_tool_call_on_the_last_line_gets_one_reply_before_eof_with_or_without_a_bom() {
     let dir = work("mcp-eof");
-    let s = server(dir.path());
+    let mut s = server(dir.path());
+    s.gate = super::gate::Gate::Open;
     let tree = json!({ "name": "get_tree", "arguments": {} });
     let add = |name: &str| json!({ "name": "add_node", "arguments": { "parent": ["100.WORK"], "name": name } });
     for (id, bom, params) in [(1, false, tree.clone()), (2, true, tree), (3, false, add("late one")), (4, true, add("late two"))] {
