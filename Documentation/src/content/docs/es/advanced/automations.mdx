@@ -1,0 +1,173 @@
+---
+title: Automatizaciones
+description: Limpia, fecha, agrupa y ordena los archivos sueltos de una carpeta de revisión, y enséñale a FolderManager tus propios grupos con un diccionario.
+---
+
+Las automatizaciones ordenan los archivos sueltos que llegan a una carpeta de revisión. Viven en el panel lateral de la carpeta de revisión (`REV.<Título>`; los almacenamientos antiguos usan `98.`), y puedes previsualizar lo que harían antes de que se mueva nada.
+
+- **Modo por lotes:** muestra una simulación como diferencias, con el nombre actual en rojo y el nuevo en verde. Nada cambia hasta que pulsas **Run**.
+- **Primero los grupos:** las carpetas a las que se moverán los archivos aparecen primero. Cada grupo tiene un encabezado fijo que se pliega y se despliega con doble clic, y las filas de dentro se ordenan por su nuevo nombre.
+- **Desmarca para omitir:** desmarca cualquier fila para dejar ese archivo como está. **Run** aplica el resto.
+- **Run on every new file:** activa las automatizaciones marcadas para cada archivo que llegue a esa carpeta de revisión, sin simulación. Cubre auto reduce, auto add date, auto remove date, auto sort, auto group y auto remove symbols.
+
+:::note[Archivos temporales]
+Los archivos cuyo nombre empieza con `~` son temporales que las apps mantienen abiertos. Ninguna automatización los toca nunca.
+:::
+
+## Las automatizaciones
+
+Se aplican a un nombre en este orden.
+
+| # | Automatización | Qué hace |
+| --- | --- | --- |
+| 1 | Limpiar nombres (**Clean up names**) | Quita hashes, ids de sitios y ruido, y mueve al principio una fecha escrita en el nombre. |
+| 2 | Añadir fecha (**Add date**) | Pone una fecha delante de cada nombre, usando la hora de creación del archivo cuando el nombre no tiene ninguna. |
+| 3 | Quitar fecha (**Remove date**) | Saca la fecha del nombre. |
+| 4 | Agrupar por diccionario (**Group by dictionary**) | Mueve los archivos a carpetas y los renombra según tu [diccionario](#dictionaries). |
+| 5 | Ordenar por proyectos (**Sort by projects**) | Agrupa en tableros los archivos sueltos que parecen de un mismo proyecto. |
+| 6 | Quitar símbolos (**Remove symbols**) | Quita los corchetes y paréntesis y une lo que queda. |
+
+### Limpiar nombres
+
+- **Hashes e ids:** un código largo conserva sus primeros 4 caracteres, así que `sample_a446087958e8…` queda como `a446`.
+- **La palabra `sample`:** se quita junto con el símbolo que la sigue.
+- **Extensiones dentro del nombre:** solo se queda la extensión real, así que `thumb.jpeg.13bc` queda como `thumb.13bc`.
+- **Series de símbolos mezclados:** `_~_` o `+_-` se reducen a un solo símbolo.
+- **Códigos de tamaño:** `Ganyu.600.3545662` queda como `Ganyu_3545`.
+- **Fechas:** una fecha escrita en el nombre pasa al principio como `(yy-mm-dd)_`, o `(yy-mm-dd_hh-mm)_` cuando el nombre también tiene hora. Las fechas imposibles se dejan como están.
+
+Se reconocen estos formatos de fecha:
+
+| Tipo | Ejemplo |
+| --- | --- |
+| Compacta e ISO | `20250825`, `2025-08-25`, `20240905121359` |
+| Nombres de cámara | `PXL_…`, `IMG_…`, `VID_…` |
+| Capturas de pantalla | `Screenshot 2025-01-02 9.05.33 PM` |
+| WhatsApp | `2026-03-09 at 16.44.50` |
+| Nombres de mes, en inglés, español o francés, en cualquier orden | `27 sept 2026, 11_18_05 a.m.`, `Mar 28, 2025, 03_18_41 PM`, `3 diciembre 2024` |
+| Hora Unix en milisegundos (13 dígitos) | `FB_IMG_1525739935595`, convertida a tu hora local |
+
+### Añadir fecha
+
+Los nombres que ya tienen una fecha la llevan al principio. Los que no tienen ninguna reciben la hora de creación del archivo, siempre con la hora: `(yy-mm-dd_hh-mm)_nombre`.
+
+### Quitar fecha
+
+Saca el prefijo de fecha `(…)` y cualquier fecha escrita en el nombre. Si ambas están marcadas, gana sobre **Añadir fecha**. Un nombre que es solo una fecha se conserva.
+
+### Agrupar por diccionario
+
+Compara el nombre con tu diccionario, lo renombra según la entrada y lo mueve a la carpeta de la entrada. Mira [Diccionarios](#dictionaries).
+
+### Ordenar por proyectos
+
+Agrupa en tableros llamados `PJ_<título>` los archivos sueltos que parecen de un mismo proyecto. En modo automático solo se crean los grupos seguros.
+
+### Quitar símbolos
+
+Va al final. Quita `( ) [ ] { }` y une lo que queda, así que `[Mike]_PJ.001_Web (v2).zip` queda como `Mike_PJ.001_Web v2.zip`. También quita los contadores de copia como `(2)`.
+
+## Convención de nombres
+
+Las automatizaciones siguen esta forma:
+
+```text
+(<fecha>)-[responsable]_<tema>-<palabras clave> <versión o (n)>
+```
+
+Las palabras clave son cualquier texto extra del nombre. Sin símbolos el orden es el mismo, solo que sin los corchetes.
+
+<a id="dictionaries"></a>
+
+## Diccionarios
+
+Un diccionario le enseña a la automatización **Agrupar por diccionario** de qué tratan tus archivos, para que pueda renombrarlos y enviarlos a la carpeta correcta.
+
+- **Dónde vive:** `<nodo>/.ant/dictionary.md`, un archivo Markdown simple que Obsidian abre sin problema.
+- **Dónde se aplica:** a las carpetas de revisión de ese nodo y de las que están debajo. Un diccionario más cercano suma a los más lejanos y reemplaza sus entradas del mismo nombre.
+- **Comentarios:** los archivos generados empiezan con un bloque de comentario `%%` que enlaza a esta página. Todo lo que queda entre `%%` y `%%` es un comentario y nunca se lee.
+
+### Formato
+
+- El primer encabezado con un solo `#` es el título.
+- Cada otro encabezado (`##`) es una entrada.
+- Las líneas `- clave: valores` afinan la entrada. Los valores van separados por comas.
+
+| Clave | Qué hace |
+| --- | --- |
+| `term` | Coincide con el nombre y se quita de él. |
+| `topics` | Coincide y se conserva una vez en el nombre, escrito en Train-Case (`noa ushio` queda como `Noa-Ushio`). El primero encontrado pasa justo después de la fecha y del responsable; los repetidos se quitan. |
+| `only` | Estricto y se conserva: mayúsculas y símbolos deben coincidir exactamente, como palabra completa. |
+| `exclude` | Solo se quita del nombre; nunca decide el grupo. |
+| `ext` | Coincide por extensión, por ejemplo `.exe .msi`. |
+| `pattern` | Una expresión regular sin distinguir mayúsculas, una por línea. Su coincidencia se quita. |
+
+Un valor de `topics` puede listar otras formas entre paréntesis: `- topics: Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza)` reescribe todas las formas como `Sakuya`. Las comas dentro de los paréntesis no separan temas.
+
+Los términos cortos de menos de 4 letras solo cuentan como palabra completa o en mayúsculas.
+
+### Cómo se compara un archivo
+
+Gana el `term`, `topics` u `only` coincidente más largo entre todas las entradas. `ext` y `pattern` solo deciden cuando no coincidió ninguna palabra.
+
+### Encabezados
+
+| Encabezado | A dónde van los archivos |
+| --- | --- |
+| `## Nombre` | Una subcarpeta de la carpeta de revisión. |
+| `## Do not group` | Se quedan donde están pero se renombran igualmente según la entrada. |
+| `## NODE.Título` | Un nodo junto a la carpeta de revisión, hijo de la carpeta del diccionario. Se encuentra por su título sin el id, así que reordenar nodos nunca lo rompe. |
+| `## NODE^.Título` | Un nivel más arriba, hermano de la carpeta del diccionario. |
+| `## NODE^.Blue-Archive/Fanarts` | Una ruta que baja desde ahí. |
+
+Un nodo que acepta archivos se los queda. Si no, van a su propia carpeta de revisión, donde corren sus propias automatizaciones. Renombrar un nodo en la app actualiza sus encabezados `NODE` (solo el primer segmento de la ruta). Un encabezado `NODE` cuyo nodo no existe no agrupa nada.
+
+### Ejemplo
+
+```markdown
+%%
+Generated by ANT. Format and keys: https://ant.mikeworld.dev/en/advanced/automations#dictionaries/
+%%
+
+# Anime art
+
+## NODE^.Blue-Archive/Fanarts
+- term: blue archive, ba
+- topics: Noa Ushio, Hoshino (Takanashi Hoshino, Hoshino Takanashi)
+- exclude: wallpaper
+- pattern: ^ba[_-]\d+
+
+## Touhou
+- term: touhou
+- topics: Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza), Remilia
+- only: TH
+
+## Installers
+- ext: .exe .msi
+
+## Do not group
+- term: draft
+- only: WIP
+```
+
+### El editor
+
+El botón **Edit dictionary** del panel de automatizaciones abre el archivo en una ventana aparte con números de línea.
+
+- **Autoguardado:** guarda mientras escribes, incluso con errores. Abrir el editor no crea el archivo hasta que escribes.
+- **Reagrupado en vivo:** el modo por lotes reagrupa cuando el archivo cambia.
+- **Problemas:** una lista de problemas y una línea de estado señalan las líneas. Haz clic en un problema para saltar a su línea.
+
+| Avisa de | Ejemplo |
+| --- | --- |
+| Claves desconocidas, con una sugerencia | `ter` muestra "did you mean `term`?" |
+| Una clave escrita sin espacio | `-term` |
+| Texto libre fuera del formato | Una frase suelta entre entradas. |
+| Encabezados vacíos o duplicados | Dos encabezados `## Touhou`. |
+| `NODE.` sin nombre | `## NODE.` |
+| Claves fuera de una entrada | Una línea `- term:` antes de cualquier encabezado `##`. |
+| Patrones que no compilan | Una expresión regular rota. |
+| Entradas que no atrapan nada | Una entrada sin claves que puedan coincidir. |
+| Un `%%` sin cerrar | Un bloque de comentario sin su `%%` de cierre. |
+
+Los clientes de IA también pueden leer y escribir diccionarios. Mira [Integraciones de IA](/es/advanced/ai-integrations).

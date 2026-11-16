@@ -1,0 +1,171 @@
+---
+title: Automations
+description: Clean up, date, group and sort the loose files of a review folder, and teach FolderManager your own groups with a dictionary.
+---
+
+Automations tidy the loose files that land in a review folder. They live in the side panel of the review folder (`REV.<Title>`; older storages use `98.`), and you can preview what they would do before anything moves.
+
+- **Batch mode:** shows a dry run as a diff, with the current name in red and the new name in green. Nothing changes until you press **Run**.
+- **Groups first:** the folders the files will move to are listed first. Each group has a sticky header that folds and unfolds on double click, and the rows inside are ordered by their new name.
+- **Untick to skip:** untick any row to leave that file as it is. **Run** applies the rest.
+- **Run on every new file:** turns the ticked automations on for every file that lands in that review folder, with no dry run. It covers auto reduce, auto add date, auto remove date, auto sort, auto group and auto remove symbols.
+
+:::note[Temporary files]
+Files whose name starts with `~` are temporary files that apps hold open. No automation ever touches them.
+:::
+
+## The automations
+
+They apply to a name in this order.
+
+| # | Automation | What it does |
+| --- | --- | --- |
+| 1 | Clean up names | Strips hashes, site ids and noise, and moves a date written in the name to the front. |
+| 2 | Add date | Puts a date in front of every name, using the file's creation time when the name has none. |
+| 3 | Remove date | Takes the date out of the name. |
+| 4 | Group by dictionary | Moves files into folders and renames them using your [dictionary](#dictionaries). |
+| 5 | Sort by projects | Groups loose files that look like one project into workboards. |
+| 6 | Remove symbols | Removes brackets and joins what is left. |
+
+### Clean up names
+
+- **Hashes and ids:** a long code keeps its first 4 characters, so `sample_a446087958e8…` becomes `a446`.
+- **The word `sample`:** removed together with the symbol that follows it.
+- **Extensions inside the name:** only the real extension stays, so `thumb.jpeg.13bc` becomes `thumb.13bc`.
+- **Runs of mixed symbols:** `_~_` or `+_-` shrink to one symbol.
+- **Size codes:** `Ganyu.600.3545662` becomes `Ganyu_3545`.
+- **Dates:** a date written in the name moves to the front as `(yy-mm-dd)_`, or `(yy-mm-dd_hh-mm)_` when the name also has a time. Impossible dates are left alone.
+
+These date formats are recognised:
+
+| Kind | Example |
+| --- | --- |
+| Compact and ISO | `20250825`, `2025-08-25`, `20240905121359` |
+| Camera names | `PXL_…`, `IMG_…`, `VID_…` |
+| Screenshots | `Screenshot 2025-01-02 9.05.33 PM` |
+| WhatsApp | `2026-03-09 at 16.44.50` |
+| Month names, in English, Spanish or French, in either order | `27 sept 2026, 11_18_05 a.m.`, `Mar 28, 2025, 03_18_41 PM`, `3 diciembre 2024` |
+| Unix time in milliseconds (13 digits) | `FB_IMG_1525739935595`, converted to your local time |
+
+### Add date
+
+Names that already have a date get it moved to the front. Names without one get the file's creation time, always with the time: `(yy-mm-dd_hh-mm)_name`.
+
+### Remove date
+
+Takes the `(…)` date prefix and any date written in the name out. If both are ticked, it wins over **Add date**. A name that is only a date is kept.
+
+### Group by dictionary
+
+Matches the name against your dictionary, renames it by the entry and moves it to the entry's folder. See [Dictionaries](#dictionaries).
+
+### Sort by projects
+
+Groups loose files that look like one project into workboards named `PJ_<title>`. In auto mode only the sure groups are made.
+
+### Remove symbols
+
+Runs last. It removes `( ) [ ] { }` and joins what is left, so `[Mike]_PJ.001_Web (v2).zip` becomes `Mike_PJ.001_Web v2.zip`. It also removes copy counters such as `(2)`.
+
+## Naming convention
+
+The automations follow this shape:
+
+```text
+(<date>)-[owner]_<topic>-<keywords> <version or (n)>
+```
+
+Keywords are any extra text in the name. Without symbols the order is the same, just without the brackets.
+
+## Dictionaries
+
+A dictionary teaches the **Group by dictionary** automation what your files are about, so it can rename them and send them to the right folder.
+
+- **Where it lives:** `<node>/.ant/dictionary.md`, a plain Markdown file that Obsidian opens fine.
+- **Where it applies:** to the review folders at or below that node. A closer dictionary adds to the farther ones and replaces their entries of the same name.
+- **Comments:** generated files start with a `%%` comment block that links to this page. Anything between `%%` and `%%` is a comment and is never read.
+
+### Format
+
+- The first single `#` heading is the title.
+- Every other heading (`##`) is an entry.
+- `- key: values` lines refine the entry. Values are comma-separated.
+
+| Key | What it does |
+| --- | --- |
+| `term` | Matches the name and is removed from it. |
+| `topics` | Matches and is kept once in the name, written in Train-Case (`noa ushio` becomes `Noa-Ushio`). The first one found moves right after the date and owner; repeats are removed. |
+| `only` | Strict and kept: case and symbols must match exactly, as a whole word. |
+| `exclude` | Removed from the name only; it never decides the group. |
+| `ext` | Matches by extension, for example `.exe .msi`. |
+| `pattern` | A case-insensitive regular expression, one per line. Its match is removed. |
+
+A `topics` value can list other forms in parentheses: `- topics: Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza)` rewrites every form to `Sakuya`. Commas inside the parentheses do not split topics.
+
+Short terms under 4 letters only count as a whole word or in capitals.
+
+### How a file is matched
+
+The longest matching `term`, `topics` or `only` across all entries wins. `ext` and `pattern` only decide when no word matched.
+
+### Headings
+
+| Heading | Where the files go |
+| --- | --- |
+| `## Name` | A subfolder of the review folder. |
+| `## Do not group` | They stay where they are but are still renamed by the entry. |
+| `## NODE.Title` | A node beside the review folder, a child of the dictionary's folder. It is found by its title without the id, so reordering nodes never breaks it. |
+| `## NODE^.Title` | One level up, a sibling of the dictionary's folder. |
+| `## NODE^.Blue-Archive/Fanarts` | A path walks down from there. |
+
+A node that accepts files keeps them. Otherwise they go to its own review folder, where its own automations run. Renaming a node in the app updates its `NODE` headings (only the first path segment). A `NODE` heading whose node is missing groups nothing.
+
+### Example
+
+```markdown
+%%
+Generated by ANT. Format and keys: https://ant.mikeworld.dev/en/advanced/automations#dictionaries/
+%%
+
+# Anime art
+
+## NODE^.Blue-Archive/Fanarts
+- term: blue archive, ba
+- topics: Noa Ushio, Hoshino (Takanashi Hoshino, Hoshino Takanashi)
+- exclude: wallpaper
+- pattern: ^ba[_-]\d+
+
+## Touhou
+- term: touhou
+- topics: Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza), Remilia
+- only: TH
+
+## Installers
+- ext: .exe .msi
+
+## Do not group
+- term: draft
+- only: WIP
+```
+
+### The editor
+
+The **Edit dictionary** button in the automations panel opens the file in a separate window with line numbers.
+
+- **Autosave:** it saves as you type, even with mistakes. Opening the editor does not create the file until you type.
+- **Live regrouping:** Batch mode regroups when the file changes.
+- **Problems:** a problems list and a status line point at lines. Click a problem to jump to its line.
+
+| It flags | Example |
+| --- | --- |
+| Unknown keys, with a suggestion | `ter` shows "did you mean `term`?" |
+| A key written without a space | `-term` |
+| Free text outside the format | A loose sentence between entries. |
+| Empty or duplicate headings | Two `## Touhou` headings. |
+| `NODE.` without a name | `## NODE.` |
+| Keys outside an entry | A `- term:` line before any `##` heading. |
+| Patterns that do not compile | A broken regular expression. |
+| Entries that catch nothing | An entry with no keys that can match. |
+| An unclosed `%%` | A comment block with no closing `%%`. |
+
+AI clients can read and write dictionaries too. See [AI integrations](/en/advanced/ai-integrations).

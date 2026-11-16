@@ -79,6 +79,8 @@ export default defineConfig({
 						translations: { es: 'Avanzado' },
 						items: [
 							{ label: 'CLI', slug: 'advanced/cli', translations: { es: 'CLI' } },
+							{ label: 'AI integrations', slug: 'advanced/ai-integrations', translations: { es: 'Integraciones de IA' } },
+							{ label: 'Automations', slug: 'advanced/automations', translations: { es: 'Automatizaciones' } },
 						],
 					},
 					{
