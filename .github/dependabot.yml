@@ -1,0 +1,42 @@
+# Monthly grouped version updates, one PR per ecosystem; security updates still arrive on their own.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: cargo
+    directories:
+      - /Applications/FolderManager/src-tauri
+      - /Applications/CreateNewStorage
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      cargo-minor:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore
+      include: scope
+
+  # pnpm lockfiles are handled by the npm ecosystem
+  - package-ecosystem: npm
+    directories:
+      - /Applications/FolderManager
+      - /Documentation
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      npm-minor:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore
+      include: scope

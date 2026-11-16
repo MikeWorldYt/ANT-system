@@ -1,7 +1,6 @@
 # Builds the Windows executables of the ANT apps whenever their version changes on main,
 # commits them to Applications/<App>/dist and publishes a per-app GitHub Release.
-# An app with src-tauri/ is built with Tauri and pnpm, one with only a Cargo.toml with cargo
-# (its version lives there), and any other app with PyInstaller (its version lives in version.txt).
+# An app with src-tauri/ is built with Tauri and pnpm, one with only a Cargo.toml with cargo (its version lives there).
 name: Build apps
 
 on:
@@ -22,7 +21,7 @@ on:
         default: "FolderManager,CreateNewStorage"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: build-apps-${{ github.ref }}
@@ -34,11 +33,11 @@ jobs:
     outputs:
       matrix: ${{ steps.pick.outputs.matrix }}
       any: ${{ steps.pick.outputs.any }}
-      native: ${{ steps.pick.outputs.native }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
+          persist-credentials: false
       - id: pick
         shell: bash
         env:
@@ -53,15 +52,10 @@ jobs:
             pull_request) apps=$(git diff --name-only "$BASE_SHA" HEAD -- Applications | cut -d/ -f2 | sort -u) ;;
             push) apps=$(git diff --name-only "$BEFORE" HEAD -- 'Applications/*/version.txt' Applications/CreateNewStorage/Cargo.toml | cut -d/ -f2 | sort -u) ;;
           esac
-          # ant_core is shared, so a change there rebuilds every app
-          if echo "$apps" | grep -qx ant_core; then apps="$all"; fi
           picked=$(for a in $apps; do echo " $all " | grep -q " $a " && echo "$a"; done | sort -u)
           json=$(printf '%s\n' $picked | jq -R . | jq -sc 'map(select(length > 0))')
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
           [ "$json" = "[]" ] && echo "any=false" >> "$GITHUB_OUTPUT" || echo "any=true" >> "$GITHUB_OUTPUT"
-          # Python apps only run on Windows; the Rust and Tauri ones also get Linux and macOS builds
-          native=$(for a in $picked; do { [ -f "Applications/$a/Cargo.toml" ] || [ -f "Applications/$a/src-tauri/tauri.conf.json" ]; } && echo "$a"; done | jq -R . | jq -sc 'map(select(length > 0))')
-          echo "native=$native" >> "$GITHUB_OUTPUT"
           echo "Apps: $json"
 
   build:
@@ -73,7 +67,9 @@ jobs:
       matrix:
         app: ${{ fromJson(needs.plan.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
       - name: Detect app kind
         id: kind
         shell: pwsh
@@ -82,26 +78,11 @@ jobs:
           $rust = (-not $tauri) -and (Test-Path "Applications/${{ matrix.app }}/Cargo.toml")
           "tauri=$($tauri.ToString().ToLower())" >> $env:GITHUB_OUTPUT
           "rust=$($rust.ToString().ToLower())" >> $env:GITHUB_OUTPUT
-          "python=$((-not $tauri -and -not $rust).ToString().ToLower())" >> $env:GITHUB_OUTPUT
-      - uses: actions/setup-python@v6
-        if: steps.kind.outputs.python == 'true'
-        with:
-          python-version: "3.13"
-      - name: Install build tools
-        if: steps.kind.outputs.python == 'true'
-        run: python -m pip install --upgrade pip pyinstaller pyyaml
-      - name: Build
-        if: steps.kind.outputs.python == 'true'
-        working-directory: Applications/${{ matrix.app }}
-        shell: pwsh
-        run: |
-          $spec = Get-ChildItem *.spec | Select-Object -First 1
-          python -m PyInstaller $spec.Name --noconfirm --clean --distpath build-dist --workpath build-work
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           version: 10
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           node-version: 24
@@ -149,16 +130,16 @@ jobs:
           if ($size -lt $minSize) { throw "$exe is only $size bytes" }
           $actual = (Get-Item $exe).VersionInfo.FileVersion
           # A Tauri executable may carry a pre-release tag after the numbers (2.0.1-beta); a Rust one carries none
-          $sameVersion = if ("${{ steps.kind.outputs.rust }}" -eq "true") { $true } elseif ("${{ steps.kind.outputs.tauri }}" -eq "true") { $actual.StartsWith($expected) } else { $actual -eq $expected }
+          $sameVersion = ("${{ steps.kind.outputs.rust }}" -eq "true") -or $actual.StartsWith($expected)
           if (-not $sameVersion) { throw "exe FileVersion '$actual' does not match version.txt '$expected'" }
           "version=$expected" >> $env:GITHUB_OUTPUT
           "Built ${{ matrix.app }} $expected ($size bytes)"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ matrix.app }}_portable
           path: Applications/${{ matrix.app }}/build-dist/${{ matrix.app }}.exe
           if-no-files-found: error
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           name: ${{ matrix.app }}_installer
@@ -167,13 +148,13 @@ jobs:
 
   build-unix:
     needs: plan
-    if: needs.plan.outputs.native != '[]'
+    if: needs.plan.outputs.any == 'true'
     name: ${{ matrix.app }}-${{ matrix.label }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        app: ${{ fromJson(needs.plan.outputs.native) }}
+        app: ${{ fromJson(needs.plan.outputs.matrix) }}
         os: [ubuntu-latest, macos-latest]
         include:
           - { os: ubuntu-latest, label: linux, bundle: deb }
@@ -183,7 +164,9 @@ jobs:
         shell: bash
         working-directory: Applications/${{ matrix.app }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
       - name: Detect app kind
         id: kind
         run: |
@@ -193,15 +176,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential curl wget file libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           version: 10
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           node-version: 24
-      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup toolchain install stable --profile minimal
       - name: Build (Tauri)
         if: steps.kind.outputs.tauri == 'true'
         run: |
@@ -220,12 +203,12 @@ jobs:
       # tar keeps the executable bit, which an artifact upload would drop
       - name: Pack
         run: tar -czf "${{ matrix.app }}-${{ matrix.label }}_portable.tar.gz" -C "$(dirname "$BIN")" "$(basename "$BIN")"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ matrix.app }}-${{ matrix.label }}_portable
           path: Applications/${{ matrix.app }}/${{ matrix.app }}-${{ matrix.label }}_portable.tar.gz
           if-no-files-found: error
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: steps.kind.outputs.tauri == 'true'
         with:
           name: ${{ matrix.app }}-${{ matrix.label }}_installer
@@ -237,10 +220,13 @@ jobs:
     # Pull requests only prove the build works; main gets the commit and the releases
     if: ${{ !cancelled() && needs.build.result == 'success' && needs.build-unix.result != 'failure' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v5
+      # The token stays in the checkout because this job pushes the executables to main
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       # Every artifact holds one file named for the release, except the Windows portable, which keeps the dist/ name the updater reads
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           path: built
           merge-multiple: true
