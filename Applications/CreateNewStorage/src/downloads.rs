@@ -3,14 +3,16 @@ use std::path::Path;
 
 use crate::config::{FOLDER_MANAGER_ASSET, FOLDER_MANAGER_NAME, LATEST_JSON_URL, RELEASES_PAGE_URL};
 use crate::fetch::{download, download_text, MAX_EXE_BYTES};
+use crate::fs_ops::Backups;
+#[cfg(not(windows))]
 use crate::fs_ops::write_file_atomic;
 use crate::sha256::sha256_hex;
 use crate::Level;
 
-pub fn optional_downloads(root: &Path, folder_manager: bool, progress: &mut dyn FnMut(Level, &str)) {
+pub fn optional_downloads(root: &Path, folder_manager: bool, backups: &mut Backups, progress: &mut dyn FnMut(Level, &str)) {
     if folder_manager {
         progress(Level::Step, "Downloading FolderManager ...");
-        download_folder_manager(root, progress);
+        download_folder_manager(root, backups, progress);
     }
 }
 
@@ -21,7 +23,7 @@ fn not_installed(progress: &mut dyn FnMut(Level, &str), level: Level, why: &str)
 }
 
 // The portable asset of the newest build goes into the storage root, only after its SHA-256 matches latest.json.
-fn download_folder_manager(root: &Path, progress: &mut dyn FnMut(Level, &str)) {
+fn download_folder_manager(root: &Path, backups: &mut Backups, progress: &mut dyn FnMut(Level, &str)) {
     let latest = match download_text(LATEST_JSON_URL) {
         Ok(text) => text,
         Err(e) => return not_installed(progress, Level::Warn, &format!("latest.json could not be read ({e})")),
@@ -31,7 +33,7 @@ fn download_folder_manager(root: &Path, progress: &mut dyn FnMut(Level, &str)) {
         Err(e) => return not_installed(progress, Level::Error, &e),
     };
     let exe = root.join(FOLDER_MANAGER_NAME);
-    match install_folder_manager(&exe, &bytes).and_then(|()| make_executable(&exe)) {
+    match install_folder_manager(&exe, &bytes, backups).and_then(|()| make_executable(&exe)) {
         Ok(()) => progress(Level::Ok, &format!("✔ {} (downloaded, SHA-256 verified)", exe.display())),
         Err(e) => not_installed(progress, Level::Error, &e),
     }
@@ -75,12 +77,12 @@ fn fetch_verified(latest: &str, asset: &str, get: &mut dyn FnMut(&str) -> Result
 }
 
 #[cfg(windows)]
-fn install_folder_manager(exe: &Path, asset: &[u8]) -> Result<(), String> {
-    write_file_atomic(exe, asset)
+fn install_folder_manager(exe: &Path, asset: &[u8], backups: &mut Backups) -> Result<(), String> {
+    backups.write(exe, asset)
 }
 
 #[cfg(not(windows))]
-fn install_folder_manager(exe: &Path, asset: &[u8]) -> Result<(), String> {
+fn install_folder_manager(exe: &Path, asset: &[u8], backups: &mut Backups) -> Result<(), String> {
     let archive = exe.with_extension("tar.gz");
     write_file_atomic(&archive, asset)?;
     let unpacked = std::process::Command::new("tar").arg("-xzOf").arg(&archive).output();
@@ -90,7 +92,7 @@ fn install_folder_manager(exe: &Path, asset: &[u8]) -> Result<(), String> {
         return Err(format!("Could not unpack {FOLDER_MANAGER_ASSET}: {}", String::from_utf8_lossy(&unpacked.stderr).trim()));
     }
     removed.map_err(|e| format!("Could not remove {}: {e}", archive.display()))?;
-    write_file_atomic(exe, &unpacked.stdout)
+    backups.write(exe, &unpacked.stdout)
 }
 
 #[cfg(unix)]
