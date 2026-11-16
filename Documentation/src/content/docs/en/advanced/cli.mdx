@@ -18,10 +18,9 @@ On Windows the file is `CreateNewStorage.exe`; on Linux and macOS it is `create-
 1. The storage folder and its `.ant` folder.
 2. The template, `template.md`: the official one is downloaded, or you pass your own with `--template`. A copy is kept in `.ant/template.md`.
 3. The whole folder tree described by the template: one numbered folder per category (`100.PERSONAL`), subcategory and topic, plus the support folders. Each category gets `REC.<NAME>`, `RES.Resources`, `REV.<NAME>` and `SS.<NAME>`, and every subcategory and topic gets its `REV.<NAME>`. The root also gets `ANT.RECORDINGS` and `ANT.SCREENSHOTS`.
-4. `FM_Updater.bat` in `.ant`, used by FolderManager updates on Windows.
-5. The latest FolderManager for your system in the storage root.
+4. The latest FolderManager for your system in the storage root. Later updates are done by the app itself, see [Updates](/en/folder-manager/updates).
 
-Steps 1 to 3 are essential: if one fails, the tool removes only the folders it created in this run and leaves anything that was already there. Steps 4 and 5 only warn when they fail, so the storage is still usable.
+Steps 1 to 3 are essential: if one fails, the tool removes only the folders it created in this run and leaves anything that was already there. Step 4 only warns when it fails, so the storage is still usable.
 
 ## The template
 
@@ -109,7 +108,7 @@ Dry run: nothing is written.
 
 ### `--no-folder-manager`
 
-Skips the FolderManager download. The template and `FM_Updater.bat` are still used. Use it when you already have FolderManager or plan to install it later.
+Skips the FolderManager download. The template is still used. Use it when you already have FolderManager or plan to install it later.
 
 ```bash
 create-new-storage ~ --name Work --no-folder-manager

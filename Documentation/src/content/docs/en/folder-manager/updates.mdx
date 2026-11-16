@@ -8,5 +8,6 @@ On open, the app compares its version with the one published on GitHub, unless y
 
 <ImagePlaceholder label="Screenshot: Updates" />
 
-- **Windows:** Update closes the app, swaps the executable and needs `FM_Updater.bat` in `999.Settings/00.Core` of your storage.
+- **Windows:** FolderManager installs like any other program. Update downloads `FolderManager_installer.exe` from the matching GitHub release (`folder-manager-v<version>`), checks its SHA-256 against the digest GitHub lists for that file, and then runs the installer directly. If the release has no digest, or the check fails, the update stops and the app stays open.
+- **Portable copy:** it no longer replaces itself. Install the app with the installer, or download the new version from the [Downloads page](/en/start-here/download).
 - **Linux and macOS:** the in-app update is not available. Download the new archive from the [Downloads page](/en/start-here/download) and replace the old file.
