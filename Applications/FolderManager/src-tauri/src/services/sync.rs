@@ -11,9 +11,9 @@ use crate::services::scheduler::{self, Task};
 use crate::services::snapshot::snapshot;
 use crate::services::tree::tree_store;
 
-const TASK: Task = Task { name: "ANT System Manager Sync", flag: "--sync", start: "12:30", what: "sync" };
+pub(crate) const TASK: Task = Task { name: "ANT System Manager Sync", flag: "--sync", start: "12:30", what: "sync" };
 
-const WATCH_TASK: Task = Task { name: "ANT System Manager Watch", flag: "--watch", start: "", what: "watch" };
+pub(crate) const WATCH_TASK: Task = Task { name: "ANT System Manager Watch", flag: "--watch", start: "", what: "watch" };
 
 // Both tasks are always attempted so a failure of one never leaves the other stale.
 pub fn apply(on: bool, root: &Path) -> R<()> {

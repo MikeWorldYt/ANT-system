@@ -5,7 +5,7 @@ use crate::domain::error::{FmError, R};
 use crate::services::scheduler::{self, Task};
 
 const TASK_NAME: &str = "ANT System Manager Backup";
-const TASK: Task = Task { name: TASK_NAME, flag: "--backup", start: "12:00", what: "backup" };
+pub(crate) const TASK: Task = Task { name: TASK_NAME, flag: "--backup", start: "12:00", what: "backup" };
 const DAY: u64 = 86_400;
 
 pub fn period_secs(frequency: &str) -> Option<u64> {

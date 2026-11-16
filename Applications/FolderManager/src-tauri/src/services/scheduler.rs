@@ -32,17 +32,24 @@ fn delete_args(name: &str) -> Vec<String> {
     ["/Delete", "/F", "/TN", name].map(String::from).to_vec()
 }
 
+// Backslashes before a closing quote escape it in a command line, so a drive root like D:\ would reach the app as D:".
+fn quoted(root: &Path) -> String {
+    let text = root.display().to_string();
+    let trailing = text.len() - text.trim_end_matches('\\').len();
+    format!("\"{text}{}\"", "\\".repeat(trailing))
+}
+
 pub fn args(task: &Task, schedule: Option<&str>, exe: &Path, root: &Path) -> Vec<String> {
     let name = task_name(task, root);
     let Some(schedule) = schedule else {
         return delete_args(&name);
     };
-    let run = format!("\"{}\" {} \"{}\"", exe.display(), task.flag, root.display());
+    let run = format!("\"{}\" {} {}", exe.display(), task.flag, quoted(root));
     ["/Create", "/F", "/SC", schedule, "/TN", &name, "/TR", &run, "/ST", task.start].map(String::from).to_vec()
 }
 
 fn runs_on(task: &Task, arguments: &str, root: &Path) -> bool {
-    path_key(arguments) == path_key(&format!("{} \"{}\"", task.flag, root.display()))
+    path_key(arguments) == path_key(&format!("{} {}", task.flag, quoted(root)))
 }
 
 // The new task goes in first, so a failure never leaves the storage with none; a fixed-name task of another storage stays until that storage moves it.
@@ -71,7 +78,7 @@ fn escape(text: &str) -> String {
 pub fn logon_xml(task: &Task, user: &str, exe: &Path, root: &Path) -> String {
     let user = escape(user);
     let command = escape(&exe.display().to_string());
-    let arguments = escape(&format!("{} \"{}\"", task.flag, root.display()));
+    let arguments = escape(&format!("{} {}", task.flag, quoted(root)));
     format!(
         r#"<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
@@ -104,6 +111,36 @@ pub fn logon_xml(task: &Task, user: &str, exe: &Path, root: &Path) -> String {
 </Task>
 "#
     )
+}
+
+// Task Scheduler's own SCHED_S_* codes (ready, running, not run yet...) and a watch ended by logoff are no failure of the run.
+fn problem(task: &Task, code: i64) -> Option<String> {
+    if code == 0 || (0x41300..=0x4130F).contains(&code) || code == 0xC000_013A || code == 0x4001_0004 {
+        return None;
+    }
+    Some(format!("The scheduled {} failed on its last run (result {code:#x}); turn it off and on again in Settings", task.what))
+}
+
+fn problems_in(tasks: &[&Task], root: &Path, output: &str) -> Vec<String> {
+    let codes: Vec<(&str, i64)> = output.lines().filter_map(|l| l.trim().rsplit_once('=')).filter_map(|(n, c)| Some((n, c.trim().parse().ok()?))).collect();
+    tasks.iter().filter_map(|t| codes.iter().find(|(n, _)| *n == task_name(t, root)).and_then(|(_, c)| problem(t, *c))).collect()
+}
+
+#[cfg(windows)]
+const READ_RESULTS: &str = r"[Console]::OutputEncoding = [Text.Encoding]::UTF8; foreach ($n in $env:FM_TASKS -split '\|') { $t = Get-ScheduledTask -TaskName $n -TaskPath '\' -ErrorAction SilentlyContinue; if ($t) { $n + '=' + ($t | Get-ScheduledTaskInfo).LastTaskResult } }";
+
+// A task that fails runs hidden with no window, so its last result is the only trace the user can be shown.
+#[cfg(windows)]
+pub fn problems(tasks: &[&Task], root: &Path) -> R<Vec<String>> {
+    let names = tasks.iter().map(|t| task_name(t, root)).collect::<Vec<_>>().join("|");
+    let env = [("FM_TASKS", std::ffi::OsStr::new(&names))];
+    let output = run_powershell(READ_RESULTS, &env, None, std::time::Duration::from_secs(60)).map_err(|message| FmError::Internal { message })?;
+    Ok(problems_in(tasks, root, &output))
+}
+
+#[cfg(not(windows))]
+pub fn problems(_tasks: &[&Task], _root: &Path) -> R<Vec<String>> {
+    Ok(Vec::new())
 }
 
 // Asking schtasks first keeps PowerShell for the one run that finds the fixed name.
@@ -239,6 +276,28 @@ mod tests {
         assert_ne!(name_in(&one), name_in(&two));
         assert!(name_in(&one).starts_with("ANT Test "), "{}", name_in(&one));
         assert_eq!(args(&TASK, None, Path::new(EXE), Path::new("D:/One")), ["/Delete", "/F", "/TN", &name_in(&one)]);
+    }
+
+    #[test]
+    fn a_drive_root_reaches_the_app_with_its_backslash() {
+        let run = args(&TASK, Some("DAILY"), Path::new(EXE), Path::new("D:\\"));
+        let at = run.iter().position(|a| a == "/TR").unwrap();
+        assert_eq!(run[at + 1], r#""C:/App/fm.exe" --backup "D:\\""#);
+        assert!(logon_xml(&TASK, "PC\\Ana", Path::new(EXE), Path::new("D:\\")).contains(r#"<Arguments>--backup "D:\\"</Arguments>"#));
+        assert_eq!(args(&TASK, Some("DAILY"), Path::new(EXE), Path::new("D:/One"))[at + 1], r#""C:/App/fm.exe" --backup "D:/One""#);
+        assert!(runs_on(&TASK, r#"--backup "D:\\""#, Path::new("D:\\")));
+    }
+
+    #[test]
+    fn a_failed_last_run_is_reported_and_a_task_not_run_yet_is_not() {
+        let backup = Task { name: "ANT B", what: "backup", ..TASK };
+        let sync = Task { name: "ANT S", what: "sync", ..TASK };
+        let root = Path::new("D:\\");
+        let output = format!("{}=1\r\n{}=267011\r\n", task_name(&backup, root), task_name(&sync, root));
+        let found = problems_in(&[&backup, &sync], root, &output);
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found[0].contains("scheduled backup") && found[0].contains("0x1"), "{}", found[0]);
+        assert_eq!(problems_in(&[&backup], root, ""), Vec::<String>::new());
     }
 
     #[test]

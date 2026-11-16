@@ -178,6 +178,7 @@ pub fn run() {
             commands::storage_locations,
             commands::storage_rename_status,
             commands::sync_schedule,
+            commands::scheduled_task_problems,
             commands::list_extensions,
             commands::set_extension_enabled,
             commands::read_extension_entry,

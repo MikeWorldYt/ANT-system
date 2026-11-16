@@ -117,6 +117,7 @@ export const renameStorage = (newName: string, stamp: string) => call<string>("r
 export const revertStorageRename = (stamp: string) => call<string>("revert_storage_rename", { stamp });
 export const storageRenameStatus = () => call<RenameStatus | null>("storage_rename_status");
 export const syncSchedule = (on: boolean) => call<void>("sync_schedule", { on });
+export const scheduledTaskProblems = () => call<string[]>("scheduled_task_problems");
 export const backupNow = (stamp: string) => call<string>("backup_now", { stamp });
 export const backupIfDue = (stamp: string) => call<string | null>("backup_if_due", { stamp });
 export const listBackups = () => call<BackupEntry[]>("list_backups");

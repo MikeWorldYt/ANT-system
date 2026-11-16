@@ -148,7 +148,18 @@ export async function init(): Promise<boolean> {
     else if (last.virtual !== null && isVirtualShown(last.virtual)) await goToPlace(last);
   });
   if (ok && ready) void checkSupportUpgrade(applySupportUpgrade, finishSupportUpgrade).then(() => checkExtraReviews(mergeExtraReview));
+  if (ok && ready) void reportTaskProblems();
   return ok;
+}
+
+// Scheduled tasks run hidden, so a failed last run is only seen here.
+async function reportTaskProblems(): Promise<void> {
+  try {
+    const problems = await api.scheduledTaskProblems();
+    if (problems.length > 0) setStatus("warning", problems.join(". "));
+  } catch (e) {
+    reportError("warning", e, "Scheduled tasks");
+  }
 }
 
 const applySupportUpgrade = (relParts: string[]) =>

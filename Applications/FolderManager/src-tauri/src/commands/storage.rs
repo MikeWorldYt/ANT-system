@@ -10,7 +10,7 @@ use crate::domain::error::{FmError, R};
 use crate::infra::storage::rename::{self, RenameStatus};
 use crate::infra::storage::{known, location, pointer};
 use crate::services::backup::{schedule, DEFAULT_FREQUENCY};
-use crate::services::{sync, updater};
+use crate::services::{scheduler, sync, updater};
 
 pub fn window_title(name: &str) -> String {
     format!("ANT System Manager v.{} ({name})", updater::CURRENT_VERSION)
@@ -190,6 +190,12 @@ pub async fn storage_rename_status(app: AppHandle) -> R<Option<RenameStatus>> {
 #[tauri::command]
 pub async fn sync_schedule(app: AppHandle, on: bool) -> R<()> {
     run_locked(app, move |root| sync::apply(on, root)).await
+}
+
+// Read only, so a check that waits on PowerShell never holds up a change.
+#[tauri::command]
+pub async fn scheduled_task_problems(app: AppHandle) -> R<Vec<String>> {
+    run_unlocked(app, |_, root| scheduler::problems(&[&schedule::TASK, &sync::TASK, &sync::WATCH_TASK], root)).await
 }
 
 #[cfg(test)]
