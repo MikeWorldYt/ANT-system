@@ -8,7 +8,7 @@ use super::protocol::{RpcError, INVALID_PARAMS};
 use super::tools::args;
 use super::view::Change;
 use super::retry::retrying;
-use super::gate::{MAX_BATCH, MAX_FILES};
+use super::gate::{MAX_BATCH, MAX_ENTRIES, MAX_FILES};
 use super::{write_schema as schema, Server};
 use crate::domain::config::{EditableType, NewKind, WkbStatus};
 use crate::domain::error::R;
@@ -242,6 +242,7 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
         "set_dictionary" => {
             let a: DictionaryArgs = args(name, arguments)?;
             let entries = required(name, "entries", a.entries)?;
+            limit(name, "entries", entries.len(), MAX_ENTRIES)?;
             server.storage().and_then(|storage| {
                 let root = storage.root()?;
                 let (title, confirm) = asks(name, &[]);
