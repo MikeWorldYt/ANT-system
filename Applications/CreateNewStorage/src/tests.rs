@@ -9,7 +9,7 @@ use crate::{create, CreateOptions, Level};
 pub(crate) const TEMPLATE: &[u8] = include_bytes!("../testdata/template.md");
 
 fn opts(root: PathBuf, allow_existing: bool) -> CreateOptions {
-    CreateOptions { root, template: Some(TEMPLATE.to_vec()), allow_existing, download: false, folder_manager: false }
+    CreateOptions { root, template: Some(TEMPLATE.to_vec()), allow_existing, download: false, folder_manager: false, confirm: None }
 }
 
 pub(crate) fn node(name: &str, kind: &str, children: Vec<TreeNode>) -> TreeNode {
@@ -71,9 +71,35 @@ fn existing_root_needs_permission_and_a_bad_template_touches_nothing() {
     let err = create(&opts(tmp.path().to_path_buf(), false), &mut |_, _| {}).unwrap_err();
     assert!(err.contains("already exists"));
     let root = tmp.path().join("New");
-    let broken = CreateOptions { root: root.clone(), template: Some(b"not a template".to_vec()), allow_existing: false, download: false, folder_manager: false };
+    let broken = CreateOptions { root: root.clone(), template: Some(b"not a template".to_vec()), allow_existing: false, download: false, folder_manager: false, confirm: None };
     assert!(create(&broken, &mut |_, _| {}).is_err());
     assert!(!root.exists());
+}
+
+#[test]
+fn a_failed_run_restores_the_files_it_replaced() {
+    let tmp = TempDir::new("restore");
+    let root = tmp.path().join("Store");
+    std::fs::create_dir_all(root.join(".ant")).unwrap();
+    std::fs::write(root.join(".ant/template.md"), b"mine").unwrap();
+    let long = "x".repeat(300);
+    let tree = [node("100.A", "NODE", vec![]), node(&long, "NODE", vec![])];
+    let mut log = Vec::new();
+    storage(&opts(root.clone(), true), TEMPLATE, &tree, &mut |l, m| log.push((l, m.to_string()))).unwrap_err();
+    assert_eq!(std::fs::read(root.join(".ant/template.md")).unwrap(), b"mine");
+    assert_eq!(std::fs::read_dir(root.join(".ant")).unwrap().count(), 1);
+    assert!(log.iter().any(|(_, m)| m.contains("Restored")));
+}
+
+#[test]
+fn a_successful_run_replaces_the_file_and_drops_the_copy() {
+    let tmp = TempDir::new("replace");
+    let root = tmp.path().join("Store");
+    std::fs::create_dir_all(root.join(".ant")).unwrap();
+    std::fs::write(root.join(".ant/template.md"), b"mine").unwrap();
+    storage(&opts(root.clone(), true), TEMPLATE, &[], &mut |_, _| {}).unwrap();
+    assert_eq!(std::fs::read(root.join(".ant/template.md")).unwrap(), TEMPLATE);
+    assert_eq!(std::fs::read_dir(root.join(".ant")).unwrap().count(), 1);
 }
 
 #[test]
