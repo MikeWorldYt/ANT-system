@@ -9,9 +9,9 @@ use crate::fetch::{download, download_text, latest_release_tag, MAX_EXE_BYTES, M
 use crate::fs_ops::write_file_atomic;
 use crate::Level;
 
-pub fn optional_downloads(root: &Path, core: &Path, folder_manager: bool, progress: &mut dyn FnMut(Level, &str)) {
+pub fn optional_downloads(root: &Path, ant: &Path, folder_manager: bool, progress: &mut dyn FnMut(Level, &str)) {
     progress(Level::Step, "Downloading ANT Core and utility files ...");
-    if let Err(e) = core_files(core, progress) {
+    if let Err(e) = core_files(ant, progress) {
         progress(Level::Warn, &format!("⚠ Core files download failed: {e}"));
     }
     if folder_manager {
@@ -19,9 +19,9 @@ pub fn optional_downloads(root: &Path, core: &Path, folder_manager: bool, progre
     }
 }
 
-fn core_files(core: &Path, progress: &mut dyn FnMut(Level, &str)) -> Result<(), String> {
+fn core_files(ant: &Path, progress: &mut dyn FnMut(Level, &str)) -> Result<(), String> {
     for name in CORE_FILES {
-        let dest = core.join(name);
+        let dest = ant.join(name);
         download(&format!("{CORE_BASE_URL}/{name}"), MAX_TEXT_BYTES, 60).and_then(|b| write_file_atomic(&dest, &b))?;
         progress(Level::Ok, &format!("✔ {} (downloaded)", dest.display()));
     }

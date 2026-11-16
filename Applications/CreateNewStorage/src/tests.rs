@@ -6,7 +6,7 @@ use crate::test_dir::TempDir;
 use crate::tree_types::TreeNode;
 use crate::{create, CreateOptions, Level};
 
-pub(crate) const TEMPLATE: &[u8] = include_bytes!("../testdata/ant.db");
+pub(crate) const TEMPLATE: &[u8] = include_bytes!("../testdata/template.md");
 
 fn opts(root: PathBuf, allow_existing: bool) -> CreateOptions {
     CreateOptions { root, template: Some(TEMPLATE.to_vec()), allow_existing, download: false, folder_manager: false }
@@ -17,30 +17,39 @@ pub(crate) fn node(name: &str, kind: &str, children: Vec<TreeNode>) -> TreeNode 
 }
 
 #[test]
-fn creates_the_tree_and_keeps_the_template_db() {
+fn creates_the_tree_and_keeps_the_template() {
     let tmp = TempDir::new("create");
     let root = tmp.path().join("Store");
     let mut log = Vec::new();
     let tree = [
         node("100.PERSONAL", "NODE-L1", vec![node("01.Docs", "NODE-L2", vec![]), node("98.PERSONAL", "REV-L2", vec![])]),
-        node("999.Settings", "CFG", vec![node("01.Extra", "NODE", vec![])]),
+        node("ANT.RECORDINGS", "REC-L1", vec![]),
     ];
     storage(&opts(root.clone(), false), TEMPLATE, &tree, &mut |l, m| log.push((l, m.to_string()))).unwrap();
-    for dir in ["100.PERSONAL/01.Docs", "100.PERSONAL/98.PERSONAL", "998.Review", "999.Settings/01.Extra"] {
+    for dir in ["100.PERSONAL/01.Docs", "100.PERSONAL/98.PERSONAL", "ANT.RECORDINGS", ".ant"] {
         assert!(root.join(dir).is_dir(), "{dir}");
     }
-    assert_eq!(std::fs::read(root.join(".ant/ant.db")).unwrap(), TEMPLATE);
+    assert_eq!(std::fs::read(root.join(".ant/template.md")).unwrap(), TEMPLATE);
     assert!(!log.iter().any(|(l, _)| *l == Level::Error));
 }
 
 #[test]
-fn the_starter_template_builds_its_folders_and_info() {
+fn the_starter_template_builds_its_folders() {
     let tmp = TempDir::new("starter");
     let root = tmp.path().join("Store");
     create(&opts(root.clone(), false), &mut |_, _| {}).unwrap();
-    assert!(root.join("200.WORK/00.PORTFOLIO").is_dir());
-    let info = std::fs::read_to_string(root.join("200.WORK/02.Industry/PJ.001_project-name-example/.ant/info.json")).unwrap();
-    assert!(info.contains("\"created\": \"03-01-03\""));
+    for dir in ["100.PERSONAL/01.Documents/REV.Documents", "200.WORK/03.Projects/PJ.001_Example-Project", "ANT.RECORDINGS", "ANT.SCREENSHOTS", ".ant"] {
+        assert!(root.join(dir).is_dir(), "{dir}");
+    }
+    for cat in ["100.PERSONAL", "200.WORK", "300.STUDY", "400.HOBBIES"] {
+        let tag = cat.split_once('.').unwrap().1;
+        for dir in [format!("REC.{tag}"), "RES.Resources".to_string(), format!("REV.{tag}"), format!("SS.{tag}")] {
+            assert!(root.join(cat).join(&dir).is_dir(), "{cat}/{dir}");
+        }
+    }
+    assert!(root.join("100.PERSONAL/01.Documents/01.Identity/REV.Identity").is_dir() && !root.join("200.WORK/03.Projects/PJ.001_Example-Project/REV.Example-Project").exists());
+    assert!(!root.join("900.Resources").exists() && !root.join("999.Settings").exists() && !root.join("backup").exists());
+    assert!(!root.join("998.Review").exists() && !root.join("200.WORK/03.Projects/PJ.001_Example-Project/.ant").exists());
 }
 
 #[test]
@@ -53,7 +62,7 @@ fn failure_rolls_back_only_this_runs_folders() {
     let err = storage(&opts(root.clone(), true), TEMPLATE, &tree, &mut |_, _| {}).unwrap_err();
     assert!(err.contains("Could not create"), "{err}");
     assert!(root.join("keep").is_dir());
-    assert!(!root.join("100.A").exists() && !root.join("998.Review").exists() && !root.join("999.Settings").exists());
+    assert!(!root.join("100.A").exists());
 }
 
 #[test]
@@ -62,7 +71,7 @@ fn existing_root_needs_permission_and_a_bad_template_touches_nothing() {
     let err = create(&opts(tmp.path().to_path_buf(), false), &mut |_, _| {}).unwrap_err();
     assert!(err.contains("already exists"));
     let root = tmp.path().join("New");
-    let broken = CreateOptions { root: root.clone(), template: Some(b"name: not a database".to_vec()), allow_existing: false, download: false, folder_manager: false };
+    let broken = CreateOptions { root: root.clone(), template: Some(b"not a template".to_vec()), allow_existing: false, download: false, folder_manager: false };
     assert!(create(&broken, &mut |_, _| {}).is_err());
     assert!(!root.exists());
 }

@@ -4,4 +4,4 @@ version = 4
 
 [[package]]
 name = "create-new-storage"
-version = "3.3.0"
+version = "3.3.1"
