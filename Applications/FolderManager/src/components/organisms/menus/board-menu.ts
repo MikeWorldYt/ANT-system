@@ -47,9 +47,9 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   const reload = action("Refresh", idle, () => void refresh());
   const canAdd = node.actions.addChild || node.actions.addFolder;
   const newNode = action(node.actions.addFolder ? "New folder" : "New node", canAdd, () => void addChild(node, "node"));
-  const newWorkboard = action("New workboard", canAdd, () => void addChild(node, "workboard"));
-  // Like the toolbar's Add menu, a main category gets no workboard.
-  const addItems = node.relParts.length === 1 ? [newNode] : [newNode, newWorkboard];
+  const newWorknode = action("New worknode", canAdd, () => void addChild(node, "worknode"));
+  // Like the toolbar's Add menu, a main category gets no worknode.
+  const addItems = node.relParts.length === 1 ? [newNode] : [newNode, newWorknode];
   const manage = action("Manage hidden nodes", true, () => void manageHidden(node.relParts));
 
   return {

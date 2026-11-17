@@ -7,12 +7,12 @@ import { statusMark } from "../../atoms/status-mark";
 import { columnSortToggle } from "../../atoms/column-sort";
 import { favoriteMark, hideBox, importantMark, nameCell } from "../../molecules/name-cell";
 import { fromToggle, nodeToggle } from "../../atoms/node-toggle";
-import { hiddenCategories, isReviewRoot, isWorkboard, linkCategory } from "../../../services/store/node-info";
+import { hiddenCategories, isReviewRoot, isWorknode, linkCategory } from "../../../services/store/node-info";
 import { sortedForColumns, isTail } from "../../../services/store/sort";
 import { buildColumns, type Column } from "../../../hooks/column-model";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
-import { findNode, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
+import { findNode, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, startEdit, state, type VirtualId } from "../../../services/store/state";
 import { reviewFilter, reviewGroup } from "../../../services/store/review-list";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
@@ -60,15 +60,15 @@ export function createColumnsView(): ViewMode {
     const open = isOpen(n);
     const icon = folderIcon(n, open);
     const lead = n.hasChildren ? nodeToggle(`${open ? "Close" : "Open"} ${n.name}`, open, icon) : icon;
-    // A workboard shows its status before its name; other rows keep the status after the star.
-    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), lead, ...(isWorkboard(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, false, true));
+    // A worknode shows its status before its name; other rows keep the status after the star.
+    const item = el("div", { class: "col-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), lead, ...(isWorknode(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, false, true));
     markNodeItem(item, n);
     item.prepend(...manageBox(n, item));
     if (onPath && !item.classList.contains("selected")) item.classList.add("on-path");
     // Without a status the star takes the icon's place at the end of the row.
     if (n.favorite) item.append(favoriteMark());
     if (n.important) item.append(importantMark());
-    if (n.status && !isWorkboard(n)) item.append(statusMark(n.status));
+    if (n.status && !isWorknode(n)) item.append(statusMark(n.status));
     if (n.hasChildren) {
       lead.addEventListener("dblclick", () => openColumn(n));
       const chevron = nodeToggle(`Show contents of ${n.name}`, null, guiIcon("chevronRight"));
@@ -141,6 +141,24 @@ export function createColumnsView(): ViewMode {
     if (first) select(first.relParts);
   }
 
+  // The entries sit between the root folders, so the root column steps in the order it is drawn.
+  function stepRoot(n: TreeNode | null, nodes: TreeNode[], step: 1 | -1): boolean {
+    const items = [...(root.querySelector(".column")?.querySelectorAll<HTMLElement>(":scope > .col-item") ?? [])];
+    const at = n === null ? items.findIndex((e) => e.dataset.entry === state.virtual) : state.virtual === null ? items.findIndex((e) => e.dataset.key === keyOf(n.relParts)) : -1;
+    if (at < 0 || state.virtual === "board") return false;
+    const next = items[(at + step + items.length) % items.length];
+    const entry = next?.dataset.entry;
+    if (entry) {
+      void openVirtual(entry as VirtualId);
+      return true;
+    }
+    const target = nodes.find((x) => keyOf(x.relParts) === next?.dataset.key);
+    if (!target) return false;
+    if (state.virtual !== null) leaveVirtual();
+    pick(target);
+    return true;
+  }
+
   function onKey(ev: KeyboardEvent): void {
     // Modified arrows belong to the global shortcuts (Ctrl+Right, Alt+Down, Alt+Up).
     if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
@@ -153,6 +171,10 @@ export function createColumnsView(): ViewMode {
       return;
     }
     const cols = buildColumns(openKey);
+    if ((ev.key === "ArrowDown" || ev.key === "ArrowUp") && stepRoot(n, cols[0]?.nodes ?? [], ev.key === "ArrowDown" ? 1 : -1)) {
+      ev.preventDefault();
+      return;
+    }
     const head = headEntry();
     // The entries head the root column, so with nothing selected the arrows start from the current one.
     if (n === null && head && state.virtual !== "board") {

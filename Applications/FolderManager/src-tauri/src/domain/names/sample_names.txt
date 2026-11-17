@@ -84,21 +84,21 @@ Logo Yuuka Studio final (1).png
 Mart PLANS 80820 - 10-19-2026_02-54PM.pdf
 New folder (2)
 PJ.001_Black-Friday-Campaign
-PJ.001_New-Workboard
+PJ.001_New-Worknode
 PJ.002_SEO-Audit-Toki
 PJ.003_Newsletter-Q1
 PJ.004_Mission-C-23230309934
-PJ.007_New-Workboard
+PJ.007_New-Worknode
 PJ.010_Krustibot
 PJ.012_Pendulum-Lab-Report
 PJ.014_Art-Portfolio
 PJ.015_Spring-Exhibition
 PJ.018_Wedding-video
-PJ.021_New-Workboard
-PJ.1004_New-Workboard
+PJ.021_New-Worknode
+PJ.1004_New-Worknode
 PJ.1007_Prueba-7
-PJ.109_New-Workboard
-PJ.116_New-Workboard
+PJ.109_New-Worknode
+PJ.116_New-Worknode
 PJ.203_Festival-Poster
 PJ_Mart-PLANS-80820-54PM
 PJ_Summer-Festival-Poster

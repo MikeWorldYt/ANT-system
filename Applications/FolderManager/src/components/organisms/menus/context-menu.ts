@@ -2,7 +2,7 @@
 import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
 import { statusIcon } from "../../atoms/status-mark";
-import { importantLabel, isWorkboard, ownerOf, STATUSES, TYPES } from "../../../services/store/node-info";
+import { importantLabel, isWorknode, ownerOf, STATUSES, TYPES } from "../../../services/store/node-info";
 import { addChild, hideMany, hideNode, pasteFiles, remove, removeMany, setDetails, setFavorite, setFavorites, setImportant, setLinkHidden, setManyDetails, setType, setUserFlag } from "../../../hooks/ops";
 import { suggestSearch } from "../../../services/ipc/api";
 import { reportError } from "../bars/status-line";
@@ -94,8 +94,8 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   const important = action(importantLabel(node.important), a.important, () => void setImportant([node], !node.important));
   important.prepend(guiIcon("important"));
   important.classList.toggle("ctx-important-add", !node.important);
-  // Only workboards are placed on the board, so the item is left out for other folders.
-  const importantItems = isWorkboard(node) ? [important] : [];
+  // Only worknodes are placed on the board, so the item is left out for other folders.
+  const importantItems = isWorknode(node) ? [important] : [];
   const hide = action(node.hidden ? "Show element" : "Hide element", a.hideLink, () => void setLinkHidden(node, !node.hidden));
   // Only review links carry the action, so the item is left out everywhere else.
   const hideItems = a.hideLink ? [hide] : [];
@@ -141,7 +141,7 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   const subs: Submenu[] = [submenu("Change type", typeChoices, a.changeType)];
   if (node.nodeType?.base === "WKB") subs.push(submenu("Change status", statusChoices, a.editDetails));
   const newNode = action(a.addFolder ? "New folder" : "New node", a.addChild || a.addFolder, () => void addChild(node, "node"));
-  const newWorkboard = action("New workboard", (a.addChild || a.addFolder) && node.relParts.length > 1, () => void addChild(node, "workboard"));
+  const newWorknode = action("New worknode", (a.addChild || a.addFolder) && node.relParts.length > 1, () => void addChild(node, "worknode"));
   const del = menuItem("Delete", "menuitem", a.delete, () => {
     close();
     void remove(node);
@@ -164,13 +164,13 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [openHere, open, newTab, splitTab, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorkboard, hideElement, del, ...extras],
+    items: [openHere, open, newTab, splitTab, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorknode, hideElement, del, ...extras],
     subs,
     content: [
       openHere, open, newTab, splitTab, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
       rename, copy, cut, ...shareItems, separator(),
       ...subs.map((s) => s.element), ...fileItems, separator(),
-      newNode, newWorkboard, separator(),
+      newNode, newWorknode, separator(),
       hideElement, del, ...(extras.length > 0 ? [separator(), ...extras] : []),
     ],
   };
@@ -195,10 +195,10 @@ function ownerSubmenu(nodes: TreeNode[], close: () => void, enabled: boolean): S
   return sub;
 }
 
-// Workboard-only actions show only when every marked item is a workboard.
-function workboardItems(nodes: TreeNode[], close: () => void): { items: HTMLButtonElement[]; subs: Submenu[] } {
+// Worknode-only actions show only when every marked item is a worknode.
+function worknodeItems(nodes: TreeNode[], close: () => void): { items: HTMLButtonElement[]; subs: Submenu[] } {
   const action = closingItem(close);
-  if (!nodes.every(isWorkboard)) return { items: [], subs: [] };
+  if (!nodes.every(isWorknode)) return { items: [], subs: [] };
   const statusChoices = STATUSES.map(([value, label]) => {
     const item = menuItem(label, "menuitemradio", true, () => {
       close();
@@ -223,7 +223,7 @@ function selectionMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
   const favorite = action(favOn ? "Add to favorites" : "Remove from favorites", nodes.every((n) => n.actions.favorite), () => void setFavorites(nodes, favOn));
   favorite.prepend(guiIcon("starred"));
   favorite.classList.toggle("ctx-favorite-add", favOn);
-  const wkb = workboardItems(nodes, close);
+  const wkb = worknodeItems(nodes, close);
   const hideElement = action("Hide elements", nodes.every((n) => n.actions.hide), () => void hideMany(nodes));
   hideElement.prepend(guiIcon("hide"));
   const copy = action("Copy", true, () => void putOnClipboard(nodes, false));

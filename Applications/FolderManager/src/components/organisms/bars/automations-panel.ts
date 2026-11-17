@@ -1,4 +1,4 @@
-// The defaults an Outcomes folder hands to every new workboard of its node; each one saves as soon as it changes.
+// The defaults an Outcomes folder hands to every new worknode of its node; each one saves as soon as it changes.
 import { el } from "../../dom";
 import { selectBox } from "../../atoms/select";
 import { textInput } from "../../atoms/text-input";
@@ -26,7 +26,7 @@ export function createAutomationsPanel(): { element: HTMLElement; render(): void
     output.addEventListener("change", saveOutput);
     output.addEventListener("keydown", (ev) => ev.key === "Enter" && saveOutput());
 
-    // Unset means the in-progress every new workboard already gets; "none" is the explicit empty choice.
+    // Unset means the in-progress every new worknode already gets; "none" is the explicit empty choice.
     const status = selectBox("Default status", [["none", "Empty"], ...STATUSES], "details-input");
     status.setAttribute("aria-labelledby", "auto-status");
     status.value = fieldOf(n, "defaultStatus") || "in-progress";

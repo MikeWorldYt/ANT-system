@@ -32,8 +32,8 @@ pub fn add_next_named(root: &Path, rel: &[String], kind: NewKind, name: Option<&
     if rel.is_empty() {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the storage root is not a node".to_string() });
     }
-    if rel.len() == 1 && kind == NewKind::Workboard {
-        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "workboards cannot be created at the storage root".to_string() });
+    if rel.len() == 1 && kind == NewKind::Worknode {
+        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "worknodes cannot be created at the storage root".to_string() });
     }
     let parent = if rel.len() == 1 { &[][..] } else { &rel[..rel.len() - 1] };
     add_node_named(root, parent, kind, name)
@@ -51,8 +51,8 @@ pub fn add_node_named(root: &Path, parent: &[String], kind: NewKind, name: Optio
         return add_past_limit(root, parent, kind, editable);
     }
     let (mut data, synced) = load_synced_at(root, parent)?;
-    if parent.is_empty() && kind == NewKind::Workboard {
-        return Err(FmError::InvalidPath { rel_parts: parent.to_vec(), reason: "workboards cannot be created at the storage root".to_string() });
+    if parent.is_empty() && kind == NewKind::Worknode {
+        return Err(FmError::InvalidPath { rel_parts: parent.to_vec(), reason: "worknodes cannot be created at the storage root".to_string() });
     }
     let target = if parent.is_empty() {
         super::Target { abs: root.to_path_buf(), ghost: false, node_type: String::new() }
@@ -73,12 +73,12 @@ pub fn add_node_named(root: &Path, parent: &[String], kind: NewKind, name: Optio
     // Ghost ids count as taken so a new node never inherits a missing folder's record.
     let mut taken = list_subdirs(&target.abs)?;
     taken.extend(child_entries(parent_yaml).map(|(k, _)| k.to_string()));
-    let workboard = kind == NewKind::Workboard;
+    let worknode = kind == NewKind::Worknode;
     let named = editable.as_deref();
     let new_name = if parent.is_empty() {
         format!("{:03}.{}", next_main_category_id(&taken), named.unwrap_or("NEW-CATEGORY"))
-    } else if workboard {
-        format!("PJ.{:03}_{}", next_track_number("PJ.", &taken), named.unwrap_or("New-Workboard"))
+    } else if worknode {
+        format!("PJ.{:03}_{}", next_track_number("PJ.", &taken), named.unwrap_or("New-Worknode"))
     } else {
         format!("{:02}.{}", next_available_id(&taken), named.unwrap_or("New-Node"))
     };
@@ -90,16 +90,16 @@ pub fn add_node_named(root: &Path, parent: &[String], kind: NewKind, name: Optio
     journal.mkdir(&new_abs)?;
     let level = child_depth + 1;
     let mut entry = Mapping::new();
-    entry.insert("type".into(), format!("{}-L{level}", if workboard { "WKB" } else { "NODE" }).into());
-    if !workboard && level >= 3 {
+    entry.insert("type".into(), format!("{}-L{level}", if worknode { "WKB" } else { "NODE" }).into());
+    if !worknode && level >= 3 {
         entry.insert("flags".into(), DATA_FLAG.into());
     }
     let mut warnings = Vec::new();
     let rev_name = format!("{REVIEW_PREFIX}{}", editable_part(&new_name));
-    // A workboard keeps its review shortcuts out of its own folder.
-    match if workboard { Ok(()) } else { journal.mkdir(&new_abs.join(&rev_name)) } {
+    // A worknode keeps its review shortcuts out of its own folder.
+    match if worknode { Ok(()) } else { journal.mkdir(&new_abs.join(&rev_name)) } {
         // The deepest level keeps its review folder on disk only, as the tree stops at the depth limit.
-        Ok(()) if level < limit && !workboard => {
+        Ok(()) if level < limit && !worknode => {
             let mut rev = Mapping::new();
             rev.insert("type".into(), format!("REV-L{level}").into());
             entry.insert(rev_name.into(), rev.into());
@@ -118,9 +118,9 @@ pub fn add_node_named(root: &Path, parent: &[String], kind: NewKind, name: Optio
     }
     persist(root, &data, journal, "add node", &scope(&synced, vec![child_rel(parent, &new_name)]))?;
     // The folder exists now, so a failure here is only reported.
-    if let Err(e) = mark_folder(&new_abs, workboard, parent.last().map_or("", String::as_str)) {
+    if let Err(e) = mark_folder(&new_abs, worknode, parent.last().map_or("", String::as_str)) {
         warnings.push(format!("Could not set up {DATA_DIR}: {e}"));
-    } else if workboard {
+    } else if worknode {
         let defaults = get_node(&data, parent).map_or(Ok(()), |node| super::automations::apply_defaults(&target.abs, node, &new_abs));
         if let Err(e) = defaults {
             warnings.push(format!("Could not apply the Outcomes defaults: {e}"));
@@ -154,9 +154,9 @@ fn add_past_limit(root: &Path, parent: &[String], kind: NewKind, editable: Optio
     if !dir.is_dir() {
         return Err(FmError::NotFound { rel_parts: parent.to_vec() });
     }
-    let workboard = kind == NewKind::Workboard;
-    let name = match (workboard, editable) {
-        (true, named) => format!("PJ.{:03}_{}", next_track_number("PJ.", &list_subdirs(&dir)?), named.as_deref().unwrap_or("New-Workboard")),
+    let worknode = kind == NewKind::Worknode;
+    let name = match (worknode, editable) {
+        (true, named) => format!("PJ.{:03}_{}", next_track_number("PJ.", &list_subdirs(&dir)?), named.as_deref().unwrap_or("New-Worknode")),
         (false, Some(named)) => named,
         (false, None) => free_name(&dir, "New folder", &[])?,
     };
@@ -165,7 +165,7 @@ fn add_past_limit(root: &Path, parent: &[String], kind: NewKind, editable: Optio
     let abs = dir.join(&name);
     fs::create_dir(&abs).map_err(|e| io_err("create folder", &abs, &e))?;
     let mut warnings = Vec::new();
-    if workboard {
+    if worknode {
         if let Err(e) = mark_folder(&abs, true, parent.last().map_or("", String::as_str)) {
             warnings.push(format!("Could not set up {DATA_DIR}: {e}"));
         }
@@ -174,10 +174,10 @@ fn add_past_limit(root: &Path, parent: &[String], kind: NewKind, editable: Optio
     Ok(finish(root, &data, false, Some(new_rel.clone()), warnings, vec![new_rel]))
 }
 
-// Every created folder gets a .ant folder, which is what lets its id follow it around; workboards also start their info.json.
-pub(super) fn mark_folder(folder: &Path, workboard: bool, parent: &str) -> R<()> {
-    if workboard {
-        return mark_workboard(folder, parent, "in-progress");
+// Every created folder gets a .ant folder, which is what lets its id follow it around; worknodes also start their info.json.
+pub(super) fn mark_folder(folder: &Path, worknode: bool, parent: &str) -> R<()> {
+    if worknode {
+        return mark_worknode(folder, parent, "in-progress");
     }
     let dir = folder.join(DATA_DIR);
     fs::create_dir(&dir).map_err(|e| io_err("create info folder", &dir, &e))?;
@@ -185,8 +185,8 @@ pub(super) fn mark_folder(folder: &Path, workboard: bool, parent: &str) -> R<()>
     Ok(())
 }
 
-// Only the keys the info.json lacks get their default, so a workboard's own status and owner stay.
-pub(super) fn mark_workboard(folder: &Path, parent: &str, status: &str) -> R<()> {
+// Only the keys the info.json lacks get their default, so a worknode's own status and owner stay.
+pub(super) fn mark_worknode(folder: &Path, parent: &str, status: &str) -> R<()> {
     let current = read_info(folder);
     let lacks = |keys: &[&str]| current.as_ref().and_then(|info| field_of(info, keys)).is_none();
     let mut updates: Vec<(&[&str], &str, Option<Value>)> = Vec::new();

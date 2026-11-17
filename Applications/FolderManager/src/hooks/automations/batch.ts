@@ -164,10 +164,9 @@ export async function restoreBatch(): Promise<boolean> {
     return false;
   }
   // The panel closes a batch whose folder is not the one selected, so the selection goes back there first.
-  if (inDownloads(saved.review)) {
-    await openVirtual("downloads");
-    select(null);
-  } else select(saved.folder);
+  // Opening Downloads already selects nothing; a select(null) after it would leave the virtual list.
+  if (inDownloads(saved.review)) await openVirtual("downloads");
+  else select(saved.folder);
   await openBatch({ folders: [saved.folder], files: [], label: "", review }, saved.picks, { only: saved.only, skipped: saved.skipped });
   return batch !== null;
 }

@@ -4,7 +4,7 @@ mod target;
 #[cfg(test)]
 mod tests;
 mod transfer;
-mod workboard;
+mod worknode;
 
 pub(super) use transfer::copy_tree;
 
@@ -15,7 +15,7 @@ use serde::Serialize;
 
 use super::{exactly_on_disk, finish, load_synced_at, locate, register_ids, scope, sync_branch_drift, sync_loaded_at, Drift, Mutation};
 use crate::domain::error::{FmError, R};
-use crate::domain::names::is_workboard_name;
+use crate::domain::names::is_worknode_name;
 use crate::domain::tree_types::{child_entries, type_base};
 use crate::infra::fs_safe::{io_err, resolve, Journal, StorageLock};
 use crate::services::tree::tree_node::is_reserved;
@@ -23,7 +23,7 @@ use crate::services::tree::tree_store::{self, get_node};
 use crate::services::tree::{depth, review_links};
 use plain::{place_folder, Outcome, Place};
 use target::destination;
-use workboard::{Workboard, WorkboardDrop};
+use worknode::{Worknode, WorknodeDrop};
 
 const ALREADY_INSIDE: &str = "it is already in the storage; drag it inside the app to move it";
 
@@ -39,13 +39,13 @@ enum Placement {
 pub struct DropOutcome {
     pub mutation: Mutation,
     pub placed: Vec<PlacedFile>,
-    pub conflicts: Vec<WorkboardConflict>,
+    pub conflicts: Vec<WorknodeConflict>,
 }
 
-// A workboard that is already in the storage under the same id; nothing is placed until the user chooses to replace it.
+// A worknode that is already in the storage under the same id; nothing is placed until the user chooses to replace it.
 #[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct WorkboardConflict {
+pub struct WorknodeConflict {
     pub name: String,
     pub source: PathBuf,
     pub existing: Vec<String>,
@@ -58,7 +58,7 @@ pub struct PlacedFile {
     pub copied: bool,
 }
 
-// `replace` lists the workboards the user agreed to swap for the one already in the storage.
+// `replace` lists the worknodes the user agreed to swap for the one already in the storage.
 pub fn drop_files(
     root: &Path,
     target: &[String],
@@ -122,26 +122,26 @@ fn place_all(
     let mut warnings = Vec::new();
     let mut placed = Vec::new();
     let mut conflicts = Vec::new();
-    // Workboards go first, since placing one changes the tree that the files are placed by.
+    // Worknodes go first, since placing one changes the tree that the files are placed by.
     let (folders, files): (Vec<&PathBuf>, Vec<&PathBuf>) = paths.iter().partition(|src| is_folder(src));
-    let (folders, plain): (Vec<&PathBuf>, Vec<&PathBuf>) = folders.into_iter().partition(|src| src.file_name().is_some_and(|n| is_workboard_name(&n.to_string_lossy())));
-    let mut moved_workboard = false;
+    let (folders, plain): (Vec<&PathBuf>, Vec<&PathBuf>) = folders.into_iter().partition(|src| src.file_name().is_some_and(|n| is_worknode_name(&n.to_string_lossy())));
+    let mut moved_worknode = false;
     if !folders.is_empty() && !matches!(type_base(&tree_store::get_type(&data, target)), "NODE" | "WKB") {
-        return Err(FmError::InvalidPath { rel_parts: target.to_vec(), reason: "workboards go into a node or another workboard".to_string() });
+        return Err(FmError::InvalidPath { rel_parts: target.to_vec(), reason: "worknodes go into a node or another worknode".to_string() });
     }
-    // A workboard sits directly in the node it was dropped on, unlike files, which go to its review folder.
+    // A worknode sits directly in the node it was dropped on, unlike files, which go to its review folder.
     let node_dir = resolve(root, target)?;
-    let boards = WorkboardDrop { root, dest_rel: target, dest: &node_dir, copy, recycle };
+    let boards = WorknodeDrop { root, dest_rel: target, dest: &node_dir, copy, recycle };
     for src in folders {
         match boards.place(&mut data, src, replace.contains(src), &mut journal) {
-            Ok(Workboard::Placed(name, note)) => {
-                moved_workboard = true;
+            Ok(Worknode::Placed(name, note)) => {
+                moved_worknode = true;
                 if let Some(note) = note {
                     warnings.push(format!("{}: {note}", src.display()));
                 }
                 placed.push(PlacedFile { name, folder: target.to_vec(), copied: false });
             }
-            Ok(Workboard::Taken(conflict)) => conflicts.push(conflict),
+            Ok(Worknode::Taken(conflict)) => conflicts.push(conflict),
             Err(why) => warnings.push(format!("{}: not placed, {why}", src.display())),
         }
     }
@@ -157,7 +157,7 @@ fn place_all(
             Err(why) => warnings.push(format!("{}: not placed, {why}", src.display())),
         }
     }
-    if moved_workboard {
+    if moved_worknode {
         synced.absorb(sync_branch_drift(root, &mut data, target)?);
         synced.absorb(Drift::unscoped(register_ids(root, &mut data, &mut warnings)));
         tree_store::save(root, &data)?;

@@ -181,7 +181,7 @@ export const answerUiRequest = (id: number, value: unknown, error: string | null
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
 export const listFavorites = () => call<string[][]>("list_favorites");
 export const listReview = () => call<string[][]>("list_review");
-export const listWorkboards = () => call<string[][]>("list_workboards");
+export const listWorknodes = () => call<string[][]>("list_worknodes");
 export const canUndoProjectSort = () => call<boolean>("can_undo_project_sort");
 export const undoProjectSort = () => call<Mutation>("undo_project_sort");
 export const setBoard = (cards: BoardCard[]) => call<Mutation>("set_board", { cards });

@@ -12,7 +12,7 @@ use crate::services::tree::tree_node::is_reserved;
 // Explorer writes this "Preferred DropEffect" value on Ctrl+X; Ctrl+C writes copy or link.
 const DROPEFFECT_MOVE: u32 = 2;
 const DROPEFFECT_COPY: u32 = 1;
-const CUT_REFUSED: &str = "Only data folders and workboards can be cut";
+const CUT_REFUSED: &str = "Only data folders and worknodes can be cut";
 
 pub struct ClipboardFiles {
     pub paths: Vec<PathBuf>,
@@ -36,7 +36,7 @@ pub fn drop_effect(cut: bool) -> u32 {
     if cut { DROPEFFECT_MOVE } else { DROPEFFECT_COPY }
 }
 
-// Explorer moves a cut folder out of the storage, so only data folders and workboards may leave that way.
+// Explorer moves a cut folder out of the storage, so only data folders and worknodes may leave that way.
 pub fn folder_effect(rel: &[String], node_type: &str, flags: &[String], ghost: bool, cut: bool) -> R<u32> {
     if is_reserved(rel) {
         return Err(FmError::Reserved { rel_parts: rel.to_vec() });

@@ -1,7 +1,7 @@
 // IPC contract shared with the Rust backend; mirror of the serde types.
 export type TypeBase = "NODE" | "WKB" | "OUT" | "REV" | "RES" | "TPL" | "CFG" | "SS" | "REC" | "UNKNOWN";
 export type EditableType = "NODE" | "WKB";
-export type NewKind = "node" | "workboard";
+export type NewKind = "node" | "worknode";
 export type WkbStatus = "in-progress" | "for-review" | "hold" | "done";
 export type MoveDirection = "up" | "down";
 export type BoardColumn = "backlog" | "todo" | "progress" | "done";
@@ -152,8 +152,8 @@ export interface PlacedFile {
   copied: boolean;
 }
 
-// A workboard already in the storage under the same id; `source` is what to send back to replace it.
-export interface WorkboardConflict {
+// A worknode already in the storage under the same id; `source` is what to send back to replace it.
+export interface WorknodeConflict {
   name: string;
   source: string;
   existing: string[];
@@ -162,7 +162,7 @@ export interface WorkboardConflict {
 export interface DropOutcome {
   mutation: Mutation;
   placed: PlacedFile[];
-  conflicts: WorkboardConflict[];
+  conflicts: WorknodeConflict[];
 }
 
 export interface DeletePreview {
@@ -199,7 +199,7 @@ export interface IntakeReport {
 export interface InvalidFolder {
   relParts: string[];
   review: string[][];
-  workboard: boolean;
+  worknode: boolean;
   tracker: string | null;
 }
 
@@ -229,7 +229,7 @@ export interface RootCheck {
 export type Resolution =
   | { kind: "review"; destination: string[] }
   | { kind: "node" }
-  | { kind: "workboard"; tracker: string };
+  | { kind: "worknode"; tracker: string };
 
 export interface ReviewIndexEvent {
   phase: "started" | "done";

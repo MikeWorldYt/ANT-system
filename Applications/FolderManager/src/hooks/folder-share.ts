@@ -12,7 +12,7 @@ export async function putOnClipboard(nodes: TreeNode[], cut: boolean): Promise<v
   const downloads = nodes.filter((n) => inDownloads(n.relParts)).length;
   if (downloads > 0 && cut) return setStatus("warning", "Items in Downloads can only be copied");
   if (downloads > 0 && downloads < nodes.length) return setStatus("warning", "Copy items from Downloads and from the Storage separately");
-  if (cut && !nodes.every(cuttable)) return setStatus("warning", "Only data folders and workboards can be cut");
+  if (cut && !nodes.every(cuttable)) return setStatus("warning", "Only data folders and worknodes can be cut");
   const label = nodes.length === 1 ? `"${nodes[0].name}"` : `${nodes.length} items`;
   try {
     await copyItems(nodes.map((n) => n.relParts), cut);

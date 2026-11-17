@@ -2,11 +2,11 @@
 
 - Level 1 nodes sit at the root with a 3-digit id in capitals: `100.WORK`, `500.HOBBIES`.
 - Deeper nodes use a 2-digit id and a Train-Case title: `08.Art`, `07.Blue-Archive`. The default depth is 3 levels; a storage may allow up to 6.
-- `00.` is the Portfolio id, given automatically next to workboards.
+- `00.` is the Portfolio id, given automatically next to worknodes.
 - Types (`get_node` returns them as `NODE-L2`, `REV-L3`…, base plus level):
   - NODE: a plain folder of folders. With the `data` flag it also takes files itself.
-  - WKB: a workboard (project), named with `PJ.`, `PR.`, `HW.`, `CR.` or `TK.` plus a number: `PJ.001_Web`.
-  - OUT: outputs folder of a workboard.
+  - WKB: a worknode (project), named with `PJ.`, `PR.`, `HW.`, `CR.` or `TK.` plus a number: `PJ.001_Web`.
+  - OUT: outputs folder of a worknode.
   - REV, RES, TPL: support folders of a node, `REV.<Title>` (review), `RES.<Title>` (resources), `TPL.<Title>` (templates). Older storages use `98.`, `90.`, `97.`.
   - SS, REC: screenshots and recordings, `SS.<Title>` / `REC.<Title>`; the root holds `ANT.SCREENSHOTS` and `ANT.RECORDINGS`.
   - CFG: app settings.

@@ -45,7 +45,7 @@ pub(super) fn add_node() -> (Value, Value) {
     (input, change())
 }
 
-pub(super) fn add_workboard() -> (Value, Value) {
+pub(super) fn add_worknode() -> (Value, Value) {
     let input = object(json!({ "parent": rel_parts(1), "name": text(NAME) }), &["parent", "name"]);
     (input, change())
 }

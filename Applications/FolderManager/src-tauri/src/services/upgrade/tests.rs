@@ -27,7 +27,7 @@ fn found(dir: &TempDir) -> Vec<String> {
 }
 
 #[test]
-fn the_check_lists_numeric_support_folders_inside_the_depth_limit_and_skips_workboards() {
+fn the_check_lists_numeric_support_folders_inside_the_depth_limit_and_skips_worknodes() {
     let dir = old_storage("upgrade-list");
     dir.mkdir("100.A/97.Category");
     dir.mkdir("100.A/01.Math/01.Alg/98.Alg");

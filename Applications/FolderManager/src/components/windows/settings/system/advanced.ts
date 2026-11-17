@@ -50,12 +50,12 @@ export const advancedPage: SettingsPage = {
     },
     {
       title: "Reset preferences",
-      description: "Does not delete your Workboards, only the settings in this panel",
+      description: "Does not delete your Worknodes, only the settings in this panel",
       control: () =>
         buttonControl(
           "Reset",
           async () => {
-            if (!(await confirmDialog("Reset preferences", "Every setting in this window goes back to its default. Your Workboards are not touched.", "Reset"))) return;
+            if (!(await confirmDialog("Reset preferences", "Every setting in this window goes back to its default. Your Worknodes are not touched.", "Reset"))) return;
             if (await resetPreferences()) ctx.refresh();
           },
           "danger",

@@ -1,4 +1,4 @@
-// A workboard's deliverable moves to its sibling Outcomes folder, and a link is left in the workboard to find it again.
+// A worknode's deliverable moves to its sibling Outcomes folder, and a link is left in the worknode to find it again.
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -24,13 +24,13 @@ pub fn set_output(root: &Path, rel: &[String], output: Option<&str>) -> R<Mutati
     let (data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = editable_target(root, &data, rel, "edit")?;
     if type_base(&target.node_type) != "WKB" {
-        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only workboards have an output".to_string() });
+        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only worknodes have an output".to_string() });
     }
     let value = match output {
         Some(raw) => {
             let path = clean_output(rel, raw)?;
-            if !inside_workboard(&target.abs, &path)?.exists() {
-                return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: format!("{path} is not inside this workboard") });
+            if !inside_worknode(&target.abs, &path)?.exists() {
+                return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: format!("{path} is not inside this worknode") });
             }
             Some(Value::String(path))
         }
@@ -40,14 +40,14 @@ pub fn set_output(root: &Path, rel: &[String], output: Option<&str>) -> R<Mutati
     Ok(finish(root, &data, false, Some(rel.to_vec()), Vec::new(), scope(&synced, vec![rel.to_vec()])))
 }
 
-// Moves the deliverable into `(date)_Name` inside the Outcomes folder beside the workboard, and leaves `(date)_Name.lnk` behind.
+// Moves the deliverable into `(date)_Name` inside the Outcomes folder beside the worknode, and leaves `(date)_Name.lnk` behind.
 pub fn deliver(root: &Path, rel: &[String], date: &str, all: bool) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
     if target.ghost || type_base(&target.node_type) != "WKB" {
-        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only workboards deliver an output".to_string() });
+        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only worknodes deliver an output".to_string() });
     }
     check_date(date)?;
     let outcomes = outcomes_beside(root, &data, rel)?;
@@ -75,14 +75,14 @@ pub fn deliver(root: &Path, rel: &[String], date: &str, all: bool) -> R<Mutation
     Ok(finish(root, &data, true, Some(rel.to_vec()), warnings, scope(&synced, vec![rel.to_vec()])))
 }
 
-// Brings back a copy of the deliverable for a workboard that is no longer Done, and removes its link; the Outcomes folder keeps it.
+// Brings back a copy of the deliverable for a worknode that is no longer Done, and removes its link; the Outcomes folder keeps it.
 pub fn restore(root: &Path, rel: &[String]) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
     guard_frozen(rel, &target.node_type)?;
     if target.ghost || type_base(&target.node_type) != "WKB" {
-        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only workboards restore an output".to_string() });
+        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only worknodes restore an output".to_string() });
     }
     let outcomes = outcomes_beside(root, &data, rel)?;
     let mut warnings = Vec::new();
@@ -114,28 +114,28 @@ pub fn restore(root: &Path, rel: &[String]) -> R<Mutation> {
     Ok(finish(root, &data, true, Some(rel.to_vec()), warnings, scope(&synced, vec![rel.to_vec()])))
 }
 
-// The output path is kept relative to the workboard, with forward slashes and no leading slash.
+// The output path is kept relative to the worknode, with forward slashes and no leading slash.
 fn clean_output(rel: &[String], raw: &str) -> R<String> {
     let path = raw.trim().replace('\\', "/");
     let path = path.trim_matches('/').to_string();
     let inside = !path.is_empty() && path.split('/').all(|part| validate_component(part).is_ok() && !is_hidden_dir(part));
     if !inside {
-        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the output must be a path inside the workboard".to_string() });
+        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the output must be a path inside the worknode".to_string() });
     }
     Ok(path)
 }
 
-// The names alone cannot show a link or junction on the way out of the workboard.
-fn inside_workboard(workboard: &Path, output: &str) -> R<PathBuf> {
+// The names alone cannot show a link or junction on the way out of the worknode.
+fn inside_worknode(worknode: &Path, output: &str) -> R<PathBuf> {
     let parts: Vec<String> = output.split('/').map(str::to_string).collect();
-    resolve(workboard, &parts)
+    resolve(worknode, &parts)
 }
 
-// A workboard can arrive with a foreign `info.json`, so a value that fails the checks reads as no output.
-fn stored_output(rel: &[String], workboard: &Path) -> Option<PathBuf> {
-    let info = read_info(workboard)?;
+// A worknode can arrive with a foreign `info.json`, so a value that fails the checks reads as no output.
+fn stored_output(rel: &[String], worknode: &Path) -> Option<PathBuf> {
+    let info = read_info(worknode)?;
     let output = clean_output(rel, field_of(&info, &[OUTPUT_KEY])?).ok()?;
-    inside_workboard(workboard, &output).ok()
+    inside_worknode(worknode, &output).ok()
 }
 
 fn check_date(date: &str) -> R<()> {
@@ -147,10 +147,10 @@ fn check_date(date: &str) -> R<()> {
 }
 
 // A file is moved as it is; a folder gives up its contents, not the folder itself.
-fn output_sources(rel: &[String], workboard: &Path) -> R<Vec<PathBuf>> {
-    let path = stored_output(rel, workboard).ok_or_else(|| FmError::InvalidPath {
+fn output_sources(rel: &[String], worknode: &Path) -> R<Vec<PathBuf>> {
+    let path = stored_output(rel, worknode).ok_or_else(|| FmError::InvalidPath {
         rel_parts: rel.to_vec(),
-        reason: "no output is set for this workboard".to_string(),
+        reason: "no output is set for this worknode".to_string(),
     })?;
     if !path.exists() {
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the output is no longer there".to_string() });
@@ -162,15 +162,15 @@ fn output_sources(rel: &[String], workboard: &Path) -> R<Vec<PathBuf>> {
     }
 }
 
-// The output folder when one is set and still a folder, else the workboard itself.
-fn link_dir(rel: &[String], workboard: &Path, all: bool) -> PathBuf {
-    match stored_output(rel, workboard) {
+// The output folder when one is set and still a folder, else the worknode itself.
+fn link_dir(rel: &[String], worknode: &Path, all: bool) -> PathBuf {
+    match stored_output(rel, worknode) {
         Some(dir) if !all && dir.is_dir() => dir,
-        _ => workboard.to_path_buf(),
+        _ => worknode.to_path_buf(),
     }
 }
 
-// The Outcomes folder is the Outcomes-typed sibling of the workboard; a level without one has nothing to deliver to.
+// The Outcomes folder is the Outcomes-typed sibling of the worknode; a level without one has nothing to deliver to.
 fn outcomes_beside(root: &Path, data: &serde_yaml::Mapping, rel: &[String]) -> R<PathBuf> {
     let parent = parent_of(rel);
     let parent_abs = join_rel(root, parent);
@@ -180,7 +180,7 @@ fn outcomes_beside(root: &Path, data: &serde_yaml::Mapping, rel: &[String]) -> R
             return Ok(parent_abs.join(name));
         }
     }
-    Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "no Outcomes folder beside this workboard".to_string() })
+    Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "no Outcomes folder beside this worknode".to_string() })
 }
 
 // `(date)_Name` gets a numbered suffix when a delivery with that name already exists.
@@ -201,10 +201,10 @@ fn children_of(dir: &Path) -> R<Vec<PathBuf>> {
     Ok(paths.into_iter().filter(|p| !p.file_name().is_some_and(|n| is_hidden_dir(&n.to_string_lossy()))).collect())
 }
 
-// Links in the workboard that name a delivery folder in the Outcomes folder.
-fn delivery_links(workboard: &Path, outcomes: &Path) -> R<Vec<String>> {
+// Links in the worknode that name a delivery folder in the Outcomes folder.
+fn delivery_links(worknode: &Path, outcomes: &Path) -> R<Vec<String>> {
     let mut links = Vec::new();
-    for entry in dir_entries(workboard, "list folder")? {
+    for entry in dir_entries(worknode, "list folder")? {
         let name = entry?.file_name().to_string_lossy().into_owned();
         let Some(stem) = name.strip_suffix(LINK_EXTENSION).map(str::to_string) else { continue };
         if outcomes.join(&stem).is_dir() {

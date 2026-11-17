@@ -51,13 +51,13 @@ pub fn segment_matches(folder: &str, segment: &str) -> bool {
     folder.eq_ignore_ascii_case(segment) || key(editable_part(folder)) == key(segment)
 }
 
-// What a missing segment creates: a tracker before the number (`PJ.*_Kestrel`, `PJ.006_Kestrel`) makes a workboard, anything else a node.
+// What a missing segment creates: a tracker before the number (`PJ.*_Kestrel`, `PJ.006_Kestrel`) makes a worknode, anything else a node.
 pub fn new_folder(segment: &str) -> (NewKind, String) {
     let id = |s: &str| s == "*" || (!s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()));
     if let Some((tracker, rest)) = segment.split_once('.') {
         if let Some((number, title)) = rest.split_once('_') {
             if !tracker.is_empty() && tracker.bytes().all(|b| b.is_ascii_alphabetic()) && id(number) {
-                return (NewKind::Workboard, title.trim().to_string());
+                return (NewKind::Worknode, title.trim().to_string());
             }
         }
         if id(tracker) {
@@ -117,9 +117,9 @@ mod tests {
     }
 
     #[test]
-    fn a_missing_segment_reads_as_a_workboard_or_a_node() {
-        assert!(matches!(new_folder("PJ.*_Kestrel"), (NewKind::Workboard, t) if t == "Kestrel"));
-        assert!(matches!(new_folder("PJ.006_Kestrel"), (NewKind::Workboard, t) if t == "Kestrel"));
+    fn a_missing_segment_reads_as_a_worknode_or_a_node() {
+        assert!(matches!(new_folder("PJ.*_Kestrel"), (NewKind::Worknode, t) if t == "Kestrel"));
+        assert!(matches!(new_folder("PJ.006_Kestrel"), (NewKind::Worknode, t) if t == "Kestrel"));
         assert!(matches!(new_folder("*.Physics"), (NewKind::Node, t) if t == "Physics"));
         assert!(matches!(new_folder("Physics"), (NewKind::Node, t) if t == "Physics"));
     }

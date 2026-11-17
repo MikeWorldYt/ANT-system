@@ -71,9 +71,9 @@ export const generalPage: SettingsPage = {
     },
     {
       section: "Preferences",
-      title: "Show finished Workboards",
-      description: "Visibility of Workboards with status done",
-      control: () => switchControl("Show finished Workboards", !state.settings.hideDone, (on) => changeSetting("hideDone", !on)),
+      title: "Show finished Worknodes",
+      description: "Visibility of Worknodes with status done",
+      control: () => switchControl("Show finished Worknodes", !state.settings.hideDone, (on) => changeSetting("hideDone", !on)),
     },
     {
       section: "Preferences",

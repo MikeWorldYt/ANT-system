@@ -20,7 +20,7 @@ const dialogOpen = () => document.querySelector("dialog[open]") !== null;
 function resolutionOf(decision: Decision): Resolution | null {
   if (decision.choice === "review") return decision.destination ? { kind: "review", destination: decision.destination } : null;
   if (decision.choice === "node") return { kind: "node" };
-  if (decision.choice === "workboard") return { kind: "workboard", tracker: decision.tracker };
+  if (decision.choice === "worknode") return { kind: "worknode", tracker: decision.tracker };
   return null;
 }
 

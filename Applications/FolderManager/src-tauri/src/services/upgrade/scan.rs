@@ -23,7 +23,7 @@ pub(super) fn legacy_folders(root: &Path) -> R<Vec<SupportFolder>> {
     Ok(found)
 }
 
-// Only id-named nodes hold support folders, so the walk stays out of workboards and loose content.
+// Only id-named nodes hold support folders, so the walk stays out of worknodes and loose content.
 fn walk(root: &Path, parent: &[String], limit: usize, found: &mut Vec<SupportFolder>) -> R<()> {
     if parent.len() >= limit {
         return Ok(());

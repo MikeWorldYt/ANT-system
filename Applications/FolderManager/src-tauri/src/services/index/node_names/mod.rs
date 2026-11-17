@@ -8,7 +8,7 @@ use std::path::Path;
 
 use serde_yaml::{Mapping, Value};
 
-use crate::domain::names::{has_node_id, is_workboard_name, sanitize_train_case};
+use crate::domain::names::{has_node_id, is_worknode_name, sanitize_train_case};
 use crate::domain::tree_types::type_base;
 use crate::services::backup::stamp::local_date;
 use crate::infra::storage::core_dir::logs_dir;
@@ -27,7 +27,7 @@ struct Rename {
     new: String,
 }
 
-// What a workboard name carried beyond its tracker and id, in the legacy "(created) tag [owner]_name" form.
+// What a worknode name carried beyond its tracker and id, in the legacy "(created) tag [owner]_name" form.
 #[derive(Default)]
 struct Meta {
     created: Option<String>,
@@ -54,7 +54,7 @@ pub fn tidy(root: &Path) -> R<()> {
     log(root, &renames)
 }
 
-// Only nodes and workboards are walked: app folders and the contents of a workboard keep their own names.
+// Only nodes and worknodes are walked: app folders and the contents of a worknode keep their own names.
 fn walk(dir: &Path, node: &mut Mapping, rel: &mut Vec<String>, limit: usize, journal: &mut Journal, renames: &mut Vec<Rename>) -> R<()> {
     let names: Vec<String> = node.iter().filter(|(_, v)| v.is_mapping()).filter_map(|(k, _)| k.as_str().map(str::to_string)).collect();
     for name in names {
@@ -63,8 +63,8 @@ fn walk(dir: &Path, node: &mut Mapping, rel: &mut Vec<String>, limit: usize, jou
             continue;
         }
         let level = rel.len() + 1;
-        if level >= 2 && is_workboard_name(&name) {
-            tidy_workboard(dir, node, rel, &name, journal, renames)?;
+        if level >= 2 && is_worknode_name(&name) {
+            tidy_worknode(dir, node, rel, &name, journal, renames)?;
             continue;
         }
         let is_node = node.get(name.as_str()).and_then(|c| c.get("type")).and_then(Value::as_str).is_some_and(|t| type_base(t) == "NODE");
@@ -91,8 +91,8 @@ fn walk(dir: &Path, node: &mut Mapping, rel: &mut Vec<String>, limit: usize, jou
     Ok(())
 }
 
-fn tidy_workboard(dir: &Path, node: &mut Mapping, rel: &[String], name: &str, journal: &mut Journal, renames: &mut Vec<Rename>) -> R<()> {
-    let Some((new, meta)) = workboard(name) else { return Ok(()) };
+fn tidy_worknode(dir: &Path, node: &mut Mapping, rel: &[String], name: &str, journal: &mut Journal, renames: &mut Vec<Rename>) -> R<()> {
+    let Some((new, meta)) = worknode(name) else { return Ok(()) };
     let mut current = name.to_string();
     if new != name && is_free(dir, node, name, &new) {
         rename_entry(dir, node, rel, name, &new, journal, renames)?;
@@ -126,7 +126,7 @@ fn trimmed(name: &str) -> Option<String> {
 }
 
 // "PJ.111_(23-05MAY-04) Large [c011]_presentation" becomes "PJ.111_Presentation" with its metadata; None leaves the name for the user.
-fn workboard(name: &str) -> Option<(String, Meta)> {
+fn worknode(name: &str) -> Option<(String, Meta)> {
     let (tracker, rest) = name.split_once('.')?;
     let id = rest.get(..3).filter(|id| id.bytes().all(|b| b.is_ascii_digit()))?;
     let tail = &rest[3..];

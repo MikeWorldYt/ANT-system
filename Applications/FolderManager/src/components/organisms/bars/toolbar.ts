@@ -33,7 +33,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     const atRoot = selectedNode()?.relParts.length === 1;
     return [
       { label: atRoot ? "Add main category" : "New node", run: () => withSelected((n) => void addNext(n, "node")) },
-      ...(!atRoot ? [{ label: "New workboard", run: () => withSelected((n) => void addNext(n, "workboard")) }] : []),
+      ...(!atRoot ? [{ label: "New worknode", run: () => withSelected((n) => void addNext(n, "worknode")) }] : []),
     ];
   });
 

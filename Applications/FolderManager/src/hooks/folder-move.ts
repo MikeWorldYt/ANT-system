@@ -14,7 +14,7 @@ export const HIGHLIGHT = "drop-target";
 
 type Movable = Pick<TreeNode, "relParts" | "nodeType" | "reserved" | "ghost" | "locked" | "flags" | "file" | "inYaml">;
 
-// A folder the database does not track moves on disk like a file, even when its name makes it a workboard.
+// A folder the database does not track moves on disk like a file, even when its name makes it a worknode.
 const isPlain = (n: Movable): boolean => !n.file && !n.inYaml;
 
 // Main categories never move; an unflagged node moves only after a warning.

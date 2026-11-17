@@ -14,7 +14,7 @@ use serde_yaml::{Mapping, Value};
 use crate::domain::config::{is_hidden_dir, TypeBase, WkbStatus, MAIN_FLAG, REVIEW_FOLDER, SETTINGS_FOLDER};
 use crate::domain::error::R;
 use crate::domain::model::Copied;
-use crate::domain::names::{is_system_root_name, is_workboard_name, name_parts};
+use crate::domain::names::{is_system_root_name, is_worknode_name, name_parts};
 use crate::domain::tree_types::{flags_in, type_base, type_level, META_KEYS};
 use crate::infra::fs_safe::join_rel;
 use crate::infra::scan::list_subdirs;
@@ -201,8 +201,8 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
     let linked = entry.link.is_some();
 
     let yaml_entry = get_node(data, &rel_parts);
-    // The tree only indexes down to the depth limit; a workboard-named folder it does not hold is still a workboard.
-    let untracked_wkb = yaml_entry.is_none() && entry.on_disk && entry.link.is_none() && is_workboard_name(&entry.name);
+    // The tree only indexes down to the depth limit; a worknode-named folder it does not hold is still a worknode.
+    let untracked_wkb = yaml_entry.is_none() && entry.on_disk && entry.link.is_none() && is_worknode_name(&entry.name);
     let raw_type = if untracked_wkb { "WKB" } else { yaml_entry.and_then(|m| m.get("type")).and_then(Value::as_str).unwrap_or("") };
     // A review link stands for its owner's review folder, so that is where its path and drops point.
     let abs_path = match &entry.link {

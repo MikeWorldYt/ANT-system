@@ -150,7 +150,7 @@ pub fn run() {
             commands::search_nodes,
             commands::list_favorites,
             commands::list_review,
-            commands::list_workboards,
+            commands::list_worknodes,
             commands::set_board,
             commands::can_undo_project_sort,
             commands::undo_project_sort,

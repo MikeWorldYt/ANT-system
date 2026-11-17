@@ -3,7 +3,7 @@ import { VIRTUAL_ENTRIES } from "../components/molecules/virtual-entry";
 import { rootName } from "../components/organisms/bars/path-input";
 import { reportError } from "../components/organisms/bars/status-line";
 import { currentPlace, type Place } from "../services/store/place";
-import { isWorkboard } from "../services/store/node-info";
+import { isWorknode } from "../services/store/node-info";
 import { readPref, savePref } from "../services/store/prefs";
 import { currentSplit, parkedSplit, restoreSplit, savedSplit, type SavedSplit, type Split } from "./split";
 import { parkBatch, unparkBatch, type ParkedBatch } from "./automations/batch";
@@ -205,7 +205,7 @@ function labelOf(place: Place): string {
     const parts = place.key.split("/");
     const project = parts.findIndex((_, i) => {
       const n = findNode(parts.slice(0, i + 1));
-      return n !== null && n !== undefined && isWorkboard(n);
+      return n !== null && n !== undefined && isWorknode(n);
     });
     if (project >= 0) return parts[project] ?? "";
     const folder = findNode(parts)?.file ? parts.slice(0, -1) : parts;

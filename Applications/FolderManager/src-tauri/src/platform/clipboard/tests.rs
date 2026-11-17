@@ -35,7 +35,7 @@ fn cut_writes_move_and_copy_writes_copy() {
 }
 
 #[test]
-fn only_data_folders_and_workboards_can_be_cut() {
+fn only_data_folders_and_worknodes_can_be_cut() {
     let bio = rel(&["100.A", "02.Bio"]);
     let data = vec!["data".to_string()];
     assert_eq!(folder_effect(&bio, "NODE-L2", &data, false, true).unwrap(), DROPEFFECT_MOVE);

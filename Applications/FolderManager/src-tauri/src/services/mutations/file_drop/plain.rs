@@ -1,4 +1,4 @@
-// Places dropped files and plain folders, each under a free name; unlike workboards they never touch the tree.
+// Places dropped files and plain folders, each under a free name; unlike worknodes they never touch the tree.
 use std::fs;
 use std::path::{Path, PathBuf};
 

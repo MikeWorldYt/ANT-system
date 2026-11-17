@@ -48,7 +48,7 @@ fn build_tree_merges_disk_and_yaml_sorted_with_ghosts() {
 }
 
 #[test]
-fn the_90s_and_the_last_roots_close_the_list_after_workboards() {
+fn the_90s_and_the_last_roots_close_the_list_after_worknodes() {
     let dir = TempDir::new("tail");
     for d in ["01.A", "98.Review", "90.Resources", "PJ.001_Wb", "Loose"] {
         dir.mkdir(&format!("01.Top/{d}"));
@@ -247,7 +247,7 @@ fn every_folder_lists_its_files_but_reserved_folders_do_not() {
 }
 
 #[test]
-fn workboards_open_with_their_files_and_hold_no_review_folder() {
+fn worknodes_open_with_their_files_and_hold_no_review_folder() {
     let dir = storage("wkb-files", &["100.A/PJ.001_X"], "100.A:\n  PJ.001_X: {type: WKB-L2}\n");
     std::fs::write(dir.path().join("100.A/PJ.001_X/brief.txt"), "x").unwrap();
     let data = crate::test_support::yaml(dir.path());
@@ -367,7 +367,7 @@ fn favorite_and_details_follow_what_their_commands_accept() {
 }
 
 #[test]
-fn an_untracked_workboard_past_the_limit_is_a_workboard_with_its_info() {
+fn an_untracked_worknode_past_the_limit_is_a_worknode_with_its_info() {
     let dir = storage("untracked-wkb", &["100.A/01.B/01.C/PJ.013_Logo/.ant", "100.A/01.B/01.C/Plain"], "100.A:
   type: NODE-L1
   01.B:

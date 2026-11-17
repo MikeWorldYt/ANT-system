@@ -81,7 +81,7 @@ fn sanitize_upper_cleans_and_uppercases() {
 }
 
 #[test]
-fn workboard_names_keep_the_tracker_and_edit_only_the_name() {
+fn worknode_names_keep_the_tracker_and_edit_only_the_name() {
     assert_eq!(name_parts("PJ.001_Fabi-web", true), ("PJ.001_".to_string(), "Fabi-web".to_string()));
     assert_eq!(name_parts("PJ.001", true), ("PJ.001_".to_string(), String::new()));
     assert_eq!(name_parts("PJ.145_(25-11-14) Plans_DOC", true).1, "(25-11-14) Plans_DOC");
@@ -90,7 +90,7 @@ fn workboard_names_keep_the_tracker_and_edit_only_the_name() {
 }
 
 #[test]
-fn a_workboard_continues_the_count_of_its_new_siblings() {
+fn a_worknode_continues_the_count_of_its_new_siblings() {
     let siblings: Vec<String> = ["PJ.001_Fabi-web", "PJ.048_Phospo", "PR.002_Other"].map(String::from).to_vec();
     assert_eq!(next_track("PJ.026_Test", &siblings), "PJ.049_Test");
     assert_eq!(next_track("PJ.009", &siblings), "PJ.049");
@@ -109,13 +109,13 @@ fn track_names_and_their_titles() {
 }
 
 #[test]
-fn a_workboard_title_drops_the_tracker_the_number_and_a_trailing_hash() {
-    assert_eq!(workboard_title("Pj.154_Google-Labs_Agent-9f0d172a"), "Google-Labs-Agent");
-    assert_eq!(workboard_title("01.New-Node"), "New-Node");
-    assert_eq!(workboard_title("Thesis"), "Thesis");
-    assert_eq!(workboard_title("Plan-2024"), "Plan-2024");
-    assert_eq!(workboard_title("Plan-123456"), "Plan-123456");
-    assert_eq!(workboard_title("Face-decade"), "Face-decade");
+fn a_worknode_title_drops_the_tracker_the_number_and_a_trailing_hash() {
+    assert_eq!(worknode_title("Pj.154_Google-Labs_Agent-9f0d172a"), "Google-Labs-Agent");
+    assert_eq!(worknode_title("01.New-Node"), "New-Node");
+    assert_eq!(worknode_title("Thesis"), "Thesis");
+    assert_eq!(worknode_title("Plan-2024"), "Plan-2024");
+    assert_eq!(worknode_title("Plan-123456"), "Plan-123456");
+    assert_eq!(worknode_title("Face-decade"), "Face-decade");
     assert_eq!(tracker_number("Pj.154_X", "PJ."), Some(154));
     assert_eq!(tracker_number("PR.7_X", "PJ."), None);
     assert_eq!(tracker_number("Pj.Name", "PJ."), None);
@@ -199,19 +199,19 @@ proptest! {
         prop_assert_eq!(sanitize_upper(&upper), upper);
     }
 
-    // A workboard ending in its first "_" drops it on purpose, as it goes back to the bare tracker.
+    // A worknode ending in its first "_" drops it on purpose, as it goes back to the bare tracker.
     #[test]
-    fn splitting_a_name_and_composing_it_again_gives_it_back(name in mixed(), workboard in any::<bool>()) {
-        prop_assume!(!(workboard && name.ends_with('_')));
-        let (fixed, editable) = name_parts(&name, workboard);
-        prop_assert_eq!(compose_name(&fixed, &editable, workboard), name.clone());
-        if !workboard {
+    fn splitting_a_name_and_composing_it_again_gives_it_back(name in mixed(), worknode in any::<bool>()) {
+        prop_assume!(!(worknode && name.ends_with('_')));
+        let (fixed, editable) = name_parts(&name, worknode);
+        prop_assert_eq!(compose_name(&fixed, &editable, worknode), name.clone());
+        if !worknode {
             prop_assert_eq!(editable, editable_part(&name));
         }
     }
 
     #[test]
-    fn a_moved_workboard_continues_past_the_highest_number_of_its_tracker(numbers in prop::collection::vec(0u32..5000, 0..8), mine in 0u32..5000, title in mixed(), noise in prop::collection::vec(mixed(), 0..4)) {
+    fn a_moved_worknode_continues_past_the_highest_number_of_its_tracker(numbers in prop::collection::vec(0u32..5000, 0..8), mine in 0u32..5000, title in mixed(), noise in prop::collection::vec(mixed(), 0..4)) {
         let other = |n: &String| !n.get(..3).is_some_and(|head| head.eq_ignore_ascii_case("PJ."));
         let siblings: Vec<String> = numbers.iter().map(|n| format!("PJ.{n:03}_X")).chain(noise.into_iter().filter(other)).collect();
         let (next, width) = (numbers.iter().max().map_or(1, |n| n + 1), format!("{mine:03}").len());

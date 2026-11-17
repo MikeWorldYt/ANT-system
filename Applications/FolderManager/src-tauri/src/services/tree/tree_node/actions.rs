@@ -85,7 +85,7 @@ pub(super) fn compute_actions(depth: usize, limit: usize, ghost: bool, raw_type:
         add_next: !ghost && !reserved && in_tree,
         // Mirrors add_node: the new child sits one level below this node and must stay inside the limit.
         add_child: !ghost && !frozen && depth + 1 < limit,
-        // Past the limit a child is a plain folder or a workboard the database does not track.
+        // Past the limit a child is a plain folder or a worknode the database does not track.
         add_folder: !ghost && !frozen && depth + 1 >= limit,
         move_up: false,
         move_down: false,

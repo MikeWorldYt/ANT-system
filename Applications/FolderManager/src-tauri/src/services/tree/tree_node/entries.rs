@@ -107,7 +107,7 @@ pub(super) fn natural_key(name: &str) -> (String, u64, String) {
     (name[..start].to_string(), number, name[start + digits..].to_string())
 }
 
-// Support folders (REV., RES., TPL. and the numeric ids older storages use) and the 998/999 root ones always close a list, after workboards and unnumbered folders too.
+// Support folders (REV., RES., TPL. and the numeric ids older storages use) and the 998/999 root ones always close a list, after worknodes and unnumbered folders too.
 fn is_tail(name: &str) -> bool {
     support_kind(name).is_some() || numeric_id(name).is_some_and(|n| n == 998 || n == 999)
 }
