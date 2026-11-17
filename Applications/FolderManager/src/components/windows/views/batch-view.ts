@@ -8,7 +8,8 @@ import { batch } from "../../../hooks/automations/batch";
 import { plural } from "../../../services/plural";
 import { keyOf, select, state } from "../../../services/store/state";
 import { batchRow, setRowTicked } from "./batch-row";
-import { batchTiles, forgetTiles } from "./batch-tiles";
+import { batchTiles, forgetTiles, tileViews } from "./batch-tiles";
+import { plainDetailsHeader } from "./details-cells";
 import { installMarquee } from "../../../hooks/marquee";
 import { currentSplit, focusPane, paneLocation, paneOn } from "../../../hooks/split";
 import { inDownloads } from "../../../services/ipc/types";
@@ -48,7 +49,7 @@ function groupBody(project: string, kind: "wkb" | "folder" | "lnk", files: Batch
     "tr",
     { class: "batch-group" },
     el("td", { class: "batch-check" }, box),
-    el("th", { scope: "rowgroup", colspan: "2" }, el("span", { class: "batch-group-head" }, kindIcon(kind), ...(fresh ? [el("span", { class: "batch-new", title: "Does not exist yet; the run creates it" }, guiIcon("sparkle"))] : []), el("span", { class: "batch-group-name" }, `${kind === "lnk" ? "→ /" : ""}${project}/${fresh ? " (new)" : ""} (${plural(files.length, "file")})`), toggle)),
+    el("th", { scope: "rowgroup", colspan: "2" }, el("span", { class: "batch-group-head" }, kindIcon(kind), ...(fresh ? [el("span", { class: "batch-new", title: "Does not exist yet; the run creates it" }, guiIcon("sparkle"))] : []), el("span", { class: "batch-group-name" }, `${kind === "lnk" ? "→ /" : batch?.dirs.has(project.toLowerCase()) ? "→ " : ""}${project}/${fresh ? " (new)" : ""} (${plural(files.length, "file")})`), toggle)),
   );
   header.addEventListener("dblclick", (ev) => {
     if (ev.target instanceof Element && !ev.target.closest("input, .batch-group-toggle")) flip();
@@ -134,10 +135,11 @@ export function createBatchView(host: HTMLElement, right: boolean): { element: H
     // Inside a group the rows follow their new names, so files that end under the same topic sit together.
     const byName = (a: BatchRow, b: BatchRow): number => a.file.name.localeCompare(b.file.name, undefined, { numeric: true, sensitivity: "base" });
     // Grid shows only the names files will get, so the Current column goes and the After one needs no title.
-    const grid = activeView() === "grid";
+    const view = activeView();
+    const tiled = tileViews.includes(view);
     forgetTiles();
-    currentHead.hidden = afterHead.hidden = grid;
-    const content = (files: BatchRow[]): HTMLTableRowElement[] => (grid ? [batchTiles(files, batch?.folder ?? [])] : files.map((r) => r.tr));
+    currentHead.hidden = afterHead.hidden = tiled;
+    const content = (files: BatchRow[]): HTMLTableRowElement[] => (tiled ? [batchTiles(files, batch?.folder ?? [], view)] : files.map((r) => r.tr));
     // Folders already in the batch folder first, then the ones the run creates there, then moves to nodes and to nodes it creates;
     // within each, track order, so 300. comes before 400. and 400. before 400./01.
     const rank = (home: string): number => {
@@ -150,7 +152,10 @@ export function createBatchView(host: HTMLElement, right: boolean): { element: H
     const sections = [...ordered.map(([project, files]) => groupBody(project, kinds.get(project) ?? "wkb", files.sort(byName), collapsed, render, fresh.has(project), content(files))), ...(loose.length > 0 ? [el("tbody", { class: "batch-loose", "data-home": "" }, ...content(loose))] : [])];
     for (const section of sections) section.querySelector(".batch-group input")?.addEventListener("change", syncAll);
     // One table per section, because a sticky group header only lets go at the end of its own table.
-    scroll.replaceChildren(table, ...sections.map((section) => el("table", { class: "batch-table" }, section)));
+    const tables = sections.map((section) => el("table", { class: "batch-table" }, section));
+    // Columns sets the groups side by side, one column each, so a file can be dragged straight across.
+    const lead = view === "details" ? [plainDetailsHeader()] : [];
+    scroll.replaceChildren(table, ...lead, ...(view === "columns" ? [el("div", { class: "batch-columns" }, ...tables)] : tables));
     syncAll();
   }
 

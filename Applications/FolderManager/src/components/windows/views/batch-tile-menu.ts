@@ -1,4 +1,4 @@
-// The batch grid's menu: one file can be revealed, renamed to help the batch, or deleted; several can be unticked or deleted together.
+// The batch grid's menu: one file can be opened, revealed, renamed to help the batch, or deleted; several can be unticked or deleted together.
 import { closingItem, separator } from "../../molecules/menu";
 import { openMenuWith } from "../../organisms/menus/context-menu";
 import { promptDialog } from "../../organisms/dialogs/action-dialog/form-dialog";
@@ -53,6 +53,7 @@ export function tileMenu(ev: MouseEvent, picked: { parts: string[]; row: BatchRo
         return { items: [untick, del], subs: [], content: [untick, separator(), del] };
       }
       const name = one.row.file.file;
+      const open = action("Open", true, () => void api.openNode(one.parts).catch((e: unknown) => reportError("error", e)));
       const reveal = action("Open folder location", true, () => void api.revealNode(one.parts).catch((e: unknown) => reportError("error", e)));
       const renameItem = action("Rename", true, () =>
         void promptDialog("Rename", "New name for the file.", name, "Rename").then((next) => {
@@ -60,7 +61,7 @@ export function tileMenu(ev: MouseEvent, picked: { parts: string[]; row: BatchRo
         }),
       );
       const del = action("Delete", true, () => void change(() => remove([one.parts])));
-      return { items: [reveal, renameItem, del], subs: [], content: [reveal, renameItem, separator(), del] };
+      return { items: [open, reveal, renameItem, del], subs: [], content: [open, reveal, renameItem, separator(), del] };
     },
     picked.length > 1 ? `${picked.length} files` : one.row.file.file,
     ev.clientX,

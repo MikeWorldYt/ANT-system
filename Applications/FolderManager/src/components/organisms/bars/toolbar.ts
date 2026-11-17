@@ -3,7 +3,7 @@ import { VIEW_ICONS, viewChoice } from "../../molecules/view-choice";
 import { el, setDisabled } from "../../dom";
 import { guiIcon, type GuiIcon } from "../../atoms/gui-icons";
 import { iconButton } from "../../atoms/icon-button";
-import { batch } from "../../../hooks/automations/batch";
+import { BATCH_VIEWS, batch } from "../../../hooks/automations/batch";
 import { attachMenu } from "../menus/anchored-menu";
 import { EDGE, openPopup, place, popupTrigger } from "../../molecules/menu";
 import { addNext, refresh } from "../../../hooks/ops";
@@ -50,8 +50,6 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     ];
   });
 
-  // Batch mode is drawn as a list, or as a grid of the names the files will get.
-  const BATCH_VIEWS = ["list", "grid"];
   let closeViewPopup: ((restore?: boolean) => void) | null = null;
   const modeButtons = orderedModes(views).map((m): [string, HTMLButtonElement] => [m.id, viewChoice(m.label, VIEW_ICONS[m.id] ?? "layout", () => {
     if (batch !== null && !BATCH_VIEWS.includes(m.id)) return;

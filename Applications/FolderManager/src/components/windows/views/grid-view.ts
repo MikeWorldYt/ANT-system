@@ -190,7 +190,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       const open = folderNode();
       const empty = nodes.length === 0 && open !== null && open.children !== null;
       const legend = listing && nodes.length === 0 ? listing.empty : empty ? "Empty" : null;
-      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns && !listing ? [detailsHeader(folder ?? "")] : [])];
+      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns ? [detailsHeader(folder ?? "")] : [])];
       // The open entry heads its own list, so the grid tells where it is.
       const entryOptions = { tabbable: entryTabbable };
       const items = nodes.map((n) => buildItem(n, n === tabbable));

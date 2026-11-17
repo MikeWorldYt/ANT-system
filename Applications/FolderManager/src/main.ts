@@ -18,7 +18,7 @@ import { checkForUpdates } from "./hooks/updates";
 import { startBackups } from "./hooks/backups";
 import { installDebugLog, startDebugLog } from "./hooks/debug-log";
 import { applyAppearance } from "./hooks/appearance";
-import { batch as batchMode, replanAfterDictionary, restoreBatch } from "./hooks/automations/batch";
+import { BATCH_VIEWS, batch as batchMode, replanAfterDictionary, restoreBatch } from "./hooks/automations/batch";
 import { readPref, savePref } from "./services/store/prefs";
 import { startExtensions } from "./extensions/host";
 import { plural } from "./services/plural";
@@ -42,19 +42,24 @@ installShortcuts({
   nextTab,
 });
 
-// Batch mode is drawn as a list or a grid, so another view gives way to List while it is open and comes back after.
-let viewBeforeBatch: string | null = null;
+// Tree and Graph cannot draw a batch: Tree gives way to List, Graph to the default view when the batch can use it, and either comes back after.
+let lastBatch: typeof batchMode = null;
 // The view the batch was drawn in, so a restored one comes back as a list or a grid.
 const BATCH_VIEW = "fm.batch.view";
 function followBatch(): void {
   if (batchMode) savePref(BATCH_VIEW, views.current().id);
-  if (batchMode && viewBeforeBatch === null) {
-    viewBeforeBatch = views.current().id;
-    if (viewBeforeBatch !== "list" && viewBeforeBatch !== "grid") views.switchTo("list");
-  } else if (!batchMode && viewBeforeBatch !== null) {
-    if (views.current().id !== viewBeforeBatch) views.switchTo(viewBeforeBatch);
-    viewBeforeBatch = null;
+  if (batchMode && batchMode.viewBefore === undefined) {
+    const before = views.current().id;
+    batchMode.viewBefore = before;
+    if (!BATCH_VIEWS.includes(before)) {
+      const preferred = state.settings.startView;
+      views.switchTo(before === "graph" && BATCH_VIEWS.includes(preferred) ? preferred : "list");
+    }
   }
+  // Only a closed batch gives a view back, and only one it had to leave; a batch parked in another tab keeps it for its return.
+  const before = lastBatch?.viewBefore;
+  if (!batchMode && lastBatch && !lastBatch.parked && before && !BATCH_VIEWS.includes(before) && views.current().id !== before) views.switchTo(before);
+  lastBatch = batchMode;
 }
 
 subscribe(() => {
@@ -139,8 +144,9 @@ void init().then((ready) => {
   if (ready && !tourSeen()) void startTour();
   else if (ready)
     void restoreBatch().then((open) => {
-      if (open && readPref(BATCH_VIEW) === "grid") {
-        views.switchTo("grid");
+      const view = readPref(BATCH_VIEW);
+      if (open && view && view !== "list" && BATCH_VIEWS.includes(view)) {
+        views.switchTo(view);
         toolbar.render();
       }
     });

@@ -23,6 +23,11 @@
 .batch-tile > input { position: absolute; left: 6px; top: 6px; }
 .batch-tile-name { max-width: 100%; text-align: center; overflow-wrap: anywhere; font-size: 12px; }
 .batch-tile.skipped { opacity: 0.5; }
+.batch-scroll > .details-head { top: var(--batch-head-h, 0); z-index: 2; padding-left: 58px; }
+.batch-columns { display: flex; align-items: flex-start; gap: 8px; overflow-x: auto; min-height: 100%; }
+.batch-columns > .batch-table { flex: 0 0 280px; width: 280px; }
+.batch-grid.grid.list .batch-tile > input, .batch-grid.grid.cards .batch-tile > input { position: static; }
+.batch-grid.grid.list .batch-tile-name, .batch-grid.grid.cards .batch-tile-name { flex: 1; min-width: 0; text-align: left; }
 .batch-box.drop-target, .batch-loose.drop-target, .batch-scroll.drop-target { outline: 2px solid var(--accent); outline-offset: -2px; }
 .batch-tile.dragging { opacity: 0.4; }
 .batch-ghost { position: fixed; z-index: 1000; pointer-events: none; padding: 2px 8px; border-radius: 4px; background: var(--accent); color: var(--on-accent); font-size: 12px; white-space: nowrap; }

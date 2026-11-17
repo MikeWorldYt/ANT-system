@@ -25,6 +25,11 @@ interface Batch {
   dirs: Set<string>;
   // The split pane the batch took, so the other pane stays free to browse and drag from.
   right: boolean;
+  // The folder's files as listed, by name, for the dates and sizes the Details view shows.
+  files: Map<string, TreeNode>;
+  // The view the batch replaced when it opened, and whether it now waits in another tab rather than being closed.
+  viewBefore?: string;
+  parked?: boolean;
 }
 
 export let batch: Batch | null = null;
@@ -75,6 +80,9 @@ function remember(): void {
   savePref(SAVED, saved ? JSON.stringify(saved) : "");
 }
 
+// The views the batch can be drawn in; the others fall back to List.
+export const BATCH_VIEWS = ["list", "grid", "cards", "details", "columns"];
+
 export const changes = (row: PlannedFile): boolean => row.name !== row.file || row.project !== null || row.folder !== null;
 
 // A file the sort is unsure of starts unticked.
@@ -94,6 +102,7 @@ async function load(picks: Picks): Promise<void> {
   const [rows, children] = await Promise.all([api.planAutomations(batch.folder, batch.only, picks), api.listChildren(batch.folder)]);
   batch.rows = rows;
   batch.dirs = new Set(children.filter((c) => !c.file).map((c) => c.name.toLowerCase()));
+  batch.files = new Map(children.filter((c) => c.file).map((c) => [c.name, c]));
   for (const row of batch.rows) if (row.project !== null && !row.sure && !before.has(row.file)) batch.skipped.add(row.file);
   remember();
   notify();
@@ -103,7 +112,7 @@ async function load(picks: Picks): Promise<void> {
 export async function openBatch(scope: ReviewScope, picks: Picks, restored?: { only: string[]; skipped: string[] }): Promise<void> {
   const folder = scope.folders[0] ?? scope.files[0]?.relParts.slice(0, -1);
   if (!scope.review || !folder) return;
-  batch = { review: scope.review, folder, only: restored?.only ?? scope.files.map((f) => f.name), rows: [], picks, skipped: new Set(restored?.skipped), dirs: new Set(), right: currentSplit()?.right ?? false };
+  batch = { review: scope.review, folder, only: restored?.only ?? scope.files.map((f) => f.name), rows: [], picks, skipped: new Set(restored?.skipped), dirs: new Set(), right: currentSplit()?.right ?? false, files: new Map() };
   try {
     await load(picks);
     startWatch(folder);
@@ -114,6 +123,26 @@ export async function openBatch(scope: ReviewScope, picks: Picks, restored?: { o
     else reportError("error", e);
     notify();
   }
+}
+
+// A batch belongs to the tab it was opened in: leaving the tab parks it, coming back brings it back replanned.
+export type ParkedBatch = Batch;
+
+export function parkBatch(): ParkedBatch | null {
+  const parked = batch;
+  if (!parked) return null;
+  stopWatch();
+  parked.parked = true;
+  batch = null;
+  return parked;
+}
+
+export function unparkBatch(parked: ParkedBatch | null): void {
+  if (!parked || batch) return;
+  parked.parked = false;
+  batch = parked;
+  startWatch(parked.folder);
+  void replanBatch(parked.picks);
 }
 
 export async function restoreBatch(): Promise<boolean> {

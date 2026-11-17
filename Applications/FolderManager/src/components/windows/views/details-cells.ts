@@ -29,6 +29,9 @@ const COLUMNS: [string, string, SortBy | null][] = [
   ["Date created", "detail-date", "created"],
 ];
 
+// The batch lists a dry run, not a folder, so its header names the columns without sorting by them.
+export const plainDetailsHeader = (): HTMLElement => el("div", { class: "details-head", role: "presentation" }, ...COLUMNS.map(([label, cls]) => el("span", { class: `detail-cell ${cls}` }, label)));
+
 export function detailsHeader(columnKey: string): HTMLElement {
   const { by, dir } = sortOf(columnKey);
   const cells = COLUMNS.map(([label, cls, key]) => {

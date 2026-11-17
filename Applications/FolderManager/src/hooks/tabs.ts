@@ -6,6 +6,7 @@ import { currentPlace, type Place } from "../services/store/place";
 import { isWorkboard } from "../services/store/node-info";
 import { readPref, savePref } from "../services/store/prefs";
 import { currentSplit, parkedSplit, restoreSplit, savedSplit, type SavedSplit, type Split } from "./split";
+import { parkBatch, unparkBatch, type ParkedBatch } from "./automations/batch";
 import type { ViewSwitcher } from "./view-switch";
 import { findNode, isVirtualShown, keyOf, leaveVirtual, notify, state } from "../services/store/state";
 
@@ -26,6 +27,7 @@ interface Tab {
   trail: Trail;
   view: string;
   split: Split | null;
+  batch?: ParkedBatch | null;
 }
 
 export interface TabView {
@@ -107,6 +109,7 @@ function capture(): void {
   tab.trail = navigator.trail();
   tab.view = currentView();
   tab.split = currentSplit();
+  tab.batch = parkBatch();
 }
 
 async function activate(index: number): Promise<void> {
@@ -121,6 +124,8 @@ async function activate(index: number): Promise<void> {
   state.managing = null;
   state.hiddenChoices = [];
   restoreSplit(tab.split);
+  unparkBatch(tab.batch ?? null);
+  tab.batch = null;
   views?.switchTo(tab.view);
   try {
     await navigator.enter(tab.trail, tab.place);

@@ -1,12 +1,13 @@
 // Batch mode in Grid: each file as the grid shows it, with its real icon and one name that mixes what goes (red) and what comes (green).
 import { el } from "../../dom";
 import { nameIcon } from "../../atoms/icons";
-import { changes } from "../../../hooks/automations/batch";
+import { batch, changes } from "../../../hooks/automations/batch";
 import { nativeImage } from "../../../services/file-images";
 import { diffRuns } from "../../../services/text-diff";
 import { keyOf, select, selectKeys, state } from "../../../services/store/state";
 import type { TreeNode } from "../../../services/ipc/types";
 import type { BatchRow } from "./batch-row";
+import { detailCells, fileKind } from "./details-cells";
 import { tileMenu } from "./batch-tile-menu";
 import { groupAt, moveOut, pinTo } from "../../../hooks/automations/batch-drop";
 import { targetAt } from "../../../hooks/folder-move";
@@ -19,7 +20,7 @@ export function forgetTiles(): void {
   for (const ghost of document.querySelectorAll(".batch-ghost")) ghost.remove();
 }
 
-function tile(row: BatchRow, folder: string[]): HTMLElement {
+function tile(row: BatchRow, folder: string[], detail: "none" | "kind" | "columns"): HTMLElement {
   const file = row.file;
   const parts = [...folder, file.file];
   const key = keyOf(parts);
@@ -29,6 +30,10 @@ function tile(row: BatchRow, folder: string[]): HTMLElement {
   const art = el("span", { class: "grid-art" }, src ? el("img", { class: "thumb", src, alt: "", draggable: "false" }) : nameIcon(file.file));
   const after = changes(file) ? diffRuns(file.file, file.name).mixed.map((r) => (r.mark === "same" ? r.text : el(r.mark, {}, r.text))) : [file.name];
   const item = el("div", { class: "grid-item batch-tile", title: file.name, "data-key": key }, row.box, art, el("span", { class: "batch-tile-name" }, ...after));
+  // Details shows the file's own dates and size as it is now, beside the type it will have.
+  const listed = batch?.files.get(file.file);
+  if (detail === "kind") item.append(el("span", { class: "card-detail" }, fileKind({ name: file.name, file: true } as TreeNode)));
+  if (detail === "columns" && listed) item.append(...detailCells({ ...listed, name: file.name }));
   item.classList.toggle("selected", state.selectedKeys.includes(key));
   const sync = (): void => void item.classList.toggle("skipped", !row.box.checked && !row.box.disabled);
   row.box.addEventListener("change", sync);
@@ -111,6 +116,17 @@ function dragToGroup(item: HTMLElement, key: string, home: string | null): void 
   item.addEventListener("lostpointercapture", () => end(false));
 }
 
-export function batchTiles(rows: BatchRow[], folder: string[]): HTMLTableRowElement {
-  return el("tr", { class: "batch-tiles" }, el("td", { colspan: "3" }, el("div", { class: "grid batch-grid" }, ...rows.map((r) => tile(r, folder)))));
+// Each view draws the files its own way: Grid as tiles, Cards with the kind beside, Details as rows with it, List and Columns as rows.
+const LAYOUTS: Record<string, { cls: string; detail: "none" | "kind" | "columns" }> = {
+  grid: { cls: "grid", detail: "none" },
+  cards: { cls: "grid cards", detail: "kind" },
+  details: { cls: "grid list details", detail: "columns" },
+  columns: { cls: "grid list", detail: "none" },
+};
+
+export const tileViews = Object.keys(LAYOUTS);
+
+export function batchTiles(rows: BatchRow[], folder: string[], view: string): HTMLTableRowElement {
+  const layout = LAYOUTS[view] ?? { cls: "grid", detail: "none" };
+  return el("tr", { class: "batch-tiles" }, el("td", { colspan: "3" }, el("div", { class: `${layout.cls} batch-grid batch-${view}` }, ...rows.map((r) => tile(r, folder, layout.detail)))));
 }
