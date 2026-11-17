@@ -2,6 +2,9 @@
 mod batch;
 mod dict_match;
 pub mod dictionary;
+pub mod downloads;
+pub mod node_path;
+pub mod pins;
 pub mod dictionary_lint;
 mod plan;
 pub mod reduce_name;

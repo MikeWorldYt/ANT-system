@@ -87,8 +87,9 @@ pub async fn set_link_hidden(app: AppHandle, rel_parts: Vec<String>, on: bool) -
 }
 
 #[tauri::command]
-pub async fn set_user_flag(app: AppHandle, rel_parts: Vec<String>, on: bool) -> R<Mutation> {
-    run_search_indexed(app, move |root| mutations::set_user_flag(root, &rel_parts, on)).await
+pub async fn set_user_flag(app: AppHandle, rel_parts: Vec<String>, flag: Option<String>, on: bool) -> R<Mutation> {
+    let flag = flag.unwrap_or_else(|| crate::domain::config::DATA_FLAG.to_string());
+    run_search_indexed(app, move |root| mutations::set_user_flag(root, &rel_parts, &flag, on)).await
 }
 
 #[tauri::command]
@@ -130,11 +131,19 @@ pub async fn set_review_automation(app: AppHandle, rel_parts: Vec<String>, autom
 #[allow(clippy::too_many_arguments)]
 pub async fn plan_automations(app: AppHandle, folder: Vec<String>, only: Vec<String>, reduce: bool, sort: bool, group: bool, add_date: bool, remove_date: bool, remove_symbols: bool) -> R<Vec<automations::PlannedFile>> {
     let picks = automations::Picks { reduce, sort, group, add_date, remove_date, remove_symbols };
+    if let Some(sub) = super::downloads::below_downloads(&folder) {
+        let (base, sub) = (super::downloads::base(&app)?, sub.to_vec());
+        return run_locked(app, move |root| automations::downloads::plan(root, &base, &sub, &only, picks)).await;
+    }
     run_locked(app, move |root| automations::plan(root, &folder, &only, picks)).await
 }
 
 #[tauri::command]
 pub async fn apply_automations(app: AppHandle, folder: Vec<String>, rows: Vec<automations::PlannedFile>) -> R<usize> {
+    if let Some(sub) = super::downloads::below_downloads(&folder) {
+        let (base, sub) = (super::downloads::base(&app)?, sub.to_vec());
+        return run_locked(app, move |root| automations::downloads::apply(root, &base, &sub, &rows)).await;
+    }
     run_locked(app, move |root| automations::apply(root, &folder, &rows)).await
 }
 

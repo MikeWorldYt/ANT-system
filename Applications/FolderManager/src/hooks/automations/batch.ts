@@ -2,7 +2,13 @@
 import * as api from "../../services/ipc/api";
 import { refresh, setReviewAutomation } from "../ops";
 import { plural } from "../../services/plural";
-import { notify } from "../../services/store/state";
+import { findNode, notify, select, state } from "../../services/store/state";
+import { openVirtual } from "../virtual-nav";
+import { currentSplit } from "../split";
+import { loadPath } from "../../services/store/virtual";
+import { readPref, savePref } from "../../services/store/prefs";
+import { inDownloads } from "../../services/ipc/types";
+import { DOWNLOADS } from "./scope/review-scope";
 import { reportError, setStatus } from "../../components/organisms/bars/status-line";
 import type { Picks, PlannedFile, TreeNode } from "../../services/ipc/types";
 import type { ReviewScope } from "./scope/review-scope";
@@ -15,9 +21,59 @@ interface Batch {
   picks: Picks;
   // Files left unticked, kept by name so a new dry run does not tick them again.
   skipped: Set<string>;
+  // Subfolders the batch folder already has, so the view tells a folder the run fills from one it creates.
+  dirs: Set<string>;
+  // The split pane the batch took, so the other pane stays free to browse and drag from.
+  right: boolean;
 }
 
 export let batch: Batch | null = null;
+
+// Files keep landing while the dry run is open, from a download or another app, so the folder is read every few seconds and replanned when its files change.
+const WATCH_MS = 2000;
+let watch = 0;
+let seen = "";
+
+const fileList = async (folder: string[]): Promise<string> =>
+  (await api.listChildren(folder)).filter((c) => c.file).map((c) => c.name).sort().join("\n");
+
+function stopWatch(): void {
+  window.clearInterval(watch);
+  watch = 0;
+}
+
+function startWatch(folder: string[]): void {
+  stopWatch();
+  void fileList(folder).then((list) => (seen = list), (e: unknown) => console.warn("Batch watch could not read the folder", e));
+  watch = window.setInterval(() => {
+    if (!batch || state.busy) return;
+    void fileList(batch.folder).then(
+      async (list) => {
+        if (list === seen || !batch) return;
+        seen = list;
+        await replanBatch(batch.picks);
+      },
+      (e: unknown) => console.warn("Batch watch could not read the folder", e),
+    );
+  }, WATCH_MS);
+}
+
+// An open dry run is kept across restarts: it changes nothing until it runs, so reopening it only saves the user its setup.
+const SAVED = "fm.batch";
+
+interface SavedBatch {
+  root: string;
+  review: string[];
+  folder: string[];
+  only: string[];
+  picks: Picks;
+  skipped: string[];
+}
+
+function remember(): void {
+  const saved: SavedBatch | null = batch && state.tree ? { root: state.tree.root, review: batch.review.relParts, folder: batch.folder, only: batch.only, picks: batch.picks, skipped: [...batch.skipped] } : null;
+  savePref(SAVED, saved ? JSON.stringify(saved) : "");
+}
 
 export const changes = (row: PlannedFile): boolean => row.name !== row.file || row.project !== null || row.folder !== null;
 
@@ -28,28 +84,63 @@ export function setTicked(row: PlannedFile, on: boolean): void {
   if (!batch) return;
   if (on) batch.skipped.delete(row.file);
   else batch.skipped.add(row.file);
+  remember();
 }
 
 async function load(picks: Picks): Promise<void> {
   if (!batch) return;
   batch.picks = picks;
   const before = new Set(batch.rows.map((r) => r.file));
-  batch.rows = await api.planAutomations(batch.folder, batch.only, picks);
+  const [rows, children] = await Promise.all([api.planAutomations(batch.folder, batch.only, picks), api.listChildren(batch.folder)]);
+  batch.rows = rows;
+  batch.dirs = new Set(children.filter((c) => !c.file).map((c) => c.name.toLowerCase()));
   for (const row of batch.rows) if (row.project !== null && !row.sure && !before.has(row.file)) batch.skipped.add(row.file);
+  remember();
   notify();
 }
 
-export async function openBatch(scope: ReviewScope, picks: Picks): Promise<void> {
+// A restored run brings back the files it was narrowed to and the ones left unticked, and fails quietly when its folder is gone.
+export async function openBatch(scope: ReviewScope, picks: Picks, restored?: { only: string[]; skipped: string[] }): Promise<void> {
   const folder = scope.folders[0] ?? scope.files[0]?.relParts.slice(0, -1);
   if (!scope.review || !folder) return;
-  batch = { review: scope.review, folder, only: scope.files.map((f) => f.name), rows: [], picks, skipped: new Set() };
+  batch = { review: scope.review, folder, only: restored?.only ?? scope.files.map((f) => f.name), rows: [], picks, skipped: new Set(restored?.skipped), dirs: new Set(), right: currentSplit()?.right ?? false };
   try {
     await load(picks);
+    startWatch(folder);
   } catch (e) {
     batch = null;
-    reportError("error", e);
+    remember();
+    if (restored) console.warn("The saved batch could not reopen", e);
+    else reportError("error", e);
     notify();
   }
+}
+
+export async function restoreBatch(): Promise<boolean> {
+  const raw = readPref(SAVED);
+  if (!raw || !state.tree) return false;
+  let saved: SavedBatch;
+  try {
+    saved = JSON.parse(raw) as SavedBatch;
+  } catch (e) {
+    console.warn("The saved batch is unreadable", e);
+    savePref(SAVED, "");
+    return false;
+  }
+  if (saved.root !== state.tree.root) return false;
+  if (!inDownloads(saved.review)) await loadPath(saved.review).catch((e: unknown) => console.warn("The saved batch folder could not load", e));
+  const review = inDownloads(saved.review) ? DOWNLOADS : findNode(saved.review);
+  if (!review) {
+    savePref(SAVED, "");
+    return false;
+  }
+  // The panel closes a batch whose folder is not the one selected, so the selection goes back there first.
+  if (inDownloads(saved.review)) {
+    await openVirtual("downloads");
+    select(null);
+  } else select(saved.folder);
+  await openBatch({ folders: [saved.folder], files: [], label: "", review }, saved.picks, { only: saved.only, skipped: saved.skipped });
+  return batch !== null;
 }
 
 export async function replanBatch(picks: Picks): Promise<void> {
@@ -66,7 +157,9 @@ export function replanAfterDictionary(): void {
 }
 
 export function closeBatch(): void {
+  stopWatch();
   batch = null;
+  remember();
   notify();
 }
 
@@ -95,6 +188,8 @@ export async function setAuto(review: TreeNode, kinds: (keyof Picks)[]): Promise
 export async function runBatch(): Promise<void> {
   if (!batch) return;
   const { folder, rows } = batch;
+  stopWatch();
+  savePref(SAVED, "");
   try {
     const picked = rows.filter(isTicked);
     const changed = picked.length > 0 ? await api.applyAutomations(folder, picked) : 0;

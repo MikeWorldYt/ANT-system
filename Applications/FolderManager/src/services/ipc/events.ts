@@ -19,4 +19,6 @@ export const onFileDrag = (fn: (e: DragDropEvent) => void) =>
 export const onStorageChanged =(fn: (e: StorageChangedEvent) => void) =>
   listen<StorageChangedEvent>("storage-changed", (ev) => fn(ev.payload));
 
+export const onDownloadsDictionary = (fn: () => void) => listen("fm://downloads-dictionary", () => fn());
+
 export const onUiRequest = (fn: (e: UiRequest) => void) => listen<UiRequest>("fm://ui-request", (ev) => fn(ev.payload));

@@ -59,6 +59,8 @@ export interface Settings {
   hideDone: boolean;
   hideDirectoryIdentifiers: boolean;
   confirmDelete: boolean;
+  // In Batch mode a file dropped on a group is pinned to it; off, it only lands in the folder and the rules place it.
+  batchDropToGroup: boolean;
   autoUpdate: boolean;
   debugLogging: boolean;
   backupAuto: boolean;
@@ -117,7 +119,7 @@ export const state: State = {
   hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, mcpWrites: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, batchDropToGroup: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, mcpWrites: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
   virtual: null,
   virtualKeys: [],
   downloads: [],
@@ -218,6 +220,7 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.hideDone = saved.hideDone === "true";
   state.settings.hideDirectoryIdentifiers = saved.hideDirectoryIdentifiers === "true";
   state.settings.confirmDelete = saved.confirmDelete !== "false";
+  state.settings.batchDropToGroup = saved.batchDropToGroup !== "false";
   state.settings.autoUpdate = saved.autoUpdate !== "false";
   state.settings.debugLogging = saved.debugLogging === "true";
   state.settings.backupAuto = saved.backupAuto === "true";

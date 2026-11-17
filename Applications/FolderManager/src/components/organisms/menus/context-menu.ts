@@ -120,7 +120,10 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   const shareItems = node.reserved || node.ghost ? [] : [paste, shortcut];
   const allowsFiles = node.flags.includes("data");
   const files = action(allowsFiles ? "Deny files" : "Allow files", a.editFlags, () => void setUserFlag(node, !allowsFiles));
-  const fileItems = node.nodeType?.base === "NODE" ? [files] : [];
+  const automated = node.flags.includes("autom");
+  const autom = action(automated ? "Deactivate automations" : "Activate automations", !node.ghost && !node.locked && !node.reserved && node.relParts.length > 1, () => void setUserFlag(node, !automated, "autom"));
+  const base = node.nodeType?.base ?? "";
+  const fileItems = [...(base === "NODE" ? [files] : []), ...(["REV", "SS", "REC", "RES"].includes(base) ? [] : [autom])];
   const typeChoices = TYPES.map(([base, label]) =>
     menuItem(label, "menuitemradio", a.changeType, () => {
       close();

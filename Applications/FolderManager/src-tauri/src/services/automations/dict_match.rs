@@ -126,6 +126,10 @@ fn longest<'a>(stem: &str, terms: &'a [String], find: fn(&str, &str) -> Option<(
 
 // The longest matched term wins, so "Genshin Impact" beats a stray "ba"; an extension or pattern only decides when no term matched.
 pub fn classify<'a>(entries: &'a [Entry], file: &str) -> Option<&'a Entry> {
+    // A file named in `### files` is the user's own choice, so it wins over every rule.
+    if let Some(pinned) = entries.iter().find(|e| e.files.iter().any(|f| f.eq_ignore_ascii_case(file))) {
+        return Some(pinned);
+    }
     let (stem, ext) = split_ext(file);
     let ext = ext.to_lowercase();
     let by_term = entries
@@ -157,6 +161,17 @@ fn cut_all(name: &str, span: impl Fn(&str) -> Option<(usize, usize)>) -> String 
         let Some(rest) = span(stem).and_then(|(s, e)| drop_span(stem, s, e)) else { return name };
         name = format!("{rest}{ext}");
     }
+}
+
+pub fn cut_globals(globals: &super::dictionary::Globals, name: &str) -> String {
+    let mut name = name.to_string();
+    for term in &globals.terms {
+        name = cut_all(&name, |stem| find_term(stem, term));
+    }
+    for re in &globals.patterns {
+        name = cut_all(&name, |stem| re.find(stem).filter(|m| !m.is_empty()).map(|m| (m.start(), m.end())));
+    }
+    name
 }
 
 // Each word of the topics stays where it first shows and leaves where it repeats: "mika-misono-mika-ixss" reads "mika-misono-ixss".

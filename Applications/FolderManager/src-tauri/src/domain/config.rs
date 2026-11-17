@@ -29,6 +29,9 @@ pub const DEPTH_CEILING: usize = 6;
 
 pub const LOCKED_TYPES: &[&str] = &["REV", "RES", "TPL", "CFG", "SS", "REC"];
 pub const DATA_FLAG: &str = "data";
+pub const AUTOM_FLAG: &str = "autom";
+// Review, screenshot and recording folders run automations by default; any other folder once the user sets "autom".
+pub const AUTOMATED_TYPES: &[&str] = &["REV", "SS", "REC"];
 // A hidden folder stays in the storage but is not listed, searched or read.
 pub const HIDDEN_FLAG: &str = "hidden";
 pub const MAIN_FLAG: &str = "main";

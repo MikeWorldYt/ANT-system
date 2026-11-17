@@ -111,5 +111,11 @@ export const generalPage: SettingsPage = {
       description: "Ask for confirmation when deleting any node or file",
       control: () => switchControl("Confirm before deleting", state.settings.confirmDelete, (on) => changeSetting("confirmDelete", on)),
     },
+    {
+      section: "Preferences",
+      title: "Batch drops join their group",
+      description: "In Batch mode, a file dropped on a group goes to that group; off, it only lands in the folder and the dictionary places it",
+      control: () => switchControl("Batch drops join their group", state.settings.batchDropToGroup, (on) => changeSetting("batchDropToGroup", on)),
+    },
   ],
 };

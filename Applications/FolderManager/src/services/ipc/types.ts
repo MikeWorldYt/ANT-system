@@ -80,6 +80,10 @@ export interface PlannedFile {
   sure: boolean;
   folder: string | null;
   target: string[] | null;
+  // The target's last folder does not exist yet; the run creates it.
+  create: boolean;
+  // The dictionary heading that placed the file, or null for a file no entry took.
+  entry: string | null;
 }
 
 export interface DictionaryIssue {

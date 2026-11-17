@@ -7,7 +7,7 @@ use serde_yaml::{Mapping, Value};
 use super::{editable_target, finish, locate, scope, load_synced_at, parent_of, Mutation};
 use crate::domain::config::{AUTO_ADD_DATE_FLAG, AUTO_GROUP_FLAG, AUTO_REDUCE_FLAG, AUTO_REMOVE_DATE_FLAG, AUTO_REMOVE_SYMBOLS_FLAG, AUTO_SORT_FLAG, FOOTPRINT_FILENAME, OWNER_KEYS};
 use crate::domain::error::{FmError, R};
-use crate::domain::tree_types::{child_entries, flags_in, type_base};
+use crate::domain::tree_types::{child_entries, flags_in, runs_automations, type_base};
 use crate::infra::fs_safe::{io_err, StorageLock};
 use crate::infra::footprint_file::mirror_flags;
 use crate::infra::storage::info::{field_of, read_info, write_info};
@@ -59,10 +59,10 @@ pub fn set_review_automation(root: &Path, rel: &[String], automation: &str, on: 
     let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
-    if target.ghost || type_base(&target.node_type) != "REV" {
-        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only a review folder runs automations".to_string() });
-    }
     let node = get_node_mut(&mut data, rel).ok_or_else(|| FmError::NotFound { rel_parts: rel.to_vec() })?;
+    if target.ghost || !runs_automations(type_base(&target.node_type), &flags_in(node)) {
+        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "this folder has no automations; activate them first".to_string() });
+    }
     set_flag(node, flag, on);
     let flags = flags_in(node);
     tree_store::save(root, &data)?;

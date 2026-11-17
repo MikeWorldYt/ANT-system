@@ -12,6 +12,10 @@ pub fn type_level(t: &str) -> Option<&str> {
 }
 
 // User flags are stored as one comma-separated text in the node's "flags" entry.
+pub fn runs_automations(base: &str, flags: &[String]) -> bool {
+    crate::domain::config::AUTOMATED_TYPES.contains(&base) || flags.iter().any(|f| f == crate::domain::config::AUTOM_FLAG)
+}
+
 pub fn flags_in(node: &Mapping) -> Vec<String> {
     node.get("flags")
         .and_then(serde_yaml::Value::as_str)

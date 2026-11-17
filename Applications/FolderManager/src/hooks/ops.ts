@@ -454,8 +454,8 @@ export function setReviewFilter(hidden: string[], favorites: boolean): void {
   select(nearest ? nearest.split("/") : null);
 }
 
-export const setUserFlag = (node: TreeNode, on: boolean) =>
-  mutate(() => api.setUserFlag(node.relParts, on), node.relParts);
+export const setUserFlag = (node: TreeNode, on: boolean, flag: "data" | "autom" = "data") =>
+  mutate(() => api.setUserFlag(node.relParts, on, flag), node.relParts);
 
 export const setReviewAutomation = (node: TreeNode, automation: keyof Picks, on: boolean) =>
   mutate(() => api.setReviewAutomation(node.relParts, automation, on), node.relParts);

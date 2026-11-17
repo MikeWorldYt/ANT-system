@@ -1,4 +1,4 @@
-// Runs the automations a review folder has switched on for the files that just landed in it, whoever put them there.
+// Runs the automations a folder has switched on for the files that just landed in it, whoever put them there.
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -6,7 +6,7 @@ use super::filter::{is_own_write, relative};
 use super::log;
 use crate::domain::config::{AUTO_ADD_DATE_FLAG, AUTO_GROUP_FLAG, AUTO_REDUCE_FLAG, AUTO_REMOVE_DATE_FLAG, AUTO_REMOVE_SYMBOLS_FLAG, AUTO_SORT_FLAG};
 use crate::domain::project_group::Tier;
-use crate::domain::tree_types::{flags_in, type_base};
+use crate::domain::tree_types::{flags_in, runs_automations, type_base};
 use crate::services::automations::{self, reduce_files};
 use crate::services::mutations::{self, ProjectPlan};
 use crate::services::tree::tree_store;
@@ -27,7 +27,7 @@ pub(super) fn run(root: &Path, changed: &[PathBuf]) {
     };
     for (folder, files) in landed {
         let Some(node) = tree_store::get_node(&data, &folder) else { continue };
-        if type_base(node.get("type").and_then(serde_yaml::Value::as_str).unwrap_or("")) != "REV" {
+        if !runs_automations(type_base(node.get("type").and_then(serde_yaml::Value::as_str).unwrap_or("")), &flags_in(node)) {
             continue;
         }
         let flags = flags_in(node);

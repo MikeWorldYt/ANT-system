@@ -5,7 +5,7 @@ import { textButton } from "../../atoms/button";
 import { guiIcon } from "../../atoms/gui-icons";
 import { confirmAutomation } from "../dialogs/action-dialog/automation-warning";
 import { AUTOMATIONS, autoKinds, batch, closeBatch, labelsOf, openBatch, replanBatch, runBatch, setAuto } from "../../../hooks/automations/batch";
-import { reviewScope, type ReviewScope } from "../../../hooks/automations/scope/review-scope";
+import { isDownloads, reviewScope, type ReviewScope } from "../../../hooks/automations/scope/review-scope";
 import { openDictionaryWindow } from "../../../services/ipc/api";
 import { reportError, setStatus } from "./status-line";
 import { readPref, savePref } from "../../../services/store/prefs";
@@ -79,7 +79,7 @@ export function createReviewAutomations(): { element: HTMLElement; render(): voi
   // The dictionary belongs to the node that holds the review folder, so it reaches that node's other folders too.
   const dictionary = action("Edit dictionary", "pencil", () => {
     const review = scope?.review;
-    if (review) openDictionaryWindow(review.relParts.slice(0, -1)).catch((e: unknown) => reportError("error", e, "Dictionary window"));
+    if (review) openDictionaryWindow(isDownloads(review) ? review.relParts : review.relParts.slice(0, -1)).catch((e: unknown) => reportError("error", e, "Dictionary window"));
   });
   dictionary.classList.add("automation-dictionary");
   // The picks and the run buttons sit in one bordered box, so it reads which automations a run applies.
@@ -116,8 +116,10 @@ export function createReviewAutomations(): { element: HTMLElement; render(): voi
   for (const { box } of all) box.addEventListener("change", () => (batch ? void replanBatch(picks()) : render()));
 
   function render(): void {
+    // With a split open the other pane may select anything; only picking another review folder leaves the batch.
     scope = reviewScope();
-    if (batch && scope?.review?.relParts.join("/") !== batch.review.relParts.join("/")) closeBatch();
+    if (batch && scope?.review && scope.review.relParts.join("/") !== batch.review.relParts.join("/")) closeBatch();
+    if (!scope && batch) scope = { folders: [batch.folder], files: [], label: "", review: batch.review };
     element.hidden = scope === null;
     const inBatch = batch !== null;
     const running = scope?.review ? autoKinds(scope.review) : [];
@@ -128,6 +130,7 @@ export function createReviewAutomations(): { element: HTMLElement; render(): voi
     batchBox.hidden = leave.hidden = !inBatch;
     const chosen = ticked();
     runAuto.disabled = state.busy || chosen.length === 0;
+    runAuto.hidden = isDownloads(scope?.review);
     enter.hidden = inBatch;
     enter.disabled = state.busy || !scope?.review;
     run.disabled = state.busy || chosen.length === 0;

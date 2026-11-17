@@ -2,7 +2,7 @@
 import "./styles/index.css";
 import { createMainWindow } from "./components/windows/main-window";
 import { openSettings } from "./components/windows/settings";
-import { onFileDrag, onReviewIndex, onStorageChanged, onUiRequest, onWindowFocus } from "./services/ipc/events";
+import { onDownloadsDictionary, onFileDrag, onReviewIndex, onStorageChanged, onUiRequest, onWindowFocus } from "./services/ipc/events";
 import { rememberSelection, state, subscribe } from "./services/store/state";
 import { clearStatus, currentOperationStatus, setStatus, reportError } from "./components/organisms/bars/status-line";
 import { init, refresh, relistLevels } from "./hooks/ops";
@@ -18,7 +18,8 @@ import { checkForUpdates } from "./hooks/updates";
 import { startBackups } from "./hooks/backups";
 import { installDebugLog, startDebugLog } from "./hooks/debug-log";
 import { applyAppearance } from "./hooks/appearance";
-import { batch as batchMode, replanAfterDictionary } from "./hooks/automations/batch";
+import { batch as batchMode, replanAfterDictionary, restoreBatch } from "./hooks/automations/batch";
+import { readPref, savePref } from "./services/store/prefs";
 import { startExtensions } from "./extensions/host";
 import { plural } from "./services/plural";
 import { onTourStart, startTour, tourSeen } from "./components/organisms/tour/onboarding-tour";
@@ -41,14 +42,17 @@ installShortcuts({
   nextTab,
 });
 
-// Batch mode is drawn as a list for now, so the picker shows List while it is open and gives back the view that was there.
+// Batch mode is drawn as a list or a grid, so another view gives way to List while it is open and comes back after.
 let viewBeforeBatch: string | null = null;
+// The view the batch was drawn in, so a restored one comes back as a list or a grid.
+const BATCH_VIEW = "fm.batch.view";
 function followBatch(): void {
+  if (batchMode) savePref(BATCH_VIEW, views.current().id);
   if (batchMode && viewBeforeBatch === null) {
     viewBeforeBatch = views.current().id;
-    if (viewBeforeBatch !== "list") views.switchTo("list");
+    if (viewBeforeBatch !== "list" && viewBeforeBatch !== "grid") views.switchTo("list");
   } else if (!batchMode && viewBeforeBatch !== null) {
-    if (viewBeforeBatch !== "list") views.switchTo(viewBeforeBatch);
+    if (views.current().id !== viewBeforeBatch) views.switchTo(viewBeforeBatch);
     viewBeforeBatch = null;
   }
 }
@@ -95,6 +99,8 @@ onWindowFocus(() => {
   void (quick ? Promise.resolve() : relistLevels(null)).finally(() => restoreFocus(() => views.current().focus()));
 }).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
 
+onDownloadsDictionary(replanAfterDictionary).catch((e) => reportError("warning", e, "Downloads dictionary updates unavailable"));
+
 onStorageChanged((e) => {
   if (e.dictionary) replanAfterDictionary();
   void (e.rescan ? autoRefresh(() => refresh(false)) : relistLevels(e.folders));
@@ -131,5 +137,12 @@ void init().then((ready) => {
     },
   });
   if (ready && !tourSeen()) void startTour();
+  else if (ready)
+    void restoreBatch().then((open) => {
+      if (open && readPref(BATCH_VIEW) === "grid") {
+        views.switchTo("grid");
+        toolbar.render();
+      }
+    });
   if (state.settings.autoUpdate) void checkForUpdates();
 });

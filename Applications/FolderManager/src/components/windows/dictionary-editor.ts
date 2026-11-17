@@ -1,8 +1,9 @@
 // The dictionary editor window: a node's dictionary.md with line numbers, saved as the user types and checked line by line.
 import "../../styles/index.css";
 import { el } from "../dom";
+import { installCommentKeys } from "./dictionary-comments";
 import { checkDictionary, describeError, readDictionary, saveDictionary } from "../../services/ipc/api";
-import type { DictionaryIssue } from "../../services/ipc/types";
+import { inDownloads, type DictionaryIssue } from "../../services/ipc/types";
 
 const SAVE_DELAY = 400;
 
@@ -17,11 +18,13 @@ export async function mountDictionaryEditor(folder: string[]): Promise<void> {
   const app = document.querySelector<HTMLDivElement>("#app");
   if (!app) throw new Error("Missing #app mount point");
   const gutter = el("div", { class: "dict-gutter", "aria-hidden": "true" });
-  const text = el("textarea", { class: "dict-text", spellcheck: "false", "aria-label": `Dictionary of /${folder.join("/")}`, wrap: "off" });
+  const text = el("textarea", { class: "dict-text", spellcheck: "false", "aria-label": inDownloads(folder) ? "Dictionary of Downloads" : `Dictionary of /${folder.join("/")}`, wrap: "off" });
+  // A frame drawn behind the text around the entry the caret is in, instead of a frame around the whole editor.
+  const block = el("div", { class: "dict-block", "aria-hidden": "true" });
   const status = el("span", { class: "status-text", role: "status", "aria-live": "polite" });
   const list = el("ul", { class: "dict-issues", "aria-label": "Problems" });
   app.replaceChildren(
-    el("main", { class: "dict-editor" }, el("h1", { class: "dict-title" }, `/${folder.join("/")}/.ant/dictionary.md`), el("div", { class: "dict-body" }, gutter, text), list, el("footer", { class: "status-line" }, status)),
+    el("main", { class: "dict-editor" }, el("h1", { class: "dict-title" }, inDownloads(folder) ? "%TEMP%/ANT/automations/downloads/dictionary.md" : `/${folder.join("/")}/.ant/dictionary.md`), el("div", { class: "dict-body" }, gutter, el("div", { class: "dict-pane" }, block, text)), list, el("footer", { class: "status-line" }, status)),
   );
 
   let issues: DictionaryIssue[] = [];
@@ -75,8 +78,33 @@ export async function mountDictionaryEditor(folder: string[]): Promise<void> {
     window.clearTimeout(timer);
     timer = window.setTimeout(save, SAVE_DELAY);
   });
+  // An entry runs from its heading to the line before the next one, so the blank lines after it still read as part of it.
+  const frame = (): void => {
+    const lines = text.value.split("\n");
+    const at = text.value.slice(0, text.selectionStart).split("\n").length - 1;
+    // `### files` belongs to the entry above it, so it never starts or ends a frame.
+    const opens = (line: string | undefined): boolean => !!line?.startsWith("#") && !/^###\s*files\s*$/i.test(line.trim());
+    let start = at;
+    while (start >= 0 && !opens(lines[start])) start--;
+    if (document.activeElement !== text || start < 0) {
+      block.hidden = true;
+      return;
+    }
+    let end = start + 1;
+    while (end < lines.length && !opens(lines[end])) end++;
+    const height = parseFloat(getComputedStyle(text).lineHeight) || 18;
+    const pad = parseFloat(getComputedStyle(text).paddingTop) || 0;
+    block.hidden = false;
+    block.style.top = `${pad + start * height - text.scrollTop}px`;
+    block.style.height = `${(end - start) * height}px`;
+    // Stops short of the scrollbar, whose width depends on the system.
+    block.style.right = `${text.offsetWidth - text.clientWidth + 4}px`;
+  };
+  for (const name of ["input", "click", "keyup", "select", "focus", "blur"]) text.addEventListener(name, frame);
+  installCommentKeys(text);
   text.addEventListener("scroll", () => {
     gutter.scrollTop = text.scrollTop;
+    frame();
   });
   // A save still waiting when the window closes runs at once, so the last keystrokes reach the file.
   window.addEventListener("beforeunload", () => {
