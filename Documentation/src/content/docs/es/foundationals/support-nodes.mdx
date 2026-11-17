@@ -13,8 +13,8 @@ Cada nodo de soporte usa un prefijo en mayúsculas seguido de un punto, p. ej. `
 |---|---|---|
 | `REV.` | Revisión | Recibe los archivos sueltos hasta que se clasifican. |
 | `RES.` | Recursos | Recursos compartidos para el contenido del nodo padre. |
-| `TPL.` | Plantillas | Estructuras iniciales para nuevos tableros de trabajo. |
-| `00.` | Outcomes | Guarda los entregables de sus tableros de trabajo hermanos. |
+| `TPL.` | Plantillas | Estructuras iniciales para nuevos worknodes. |
+| `00.` | Outcomes | Guarda los entregables de sus worknodes hermanos. |
 
 ## Carpeta REV. Review
 Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) puede contener todos tus archivos y directorios sin clasificar, como un entorno temporal para evitar el desorden y mantener ordenado el nivel.
@@ -37,7 +37,7 @@ Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) puede contener todo
 ```
 
 ## Carpeta TPL. Templates
-Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) guarda una o más estructuras con contenido listas para iniciar nuevos [nodos del tablero de trabajo](/es/foundationals/workboard-nodes), lo que mantiene coherentes los proyectos y evita copiar y pegar proyectos anteriores.
+Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) guarda una o más estructuras con contenido listas para iniciar nuevos [worknodes](/es/foundationals/worknodes), lo que mantiene coherentes los proyectos y evita copiar y pegar proyectos anteriores.
 
 > <h5> Nomenclatura: </h5>
 > Usa el prefijo ` TPL. ` y nombra lo que inicia.
@@ -103,12 +103,12 @@ Su contenido no necesita copiarse a un proyecto: se puede usar directamente desd
 ```
 
 ## Carpeta (00) Outcomes
-Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) recibe los entregables de los [tableros de trabajo](/es/foundationals/workboard-nodes) que tiene al lado.
+Este [nodo (carpeta)](/es/foundationals/core-concepts#nodos) recibe los entregables de los [worknodes](/es/foundationals/worknodes) que tiene al lado.
 
-Cuando un tablero de trabajo termina, [FolderManager](/es/folder-manager/project-management#outcomes) mueve su entregable aquí, a una carpeta con fecha, y deja un acceso directo en el tablero para volver a encontrarlo.
+Cuando un worknode termina, [FolderManager](/es/folder-manager/project-management#outcomes) mueve su entregable aquí, a una carpeta con fecha, y deja un acceso directo en el worknode para volver a encontrarlo.
 
 > <h5> Nomenclatura: </h5>
-> Usa el identificador ` 00. ` y el nombre que quieras, en cada nivel donde existan tableros de trabajo.
+> Usa el identificador ` 00. ` y el nombre que quieras, en cada nivel donde existan worknodes.
 >
 > p. ej. `00.Outcomes`, `00.Edition-Portfolio`
 
@@ -117,7 +117,7 @@ Cuando un tablero de trabajo termina, [FolderManager](/es/folder-manager/project
 [32m  ├── 📁[37m 00.Outcomes                           [35m←−−− Carpeta Outcomes
 [32m  │    └── 📁[37m (26-11-01)_Promo-Video           [35m←−−− Entrega con fecha
 [32m  │         └── 📄[37m Promo-Video-Final.mp4
-[32m  └── 📁[37m PJ.133_Promo-Video                    [35m←−−− Tablero de trabajo
+[32m  └── 📁[37m PJ.133_Promo-Video                    [35m←−−− Worknode
 [32m       ├── 📁[37m 01.RawFootage
 [32m       └── 📁[37m 04.Renders                       [35m←−−− Carpeta de salida
 [32m            └── 📄[37m (26-11-01)_Promo-Video.lnk  [35m←−−− Acceso directo a la entrega

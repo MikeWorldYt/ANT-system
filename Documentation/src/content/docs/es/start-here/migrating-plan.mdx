@@ -16,10 +16,10 @@ Esta página es para ti si ya tienes archivos repartidos entre carpetas y el esc
 | --- | --- | --- |
 | Auditar tus archivos actuales | Manual | Los revisas tú mismo |
 | Crear el almacenamiento | Automatizado | CreateNewStorage |
-| Crear nodos y tableros de trabajo | Automatizado | Añadir nodo (`Ctrl+N`) y Añadir tablero (`Ctrl+Alt+N`) en FolderManager |
+| Crear nodos y worknodes | Automatizado | Añadir nodo (`Ctrl+N`) y Añadir worknode (`Ctrl+Alt+N`) en FolderManager |
 | Renombrar manteniendo el prefijo fijo (`PJ.001_`) | Automatizado | Renombrar (`F2`) edita solo la parte editable |
 | Ordenar carpetas entre sus hermanas | Automatizado | Subir y Bajar |
-| Definir estado y responsable de un tablero | Automatizado | Panel de detalles, guardado en `.ant/info.json` |
+| Definir estado y responsable de un worknode | Automatizado | Panel de detalles, guardado en `.ant/info.json` |
 | Encontrar carpetas por nombre, estado o responsable | Automatizado | Búsqueda (`Ctrl+F`) con los filtros `in:`, `status:` y `owner:` |
 | Crear las carpetas `Outcomes` y mantener al día los accesos directos de revisión | Automatizado | La app se encarga tras renombrar, mover y eliminar |
 | Mover tus carpetas existentes al almacenamiento | Manual | Planeado para FolderManager |
@@ -49,22 +49,22 @@ Asigna cada grupo de contenido a una de las categorías de primer nivel, como `1
 - El material de referencia que sirve a todo un nodo va en su carpeta de recursos `RES.`. Mira [Nodos de soporte](/es/foundationals/support-nodes).
 - Los niveles 1 y 2 no tienen archivos sueltos. Lo que aún no puedas ubicar espera en una carpeta de revisión (Fase 5).
 
-## Fase 4: Convierte proyectos en tableros de trabajo
+## Fase 4: Convierte proyectos en worknodes
 
-Cada proyecto, curso o tarea en el que sigas trabajando se convierte en un [tablero de trabajo](/es/foundationals/workboard-nodes).
+Cada proyecto, curso o tarea en el que sigas trabajando se convierte en un [worknode](/es/foundationals/worknodes).
 
-1. En la categoría donde corresponde, usa **Añadir tablero**. La app crea `PJ.NNN_New-Workboard` con el siguiente contador libre.
+1. En la categoría donde corresponde, usa **Añadir worknode**. La app crea `PJ.NNN_New-Worknode` con el siguiente contador libre.
 2. Renómbralo con `F2`. El prefijo fijo se mantiene y solo escribes el nombre.
-3. Copia o mueve los archivos del proyecto antiguo dentro del nuevo tablero.
+3. Copia o mueve los archivos del proyecto antiguo dentro del nuevo worknode.
 4. Define su **estado** y **responsable** en el panel de detalles.
 
 El nombre de la carpeta sigue el patrón `TRACKING_NAME`, por ejemplo `PJ.145_Thesis-Draft`. Mira [Convenciones de nombres](/es/foundationals/naming-conventions#nomenclatura-control-para-carpetas) para los identificadores (`PJ`, `HW`, `PR`, `CR`, `TK`).
 
 <Callout type="info" title="Los metadatos no van en el nombre">
-  La fecha, el responsable, el área y el estado de un tablero no se escriben en su nombre. En las carpetas viven en la base de datos de ANT y en un `.ant/info.json` oculto que administra FolderManager. En los archivos están pensados para ir en las propiedades del archivo, algo que todavía no está implementado.
+  La fecha, el responsable, el área y el estado de un worknode no se escriben en su nombre. En las carpetas viven en la base de datos de ANT y en un `.ant/info.json` oculto que administra FolderManager. En los archivos están pensados para ir en las propiedades del archivo, algo que todavía no está implementado.
 </Callout>
 
-FolderManager solo crea tableros con el identificador `PJ`. Para `HW`, `PR`, `CR` o `TK`, renombra la carpeta en tu explorador de archivos. **Change type** en el menú contextual cambia cómo la app trata la carpeta, pero no la renombra.
+FolderManager solo crea worknodes con el identificador `PJ`. Para `HW`, `PR`, `CR` o `TK`, renombra la carpeta en tu explorador de archivos. **Change type** en el menú contextual cambia cómo la app trata la carpeta, pero no la renombra.
 
 ## Fase 5: Mueve por lotes
 
@@ -80,7 +80,7 @@ No hace falta cambiar los nombres de los archivos de una sola vez. Cuando toques
 Repasa esta lista antes de borrar nada de la ubicación original.
 
 - [ ] El nivel 1 contiene solo las categorías numeradas y los nodos de soporte.
-- [ ] Cada proyecto en el que sigues trabajando es un tablero con estado y responsable.
+- [ ] Cada proyecto en el que sigues trabajando es un worknode con estado y responsable.
 - [ ] Las carpetas `REV.` no tienen elementos olvidados, o tienes una fecha para vaciarlas.
 - [ ] Puedes encontrar tres archivos al azar con el cuadro de búsqueda (`Ctrl+F`).
 - [ ] Tus archivos originales están copiados en un disco distinto al que usaste para migrar.

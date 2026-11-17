@@ -24,7 +24,7 @@ Se aplican a un nombre en este orden.
 | 2 | Añadir fecha (**Add date**) | Pone una fecha delante de cada nombre, usando la hora de creación del archivo cuando el nombre no tiene ninguna. |
 | 3 | Quitar fecha (**Remove date**) | Saca la fecha del nombre. |
 | 4 | Agrupar por diccionario (**Group by dictionary**) | Mueve los archivos a carpetas y los renombra según tu [diccionario](#dictionaries). |
-| 5 | Ordenar por proyectos (**Sort by projects**) | Agrupa en tableros los archivos sueltos que parecen de un mismo proyecto. |
+| 5 | Ordenar por proyectos (**Sort by projects**) | Agrupa en worknodes los archivos sueltos que parecen de un mismo proyecto. |
 | 6 | Quitar símbolos (**Remove symbols**) | Quita los corchetes y paréntesis y une lo que queda. |
 
 ### Limpiar nombres
@@ -61,7 +61,7 @@ Compara el nombre con tu diccionario, lo renombra según la entrada y lo mueve a
 
 ### Ordenar por proyectos
 
-Agrupa en tableros llamados `PJ_<título>` los archivos sueltos que parecen de un mismo proyecto. En modo automático solo se crean los grupos seguros.
+Agrupa en worknodes llamados `PJ_<título>` los archivos sueltos que parecen de un mismo proyecto. En modo automático solo se crean los grupos seguros.
 
 ### Quitar símbolos
 
@@ -151,7 +151,7 @@ Un nodo que acepta archivos se los queda. Si no, van a su propia carpeta de revi
 - **Igual desde cualquier lugar:** a diferencia de `NODE.` y `NODE^.`, que parten de la carpeta del diccionario, `@/` se lee igual en cualquier diccionario.
 - **Dónde caen los archivos:** el nodo los guarda en su carpeta de revisión y corre las automatizaciones de esa carpeta.
 - **Última carpeta inexistente:** solo el último segmento puede faltar. El modo por lotes muestra entonces ese destino como "(new)" con un icono de destello, y al ejecutarlo crea la carpeta y envía los archivos.
-- **Qué se crea:** un segmento con forma de tablero (tracker, punto, número o `*`, guion bajo, título, como `PJ.*_Kestrel` o `PJ.006_Kestrel`) crea un tablero. Cualquier otro (`*.Physics`, `Physics`) crea un nodo. La carpeta nueva toma el siguiente id o número de pista libre; solo su título sale del encabezado.
+- **Qué se crea:** un segmento con forma de worknode (tracker, punto, número o `*`, guion bajo, título, como `PJ.*_Kestrel` o `PJ.006_Kestrel`) crea un worknode. Cualquier otro (`*.Physics`, `Physics`) crea un nodo. La carpeta nueva toma el siguiente id o número de pista libre; solo su título sale del encabezado.
 - **Segmento anterior inexistente:** si falta cualquier segmento anterior, la entrada no agrupa nada.
 - **`@/` sin ruta:** el editor avisa de un encabezado que es solo `## @/`.
 

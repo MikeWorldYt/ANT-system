@@ -24,7 +24,7 @@ They apply to a name in this order.
 | 2 | Add date | Puts a date in front of every name, using the file's creation time when the name has none. |
 | 3 | Remove date | Takes the date out of the name. |
 | 4 | Group by dictionary | Moves files into folders and renames them using your [dictionary](#dictionaries). |
-| 5 | Sort by projects | Groups loose files that look like one project into workboards. |
+| 5 | Sort by projects | Groups loose files that look like one project into worknodes. |
 | 6 | Remove symbols | Removes brackets and joins what is left. |
 
 ### Clean up names
@@ -61,7 +61,7 @@ Matches the name against your dictionary, renames it by the entry and moves it t
 
 ### Sort by projects
 
-Groups loose files that look like one project into workboards named `PJ_<title>`. In auto mode only the sure groups are made.
+Groups loose files that look like one project into worknodes named `PJ_<title>`. In auto mode only the sure groups are made.
 
 ### Remove symbols
 
@@ -149,7 +149,7 @@ A node that accepts files keeps them. Otherwise they go to its own review folder
 - **Same from anywhere:** unlike `NODE.` and `NODE^.`, which start at the dictionary's folder, `@/` reads the same in any dictionary.
 - **Where files land:** the node files them into its review folder and runs that folder's automations.
 - **Missing last folder:** only the last segment may be missing. Batch then shows that destination as "(new)" with a sparkle icon, and running it creates the folder and sends the files in.
-- **What gets created:** a segment shaped like a workboard (tracker, dot, number or `*`, underscore, title, such as `PJ.*_Kestrel` or `PJ.006_Kestrel`) creates a workboard. Anything else (`*.Physics`, `Physics`) creates a node. The new folder takes the next free id or track number; only its title comes from the heading.
+- **What gets created:** a segment shaped like a worknode (tracker, dot, number or `*`, underscore, title, such as `PJ.*_Kestrel` or `PJ.006_Kestrel`) creates a worknode. Anything else (`*.Physics`, `Physics`) creates a node. The new folder takes the next free id or track number; only its title comes from the heading.
 - **Missing earlier segment:** if any earlier segment is missing, the entry groups nothing.
 - **Bare `@/`:** the editor flags a heading that is only `## @/`.
 
