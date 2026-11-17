@@ -11,7 +11,7 @@ use serde_yaml::{Mapping, Value};
 use crate::domain::names::{has_node_id, is_workboard_name, sanitize_train_case};
 use crate::domain::tree_types::type_base;
 use crate::services::backup::stamp::local_date;
-use crate::services::debug_log::logs_dir;
+use crate::infra::storage::core_dir::logs_dir;
 use crate::domain::config::OWNER_KEYS;
 use crate::domain::error::R;
 use crate::infra::fs_safe::{io_err, Journal, StorageLock};

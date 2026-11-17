@@ -1,14 +1,13 @@
-// Opt-in Markdown trail of what the app did, written under .ant/debug for bug reports.
+// Opt-in Markdown trail of what the app did for bug reports, kept in the system temp folder so cleanups remove it.
 pub mod sysinfo;
 
 pub(crate) use crate::domain::validation::valid_stamp;
-pub(crate) use crate::infra::storage::core_dir::logs_dir;
 
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use std::time::Instant;
+use std::time::{Duration, Instant, SystemTime};
 
 use crate::domain::error::{FmError, R};
 use crate::infra::storage::db::db_path;
@@ -18,6 +17,7 @@ use sysinfo::SysInfo;
 
 const MAX_MESSAGE_CHARS: usize = 2000;
 const LEVELS: [&str; 3] = ["info", "warning", "error"];
+const KEEP: Duration = Duration::from_secs(14 * 86_400);
 
 static STATE: Mutex<Option<(PathBuf, Instant)>> = Mutex::new(None);
 
@@ -29,12 +29,25 @@ fn io_err(path: &Path, e: &std::io::Error) -> FmError {
     FmError::Internal { message: format!("Could not write the debug log {}: {e}", path.display()) }
 }
 
-fn free_path(dir: &Path, stamp: &str) -> PathBuf {
-    let first = dir.join(format!("{stamp}_ANT-fm.log"));
-    if !first.exists() {
-        return first;
+pub fn logs_dir() -> PathBuf {
+    std::env::temp_dir().join("ANT").join("logs")
+}
+
+// One file per day: every session of that day appends to it instead of opening a new one.
+fn day_path(dir: &Path, stamp: &str) -> PathBuf {
+    dir.join(format!("{}_ANT-fm.log", &stamp[..8]))
+}
+
+fn prune(dir: &Path) {
+    let Ok(entries) = fs::read_dir(dir) else { return };
+    for entry in entries.flatten() {
+        let old = entry.metadata().and_then(|m| m.modified()).is_ok_and(|t| SystemTime::now().duration_since(t).is_ok_and(|age| age > KEEP));
+        if old && entry.file_name().to_string_lossy().ends_with(".log") {
+            if let Err(e) = fs::remove_file(entry.path()) {
+                eprintln!("Could not remove old log {}: {e}", entry.path().display());
+            }
+        }
     }
-    (2..).map(|n| dir.join(format!("{stamp}_ANT-fm_{n}.log"))).find(|p| !p.exists()).unwrap_or(first)
 }
 
 fn entry(seconds: f64, level: &str, message: &str) -> String {
@@ -68,18 +81,19 @@ fn header(root: &Path, info: &SysInfo) -> String {
         ("Process", format!("pid {}", std::process::id())),
     ];
     let table: String = rows.iter().map(|(k, v)| format!("| {k} | {v} |\n")).collect();
-    format!("# ANT System Manager debug log\n\n| | |\n| --- | --- |\n{table}\n## Log\n\n")
+    format!("\n# ANT System Manager session\n\n| | |\n| --- | --- |\n{table}\n## Log\n\n")
 }
 
 pub fn start(stamp: &str, root: &Path, info: &SysInfo) -> R<PathBuf> {
     if !valid_stamp(stamp) {
         return Err(FmError::Internal { message: format!("Invalid debug log stamp {stamp}") });
     }
-    let dir = logs_dir(root);
+    let dir = logs_dir();
     fs::create_dir_all(&dir).map_err(|e| io_err(&dir, &e))?;
-    let path = free_path(&dir, stamp);
+    prune(&dir);
+    let path = day_path(&dir, stamp);
     let text = header(root, info) + &entry(0.0, "info", "Debug logging started");
-    let mut file = OpenOptions::new().write(true).create_new(true).open(&path).map_err(|e| io_err(&path, &e))?;
+    let mut file = OpenOptions::new().create(true).append(true).open(&path).map_err(|e| io_err(&path, &e))?;
     file.write_all(text.as_bytes()).map_err(|e| io_err(&path, &e))?;
     *state() = Some((path.clone(), Instant::now()));
     Ok(path)
@@ -105,15 +119,10 @@ mod tests {
     use crate::test_support::TempDir;
 
     #[test]
-    fn an_existing_log_name_gets_a_numeric_suffix() {
+    fn sessions_of_a_day_share_one_file() {
         let dir = TempDir::new("debug-name");
-        let first = free_path(dir.path(), "26-10-24-09-05");
-        assert!(first.ends_with("26-10-24-09-05_ANT-fm.log"));
-        fs::write(&first, "").unwrap();
-        let second = free_path(dir.path(), "26-10-24-09-05");
-        assert!(second.ends_with("26-10-24-09-05_ANT-fm_2.log"));
-        fs::write(&second, "").unwrap();
-        assert!(free_path(dir.path(), "26-10-24-09-05").ends_with("26-10-24-09-05_ANT-fm_3.log"));
+        assert!(day_path(dir.path(), "26-10-24-09-05").ends_with("26-10-24_ANT-fm.log"));
+        assert_eq!(day_path(dir.path(), "26-10-24-09-05"), day_path(dir.path(), "26-10-24-23-59"));
     }
 
     #[test]

@@ -30,8 +30,8 @@ pub fn log_debug(level: String, message: String) -> R<()> {
 
 #[tauri::command]
 pub async fn open_logs_folder(app: AppHandle) -> R<()> {
-    run_locked(app, |root| {
-        let dir = debug_log::logs_dir(root);
+    run_locked(app, |_| {
+        let dir = debug_log::logs_dir();
         std::fs::create_dir_all(&dir)
             .map_err(|e| FmError::Internal { message: format!("Could not create {}: {e}", dir.display()) })?;
         launcher(&dir)
