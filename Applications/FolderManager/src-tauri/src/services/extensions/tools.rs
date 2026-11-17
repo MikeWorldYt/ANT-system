@@ -2,11 +2,13 @@
 use std::path::Path;
 
 use super::fail;
+#[cfg(any(test, not(windows)))]
 use super::fetch::valid_sha256;
 #[cfg(windows)]
 use super::zip_limits::MAX_EXPANDED_BYTES;
 use crate::domain::error::R;
 
+#[cfg(any(test, not(windows)))]
 pub fn hash_from(output: &str) -> R<String> {
     let hash = output.split_whitespace().next().unwrap_or_default().to_ascii_lowercase();
     if !valid_sha256(&hash) {
