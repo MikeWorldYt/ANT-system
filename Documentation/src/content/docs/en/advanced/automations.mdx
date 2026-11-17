@@ -104,6 +104,24 @@ A `topics` value can list other forms in parentheses: `- topics: Sakuya (Izayoi 
 
 Short terms under 4 letters only count as a whole word or in capitals.
 
+### Global cuts
+
+Between the `# Title` line and the first `##` entry, a dictionary may hold only `- term:` and `- pattern:` lines.
+
+```markdown
+# Anime art
+- term: sample
+- pattern: [0-9a-f]{32}
+
+## Touhou
+```
+
+- **What they do:** their text is cut from every file name, all matches, when **Group by dictionary** runs.
+- **They never pick a group:** grouping reads the original names first, so a global cut cannot send a file anywhere.
+- **Same kinds of text:** `term` is the same text an entry's `term` cuts. `pattern` is a case-insensitive regular expression whose match is removed, such as `[0-9a-f]{32}` for hashes.
+- **Which dictionaries:** dictionaries from the storage root down to the folder all add their global cuts. The Downloads dictionary has its own.
+- **Other keys:** `topics`, `only`, `ext` and `exclude` above the first entry are editor errors. `exclude` is left out on purpose: inside an entry it means "this entry does not take this file", the opposite of cutting.
+
 ### How a file is matched
 
 The longest matching `term`, `topics` or `only` across all entries wins. `ext` and `pattern` only decide when no word matched.
@@ -119,6 +137,41 @@ The longest matching `term`, `topics` or `only` across all entries wins. `ext` a
 | `## NODE^.Blue-Archive/Fanarts` | A path walks down from there. |
 
 A node that accepts files keeps them. Otherwise they go to its own review folder, where its own automations run. Renaming a node in the app updates its `NODE` headings (only the first path segment). A `NODE` heading whose node is missing groups nothing.
+
+#### Absolute headings
+
+| Heading | Where the files go |
+| --- | --- |
+| `## @/500.HOBBIES/08.Art` | The node at that path from the storage root. |
+
+- **Segments:** each one can be the full folder name (`08.Art`) or just its title (`Art`). They match like `NODE.` headings: case-insensitive, with spaces and underscores equal to dashes.
+- **Wildcard:** a segment can use `*` for any id, as in `## @/300.ACADEMIC/*.Teachnology/PJ.*_Kestrel`. The app finds the folder by the rest of the name, so ids need not be exact.
+- **Same from anywhere:** unlike `NODE.` and `NODE^.`, which start at the dictionary's folder, `@/` reads the same in any dictionary.
+- **Where files land:** the node files them into its review folder and runs that folder's automations.
+- **Missing last folder:** only the last segment may be missing. Batch then shows that destination as "(new)" with a sparkle icon, and running it creates the folder and sends the files in.
+- **What gets created:** a segment shaped like a workboard (tracker, dot, number or `*`, underscore, title, such as `PJ.*_Kestrel` or `PJ.006_Kestrel`) creates a workboard. Anything else (`*.Physics`, `Physics`) creates a node. The new folder takes the next free id or track number; only its title comes from the heading.
+- **Missing earlier segment:** if any earlier segment is missing, the entry groups nothing.
+- **Bare `@/`:** the editor flags a heading that is only `## @/`.
+
+### Pinning files to an entry
+
+Under a `## heading`, a `### files` section lists exact file names with extension, one or more per `- ` line. Several lines also work.
+
+```markdown
+## Touhou
+### files
+- photo.jpg, notes.pdf
+```
+
+- **It wins:** a file listed there goes to that entry whatever other rules match it.
+- **Exact names:** the name must match exactly, ignoring case, so `a.jpg` and `a.png` are different.
+- **One entry only:** a name is pinned to one entry only.
+- **Other `###` headings:** any other `###` heading still opens an entry as before.
+- **Above any entry:** `### files` before the first entry is an editor error.
+
+In Batch mode (Grid), drag a tile, or a selection of tiles, onto another group. Its name is written under that group's `### files` in the dictionary that holds the entry. The app writes all names on one line; you can split them across lines. Groups made by **Sort by projects** take no drops.
+
+Files dropped from another app while a batch is open land in the batch folder. Into Downloads they are copied, never moved, and a name already there is skipped. Dropped on a group, they are also pinned to it. This is the **Batch drops join their group** preference in Settings > General, on by default. Off, dropped files only land in the folder and the dictionary rules place them.
 
 ### Example
 
@@ -163,9 +216,20 @@ The **Edit dictionary** button in the automations panel opens the file in a sepa
 | Free text outside the format | A loose sentence between entries. |
 | Empty or duplicate headings | Two `## Touhou` headings. |
 | `NODE.` without a name | `## NODE.` |
-| Keys outside an entry | A `- term:` line before any `##` heading. |
+| `@/` without a path | `## @/` |
+| `### files` above any entry | A `### files` line before the first `##` heading. |
+| Keys outside an entry | A `- topics:` line before any `##` heading. Only `term` and `pattern` are allowed there. |
 | Patterns that do not compile | A broken regular expression. |
 | Entries that catch nothing | An entry with no keys that can match. |
 | An unclosed `%%` | A comment block with no closing `%%`. |
+
+### Downloads
+
+Select **DOWNLOADS**, or anything inside it, to get **Open batch** and **Edit dictionary** in the side panel.
+
+- **One dictionary:** Downloads has a single dictionary for itself and all its subfolders. On Windows it is `%TEMP%\ANT\automations\downloads\dictionary.md`; elsewhere it sits in the system temp folder, for example `/tmp/ANT/automations/downloads`.
+- **On disk:** Batch renames and moves files inside Downloads, and never overwrites an existing file.
+- **Headings:** `NODE.` and `NODE^.` are ignored there, because there is no storage folder to start from. Use `@/` headings to send downloads into storage nodes.
+- **No auto-run:** Downloads has no **Run on every new file**, so new downloads are never handled automatically.
 
 AI clients can read and write dictionaries too. See [AI integrations](/en/advanced/ai-integrations).
