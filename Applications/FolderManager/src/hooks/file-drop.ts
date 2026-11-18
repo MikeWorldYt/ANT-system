@@ -1,6 +1,6 @@
 // Files dragged in from Explorer: highlight the folder under the pointer and hand the drop to the backend.
 import { dropFiles } from "./ops";
-import { DROP_TARGET, folderMoveActive } from "./folder-move";
+import { announceDrop, DROP_TARGET, folderMoveActive } from "./folder-move";
 import { setStatus } from "../components/organisms/bars/status-line";
 import type { DragDropEvent } from "@tauri-apps/api/webview";
 import { DOWNLOADS_ROOT } from "../services/ipc/types";
@@ -50,5 +50,6 @@ export function handleFileDrag(e: DragDropEvent): void {
   const key = hit?.dataset.key?.replace(/#files$/, "");
   if (key === undefined) return setStatus("warning", "Drop onto a folder");
   // The storage root has the empty key; "".split("/") would be [""], so it maps to an empty target for the backend to refuse.
-  void dropFiles(key === "" ? [] : key.split("/"), e.paths);
+  const target = key === "" ? [] : key.split("/");
+  void dropFiles(target, e.paths).then(() => announceDrop(target, e.paths.length));
 }

@@ -68,10 +68,10 @@
 /* Inside a files box: List is one line a file, Cards adds the kind under the name, Grid shows tiles with pictures. */
 .graph-file-text { display: flex; flex-direction: column; min-width: 0; }
 .graph-file-kind { color: var(--muted); font-size: 11px; }
-.graph-files-box.view-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+.graph-files-box.view-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; align-content: start; }
 .graph-files-box.view-cards .graph-file { padding: 6px; }
 .graph-files-box.view-cards .graph-file > svg, .graph-files-box.view-cards .graph-file > .gui-icon { width: 28px; height: 28px; flex: none; }
-.graph-files-box.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
+.graph-files-box.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; align-content: start; }
 /* Every tile keeps a fixed picture slot and at most three name lines, so a picture still loading never lets tiles overlap. */
 .graph-files-box.view-grid .graph-file { display: grid; grid-template-rows: 56px auto; justify-items: center; align-content: start; gap: 4px; padding: 6px 4px; text-align: center; }
 .graph-files-box.view-grid .graph-file > :first-child { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; }
@@ -82,3 +82,7 @@
 /* A box hanging under its card stays narrow; a list fills its rows top to bottom, then starts the next column. */
 .graph-under > .graph-files-box { width: auto; max-width: 320px; }
 .graph-files-box.view-list { display: grid; grid-auto-flow: column; grid-template-rows: repeat(var(--rows, 14), auto); grid-auto-columns: minmax(160px, 1fr); column-gap: 8px; align-content: start; }
+/* A box opened over blurred branches has the screen to itself, so it may grow taller than one beside its node. */
+.graph-support > .graph-files-box { max-height: min(70vh, 640px); }
+/* Only the boxes of contents let what stands behind them show through; their files stay fully opaque. */
+.graph-files-box, .graph-support .graph-files-box { background: color-mix(in srgb, var(--input-bg) 78%, transparent); }
