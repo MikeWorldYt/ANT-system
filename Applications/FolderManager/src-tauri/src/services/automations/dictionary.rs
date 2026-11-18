@@ -30,6 +30,12 @@ pub struct Entry {
     pub group: bool,
     // A `NODE.` or `NODE^.` heading sends its files to that node instead of a subfolder.
     pub node: Option<Vec<String>>,
+    // The node's last folder does not exist yet; the run creates it.
+    pub create: bool,
+    // Exact file names, extension included, that go to this entry whatever else matches them.
+    pub files: Vec<String>,
+    pub prefix: String,
+    pub suffix: String,
 }
 
 fn list(value: &str) -> impl Iterator<Item = String> + '_ {
@@ -83,14 +89,93 @@ pub struct Spec {
     pub exclude: Vec<String>,
     pub ext: Vec<String>,
     pub pattern: Vec<String>,
+    pub files: Vec<String>,
+    pub prefix: String,
+    pub suffix: String,
+}
+
+// Lines between the title and the first entry name text cut from every file name; they group nothing.
+#[derive(Debug, Clone, Default)]
+pub struct Globals {
+    pub terms: Vec<String>,
+    pub patterns: Vec<Regex>,
+    pub prefix: String,
+    pub suffix: String,
+}
+
+impl Globals {
+    pub fn is_empty(&self) -> bool {
+        self.terms.is_empty() && self.patterns.is_empty()
+    }
+
+    fn extend(&mut self, other: Globals) {
+        self.terms.extend(other.terms);
+        self.patterns.extend(other.patterns);
+        // The closer dictionary's prefix and suffix replace the farther ones.
+        if !other.prefix.is_empty() {
+            self.prefix = other.prefix;
+        }
+        if !other.suffix.is_empty() {
+            self.suffix = other.suffix;
+        }
+    }
+}
+
+// The `- key: value` lines above the first entry, as written, so a rewrite of the entries keeps them.
+fn global_lines(text: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    let mut titled = false;
+    for line in without_comments(text).lines().map(str::trim) {
+        if let Some(heading) = line.strip_prefix('#') {
+            if titled || heading.starts_with('#') {
+                break;
+            }
+            titled = true;
+            continue;
+        }
+        if let Some((key, value)) = line.strip_prefix("- ").and_then(|o| o.split_once(':')) {
+            out.push((key.trim().to_string(), value.trim().to_string()));
+        }
+    }
+    out
+}
+
+pub fn parse_globals(text: &str, source: &Path) -> R<Globals> {
+    let mut globals = Globals::default();
+    for (key, value) in global_lines(text) {
+        match key.as_str() {
+            "term" => globals.terms.extend(list(&value)),
+            "pattern" if !value.is_empty() => {
+                let re = RegexBuilder::new(&value).case_insensitive(true).build().map_err(|e| FmError::Internal { message: format!("{}: pattern {value}: {e}", source.display()) })?;
+                globals.patterns.push(re);
+            }
+            "prefix" => globals.prefix = value,
+            "suffix" => globals.suffix = value,
+            _ => {}
+        }
+    }
+    Ok(globals)
+}
+
+pub const FILES_HEADING: &str = "files";
+
+// `### files` is a section of the entry above it, listing whole file names; any other heading still opens an entry, as before.
+pub(super) fn is_section(line: &str) -> bool {
+    line.starts_with("###") && line.trim_start_matches('#').trim().eq_ignore_ascii_case(FILES_HEADING)
 }
 
 // The first `#` heading is the title; every other heading opens an entry named as its folder, refined by `- key: values` lines.
 pub fn parse(text: &str) -> Vec<Spec> {
     let mut specs: Vec<Spec> = Vec::new();
     let mut titled = false;
+    let mut in_files = false;
     for line in without_comments(text).lines().map(str::trim) {
+        if is_section(line) {
+            in_files = !specs.is_empty();
+            continue;
+        }
         if let Some(heading) = line.strip_prefix('#') {
+            in_files = false;
             let name = heading.trim_start_matches('#').trim();
             if !titled && !heading.starts_with('#') {
                 titled = true;
@@ -100,6 +185,10 @@ pub fn parse(text: &str) -> Vec<Spec> {
             continue;
         }
         let (Some(option), Some(spec)) = (line.strip_prefix("- "), specs.last_mut()) else { continue };
+        if in_files {
+            spec.files.extend(list(option));
+            continue;
+        }
         let Some((key, value)) = option.split_once(':') else { continue };
         let value = value.trim();
         match key.trim() {
@@ -109,6 +198,8 @@ pub fn parse(text: &str) -> Vec<Spec> {
             "exclude" => spec.exclude.extend(list(value)),
             "ext" => spec.ext.extend(exts(value)),
             "pattern" if !value.is_empty() => spec.pattern.push(value.to_string()),
+            "prefix" => spec.prefix = value.to_string(),
+            "suffix" => spec.suffix = value.to_string(),
             _ => {}
         }
     }
@@ -136,6 +227,10 @@ pub fn compile(spec: &Spec, source: &Path) -> R<Entry> {
         patterns,
         group: spec.folder.to_lowercase() != NO_GROUP,
         node: None,
+        create: false,
+        files: spec.files.clone(),
+        prefix: spec.prefix.clone(),
+        suffix: spec.suffix.clone(),
     })
 }
 
@@ -143,7 +238,17 @@ const HEADER: &str = "%%\nSee the documentation to build the entries correctly:\
 
 // Always the same layout, so a dictionary an agent writes reads like one a person wrote.
 pub fn render(title: &str, specs: &[Spec]) -> String {
+    render_with(title, &[], specs)
+}
+
+fn render_with(title: &str, globals: &[(String, String)], specs: &[Spec]) -> String {
     let mut out = format!("{HEADER}\n# Dictionary for {title}\n");
+    if !globals.is_empty() {
+        out.push('\n');
+        for (key, value) in globals {
+            out.push_str(&format!("- {key}: {value}\n"));
+        }
+    }
     for spec in specs {
         out.push_str(&format!("\n## {}\n", spec.folder.trim()));
         for (key, values, joint) in [("term", &spec.term, ", "), ("topics", &spec.topics, ", "), ("only", &spec.only, ", "), ("exclude", &spec.exclude, ", "), ("ext", &spec.ext, " ")] {
@@ -153,6 +258,14 @@ pub fn render(title: &str, specs: &[Spec]) -> String {
         }
         for pattern in &spec.pattern {
             out.push_str(&format!("- pattern: {pattern}\n"));
+        }
+        for (key, value) in [("prefix", &spec.prefix), ("suffix", &spec.suffix)] {
+            if !value.is_empty() {
+                out.push_str(&format!("- {key}: {value}\n"));
+            }
+        }
+        if !spec.files.is_empty() {
+            out.push_str(&format!("\n### {FILES_HEADING}\n- {}\n", spec.files.join(", ")));
         }
     }
     out
@@ -208,7 +321,9 @@ pub fn write(root: &Path, folder: &[String], specs: &[Spec]) -> R<std::path::Pat
     let title = folder.last().map_or("the storage", String::as_str);
     let dir = join_rel(root, folder).join(".ant");
     fs::create_dir_all(&dir).map_err(|e| io_err("create the .ant folder", &dir, &e))?;
-    write_atomic(&path, render(title, specs).as_bytes())?;
+    // The global lines are not part of the specs, so they are carried over from the file as it was.
+    let globals = fs::read_to_string(&path).map(|old| global_lines(&old)).unwrap_or_default();
+    write_atomic(&path, render_with(title, &globals, specs).as_bytes())?;
     Ok(path)
 }
 
@@ -250,7 +365,7 @@ fn same_node(a: &str, b: &str) -> bool {
 }
 
 // `NODE.` names a sibling of the review folder; `NODE^.` climbs one level and names a sibling of the dictionary's folder.
-fn node_name(heading: &str) -> Option<(bool, &str)> {
+pub(super) fn node_name(heading: &str) -> Option<(bool, &str)> {
     [(false, NODE_PREFIX), (true, UP_PREFIX)].into_iter().find_map(|(up, prefix)| {
         heading.get(..prefix.len()).filter(|p| p.eq_ignore_ascii_case(prefix)).map(|_| (up, heading[prefix.len()..].trim()))
     })
@@ -313,6 +428,19 @@ pub fn rename_node_refs(root: &Path, parent: &[String], old: &str, new: &str) ->
     warnings
 }
 
+// Every dictionary from the root down adds its global cuts.
+pub fn load_globals(root: &Path, folder: &[String]) -> R<Globals> {
+    let mut globals = Globals::default();
+    for end in 0..=folder.len() {
+        let path = join_rel(root, &folder[..end]).join(".ant").join(DICTIONARY_FILE);
+        if path.is_file() {
+            let text = fs::read_to_string(&path).map_err(|e| io_err("read the dictionary", &path, &e))?;
+            globals.extend(parse_globals(&text, &path)?);
+        }
+    }
+    Ok(globals)
+}
+
 // A closer dictionary adds to the farther ones and replaces their entries of the same name.
 pub fn load(root: &Path, folder: &[String]) -> R<Vec<Entry>> {
     let mut entries: Vec<Entry> = Vec::new();
@@ -327,6 +455,14 @@ pub fn load(root: &Path, folder: &[String]) -> R<Vec<Entry>> {
             if let Some((up, name)) = node_name(&entry.folder) {
                 entry.node = find_node(root, &folder[..end], up, name)?;
                 entry.group = entry.node.is_some();
+            } else if let Some(path) = super::node_path::resolve(root, &entry.folder)? {
+                (entry.node, entry.create, entry.group) = (Some(path.rel), path.create, true);
+            } else if super::node_path::is_relative(&entry.folder) {
+                let path = super::node_path::resolve_relative(root, &folder[..end], &entry.folder)?;
+                entry.group = path.is_some();
+                if let Some(path) = path {
+                    (entry.node, entry.create) = (Some(path.rel), path.create);
+                }
             }
             match at.get(&entry.folder.to_lowercase()) {
                 Some(&i) => entries[i] = entry,

@@ -37,7 +37,7 @@ pub(super) fn check_source(rel: &[String], target: &Target, node: &Mapping) -> R
     match type_base(&target.node_type) {
         "WKB" | "NODE" => Ok(()),
         "" => Err(refuse(rel, "the folder has no type in the tree yet; refresh and retry")),
-        other => Err(refuse(rel, format!("{other} folders cannot be moved, only data nodes and workboards"))),
+        other => Err(refuse(rel, format!("{other} folders cannot be moved, only data nodes and worknodes"))),
     }
 }
 

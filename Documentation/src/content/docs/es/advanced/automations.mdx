@@ -16,14 +16,14 @@ Los archivos cuyo nombre empieza con `~` son temporales que las apps mantienen a
 
 ## Las automatizaciones
 
-Se aplican a un nombre en este orden.
+Se aplican a un nombre en este orden. Los archivos renombrados siguen la forma de [nombre de archivo automatizado](/es/foundationals/naming-conventions#nombres-de-archivo-automatizados).
 
 | # | Automatización | Qué hace |
 | --- | --- | --- |
 | 1 | [Limpiar nombres](#limpiar-nombres) (**Clean up names**) | Quita hashes, ids de sitios y ruido, y mueve al principio una fecha escrita en el nombre. |
 | 2 | [Añadir fecha](#añadir-fecha) (**Add date**) | Pone una fecha delante de cada nombre, usando la hora de creación del archivo cuando el nombre no tiene ninguna. |
 | 3 | [Quitar fecha](#quitar-fecha) (**Remove date**) | Saca la fecha del nombre. |
-| 4 | [Agrupar por diccionario](#agrupar-por-diccionario) (**Group by dictionary**) | Mueve los archivos a carpetas y los renombra según tu [diccionario](#diccionarios). |
+| 4 | [Agrupar por diccionario](#agrupar-por-diccionario) (**Group by dictionary**) | Mueve los archivos a carpetas y los renombra según tu [diccionario](/es/advanced/dictionaries). |
 | 5 | [Ordenar por proyectos](#ordenar-por-proyectos) (**Sort by projects**) | Agrupa en worknodes los archivos sueltos que parecen de un mismo proyecto. |
 | 6 | [Quitar símbolos](#quitar-símbolos) (**Remove symbols**) | Quita los corchetes y paréntesis y une lo que queda. |
 
@@ -57,7 +57,7 @@ Saca el prefijo de fecha `(…)` y cualquier fecha escrita en el nombre. Si amba
 
 ### Agrupar por diccionario
 
-Compara el nombre con tu diccionario, lo renombra según la entrada y lo mueve a la carpeta de la entrada. Mira [Diccionarios](#dictionaries).
+Compara el nombre con tu diccionario, lo renombra según la entrada y lo mueve a la carpeta de la entrada. Mira [Diccionarios](/es/advanced/dictionaries).
 
 ### Ordenar por proyectos
 
@@ -65,174 +65,4 @@ Agrupa en worknodes llamados `PJ_<título>` los archivos sueltos que parecen de 
 
 ### Quitar símbolos
 
-Va al final. Quita `( ) [ ] { }` y une lo que queda, así que `[Mike]_PJ.001_Web (v2).zip` queda como `Mike_PJ.001_Web v2.zip`. También quita los contadores de copia como `(2)`.
-
-## Convención de nombres
-
-Las automatizaciones siguen esta forma:
-
-```text
-(<fecha>)-[responsable]_<tema>-<palabras clave> <versión o (n)>
-```
-
-Las palabras clave son cualquier texto extra del nombre. Sin símbolos el orden es el mismo, solo que sin los corchetes.
-
-<a id="dictionaries"></a>
-
-## Diccionarios
-
-Un diccionario define las reglas de agrupación que sigue **Agrupar por diccionario** para renombrar tus archivos y enviarlos a la carpeta correcta. Puedes cambiarlo en cualquier momento, a mano o con un [agente de IA](/es/advanced/ai-integrations), y la siguiente ejecución usa las reglas nuevas.
-
-- **Dónde vive:** `<nodo>/.ant/dictionary.md`, un archivo Markdown simple que Obsidian abre sin problema.
-- **Dónde se aplica:** a las carpetas de revisión de ese nodo y de las que están debajo. Un diccionario más cercano suma a los más lejanos y reemplaza sus entradas del mismo nombre.
-- **Comentarios:** los archivos generados empiezan con un bloque de comentario `%%` que enlaza a esta página. Todo lo que queda entre `%%` y `%%` es un comentario y nunca se lee.
-
-### Formato
-
-- El primer encabezado con un solo `#` es el título.
-- Cada otro encabezado (`##`) es una entrada.
-- Las líneas `- clave: valores` afinan la entrada. Los valores van separados por comas.
-
-| Clave | Qué hace |
-| --- | --- |
-| `term` | Coincide con el nombre y se quita de él. |
-| `topics` | Coincide y se conserva una vez en el nombre, escrito en Train-Case (`noa ushio` queda como `Noa-Ushio`). El primero encontrado pasa justo después de la fecha y del responsable; los repetidos se quitan. |
-| `only` | Estricto y se conserva: mayúsculas y símbolos deben coincidir exactamente, como palabra completa. |
-| `exclude` | Solo se quita del nombre; nunca decide el grupo. |
-| `ext` | Coincide por extensión, por ejemplo `.exe .msi`. |
-| `pattern` | Una expresión regular sin distinguir mayúsculas, una por línea. Su coincidencia se quita. |
-
-Un valor de `topics` puede listar otras formas entre paréntesis: `- topics: Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza)` reescribe todas las formas como `Sakuya`. Las comas dentro de los paréntesis no separan temas.
-
-Los términos cortos de menos de 4 letras solo cuentan como palabra completa o en mayúsculas.
-
-### Recortes globales
-
-Entre la línea `# Título` y la primera entrada `##`, un diccionario solo puede tener líneas `- term:` y `- pattern:`.
-
-```markdown
-# Anime art
-- term: sample
-- pattern: [0-9a-f]{32}
-
-## Touhou
-```
-
-- **Qué hacen:** su texto se recorta de todos los nombres de archivo, todas las coincidencias, cuando corre **Agrupar por diccionario**.
-- **Nunca eligen grupo:** el agrupado lee primero los nombres originales, así que un recorte global no puede enviar un archivo a ningún sitio.
-- **Mismos tipos de texto:** `term` es el mismo texto que recorta el `term` de una entrada. `pattern` es una expresión regular sin distinguir mayúsculas cuya coincidencia se quita, como `[0-9a-f]{32}` para hashes.
-- **Qué diccionarios:** los diccionarios desde la raíz del almacenamiento hasta la carpeta suman sus recortes globales. El diccionario de Descargas tiene los suyos.
-- **Otras claves:** `topics`, `only`, `ext` y `exclude` sobre la primera entrada son errores del editor. `exclude` no se usa aquí a propósito: dentro de una entrada significa "esta entrada no toma este archivo", lo contrario de recortar.
-
-### Cómo se compara un archivo
-
-Gana el `term`, `topics` u `only` coincidente más largo entre todas las entradas. `ext` y `pattern` solo deciden cuando no coincidió ninguna palabra.
-
-### Encabezados
-
-| Encabezado | A dónde van los archivos |
-| --- | --- |
-| `## Nombre` | Una subcarpeta de la carpeta de revisión. |
-| `## Do not group` | Se quedan donde están pero se renombran igualmente según la entrada. |
-| `## NODE.Título` | Un nodo junto a la carpeta de revisión, hijo de la carpeta del diccionario. Se encuentra por su título sin el id, así que reordenar nodos nunca lo rompe. |
-| `## NODE^.Título` | Un nivel más arriba, hermano de la carpeta del diccionario. |
-| `## NODE^.Blue-Archive/Fanarts` | Una ruta que baja desde ahí. |
-
-Un nodo que acepta archivos se los queda. Si no, van a su propia carpeta de revisión, donde corren sus propias automatizaciones. Renombrar un nodo en la app actualiza sus encabezados `NODE` (solo el primer segmento de la ruta). Un encabezado `NODE` cuyo nodo no existe no agrupa nada.
-
-#### Encabezados absolutos
-
-| Encabezado | A dónde van los archivos |
-| --- | --- |
-| `## @/500.HOBBIES/08.Art` | El nodo en esa ruta desde la raíz del almacenamiento. |
-| `## ./*.Art/*.Touhou` | Una ruta que parte de la carpeta del diccionario; cada `../` delante sube un nivel, como en `## ../*.Art`. |
-
-- **Segmentos:** cada uno puede ser el nombre completo de la carpeta (`08.Art`) o solo su título (`Art`). Coinciden como los encabezados `NODE.`: sin distinguir mayúsculas, y con espacios y guiones bajos iguales a guiones.
-- **Comodín:** un segmento puede usar `*` para cualquier id, como en `## @/300.ACADEMIC/*.Teachnology/PJ.*_Kestrel`. La app encuentra la carpeta por el resto del nombre, así que los ids no tienen que ser exactos.
-- **Igual desde cualquier lugar:** a diferencia de `NODE.` y `NODE^.`, que parten de la carpeta del diccionario, `@/` se lee igual en cualquier diccionario.
-- **Dónde caen los archivos:** el nodo los guarda en su carpeta de revisión y corre las automatizaciones de esa carpeta.
-- **Última carpeta inexistente:** solo el último segmento puede faltar. El modo por lotes muestra entonces ese destino como "(new)" con un icono de destello, y al ejecutarlo crea la carpeta y envía los archivos.
-- **Qué se crea:** un segmento con forma de worknode (tracker, punto, número o `*`, guion bajo, título, como `PJ.*_Kestrel` o `PJ.006_Kestrel`) crea un worknode. Cualquier otro (`*.Physics`, `Physics`) crea un nodo. La carpeta nueva toma el siguiente id o número de pista libre; solo su título sale del encabezado.
-- **Segmento anterior inexistente:** si falta cualquier segmento anterior, la entrada no agrupa nada.
-- **`@/` sin ruta:** el editor avisa de un encabezado que es solo `## @/`.
-
-### Fijar archivos a una entrada
-
-Bajo un `## encabezado`, una sección `### files` lista nombres exactos de archivo con extensión, uno o varios por línea `- `. Varias líneas también funcionan.
-
-```markdown
-## Touhou
-### files
-- photo.jpg, notes.pdf
-```
-
-- **Manda:** un archivo listado ahí va a esa entrada sin importar qué otras reglas coincidan.
-- **Nombres exactos:** el nombre debe coincidir exactamente, sin distinguir mayúsculas, así que `a.jpg` y `a.png` son distintos.
-- **Una sola entrada:** un nombre se fija a una sola entrada.
-- **Otros encabezados `###`:** cualquier otro encabezado `###` sigue abriendo una entrada como antes.
-- **Sobre cualquier entrada:** `### files` antes de la primera entrada es un error del editor.
-
-En el modo por lotes (Grid), arrastra una ficha, o una selección de fichas, sobre otro grupo. Su nombre se escribe bajo el `### files` de ese grupo en el diccionario que tiene la entrada. La app escribe todos los nombres en una línea; puedes partirlos en varias. Los grupos creados por **Ordenar por proyectos** no aceptan soltar.
-
-Los archivos soltados desde otra app con un lote abierto llegan a la carpeta del lote. En Descargas se copian, nunca se mueven, y un nombre que ya está se omite. Si se sueltan sobre un grupo, también se fijan a él. Es la preferencia **Batch drops join their group** en Settings > General, activada por defecto. Desactivada, los archivos soltados solo llegan a la carpeta y las reglas del diccionario los colocan.
-
-### Ejemplo
-
-```markdown
-%%
-Generated by ANT. Format and keys: https://ant.mikeworld.dev/en/advanced/automations#dictionaries/
-%%
-
-# Anime art
-
-## NODE^.Blue-Archive/Fanarts
-- term: blue archive, ba
-- topics: Noa Ushio, Hoshino (Takanashi Hoshino, Hoshino Takanashi)
-- exclude: wallpaper
-- pattern: ^ba[_-]\d+
-
-## Touhou
-- term: touhou
-- topics: Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza), Remilia
-- only: TH
-
-## Installers
-- ext: .exe .msi
-
-## Do not group
-- term: draft
-- only: WIP
-```
-
-### El editor
-
-El botón **Edit dictionary** del panel de automatizaciones abre el archivo en una ventana aparte con números de línea.
-
-- **Autoguardado:** guarda mientras escribes, incluso con errores. Abrir el editor no crea el archivo hasta que escribes.
-- **Reagrupado en vivo:** el modo por lotes reagrupa cuando el archivo cambia.
-- **Problemas:** una lista de problemas y una línea de estado señalan las líneas. Haz clic en un problema para saltar a su línea.
-
-| Avisa de | Ejemplo |
-| --- | --- |
-| Claves desconocidas, con una sugerencia | `ter` muestra "did you mean `term`?" |
-| Una clave escrita sin espacio | `-term` |
-| Texto libre fuera del formato | Una frase suelta entre entradas. |
-| Encabezados vacíos o duplicados | Dos encabezados `## Touhou`. |
-| `NODE.` sin nombre | `## NODE.` |
-| `@/` sin ruta | `## @/` |
-| `### files` sobre cualquier entrada | Una línea `### files` antes del primer encabezado `##`. |
-| Claves fuera de una entrada | Una línea `- topics:` antes de cualquier encabezado `##`. Ahí solo se permiten `term` y `pattern`. |
-| Patrones que no compilan | Una expresión regular rota. |
-| Entradas que no atrapan nada | Una entrada sin claves que puedan coincidir. |
-| Un `%%` sin cerrar | Un bloque de comentario sin su `%%` de cierre. |
-
-### Descargas
-
-Selecciona **DOWNLOADS**, o cualquier cosa dentro, para ver **Open batch** y **Edit dictionary** en el panel lateral.
-
-- **Un solo diccionario:** Descargas tiene un único diccionario para ella y todas sus subcarpetas. En Windows es `%TEMP%\ANT\automations\downloads\dictionary.md`; en otros sistemas está en la carpeta temporal del sistema, por ejemplo `/tmp/ANT/automations/downloads`.
-- **En disco:** el modo por lotes renombra y mueve archivos dentro de Descargas, y nunca sobrescribe un archivo existente.
-- **Encabezados:** `NODE.` y `NODE^.` se ignoran ahí, porque no hay una carpeta del almacenamiento desde la que partir. Usa encabezados `@/` para enviar descargas a nodos del almacenamiento.
-- **Sin ejecución automática:** Descargas no tiene **Run on every new file**, así que las descargas nuevas nunca se procesan solas.
-
-Los clientes de IA también pueden leer y escribir diccionarios. Mira [Integraciones de IA](/es/advanced/ai-integrations).
+Va al final. Quita `( ) [ ] { }` y une lo que queda, así que `[Mike]_PJ.001_Web (v2).zip` queda como `Mike_PJ.001_Web v2.zip`. Un contador de copia como ` (2)` al final del nombre se queda, así las copias conservan su número en vez de recibir uno nuevo.

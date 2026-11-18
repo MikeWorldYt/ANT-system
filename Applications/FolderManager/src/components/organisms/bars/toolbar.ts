@@ -3,7 +3,7 @@ import { VIEW_ICONS, viewChoice } from "../../molecules/view-choice";
 import { el, setDisabled } from "../../dom";
 import { guiIcon, type GuiIcon } from "../../atoms/gui-icons";
 import { iconButton } from "../../atoms/icon-button";
-import { batch } from "../../../hooks/automations/batch";
+import { BATCH_VIEWS, batch } from "../../../hooks/automations/batch";
 import { attachMenu } from "../menus/anchored-menu";
 import { EDGE, openPopup, place, popupTrigger } from "../../molecules/menu";
 import { addNext, refresh } from "../../../hooks/ops";
@@ -33,7 +33,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     const atRoot = selectedNode()?.relParts.length === 1;
     return [
       { label: atRoot ? "Add main category" : "New node", run: () => withSelected((n) => void addNext(n, "node")) },
-      ...(!atRoot ? [{ label: "New workboard", run: () => withSelected((n) => void addNext(n, "workboard")) }] : []),
+      ...(!atRoot ? [{ label: "New worknode", run: () => withSelected((n) => void addNext(n, "worknode")) }] : []),
     ];
   });
 
@@ -52,7 +52,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
 
   let closeViewPopup: ((restore?: boolean) => void) | null = null;
   const modeButtons = orderedModes(views).map((m): [string, HTMLButtonElement] => [m.id, viewChoice(m.label, VIEW_ICONS[m.id] ?? "layout", () => {
-    if (batch !== null && m.id !== "list") return;
+    if (batch !== null && !BATCH_VIEWS.includes(m.id)) return;
     views.onSelect(m.id);
     closeViewPopup?.(true);
   })]);
@@ -100,8 +100,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
       viewBtn.replaceChildren(viewLabel, guiIcon(VIEW_ICONS[views.active()] ?? "layout"));
       modeButtons.forEach(([id, b]) => {
         b.setAttribute("aria-pressed", String(id === views.active()));
-        // Batch mode is drawn only as a list for now.
-        setDisabled(b, batch !== null && id !== "list");
+        setDisabled(b, batch !== null && !BATCH_VIEWS.includes(id));
       });
     },
   };

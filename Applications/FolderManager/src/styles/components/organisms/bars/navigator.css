@@ -8,6 +8,9 @@
   border: 1px solid var(--border); border-radius: var(--radius-md);
 }
 .breadcrumb.editing { padding: 0; }
+.breadcrumb-other[hidden] { display: none; }
+.breadcrumb-other { color: var(--muted); font: inherit; text-align: left; cursor: pointer; opacity: 0.75; }
+.breadcrumb-other:hover, .breadcrumb-other:focus-visible { opacity: 1; }
 .path-input { flex: 1; min-width: 0; padding: 5px 12px; border: 0; background: transparent; color: var(--text); font: inherit; outline: none; }
 .breadcrumb:has(.path-input:focus) { border-color: var(--button); box-shadow: 0 0 0 1px var(--button); }
 .path-input[aria-invalid="true"] { color: var(--delete-hover); }

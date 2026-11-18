@@ -1,7 +1,11 @@
 // Automations that tidy the files of review folders.
 mod batch;
+pub mod chain;
 mod dict_match;
 pub mod dictionary;
+pub mod downloads;
+pub mod node_path;
+pub mod pins;
 pub mod dictionary_lint;
 mod plan;
 pub mod reduce_name;

@@ -9,7 +9,7 @@ import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
 import { checkExtraReviews } from "./extra-reviews";
 import { checkSupportUpgrade } from "./support-upgrade";
-import { relist, visibleLevels } from "./relist";
+import { relist, relistDownloads, visibleLevels } from "./relist";
 import { loadOther, loadOtherVirtual } from "./split";
 import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../services/store/state";
@@ -274,7 +274,7 @@ export async function toggleExpand(node: TreeNode): Promise<void> {
 export const addNext = async (node: TreeNode, kind: NewKind) => {
   const atRoot = node.relParts.length === 1;
   if (atRoot) {
-    if (kind === "workboard") return;
+    if (kind === "worknode") return;
     const confirmed = await warningConfirmDialog(
       "You are about to create a main category!",
       [
@@ -291,14 +291,14 @@ export const addNext = async (node: TreeNode, kind: NewKind) => {
   const parentName = node.relParts.length > 1 ? node.relParts[node.relParts.length - 2] : "Storage root";
   const progress = atRoot
     ? "Creating a main category in Storage root…"
-    : `Creating ${kind === "workboard" ? "workboard" : "node"} in "${parentName}"…`;
+    : `Creating ${kind === "worknode" ? "worknode" : "node"} in "${parentName}"…`;
   await run(async () => applyMutation(await api.addNode(node.relParts, kind)), progress);
 };
 
 export const addChild = (node: TreeNode, kind: NewKind) =>
   run(
     async () => applyMutation(await api.addChild(node.relParts, kind)),
-    `Creating ${kind === "workboard" ? "workboard" : "node"} in "${node.name}"…`,
+    `Creating ${kind === "worknode" ? "worknode" : "node"} in "${node.name}"…`,
   );
 
 export const move = (node: TreeNode, dir: MoveDirection) =>
@@ -308,6 +308,12 @@ export const renameTo = (node: TreeNode, editable: string) =>
   run(async () => {
     const text = editable.trim();
     if (text === node.editableName) return;
+    // Downloads is not the storage: the rename happens on disk and its watcher brings the new name in.
+    if (inDownloads(node.relParts)) {
+      await api.renameDownload(node.relParts, text);
+      await relistDownloads();
+      return;
+    }
     await applyMutation(node.file ? await api.renameFile(node.relParts, text) : await api.renameNode(node.relParts, text));
   });
 
@@ -318,7 +324,7 @@ export async function setType(node: TreeNode, base: EditableType, status: WkbSta
     if (!changed) return;
     await applyMutation(await api.setNodeType(node.relParts, base, base === "WKB" ? status : null), node.relParts);
   });
-  // A workboard with a name outside the track format is announced now, since the check only runs on refresh.
+  // A worknode with a name outside the track format is announced now, since the check only runs on refresh.
   if (ok && base === "WKB") void checkRootFolders(resolveInvalid, deleteInvalid);
 }
 
@@ -384,7 +390,7 @@ export const setOutcomeDefault = (node: TreeNode, key: string, value: string | n
 export const setOutput = (node: TreeNode, output: string | null) =>
   mutate(() => api.setNodeOutput(node.relParts, output), node.relParts);
 
-// Finishing a workboard delivers its output, asking first when none is set (where nothing is a valid answer); reopening it brings the delivery back.
+// Finishing a worknode delivers its output, asking first when none is set (where nothing is a valid answer); reopening it brings the delivery back.
 export async function setDetails(node: TreeNode, status: WkbStatus | null, owner: string | null): Promise<boolean> {
   const current = findNode(node.relParts) ?? node;
   const finishing = status === "done" && current.status !== "done";
@@ -404,7 +410,7 @@ export async function setDetails(node: TreeNode, status: WkbStatus | null, owner
     const picked = await pickInside(current, delivery === "folder");
     if (!picked) return false;
     if (picked.relative === null) {
-      setStatus("warning", "Pick a file or folder inside the workboard");
+      setStatus("warning", "Pick a file or folder inside the worknode");
       return false;
     }
     if (!(await setOutput(current, picked.relative))) return false;
@@ -424,12 +430,12 @@ export const setFavorites = (nodes: TreeNode[], on: boolean) =>
     for (const node of nodes.filter((n) => n.favorite !== on)) await applyMutation(await api.setFavorite(node.relParts, on), node.relParts, false);
   });
 
-// Each workboard goes through the single-item path, so finishing one still asks for its output.
+// Each worknode goes through the single-item path, so finishing one still asks for its output.
 export async function setManyDetails(nodes: TreeNode[], status: WkbStatus | null, owner: string | null): Promise<void> {
   for (const node of nodes) if (!(await setDetails(node, status, owner))) return;
 }
 
-// Several marked workboards are flagged in one go; a lone one is also selected, like a favorite.
+// Several marked worknodes are flagged in one go; a lone one is also selected, like a favorite.
 export const setImportant = (nodes: TreeNode[], on: boolean) =>
   run(async () => {
     for (const node of nodes.filter((n) => n.important !== on)) await applyMutation(await api.setImportant(node.relParts, on), node.relParts, nodes.length === 1);
@@ -454,8 +460,8 @@ export function setReviewFilter(hidden: string[], favorites: boolean): void {
   select(nearest ? nearest.split("/") : null);
 }
 
-export const setUserFlag = (node: TreeNode, on: boolean) =>
-  mutate(() => api.setUserFlag(node.relParts, on), node.relParts);
+export const setUserFlag = (node: TreeNode, on: boolean, flag: "data" | "autom" = "data") =>
+  mutate(() => api.setUserFlag(node.relParts, on, flag), node.relParts);
 
 export const setReviewAutomation = (node: TreeNode, automation: keyof Picks, on: boolean) =>
   mutate(() => api.setReviewAutomation(node.relParts, automation, on), node.relParts);
@@ -475,7 +481,7 @@ export const dropFiles = async (target: string[], paths: string[]): Promise<void
       const { mutation, placed, conflicts } = await api.dropFiles(target, paths);
       await applyMutation(mutation);
       doneNotice = dropNotice(placed, mutation.warnings);
-      // Each workboard already in the storage gets its own question; only the ones answered "Replace" come back.
+      // Each worknode already in the storage gets its own question; only the ones answered "Replace" come back.
       const replace: string[] = [];
       for (const conflict of conflicts) {
         const location = el("a", { href: "#" }, conflict.existing.join("/"));
@@ -486,7 +492,7 @@ export const dropFiles = async (target: string[], paths: string[]): Promise<void
         // Replacing lands the new one where it was dropped, which is a new path unless that is the folder it already holds.
         const newPath = conflict.existing.slice(0, -1).join("/") !== target.join("/");
         const confirmed = await warningConfirmDialog(
-          "Workboard already exists",
+          "Worknode already exists",
           [
             el("p", {}, `"${conflict.name}" is already in the storage at "`, location, `".`),
             el("p", {}, "If you replace it, you send that one (current in your Storage) to the Recycle Bin.", newPath ? " It will also end up at a new path." : ""),

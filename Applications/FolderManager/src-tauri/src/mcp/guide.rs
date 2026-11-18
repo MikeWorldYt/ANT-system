@@ -7,7 +7,7 @@ const TOPICS: [(&str, &str, &str); 5] = [
     ("model", "Levels, ids and folder types", include_str!("guide/model.md")),
     ("review", "Review folders and their automations", include_str!("guide/review.md")),
     ("dictionary", "The .ant/dictionary.md grouping format", include_str!("guide/dictionary.md")),
-    ("workboards", "Workboards, statuses and the board", include_str!("guide/workboards.md")),
+    ("worknodes", "Worknodes, statuses and the board", include_str!("guide/worknodes.md")),
     ("safety", "Locks, confirmations and what never to do", include_str!("guide/safety.md")),
 ];
 

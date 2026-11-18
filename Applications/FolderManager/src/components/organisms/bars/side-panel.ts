@@ -9,6 +9,7 @@ import { readPref, savePref } from "../../../services/store/prefs";
 import { importantLabel, isMainCategory, isReviewRoot, nameWithoutIdentifier } from "../../../services/store/node-info";
 import { quickActionsShown, railLayout, type RailId } from "../../../services/store/side-layout";
 import { selectedNode, state, toggleHidingLinks } from "../../../services/store/state";
+import { shownEntry } from "../../molecules/virtual-entry";
 import { canEdit, createDetailsPanel } from "./details-panel";
 import { createAutomationsPanel } from "./automations-panel";
 import { createPreviewPanel } from "./preview-panel";
@@ -208,7 +209,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     layoutRail();
     const n = selectedNode();
     const idle = !state.busy;
-    title.textContent = n ? nameWithoutIdentifier(n) : "Details";
+    title.textContent = n ? nameWithoutIdentifier(n) : (shownEntry()?.label ?? "Details");
     for (const b of [board, railBoard]) b.setAttribute("aria-pressed", String(state.virtual === "board"));
     // The review root keeps its filter but no details; its links show the same filter above their details.
     const review = n !== null && isReviewRoot(n);

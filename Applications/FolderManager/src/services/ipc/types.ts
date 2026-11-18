@@ -1,7 +1,7 @@
 // IPC contract shared with the Rust backend; mirror of the serde types.
 export type TypeBase = "NODE" | "WKB" | "OUT" | "REV" | "RES" | "TPL" | "CFG" | "SS" | "REC" | "UNKNOWN";
 export type EditableType = "NODE" | "WKB";
-export type NewKind = "node" | "workboard";
+export type NewKind = "node" | "worknode";
 export type WkbStatus = "in-progress" | "for-review" | "hold" | "done";
 export type MoveDirection = "up" | "down";
 export type BoardColumn = "backlog" | "todo" | "progress" | "done";
@@ -63,6 +63,7 @@ export interface TreeNode {
   favorite: boolean;
   important: boolean;
   hidden: boolean;
+  concealed: boolean;
   file: boolean;
   info: NodeInfo | null;
   children: TreeNode[] | null;
@@ -73,6 +74,18 @@ export interface TreeNode {
 }
 
 // `name` is the file's name after the run; `project` the folder the sort would put it in.
+// A review folder that runs its automations on its own files them on at once; `chained` says where they went next.
+export interface ApplyOutcome {
+  changed: number;
+  chained: Chained[];
+}
+
+export interface Chained {
+  name: string;
+  from: string[];
+  to: string[];
+}
+
 export interface PlannedFile {
   file: string;
   name: string;
@@ -80,6 +93,10 @@ export interface PlannedFile {
   sure: boolean;
   folder: string | null;
   target: string[] | null;
+  // The target's last folder does not exist yet; the run creates it.
+  create: boolean;
+  // The dictionary heading that placed the file, or null for a file no entry took.
+  entry: string | null;
 }
 
 export interface DictionaryIssue {
@@ -148,8 +165,8 @@ export interface PlacedFile {
   copied: boolean;
 }
 
-// A workboard already in the storage under the same id; `source` is what to send back to replace it.
-export interface WorkboardConflict {
+// A worknode already in the storage under the same id; `source` is what to send back to replace it.
+export interface WorknodeConflict {
   name: string;
   source: string;
   existing: string[];
@@ -158,7 +175,7 @@ export interface WorkboardConflict {
 export interface DropOutcome {
   mutation: Mutation;
   placed: PlacedFile[];
-  conflicts: WorkboardConflict[];
+  conflicts: WorknodeConflict[];
 }
 
 export interface DeletePreview {
@@ -195,7 +212,7 @@ export interface IntakeReport {
 export interface InvalidFolder {
   relParts: string[];
   review: string[][];
-  workboard: boolean;
+  worknode: boolean;
   tracker: string | null;
 }
 
@@ -225,7 +242,7 @@ export interface RootCheck {
 export type Resolution =
   | { kind: "review"; destination: string[] }
   | { kind: "node" }
-  | { kind: "workboard"; tracker: string };
+  | { kind: "worknode"; tracker: string };
 
 export interface ReviewIndexEvent {
   phase: "started" | "done";

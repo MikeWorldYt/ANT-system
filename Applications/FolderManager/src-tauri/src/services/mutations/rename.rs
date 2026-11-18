@@ -18,17 +18,17 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
     let (mut data, synced) = load_synced_at(root, rel)?;
     let target = editable_target(root, &data, rel, "rename")?;
     let (old_name, parent) = split(rel)?;
-    let workboard = type_base(&target.node_type) == "WKB";
+    let worknode = type_base(&target.node_type) == "WKB";
     let editable =
         if parent.is_empty() { sanitize_upper(new_editable) } else { sanitize_train_case(new_editable) };
-    if editable.is_empty() && !workboard {
+    if editable.is_empty() && !worknode {
         return Err(FmError::InvalidName {
             name: new_editable.to_string(),
             reason: "name cannot be empty".to_string(),
         });
     }
-    let (fixed, _) = name_parts(old_name, workboard);
-    let new_name = compose_name(&fixed, &editable, workboard);
+    let (fixed, _) = name_parts(old_name, worknode);
+    let new_name = compose_name(&fixed, &editable, worknode);
     validate_component(&new_name)?;
     let new_rel = child_rel(parent, &new_name);
     let before = subtrees(&data, &[rel.to_vec()]);
@@ -230,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn workboard_rename_edits_only_the_name_after_the_tracker() {
+    fn worknode_rename_edits_only_the_name_after_the_tracker() {
         let dir = storage("wkb-rename", &["100.A/PJ.001"], "100.A:
   type: NODE-L1
   PJ.001:

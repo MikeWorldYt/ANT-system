@@ -1,4 +1,4 @@
-// Task board placement: the column and order a workboard was given, kept in its info.json with the status it had then.
+// Task board placement: the column and order a worknode was given, kept in its info.json with the status it had then.
 import type { BoardCard, BoardColumn, TreeNode, WkbStatus } from "../ipc/types";
 
 export const BOARD_COLUMNS: [BoardColumn, string][] = [

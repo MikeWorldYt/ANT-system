@@ -52,7 +52,7 @@ mod tests {
     const WITH_REVIEW: &str = "type: NODE-L2\n98.Toki: {type: REV-L2}\n01.Sub: {type: NODE-L3}\n";
 
     #[test]
-    fn a_data_node_and_a_workboard_take_the_files_themselves() {
+    fn a_data_node_and_a_worknode_take_the_files_themselves() {
         let data = dest(&["100.A", "04.Data"], "type: NODE-L2\nflags: data\n98.Data: {type: REV-L2}\n").unwrap();
         assert_eq!(data, rel(&["100.A", "04.Data"]));
         assert_eq!(dest(&["100.A", "PJ.001_Web"], "type: WKB-L2\n").unwrap(), rel(&["100.A", "PJ.001_Web"]));

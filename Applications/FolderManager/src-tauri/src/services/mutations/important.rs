@@ -1,4 +1,4 @@
-// The important flag pins a workboard to the top of its board column; only workboards take it.
+// The important flag pins a worknode to the top of its board column; only worknodes take it.
 use std::path::Path;
 
 use serde_yaml::Value;
@@ -15,7 +15,7 @@ pub fn set_important(root: &Path, rel: &[String], on: bool) -> R<Mutation> {
     let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = editable_target(root, &data, rel, "mark as important")?;
     if type_base(&target.node_type) != "WKB" {
-        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only workboards can be marked as important".to_string() });
+        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only worknodes can be marked as important".to_string() });
     }
     write_info(&target.abs, &[(&["important"], "important", on.then_some(Value::Bool(true)))])?;
     let mut warnings = Vec::new();
@@ -45,7 +45,7 @@ mod tests {
     }
 
     #[test]
-    fn only_workboards_take_the_flag() {
+    fn only_worknodes_take_the_flag() {
         let dir = academic("important-wkb-only");
         let node = rel(&["100.ACADEMIC", "02.Bio"]);
         assert!(matches!(set_important(dir.path(), &node, true), Err(FmError::InvalidPath { .. })));

@@ -65,7 +65,7 @@ pub fn save(window: &WebviewWindow) {
         };
         let dir = path.parent().ok_or("no data folder")?;
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-        std::fs::write(&path, render(&State { width, height, maximized })).map_err(|e| e.to_string())
+        crate::infra::fs_safe::write_atomic_io(&path, render(&State { width, height, maximized }).as_bytes()).map_err(|e| e.to_string())
     })();
     if let Err(e) = result {
         eprintln!("Could not save the window size: {e}");

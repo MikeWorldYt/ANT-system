@@ -1,8 +1,9 @@
 // Type and flag text for a node, shown in the details block and as row tooltips.
 import type { EditableType, TreeNode, WkbStatus } from "../ipc/types";
 import { state } from "./state";
+import { extensionsShown } from "./view-prefs";
 
-export const TYPES: [EditableType, string][] = [["NODE", "Node"], ["WKB", "Workboard"]];
+export const TYPES: [EditableType, string][] = [["NODE", "Node"], ["WKB", "Worknode"]];
 const TYPE_LABELS: [string, string][] = [...TYPES, ["OUT", "Outcomes"]];
 export const STATUSES: [WkbStatus, string][] = [
   ["hold", "Hold"],
@@ -54,11 +55,12 @@ export const displayNodeName = (n: TreeNode): string => {
   if (n.relParts.length === 1 && GLOBAL_PREFIX.test(n.name)) return n.name.replace(GLOBAL_PREFIX, "");
   const support = supportLabel(n);
   if (support) return support;
+  if (n.file && !extensionsShown()) return n.name.lastIndexOf(".") > 0 ? n.name.slice(0, n.name.lastIndexOf(".")) : n.name;
   return n.linked || state.settings.hideDirectoryIdentifiers ? nameWithoutIdentifier(n) : n.name;
 };
 const OWNER_KEYS = ["owner", "holder", "client"];
 
-export const isWorkboard = (n: TreeNode) => n.nodeType?.base === "WKB";
+export const isWorknode = (n: TreeNode) => n.nodeType?.base === "WKB";
 export const ownerOf = (n: TreeNode): string | null =>
   n.info?.fields.find((f) => OWNER_KEYS.includes(f.key.toLowerCase()))?.value ?? null;
 export const outputOf = (n: TreeNode): string | null => n.info?.fields.find((f) => f.key.toLowerCase() === "output")?.value ?? null;
@@ -87,7 +89,8 @@ export const nodeSummary = (n: TreeNode): string => {
   if (!n.file && n.nodeType?.base === "REV") return "Review Folder";
   if (!n.file && n.nodeType?.base === "SS") return "Screenshots Folder";
   if (!n.file && n.nodeType?.base === "REC") return "Recordings Folder";
-  if (!n.file && n.nodeType?.base === "NODE" && n.flags.includes("data") && nodeFlags(n).length === 1) return "Node with free files unsorted";
+  if (!n.file && n.nodeType?.base === "NODE" && n.flags.includes("data") && nodeFlags(n).length === 1) return "Node with free files";
+  if (!n.file && n.nodeType?.base === "NODE" && n.flags.includes("main") && nodeFlags(n).length === 1) return "Main Node";
   return typeLabel(n).replace(/\s*\n\s*/, " ");
 };
 
@@ -114,15 +117,15 @@ export const hiddenCategories = (n: TreeNode): string[] =>
 
 export function nodeDetails(n: TreeNode): [string, string][] {
   const rows: [string, string][] = [["Name", n.name]];
-  const wkb = isWorkboard(n);
+  const wkb = isWorknode(n);
   if (wkb) rows.push(["Output", outputOf(n) ?? UNKNOWN]);
   if (wkb) rows.push(["Status", n.status ? statusLabel(n.status) : UNKNOWN]);
   if (n.linked) rows.push(["Path", n.linkPath ?? UNKNOWN]);
-  else if (!isReviewRoot(n)) rows.push(["Type", typeLabel(n)]);
+  else if (!isReviewRoot(n) && n.relParts.length > 1) rows.push(["Type", typeLabel(n)]);
   if (wkb) rows.push(["Owner", ownerOf(n) ?? UNKNOWN]);
   if (n.info?.error) rows.push(["Info", n.info.error]);
   for (const f of n.info?.fields ?? []) {
-    // Status, owner and output of a workboard already have their own rows.
+    // Status, owner and output of a worknode already have their own rows.
     if (wkb && (f.key.toLowerCase() === "status" || f.key.toLowerCase() === "output" || OWNER_KEYS.includes(f.key.toLowerCase()))) continue;
     // Favorite is toggled from the quick actions, never edited as a field.
     if (f.key.toLowerCase() === "favorite") continue;

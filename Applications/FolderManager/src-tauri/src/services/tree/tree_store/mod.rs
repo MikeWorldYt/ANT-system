@@ -139,7 +139,7 @@ fn reconcile_level(dir: &Path, node: &mut Mapping, depth: usize, limit: usize) -
     let mut changed = false;
     let names: Vec<String> = node.keys().filter_map(Value::as_str).map(str::to_string).collect();
     for name in names {
-        // The app's 9xx root folders hold no workboards, so nothing beneath them gets a portfolio.
+        // The app's 9xx root folders hold no worknodes, so nothing beneath them gets a portfolio.
         if depth == 0 && is_system_root_name(&name) {
             continue;
         }
@@ -264,9 +264,9 @@ fn sync_level(dir: &Path, node: &mut Mapping, depth: usize, fresh: bool, limit: 
     Ok(changed)
 }
 
-// A 00. Portfolio sits beside the workboards of its level: it appears with the first one, and goes once none is left and it is empty.
+// A 00. Portfolio sits beside the worknodes of its level: it appears with the first one, and goes once none is left and it is empty.
 fn reconcile_portfolios(dir: &Path, node: &mut Mapping, depth: usize) -> R<bool> {
-    let has_workboard = node.iter().any(|(name, entry)| {
+    let has_worknode = node.iter().any(|(name, entry)| {
         name.as_str().is_some_and(|n| dir.join(n).is_dir())
             && entry.get("type").and_then(Value::as_str).is_some_and(|t| type_base(t) == "WKB")
     });
@@ -279,7 +279,7 @@ fn reconcile_portfolios(dir: &Path, node: &mut Mapping, depth: usize) -> R<bool>
             changed = true;
         }
     }
-    if has_workboard {
+    if has_worknode {
         if portfolios.iter().any(|name| dir.join(name).is_dir()) || dir.join(PORTFOLIO_FOLDER).exists() {
             return Ok(changed);
         }

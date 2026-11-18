@@ -12,7 +12,7 @@ use crate::services::mutations::{self, DropOutcome};
 #[cfg(windows)]
 use crate::platform::windows::input::ctrl_held;
 
-// `replace` names the workboards the user chose to swap for the one already in the storage.
+// `replace` names the worknodes the user chose to swap for the one already in the storage.
 #[tauri::command]
 pub async fn drop_files(app: AppHandle, target: Vec<String>, paths: Vec<String>, replace: Vec<String>) -> R<DropOutcome> {
     let copy = ctrl_held();

@@ -1,9 +1,9 @@
 // The dictionary editor: its own window beside the main one, reading and autosaving a node's `.ant/dictionary.md`.
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use super::run_locked;
 use crate::domain::error::{FmError, R};
-use crate::services::automations::dictionary;
+use crate::services::automations::{dictionary, downloads};
 use crate::services::automations::dictionary_lint::{lint, Issue};
 
 const LABEL: &str = "dictionary";
@@ -18,7 +18,7 @@ pub async fn open_dictionary_window(app: AppHandle, folder: Vec<String>) -> R<()
         open.destroy().map_err(fail)?;
     }
     let target = serde_json::to_string(&folder).map_err(|e| FmError::Internal { message: e.to_string() })?;
-    let title = format!("Dictionary - /{}", folder.join("/"));
+    let title = if super::downloads::below_downloads(&folder).is_some() { "Dictionary - Downloads".to_string() } else { format!("Dictionary - /{}", folder.join("/")) };
     WebviewWindowBuilder::new(&app, LABEL, WebviewUrl::App("index.html".into()))
         .title(title)
         .inner_size(560.0, 640.0)
@@ -33,6 +33,9 @@ pub async fn open_dictionary_window(app: AppHandle, folder: Vec<String>) -> R<()
 
 #[tauri::command]
 pub async fn read_dictionary(app: AppHandle, folder: Vec<String>) -> R<String> {
+    if super::downloads::below_downloads(&folder).is_some() {
+        return downloads::read_text();
+    }
     run_locked(app, move |root| dictionary::read_text(root, &folder)).await
 }
 
@@ -41,8 +44,29 @@ pub fn check_dictionary(text: String) -> Vec<Issue> {
     lint(&text)
 }
 
+// A file dropped on a group goes under that entry's `### files`, in the dictionary that holds the entry; no entry takes it out of every list.
+#[tauri::command]
+pub async fn pin_dictionary_file(app: AppHandle, folder: Vec<String>, entry: Option<String>, file: String) -> R<()> {
+    if super::downloads::below_downloads(&folder).is_some() {
+        crate::services::automations::pins::pin(&downloads::dictionary_path(), entry.as_deref(), &file)?;
+        if let Err(e) = app.emit("fm://downloads-dictionary", ()) {
+            eprintln!("Could not send fm://downloads-dictionary: {e}");
+        }
+        return Ok(());
+    }
+    run_locked(app, move |root| crate::services::automations::pins::pin_in_storage(root, &folder, entry.as_deref(), &file)).await
+}
+
 #[tauri::command]
 pub async fn save_dictionary(app: AppHandle, folder: Vec<String>, text: String) -> R<Vec<Issue>> {
+    if super::downloads::below_downloads(&folder).is_some() {
+        downloads::write_text(&text)?;
+        // The storage watcher never sees the temp folder, so the open batch is told here to read the dictionary again.
+        if let Err(e) = app.emit("fm://downloads-dictionary", ()) {
+            eprintln!("Could not send fm://downloads-dictionary: {e}");
+        }
+        return Ok(lint(&text));
+    }
     run_locked(app, move |root| {
         dictionary::write_text(root, &folder, &text)?;
         Ok(lint(&text))

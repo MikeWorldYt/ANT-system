@@ -1,4 +1,4 @@
-// Folder icon per node: link, locked, workboard and git variants, and a barred folder for nodes that do not take files.
+// Folder icon per node: link, locked, worknode and git variants, and a barred folder for nodes that do not take files.
 import folderSvg from "../../assets/icons/folder.svg?raw";
 import folderNoFlagSvg from "../../assets/icons/folder-noflag.svg?raw";
 import folderOpenSvg from "../../assets/icons/folder-open.svg?raw";
@@ -13,7 +13,7 @@ import screenshotsSvg from "../../assets/gui/screenshots.svg?raw";
 import fileUrl from "../../assets/icons/file.svg?url";
 import { el } from "../dom";
 import { nativeImage } from "../../services/file-images";
-import { isWorkboard } from "../../services/store/node-info";
+import { isWorknode } from "../../services/store/node-info";
 import { inDownloads, type TreeNode } from "../../services/ipc/types";
 
 // The colors the SVGs were drawn with; the link arrow's blues are not in this list, so they stay.
@@ -56,7 +56,7 @@ export function setIconColor(base: string | null): void {
 
 // A folder in Downloads follows no storage rule, so it never gets the barred icon of a node that takes no files.
 const kindOf = (n: TreeNode, open: boolean): Kind =>
-  inDownloads(n.relParts) ? (open ? "open" : "folder") : n.linked ? "lnk" : n.locked ? "locked" : isWorkboard(n) ? (n.isGit ? "wkbGit" : "wkb") : n.isGit ? "git" : n.flags.includes("data") ? (open ? "open" : "folder") : open ? "openNoflag" : "noflag";
+  inDownloads(n.relParts) ? (open ? "open" : "folder") : n.linked ? "lnk" : n.locked ? "locked" : isWorknode(n) ? (n.isGit ? "wkbGit" : "wkb") : n.isGit ? "git" : n.flags.includes("data") ? (open ? "open" : "folder") : open ? "openNoflag" : "noflag";
 
 // The global media folders at the root show the same icons as their side panel shortcuts.
 const MEDIA_URLS: Record<string, string> = { REC: `data:image/svg+xml,${encodeURIComponent(recordingsSvg)}`, SS: `data:image/svg+xml,${encodeURIComponent(screenshotsSvg)}` };

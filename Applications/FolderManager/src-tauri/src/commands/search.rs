@@ -24,8 +24,8 @@ pub async fn list_review(app: AppHandle) -> R<Vec<Vec<String>>> {
 }
 
 #[tauri::command]
-pub async fn list_workboards(app: AppHandle) -> R<Vec<Vec<String>>> {
-    run_unlocked(app, |storage, _| storage.with_reader(Store::workboards)).await
+pub async fn list_worknodes(app: AppHandle) -> R<Vec<Vec<String>>> {
+    run_unlocked(app, |storage, _| storage.with_reader(Store::worknodes)).await
 }
 
 // Runs off the storage lock: a broad walk must not hold up edits.

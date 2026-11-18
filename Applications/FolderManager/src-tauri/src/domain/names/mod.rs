@@ -34,7 +34,7 @@ pub fn next_available_id(siblings: &[String]) -> u32 {
         .unwrap_or(LAST_SLOT)
 }
 
-// A moved node takes the lowest free slot of its new level and a workboard the next track; other names are kept as they are.
+// A moved node takes the lowest free slot of its new level and a worknode the next track; other names are kept as they are.
 pub fn with_next_slot(name: &str, siblings: &[String]) -> String {
     if let Some((tracker, title)) = untracked_parts(name) {
         format!("{tracker}{:03}_{title}", next_track_number(tracker, siblings))
@@ -47,12 +47,12 @@ pub fn with_next_slot(name: &str, siblings: &[String]) -> String {
     }
 }
 
-// Each folder counts its own workboards, so a tracker's next number follows the highest one among the siblings.
+// Each folder counts its own worknodes, so a tracker's next number follows the highest one among the siblings.
 pub fn next_track_number(letters: &str, siblings: &[String]) -> u32 {
     siblings.iter().filter_map(|s| track_number(s.split('_').next().unwrap_or(s), letters)).max().unwrap_or(0) + 1
 }
 
-// A workboard entering a folder continues that folder's count, at the same width.
+// A worknode entering a folder continues that folder's count, at the same width.
 pub fn next_track(name: &str, siblings: &[String]) -> String {
     let head = name.split('_').next().unwrap_or(name);
     let Some(dot) = head.find('.') else { return name.to_string() };
@@ -110,11 +110,11 @@ pub fn has_node_id(name: &str) -> bool {
     b.len() >= 3 && b[0].is_ascii_digit() && b[1].is_ascii_digit() && b[2] == b'.' && &name[..2] != "00" && !is_legacy_support(name)
 }
 
-pub fn is_workboard_name(name: &str) -> bool {
+pub fn is_worknode_name(name: &str) -> bool {
     WKB_IDENTIFIERS.iter().any(|tracker| name.starts_with(tracker))
 }
 
-// A workboard still in a review folder ("PJ_Name") has its tracker but no number until it enters the storage.
+// A worknode still in a review folder ("PJ_Name") has its tracker but no number until it enters the storage.
 pub fn untracked_parts(name: &str) -> Option<(&'static str, &str)> {
     WKB_IDENTIFIERS.iter().find_map(|tracker| name.strip_prefix(tracker.trim_end_matches('.')).and_then(|rest| rest.strip_prefix('_')).map(|title| (*tracker, title)))
 }
@@ -152,8 +152,8 @@ fn without_hash_suffix(title: &str) -> &str {
     if hex && mixed && !head.is_empty() { head } else { title }
 }
 
-// The title a folder keeps when it becomes a workboard: no tracker or number in any letter case, no trailing hash.
-pub fn workboard_title(name: &str) -> String {
+// The title a folder keeps when it becomes a worknode: no tracker or number in any letter case, no trailing hash.
+pub fn worknode_title(name: &str) -> String {
     let rest = match WKB_IDENTIFIERS.iter().find_map(|tracker| after_tracker(name, tracker)) {
         Some(rest) => rest.trim_start_matches(|c: char| c.is_ascii_digit()).trim_start_matches('_'),
         None => title_of(name),
@@ -162,11 +162,11 @@ pub fn workboard_title(name: &str) -> String {
     without_hash_suffix(&dashed).to_string()
 }
 
-// The root takes only category or app ids; deeper folders take a node id or a workboard tracker.
+// The root takes only category or app ids; deeper folders take a node id or a worknode tracker.
 pub fn has_valid_id(rel: &[String]) -> bool {
     match rel {
         [name] => is_valid_root_name(name),
-        [.., name] => has_node_id(name) || is_workboard_name(name) || support_kind(name).is_some(),
+        [.., name] => has_node_id(name) || is_worknode_name(name) || support_kind(name).is_some(),
         [] => false,
     }
 }
@@ -197,8 +197,8 @@ pub fn editable_part(name: &str) -> &str {
 }
 
 // Splits a name into the part the user cannot edit and the rest: "03." + "Toki", "PJ.001_" + "Name".
-pub fn name_parts(name: &str, workboard: bool) -> (String, String) {
-    let (sep, whole_is_fixed) = if workboard { ('_', true) } else { ('.', false) };
+pub fn name_parts(name: &str, worknode: bool) -> (String, String) {
+    let (sep, whole_is_fixed) = if worknode { ('_', true) } else { ('.', false) };
     match name.split_once(sep) {
         Some((fixed, rest)) => (format!("{fixed}{sep}"), rest.to_string()),
         None if whole_is_fixed => (format!("{name}{sep}"), String::new()),
@@ -206,9 +206,9 @@ pub fn name_parts(name: &str, workboard: bool) -> (String, String) {
     }
 }
 
-// A workboard without a name goes back to its bare tracker, "PJ.001".
-pub fn compose_name(fixed: &str, editable: &str, workboard: bool) -> String {
-    if workboard && editable.is_empty() {
+// A worknode without a name goes back to its bare tracker, "PJ.001".
+pub fn compose_name(fixed: &str, editable: &str, worknode: bool) -> String {
+    if worknode && editable.is_empty() {
         return fixed.trim_end_matches('_').to_string();
     }
     format!("{fixed}{editable}")

@@ -1,4 +1,4 @@
-// Deliverable helpers: the delivery date stamp and a picker that keeps the chosen path inside its workboard.
+// Deliverable helpers: the delivery date stamp and a picker that keeps the chosen path inside its worknode.
 import { open } from "@tauri-apps/plugin-dialog";
 import { findNode } from "../services/store/state";
 import type { TreeNode } from "../services/ipc/types";
@@ -14,7 +14,7 @@ export function todayStamp(): string {
   return `${pad(d.getFullYear() % 100)}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-// The sibling Outcomes folder names where outputs usually live, so the picker starts in that folder of the workboard.
+// The sibling Outcomes folder names where outputs usually live, so the picker starts in that folder of the worknode.
 function startPath(node: TreeNode): string {
   const siblings = findNode(node.relParts.slice(0, -1))?.children ?? [];
   const output = siblings
@@ -24,7 +24,7 @@ function startPath(node: TreeNode): string {
   return known ? `${node.absPath}\\${output}` : node.absPath;
 }
 
-// The path relative to the workboard, or null when the pick lies outside it; a cancelled dialog gives undefined.
+// The path relative to the worknode, or null when the pick lies outside it; a cancelled dialog gives undefined.
 export async function pickInside(node: TreeNode, directory: boolean): Promise<{ relative: string | null } | undefined> {
   const picked = await open({ directory, multiple: false, defaultPath: startPath(node) });
   if (typeof picked !== "string") return undefined;

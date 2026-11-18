@@ -108,6 +108,14 @@ export function focusedViews(modes: ViewSwitcher["modes"]): ViewSwitcher {
 }
 
 export const currentSplit = () => split;
+// The batch covers one pane only, so it asks for that pane by side.
+export const paneOn = (onRight: boolean): Pane | null => (onRight ? (split ? right : null) : left);
+
+// Where a pane stands: the store holds the focused one, the split keeps the other parked.
+export function paneLocation(onRight: boolean): { key: string | null; virtual: string | null } {
+  const here = !split || split.right === onRight ? state : split.other;
+  return { key: here.selectedKey, virtual: here.virtual };
+}
 export const isRenderingOther = () => renderingOther;
 
 // A change of tab brings that tab's panes, whose views must be back before it renders.

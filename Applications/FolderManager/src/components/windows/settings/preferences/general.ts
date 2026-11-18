@@ -71,9 +71,9 @@ export const generalPage: SettingsPage = {
     },
     {
       section: "Preferences",
-      title: "Show finished Workboards",
-      description: "Visibility of Workboards with status done",
-      control: () => switchControl("Show finished Workboards", !state.settings.hideDone, (on) => changeSetting("hideDone", !on)),
+      title: "Show finished Worknodes",
+      description: "Visibility of Worknodes with status done",
+      control: () => switchControl("Show finished Worknodes", !state.settings.hideDone, (on) => changeSetting("hideDone", !on)),
     },
     {
       section: "Preferences",
@@ -110,6 +110,12 @@ export const generalPage: SettingsPage = {
       title: "Confirm before deleting",
       description: "Ask for confirmation when deleting any node or file",
       control: () => switchControl("Confirm before deleting", state.settings.confirmDelete, (on) => changeSetting("confirmDelete", on)),
+    },
+    {
+      section: "Preferences",
+      title: "Batch drops join their group",
+      description: "In Batch mode, a file dropped on a group goes to that group; off, it only lands in the folder and the dictionary places it",
+      control: () => switchControl("Batch drops join their group", state.settings.batchDropToGroup, (on) => changeSetting("batchDropToGroup", on)),
     },
   ],
 };

@@ -1,4 +1,4 @@
-// Task board placement lives in each workboard's info.json, so a card keeps its column and order when the folder moves.
+// Task board placement lives in each worknode's info.json, so a card keeps its column and order when the folder moves.
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
@@ -56,7 +56,7 @@ pub fn set_board(root: &Path, cards: &[BoardCard]) -> R<Mutation> {
             other => other?,
         };
         if type_base(&target.node_type) != "WKB" {
-            return Err(FmError::InvalidPath { rel_parts: rel.clone(), reason: "only workboards are on the board".to_string() });
+            return Err(FmError::InvalidPath { rel_parts: rel.clone(), reason: "only worknodes are on the board".to_string() });
         }
         // Same precedence as the tree: the info.json status wins over the tree one.
         let yaml_status = get_node(&data, rel).and_then(|n| n.get("status")).and_then(Value::as_str).map(str::to_string);
@@ -94,7 +94,7 @@ mod tests {
     fn a_card_keeps_its_column_its_order_and_the_status_it_was_placed_with() {
         let dir = academic("board");
         let p = rel(&["100.ACADEMIC", "02.Bio"]);
-        assert!(set_board(dir.path(), &[card(&p, BoardColumn::Todo, 0)]).is_err(), "not a workboard yet");
+        assert!(set_board(dir.path(), &[card(&p, BoardColumn::Todo, 0)]).is_err(), "not a worknode yet");
         set_node_type(dir.path(), &p, EditableType::Wkb, Some(WkbStatus::Hold)).unwrap();
         let m = set_board(dir.path(), &[card(&p, BoardColumn::Backlog, 3)]).unwrap();
         assert_eq!(m.select, None);

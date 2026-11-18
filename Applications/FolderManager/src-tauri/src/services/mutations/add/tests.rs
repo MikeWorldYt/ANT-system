@@ -37,39 +37,39 @@ fn add_next_goes_beside_a_level_two_folder_and_marks_it_with_a_dot_ant() {
 }
 
 #[test]
-fn a_new_workboard_takes_the_next_tracker_and_starts_its_info_json() {
+fn a_new_worknode_takes_the_next_tracker_and_starts_its_info_json() {
     let dir = academic("add-wkb");
     let p = rel(&["100.ACADEMIC", "01.Math"]);
-    let first = add_next(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "01.Algebra"]), NewKind::Workboard).unwrap();
-    assert_eq!(first.select, Some(child_rel(&p, "PJ.001_New-Workboard")));
-    let second = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
-    assert_eq!(second.select, Some(rel(&["100.ACADEMIC", "PJ.001_New-Workboard"])));
-    let wkb = dir.path().join("100.ACADEMIC/01.Math/PJ.001_New-Workboard");
-    assert_eq!(names(&wkb), [".ant"], "no 98 folder inside a workboard");
+    let first = add_next(dir.path(), &rel(&["100.ACADEMIC", "01.Math", "01.Algebra"]), NewKind::Worknode).unwrap();
+    assert_eq!(first.select, Some(child_rel(&p, "PJ.001_New-Worknode")));
+    let second = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Worknode).unwrap();
+    assert_eq!(second.select, Some(rel(&["100.ACADEMIC", "PJ.001_New-Worknode"])));
+    let wkb = dir.path().join("100.ACADEMIC/01.Math/PJ.001_New-Worknode");
+    assert_eq!(names(&wkb), [".ant"], "no 98 folder inside a worknode");
     let info = std::fs::read_to_string(wkb.join(".ant/info.json")).unwrap();
     assert!(info.contains("\"status\": \"in-progress\"") && info.contains("\"owner\": \"unknown\""), "{info}");
     assert!(info.contains("\"breadcrumb\": \"01.Math\"") && info.contains("\"created\": \""), "{info}");
     assert!(wkb.join(".ant/dragpath.json").is_file());
-    assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "PJ.001_New-Workboard"]), "WKB-L3");
+    assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "01.Math", "PJ.001_New-Worknode"]), "WKB-L3");
 }
 
 #[test]
-fn a_workboard_counts_only_its_siblings_and_those_made_on_disk() {
+fn a_worknode_counts_only_its_siblings_and_those_made_on_disk() {
     let dir = academic("add-wkb-outside");
     dir.mkdir("100.ACADEMIC/01.Math/PJ.180_Elsewhere");
     dir.mkdir("100.ACADEMIC/PJ.014_Outside");
-    let m = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
-    assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "PJ.015_New-Workboard"])));
+    let m = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Worknode).unwrap();
+    assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "PJ.015_New-Worknode"])));
 }
 
 #[test]
 fn trackers_keep_counting_past_three_digits() {
     let dir = academic("add-wkb-1000");
     std::fs::create_dir(dir.path().join("100.ACADEMIC/PJ.999_Full")).unwrap();
-    let m = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
-    assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "PJ.1000_New-Workboard"])));
-    let again = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard).unwrap();
-    assert_eq!(again.select, Some(rel(&["100.ACADEMIC", "PJ.1001_New-Workboard"])));
+    let m = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Worknode).unwrap();
+    assert_eq!(m.select, Some(rel(&["100.ACADEMIC", "PJ.1000_New-Worknode"])));
+    let again = add_next(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Worknode).unwrap();
+    assert_eq!(again.select, Some(rel(&["100.ACADEMIC", "PJ.1001_New-Worknode"])));
 }
 
 #[test]
@@ -127,7 +127,7 @@ fn a_given_name_is_cleaned_like_a_rename_and_keeps_the_id() {
     assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "04.Linear-algebra", "REV.Linear-algebra"]), "REV-L2");
     let main = add_next_named(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node, Some("home stuff")).unwrap();
     assert_eq!(main.select, Some(rel(&["200.HOME-STUFF"])));
-    let wkb = add_next_named(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Workboard, Some("fabi web")).unwrap();
+    let wkb = add_next_named(dir.path(), &rel(&["100.ACADEMIC", "02.Bio"]), NewKind::Worknode, Some("fabi web")).unwrap();
     assert_eq!(wkb.select, Some(rel(&["100.ACADEMIC", "PJ.001_Fabi-web"])));
     assert_eq!(yaml_type(dir.path(), &["100.ACADEMIC", "PJ.001_Fabi-web"]), "WKB-L2");
     assert!(add_node_named(dir.path(), &rel(&["100.ACADEMIC"]), NewKind::Node, None).unwrap().select.is_some());
@@ -140,7 +140,7 @@ fn a_given_name_that_is_empty_or_invalid_creates_nothing() {
     for bad in ["", "   ", " /:* ", "..", "x\u{1}"] {
         let err = add_node_named(dir.path(), &parent, NewKind::Node, Some(bad));
         assert!(matches!(err, Err(FmError::InvalidName { .. })), "{bad:?}: {err:?}");
-        let wkb = add_node_named(dir.path(), &parent, NewKind::Workboard, Some(bad));
+        let wkb = add_node_named(dir.path(), &parent, NewKind::Worknode, Some(bad));
         assert!(matches!(wkb, Err(FmError::InvalidName { .. })), "{bad:?}: {wkb:?}");
     }
     assert_eq!(names(&dir.path().join("100.ACADEMIC")), ["01.Math", "02.Bio"]);
@@ -153,7 +153,7 @@ fn a_given_name_still_meets_the_parent_rules() {
     assert!(matches!(locked, Err(FmError::Locked { .. })));
     let reserved = add_node_named(dir.path(), &rel(&["999.Settings"]), NewKind::Node, Some("X"));
     assert!(matches!(reserved, Err(FmError::Reserved { .. })));
-    let at_root = add_node_named(dir.path(), &[], NewKind::Workboard, Some("X"));
+    let at_root = add_node_named(dir.path(), &[], NewKind::Worknode, Some("X"));
     assert!(matches!(at_root, Err(FmError::InvalidPath { .. })));
 }
 
@@ -165,7 +165,7 @@ fn past_the_depth_limit_a_given_name_is_the_folder_name_and_never_clashes() {
     assert_eq!(m.select, Some(child_rel(&leaf, "Notes")));
     let clash = add_node_named(dir.path(), &leaf, NewKind::Node, Some("notes"));
     assert!(matches!(clash, Err(FmError::AlreadyExists { .. })), "{clash:?}");
-    let wkb = add_node_named(dir.path(), &leaf, NewKind::Workboard, Some("sprint one")).unwrap();
+    let wkb = add_node_named(dir.path(), &leaf, NewKind::Worknode, Some("sprint one")).unwrap();
     assert_eq!(wkb.select, Some(child_rel(&leaf, "PJ.001_Sprint-one")));
     assert!(matches!(add_node_named(dir.path(), &leaf, NewKind::Node, Some("status")), Err(FmError::InvalidName { .. })));
 }

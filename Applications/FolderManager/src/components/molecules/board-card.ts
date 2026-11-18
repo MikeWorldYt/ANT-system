@@ -1,4 +1,4 @@
-// Disclosure of a board card: where the workboard lives, who owns it, and a way to open its folder.
+// Disclosure of a board card: where the worknode lives, who owns it, and a way to open its folder.
 import { el } from "../dom";
 import { textButton } from "../atoms/button";
 import { iconButton } from "../atoms/icon-button";

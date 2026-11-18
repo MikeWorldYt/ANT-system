@@ -29,7 +29,7 @@ const SAMPLE_STATUSES: (WkbStatus | null)[] = ["in-progress", "hold", "for-revie
 
 const kebab = (text: string): string => text.trim().replace(/\s+/g, "-");
 const pad = (n: number, width: number): string => String(n).padStart(width, "0");
-// The fixed part of a name: the number of a node, or the tracker and number of a workboard.
+// The fixed part of a name: the number of a node, or the tracker and number of a worknode.
 const prefixOf = (name: string): string => /^(?:PJ\.\d+_|\d+\.)/.exec(name)?.[0] ?? "";
 
 // Same reading as CreateNewStorage: `##` categories, `-` subcategories, indented `-` topics and `PJ:` projects; support folders are left out.
@@ -104,6 +104,7 @@ function node(draft: Draft, parent: string[]): TreeNode {
     favorite: false,
     important: false,
     hidden: false,
+    concealed: false,
     file: draft.file === true,
     info: null,
     children,
@@ -115,7 +116,7 @@ function node(draft: Draft, parent: string[]): TreeNode {
 
 export interface DemoStorage {
   handle(cmd: string, args: Record<string, unknown> | undefined): Promise<unknown>;
-  // Fills a folder with made-up workboards in mixed statuses and dates, so sorting has something to show.
+  // Fills a folder with made-up worknodes in mixed statuses and dates, so sorting has something to show.
   seedProjects(parent: string[]): void;
   addFile(folder: string[], name: string, size: number): void;
 }
@@ -138,7 +139,7 @@ export function createDemoStorage(): DemoStorage {
   const mutation = (select: string[] | null): Mutation => ({ tree: snapshot(), levels: [], select, warnings: [] });
   const parts = (args: Record<string, unknown> | undefined): string[] => (Array.isArray(args?.relParts) ? (args.relParts as string[]) : []);
 
-  // Like the backend, a new workboard takes the next project number among its siblings.
+  // Like the backend, a new worknode takes the next project number among its siblings.
   const nextProject = (list: Draft[]): number => Math.max(0, ...list.map((d) => Number(/^PJ\.(\d+)_/.exec(d.name)?.[1] ?? 0))) + 1;
 
   function addNext(relParts: string[], kind: unknown): Mutation {
@@ -146,8 +147,8 @@ export function createDemoStorage(): DemoStorage {
     if (!spot || relParts.length < 2) throw { kind: "internal", message: "The tutorial adds nodes inside a category." };
     const used = spot.list.filter((d) => !d.project).length;
     const draft: Draft =
-      kind === "workboard"
-        ? { name: `PJ.${pad(nextProject(spot.list), 3)}_New-Workboard`, kids: [], project: true }
+      kind === "worknode"
+        ? { name: `PJ.${pad(nextProject(spot.list), 3)}_New-Worknode`, kids: [], project: true }
         : { name: `${pad(used + 1, 2)}.New-Node`, kids: [], project: false };
     spot.list.splice(spot.at + 1, 0, draft);
     return mutation([...relParts.slice(0, -1), draft.name]);

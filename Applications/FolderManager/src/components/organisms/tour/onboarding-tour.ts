@@ -65,18 +65,18 @@ const depth = (): number => state.selectedKey?.split("/").length ?? 0;
 
 const menuChoice = (label: string) => (): Element[] => menuItems(false)().filter((e) => e.textContent?.trim() === label);
 const newNode = menuChoice("New node");
-const newWorkboard = menuChoice("New workboard");
+const newWorknode = menuChoice("New worknode");
 
-// The first workboard of the demo (PJ.001_Example-Project) is selected, so its folder opens beside the projects list.
-function firstWorkboard(nodes: TreeNode[]): string[] | null {
+// The first worknode of the demo (PJ.001_Example-Project) is selected, so its folder opens beside the projects list.
+function firstWorknode(nodes: TreeNode[]): string[] | null {
   for (const n of nodes) {
     if (n.nodeType?.base === "WKB") return n.relParts;
-    const below = firstWorkboard(n.children ?? []);
+    const below = firstWorknode(n.children ?? []);
     if (below) return below;
   }
   return null;
 }
-const openProjects = (): void => select(firstWorkboard(state.tree?.nodes ?? []));
+const openProjects = (): void => select(firstWorknode(state.tree?.nodes ?? []));
 
 const visible = (e: Element): boolean => (e as HTMLElement).offsetParent !== null;
 const editButton = (): Element[] => [...document.querySelectorAll('button[aria-label="Edit details"]')].filter(visible).slice(0, 1);
@@ -103,7 +103,7 @@ function steps(): Step[] {
   let parent: string | null = null;
   let project: string | null = null;
   let explorer: FakeExplorer | null = null;
-  const projectKey = (): string | null => project ?? firstWorkboard(state.tree?.nodes ?? [])?.join("/") ?? null;
+  const projectKey = (): string | null => project ?? firstWorknode(state.tree?.nodes ?? [])?.join("/") ?? null;
   let doomed: string | null = null;
   // Only the node made during the tour is offered for deletion, never a folder of the demo template.
   const created = (): string | null => {
@@ -141,20 +141,20 @@ function steps(): Step[] {
     },
     {
       targets: one(".nav-add"),
-      part: 1, title: "Create a workboard",
-      text: "Projects live in workboards. Press + and choose New workboard; it takes the next project number.",
+      part: 1, title: "Create a worknode",
+      text: "Projects live in worknodes. Press + and choose New worknode; it takes the next project number.",
       enter: openProjects,
-      advanceOn: newWorkboard,
-      allow: newWorkboard,
+      advanceOn: newWorknode,
+      allow: newWorknode,
     },
     {
-      targets: () => rowOf(state.selectedKey?.endsWith("_New-Workboard") ? state.selectedKey : null),
+      targets: () => rowOf(state.selectedKey?.endsWith("_New-Worknode") ? state.selectedKey : null),
       part: 1, title: "Your project",
       when: () => {
-        if (state.selectedKey?.endsWith("_New-Workboard")) project = state.selectedKey;
+        if (state.selectedKey?.endsWith("_New-Worknode")) project = state.selectedKey;
         return true;
       },
-      text: "This is your new project, numbered right after the example. Workboards track a status from start to done.",
+      text: "This is your new project, numbered right after the example. Worknodes track a status from start to done.",
     },
     {
       targets: editButton,
@@ -284,7 +284,7 @@ let activeDemo: DemoStorage | null = null;
 
 // The made-up projects land next to the user's own one, and the tree is read again to show them.
 async function seedProjects(): Promise<void> {
-  const parent = (state.selectedKey?.includes("_") ? state.selectedKey : firstWorkboard(state.tree?.nodes ?? [])?.join("/"))?.split("/").slice(0, -1) ?? [];
+  const parent = (state.selectedKey?.includes("_") ? state.selectedKey : firstWorknode(state.tree?.nodes ?? [])?.join("/"))?.split("/").slice(0, -1) ?? [];
   if (!activeDemo || parent.length === 0) return;
   activeDemo.seedProjects(parent);
   await reloadWhenIdle();

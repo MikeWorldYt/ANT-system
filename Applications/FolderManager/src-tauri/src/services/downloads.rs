@@ -19,17 +19,19 @@ pub fn list(base: &Path, rel: &[String]) -> R<Vec<TreeNode>> {
     for entry in dir_entries(&dir, "read the Downloads folder")? {
         let entry = entry?;
         let name = entry.file_name().to_string_lossy().into_owned();
-        if name.starts_with('.') || name.eq_ignore_ascii_case("desktop.ini") {
-            continue;
-        }
         let kind = entry.file_type().map_err(|e| io_err("read the Downloads folder", &dir, &e))?;
-        if is_system_hidden(&entry) {
-            continue;
-        }
-        rows.push(node(rel, name, entry.path(), !kind.is_dir()));
+        let concealed = is_concealed(&entry);
+        rows.push(TreeNode { concealed, ..node(rel, name, entry.path(), !kind.is_dir()) });
     }
     rows.sort_by(|a, b| a.file.cmp(&b.file).then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())));
     Ok(rows)
+}
+
+// Dot files, desktop.ini and what Windows marks hidden or system are kept out of sight for a reason: the views show them only on request and no automation touches them.
+pub(crate) fn is_concealed(entry: &std::fs::DirEntry) -> bool {
+    let name = entry.file_name();
+    let name = name.to_string_lossy();
+    name.starts_with('.') || name.eq_ignore_ascii_case("desktop.ini") || is_system_hidden(entry)
 }
 
 #[cfg(windows)]
@@ -71,12 +73,13 @@ fn node(parent: &[String], name: String, abs: PathBuf, file: bool) -> TreeNode {
         favorite: false,
         important: false,
         hidden: false,
+        concealed: false,
         file,
         info: None,
         children: None,
-        // Only opening and copying the path apply; every change goes through the storage.
+        // Opening, copying the path and renaming apply; every other change goes through the storage.
         actions: NodeActions {
-            rename: false,
+            rename: true,
             change_type: false,
             add_next: false,
             add_child: false,
@@ -109,12 +112,14 @@ mod tests {
         dir.mkdir(".hidden-folder");
         std::fs::write(dir.path().join("a.txt"), "x").unwrap();
         std::fs::write(dir.path().join("desktop.ini"), "x").unwrap();
-        let rows = list(dir.path(), &[]).unwrap();
+        let all = list(dir.path(), &[]).unwrap();
+        assert_eq!(all.iter().filter(|r| r.concealed).map(|r| r.name.as_str()).collect::<Vec<_>>(), [".hidden-folder", "desktop.ini"]);
+        let rows: Vec<_> = all.into_iter().filter(|r| !r.concealed).collect();
         let names: Vec<_> = rows.iter().map(|r| r.name.as_str()).collect();
         assert_eq!(names, ["b-folder", "a.txt"]);
         assert_eq!(rows[0].rel_parts, rel(&[ROOT, "b-folder"]));
         assert!(rows[0].has_children && !rows[0].file && rows[1].file);
-        assert!(!rows[0].actions.rename && !rows[0].actions.delete && rows[0].actions.open);
+        assert!(rows[0].actions.rename && !rows[0].actions.delete && rows[0].actions.open);
     }
 
     #[test]

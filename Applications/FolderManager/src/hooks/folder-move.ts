@@ -1,5 +1,5 @@
 // Folders and files dragged inside the window move onto a folder, or copy with Ctrl; HTML5 drag events never reach the webview.
-import { dropFiles, moveFiles, moveFolders } from "./ops";
+import { dropFiles, moveFiles, moveFolders, toggleExpand } from "./ops";
 import { dragSources, ITEM } from "./drag-out";
 import { cancelOnEscape, leftWindow, modsOf, mousePress, moveGhost, pastThreshold, pointOf, released, type Mods, type Point } from "./pointer";
 import { warningConfirmDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
@@ -7,14 +7,19 @@ import { findNode, keyOf, outermost } from "../services/store/state";
 import { nameWithoutIdentifier } from "../services/store/node-info";
 import { readPref, savePref } from "../services/store/prefs";
 import { el } from "../components/dom";
+import { notifyDesktop } from "../services/desktop-notify";
+import { noteTrip } from "./file-trips";
+import { plural } from "../services/plural";
+import { reportError } from "../components/organisms/bars/status-line";
 import { folderIcon } from "../components/atoms/icons";
-import { inDownloads, type TreeNode } from "../services/ipc/types";
+import { DOWNLOADS_ROOT, inDownloads, type TreeNode } from "../services/ipc/types";
 
 export const HIGHLIGHT = "drop-target";
+export const DROP_TARGET = "[data-key]:not(.graph-file)";
 
 type Movable = Pick<TreeNode, "relParts" | "nodeType" | "reserved" | "ghost" | "locked" | "flags" | "file" | "inYaml">;
 
-// A folder the database does not track moves on disk like a file, even when its name makes it a workboard.
+// A folder the database does not track moves on disk like a file, even when its name makes it a worknode.
 const isPlain = (n: Movable): boolean => !n.file && !n.inYaml;
 
 // Main categories never move; an unflagged node moves only after a warning.
@@ -78,10 +83,24 @@ export async function moveDragged(sources: string[][], target: string[], copy: b
   if (unflagged.length > 0 && !copy && !(await confirmNodeMove(unflagged.length, folderTarget))) return;
   if (files.length > 0) await moveFiles(files, target, copy);
   if (folders.length > 0) await moveFolders(folders.map(({ parts }) => parts), target, copy);
+  if (files.length > 0 || external.length > 0) announceDrop(target, files.length + external.length, files[0]?.slice(0, -1) ?? (external.length > 0 ? [DOWNLOADS_ROOT] : null));
+}
+
+// Views that draw where files went, like the graph's packets, listen for this. A node that keeps no files passes them to its review folder,
+// which the user is told about, so the files never seem to have vanished.
+export function announceDrop(target: string[], count: number, from: string[] | null): void {
+  const node = findNode(target);
+  const passes = node !== null && node.nodeType?.base === "NODE" && !node.flags.includes("data");
+  const review = passes ? (node.children ?? []).find((c) => c.nodeType?.base === "REV") : undefined;
+  noteTrip({ from, to: review?.relParts ?? target });
+  if (!node || !passes) return;
+  const message = `${plural(count, "file")} dropped on ${node.name} moved to ${review?.name ?? "its review folder"}, since this node keeps no files.`;
+  void notifyDesktop(message).catch((e: unknown) => reportError("warning", e, "Notification"));
 }
 
 // The storage root has the empty key, which is never a node.
-const partsOf = (key: string | undefined): string[] | null => (key ? key.split("/") : null);
+// A graph files box carries its folder's key with "#files" after it, so a drop there lands in that folder.
+const partsOf = (key: string | undefined): string[] | null => (key ? key.replace(/#files$/, "").split("/") : null);
 
 interface Drag {
   key: string;
@@ -116,19 +135,31 @@ const dialogOpen = () => document.querySelector("dialog[open]") !== null;
 
 export function targetAt({ x, y }: Point): Drag["target"] {
   if (dialogOpen()) return null;
-  const hit = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-key]") ?? null;
+  // A file row is never a destination, so the folder holding it is.
+  const hit = document.elementFromPoint(x, y)?.closest<HTMLElement>(DROP_TARGET) ?? null;
   const parts = partsOf(hit?.dataset.key);
   return hit && parts && canDropOn(findNode(parts)) ? { el: hit, parts } : null;
 }
 
+// Resting on a closed node box in the graph opens it, so a drag can browse down to where it is going.
+const SPRING_MS = 700;
+let spring: number | undefined;
+
 function retarget(d: Drag, next: Drag["target"]): void {
   if (next?.el === d.target?.el) return;
+  window.clearTimeout(spring);
   d.target?.el.classList.remove(HIGHLIGHT);
   next?.el.classList.add(HIGHLIGHT);
   d.target = next;
+  if (!next || !next.el.matches(".graph-node-box[aria-expanded='false']")) return;
+  spring = window.setTimeout(() => {
+    const n = findNode(next.parts);
+    if (drag?.target === next && n) void toggleExpand(n);
+  }, SPRING_MS);
 }
 
 function cancel(): void {
+  window.clearTimeout(spring);
   if (!drag) return;
   drag.target?.el.classList.remove(HIGHLIGHT);
   drag.ghost?.remove();
@@ -164,7 +195,10 @@ export function installFolderMove(host: HTMLElement): void {
     const done = drag;
     const target = done?.ghost ? done.target : null;
     cancel();
-    if (done && target) void moveDragged(done.sources, target.parts, ev.ctrlKey);
+    if (!done || !target) return;
+    // Letting go over the folder the items already sit in is a cancelled drag, not a move to report as refused.
+    const sources = ev.ctrlKey ? done.sources : done.sources.filter((p) => keyOf(p.slice(0, -1)) !== keyOf(target.parts));
+    if (sources.length > 0) void moveDragged(sources, target.parts, ev.ctrlKey);
   });
   host.addEventListener("pointercancel", cancel);
   cancelOnEscape(folderMoveActive, cancel);

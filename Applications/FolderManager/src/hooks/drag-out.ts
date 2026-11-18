@@ -8,7 +8,7 @@ import { setStatus, reportError } from "../components/organisms/bars/status-line
 
 // Explorer's drop effect for a move.
 const DROPEFFECT_MOVE = 2;
-export const ITEM = ".row, .col-item, .grid-item";
+export const ITEM = ".row, .col-item, .grid-item, .graph-file";
 const onWindows = navigator.userAgent.includes("Windows");
 
 // A pick inside the selection drags all of it; any other item drags alone and becomes the selection.

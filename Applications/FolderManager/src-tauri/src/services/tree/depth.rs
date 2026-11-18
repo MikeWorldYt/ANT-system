@@ -13,7 +13,7 @@ pub struct DepthSetting {
     pub warning: Option<String>,
 }
 
-// Values under the default are refused: the level rules (data flag on level 3, workboards below the root) need three levels.
+// Values under the default are refused: the level rules (data flag on level 3, worknodes below the root) need three levels.
 pub fn parse(value: &str) -> Option<usize> {
     value.parse().ok().filter(|n| (MAX_DEPTH..=DEPTH_CEILING).contains(n) && n.to_string() == value)
 }

@@ -4,7 +4,9 @@ use std::collections::HashSet;
 use regex::RegexBuilder;
 use serde::Serialize;
 
-const KEYS: [&str; 6] = ["term", "topics", "only", "exclude", "ext", "pattern"];
+use crate::infra::fs_safe::validate_component;
+
+const KEYS: [&str; 8] = ["term", "topics", "only", "exclude", "ext", "pattern", "prefix", "suffix"];
 const NODE_PREFIXES: [&str; 2] = ["NODE^.", "NODE."];
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -49,6 +51,8 @@ struct Open {
     line: usize,
     name: String,
     matchers: bool,
+    // Inside the entry's `### files`, where each `- ` line lists whole file names.
+    files: bool,
 }
 
 fn close(open: Option<Open>, issues: &mut Vec<Issue>) {
@@ -78,6 +82,24 @@ pub fn lint(text: &str) -> Vec<Issue> {
         if line.is_empty() {
             continue;
         }
+        if super::dictionary::is_section(line) {
+            match open.as_mut() {
+                Some(entry) => entry.files = true,
+                None => issues.push(Issue { line: line_no, level: Level::Error, message: "`### files` belongs inside an entry: put a `## heading` above it".to_string() }),
+            }
+            continue;
+        }
+        if let Some(entry) = open.as_mut().filter(|e| e.files) {
+            if let Some(names) = line.strip_prefix("- ") {
+                for name in names.split(',').map(str::trim).filter(|n| !n.is_empty()) {
+                    if validate_component(name).is_err() {
+                        issues.push(Issue { line: line_no, level: Level::Error, message: format!("`{name}` cannot be a file name") });
+                    }
+                }
+                entry.matchers = true;
+                continue;
+            }
+        }
         if let Some(heading) = line.strip_prefix('#') {
             let name = heading.trim_start_matches('#').trim();
             if !titled && !heading.starts_with('#') {
@@ -96,10 +118,17 @@ pub fn lint(text: &str) -> Vec<Issue> {
             if NODE_PREFIXES.iter().any(|p| name.len() >= p.len() && name[..p.len()].eq_ignore_ascii_case(p) && name[p.len()..].trim().is_empty()) {
                 push(Level::Error, "A NODE heading needs the node name after the dot".to_string());
             }
+            if name.starts_with("@/") && name[2..].trim_matches(['/', ' ']).is_empty() {
+                push(Level::Error, "An @/ heading needs the node path from the storage root, like @/500.HOBBIES/08.Art".to_string());
+            }
+            let path = name.starts_with("@/") || name.starts_with("./") || name.starts_with("../");
+            if !name.to_ascii_uppercase().starts_with("NODE") && !path && validate_component(name).is_err() {
+                push(Level::Error, format!("`{name}` cannot be a folder name, so the entry is ignored"));
+            }
             if !names.insert(name.to_lowercase()) {
                 push(Level::Error, format!("`{name}` is already an entry; the second one replaces nothing and is confusing"));
             }
-            open = Some(Open { line: line_no, name: name.to_string(), matchers: false });
+            open = Some(Open { line: line_no, name: name.to_string(), matchers: false, files: false });
             continue;
         }
         let Some(item) = line.strip_prefix("- ").or_else(|| line.strip_prefix("* ")) else {
@@ -115,8 +144,16 @@ pub fn lint(text: &str) -> Vec<Issue> {
             continue;
         };
         let (key, value) = (key.trim(), value.trim());
+        // Above the first entry only cuts and affixes go: `term` and `pattern` text leaves every name, `prefix` and `suffix` join it, and none groups.
+        if open.is_none() && matches!(key, "term" | "pattern" | "prefix" | "suffix") {
+            if key == "pattern" && RegexBuilder::new(value).case_insensitive(true).build().is_err() {
+                push(Level::Error, "The pattern does not compile".to_string());
+            }
+            continue;
+        }
         let Some(entry) = open.as_mut() else {
-            push(Level::Error, "This line is outside any entry: put a `## heading` above it".to_string());
+            let reason = if KEYS.contains(&key) { format!("Above the first entry only `term`, `pattern`, `prefix` and `suffix` go, for every name; `{key}` needs a `## heading` above it") } else { "This line is outside any entry: put a `## heading` above it".to_string() };
+            push(Level::Error, reason);
             continue;
         };
         if !KEYS.contains(&key) {
@@ -134,7 +171,7 @@ pub fn lint(text: &str) -> Vec<Issue> {
                 continue;
             }
         }
-        if key != "exclude" {
+        if !matches!(key, "exclude" | "prefix" | "suffix") {
             entry.matchers = true;
         }
     }

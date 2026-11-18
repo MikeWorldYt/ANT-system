@@ -1,4 +1,4 @@
-// Task board of every workboard, shown for the virtual BOARD entry in place of whichever view is active.
+// Task board of every worknode, shown for the virtual BOARD entry in place of whichever view is active.
 import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
 import { SORT_KEYS } from "../../organisms/bars/toolbar";

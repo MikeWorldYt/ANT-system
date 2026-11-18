@@ -7,7 +7,7 @@ import { selectBox } from "../../../atoms/select";
 import { actionDialog, colHeader, dialogTable } from "./action-dialog";
 import type { InvalidFolder, Resolution } from "../../../../services/ipc/types";
 
-export type Choice = "ignore" | "review" | "node" | "workboard";
+export type Choice = "ignore" | "review" | "node" | "worknode";
 
 export interface Decision {
   relParts: string[];
@@ -23,7 +23,7 @@ export type PreviewNames = (rows: { relParts: string[]; resolution: Resolution }
 const ACTIONS: [Choice, string[]][] = [
   ["review", ["Move to", "Review"]],
   ["node", ["Convert to", "Node"]],
-  ["workboard", ["Convert to", "Workboard"]],
+  ["worknode", ["Convert to", "Worknode"]],
   ["ignore", ["Ignore"]],
 ];
 const TRACKERS = ["PJ", "PR", "HW", "CR", "TK"];
@@ -119,14 +119,14 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
   const radios = new Map<Choice, HTMLInputElement>();
 
   const cells = ACTIONS.map(([choice, action]) => {
-    const enabled = choice === "ignore" || choice === "node" || (choice === "review" && hasReview) || (choice === "workboard" && rel.length >= 2);
+    const enabled = choice === "ignore" || choice === "node" || (choice === "review" && hasReview) || (choice === "worknode" && rel.length >= 2);
     const input = radio({ name, value: choice, "aria-label": `${action.join(" ")} ${label}` });
     input.disabled = !enabled;
     radios.set(choice, input);
-    const extra = choice === "review" ? reviewPick : choice === "workboard" ? trackerPick : null;
+    const extra = choice === "review" ? reviewPick : choice === "worknode" ? trackerPick : null;
     return el("td", {}, input, ...(extra ? [extra] : []));
   });
-  const start: Choice = folder.workboard && rel.length >= 2 ? "workboard" : hasReview ? "review" : "ignore";
+  const start: Choice = folder.worknode && rel.length >= 2 ? "worknode" : hasReview ? "review" : "ignore";
   const startRadio = radios.get(start);
   if (startRadio) startRadio.checked = true;
 
@@ -164,7 +164,7 @@ function row(folder: InvalidFolder, index: number, openFolder: (relParts: string
     resolution: () => {
       const choice = current();
       if (choice === "node") return { kind: "node" };
-      if (choice === "workboard") return { kind: "workboard", tracker: trackerPick.value };
+      if (choice === "worknode") return { kind: "worknode", tracker: trackerPick.value };
       return null;
     },
     showName: (next) => {

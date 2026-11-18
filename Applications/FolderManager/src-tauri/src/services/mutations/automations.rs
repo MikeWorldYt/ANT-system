@@ -1,4 +1,4 @@
-// An Outcomes folder keeps the defaults its node gives every new workboard; a review folder keeps which of its automations run on their own.
+// An Outcomes folder keeps the defaults its node gives every new worknode; a review folder keeps which of its automations run on their own.
 use std::fs;
 use std::path::Path;
 
@@ -7,7 +7,7 @@ use serde_yaml::{Mapping, Value};
 use super::{editable_target, finish, locate, scope, load_synced_at, parent_of, Mutation};
 use crate::domain::config::{AUTO_ADD_DATE_FLAG, AUTO_GROUP_FLAG, AUTO_REDUCE_FLAG, AUTO_REMOVE_DATE_FLAG, AUTO_REMOVE_SYMBOLS_FLAG, AUTO_SORT_FLAG, FOOTPRINT_FILENAME, OWNER_KEYS};
 use crate::domain::error::{FmError, R};
-use crate::domain::tree_types::{child_entries, flags_in, type_base};
+use crate::domain::tree_types::{child_entries, flags_in, runs_automations, type_base};
 use crate::infra::fs_safe::{io_err, StorageLock};
 use crate::infra::footprint_file::mirror_flags;
 use crate::infra::storage::info::{field_of, read_info, write_info};
@@ -36,7 +36,7 @@ pub fn set_default(root: &Path, rel: &[String], key: &str, value: Option<&str>) 
         }
         DEFAULT_OUTPUT => {
             if value.is_some_and(|v| v.contains("..") || Path::new(v).is_absolute()) {
-                return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the output must be a folder inside the workboard".to_string() });
+                return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the output must be a folder inside the worknode".to_string() });
             }
         }
         DEFAULT_OWNER => {}
@@ -59,10 +59,10 @@ pub fn set_review_automation(root: &Path, rel: &[String], automation: &str, on: 
     let _lock = StorageLock::acquire(root)?;
     let (mut data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = locate(root, &data, rel)?;
-    if target.ghost || type_base(&target.node_type) != "REV" {
-        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only a review folder runs automations".to_string() });
-    }
     let node = get_node_mut(&mut data, rel).ok_or_else(|| FmError::NotFound { rel_parts: rel.to_vec() })?;
+    if target.ghost || !runs_automations(type_base(&target.node_type), &flags_in(node)) {
+        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "this folder has no automations; activate them first".to_string() });
+    }
     set_flag(node, flag, on);
     let flags = flags_in(node);
     tree_store::save(root, &data)?;
@@ -71,8 +71,8 @@ pub fn set_review_automation(root: &Path, rel: &[String], automation: &str, on: 
     Ok(finish(root, &data, false, Some(rel.to_vec()), warnings, scope(&synced, vec![rel.to_vec()])))
 }
 
-// Fills a new workboard from its node's Outcomes defaults; an unset status keeps the in-progress it was created with.
-pub(super) fn apply_defaults(parent_dir: &Path, parent_yaml: &Mapping, workboard: &Path) -> R<()> {
+// Fills a new worknode from its node's Outcomes defaults; an unset status keeps the in-progress it was created with.
+pub(super) fn apply_defaults(parent_dir: &Path, parent_yaml: &Mapping, worknode: &Path) -> R<()> {
     let Some((name, _)) = child_entries(parent_yaml).find(|(_, c)| type_base(c.get("type").and_then(Value::as_str).unwrap_or("")) == "OUT") else {
         return Ok(());
     };
@@ -88,12 +88,12 @@ pub(super) fn apply_defaults(parent_dir: &Path, parent_yaml: &Mapping, workboard
         updates.push((&OWNER_KEYS, "owner", Some(owner.into())));
     }
     if let Some(output) = field(DEFAULT_OUTPUT) {
-        let dir = workboard.join(&output);
+        let dir = worknode.join(&output);
         fs::create_dir_all(&dir).map_err(|e| io_err("create output folder", &dir, &e))?;
         updates.push((&["output"], "output", Some(output.into())));
     }
     if updates.is_empty() {
         return Ok(());
     }
-    write_info(workboard, &updates)
+    write_info(worknode, &updates)
 }

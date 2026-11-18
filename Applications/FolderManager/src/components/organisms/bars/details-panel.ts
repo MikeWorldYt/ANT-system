@@ -1,22 +1,23 @@
-// Details of the selected node; its name, and the status and owner of a workboard, are edited here.
+// Details of the selected node; its name, and the status and owner of a worknode, are edited here.
 import { el } from "../../dom";
 import { textButton } from "../../atoms/button";
 import { checkbox } from "../../atoms/checkbox";
 import { iconButton } from "../../atoms/icon-button";
 import { textInput } from "../../atoms/text-input";
 import { statusLabeled } from "../../atoms/status-mark";
-import { isWorkboard, nodeDetails, outputOf, ownerOf, UNKNOWN } from "../../../services/store/node-info";
+import { isWorknode, nodeDetails, outputOf, ownerOf, UNKNOWN } from "../../../services/store/node-info";
 import { renameTo, setDetails, setOutput, setUserFlag } from "../../../hooks/ops";
 import { pickInside } from "../../../hooks/outputs";
 import { setStatus } from "./status-line";
 import { extensionArea } from "../../../extensions/panel";
 import { detailFields, onDetailsChange, runDetailsAction } from "../../../extensions/details";
 import { keyOf, selectedNode } from "../../../services/store/state";
+import { shownEntry } from "../../molecules/virtual-entry";
 import { statusPicker, type StatusPicker } from "../../molecules/status-picker";
 import type { TreeNode, WkbStatus } from "../../../services/ipc/types";
 
 // Status and owner live in info.json, so a broken file blocks them but not the rename.
-const canEditFields = (n: TreeNode) => isWorkboard(n) && !n.ghost && n.actions.changeType && !n.info?.error;
+const canEditFields = (n: TreeNode) => isWorknode(n) && !n.ghost && n.actions.changeType && !n.info?.error;
 export const canEdit = (n: TreeNode) => n.actions.editDetails || n.actions.editFlags || n.actions.rename;
 const termId = (label: string) => `details-term-${label.toLowerCase()}`;
 const fieldId = (label: string) => `details-field-${label.toLowerCase()}`;
@@ -81,7 +82,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
       const pick = iconButton("Choose the output folder", "link", async () => {
         const picked = await pickInside(n, true);
         if (!picked) return;
-        if (picked.relative === null) setStatus("warning", "Pick a folder inside the workboard");
+        if (picked.relative === null) setStatus("warning", "Pick a folder inside the worknode");
         else outputField.value = picked.relative;
       });
       output = outputField;
@@ -117,13 +118,14 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     const n = selectedNode();
     if (!n || (editing !== null && (editing !== keyOf(n.relParts) || !canEdit(n)))) editing = null;
     edit.hidden = !n || !canEdit(n);
-    empty.hidden = n !== null;
-    list.hidden = n === null;
+    const entry = n ? null : shownEntry();
+    empty.hidden = n !== null || entry !== null;
+    list.hidden = n === null && entry === null;
     const ended = editing === null && form !== null;
     if (editing === null) form = null;
     else if (n && form?.key !== editing) form = { key: editing, inputs: controls(n) };
     const inputs = form?.inputs ?? {};
-    const rows = (n ? nodeDetails(n) : []).map(([k, v]) =>
+    const rows = (n ? nodeDetails(n) : entry ? [["Name", entry.label]] as [string, string][] : []).map(([k, v]) =>
       k === "Path"
         ? detailField(el("dt", { id: termId(k) }, k), el("dd", { class: "path" }, ...pathSegments(v)))
         : detailField(el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))),

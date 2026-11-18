@@ -1,0 +1,13 @@
+/* GitHub's tooltip (Primer): its colors, radius, padding and type, with its keybinding hints. */
+.app-tooltip {
+  --tip-bg: #3d444d; --tip-key: #656c76;
+  position: fixed; z-index: 10000; display: flex; align-items: center; gap: 6px; max-width: 250px; padding: 4px 8px;
+  font: 400 12px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  color: #ffffff; background: var(--tip-bg); border-radius: 6px; white-space: pre-line; overflow-wrap: break-word;
+  pointer-events: none; opacity: 0; visibility: hidden; transition: opacity 80ms ease-in;
+}
+.app-tooltip.shown { opacity: 1; visibility: visible; }
+:root[data-theme="light"] .app-tooltip { --tip-bg: #25292e; --tip-key: #59636e; }
+@media (prefers-color-scheme: light) { :root[data-theme="system"] .app-tooltip { --tip-bg: #25292e; --tip-key: #59636e; } }
+.app-tooltip-keys { display: inline-flex; flex: none; gap: 4px; }
+.app-tooltip-keys kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; font: inherit; font-size: 11px; line-height: 16px; color: #ffffff; background: var(--tip-key); border-radius: 4px; }

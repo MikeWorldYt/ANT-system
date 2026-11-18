@@ -14,10 +14,10 @@ export interface VirtualEntry {
 }
 
 export const VIRTUAL_ENTRIES: VirtualEntry[] = [
-  { id: "favorites", label: "FAVORITES", icon: "starred", hint: "Every favorite folder in the Storage", empty: "No favorites yet" },
-  { id: "downloads", label: "DOWNLOADS", icon: "download", hint: "The Downloads folder of this computer", empty: "Downloads is empty" },
-  { id: "review", label: "REVIEW", icon: "statusReview", hint: "The review folder of every node in the Storage", empty: "No review folders yet" },
-  { id: "board", label: "BOARD", icon: "layout", hint: "Task board of every workboard in the Storage", empty: "No workboards yet" },
+  { id: "favorites", label: "FAVORITES", icon: "starred", hint: "Favorites folder", empty: "No favorites yet" },
+  { id: "downloads", label: "DOWNLOADS", icon: "download", hint: "Native Downloads folder", empty: "Downloads is empty" },
+  { id: "review", label: "REVIEW", icon: "statusReview", hint: "Review folders Index", empty: "No review folders yet" },
+  { id: "board", label: "BOARD", icon: "layout", hint: "Task board of every worknode in the Storage", empty: "No worknodes yet" },
 ];
 
 // The board opens from the side panel, so only the entries the settings leave on head the root listing.
@@ -35,16 +35,20 @@ export const entryBeside = (from: VirtualEntry | undefined, step: 1 | -1): Virtu
   return entries[entries.findIndex((e) => e.id === from?.id) + step];
 };
 
+// The entry the side panel describes: the one stood on, else the open one.
+export const shownEntry = (): VirtualEntry | null => VIRTUAL_ENTRIES.find((e) => e.id === (state.marked ?? state.virtual) && e.id !== "board") ?? null;
+
 export const openEntry = (): VirtualEntry | null => VIRTUAL_ENTRIES.find((e) => e.id === state.virtual) ?? null;
 
 interface EntryOptions {
   toggle?: boolean;
   tabbable?: boolean;
   marker?: "caret" | "chevron";
+  mark?: (id: VirtualId) => void;
 }
 
 // `toggle` lets a second activation close the entry, as a tree row folds; without `tabbable` the view's own container holds the focus.
-export function virtualEntry(entry: VirtualEntry, cls: string, role: string, { toggle = false, tabbable = false, marker }: EntryOptions = {}): HTMLElement {
+export function virtualEntry(entry: VirtualEntry, cls: string, role: string, { toggle = false, tabbable = false, marker, mark }: EntryOptions = {}): HTMLElement {
   const open = state.virtual === entry.id;
   const icon = el("span", { class: "virtual-icon", "aria-hidden": "true" }, guiIcon(entry.icon));
   const lead = marker === "caret" ? [nodeToggle(`${open ? "Collapse" : "Expand"} ${entry.label}`, open, el("span", { class: "caret", "aria-hidden": "true" }, guiIcon(open ? "chevronDown" : "chevronRight")), icon)] : [icon];
@@ -62,7 +66,11 @@ export function virtualEntry(entry: VirtualEntry, cls: string, role: string, { t
   }
   if (open) item.classList.add(state.selectedKey === null ? "selected" : "on-path");
   const activate = () => (toggle && open ? select(null) : void openVirtual(entry.id));
-  item.addEventListener("click", activate);
+  // Where folders open on a double click, one click only marks the entry, as it marks a folder.
+  if (mark) {
+    item.addEventListener("click", () => mark(entry.id));
+    item.addEventListener("dblclick", activate);
+  } else item.addEventListener("click", activate);
   // The view's own keys would act on the selected folder instead.
   item.addEventListener("keydown", (ev) => {
     if (ev.key !== "Enter" && ev.key !== " ") return;

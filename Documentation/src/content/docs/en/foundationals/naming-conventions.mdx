@@ -68,6 +68,15 @@ The file's metadata goes into the [file properties](#files-file-properties), not
   FolderManager does not write metadata into file properties yet. Until it does, add it by hand from the file's properties dialog or the app that created the file.
 </Callout>
 
+### Automated file names
+The [automations](/en/advanced/automations) rename files with this shape:
+
+```text
+(<date>)-[owner]_<topic>-<keywords> <version or (n)>
+```
+
+Keywords are any extra text in the name. Without symbols the order is the same, just without the brackets.
+
 ## Where the Metadata Lives
 
 ### Folders: Database and .ant/info.json

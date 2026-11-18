@@ -1,36 +1,37 @@
 /* Graph view: NODE cards laid out left to right, with curves drawn in an SVG behind them. */
 /* Room past every edge, so the view can always scroll to hold the selected card still while the graph grows or shrinks. */
-.graph { position: relative; min-height: 100%; overflow: auto; outline-offset: -2px; padding: 50vh 50vw 50vh 24px; }
+.graph { position: relative; min-height: 100%; overflow: auto; outline-offset: -2px; user-select: none; padding: 50vh 50vw 50vh 24px; }
 .graph-stage { position: relative; width: max-content; }
 .graph-lines { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
 .graph-lines path { fill: none; stroke: var(--muted); stroke-width: 1.5; }
 .graph-canvas { position: relative; width: max-content; }
 .graph-branch { display: flex; align-items: center; }
 .graph-kids { display: flex; flex-direction: column; gap: 10px; margin-left: 56px; }
-.graph-card { transition: transform 320ms ease, border-color 320ms ease; position: relative; display: flex; align-items: center; gap: 6px; min-width: 120px; max-width: 240px; padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); cursor: pointer; }
-.graph-card:hover { border-color: var(--button); }
-.graph-card.selected { border-color: var(--button); background: var(--highlight); }
-.graph:focus-visible .graph-card.selected { outline: 2px solid var(--button); outline-offset: 2px; }
-.graph-card.ghost .graph-name { color: var(--ghost-text); font-style: italic; }
+.graph-node-box { transition: transform 320ms ease, border-color 320ms ease; position: relative; display: flex; align-items: center; gap: 6px; min-width: 120px; max-width: 240px; padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); cursor: pointer; }
+.graph-node-box:hover { border-color: var(--button); }
+.graph-node-box.selected { border-color: var(--button); background: var(--highlight); }
+.graph:focus-visible .graph-node-box.selected { outline: 2px solid var(--button); outline-offset: 2px; }
+.graph-node-box.ghost .graph-name { color: var(--ghost-text); font-style: italic; }
 .graph-root { cursor: default; color: var(--muted); }
 .graph-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
-.graph-card[data-status="in-progress"] { border-color: var(--st-progress); }
-.graph-card[data-status="hold"] { border-color: var(--st-hold); }
-.graph-card[data-status="for-review"] { border-color: var(--st-review); }
-.graph-card[data-status="done"] { border-color: var(--st-done); }
-.graph-files { list-style: none; margin: 0; padding: 6px; min-width: 200px; max-width: 320px; max-height: 320px; overflow: auto; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); }
+.graph-node-box[data-status="in-progress"] { border-color: var(--st-progress); }
+.graph-node-box[data-status="hold"] { border-color: var(--st-hold); }
+.graph-node-box[data-status="for-review"] { border-color: var(--st-review); }
+.graph-node-box[data-status="done"] { border-color: var(--st-done); }
+.graph-files-box { list-style: none; margin: 0; padding: 12px; min-width: 200px; width: var(--auto-w, auto); max-height: 320px; overflow: auto; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); }
 .graph-file { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
-.graph-file:hover { background: var(--highlight); }
+.graph-file:hover, .graph-file.selected { background: var(--highlight); }
+.graph-file.selected { box-shadow: inset 0 0 0 1px var(--button); }
 .graph-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .graph-file-empty { padding: 3px 6px; color: var(--muted); }
 @keyframes graph-breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 @keyframes graph-glow { 0%, 100% { box-shadow: 0 0 3px 0 var(--button); } 50% { box-shadow: 0 0 10px 2px var(--button); } }
-.graph-card.on-path { border-color: var(--button); animation: graph-glow 2.4s ease-in-out infinite; }
+.graph-node-box.on-path { border-color: var(--button); animation: graph-glow 2.4s ease-in-out infinite; }
 .graph-lines path.graph-path-lit { stroke: var(--button); stroke-width: 3; filter: drop-shadow(0 0 3px var(--button)); animation: graph-breathe 2.4s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .graph-card.on-path, .graph-lines path.graph-path-lit { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .graph-node-box.on-path, .graph-lines path.graph-path-lit { animation: none; } }
 .graph-head, .graph-branch { transition: transform 320ms ease; }
 .shift { transform: translateX(10px); }
-@media (prefers-reduced-motion: reduce) { .graph-card, .graph-head, .graph-branch { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .graph-node-box, .graph-head, .graph-branch { transition: none; } }
 .graph-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 /* Support cards and their opened contents share the same 28px step right of the node. */
 .graph-under, .graph-above { display: flex; flex-direction: column; gap: 8px; margin-left: 28px; }
@@ -39,7 +40,7 @@
 .graph-kids.behind > .graph-branch { filter: blur(2px); opacity: 0.3; pointer-events: none; }
 .graph-kids[data-support] { display: grid; grid-template-columns: max-content; align-items: center; justify-items: start; }
 .graph-support { grid-column: 1; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-left: 28px; }
-.graph-support .graph-files, .graph-support .graph-card { background: var(--bg, var(--input-bg)); box-shadow: 0 6px 24px rgb(0 0 0 / 0.45); }
+.graph-support .graph-files-box, .graph-support .graph-node-box { background: var(--bg, var(--input-bg)); box-shadow: 0 6px 24px rgb(0 0 0 / 0.45); }
 @media (prefers-reduced-motion: reduce) { .graph-kids > .graph-branch, .graph-support { transition: none; } }
 .graph-lines path.graph-path-faded { opacity: 0.3; filter: blur(2px); }
 .graph.panning, .graph.panning * { cursor: grab; }
@@ -52,5 +53,39 @@
 .graph-kids > .graph-branch.open-path { z-index: 2; }
 .graph-ghost { position: absolute; margin: 0; pointer-events: none; z-index: 3; }
 @keyframes graph-loading { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.9; } }
-.graph-files.loading { min-width: 140px; animation: graph-loading 1.2s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .graph-files.loading { animation: none; } }
+/* A box drags taller from its corner; one at the end of a line also drags wider. A size set by hand lifts the default caps. */
+.graph-files-box:not(.loading) { resize: both; }
+.graph-under > .graph-files-box:not(.loading) { resize: vertical; }
+.graph-files-box[style^="height"], .graph-files-box[style*=" height"] { max-height: none; }
+.graph-files-box[style^="width"], .graph-files-box[style*=" width"] { max-width: none; }
+.graph-files-box.loading { min-width: 140px; animation: graph-loading 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .graph-files-box.loading { animation: none; } }
+.graph-entry { color: var(--text); }
+.graph-packet { position: absolute; top: 0; left: 0; z-index: 3; display: grid; place-items: center; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--button); color: var(--button-text, #fff); font-size: 8pt; font-weight: 600; box-shadow: 0 0 8px 2px var(--button); pointer-events: none; }
+@keyframes graph-land { 0% { box-shadow: 0 0 0 0 var(--button); } 40% { box-shadow: 0 0 14px 4px var(--button); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.graph-node-box.graph-landed { animation: graph-land 700ms ease-out; }
+.graph-files-box.drop-target, .graph-node-box.drop-target { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Inside a files box: List is one line a file, Cards adds the kind under the name, Grid shows tiles with pictures. */
+.graph-file-text { display: flex; flex-direction: column; min-width: 0; }
+.graph-file-kind { color: var(--muted); font-size: 11px; }
+.graph-files-box.view-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; align-content: start; }
+.graph-files-box.view-cards .graph-file { padding: 6px; }
+.graph-files-box.view-cards .graph-file > svg, .graph-files-box.view-cards .graph-file > .gui-icon { width: 28px; height: 28px; flex: none; }
+.graph-files-box.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; align-content: start; }
+/* Every tile keeps a fixed picture slot and at most three name lines, so a picture still loading never lets tiles overlap. */
+.graph-files-box.view-grid .graph-file { display: grid; grid-template-rows: 56px auto; justify-items: center; align-content: start; gap: 4px; padding: 6px 4px; text-align: center; }
+.graph-files-box.view-grid .graph-file > :first-child { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; }
+.graph-files-box.view-grid .graph-file > :first-child:not(.thumb-wrap) > *, .graph-files-box.view-grid .graph-file > svg { width: 40px; height: 40px; }
+.graph-files-box.view-grid .graph-file .thumb { width: 56px; height: 56px; object-fit: contain; }
+.graph-files-box.view-grid .graph-file-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; max-height: 3.9em; line-height: 1.3; white-space: normal; overflow: hidden; overflow-wrap: anywhere; }
+.graph-files-box.view-grid .graph-file-text { align-items: center; width: 100%; min-height: 0; }
+/* A box hanging under its card stays narrow; a list fills its rows top to bottom, then starts the next column. */
+.graph-under > .graph-files-box { width: auto; max-width: 320px; }
+.graph-files-box.view-list { display: grid; grid-auto-flow: column; grid-template-rows: repeat(var(--rows, 14), auto); grid-auto-columns: minmax(160px, 1fr); column-gap: 8px; align-content: start; }
+/* A box opened over blurred branches has the screen to itself, so it may grow taller than one beside its node. */
+.graph-support > .graph-files-box { max-height: min(70vh, 640px); }
+/* Only the boxes of contents let what stands behind them show through; their files stay fully opaque. */
+.graph-files-box, .graph-support .graph-files-box { background: color-mix(in srgb, var(--input-bg) 78%, transparent); }
+/* A box with nothing in it stays faint and says so in its middle. */
+.graph-files-box:has(> .graph-file-empty:only-child) { display: grid; grid-template: none / none; grid-auto-columns: auto; grid-auto-flow: row; place-content: center; place-items: center; background: color-mix(in srgb, var(--input-bg) 20%, transparent); border-color: color-mix(in srgb, var(--border) 50%, transparent); }
+.graph-files-box > .graph-file-empty:only-child { text-align: center; }

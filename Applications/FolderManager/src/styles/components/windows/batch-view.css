@@ -18,6 +18,24 @@
 .batch-table input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .batch-group-head { display: flex; align-items: center; gap: 6px; }
 .batch-group-name { flex: 1; min-width: 0; }
+.batch-grid { height: auto; overflow: visible; padding: 8px 4px; }
+.batch-tile { position: relative; }
+.batch-tile > input { position: absolute; left: 6px; top: 6px; }
+.batch-tile-name { max-width: 100%; text-align: center; overflow-wrap: anywhere; font-size: 12px; }
+/* Three lines at most, as the grid shows names, so one long name does not stretch its whole row; the editor shows it whole. */
+.batch-grid.grid:not(.list):not(.cards) .batch-tile-name:not(.renaming) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+.batch-tile.skipped { opacity: 0.5; }
+.batch-scroll > .details-head { top: var(--batch-head-h, 0); z-index: 2; padding-left: 58px; }
+.batch-columns { display: flex; align-items: flex-start; gap: 8px; overflow-x: auto; min-height: 100%; }
+.batch-columns > .batch-table { flex: 0 0 280px; width: 280px; }
+.batch-grid.grid.list .batch-tile > input, .batch-grid.grid.cards .batch-tile > input { position: static; }
+.batch-grid.grid.list .batch-tile-name, .batch-grid.grid.cards .batch-tile-name { flex: 1; min-width: 0; text-align: left; }
+.batch-box.drop-target, .batch-loose.drop-target, .batch-scroll.drop-target { outline: 2px solid var(--accent); outline-offset: -2px; }
+.batch-tile.dragging { opacity: 0.4; }
+.batch-ghost { position: fixed; z-index: 1000; pointer-events: none; padding: 2px 8px; border-radius: 4px; background: var(--accent); color: var(--on-accent); font-size: 12px; white-space: nowrap; }
+.batch-tile-name del { text-decoration: line-through; }
+.batch-new { display: inline-flex; flex: none; width: 14px; height: 14px; color: var(--accent); }
+.batch-new svg { width: 100%; height: 100%; }
 .batch-group-toggle { flex: none; }
 .batch-home { color: var(--muted); }
 .batch-table tr[hidden] { display: none; }
@@ -29,3 +47,23 @@
 .batch-gap td { height: 6px; padding: 0; border: 0; background: transparent; }
 .batch-group > * { position: sticky; top: var(--batch-head-h, 0); z-index: 1; user-select: none; }
 .batch-head { position: sticky; top: 0; z-index: 2; }
+/* The replay of a finished run, laid over the pane until the files are filed and the graph has shown their trip. */
+.tree-host.replaying { position: relative; }
+.batch-replay { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; background: var(--tree-bg); }
+.batch-replay > .replay-grid { flex: 1; min-height: 0; }
+.batch-replay[hidden] { display: none; }
+.batch-replay.through { background: transparent; pointer-events: none; }
+.batch-replay.through .replay-grid { display: none; }
+.replay-grid { pointer-events: none; }
+.replay-tile .name-text.typing::after { content: "|"; color: var(--button); animation: replay-caret 0.8s steps(1) infinite; }
+@keyframes replay-caret { 50% { opacity: 0; } }
+.replay-new { animation: replay-fade 420ms ease-out both; }
+@keyframes replay-fade { from { opacity: 0; transform: scale(0.9); } }
+.replay-folder.replay-receiving { background: var(--highlight); outline: 1.5px solid var(--button); }
+.replay-hint { position: absolute; left: 0; right: 0; bottom: 12px; margin: 0; text-align: center; font-weight: 600; color: var(--title); text-shadow: 0 1px 3px #000; pointer-events: none; }
+.replay-pile { position: relative; isolation: isolate; }
+.replay-pile-under { position: absolute; inset: 0; pointer-events: none; }
+.replay-count { position: absolute; top: 4px; right: 8px; z-index: 2; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--button); color: var(--button-text, #fff); font-size: 8pt; font-weight: 600; line-height: 18px; text-align: center; }
+.batch-tile-name.renaming { position: relative; align-self: stretch; min-height: 1.4em; }
+.batch-name-input { position: absolute; top: 0; left: -4px; right: -4px; z-index: 5; box-sizing: border-box; resize: none; overflow: hidden; font: inherit; font-size: 12px; line-height: 1.35; text-align: center; overflow-wrap: anywhere; white-space: pre-wrap; }
+.batch-grid.grid.list .batch-name-input, .batch-grid.grid.cards .batch-name-input { text-align: left; }

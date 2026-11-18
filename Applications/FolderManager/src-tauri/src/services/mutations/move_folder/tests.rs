@@ -140,7 +140,7 @@ fn a_moved_node_takes_the_lowest_free_slot_of_its_new_level() {
 }
 
 #[test]
-fn a_workboard_moves_into_a_workboard_and_into_a_data_node() {
+fn a_worknode_moves_into_a_worknode_and_into_a_data_node() {
     let dir = ready("mf-wkb");
     let web = uid(&dir, &["100.WORK", "PJ.001_Web"]).unwrap();
     let m = move_folder(dir.path(), &rel(&["100.WORK", "PJ.001_Web"]), &rel(&["100.WORK", "PJ.002_App"]), false).unwrap();
@@ -189,7 +189,7 @@ fn refusals_leave_the_disk_and_the_tree_unchanged() {
 }
 
 #[test]
-fn a_review_folder_takes_a_data_node_and_a_workboard_but_998_review_does_not() {
+fn a_review_folder_takes_a_data_node_and_a_worknode_but_998_review_does_not() {
     let dir = ready("mf-review");
     let review = ["100.WORK", "98.WORK"];
     let m = move_folder(dir.path(), &rel(&["100.WORK", "02.Data"]), &rel(&review), false).unwrap();
@@ -245,7 +245,7 @@ fn a_copy_past_the_depth_limit_tails_every_id_inside_it() {
 }
 
 #[test]
-fn a_raised_depth_limit_lets_a_deeper_workboard_move() {
+fn a_raised_depth_limit_lets_a_deeper_worknode_move() {
     let dir = ready("mf-deeper");
     Store::open_or_create(dir.path()).unwrap().set_setting(depth::DEPTH_KEY, "4").unwrap();
     let m = move_folder(dir.path(), &rel(&["100.WORK", "PJ.003_Big"]), &rel(&["200.HOME", "01.Garden"]), false).unwrap();
@@ -272,7 +272,7 @@ fn a_copy_gets_its_own_tailed_uid_and_the_source_stays() {
 }
 
 #[test]
-fn a_moved_workboard_gets_no_review_folder() {
+fn a_moved_worknode_gets_no_review_folder() {
     let dir = storage(
         "move-wkb-no-review",
         &["100.A/02.B/PJ.001_X", "100.A/03.C"],
@@ -285,7 +285,7 @@ fn a_moved_workboard_gets_no_review_folder() {
 }
 
 #[test]
-fn a_copied_workboard_gets_no_review_folder() {
+fn a_copied_worknode_gets_no_review_folder() {
     let dir = storage(
         "copy-wkb-no-review",
         &["100.A/02.B/PJ.001_X", "100.A/03.C"],

@@ -126,7 +126,7 @@ fn settle(root: &Path, data: &mut Mapping) -> bool {
 }
 
 #[test]
-fn a_portfolio_follows_its_workboards_on_disk() {
+fn a_portfolio_follows_its_worknodes_on_disk() {
     let dir = TempDir::new("portfolio-follow");
     dir.mkdir("100.A/01.Plan/PJ.001_Thesis");
     let mut data = parse("");
@@ -140,7 +140,7 @@ fn a_portfolio_follows_its_workboards_on_disk() {
 }
 
 #[test]
-fn a_portfolio_with_content_stays_once_its_workboards_are_gone() {
+fn a_portfolio_with_content_stays_once_its_worknodes_are_gone() {
     let dir = TempDir::new("portfolio-content");
     dir.mkdir("100.A/01.Plan/00.Porfolio/01.Notes");
     let mut data = parse("");

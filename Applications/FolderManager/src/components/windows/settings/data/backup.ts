@@ -106,7 +106,7 @@ export const backupPage: SettingsPage = {
     },
     {
       title: "Export or import",
-      description: "Move your Workboards to another computer",
+      description: "Move your Worknodes to another computer",
       control: (row: RowHandle) => actions(buttonControl("Export", () => void exportNow(row)), buttonControl("Import", () => void importOne(row))),
     },
   ],

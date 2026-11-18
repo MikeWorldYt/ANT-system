@@ -13,5 +13,5 @@ Read only the guide topic your task needs (resources/read):
 - ant://guide/model: levels, ids and folder types.
 - ant://guide/review: review folders, where files land and the automations.
 - ant://guide/dictionary: the `.ant/dictionary.md` grouping format.
-- ant://guide/workboards: workboards, statuses and the board.
+- ant://guide/worknodes: worknodes, statuses and the board.
 - ant://guide/safety: locks, retries, confirmations and what never to do.

@@ -1,4 +1,4 @@
-// Gives a folder that breaks the id format its place: a review folder, a node or a workboard.
+// Gives a folder that breaks the id format its place: a review folder, a node or a worknode.
 #[cfg(test)]
 mod tests;
 
@@ -7,10 +7,10 @@ use std::path::Path;
 use serde::Deserialize;
 use serde_yaml::{Mapping, Value};
 
-use super::add::mark_workboard;
+use super::add::mark_worknode;
 use super::{child_rel, ensure_free, finish, move_to_review, persist, scope, split, subtrees, Drift, Mutation};
 use crate::services::tree::tree_store::load_synced;
-use crate::domain::names::{has_node_id, is_track_name, is_valid_root_name, next_available_id, next_main_category_id, next_track_number, sanitize_train_case, title_of, tracker_number, workboard_title};
+use crate::domain::names::{has_node_id, is_track_name, is_valid_root_name, next_available_id, next_main_category_id, next_track_number, sanitize_train_case, title_of, tracker_number, worknode_title};
 use crate::infra::scan::list_subdirs;
 use crate::domain::tree_types::{child_entries, type_base};
 use crate::domain::config::{DATA_FLAG, WKB_IDENTIFIERS};
@@ -23,7 +23,7 @@ use crate::services::tree::tree_store::{self, delete_key, get_node, get_node_mut
 pub enum Resolution {
     Review { destination: Vec<String> },
     Node,
-    Workboard { tracker: String },
+    Worknode { tracker: String },
 }
 
 #[derive(Debug, Deserialize)]
@@ -37,7 +37,7 @@ pub fn resolve_invalid(root: &Path, rel: &[String], resolution: Resolution) -> R
     match resolution {
         Resolution::Review { destination } => move_to_review(root, rel, &destination),
         Resolution::Node => become_node(root, rel),
-        Resolution::Workboard { tracker } => become_workboard(root, rel, &tracker),
+        Resolution::Worknode { tracker } => become_worknode(root, rel, &tracker),
     }
 }
 
@@ -53,9 +53,9 @@ pub fn preview_names(root: &Path, rows: &[Pending]) -> R<Vec<String>> {
         let new = match &rows[i].resolution {
             Resolution::Review { .. } => continue,
             Resolution::Node => node_name(root, &data, rel)?,
-            Resolution::Workboard { tracker } => {
+            Resolution::Worknode { tracker } => {
                 delete_key(&mut data, parent, rel.last().map_or("", String::as_str));
-                workboard_name(root, &data, rel, &tracker.to_ascii_uppercase())?
+                worknode_name(root, &data, rel, &tracker.to_ascii_uppercase())?
             }
         };
         // The name is held in the tree so the next row sees it as taken.
@@ -80,9 +80,9 @@ fn node_name(root: &Path, data: &Mapping, rel: &[String]) -> R<String> {
 }
 
 // Keeps the number the folder already has for that tracker when no sibling uses it, else continues the siblings' count; the title loses its tracker and hash.
-fn workboard_name(root: &Path, data: &Mapping, rel: &[String], tracker: &str) -> R<String> {
+fn worknode_name(root: &Path, data: &Mapping, rel: &[String], tracker: &str) -> R<String> {
     let (name, parent) = split(rel)?;
-    let title = sanitize_train_case(&workboard_title(name));
+    let title = sanitize_train_case(&worknode_title(name));
     let letters = format!("{tracker}.");
     let siblings: Vec<String> = taken_names(root, data, parent)?.into_iter().filter(|s| s != name).collect();
     let used = |n: u32| siblings.iter().any(|s| tracker_number(s, &letters) == Some(n));
@@ -110,8 +110,8 @@ fn become_node(root: &Path, rel: &[String]) -> R<Mutation> {
     Ok(finish(root, &data, false, Some(new_rel.clone()), Vec::new(), scope(&synced, vec![rel.to_vec(), new_rel])).replacing(before))
 }
 
-// Takes the lowest free track of its tracker and the usual info.json of a workboard, keeping any values it already has.
-fn become_workboard(root: &Path, rel: &[String], tracker: &str) -> R<Mutation> {
+// Takes the lowest free track of its tracker and the usual info.json of a worknode, keeping any values it already has.
+fn become_worknode(root: &Path, rel: &[String], tracker: &str) -> R<Mutation> {
     let _lock = StorageLock::acquire(root)?;
     let (mut data, changed) = load_synced(root)?;
     let synced = Drift::unscoped(changed);
@@ -119,22 +119,22 @@ fn become_workboard(root: &Path, rel: &[String], tracker: &str) -> R<Mutation> {
     let tracker = tracker.to_ascii_uppercase();
     let tracker = tracker.as_str();
     if parent.is_empty() {
-        return Err(refuse(rel, "workboards cannot be created at the storage root"));
+        return Err(refuse(rel, "worknodes cannot be created at the storage root"));
     }
     if !WKB_IDENTIFIERS.contains(&format!("{tracker}.").as_str()) {
-        return Err(refuse(rel, format!("{tracker} is not a workboard tracker")));
+        return Err(refuse(rel, format!("{tracker} is not a worknode tracker")));
     }
     let mut entry = node_entry(&data, rel)?;
-    refuse_if_workboard(rel, &entry)?;
-    let new = workboard_name(root, &data, rel, tracker)?;
+    refuse_if_worknode(rel, &entry)?;
+    let new = worknode_name(root, &data, rel, tracker)?;
     let status = entry.get("status").and_then(Value::as_str).unwrap_or("in-progress").to_string();
     entry.insert("type".into(), format!("WKB-L{}", rel.len()).into());
     entry.remove("flags");
     let new_rel = child_rel(parent, &new);
     let before = subtrees(&data, &[rel.to_vec()]);
-    reidentify(root, &mut data, (rel, &new_rel), &synced, entry, "make workboard")?;
+    reidentify(root, &mut data, (rel, &new_rel), &synced, entry, "make worknode")?;
     let mut warnings = Vec::new();
-    if let Err(e) = mark_workboard(&join_rel(root, &new_rel), parent.last().map_or("", String::as_str), &status) {
+    if let Err(e) = mark_worknode(&join_rel(root, &new_rel), parent.last().map_or("", String::as_str), &status) {
         warnings.push(format!("Could not set up the info file: {e}"));
     }
     Ok(finish(root, &data, false, Some(new_rel.clone()), warnings, scope(&synced, vec![rel.to_vec(), new_rel])).replacing(before))
@@ -148,7 +148,7 @@ fn kind_of(node: &Mapping) -> &str {
     node.get("type").and_then(Value::as_str).unwrap_or_default()
 }
 
-// A node keeps the id it has; a workboard-typed folder with a bad name is still free to become a node.
+// A node keeps the id it has; a worknode-typed folder with a bad name is still free to become a node.
 fn refuse_if_node(rel: &[String], node: &Mapping) -> R<()> {
     let name = rel.last().map_or("", String::as_str);
     let has_id = if rel.len() == 1 { is_valid_root_name(name) } else { has_node_id(name) };
@@ -158,7 +158,7 @@ fn refuse_if_node(rel: &[String], node: &Mapping) -> R<()> {
     Ok(())
 }
 
-fn refuse_if_workboard(rel: &[String], node: &Mapping) -> R<()> {
+fn refuse_if_worknode(rel: &[String], node: &Mapping) -> R<()> {
     if type_base(kind_of(node)) == "WKB" && is_track_name(rel.last().map_or("", String::as_str)) {
         return Err(refuse(rel, "the folder already has a track"));
     }

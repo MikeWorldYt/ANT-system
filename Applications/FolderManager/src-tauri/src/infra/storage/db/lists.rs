@@ -8,7 +8,7 @@ impl Store {
     }
 
     // The raw type keeps its level, as in "WKB-L2".
-    pub fn workboards(&self) -> R<Vec<Vec<String>>> {
+    pub fn worknodes(&self) -> R<Vec<Vec<String>>> {
         self.paths_where("type", "WKB%")
     }
 
@@ -80,8 +80,8 @@ mod tests {
     }
 
     #[test]
-    fn workboards_are_every_wkb_type_outside_the_review_folder() {
-        let dir = TempDir::new("lists-workboards");
+    fn worknodes_are_every_wkb_type_outside_the_review_folder() {
+        let dir = TempDir::new("lists-worknodes");
         for folder in ["100.A/PJ.001_One", "100.A/02.Node", "200.B/PJ.002_Two"] {
             dir.mkdir(folder);
         }
@@ -91,7 +91,7 @@ mod tests {
         .unwrap();
         search_index::rebuild(dir.path(), &data).unwrap();
         let store = Store::open_or_create(dir.path()).unwrap();
-        let found: Vec<String> = store.workboards().unwrap().iter().map(|p| p.join("/")).collect();
+        let found: Vec<String> = store.worknodes().unwrap().iter().map(|p| p.join("/")).collect();
         assert_eq!(found, ["100.A/PJ.001_One", "200.B/PJ.002_Two"]);
     }
 }

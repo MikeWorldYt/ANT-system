@@ -14,7 +14,7 @@ pub const SETTINGS_FOLDER: &str = "999.Settings";
 pub const CORE_FOLDER: &str = "00.Core";
 pub const REVIEW_FOLDER: &str = "998.Review";
 pub const BACKUP_FOLDER: &str = "backup";
-// The Portfolio that a workboard's level gets automatically; the title can be renamed, the 00. id is kept.
+// The Portfolio that a worknode's level gets automatically; the title can be renamed, the 00. id is kept.
 pub const PORTFOLIO_FOLDER: &str = "00.Outcomes";
 pub const TRASH_DIR: &str = ".ant-trash";
 pub const DATA_DIR: &str = ".ant";
@@ -29,6 +29,9 @@ pub const DEPTH_CEILING: usize = 6;
 
 pub const LOCKED_TYPES: &[&str] = &["REV", "RES", "TPL", "CFG", "SS", "REC"];
 pub const DATA_FLAG: &str = "data";
+pub const AUTOM_FLAG: &str = "autom";
+// Review, screenshot and recording folders run automations by default; any other folder once the user sets "autom".
+pub const AUTOMATED_TYPES: &[&str] = &["REV", "SS", "REC"];
 // A hidden folder stays in the storage but is not listed, searched or read.
 pub const HIDDEN_FLAG: &str = "hidden";
 pub const MAIN_FLAG: &str = "main";
@@ -89,10 +92,10 @@ impl TypeBase {
 #[serde(rename_all = "camelCase")]
 pub enum NewKind {
     Node,
-    Workboard,
+    Worknode,
 }
 
-// Portfolio is not offered: each 00.* folder is created and removed with its workboards.
+// Portfolio is not offered: each 00.* folder is created and removed with its worknodes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum EditableType {

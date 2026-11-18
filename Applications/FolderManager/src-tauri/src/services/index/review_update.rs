@@ -207,7 +207,7 @@ mod tests {
         assert_like_full_rebuild(&dir, &m, 1);
         let m = mutations::add_node(dir.path(), &rel(&["100.ACADEMIC", "01.Math"]), NewKind::Node).unwrap();
         assert_like_full_rebuild(&dir, &m, 1);
-        let m = mutations::add_node(dir.path(), &rel(&["200.HOME", "01.Garden"]), NewKind::Workboard).unwrap();
+        let m = mutations::add_node(dir.path(), &rel(&["200.HOME", "01.Garden"]), NewKind::Worknode).unwrap();
         assert_like_full_rebuild(&dir, &m, 0);
         let m = mutations::add_node(dir.path(), &[], NewKind::Node).unwrap();
         assert_like_full_rebuild(&dir, &m, 1);

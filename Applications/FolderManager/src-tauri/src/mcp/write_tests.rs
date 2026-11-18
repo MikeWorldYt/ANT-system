@@ -55,7 +55,7 @@ fn write_tools_declare_what_they_do() {
     for name in ["set_type", "set_status", "set_owner", "set_favorite", "set_important", "hide", "set_board"] {
         assert_eq!(hints(name), (json!(false), json!(false), json!(true)), "{name}");
     }
-    for name in ["add_node", "add_workboard", "rename", "copy", "rename_file"] {
+    for name in ["add_node", "add_worknode", "rename", "copy", "rename_file"] {
         assert_eq!(hints(name), (json!(false), json!(false), json!(false)), "{name}");
     }
     assert_eq!(hints("preview_project_groups").0, json!(true));
@@ -70,7 +70,7 @@ fn add_and_rename_change_disk_tree_and_search_and_answer_the_new_path() {
     assert_eq!((added["relParts"].clone(), added["warnings"].clone()), (json!(["100.WORK", "06.Fresh-notes"]), json!([])));
     assert!(added["fullTree"] == true || added["levels"].as_array().unwrap().contains(&json!(["100.WORK"])), "{added}");
     assert!(dir.path().join("100.WORK/06.Fresh-notes").is_dir() && in_tree(dir.path(), &["100.WORK", "06.Fresh-notes"]));
-    let wkb = ok(&call(&s, "add_workboard", json!({ "parent": ["100.WORK", "02.B"], "name": "sprint" })));
+    let wkb = ok(&call(&s, "add_worknode", json!({ "parent": ["100.WORK", "02.B"], "name": "sprint" })));
     assert_eq!(wkb["relParts"], json!(["100.WORK", "02.B", "PJ.001_Sprint"]));
     assert!(get_type(&yaml(dir.path()), &rel(&["100.WORK", "02.B", "PJ.001_Sprint"])).starts_with("WKB"));
     let renamed = ok(&call(&s, "rename", json!({ "relParts": ["100.WORK", "03.C"], "name": "see" })));

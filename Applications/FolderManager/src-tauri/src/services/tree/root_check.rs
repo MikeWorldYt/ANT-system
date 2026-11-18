@@ -20,7 +20,7 @@ use crate::services::tree::tree_store::{self, infer_type};
 pub struct Invalid {
     pub rel_parts: Vec<String>,
     pub review: Vec<Vec<String>>,
-    pub workboard: bool,
+    pub worknode: bool,
     pub tracker: Option<String>,
 }
 
@@ -50,7 +50,7 @@ fn resync(root: &Path, data: &mut Mapping) -> R<bool> {
     Ok(tree_store::sync(root, data)? | tree_store::reconcile_portfolios_all(root, data)?)
 }
 
-// Node and workboard folders are checked; review and app folders keep their own names. Workboards hold no nodes, so they are not entered.
+// Node and worknode folders are checked; review and app folders keep their own names. Worknodes hold no nodes, so they are not entered.
 fn walk(root: &Path, dir: &Path, node: Option<&Mapping>, rel: &mut Vec<String>, limit: usize, out: &mut Vec<Invalid>) -> R<()> {
     for name in list_tracked_subdirs(dir)? {
         if rel.is_empty() && is_reserved(std::slice::from_ref(&name)) {
@@ -78,9 +78,9 @@ fn walk(root: &Path, dir: &Path, node: Option<&Mapping>, rel: &mut Vec<String>, 
         rel.push(name.clone());
         if !valid {
             let tracker = tracker_of(&name);
-            let workboard = base == "WKB" || tracker.is_some() || has_info(&dir.join(&name));
+            let worknode = base == "WKB" || tracker.is_some() || has_info(&dir.join(&name));
             let tracker = tracker.map(|t| t.trim_end_matches('.').to_string());
-            out.push(Invalid { rel_parts: rel.clone(), review: review_for(root, dir, rel)?, workboard, tracker });
+            out.push(Invalid { rel_parts: rel.clone(), review: review_for(root, dir, rel)?, worknode, tracker });
         }
         if base == "NODE" && rel.len() < limit {
             walk(root, &dir.join(&name), child, rel, limit, out)?;
@@ -90,7 +90,7 @@ fn walk(root: &Path, dir: &Path, node: Option<&Mapping>, rel: &mut Vec<String>, 
     Ok(())
 }
 
-// Matched without regard to case, so "Pj.154_Name" still reads as a workboard of tracker PJ.
+// Matched without regard to case, so "Pj.154_Name" still reads as a worknode of tracker PJ.
 fn tracker_of(name: &str) -> Option<&'static str> {
     WKB_IDENTIFIERS.iter().find(|t| name.get(..t.len()).is_some_and(|head| head.eq_ignore_ascii_case(t))).copied()
 }
@@ -145,7 +145,7 @@ mod tests {
     }
 
     #[test]
-    fn a_workboard_outside_the_track_format_is_flagged_with_its_tracker() {
+    fn a_worknode_outside_the_track_format_is_flagged_with_its_tracker() {
         let dir = storage(
             "root-check-wkb",
             &["100.WORK/01.New-Node", "100.WORK/PJ.1007_Prueba-7", "100.WORK/PJ.001_Fine"],
@@ -154,13 +154,13 @@ mod tests {
         let check = check_root(dir.path()).unwrap();
         let found: Vec<Vec<String>> = check.invalid.iter().map(|i| i.rel_parts.clone()).collect();
         assert_eq!(found, [rel(&["100.WORK", "01.New-Node"]), rel(&["100.WORK", "PJ.1007_Prueba-7"])]);
-        assert!(check.invalid[0].workboard && check.invalid[0].tracker.is_none());
-        assert!(check.invalid[1].workboard);
+        assert!(check.invalid[0].worknode && check.invalid[0].tracker.is_none());
+        assert!(check.invalid[1].worknode);
         assert_eq!(check.invalid[1].tracker.as_deref(), Some("PJ"));
     }
 
     #[test]
-    fn a_tracker_in_the_wrong_case_is_still_detected_as_a_workboard() {
+    fn a_tracker_in_the_wrong_case_is_still_detected_as_a_worknode() {
         let dir = storage(
             "root-check-wkb-case",
             &["100.WORK/Pj.254_f0d172a"],
@@ -168,7 +168,7 @@ mod tests {
         );
         let check = check_root(dir.path()).unwrap();
         assert_eq!(check.invalid.len(), 1);
-        assert!(check.invalid[0].workboard);
+        assert!(check.invalid[0].worknode);
         assert_eq!(check.invalid[0].tracker.as_deref(), Some("PJ"));
     }
 

@@ -9,6 +9,7 @@ import { goToPlace, openVirtual } from "../../../hooks/virtual-nav";
 import { openEntry } from "../../molecules/virtual-entry";
 import { reportError } from "./status-line";
 import type { Trail } from "../../../hooks/tabs";
+import { currentSplit, focusPane, paneOn, type Split } from "../../../hooks/split";
 
 interface Crumb {
   label: string;
@@ -80,7 +81,61 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
   const forward = iconButton("Forward", "forward", () => void go(at + 1));
   const up = iconButton("Up one level", "up", goUp);
   const path = el("nav", { class: "breadcrumb", "aria-label": "Current location", title: "Double-click or press Ctrl+L to type a path" });
-  const element = el("div", { class: "nav-bar" }, back, forward, up, path);
+  // In a split each pane keeps its own address: the focused one is live, the other one is read-only and a click moves there.
+  const other = el("button", { type: "button", class: "breadcrumb breadcrumb-other", title: "Work in this pane" });
+  other.hidden = true;
+  other.addEventListener("click", () => {
+    const split = currentSplit();
+    if (split) focusPane(!split.right);
+  });
+  const element = el("div", { class: "nav-bar" }, back, forward, up, path, other);
+
+  new ResizeObserver(() => placeOther()).observe(element);
+
+  function otherCrumbs(): (Node | string)[] {
+    const parked = currentSplit()?.other;
+    const parts = parked?.selectedKey?.split("/") ?? [];
+    const shown = findNode(parts)?.file ? parts.slice(0, -1) : parts;
+    const labels = parked?.virtual ? [parked.virtual.toUpperCase(), ...(parked.via === null ? [] : shown.slice(parked.via.split("/").length - 1))] : shown;
+    const sep = () => el("span", { class: "crumb-sep", "aria-hidden": "true" }, guiIcon("separator"));
+    return [el("span", { class: "crumb crumb-root" }, rootName(state.tree?.root)), ...labels.flatMap((label, i) => [sep(), el("span", { class: i === labels.length - 1 ? "crumb current" : "crumb" }, label)])];
+  }
+
+  // When the split opens the left address is made to end where the left pane ends, kept as a share of the bar so it scales with the window;
+  // resizing the panes later leaves it as it is.
+  const leftShares = new WeakMap<Split, number>();
+  function alignOnce(split: Split, leftBox: HTMLElement, rightBox: HTMLElement): void {
+    if (leftShares.has(split)) return;
+    const pane = paneOn(false)?.host.getBoundingClientRect();
+    const start = leftBox.getBoundingClientRect().left;
+    // Flex grows only the space past each box's padding and border, so the share is taken of that space.
+    const frame = (box: HTMLElement): number => {
+      const css = getComputedStyle(box);
+      return [css.paddingLeft, css.paddingRight, css.borderLeftWidth, css.borderRightWidth].reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
+    };
+    const free = leftBox.getBoundingClientRect().width + rightBox.getBoundingClientRect().width - frame(leftBox) - frame(rightBox);
+    if (!pane || pane.width === 0 || free <= 0) return;
+    leftShares.set(split, Math.min(0.8, Math.max(0.2, (pane.right - start - frame(leftBox)) / free)));
+  }
+
+  // Below this width two addresses would crowd each other, so only the focused pane's shows.
+  const BOTH_MIN = 640;
+  function placeOther(): void {
+    const split = currentSplit();
+    other.hidden = split === null || element.clientWidth < BOTH_MIN;
+    path.style.flex = other.style.flex = "";
+    if (!split || other.hidden) return;
+    if (split.right) path.before(other);
+    else path.after(other);
+    const [leftBox, rightBox] = split.right ? [other, path] : [path, other];
+    leftBox.style.flex = rightBox.style.flex = "1 1 0";
+    alignOnce(split, leftBox, rightBox);
+    const share = leftShares.get(split) ?? 0.5;
+    leftBox.style.flex = `${share} 1 0`;
+    rightBox.style.flex = `${1 - share} 1 0`;
+    other.replaceChildren(...otherCrumbs());
+    other.setAttribute("aria-label", `Other pane: ${other.textContent ?? ""}`);
+  }
 
   // A typed place lands as one history entry, not one per step on the way.
   const pathInput = createPathInput(path, render, restore);
@@ -132,6 +187,7 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
     back.setAttribute("aria-disabled", String(at <= 0));
     forward.setAttribute("aria-disabled", String(at >= history.length - 1));
     up.setAttribute("aria-disabled", String(state.selectedKey === null || selectedNode() === null));
+    placeOther();
     if (pathInput.editing()) return;
     path.replaceChildren(...crumbs());
     path.scrollLeft = path.scrollWidth;

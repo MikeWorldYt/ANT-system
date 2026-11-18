@@ -71,6 +71,18 @@ pub fn run() {
                     }
                 },
             ));
+            match app.path().download_dir() {
+                Ok(dir) => {
+                    let emitter = app.handle().clone();
+                    services::watch::watch_downloads(dir, move || {
+                        use tauri::Emitter;
+                        if let Err(e) = emitter.emit("fm://downloads-changed", ()) {
+                            eprintln!("Could not send fm://downloads-changed: {e}");
+                        }
+                    });
+                }
+                Err(e) => eprintln!("No Downloads folder to watch: {e}"),
+            }
             match app::ui_bridge::UiBridge::start(app.handle()) {
                 Ok(bridge) => {
                     app.manage(bridge);
@@ -129,6 +141,11 @@ pub fn run() {
             commands::list_downloads,
             commands::open_download,
             commands::copy_downloads,
+            commands::reveal_download,
+            commands::rename_download,
+            commands::delete_downloads,
+            commands::drop_into_downloads,
+            commands::pin_dictionary_file,
             commands::download_image,
             commands::rename_file,
             commands::delete_file,
@@ -145,7 +162,7 @@ pub fn run() {
             commands::search_nodes,
             commands::list_favorites,
             commands::list_review,
-            commands::list_workboards,
+            commands::list_worknodes,
             commands::set_board,
             commands::can_undo_project_sort,
             commands::undo_project_sort,

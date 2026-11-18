@@ -1,6 +1,8 @@
 // Appearance page: theme, accent color, text size and side panel layout.
 import { changeSetting } from "../../../../hooks/ops";
 import { quickActionsShown, setQuickActionsShown } from "../../../../services/store/side-layout";
+import { extensionsShown, hiddenItemsShown, setExtensionsShown, setHiddenItemsShown } from "../../../../services/store/view-prefs";
+import { relistLevels } from "../../../../hooks/ops";
 import { state, type AccentId, type TextSize, type Theme } from "../../../../services/store/state";
 import { ACCENTS } from "../../../../hooks/appearance";
 import { selectControl } from "../../../atoms/select";
@@ -52,6 +54,25 @@ export const appearancePage: SettingsPage = {
           state.settings.textSize,
           (value) => void changeSetting("textSize", value),
         ),
+    },
+    {
+      title: "Hidden items",
+      description: "Show hidden, system and dot files, faded",
+      control: () =>
+        switchControl("Show hidden items", hiddenItemsShown(), async (on) => {
+          setHiddenItemsShown(on);
+          await relistLevels(null);
+          return true;
+        }),
+    },
+    {
+      title: "File name extensions",
+      description: "Show the extension at the end of file names",
+      control: () =>
+        switchControl("Show file name extensions", extensionsShown(), (on) => {
+          setExtensionsShown(on);
+          return Promise.resolve(true);
+        }),
     },
     {
       title: "Quick actions",

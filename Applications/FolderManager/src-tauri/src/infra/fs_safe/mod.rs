@@ -32,6 +32,10 @@ pub fn dir_entries<'a>(dir: &'a std::path::Path, op: &'a str) -> R<impl Iterator
 }
 
 pub fn write_atomic(path: &std::path::Path, bytes: &[u8]) -> R<()> {
+    write_atomic_io(path, bytes).map_err(|e| io_err("write file", path, &e))
+}
+
+pub fn write_atomic_io(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
     use std::io::Write;
     let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     // A per-process, per-call name keeps two writers from sharing one temp file.
@@ -43,12 +47,11 @@ pub fn write_atomic(path: &std::path::Path, bytes: &[u8]) -> R<()> {
         file.sync_all()?;
         std::fs::rename(&tmp, path)
     })();
-    if let Err(e) = written {
+    if written.is_err() {
         // The write error is what gets reported; a leftover tmp file is only clutter.
         let _ = std::fs::remove_file(&tmp);
-        return Err(io_err("write file", path, &e));
     }
-    Ok(())
+    written
 }
 
 #[cfg(test)]

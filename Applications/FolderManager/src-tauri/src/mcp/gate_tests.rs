@@ -159,6 +159,19 @@ fn a_batch_over_the_limit_is_refused_before_anything_runs() {
 }
 
 #[test]
+fn a_dictionary_over_the_limit_is_refused_before_anything_runs() {
+    let dir = work("mcp-g-dict-limit");
+    let mut s = server(dir.path());
+    s.gate = Gate::Open;
+    let entries: Vec<Value> = (0..501).map(|i| json!({ "folder": format!("{i:02}.F{i}"), "term": [format!("t{i}")] })).collect();
+    let replies = exchange(&s, request(1, "tools/call", json!({ "name": "set_dictionary", "arguments": { "relParts": ["100.WORK"], "entries": entries } })).as_bytes());
+    assert_eq!(replies[0]["error"]["code"], -32602, "{}", replies[0]);
+    assert!(replies[0]["error"]["message"].as_str().unwrap().contains("501 entries"), "{}", replies[0]);
+    assert!(!dir.path().join("100.WORK/.ant/dictionary.md").exists());
+    ok(&call(&s, "set_dictionary", json!({ "relParts": ["100.WORK"], "entries": entries[..500] })));
+}
+
+#[test]
 fn results_mark_names_as_data_and_quote_them_in_the_change_note() {
     let dir = work("mcp-g-data");
     let mut s = server(dir.path());

@@ -34,7 +34,7 @@ export const EDITABLE_SHORTCUTS: { id: string; label: string; combo: KeyCombo }[
   { id: "searchFiles", label: "Search files in Storage", combo: { code: "KeyK", mod: true, alt: false } },
   { id: "editPath", label: "Edit path", combo: { code: "KeyL", mod: true, alt: false } },
   { id: "newNode", label: "New node", combo: { code: "KeyN", mod: true, alt: false } },
-  { id: "newWorkboard", label: "New Workboard", combo: { code: "KeyN", mod: true, alt: true } },
+  { id: "newWorknode", label: "New Worknode", combo: { code: "KeyN", mod: true, alt: true } },
   { id: "openSettings", label: "Open Settings", combo: { code: "Comma", mod: true, alt: false } },
   { id: "goUp", label: "Go up one level", combo: { code: "ArrowUp", mod: false, alt: true } },
   { id: "toggleSidePanel", label: "Collapse/Expand side panel", combo: { code: "ArrowRight", mod: true, alt: false } },
@@ -86,7 +86,7 @@ function bindings(go: ShortcutTargets): Binding[] {
   const runs: Record<string, () => void> = {
     ...go,
     newNode: withSelected((n) => n.actions.addNext && void addNext(n, "node")),
-    newWorkboard: withSelected((n) => n.actions.addNext && n.relParts.length > 1 && void addNext(n, "workboard")),
+    newWorknode: withSelected((n) => n.actions.addNext && n.relParts.length > 1 && void addNext(n, "worknode")),
     moveDown: () => moveActed("down"),
     toggleFavorite: favoriteActed,
   };

@@ -1,5 +1,5 @@
 // Tree view: indented expandable rows with keyboard navigation.
-import { isWorkboard } from "../../../services/store/node-info";
+import { isWorknode } from "../../../services/store/node-info";
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "../../organisms/menus/context-menu";
 import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
@@ -13,7 +13,7 @@ import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { isTail } from "../../../services/store/sort";
 import { entryBeside, headEntry, rootEntries, virtualEntry } from "../../molecules/virtual-entry";
-import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
+import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
@@ -46,11 +46,11 @@ export function createTreeView(): ViewMode {
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(folds ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
     const icon = folderIcon(n, expanded && folds);
     const toggle = folds ? nodeToggle(`${expanded ? "Collapse" : "Expand"} ${n.name}`, expanded, caret, icon) : null;
-    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorkboard(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
+    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorknode(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
     row.style.setProperty("--depth", String(depth));
     markNodeItem(row, n);
     if (folds) row.setAttribute("aria-expanded", String(expanded));
-    if (n.status && !isWorkboard(n)) row.append(statusMark(n.status));
+    if (n.status && !isWorknode(n)) row.append(statusMark(n.status));
     toggle?.addEventListener("click", () => {
       leaveAt(i);
       select(n.relParts);
@@ -62,7 +62,7 @@ export function createTreeView(): ViewMode {
     });
     onItemClick(row, n, () => rows.map((r) => keyOf(r.relParts)), () => pick(i), fromToggle);
     row.addEventListener("dblclick", (ev) => {
-      if (!fromToggle(ev)) editOrOpen(n, ev);
+      if (!fromToggle(ev)) openOnDouble(n);
     });
     row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, tree));
     return row;

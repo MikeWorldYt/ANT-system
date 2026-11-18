@@ -44,6 +44,8 @@ export function createMainWindow(app: HTMLElement) {
       views.switchTo(id);
       rememberView(id);
       toolbar.render();
+      // The batch draws itself as a list or a grid, and nothing else asks it to redraw on a view change.
+      batch.render();
     },
   };
   const toolbar = createToolbar(viewPicker);
@@ -61,8 +63,9 @@ export function createMainWindow(app: HTMLElement) {
   const panel = createSidePanel({ openSelected, openSettings: (pageId) => void openSettings(pageId) });
   // The board stands beside the views, outside the host, so their drag, drop and marquee never reach its cards.
   const board = createBoardView(panes, panel.editDetails);
-  const batch = createBatchView(panes);
-  const main = el("main", { class: "app-main" }, panes, board.element, batch.element, ...panel.elements);
+  const batchViews = [createBatchView(panes, false), createBatchView(panes, true)];
+  const batch = { render: () => batchViews.forEach((b) => b.render()) };
+  const main = el("main", { class: "app-main" }, panes, board.element, ...batchViews.map((b) => b.element), ...panel.elements);
   app.append(tabBar.element, navigator.element, main, createStatusLine());
   installContextMenu(panes, () => views.current().focus(), viewPicker);
   return { views, toolbar, navigator, tabBar, search, panel, board, batch, openSelected };

@@ -72,7 +72,7 @@ fn a_file_in_a_flagless_node_moves_into_its_review_child() {
 }
 
 #[test]
-fn files_in_data_nodes_and_workboards_stay() {
+fn files_in_data_nodes_and_worknodes_stay() {
     let dir = fixture("intake-keep");
     put(&dir, "100.PERSONAL/04.Data/table.csv", "t");
     put(&dir, "100.PERSONAL/03.Toki/01.Sub/raw.bin", "r");
@@ -200,7 +200,7 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(24))]
 
     #[test]
-    fn files_below_workboards_outcomes_and_locked_folders_are_never_moved_or_reported(top in prop::sample::select(SKIPPED.to_vec()), nested in prop::collection::vec(folder(), 0..4), files in prop::collection::vec((0usize..5, "f[a-z]{0,7}[.](txt|pdf|mp4)"), 1..6)) {
+    fn files_below_worknodes_outcomes_and_locked_folders_are_never_moved_or_reported(top in prop::sample::select(SKIPPED.to_vec()), nested in prop::collection::vec(folder(), 0..4), files in prop::collection::vec((0usize..5, "f[a-z]{0,7}[.](txt|pdf|mp4)"), 1..6)) {
         let dirs: Vec<String> = ["100.PERSONAL/.ant".to_string()].into_iter().chain(SKIPPED.iter().map(|d| format!("100.PERSONAL/{d}"))).collect();
         let dir = storage("intake-skip-prop", &dirs.iter().map(String::as_str).collect::<Vec<_>>(), SKIP_TREE);
         let mut placed = BTreeSet::new();

@@ -93,13 +93,11 @@ fn a_cut_that_would_empty_the_name_keeps_it() {
 }
 
 #[test]
-#[ignore = "BUG: a name whose stem is only symbols after the cut, like '_.png', loses its stem and becomes the hidden file '.png'"]
 fn a_symbol_only_stem_is_not_trimmed_away() {
     assert_ne!(renamed(&entry("# D\n## F\n- term: x\n")[0], "_.png"), ".png");
 }
 
 #[test]
-#[ignore = "BUG: empty brackets nested in each other leave '( )' behind on the first pass, so a second pass changes the name again"]
 fn nested_empty_brackets_are_dropped_in_one_pass() {
     let e = &entry("# D\n## F\n- term: x\n")[0];
     assert_eq!(renamed(e, &renamed(e, "( ())0")), renamed(e, "( ())0"));
@@ -149,7 +147,10 @@ fn lint_table() {
     assert!(found("# T\n## A\n- term: a\n## a\n- term: b\n", "already an entry", 4, Level::Error));
     assert!(found("# T\n## NODE.\n- term: a\n", "needs the node name", 2, Level::Error));
     assert!(found("# T\n## F\n- exclude: a\n", "catches nothing", 2, Level::Warning));
-    assert!(found("# T\n- term: a\n", "outside any entry", 2, Level::Error));
+    assert!(lint("# T\n- term: a\n- pattern: ^x\n## F\n- term: b\n").is_empty());
+    assert!(found("# T\n- topics: a\n", "only `term`, `pattern`, `prefix` and `suffix`", 2, Level::Error));
+    assert!(found("# T\n- pattern: (\n", "does not compile", 2, Level::Error));
+    assert!(found("# T\n- color: a\n", "outside any entry", 2, Level::Error));
     assert!(found("# T\n## F\n- term a\n", "Expected `key: values`", 3, Level::Error));
     assert!(found("# T\n## F\n- term: a\n%% open\n", "never closed", 4, Level::Error));
     assert!(found("# T\n## F\nloose text\n- term: a\n", "Not part of the format", 3, Level::Warning));
@@ -175,4 +176,50 @@ proptest! {
         let out = renamed(&entries[0], &format!("{stem}.png"));
         prop_assert!(out.ends_with(".png") && out.len() > 4, "{out}");
     }
+}
+
+#[test]
+fn an_at_slash_heading_names_a_node_from_the_storage_root_by_id_or_title() {
+    let dir = crate::test_support::work("dict-absolute");
+    let at = |h: &str| super::node_path::resolve(dir.path(), h).unwrap().map(|p| p.rel);
+    assert_eq!(at("@/100.WORK/01.A/01.Keep"), Some(vec!["100.WORK".into(), "01.A".into(), "01.Keep".into()]));
+    assert_eq!(at("@/100.WORK/A"), Some(vec!["100.WORK".into(), "01.A".into()]));
+    assert_eq!(at("@/Missing/A"), None);
+    assert_eq!(at("@/"), None);
+    assert!(lint("# D\n\n## @/\n- term: x\n").iter().any(|i| i.level == Level::Error));
+    assert!(!lint("# D\n\n## @/100.WORK/01.A\n- term: x\n").iter().any(|i| i.level == Level::Error));
+}
+
+#[test]
+fn global_cuts_leave_every_name_and_group_nothing() {
+    let text = "# D\n- term: Security Badge\n- pattern: [0-9a-f]{8}$\n## Docs\n- term: Request\n";
+    let globals = super::dictionary::parse_globals(text, Path::new("t.md")).unwrap();
+    assert_eq!(globals.terms, vec!["Security Badge".to_string()]);
+    assert_eq!(entry(text).len(), 1);
+    assert_eq!(super::dict_match::cut_globals(&globals, "UMB-Security_Badge_Request.pdf"), "UMB-Request.pdf");
+    assert_eq!(super::dict_match::cut_globals(&globals, "photo_4d61af1e.jpg"), "photo.jpg");
+}
+
+#[test]
+fn a_file_under_files_goes_to_its_entry_whatever_else_matches() {
+    let text = "# D\n## Images\n- term: photo\n## Academic\n- term: usm\n\n### files\n- photo_1.jpg, b.pdf\n";
+    let entries = entry(text);
+    assert_eq!(classify(&entries, "photo_1.jpg").map(|e| e.folder.as_str()), Some("Academic"));
+    assert_eq!(classify(&entries, "photo_1.png").map(|e| e.folder.as_str()), Some("Images"));
+    assert!(lint(text).is_empty());
+    assert!(lint("# D\n### files\n- a.jpg\n").iter().any(|i| i.line == 2 && i.message.contains("belongs inside an entry")));
+}
+
+#[test]
+fn a_relative_glob_heading_passes_the_lint() {
+    assert!(!lint("# D
+
+## ./*.Art/*.Touhou
+- topics: Sakuya
+").iter().any(|i| i.level == Level::Error));
+    assert!(!lint("# D
+
+## ../*.Art
+- topics: Sakuya
+").iter().any(|i| i.level == Level::Error));
 }

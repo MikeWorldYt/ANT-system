@@ -4,11 +4,20 @@ import { rootName } from "../../organisms/bars/path-input";
 import { nodeContextMenu } from "../../organisms/menus/context-menu";
 import { folderIcon } from "../../atoms/icons";
 import { toggleExpand } from "../../../hooks/ops";
+import { folderMoveActive } from "../../../hooks/folder-move";
 import { openFolder } from "../../../hooks/path-actions";
 import { readPref, savePref } from "../../../services/store/prefs";
 import { reportError } from "../../organisms/bars/status-line";
-import { findNode, hydrate, notify, keyOf, select, state } from "../../../services/store/state";
-import type { TreeNode } from "../../../services/ipc/types";
+import { clickSelect, findNode, hydrate, isVirtualShown, notify, keyOf, select, state } from "../../../services/store/state";
+import { openVirtual } from "../../../hooks/virtual-nav";
+import { guiIcon } from "../../atoms/gui-icons";
+import { sendPacket } from "./graph-packets";
+import type { Trip } from "../../../hooks/file-trips";
+import { bandSelect } from "./graph-band";
+import { boxMenu, boxView, fileArt, fileDetail, fitWidth, keepSize, sortedFiles } from "./graph-box-view";
+import type { FilesMoved } from "../../../hooks/automations/batch-replay";
+import { DOWNLOADS_ROOT, type TreeNode } from "../../../services/ipc/types";
+import { listChildren } from "../../../services/ipc/api";
 import { play, snapshot } from "./graph-motion";
 import type { ViewMode } from "./view-mode";
 
@@ -100,6 +109,70 @@ export function createGraphView(): ViewMode {
     if (over > 0) scroller().scrollBy({ left: Math.min(over, cardBox.left - view.left - 24), behavior: "smooth" });
   }
 
+  // The path held when a support folder or Downloads opened over the branches; a click on the empty graph closes it and goes back there.
+  let beforeOverlay: string | null = null;
+  const openOverlays = (): string[] =>
+    [...state.expanded].filter((k) => {
+      if (k === DOWNLOADS_ROOT) return true;
+      const n = findNode(k.split("/"));
+      return n !== null && isSupport(n);
+    });
+  // Several support boxes may stand open across the graph; only the one on the current path, or else the last one opened, closes.
+  let lastOpened: string | null = null;
+  const currentOverlay = (): string | null => {
+    const open = openOverlays();
+    const sel = state.selectedKey;
+    const onPath = sel === null ? [] : open.filter((k) => sel === k || sel.startsWith(`${k}/`)).sort((a, b) => b.length - a.length);
+    return onPath[0] ?? (lastOpened !== null && open.includes(lastOpened) ? lastOpened : null);
+  };
+
+  // While files are dragged, resting on the empty graph closes what covers the branches, and resting on a node with its support box open brings its sub-nodes back, so the way to a destination opens as the pointer goes.
+  const REST_MS = 600;
+  let rest: { spot: string; timer: number } | null = null;
+  const onDragMove = (ev: PointerEvent): void => {
+    if (!folderMoveActive() || !root.isConnected) return;
+    // The pointer is captured by the drag, so where it rests is read from the graph's own bounds and the element drawn there.
+    const area = root.getBoundingClientRect();
+    if (ev.clientX < area.left || ev.clientX > area.right || ev.clientY < area.top || ev.clientY > area.bottom) return;
+    const under = document.elementFromPoint(ev.clientX, ev.clientY);
+    if (!under) return;
+    const card = under.closest<HTMLElement>(".graph-node-box[data-key]");
+    const spot = card ? `card:${card.dataset.key ?? ""}` : under.closest(".graph-files-box") ? "box" : "empty";
+    if (rest?.spot === spot) return;
+    if (rest) window.clearTimeout(rest.timer);
+    rest = null;
+    if (spot === "box") return;
+    const shut = card
+      ? (findNode((card.dataset.key ?? "").split("/"))?.children ?? []).filter((c) => isSupport(c) && state.expanded.has(keyOf(c.relParts))).map((c) => keyOf(c.relParts))
+      : [currentOverlay()].filter((k): k is string => k !== null);
+    if (shut.length === 0) return;
+    rest = {
+      spot,
+      timer: window.setTimeout(() => {
+        rest = null;
+        for (const k of shut) state.expanded.delete(k);
+        notify();
+      }, REST_MS),
+    };
+  };
+
+  root.addEventListener("click", (ev) => {
+    if (!(ev.target instanceof Element) || ev.target.closest(".graph-node-box, .graph-files-box, .graph-file")) return;
+    const shut = currentOverlay();
+    if (shut === null) return;
+    state.expanded.delete(shut);
+    const back = shut === lastOpened ? beforeOverlay : null;
+    if (shut === lastOpened) {
+      beforeOverlay = null;
+      lastOpened = null;
+    }
+    // Without a remembered path, a selection inside what closed goes up to the folder that held it.
+    const inside = shut !== DOWNLOADS_ROOT && state.selectedKey !== null && (state.selectedKey === shut || state.selectedKey.startsWith(`${shut}/`)) ? shut : undefined;
+    if (back !== null && findNode(back.split("/"))) select(back.split("/"));
+    else if (inside) select(inside.split("/").slice(0, -1));
+    else notify();
+  });
+
   // Holding Space turns a drag into panning, the way back to what scrolled away on the left.
   let spaceHeld = false;
   // A click that ends a pan is not a pick.
@@ -115,6 +188,9 @@ export function createGraphView(): ViewMode {
     spaceHeld = false;
     root.classList.remove("panning");
   });
+  // The browser would select the cards' text and drag it as a picture; the graph is browsed, not read as text.
+  root.addEventListener("selectstart", (ev) => ev.preventDefault());
+  root.addEventListener("dragstart", (ev) => ev.preventDefault());
   root.addEventListener("pointerdown", (ev) => {
     if (spaceHeld) ev.stopPropagation();
   }, true);
@@ -155,7 +231,7 @@ export function createGraphView(): ViewMode {
 
   function shiftTargets(): Map<string, Element> {
     const found = new Map<string, Element>();
-    for (const c of canvas.querySelectorAll<HTMLElement>(".graph-card.on-path")) {
+    for (const c of canvas.querySelectorAll<HTMLElement>(".graph-node-box.on-path")) {
       const t = shiftTarget(c);
       if (t) found.set(t[0], t[1]);
     }
@@ -166,7 +242,7 @@ export function createGraphView(): ViewMode {
   function restoreShift(): void {
     for (const id of shifted) {
       const [key, kind] = id.split("|");
-      const c = canvas.querySelector<HTMLElement>(`.graph-card[data-key="${CSS.escape(key ?? "")}"]`);
+      const c = canvas.querySelector<HTMLElement>(`.graph-node-box[data-key="${CSS.escape(key ?? "")}"]`);
       const e = kind === "c" ? c : kind === "h" ? c?.parentElement : c?.parentElement?.parentElement;
       e?.classList.add("shift");
     }
@@ -204,25 +280,45 @@ export function createGraphView(): ViewMode {
 
   // Outside the node structure every folder unfolds as cards, and its files share one box beside them.
   function filesBox(n: TreeNode, folders: number): HTMLElement[] {
-    if (n.nodeType?.base === "NODE" || !state.expanded.has(keyOf(n.relParts))) return [];
+    if (!state.expanded.has(keyOf(n.relParts))) return [];
+    // A node's loose files show beside its sub-nodes; an open node with neither says it is empty instead of showing nothing.
+    if (n.nodeType?.base === "NODE") {
+      const own = (n.children ?? []).filter((c) => c.file);
+      return !loading(n) && (own.length > 0 || folders === 0) ? [fileList({ ...n, children: own })] : [];
+    }
     const files = (n.children ?? []).filter((c) => c.file);
     return files.length > 0 || folders === 0 ? [fileList({ ...n, children: files })] : [];
   }
 
   // An open folder whose contents are still on their way keeps a box in their place, under the same key, so nothing blinks out and back.
   const loading = (n: TreeNode) => n.children === null && n.hasChildren && state.expanded.has(keyOf(n.relParts));
-  const loadingBox = (n: TreeNode): HTMLElement => el("ul", { class: "graph-files loading", "data-key": `${keyOf(n.relParts)}#files`, "aria-busy": "true" }, el("li", { class: "graph-file-empty" }, "Loading…"));
+  const loadingBox = (n: TreeNode): HTMLElement => el("ul", { class: "graph-files-box loading", "data-key": `${keyOf(n.relParts)}#files`, "aria-busy": "true" }, el("li", { class: "graph-file-empty" }, "Loading…"));
+
+  // Files a batch just delivered, lit as if selected while the replay shows them.
+  let arrived = new Set<string>();
 
   function fileList(n: TreeNode): HTMLElement {
-    const entries = n.children ?? [];
+    const entries = sortedFiles(n);
+    const key = keyOf(n.relParts);
+    const view = boxView(key);
     const items = entries.map((c) => {
-      const row = el("li", { class: "graph-file", title: c.name }, folderIcon(c, false), el("span", { class: "graph-file-name" }, c.name));
-      row.addEventListener("click", () => select(c.relParts));
+      const fileKey = keyOf(c.relParts);
+      const row = el("li", { class: arrived.has(fileKey) || state.selectedKeys.includes(fileKey) ? "graph-file selected" : "graph-file", title: c.name, "data-key": fileKey }, fileArt(c, view, folderIcon(c, false)), el("span", { class: "graph-file-text" }, el("span", { class: "graph-file-name" }, c.name), ...fileDetail(c, view)));
+      // Ctrl adds or removes one file, Shift takes the run from the last pick, as in the other views.
+      row.addEventListener("click", (ev) => {
+        if (ev.ctrlKey || ev.shiftKey) clickSelect(c.relParts, entries.map((e) => keyOf(e.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
+        else select(c.relParts);
+      });
       row.addEventListener("dblclick", () => void openFolder(c));
       row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, c, root));
       return row;
     });
-    return el("ul", { class: "graph-files", "data-key": `${keyOf(n.relParts)}#files`, "aria-label": `Contents of ${n.name}` }, ...(items.length > 0 ? items : [el("li", { class: "graph-file-empty" }, "Empty")]));
+    const box = el("ul", { class: `graph-files-box view-${view}`, "data-key": `${key}#files`, "aria-label": `Contents of ${n.name}` }, ...(items.length > 0 ? items : [el("li", { class: "graph-file-empty" }, "Empty")]));
+    fitWidth(box, view, entries.length);
+    keepSize(box, key);
+    bandSelect(box);
+    boxMenu(box, n);
+    return box;
   }
 
   // The selected card and every folder above it light up, so the route from the root reads at a glance.
@@ -231,7 +327,7 @@ export function createGraphView(): ViewMode {
   function card(n: TreeNode): HTMLElement {
     const key = keyOf(n.relParts);
     const open = state.expanded.has(key);
-    const item = el("div", { class: "graph-card", role: "treeitem", id: `graph-${key}`, "data-key": key, "aria-selected": String(state.selectedKey === key) }, folderIcon(n, open), el("span", { class: "graph-name" }, n.name));
+    const item = el("div", { class: "graph-node-box", role: "treeitem", id: `graph-${key}`, "data-key": key, "aria-selected": String(state.selectedKey === key) }, folderIcon(n, open), el("span", { class: "graph-name" }, n.name));
     if (n.hasChildren) item.setAttribute("aria-expanded", String(open));
     item.classList.toggle("selected", state.selectedKey === key);
     item.classList.toggle("on-path", onPath(key));
@@ -243,6 +339,10 @@ export function createGraphView(): ViewMode {
     item.addEventListener("click", () => {
       // Clicking an open card that is not selected only moves to it; it closes from a click once selected.
       const wasSelected = state.selectedKey === key;
+      if (isSupport(n) && !state.expanded.has(key)) {
+        beforeOverlay = state.selectedKey;
+        lastOpened = key;
+      }
       select(n.relParts);
       // With a support folder open, the parent's click brings its sub-nodes back instead of folding it.
       const open = (n.children ?? []).filter((c) => isSupport(c) && state.expanded.has(keyOf(c.relParts)));
@@ -250,7 +350,12 @@ export function createGraphView(): ViewMode {
       if (open.length > 0) {
         for (const c of open) state.expanded.delete(keyOf(c.relParts));
         notify();
-      } else if (n.hasChildren) {
+      } else if (!n.hasChildren) {
+        // A folder with nothing inside still opens, to its Empty box.
+        if (state.expanded.has(key)) state.expanded.delete(key);
+        else state.expanded.add(key);
+        notify();
+      } else {
         // Only one support folder opens at a time, so a new one never hides behind the last.
         const owner = isSupport(n) ? findNode(n.relParts.slice(0, -1)) : null;
         for (const c of owner?.children ?? []) if (c !== n && isSupport(c)) state.expanded.delete(keyOf(c.relParts));
@@ -310,7 +415,7 @@ export function createGraphView(): ViewMode {
     const group: string[] = [];
     const rest = (e: Element) => (e.closest(".graph-branch.selected-branch") ? group : paths);
     for (const b of canvas.querySelectorAll<HTMLElement>(".graph-branch")) {
-      const fromCard = b.querySelector(":scope > .graph-head > .graph-card");
+      const fromCard = b.querySelector(":scope > .graph-head > .graph-node-box");
       const from = fromCard?.getBoundingClientRect();
       const kids = b.querySelector(":scope > .graph-kids");
       if (!from || !kids) continue;
@@ -327,7 +432,7 @@ export function createGraphView(): ViewMode {
         const owner = b.querySelector<HTMLElement>(`:scope > .graph-head [data-key="${CSS.escape(overlay.dataset.for ?? "")}"]`);
         // The sub-nodes behind keep their own lines, faded like them.
         for (const k of kids.children) {
-          const target = k.querySelector(":scope > .graph-head > .graph-card");
+          const target = k.querySelector(":scope > .graph-head > .graph-node-box");
           if (k === overlay || !target) continue;
           const r = target.getBoundingClientRect();
           const x2 = (r.left - box.left) / unit;
@@ -338,7 +443,7 @@ export function createGraphView(): ViewMode {
         const ox = (o.right - box.left) / unit;
         const oy = (o.top + o.height / 2 - box.top) / unit;
         for (const k of overlay.children) {
-          const target = k.querySelector(":scope > .graph-head > .graph-card");
+          const target = k.querySelector(":scope > .graph-head > .graph-node-box");
           const to = (target ?? k).getBoundingClientRect();
           const litHere = owner.classList.contains("on-path") && (target ? target.classList.contains("on-path") : true);
           const x2 = (to.left - box.left) / unit;
@@ -347,7 +452,7 @@ export function createGraphView(): ViewMode {
         continue;
       }
       for (const k of kids.children) {
-        const target = k.classList.contains("graph-files") ? null : k.querySelector(":scope > .graph-head > .graph-card");
+        const target = k.classList.contains("graph-files-box") ? null : k.querySelector(":scope > .graph-head > .graph-node-box");
         const to = (target ?? k).getBoundingClientRect();
         if (!to) continue;
         const x2 = (to.left - box.left) / unit;
@@ -357,19 +462,19 @@ export function createGraphView(): ViewMode {
       }
     }
     for (const h of canvas.querySelectorAll<HTMLElement>(".graph-head")) {
-      const owner = h.querySelector(":scope > .graph-card");
+      const owner = h.querySelector(":scope > .graph-node-box");
       const rect = owner?.getBoundingClientRect();
       if (!owner || !rect) continue;
       const x = (rect.left + 14 - box.left) / unit;
       const y = (rect.bottom - box.top) / unit;
-      for (const u of h.querySelectorAll<HTMLElement>(":scope > .graph-under > .graph-card")) {
+      for (const u of h.querySelectorAll<HTMLElement>(":scope > .graph-under > .graph-node-box")) {
         const r = u.getBoundingClientRect();
         const uy = (r.top + r.height / 2 - box.top) / unit;
         const ux = (r.left - box.left) / unit;
         (behind(h) ? faded : owner.classList.contains("on-path") && u.classList.contains("on-path") ? lit : rest(h)).push(`M${x},${y} V${uy - 6} Q${x},${uy} ${x + 6},${uy} H${ux}`);
       }
       const top = (rect.top - box.top) / unit;
-      for (const u of h.querySelectorAll<HTMLElement>(":scope > .graph-above > .graph-card")) {
+      for (const u of h.querySelectorAll<HTMLElement>(":scope > .graph-above > .graph-node-box")) {
         const r = u.getBoundingClientRect();
         const uy = (r.top + r.height / 2 - box.top) / unit;
         const ux = (r.left - box.left) / unit;
@@ -453,11 +558,199 @@ export function createGraphView(): ViewMode {
     zoomBy(ev.deltaY < 0 ? 0.1 : -0.1);
   }, { passive: false });
 
+  // Downloads hangs under the root like a support folder: files a batch sends out start their trip there.
+  function downloadsCard(): HTMLElement[] {
+    if (!isVirtualShown("downloads")) return [];
+    // Downloads opens like a support folder: its files show to the right, over the top nodes, which blur behind them; a double click opens it as a list.
+    const open = state.expanded.has(DOWNLOADS_ROOT);
+    const item = el("div", { class: "graph-node-box graph-entry", role: "treeitem", "data-entry": "downloads", "data-key": DOWNLOADS_ROOT, "aria-expanded": String(open) }, guiIcon("download"), el("span", { class: "graph-name" }, "Downloads"));
+    item.addEventListener("click", () => {
+      if (open) state.expanded.delete(DOWNLOADS_ROOT);
+      else {
+        beforeOverlay = state.selectedKey;
+        lastOpened = DOWNLOADS_ROOT;
+        state.expanded.add(DOWNLOADS_ROOT);
+        readDownloads();
+      }
+      notify();
+    });
+    item.addEventListener("dblclick", () => void openVirtual("downloads"));
+    return [el("div", { class: "graph-under", role: "group" }, item)];
+  }
+
+  // Downloads is read when its box opens, and also when the graph comes back with it already open; until then the box shows it is loading.
+  let downloadsRead = false;
+  let downloadsLoaded = false;
+  function readDownloads(): void {
+    downloadsRead = true;
+    void listChildren([DOWNLOADS_ROOT]).then((nodes) => {
+      state.downloads = nodes;
+      downloadsLoaded = true;
+      notify();
+    }, (e: unknown) => reportError("warning", e, "Downloads"));
+  }
+
+  function rootKids(tops: TreeNode[]): HTMLElement {
+    const branches = tops.map((n) => branch(n, null));
+    if (!isVirtualShown("downloads") || !state.expanded.has(DOWNLOADS_ROOT)) return el("div", { class: "graph-kids", role: "group" }, ...branches);
+    branches.forEach((b, i) => (b.style.gridArea = `${i + 1} / 1`));
+    const downloads = { name: "Downloads", relParts: [DOWNLOADS_ROOT], children: state.downloads } as TreeNode;
+    if (!downloadsRead) readDownloads();
+    const overlay = el("div", { class: "graph-support", "data-for": DOWNLOADS_ROOT }, state.downloads.length > 0 || downloadsLoaded ? fileList(downloads) : loadingBox(downloads));
+    overlay.style.gridRow = `1 / span ${Math.max(tops.length, 1)}`;
+    return el("div", { class: `graph-kids${blurred.has("") ? " behind" : ""}`, role: "group", "data-owner": "", "data-support": "1" }, ...branches, overlay);
+  }
+
+  // A file dropped in a node lands in its review folder; a worknode keeps it.
+  const landing = (n: TreeNode): TreeNode => (n.nodeType?.base === "NODE" ? ((n.children ?? []).find((c) => c.nodeType?.base === "REV") ?? n) : n);
+
+  // Packets leave one after another at the same pace, so on a shared line they keep their distance instead of colliding.
+  const GAP_MS = 252;
+  const cardOf = (k: string) => canvas.querySelector<HTMLElement>(`.graph-node-box[data-key="${CSS.escape(k)}"]`);
+  const prefixes = (parts: string[]) => parts.map((_, k) => keyOf(parts.slice(0, k + 1)));
+
+  // Sends every route in order, top branches first; only the last packet steers the view, so they never fight over the scroll.
+  async function wave(routes: HTMLElement[][], news: FilesMoved): Promise<void> {
+    const trips = routes.map((cards, k) =>
+      news.wait(k * GAP_MS).then(() => sendPacket(stage, canvas, { cards }, news.track, k === routes.length - 1 ? (p) => p.scrollIntoView({ block: "nearest", inline: "nearest" }) : () => undefined)),
+    );
+    await Promise.all(trips);
+  }
+
+  // The trips run through folders that may be folded, so they open first; the packets all travel, then every destination opens at once.
+  async function showMoves(news: FilesMoved): Promise<void> {
+    const virtual = state.virtual;
+    const selected = state.selectedKey;
+    // A support folder left open, or a lit path, would cover the trips; the graph starts from a clean map.
+    for (const key of [...state.expanded]) {
+      const n = findNode(key.split("/"));
+      if (n && isSupport(n)) state.expanded.delete(key);
+    }
+    state.selectedKey = null;
+    state.selectedKeys = [];
+    for (const parts of [...news.targets.map((t) => t.parts), ...news.chained.map((c) => c.to)]) for (const k of prefixes(parts)) state.expanded.add(k);
+    try {
+      await hydrate();
+    } catch (e) {
+      reportError("warning", e, "Map path");
+    }
+    notify();
+    await news.wait(SHIFT_MS + 200);
+    const start = canvas.querySelector<HTMLElement>('[data-entry="downloads"]');
+    if (!start) return;
+    start.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+    const order = (a: string[], b: string[]) => keyOf(a).localeCompare(keyOf(b), undefined, { numeric: true });
+    const targets = [...news.targets].sort((a, b) => order(a.parts, b.parts));
+    const shown: { end: TreeNode; names: string[] }[] = [];
+    const first: HTMLElement[][] = [];
+    const onward: { from: TreeNode; to: string[]; names: string[] }[] = [];
+    for (const { parts, names } of targets) {
+      const node = findNode(parts);
+      const end = node ? landing(node) : null;
+      first.push([start, cardOf(""), ...[...prefixes(parts), ...(end && end !== node ? [keyOf(end.relParts)] : [])].map(cardOf)].filter((c): c is HTMLElement => c !== null));
+      if (!end) continue;
+      const passed = news.chained.filter((c) => keyOf(c.from) === keyOf(end.relParts));
+      const stays = names.filter((n) => !passed.some((c) => c.name === n));
+      if (stays.length > 0) shown.push({ end, names: stays });
+      const groups = new Map<string, { from: TreeNode; to: string[]; names: string[] }>();
+      for (const c of passed) {
+        const g = groups.get(keyOf(c.to)) ?? { from: end, to: c.to, names: [] };
+        g.names.push(c.name);
+        groups.set(keyOf(c.to), g);
+      }
+      onward.push(...groups.values());
+    }
+    await wave(first, news);
+    // A review folder that runs on its own sends its files on: a second wave leaves from it, up to the shared folder and down to the next node.
+    const second = onward.sort((a, b) => order(a.to, b.to)).map(({ from, to, names }) => {
+      let common = 0;
+      while (common < from.relParts.length && common < to.length && from.relParts[common] === to[common]) common++;
+      const node = findNode(to);
+      const end = node ? landing(node) : null;
+      if (end) shown.push({ end, names });
+      const up = [...prefixes(from.relParts.slice(0, -1)).slice(Math.max(common - 1, 0)).reverse(), ...(common === 0 ? [""] : [])];
+      return [keyOf(from.relParts), ...up, ...prefixes(to).slice(common), ...(end && end !== node ? [keyOf(end.relParts)] : [])].map(cardOf).filter((c): c is HTMLElement => c !== null);
+    });
+    if (second.length > 0) await wave(second, news);
+    await revealAll(shown, news);
+    // The trip borrowed the selection; the user's own place comes back.
+    if (virtual) await openVirtual(virtual);
+    else select(selected?.split("/") ?? null);
+  }
+
+  // Every destination opens together with its new files on top and lit, holds a moment, then closes.
+  async function revealAll(shown: { end: TreeNode; names: string[] }[], news: FilesMoved): Promise<void> {
+    if (shown.length === 0) return;
+    const keys = shown.map(({ end }) => keyOf(end.relParts));
+    for (const { end } of shown) {
+      state.expanded.add(keyOf(end.relParts));
+      // What the graph holds for it was read before the run, often empty, so it is read again.
+      const fresh = findNode(end.relParts) ?? end;
+      fresh.children = null;
+      fresh.hasChildren = true;
+    }
+    try {
+      await hydrate();
+    } catch (e) {
+      reportError("warning", e, "Map path");
+    }
+    const lit = new Set<string>();
+    for (const { end, names } of shown) {
+      const fresh = findNode(end.relParts) ?? end;
+      const listed = fresh.children ?? [];
+      // The run may still be filing them, so they are drawn where they are going; they lead the list whatever the sort, only for the show.
+      const byName = new Map(listed.map((c) => [c.name, c]));
+      const arriving = names.map((name) => byName.get(name) ?? ({ name, file: true, relParts: [...end.relParts, name], children: null, hasChildren: false, flags: [], ghost: false, nodeType: null } as unknown as TreeNode));
+      fresh.children = [...arriving, ...listed.filter((c) => !names.includes(c.name))];
+      for (const c of arriving) lit.add(keyOf(c.relParts));
+    }
+    arrived = lit;
+    notify();
+    await news.wait(SHIFT_MS + 900);
+    arrived = new Set();
+    for (const k of keys) state.expanded.delete(k);
+    notify();
+    await news.wait(SHIFT_MS);
+  }
+  // Every file that moved, here or in another program, travels the branches as a packet: up from where it left to the folder both paths share, then down
+  // to where it landed, or down from the root when it came from outside. They run one after another, as they happened, seen or not.
+  let trips: Promise<void> = Promise.resolve();
+  const visibleChain = (parts: string[]): HTMLElement[] => {
+    const chain: HTMLElement[] = [];
+    for (const k of ["", ...prefixes(parts)]) {
+      const c = cardOf(k);
+      if (!c) break;
+      chain.push(c);
+    }
+    return chain;
+  };
+  const travel = async (trip: Trip): Promise<void> => {
+    await new Promise((r) => requestAnimationFrame(r));
+    if (!root.isConnected) return;
+    const down = visibleChain(trip.to);
+    const up = trip.from === null ? [] : visibleChain(trip.from);
+    let shared = 0;
+    while (shared < up.length && shared < down.length && up[shared] === down[shared]) shared++;
+    const start = Math.max(shared - 1, 0);
+    await sendPacket(stage, canvas, { cards: down.slice(start), back: up.slice(start) }, (a) => a, () => undefined);
+  };
+  const onTrips = (ev: Event): void => {
+    for (const trip of (ev as CustomEvent<Trip[]>).detail) trips = trips.then(() => travel(trip), () => travel(trip));
+  };
+
+  const onMoved = (ev: Event) => {
+    const news = (ev as CustomEvent<FilesMoved>).detail;
+    if (root.isConnected) news.handled = showMoves(news);
+  };
+
   return {
     id: "graph",
     label: "Graph",
     mount(host) {
       root.addEventListener("keydown", onKey);
+      window.addEventListener("fm:files-moved", onMoved);
+      window.addEventListener("fm:file-trips", onTrips);
+      window.addEventListener("pointermove", onDragMove);
       fresh = true;
       stage.style.zoom = String(scale);
       host.append(root);
@@ -465,7 +758,7 @@ export function createGraphView(): ViewMode {
     render() {
       // Until the storage is read there is nothing to lay out, so the graph says it is loading instead of showing a lone root.
       if (!state.tree) {
-        canvas.replaceChildren(el("div", { class: "graph-files loading", "aria-busy": "true" }, "Loading…"));
+        canvas.replaceChildren(el("div", { class: "graph-files-box loading", "aria-busy": "true" }, "Loading…"));
         return;
       }
       if (state.tree && restoredFor !== state.tree.root) {
@@ -482,13 +775,13 @@ export function createGraphView(): ViewMode {
       if (!restoring && state.tree) savePref(`fm.graph.expanded:${state.tree.root}`, JSON.stringify([...state.expanded]));
       parents = new Map();
       const tops = nodesOf(state.tree?.nodes);
-      const top = el("div", { class: "graph-card graph-root" }, el("span", { class: "graph-name" }, rootName(state.tree?.root) || "Storage"));
+      const top = el("div", { class: "graph-node-box graph-root" }, el("span", { class: "graph-name" }, rootName(state.tree?.root) || "Storage"));
       // The selected card is held in place on screen, so the centred layout reflowing around it does not look like a jump.
       const sel = state.selectedKey;
       const at = (k: string | null) => (k === null ? undefined : canvas.querySelector(`[data-key="${CSS.escape(k)}"]`)?.getBoundingClientRect());
       const before = at(sel);
       const layout = snapshot(canvas);
-      canvas.replaceChildren(el("div", { class: "graph-branch" }, el("div", { class: "graph-head" }, top), ...(tops.length > 0 ? [el("div", { class: "graph-kids", role: "group" }, ...tops.map((n) => branch(n, null)))] : [])));
+      canvas.replaceChildren(el("div", { class: "graph-branch" }, el("div", { class: "graph-head" }, top, ...downloadsCard()), ...(tops.length > 0 || state.expanded.has(DOWNLOADS_ROOT) ? [rootKids(tops)] : [])));
       restoreShift();
       top.classList.toggle("on-path", state.selectedKey !== null && parents.has(state.selectedKey));
       if (state.selectedKey && parents.has(state.selectedKey)) {
@@ -516,6 +809,9 @@ export function createGraphView(): ViewMode {
       root.focus();
     },
     destroy() {
+      window.removeEventListener("fm:files-moved", onMoved);
+      window.removeEventListener("fm:file-trips", onTrips);
+      window.removeEventListener("pointermove", onDragMove);
       cancelAnimationFrame(frame);
       root.remove();
     },

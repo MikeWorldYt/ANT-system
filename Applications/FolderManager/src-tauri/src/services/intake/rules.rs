@@ -13,7 +13,7 @@ const ROOT_EXEMPT_MARKER: &str = "foldermanager";
 
 pub(super) enum Rule<'a> {
     Root,
-    // The folder and everything below it belong to the app or to a workboard, so intake never looks inside.
+    // The folder and everything below it belong to the app or to a worknode, so intake never looks inside.
     Skip,
     Keep,
     Loose,

@@ -1,6 +1,7 @@
 // Event-driven Storage watching: folder changes on disk update only the affected part of the stored tree.
 mod apply;
 mod auto_run;
+mod downloads;
 mod filter;
 mod guard;
 mod gui;
@@ -15,6 +16,7 @@ use crate::services::debug_log;
 use crate::domain::error::R;
 
 pub(crate) use guard::{local_data_dir, storage_key};
+pub use downloads::watch_downloads;
 pub use gui::GuiWatch;
 pub use headless::run_headless;
 pub use watcher::watch;

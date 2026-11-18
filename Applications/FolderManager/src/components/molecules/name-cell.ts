@@ -3,6 +3,7 @@ import { el, keepClicks } from "../dom";
 import { guiIcon } from "../atoms/gui-icons";
 import { hideCheckbox } from "../atoms/checkbox";
 import { textInput } from "../atoms/text-input";
+import { extOf, growToFit, keepExtension, selectStem } from "./keep-extension";
 import { renameTo, setLinkHidden } from "../../hooks/ops";
 import { keyOf, state, stopEdit } from "../../services/store/state";
 import type { TreeNode } from "../../services/ipc/types";
@@ -25,8 +26,8 @@ export function hideBox(n: TreeNode): HTMLElement[] {
   return [box];
 }
 
-// `staircase` adds the review-link dashes; the grid leaves them out because they read badly in tiles.
-export function nameCell(n: TreeNode, inlineStar = true, staircase = false): HTMLElement {
+// `staircase` adds the review-link dashes; the grid leaves them out because they read badly in tiles. `wrap` edits the name over several lines, as a tile shows it.
+export function nameCell(n: TreeNode, inlineStar = true, staircase = false, wrap = false): HTMLElement {
   const key = keyOf(n.relParts);
   const edit = state.editing;
   if (!edit || edit.key !== key) {
@@ -35,18 +36,21 @@ export function nameCell(n: TreeNode, inlineStar = true, staircase = false): HTM
     return el("span", { class: isTopLink(n) || (review && reviewLevel(n) === 1) ? "name top-link" : "name" }, el("span", { class: "name-text" }, text), ...(n.favorite && inlineStar ? [favoriteMark()] : []), ...(n.important && inlineStar ? [importantMark()] : []), ...(runsAuto(n) ? [autoMark()] : []));
   }
 
-  const input = textInput({ class: "name-input", "aria-label": `Rename ${n.name}` });
+  const input = wrap ? el("textarea", { class: "name-input wrap", "aria-label": `Rename ${n.name}`, spellcheck: "false", rows: "1" }) : textInput({ class: "name-input", "aria-label": `Rename ${n.name}` });
   input.value = edit.draft;
+  const ext = n.file ? extOf(n.name) : "";
+  keepExtension(input, ext);
+  const fit = input instanceof HTMLTextAreaElement ? growToFit(input) : () => undefined;
   const finish = (commit: boolean) => {
     if (state.editing?.key !== key) return;
-    const text = input.value;
+    const text = input.value.replace(/\s*\n\s*/g, " ");
     stopEdit();
     if (commit) void renameTo(n, text);
   };
   input.addEventListener("input", () => {
     edit.draft = input.value;
   });
-  input.addEventListener("keydown", (ev) => {
+  (input as HTMLElement).addEventListener("keydown", (ev) => {
     ev.stopPropagation();
     if (ev.key === "Enter") finish(true);
     else if (ev.key === "Escape") finish(false);
@@ -61,10 +65,12 @@ export function nameCell(n: TreeNode, inlineStar = true, staircase = false): HTM
   );
   keepClicks(input);
   queueMicrotask(() => {
+    fit();
     input.focus();
     if (edit.focused) input.setSelectionRange(input.value.length, input.value.length);
+    else if (ext) selectStem(input, ext);
     else input.select();
     edit.focused = true;
   });
-  return el("span", { class: "name editing" }, el("span", { class: "name-fixed" }, n.fixedPrefix), input);
+  return el("span", { class: wrap ? "name editing wrap" : "name editing" }, el("span", { class: "name-fixed" }, n.fixedPrefix), input);
 }

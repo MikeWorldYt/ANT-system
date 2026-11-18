@@ -1,11 +1,11 @@
-// Sorts the loose files of a review folder into untracked workboards, and can put the last sort back.
+// Sorts the loose files of a review folder into untracked worknodes, and can put the last sort back.
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use serde_yaml::{Mapping, Value};
 
-use super::add::mark_workboard;
+use super::add::mark_worknode;
 use super::{child_rel, ensure_free, finish, load_synced_at, locate, persist, scope, Mutation};
 use crate::domain::config::{DATA_DIR, OWNER_KEYS};
 use crate::domain::error::{FmError, R};
@@ -99,7 +99,7 @@ fn fill_project(dir: &Path, plan: &ProjectPlan, parent: &str) -> R<()> {
         updates.push((&["created"], "created", Some(created.as_str().into())));
     }
     write_info(dir, &updates)?;
-    mark_workboard(dir, parent, "in-progress")
+    mark_worknode(dir, parent, "in-progress")
 }
 
 pub fn apply_project_groups(root: &Path, folder: &[String], plans: &[ProjectPlan]) -> R<Mutation> {
@@ -241,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn applying_makes_a_workboard_and_undo_puts_everything_back() {
+    fn applying_makes_a_worknode_and_undo_puts_everything_back() {
         let dir = ready("pg-apply");
         apply_project_groups(dir.path(), &rel(REVIEW), &[plan()]).unwrap();
         let board = dir.path().join("100.WORK/98.WORK/PJ_Alpha-Beta-Gamma");

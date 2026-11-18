@@ -29,6 +29,8 @@ interface State {
   settings: Settings;
   // The open virtual root entry and the real folders it lists, gathered from the whole Storage.
   virtual: VirtualId | null;
+  // A root entry stood on but not opened, so the side panel can describe it.
+  marked: VirtualId | null;
   virtualKeys: string[];
   // The system Downloads folder read so far; its paths start with DOWNLOADS_ROOT and live outside `tree`.
   downloads: TreeNode[];
@@ -59,6 +61,8 @@ export interface Settings {
   hideDone: boolean;
   hideDirectoryIdentifiers: boolean;
   confirmDelete: boolean;
+  // In Batch mode a file dropped on a group is pinned to it; off, it only lands in the folder and the rules place it.
+  batchDropToGroup: boolean;
   autoUpdate: boolean;
   debugLogging: boolean;
   backupAuto: boolean;
@@ -117,8 +121,9 @@ export const state: State = {
   hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, mcpWrites: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, batchDropToGroup: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, mcpWrites: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
   virtual: null,
+  marked: null,
   virtualKeys: [],
   downloads: [],
   via: null,
@@ -206,7 +211,12 @@ export const serializeSetting = (value: Settings[keyof Settings]): string =>
 function readShortcuts(raw: string | undefined): Record<string, KeyCombo> {
   if (!raw) return {};
   try {
-    return JSON.parse(raw) as Record<string, KeyCombo>;
+    const saved = JSON.parse(raw) as Record<string, KeyCombo>;
+    // Worknodes were named workboards, and a shortcut saved then keeps working.
+    const legacy = saved.newWorkboard;
+    if (legacy && !saved.newWorknode) saved.newWorknode = legacy;
+    delete saved.newWorkboard;
+    return saved;
   } catch (e) {
     console.warn("Saved shortcuts are unreadable", e);
     return {};
@@ -218,6 +228,7 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.hideDone = saved.hideDone === "true";
   state.settings.hideDirectoryIdentifiers = saved.hideDirectoryIdentifiers === "true";
   state.settings.confirmDelete = saved.confirmDelete !== "false";
+  state.settings.batchDropToGroup = saved.batchDropToGroup !== "false";
   state.settings.autoUpdate = saved.autoUpdate !== "false";
   state.settings.debugLogging = saved.debugLogging === "true";
   state.settings.backupAuto = saved.backupAuto === "true";

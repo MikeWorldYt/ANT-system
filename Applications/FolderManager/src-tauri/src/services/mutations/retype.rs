@@ -1,9 +1,9 @@
-// The type lives in the tree entry, while a workboard's status and owner travel in its own info.json.
+// The type lives in the tree entry, while a worknode's status and owner travel in its own info.json.
 use std::path::Path;
 
 use serde_yaml::Value;
 
-use super::add::mark_workboard;
+use super::add::mark_worknode;
 use super::{editable_target, finish, scope, guard_frozen, load_synced_at, locate, parent_of, Mutation};
 use crate::domain::tree_types::{type_base, type_level};
 use crate::domain::config::{EditableType, WkbStatus, OWNER_KEYS};
@@ -35,7 +35,7 @@ pub fn set_node_type(
     let node = get_node_mut(&mut data, rel)
         .ok_or_else(|| FmError::NotFound { rel_parts: rel.to_vec() })?;
     node.insert("type".into(), new_type.into());
-    let workboard = matches!(base, EditableType::Wkb);
+    let worknode = matches!(base, EditableType::Wkb);
     match (base, status) {
         (EditableType::Wkb, Some(s)) => {
             node.insert("status".into(), s.as_str().into());
@@ -47,9 +47,9 @@ pub fn set_node_type(
     }
     let status_now = node.get("status").and_then(Value::as_str).map(str::to_string);
     let mut warnings = Vec::new();
-    if workboard && !target.ghost {
+    if worknode && !target.ghost {
         let breadcrumb = parent_of(rel).last().map_or("", String::as_str);
-        if let Err(e) = mark_workboard(&target.abs, breadcrumb, status_now.as_deref().unwrap_or("in-progress")) {
+        if let Err(e) = mark_worknode(&target.abs, breadcrumb, status_now.as_deref().unwrap_or("in-progress")) {
             warnings.push(format!("Could not set up the info file: {e}"));
         }
     }
@@ -63,7 +63,7 @@ pub fn set_details(root: &Path, rel: &[String], status: Option<WkbStatus>, owner
     let (data, synced) = load_synced_at(root, parent_of(rel))?;
     let target = editable_target(root, &data, rel, "edit")?;
     if type_base(&target.node_type) != "WKB" {
-        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only workboards have status and owner".to_string() });
+        return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only worknodes have status and owner".to_string() });
     }
     let current = read_info(&target.abs);
     let kept = |keys: &[&str]| current.as_ref().and_then(|i| field_of(i, keys)).map(str::to_string);
@@ -91,7 +91,7 @@ mod tests {
     fn details_go_to_info_json_and_default_to_the_yaml_status_then_unknown() {
         let dir = academic("details");
         let p = rel(&["100.ACADEMIC", "02.Bio"]);
-        assert!(set_details(dir.path(), &p, None, Some("Ana")).is_err(), "not a workboard yet");
+        assert!(set_details(dir.path(), &p, None, Some("Ana")).is_err(), "not a worknode yet");
         set_node_type(dir.path(), &p, EditableType::Wkb, Some(WkbStatus::Hold)).unwrap();
         let m = set_details(dir.path(), &p, None, Some(" Ana ")).unwrap();
         let info = std::fs::read_to_string(dir.path().join("100.ACADEMIC/02.Bio/.ant/info.json")).unwrap();
@@ -103,7 +103,7 @@ mod tests {
     }
 
     #[test]
-    fn details_of_an_untracked_workboard_create_info_json_without_a_tree_entry() {
+    fn details_of_an_untracked_worknode_create_info_json_without_a_tree_entry() {
         let dir = storage("untracked-details", &["100.A/01.B/01.C/PJ.013_Logo"], "100.A:
   type: NODE-L1
   01.B:
@@ -141,7 +141,7 @@ mod tests {
     }
 
     #[test]
-    fn changing_to_a_workboard_gives_the_default_info_without_overwriting_it() {
+    fn changing_to_a_worknode_gives_the_default_info_without_overwriting_it() {
         let dir = academic("retype-info");
         let p = rel(&["100.ACADEMIC", "02.Bio"]);
         set_node_type(dir.path(), &p, EditableType::Wkb, None).unwrap();

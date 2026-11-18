@@ -2,19 +2,19 @@
 import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "../../organisms/menus/context-menu";
 import { el } from "../../dom";
 import { folderIcon } from "../../atoms/icons";
-import { nativeImage } from "../../../services/file-images";
+import { fileThumb } from "../../atoms/thumb";
 import { statusMark } from "../../atoms/status-mark";
 import { favoriteMark, hideBox, importantMark, nameCell } from "../../molecules/name-cell";
 import { nodeToggle } from "../../atoms/node-toggle";
 import { sortedForColumns } from "../../../services/store/sort";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
-import { findNode, keyOf, listed, select, selectedNode, sortOf, startEdit, state } from "../../../services/store/state";
+import { findNode, keyOf, listed, select, selectedNode, notify, sortOf, startEdit, state, type VirtualId } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { isTail } from "../../../services/store/sort";
-import { openEntry, placeEntries, rootEntries, virtualEntries, virtualEntry, type VirtualEntry } from "../../molecules/virtual-entry";
-import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
+import { openEntry, placeEntries, rootEntries, virtualEntries, type VirtualEntry } from "../../molecules/virtual-entry";
+import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
@@ -77,8 +77,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
 
   // A file's thumbnail replaces its icon once the shell has drawn it.
   function previewIcon(n: TreeNode): HTMLElement {
-    const src = nativeImage(n, true);
-    return src ? el("img", { class: "thumb", src, alt: "" }) : folderIcon(n);
+    return fileThumb(n, () => folderIcon(n)) as HTMLElement;
   }
 
   function buildItem(n: TreeNode, tabbable: boolean): HTMLElement {
@@ -88,27 +87,44 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
     if (n.favorite) art.append(favoriteMark());
     if (n.important) art.append(importantMark());
     if (n.status) art.append(statusMark(n.status));
-    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, detail ? el("div", { class: "card-text" }, nameCell(n, false), el("span", { class: "card-detail" }, detail(n))) : nameCell(n, false));
+    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, detail ? el("div", { class: "card-text" }, nameCell(n, false), el("span", { class: "card-detail" }, detail(n))) : nameCell(n, false, false, !columns));
     if (columns) item.append(...detailCells(n));
     markNodeItem(item, n);
     item.prepend(...manageBox(n, item));
     onItemClick(item, n, () => shownNodes().map((s) => keyOf(s.relParts)), () => select(n.relParts));
-    // As in Explorer, the name renames and the rest of the tile opens.
-    item.addEventListener("dblclick", (ev) => (n.file || (ev.target instanceof Element && ev.target.closest(".name")) ? editOrOpen(n, ev) : enter(n)));
+    // As in Explorer, a double click opens; the name renames on a slow second click.
+    item.addEventListener("dblclick", () => (n.file ? openOnDouble(n) : enter(n)));
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
     return item;
   }
 
-  // The open entry heads its own list; in the root grid every entry leads. Inside a folder there is none.
+  // In the root grid every entry leads; an open list and a folder have none.
   const leadEntries = (): VirtualEntry[] => {
     const open = openEntry();
-    return folder !== null ? [] : open ? [open] : rootEntries();
+    return folder !== null || open ? [] : rootEntries();
   };
 
   function perRow(): number {
     const items = [...root.querySelectorAll<HTMLElement>(".grid-item")];
     const top = items[0]?.offsetTop;
     return Math.max(1, items.filter((i) => i.offsetTop === top).length);
+  }
+
+  function showMark(): void {
+    const tile = state.marked ? root.querySelector<HTMLElement>(`.grid-item[data-entry="${state.marked}"]`) : null;
+    if (!tile) return;
+    root.querySelectorAll(".grid-item.selected").forEach((t) => t.classList.remove("selected"));
+    root.querySelectorAll<HTMLElement>('.grid-item[tabindex="0"]').forEach((t) => (t.tabIndex = -1));
+    tile.classList.add("selected");
+    tile.tabIndex = 0;
+    tile.focus({ preventScroll: true });
+    tile.scrollIntoView({ block: "nearest" });
+  }
+  function markEntry(id: VirtualId): void {
+    state.marked = id;
+    if (state.selectedKey !== null) return select(null);
+    showMark();
+    notify();
   }
 
   function onKey(ev: KeyboardEvent): void {
@@ -120,18 +136,17 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       ev.preventDefault();
       return;
     }
+    // Entries sit between the folders, so the arrows walk the tiles in the order they are drawn.
     const nodes = shownNodes();
-    // The entry tiles come first in the arrow order, so every folder tile sits that many places after its index.
-    const entries = leadEntries();
-    const lead = entries.length;
-    const idx = n ? nodes.indexOf(n) : -1;
-    const i = idx >= 0 ? idx + lead : lead > 0 && !n ? 0 : -1;
+    const tiles = [...root.querySelectorAll<HTMLElement>(".grid-item")];
+    const i = tiles.findIndex((t) => t.classList.contains("selected"));
     const go = (j: number) => {
-      const at = Math.max(0, Math.min(nodes.length + lead - 1, j));
+      const at = Math.max(0, Math.min(tiles.length - 1, j));
       if (at === i) return;
-      const entry = entries[at];
-      if (entry) return void openVirtual(entry.id);
-      const target = nodes[at - lead];
+      const tile = tiles[at];
+      const entry = tile?.dataset.entry as VirtualId | undefined;
+      if (entry) return markEntry(entry);
+      const target = nodes.find((x) => keyOf(x.relParts) === tile?.dataset.key);
       if (target) select(target.relParts);
     };
     switch (ev.key) {
@@ -151,13 +166,14 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
         go(0);
         break;
       case "End":
-        go(nodes.length + lead - 1);
+        go(tiles.length - 1);
         break;
       case "F2":
         if (n) startEdit(n.relParts);
         break;
       case "Enter":
-        if (i < 0) go(0);
+        if (state.marked && state.selectedKey === null) void openVirtual(state.marked);
+        else if (i < 0) go(0);
         else if (n?.file) void openFolder(n);
         else if (n) enter(n);
         break;
@@ -181,6 +197,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       // The background is a drop target for the folder shown; a virtual list is no folder.
       if (listing) delete root.dataset.key;
       else root.dataset.key = folder ?? "";
+      if (state.selectedKey !== null || state.virtual !== null) state.marked = null;
       if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
       const nodes = shownNodes();
@@ -190,14 +207,14 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       const open = folderNode();
       const empty = nodes.length === 0 && open !== null && open.children !== null;
       const legend = listing && nodes.length === 0 ? listing.empty : empty ? "Empty" : null;
-      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns && !listing ? [detailsHeader(folder ?? "")] : [])];
-      // The open entry heads its own list, so the grid tells where it is.
-      const entryOptions = { tabbable: entryTabbable };
+      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns ? [detailsHeader(folder ?? "")] : [])];
+      const entryOptions = { tabbable: entryTabbable, mark: markEntry };
       const items = nodes.map((n) => buildItem(n, n === tabbable));
       const tail = nodes.findIndex((n) => !n.file && isTail(n.name));
-      const placed = listing ? [virtualEntry(listing, "grid-item", "option", entryOptions), ...items] : folder === null ? placeEntries(virtualEntries("grid-item", "option", entryOptions), items, tail < 0 ? items.length : tail) : items;
+      const placed = listing ? items : folder === null ? placeEntries(virtualEntries("grid-item", "option", entryOptions), items, tail < 0 ? items.length : tail) : items;
       root.replaceChildren(...header, ...placed, ...(legend ? [el("p", { class: "grid-legend" }, legend)] : []));
       built = manageSnapshot();
+      showMark();
       root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus({ preventScroll: true });
       loadChildren();

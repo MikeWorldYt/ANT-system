@@ -57,19 +57,19 @@ fn trimmed_needs_letters_then_a_two_digit_id() {
 }
 
 #[test]
-fn workboard_names_take_the_tracker_format_and_keep_legacy_metadata() {
-    let (name, meta) = workboard("PJ.111_(23-05MAY-04) Large [c011]_presentation").unwrap();
+fn worknode_names_take_the_tracker_format_and_keep_legacy_metadata() {
+    let (name, meta) = worknode("PJ.111_(23-05MAY-04) Large [c011]_presentation").unwrap();
     assert_eq!(name, "PJ.111_Presentation");
     assert_eq!((meta.created.as_deref(), meta.tag.as_deref(), meta.owner.as_deref()), (Some("23-05-04"), Some("Large"), Some("c011")));
-    let (name, meta) = workboard("PJ.145_(25-11-14) Plans_DOC").unwrap();
+    let (name, meta) = worknode("PJ.145_(25-11-14) Plans_DOC").unwrap();
     assert_eq!(name, "PJ.145_Plans-DOC");
     assert_eq!((meta.created.as_deref(), meta.owner.is_none()), (Some("25-11-14"), true));
-    let (name, meta) = workboard("PJ.150_my project").unwrap();
+    let (name, meta) = worknode("PJ.150_my project").unwrap();
     assert_eq!(name, "PJ.150_My-project");
     assert!(meta.created.is_none() && meta.tag.is_none() && meta.owner.is_none());
-    assert_eq!(workboard("PR.010").unwrap().0, "PR.010");
-    assert!(workboard("PJ.1_Short").is_none());
-    assert!(workboard("PJ.150x").is_none());
+    assert_eq!(worknode("PR.010").unwrap().0, "PR.010");
+    assert!(worknode("PJ.1_Short").is_none());
+    assert!(worknode("PJ.150x").is_none());
 }
 
 #[test]
@@ -85,19 +85,19 @@ fn tree_entries_whose_folder_is_gone_are_left_alone() {
     let dir = storage(
         "node-names-ghosts",
         &["100.ACADEMIC/02.Keep"],
-        "100.ACADEMIC:\n  type: NODE-L1\n  PJ.002_New-Workboard: {type: WKB-L2}\n  Unit03.Gone: {type: NODE-L2}\n",
+        "100.ACADEMIC:\n  type: NODE-L1\n  PJ.002_New-Worknode: {type: WKB-L2}\n  Unit03.Gone: {type: NODE-L2}\n",
     );
     tidy(dir.path()).unwrap();
     let data = yaml(dir.path());
-    assert!(get_node(&data, &rel(&["100.ACADEMIC", "PJ.002_New-Workboard"])).is_some());
+    assert!(get_node(&data, &rel(&["100.ACADEMIC", "PJ.002_New-Worknode"])).is_some());
     assert!(get_node(&data, &rel(&["100.ACADEMIC", "Unit03.Gone"])).is_some());
     assert!(!logs_dir(dir.path()).join(format!("{}_ANT-fm-renamed.log", local_date())).exists());
 }
 
 #[test]
-fn workboards_are_renamed_to_the_format_and_get_their_info_json() {
+fn worknodes_are_renamed_to_the_format_and_get_their_info_json() {
     let dir = storage(
-        "node-names-workboards",
+        "node-names-worknodes",
         &["100.ACADEMIC/PJ.111_(23-05MAY-04) Large [c011]_presentation", "100.ACADEMIC/PR.010_my project", "100.ACADEMIC/PJ.150_my-project"],
         "100.ACADEMIC:\n  type: NODE-L1\n",
     );

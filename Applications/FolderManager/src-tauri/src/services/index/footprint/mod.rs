@@ -71,7 +71,7 @@ fn known_ids(nodes: &[(String, &Mapping)]) -> HashMap<String, String> {
     nodes.iter().filter_map(|(path, node)| Some((node.get("uid").and_then(Value::as_str)?.to_string(), path.clone()))).collect()
 }
 
-// Folders that should carry a .ant folder for their id: nodes, data nodes included, and workboards.
+// Folders that should carry a .ant folder for their id: nodes, data nodes included, and worknodes.
 // A node with loose files waits for the user before it is marked, so intake can ask first.
 fn unmarked(root: &Path, nodes: &[(String, &Mapping)]) -> R<Vec<String>> {
     let mut out = Vec::new();

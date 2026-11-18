@@ -12,6 +12,7 @@ use crate::services::bridge::{client, UiCall};
 pub const WRITES_KEY: &str = "mcpWrites";
 pub const MAX_BATCH: usize = 50;
 pub const MAX_FILES: usize = 500;
+pub const MAX_ENTRIES: usize = 500;
 pub const CONFIRM_WAIT: Duration = Duration::from_secs(60);
 
 const READ_ONLY: &str = "Folder Manager lets AI agents only read this storage, so nothing was changed. To allow changes, ask the user to turn on \"Let AI agents change this storage\" in Folder Manager under Settings > Advanced, then call the tool again.";

@@ -52,8 +52,8 @@ fn never_recycles(_: &Path) -> Result<(), String> {
     Err("the tests have no Recycle Bin".to_string())
 }
 
-// A workboard folder outside the storage, carrying the id a .ant/dragpath.json would hold; the TempDir keeps it alive.
-fn outside_workboard(tag: &str, name: &str, id: &str) -> (TempDir, PathBuf) {
+// A worknode folder outside the storage, carrying the id a .ant/dragpath.json would hold; the TempDir keeps it alive.
+fn outside_worknode(tag: &str, name: &str, id: &str) -> (TempDir, PathBuf) {
     let root = TempDir::new(tag);
     let dir = root.path().join(name);
     fs::create_dir_all(dir.join(".ant")).unwrap();
@@ -63,24 +63,24 @@ fn outside_workboard(tag: &str, name: &str, id: &str) -> (TempDir, PathBuf) {
 }
 
 #[test]
-fn a_workboard_from_outside_moves_in_and_takes_the_next_track() {
+fn a_worknode_from_outside_moves_in_and_takes_the_next_track() {
     let (dir, _src) = fixture("drop-wkb");
-    let (_outside, incoming) = outside_workboard("drop-wkb-in", "PJ.001_Incoming", "NEWID00000000001");
+    let (_outside, incoming) = outside_worknode("drop-wkb-in", "PJ.001_Incoming", "NEWID00000000001");
     let out = drop_files(dir.path(), &rel(&["100.PERSONAL"]), std::slice::from_ref(&incoming), false, &[], &never_recycles).unwrap();
     assert!(out.mutation.warnings.is_empty(), "{:?}", out.mutation.warnings);
     assert_eq!(out.placed, [placed("PJ.002_Incoming", &["100.PERSONAL"], false)]);
     assert_eq!(read(&dir, "100.PERSONAL/PJ.002_Incoming/brief.txt"), "brief");
     assert!(!incoming.exists());
-    assert!(out.mutation.tree.is_some(), "a placed workboard is a yaml change, so the tree is read again");
+    assert!(out.mutation.tree.is_some(), "a placed worknode is a yaml change, so the tree is read again");
 }
 
 #[test]
-fn a_workboard_already_in_the_storage_is_reported_by_its_id_and_not_placed() {
+fn a_worknode_already_in_the_storage_is_reported_by_its_id_and_not_placed() {
     let (dir, _src) = fixture("drop-wkb-conflict");
     let mut data = yaml(dir.path());
     tree_store::get_node_mut(&mut data, &rel(&["100.PERSONAL", "PJ.001_Board"])).unwrap().insert("uid".into(), "EXISTINGID000001".into());
     tree_store::save(dir.path(), &data).unwrap();
-    let (_outside, incoming) = outside_workboard("drop-wkb-dup", "PJ.009_Test", "EXISTINGID000001");
+    let (_outside, incoming) = outside_worknode("drop-wkb-dup", "PJ.009_Test", "EXISTINGID000001");
     let out = drop_files(dir.path(), &rel(&["100.PERSONAL"]), std::slice::from_ref(&incoming), false, &[], &never_recycles).unwrap();
     assert!(out.placed.is_empty());
     assert_eq!(out.conflicts.len(), 1, "{:?}", out.conflicts);
@@ -89,12 +89,12 @@ fn a_workboard_already_in_the_storage_is_reported_by_its_id_and_not_placed() {
 }
 
 #[test]
-fn replacing_a_workboard_sends_the_existing_one_to_the_bin_and_places_the_new_one() {
+fn replacing_a_worknode_sends_the_existing_one_to_the_bin_and_places_the_new_one() {
     let (dir, _src) = fixture("drop-wkb-replace");
     let mut data = yaml(dir.path());
     tree_store::get_node_mut(&mut data, &rel(&["100.PERSONAL", "PJ.001_Board"])).unwrap().insert("uid".into(), "EXISTINGID000002".into());
     tree_store::save(dir.path(), &data).unwrap();
-    let (_outside, incoming) = outside_workboard("drop-wkb-swap", "PJ.007_Other", "EXISTINGID000002");
+    let (_outside, incoming) = outside_worknode("drop-wkb-swap", "PJ.007_Other", "EXISTINGID000002");
     let sent = std::cell::RefCell::new(Vec::new());
     let bin = |p: &Path| {
         sent.borrow_mut().push(p.to_path_buf());
@@ -115,7 +115,7 @@ fn with_uid(dir: &TempDir, parts: &[&str], id: &str) {
 
 // Replaces the holder of `id` at `target` with a board from outside; the bin must stay unused unless a test passes its own.
 fn replace_at(dir: &TempDir, target: &[&str], tag: &str, name: &str, id: &str, bin: &dyn Fn(&Path) -> Result<(), String>) -> (DropOutcome, TempDir, PathBuf) {
-    let (outside, incoming) = outside_workboard(tag, name, id);
+    let (outside, incoming) = outside_worknode(tag, name, id);
     let out = drop_files(dir.path(), &rel(target), std::slice::from_ref(&incoming), false, std::slice::from_ref(&incoming), bin).unwrap();
     (out, outside, incoming)
 }
@@ -127,7 +127,7 @@ fn refused(out: &DropOutcome, incoming: &Path, why: &str) {
 }
 
 #[test]
-fn a_replacement_whose_name_is_taken_leaves_the_old_workboard() {
+fn a_replacement_whose_name_is_taken_leaves_the_old_worknode() {
     let (dir, _src) = fixture("drop-swap-taken");
     with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000003");
     dir.mkdir("100.PERSONAL/PJ.001_Other");
@@ -137,7 +137,7 @@ fn a_replacement_whose_name_is_taken_leaves_the_old_workboard() {
 }
 
 #[test]
-fn only_a_workboard_can_be_replaced() {
+fn only_a_worknode_can_be_replaced() {
     let owners: [&[&str]; 3] = [&["100.PERSONAL"], &["100.PERSONAL", "03.Toki"], &["100.PERSONAL", "98.PERSONAL"]];
     for (n, owner) in owners.into_iter().enumerate() {
         let (dir, _src) = fixture(&format!("drop-swap-node-{n}"));
@@ -148,13 +148,13 @@ fn only_a_workboard_can_be_replaced() {
             Ok(())
         };
         let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL", "04.Data"], &format!("drop-swap-node-in-{n}"), "PJ.007_Other", "EXISTINGID000004", &bin);
-        refused(&out, &incoming, "only a workboard");
+        refused(&out, &incoming, "only a worknode");
         assert!(!sent.get(), "{owner:?}");
     }
 }
 
 #[test]
-fn a_workboard_cannot_be_replaced_from_inside_itself() {
+fn a_worknode_cannot_be_replaced_from_inside_itself() {
     let (dir, _src) = fixture("drop-swap-inside");
     with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000005");
     let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL", "PJ.001_Board"], "drop-swap-inside-in", "PJ.007_Other", "EXISTINGID000005", &ok_recycle);
@@ -163,7 +163,7 @@ fn a_workboard_cannot_be_replaced_from_inside_itself() {
 }
 
 #[test]
-fn a_refused_recycle_puts_the_new_workboard_back_and_keeps_the_old_one() {
+fn a_refused_recycle_puts_the_new_worknode_back_and_keeps_the_old_one() {
     let (dir, _src) = fixture("drop-swap-bin");
     with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000006");
     let before = names(&dir.path().join("100.PERSONAL"));
@@ -173,7 +173,7 @@ fn a_refused_recycle_puts_the_new_workboard_back_and_keeps_the_old_one() {
 }
 
 #[test]
-fn a_final_name_lost_after_the_recycle_puts_the_new_workboard_back() {
+fn a_final_name_lost_after_the_recycle_puts_the_new_worknode_back() {
     let (dir, _src) = fixture("drop-swap-lost");
     with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000007");
     let taken = dir.path().join("100.PERSONAL/PJ.001_Other");
@@ -187,7 +187,7 @@ fn a_final_name_lost_after_the_recycle_puts_the_new_workboard_back() {
 }
 
 #[test]
-fn a_replacement_may_take_the_name_of_the_workboard_it_replaces() {
+fn a_replacement_may_take_the_name_of_the_worknode_it_replaces() {
     let (dir, _src) = fixture("drop-swap-same");
     with_uid(&dir, &["100.PERSONAL", "PJ.001_Board"], "EXISTINGID000008");
     let (out, _outside, incoming) = replace_at(&dir, &["100.PERSONAL"], "drop-swap-same-in", "PJ.009_Board", "EXISTINGID000008", &ok_recycle);
@@ -198,9 +198,9 @@ fn a_replacement_may_take_the_name_of_the_workboard_it_replaces() {
 }
 
 #[test]
-fn a_workboard_copy_keeps_the_original_and_takes_a_track_and_an_id_of_its_own() {
+fn a_worknode_copy_keeps_the_original_and_takes_a_track_and_an_id_of_its_own() {
     let (dir, _src) = fixture("drop-wkb-copy");
-    let (_outside, incoming) = outside_workboard("drop-wkb-copy-in", "PJ.001_Board", "COPYID0000000001");
+    let (_outside, incoming) = outside_worknode("drop-wkb-copy-in", "PJ.001_Board", "COPYID0000000001");
     let out = drop_files(dir.path(), &rel(&["100.PERSONAL"]), std::slice::from_ref(&incoming), true, &[], &never_recycles).unwrap();
     assert!(out.mutation.warnings.is_empty(), "{:?}", out.mutation.warnings);
     assert_eq!(out.placed, [placed("PJ.002_Board", &["100.PERSONAL"], false)]);
@@ -323,7 +323,7 @@ fn a_copy_lands_with_a_numbered_name_and_keeps_the_source() {
 }
 
 #[test]
-fn main_nodes_and_workboards_follow_the_drop_rules() {
+fn main_nodes_and_worknodes_follow_the_drop_rules() {
     let (dir, src) = fixture("drop-rules");
     drop_at(&dir, &src, &["100.PERSONAL"], &["report.pdf"], true).unwrap();
     assert!(dir.path().join("100.PERSONAL/98.PERSONAL/report.pdf").is_file());

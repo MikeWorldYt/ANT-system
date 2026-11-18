@@ -8,7 +8,7 @@ use super::protocol::{RpcError, INVALID_PARAMS};
 use super::tools::args;
 use super::view::Change;
 use super::retry::retrying;
-use super::gate::{MAX_BATCH, MAX_FILES};
+use super::gate::{MAX_BATCH, MAX_ENTRIES, MAX_FILES};
 use super::{write_schema as schema, Server};
 use crate::domain::config::{EditableType, NewKind, WkbStatus};
 use crate::domain::error::R;
@@ -31,23 +31,23 @@ enum Kind {
 
 const TOOLS: [(&str, &str, &str, Schemas, Kind); 21] = [
     ("add_node", "Add folder", "Creates a folder inside `parent` (an empty parent adds a root category) with the given name.", schema::add_node, Kind::Change),
-    ("add_workboard", "Add workboard", "Creates a workboard inside `parent` with the given name; the app numbers it.", schema::add_workboard, Kind::Change),
+    ("add_worknode", "Add worknode", "Creates a worknode inside `parent` with the given name; the app numbers it.", schema::add_worknode, Kind::Change),
     ("rename", "Rename folder", "Renames a folder; its linked support and review folders follow.", schema::rename, Kind::Change),
     ("move", "Move folder", "Moves a folder into `destination`, where it takes the next free id.", schema::move_folder, Kind::Destructive),
     ("copy", "Copy folder", "Copies a folder into `destination`, keeping its id under the next free \"(n)\" name.", schema::move_folder, Kind::Change),
     ("reorder", "Move up or down", "Swaps a folder's id with its sibling above or below.", schema::reorder, Kind::Destructive),
     ("delete", "Delete folder", "Sends a folder to the Recycle Bin, never deleting it for good; a non-empty folder needs confirmNonEmpty.", schema::delete, Kind::Destructive),
-    ("set_type", "Set type", "Makes a folder a NODE or a workboard (WKB), optionally with a workboard status.", schema::set_type, Kind::Idempotent),
-    ("set_status", "Set status", "Sets a workboard's status in its info.json.", schema::set_status, Kind::Idempotent),
-    ("set_owner", "Set owner", "Sets a workboard's owner in its info.json.", schema::set_owner, Kind::Idempotent),
+    ("set_type", "Set type", "Makes a folder a NODE or a worknode (WKB), optionally with a worknode status.", schema::set_type, Kind::Idempotent),
+    ("set_status", "Set status", "Sets a worknode's status in its info.json.", schema::set_status, Kind::Idempotent),
+    ("set_owner", "Set owner", "Sets a worknode's owner in its info.json.", schema::set_owner, Kind::Idempotent),
     ("set_favorite", "Set favorite", "Stars or unstars a folder.", schema::set_flag, Kind::Idempotent),
-    ("set_important", "Set important", "Marks or unmarks a workboard as important.", schema::set_flag, Kind::Idempotent),
+    ("set_important", "Set important", "Marks or unmarks a worknode as important.", schema::set_flag, Kind::Idempotent),
     ("hide", "Hide folder", "Hides or shows a folder below the root level.", schema::hide, Kind::Idempotent),
-    ("set_board", "Place board cards", "Places workboards in task board columns and orders.", schema::set_board, Kind::Idempotent),
+    ("set_board", "Place board cards", "Places worknodes in task board columns and orders.", schema::set_board, Kind::Idempotent),
     ("rename_file", "Rename file", "Renames a file inside a storage folder.", schema::rename_file, Kind::Change),
     ("delete_file", "Delete file", "Sends a file to the Recycle Bin, never deleting it for good.", schema::delete_file, Kind::Destructive),
     ("preview_project_groups", "Preview project sort", "The projects a review folder's loose files would be sorted into; changes nothing.", schema::preview_project_groups, Kind::Read),
-    ("apply_project_groups", "Sort into projects", "Moves a review folder's loose files into new workboards, as previewed or adjusted.", schema::apply_project_groups, Kind::Destructive),
+    ("apply_project_groups", "Sort into projects", "Moves a review folder's loose files into new worknodes, as previewed or adjusted.", schema::apply_project_groups, Kind::Destructive),
     ("get_dictionary", "Read dictionary", "A folder's own `.ant/dictionary.md` and the entries in force there, inherited from the folders above; changes nothing.", schema::get_dictionary, Kind::Read),
     ("set_dictionary", "Write dictionary", "Writes a folder's `.ant/dictionary.md` from structured entries, replacing it whole; the app lays out the file and its header. Read ant://guide/dictionary for what each key and heading does, and the current entries with get_dictionary first, then send them all back with the changes.", schema::set_dictionary, Kind::Destructive),
     ("undo_project_sort", "Undo project sort", "Puts the files of the last project sort back and removes the folders it made.", schema::undo_project_sort, Kind::Destructive),
@@ -195,10 +195,10 @@ impl Server {
 
 pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<Value>, RpcError> {
     Ok(match name {
-        "add_node" | "add_workboard" => {
+        "add_node" | "add_worknode" => {
             let a: AddArgs = args(name, arguments)?;
-            let kind = if name == "add_node" { NewKind::Node } else { NewKind::Workboard };
-            let what = if name == "add_node" { "folder" } else { "workboard" };
+            let kind = if name == "add_node" { NewKind::Node } else { NewKind::Worknode };
+            let what = if name == "add_node" { "folder" } else { "worknode" };
             server.change(name, Vec::new(), format!("Added a {what} {} in {}", quoted(&a.name), quoted(&format!("/{}", plain(&a.parent)))), |root| {
                 indexed(root, |root| mutations::add_node_named(root, &a.parent, kind, Some(&a.name)))
             })
@@ -242,6 +242,7 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
         "set_dictionary" => {
             let a: DictionaryArgs = args(name, arguments)?;
             let entries = required(name, "entries", a.entries)?;
+            limit(name, "entries", entries.len(), MAX_ENTRIES)?;
             server.storage().and_then(|storage| {
                 let root = storage.root()?;
                 let (title, confirm) = asks(name, &[]);

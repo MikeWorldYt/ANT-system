@@ -3,9 +3,11 @@ import { VIRTUAL_ENTRIES } from "../components/molecules/virtual-entry";
 import { rootName } from "../components/organisms/bars/path-input";
 import { reportError } from "../components/organisms/bars/status-line";
 import { currentPlace, type Place } from "../services/store/place";
-import { isWorkboard } from "../services/store/node-info";
+import { isWorknode } from "../services/store/node-info";
 import { readPref, savePref } from "../services/store/prefs";
 import { currentSplit, parkedSplit, restoreSplit, savedSplit, type SavedSplit, type Split } from "./split";
+import { parkBatch, unparkBatch, type ParkedBatch } from "./automations/batch";
+import { parkReplay, unparkReplay, type ParkedReplay } from "./automations/batch-replay";
 import type { ViewSwitcher } from "./view-switch";
 import { findNode, isVirtualShown, keyOf, leaveVirtual, notify, state } from "../services/store/state";
 
@@ -26,6 +28,8 @@ interface Tab {
   trail: Trail;
   view: string;
   split: Split | null;
+  batch?: ParkedBatch | null;
+  replay?: ParkedReplay | null;
 }
 
 export interface TabView {
@@ -107,6 +111,8 @@ function capture(): void {
   tab.trail = navigator.trail();
   tab.view = currentView();
   tab.split = currentSplit();
+  tab.batch = parkBatch();
+  tab.replay = parkReplay();
 }
 
 async function activate(index: number): Promise<void> {
@@ -121,7 +127,11 @@ async function activate(index: number): Promise<void> {
   state.managing = null;
   state.hiddenChoices = [];
   restoreSplit(tab.split);
+  unparkBatch(tab.batch ?? null);
+  tab.batch = null;
   views?.switchTo(tab.view);
+  unparkReplay(tab.replay ?? null);
+  tab.replay = null;
   try {
     await navigator.enter(tab.trail, tab.place);
   } catch (e) {
@@ -200,7 +210,7 @@ function labelOf(place: Place): string {
     const parts = place.key.split("/");
     const project = parts.findIndex((_, i) => {
       const n = findNode(parts.slice(0, i + 1));
-      return n !== null && n !== undefined && isWorkboard(n);
+      return n !== null && n !== undefined && isWorknode(n);
     });
     if (project >= 0) return parts[project] ?? "";
     const folder = findNode(parts)?.file ? parts.slice(0, -1) : parts;

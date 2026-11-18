@@ -10,7 +10,8 @@ interface Band {
   box: HTMLElement | null;
 }
 
-const NOT_EMPTY = `${ITEM}, button, input, textarea, a`;
+// A graph box is content, and its corner resizes it, so a press there never starts a band.
+const NOT_EMPTY = `${ITEM}, button, input, textarea, a, .graph-files-box`;
 
 let band: Band | null = null;
 // The click that ends a band lands on whatever is under the pointer, so it is dropped.

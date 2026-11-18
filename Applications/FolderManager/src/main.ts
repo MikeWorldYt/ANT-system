@@ -2,10 +2,12 @@
 import "./styles/index.css";
 import { createMainWindow } from "./components/windows/main-window";
 import { openSettings } from "./components/windows/settings";
-import { onFileDrag, onReviewIndex, onStorageChanged, onUiRequest, onWindowFocus } from "./services/ipc/events";
+import { onDownloadsChanged, onDownloadsDictionary, onFileDrag, onReviewIndex, onStorageChanged, onUiRequest, onWindowFocus } from "./services/ipc/events";
 import { rememberSelection, state, subscribe } from "./services/store/state";
 import { clearStatus, currentOperationStatus, setStatus, reportError } from "./components/organisms/bars/status-line";
 import { init, refresh, relistLevels } from "./hooks/ops";
+import { relistDownloads } from "./hooks/relist";
+import { installTooltips } from "./components/organisms/tooltip/tooltip";
 import { autoRefresh } from "./hooks/auto-refresh";
 import { startIdleRefresh } from "./hooks/idle-refresh";
 import { handleFileDrag } from "./hooks/file-drop";
@@ -18,7 +20,9 @@ import { checkForUpdates } from "./hooks/updates";
 import { startBackups } from "./hooks/backups";
 import { installDebugLog, startDebugLog } from "./hooks/debug-log";
 import { applyAppearance } from "./hooks/appearance";
-import { batch as batchMode, replanAfterDictionary } from "./hooks/automations/batch";
+import { BATCH_VIEWS, batch as batchMode, replanAfterDictionary, restoreBatch } from "./hooks/automations/batch";
+import { bindReplay } from "./hooks/automations/batch-replay";
+import { readPref, savePref } from "./services/store/prefs";
 import { startExtensions } from "./extensions/host";
 import { plural } from "./services/plural";
 import { onTourStart, startTour, tourSeen } from "./components/organisms/tour/onboarding-tour";
@@ -27,6 +31,7 @@ const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
 
 const { views, toolbar, navigator, tabBar, search, panel, board, batch, openSelected } = createMainWindow(app);
+bindReplay({ viewChanged: () => toolbar.render() });
 installShortcuts({
   focusSearch: () => search.focus("folders"),
   searchFiles: () => search.focus("files"),
@@ -41,16 +46,24 @@ installShortcuts({
   nextTab,
 });
 
-// Batch mode is drawn as a list for now, so the picker shows List while it is open and gives back the view that was there.
-let viewBeforeBatch: string | null = null;
+// Tree and Graph cannot draw a batch: Tree gives way to List, Graph to the default view when the batch can use it, and either comes back after.
+let lastBatch: typeof batchMode = null;
+// The view the batch was drawn in, so a restored one comes back as a list or a grid.
+const BATCH_VIEW = "fm.batch.view";
 function followBatch(): void {
-  if (batchMode && viewBeforeBatch === null) {
-    viewBeforeBatch = views.current().id;
-    if (viewBeforeBatch !== "list") views.switchTo("list");
-  } else if (!batchMode && viewBeforeBatch !== null) {
-    if (viewBeforeBatch !== "list") views.switchTo(viewBeforeBatch);
-    viewBeforeBatch = null;
+  if (batchMode) savePref(BATCH_VIEW, views.current().id);
+  if (batchMode && batchMode.viewBefore === undefined) {
+    const before = views.current().id;
+    batchMode.viewBefore = before;
+    if (!BATCH_VIEWS.includes(before)) {
+      const preferred = state.settings.startView;
+      views.switchTo(before === "graph" && BATCH_VIEWS.includes(preferred) ? preferred : "list");
+    }
   }
+  // Only a closed batch gives a view back, and only one it had to leave; a batch parked in another tab keeps it for its return.
+  const before = lastBatch?.viewBefore;
+  if (!batchMode && lastBatch && !lastBatch.parked && before && !BATCH_VIEWS.includes(before) && views.current().id !== before) views.switchTo(before);
+  lastBatch = batchMode;
 }
 
 subscribe(() => {
@@ -95,6 +108,10 @@ onWindowFocus(() => {
   void (quick ? Promise.resolve() : relistLevels(null)).finally(() => restoreFocus(() => views.current().focus()));
 }).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
 
+onDownloadsChanged(() => void relistDownloads()).catch((e) => reportError("warning", e, "Live Downloads updates unavailable"));
+
+onDownloadsDictionary(replanAfterDictionary).catch((e) => reportError("warning", e, "Downloads dictionary updates unavailable"));
+
 onStorageChanged((e) => {
   if (e.dictionary) replanAfterDictionary();
   void (e.rescan ? autoRefresh(() => refresh(false)) : relistLevels(e.folders));
@@ -107,6 +124,7 @@ onFileDrag(handleFileDrag).catch((e) => reportError("warning", e, "File drop una
 onUiRequest((r) => void answerAgent(views, r)).catch((e) => reportError("warning", e, "Agent window tools unavailable"));
 
 installDebugLog();
+installTooltips();
 
 void init().then((ready) => {
   if (state.settings.debugLogging) void startDebugLog();
@@ -131,5 +149,13 @@ void init().then((ready) => {
     },
   });
   if (ready && !tourSeen()) void startTour();
+  else if (ready)
+    void restoreBatch().then((open) => {
+      const view = readPref(BATCH_VIEW);
+      if (open && view && view !== "list" && BATCH_VIEWS.includes(view)) {
+        views.switchTo(view);
+        toolbar.render();
+      }
+    });
   if (state.settings.autoUpdate) void checkForUpdates();
 });

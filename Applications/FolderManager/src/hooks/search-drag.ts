@@ -6,7 +6,7 @@ import { canMove, HIGHLIGHT, moveDragged, targetAt } from "./folder-move";
 import { moveCard } from "./board";
 import { BOARD_COLUMNS } from "../services/store/board";
 import { findNode, keyOf, reveal } from "../services/store/state";
-import { isWorkboard } from "../services/store/node-info";
+import { isWorknode } from "../services/store/node-info";
 import type { BoardColumn, TreeNode } from "../services/ipc/types";
 
 type Target = { kind: "folder"; el: HTMLElement; parts: string[] } | { kind: "board"; el: HTMLElement; column: BoardColumn; index: number };
@@ -48,7 +48,7 @@ async function nodeOf(parts: string[]): Promise<TreeNode | null> {
 async function drop(parts: string[], target: Target, copy: boolean): Promise<void> {
   if (target.kind === "folder") return moveDragged([parts], target.parts, copy);
   const node = await nodeOf(parts);
-  if (node && isWorkboard(node)) await moveCard(node, target.column, target.index);
+  if (node && isWorknode(node)) await moveCard(node, target.column, target.index);
 }
 
 export function installSearchDrag(list: HTMLElement, closeList: () => void): void {

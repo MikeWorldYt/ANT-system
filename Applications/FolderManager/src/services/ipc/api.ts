@@ -1,7 +1,9 @@
 // Single IPC surface: the only module that calls invoke.
 import { invoke } from "@tauri-apps/api/core";
 import { inDownloads, isFmError } from "./types";
+import { hiddenItemsShown } from "../store/view-prefs";
 import type {
+  ApplyOutcome,
   BoardCard,
   CopyAnswer,
   HiddenChoice,
@@ -59,15 +61,23 @@ export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
   call<Mutation>("resolve_invalid", { relParts, resolution });
 // Downloads paths start with a marker the backend does not take; it only receives the names below Downloads.
 const belowDownloads = (relParts: string[]) => relParts.slice(1);
-export const listChildren = (relParts: string[]) =>
-  inDownloads(relParts) ? call<TreeNode[]>("list_downloads", { relParts: belowDownloads(relParts) }) : call<TreeNode[]>("list_children", { relParts });
+// Hidden, system and dot files reach the views only when Hidden items is on.
+export const listChildren = async (relParts: string[]): Promise<TreeNode[]> => {
+  const nodes = await (inDownloads(relParts) ? call<TreeNode[]>("list_downloads", { relParts: belowDownloads(relParts) }) : call<TreeNode[]>("list_children", { relParts }));
+  return hiddenItemsShown() ? nodes : nodes.filter((n) => !n.concealed);
+};
 export const renameNode = (relParts: string[], newEditable: string) =>
   call<Mutation>("rename_node", { relParts, newEditable });
 export const setNodeType = (relParts: string[], typeBase: EditableType, status: WkbStatus | null) =>
   call<Mutation>("set_node_type", { relParts, typeBase, status });
 export const openNode = (relParts: string[]) =>
   inDownloads(relParts) ? call<void>("open_download", { relParts: belowDownloads(relParts) }) : call<void>("open_node", { relParts });
-export const revealNode = (relParts: string[]) => call<void>("reveal_node", { relParts });
+export const revealNode = (relParts: string[]) =>
+  inDownloads(relParts) ? call<void>("reveal_download", { relParts: belowDownloads(relParts) }) : call<void>("reveal_node", { relParts });
+export const renameDownload = (relParts: string[], newName: string) => call<void>("rename_download", { relParts: belowDownloads(relParts), newName });
+export const pinDictionaryFile = (folder: string[], entry: string | null, file: string) => call<void>("pin_dictionary_file", { folder, entry, file });
+export const dropIntoDownloads = (relParts: string[], paths: string[]) => call<string[]>("drop_into_downloads", { relParts: belowDownloads(relParts), paths });
+export const deleteDownloads = (targets: string[][]) => call<void>("delete_downloads", { targets: targets.map(belowDownloads) });
 export const setFavorite = (relParts: string[], on: boolean) => call<Mutation>("set_favorite", { relParts, on });
 export const setImportant = (relParts: string[], on: boolean) => call<Mutation>("set_important", { relParts, on });
 export const fileImage = (relParts: string[], large: boolean) =>
@@ -75,7 +85,7 @@ export const fileImage = (relParts: string[], large: boolean) =>
 export const previewImage = (relParts: string[]) =>
   inDownloads(relParts) ? call<string | null>("download_image", { relParts: belowDownloads(relParts), large: true, preview: true }) : call<string | null>("file_image", { relParts, large: true, preview: true });
 export const setLinkHidden =(relParts: string[], on: boolean) => call<Mutation>("set_link_hidden", { relParts, on });
-export const setUserFlag = (relParts: string[], on: boolean) => call<Mutation>("set_user_flag", { relParts, on });
+export const setUserFlag = (relParts: string[], on: boolean, flag: "data" | "autom" = "data") => call<Mutation>("set_user_flag", { relParts, on, flag });
 export const answerCopy = (relParts: string[], answer: CopyAnswer) => call<void>("answer_copy", { relParts, answer });
 export const getSettings = () => call<Record<string, string>>("get_settings");
 export const setSetting = (key: string, value: string) => call<void>("set_setting", { key, value });
@@ -166,7 +176,7 @@ export const openDictionaryWindow = (folder: string[]) => call<void>("open_dicti
 export const readDictionary = (folder: string[]) => call<string>("read_dictionary", { folder });
 export const checkDictionary = (text: string) => call<DictionaryIssue[]>("check_dictionary", { text });
 export const saveDictionary = (folder: string[], text: string) => call<DictionaryIssue[]>("save_dictionary", { folder, text });
-export const applyAutomations = (folder: string[], rows: PlannedFile[]) => call<number>("apply_automations", { folder, rows });
+export const applyAutomations = (folder: string[], rows: PlannedFile[]) => call<ApplyOutcome>("apply_automations", { folder, rows });
 export const renameFile = (relParts: string[], newName: string) => call<Mutation>("rename_file", { relParts, newName });
 export const deleteFile = (relParts: string[]) => call<Mutation>("delete_file", { relParts });
 export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
@@ -176,7 +186,7 @@ export const answerUiRequest = (id: number, value: unknown, error: string | null
 export const searchNodes = (query: string) => call<string[][]>("search_nodes", { query });
 export const listFavorites = () => call<string[][]>("list_favorites");
 export const listReview = () => call<string[][]>("list_review");
-export const listWorkboards = () => call<string[][]>("list_workboards");
+export const listWorknodes = () => call<string[][]>("list_worknodes");
 export const canUndoProjectSort = () => call<boolean>("can_undo_project_sort");
 export const undoProjectSort = () => call<Mutation>("undo_project_sort");
 export const setBoard = (cards: BoardCard[]) => call<Mutation>("set_board", { cards });
