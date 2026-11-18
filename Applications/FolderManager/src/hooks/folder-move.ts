@@ -8,10 +8,11 @@ import { nameWithoutIdentifier } from "../services/store/node-info";
 import { readPref, savePref } from "../services/store/prefs";
 import { el } from "../components/dom";
 import { notifyDesktop } from "../services/desktop-notify";
+import { noteTrip } from "./file-trips";
 import { plural } from "../services/plural";
 import { reportError } from "../components/organisms/bars/status-line";
 import { folderIcon } from "../components/atoms/icons";
-import { inDownloads, type TreeNode } from "../services/ipc/types";
+import { DOWNLOADS_ROOT, inDownloads, type TreeNode } from "../services/ipc/types";
 
 export const HIGHLIGHT = "drop-target";
 export const DROP_TARGET = "[data-key]:not(.graph-file)";
@@ -82,16 +83,17 @@ export async function moveDragged(sources: string[][], target: string[], copy: b
   if (unflagged.length > 0 && !copy && !(await confirmNodeMove(unflagged.length, folderTarget))) return;
   if (files.length > 0) await moveFiles(files, target, copy);
   if (folders.length > 0) await moveFolders(folders.map(({ parts }) => parts), target, copy);
-  if (files.length > 0 || external.length > 0) announceDrop(target, files.length + external.length);
+  if (files.length > 0 || external.length > 0) announceDrop(target, files.length + external.length, files[0]?.slice(0, -1) ?? (external.length > 0 ? [DOWNLOADS_ROOT] : null));
 }
 
 // Views that draw where files went, like the graph's packets, listen for this. A node that keeps no files passes them to its review folder,
 // which the user is told about, so the files never seem to have vanished.
-export function announceDrop(target: string[], count: number): void {
-  window.dispatchEvent(new CustomEvent("fm:files-dropped", { detail: { target } }));
+export function announceDrop(target: string[], count: number, from: string[] | null): void {
   const node = findNode(target);
-  if (!node || node.nodeType?.base !== "NODE" || node.flags.includes("data")) return;
-  const review = (node.children ?? []).find((c) => c.nodeType?.base === "REV");
+  const passes = node !== null && node.nodeType?.base === "NODE" && !node.flags.includes("data");
+  const review = passes ? (node.children ?? []).find((c) => c.nodeType?.base === "REV") : undefined;
+  noteTrip({ from, to: review?.relParts ?? target });
+  if (!node || !passes) return;
   const message = `${plural(count, "file")} dropped on ${node.name} moved to ${review?.name ?? "its review folder"}, since this node keeps no files.`;
   void notifyDesktop(message).catch((e: unknown) => reportError("warning", e, "Notification"));
 }

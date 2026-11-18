@@ -12,6 +12,7 @@ import { findNode, hydrate, isVirtualShown, notify, keyOf, select, state } from 
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { guiIcon } from "../../atoms/gui-icons";
 import { sendPacket } from "./graph-packets";
+import type { Trip } from "../../../hooks/file-trips";
 import { bandSelect } from "./graph-band";
 import { boxMenu, boxView, fileArt, fileDetail, fitWidth, keepSize, sortedFiles } from "./graph-box-view";
 import type { FilesMoved } from "../../../hooks/automations/batch-replay";
@@ -692,18 +693,30 @@ export function createGraphView(): ViewMode {
     notify();
     await news.wait(SHIFT_MS);
   }
-  // Files dropped on a node that keeps none file into its review folder; a packet runs from the node to it, so the move reads at a glance.
-  const onDropped = (ev: Event): void => {
-    const target = (ev as CustomEvent<{ target: string[] }>).detail.target;
-    const n = findNode(target);
-    if (!n || n.nodeType?.base !== "NODE" || n.flags.includes("data")) return;
-    const rev = (n.children ?? []).find((c) => c.nodeType?.base === "REV");
-    if (!rev) return;
-    requestAnimationFrame(() => {
-      const from = cardOf(keyOf(target));
-      const to = cardOf(keyOf(rev.relParts));
-      if (from && to) void sendPacket(stage, canvas, { cards: [from, to] }, (a) => a, () => undefined);
-    });
+  // Every file that moved, here or in another program, travels the branches as a packet: up from where it left to the folder both paths share, then down
+  // to where it landed, or down from the root when it came from outside. They run one after another, as they happened, seen or not.
+  let trips: Promise<void> = Promise.resolve();
+  const visibleChain = (parts: string[]): HTMLElement[] => {
+    const chain: HTMLElement[] = [];
+    for (const k of ["", ...prefixes(parts)]) {
+      const c = cardOf(k);
+      if (!c) break;
+      chain.push(c);
+    }
+    return chain;
+  };
+  const travel = async (trip: Trip): Promise<void> => {
+    await new Promise((r) => requestAnimationFrame(r));
+    if (!root.isConnected) return;
+    const down = visibleChain(trip.to);
+    const up = trip.from === null ? [] : visibleChain(trip.from);
+    let shared = 0;
+    while (shared < up.length && shared < down.length && up[shared] === down[shared]) shared++;
+    const start = Math.max(shared - 1, 0);
+    await sendPacket(stage, canvas, { cards: down.slice(start), back: up.slice(start) }, (a) => a, () => undefined);
+  };
+  const onTrips = (ev: Event): void => {
+    for (const trip of (ev as CustomEvent<Trip[]>).detail) trips = trips.then(() => travel(trip), () => travel(trip));
   };
 
   const onMoved = (ev: Event) => {
@@ -717,7 +730,7 @@ export function createGraphView(): ViewMode {
     mount(host) {
       root.addEventListener("keydown", onKey);
       window.addEventListener("fm:files-moved", onMoved);
-      window.addEventListener("fm:files-dropped", onDropped);
+      window.addEventListener("fm:file-trips", onTrips);
       window.addEventListener("pointermove", onDragMove);
       fresh = true;
       stage.style.zoom = String(scale);
@@ -778,7 +791,7 @@ export function createGraphView(): ViewMode {
     },
     destroy() {
       window.removeEventListener("fm:files-moved", onMoved);
-      window.removeEventListener("fm:files-dropped", onDropped);
+      window.removeEventListener("fm:file-trips", onTrips);
       window.removeEventListener("pointermove", onDragMove);
       cancelAnimationFrame(frame);
       root.remove();

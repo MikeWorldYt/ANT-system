@@ -7,6 +7,8 @@ const MIN_MS = 175;
 
 export interface Route {
   cards: HTMLElement[];
+  // From the shared folder down to the one the files left; the packet runs it backwards before taking `cards`.
+  back?: HTMLElement[];
 }
 
 interface Box {
@@ -59,8 +61,10 @@ function waypoints(canvas: HTMLElement, cards: HTMLElement[]): { x: number; y: n
 
 // The packet rides on the stage, not the canvas, so a redraw of the cards under it does not wipe it out; `follow` keeps it on screen.
 export async function sendPacket(stage: HTMLElement, canvas: HTMLElement, route: Route, track: (a: Animation) => Animation, follow: (packet: HTMLElement) => void): Promise<void> {
-  if (route.cards.length < 2) return;
-  const points = waypoints(canvas, route.cards);
+  const climb = route.back && route.back.length > 1 ? waypoints(canvas, route.back).reverse() : [];
+  const descend = route.cards.length > 1 ? waypoints(canvas, route.cards) : [];
+  if (climb.length === 0 && descend.length === 0) return;
+  const points = climb.length > 0 ? [...climb, ...descend.slice(1)] : descend;
   const lengths = points.map((p, i) => (i === 0 ? 0 : Math.hypot(p.x - points[i - 1]!.x, p.y - points[i - 1]!.y)));
   const total = lengths.reduce((s, d) => s + d, 0) || 1;
   let run = 0;

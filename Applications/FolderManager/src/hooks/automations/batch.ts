@@ -1,5 +1,6 @@
 // Batch mode: the dry run of a review folder's automations takes the place of the views until it is run or left.
 import * as api from "../../services/ipc/api";
+import { hush } from "../file-trips";
 import { refresh, setReviewAutomation } from "../ops";
 import { plural } from "../../services/plural";
 import { findNode, notify, select, state } from "../../services/store/state";
@@ -217,10 +218,13 @@ export async function setAuto(review: TreeNode, kinds: (keyof Picks)[]): Promise
   }
 }
 
+const BATCH_HUSH_MS = 8_000;
+
 export async function runBatch(): Promise<void> {
   if (!batch) return;
   const { folder, rows, dirs, right } = batch;
   const shot = snapshotView(right);
+  hush(BATCH_HUSH_MS);
   stopWatch();
   savePref(SAVED, "");
   const picked = rows.filter(isTicked);

@@ -51,5 +51,5 @@ export function handleFileDrag(e: DragDropEvent): void {
   if (key === undefined) return setStatus("warning", "Drop onto a folder");
   // The storage root has the empty key; "".split("/") would be [""], so it maps to an empty target for the backend to refuse.
   const target = key === "" ? [] : key.split("/");
-  void dropFiles(target, e.paths).then(() => announceDrop(target, e.paths.length));
+  void dropFiles(target, e.paths).then(() => announceDrop(target, e.paths.length, null));
 }

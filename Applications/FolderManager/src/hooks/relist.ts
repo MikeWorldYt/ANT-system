@@ -3,6 +3,7 @@ import * as api from "../services/ipc/api";
 import { findNode, hydrate, keyOf, notify, patchLevels, pruneSelection, state } from "../services/store/state";
 import { loadVirtual } from "../services/store/virtual";
 import { loadOtherVirtual } from "./split";
+import { noteListing } from "./file-trips";
 import { DOWNLOADS_ROOT, type TreeNode } from "../services/ipc/types";
 
 // Levels on screen: the root, the open folders and the path down to the selection.
@@ -26,6 +27,7 @@ async function relistLevel(parent: string[]): Promise<{ added: boolean; changed:
   const loaded = parent.length > 0 ? findNode(parent)?.children : state.tree?.nodes;
   if (!loaded) return { added: false, changed: false };
   const children = await api.listChildren(parent);
+  noteListing(parent, loaded, children);
   const known = new Set(loaded.map((n) => n.name));
   const added = children.some((n) => !known.has(n.name));
   const changed = added || children.length !== loaded.length;
