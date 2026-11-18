@@ -7,18 +7,10 @@ import { buttonControl } from "../../../atoms/button";
 import { actions } from "../../../molecules/button-row";
 import type { RowHandle } from "../../../molecules/setting-row";
 import type { SettingsPage } from "../page";
-
-const MAC = /Mac/i.test(navigator.platform);
-const KEY_NAMES: Record<string, string> = { Comma: ",", Period: ".", Slash: "/", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→" };
-
-function keyLabel(code: string): string {
-  if (code.startsWith("Key")) return code.slice(3);
-  if (code.startsWith("Digit")) return code.slice(5);
-  return KEY_NAMES[code] ?? code;
-}
+import { comboKeys } from "../../../../services/key-label";
 
 function keys(combo: KeyCombo): HTMLElement {
-  const parts = [combo.mod ? (MAC ? "⌘" : "Ctrl") : "", combo.alt ? (MAC ? "⌥" : "Alt") : "", keyLabel(combo.code)].filter(Boolean);
+  const parts = comboKeys(combo);
   const out = el("span", { class: "sw-keys" });
   parts.forEach((part, i) => {
     if (i > 0) out.append("+");

@@ -7,6 +7,7 @@ import { rememberSelection, state, subscribe } from "./services/store/state";
 import { clearStatus, currentOperationStatus, setStatus, reportError } from "./components/organisms/bars/status-line";
 import { init, refresh, relistLevels } from "./hooks/ops";
 import { relistDownloads } from "./hooks/relist";
+import { installTooltips } from "./components/organisms/tooltip/tooltip";
 import { autoRefresh } from "./hooks/auto-refresh";
 import { startIdleRefresh } from "./hooks/idle-refresh";
 import { handleFileDrag } from "./hooks/file-drop";
@@ -123,6 +124,7 @@ onFileDrag(handleFileDrag).catch((e) => reportError("warning", e, "File drop una
 onUiRequest((r) => void answerAgent(views, r)).catch((e) => reportError("warning", e, "Agent window tools unavailable"));
 
 installDebugLog();
+installTooltips();
 
 void init().then((ready) => {
   if (state.settings.debugLogging) void startDebugLog();
