@@ -54,7 +54,7 @@ export default defineConfig({
 							{ label: 'Folder Structure', link: 'foundationals/folder-structure', translations: { es: 'Estructura de Carpetas' } },
 							{ label: 'Naming Conventions', link: 'foundationals/naming-conventions', translations: { es: 'Nomenclaturas' } },
 							{ label: 'Support Nodes', link: 'foundationals/support-nodes', translations: { es: 'Nodos de Soporte' } },
-							{ label: 'Workboard Nodes', link: 'foundationals/workboard-nodes', translations: { es: 'Nodos del Tablero de Trabajo' } },
+							{ label: 'Worknodes', link: 'foundationals/worknodes', translations: { es: 'Worknodes' } },
 						]
 					},
 					{

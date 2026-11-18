@@ -16,10 +16,10 @@ This page is for you if you already have files spread across folders and the des
 | --- | --- | --- |
 | Audit your current files | Manual | You review them yourself |
 | Create the storage | Automated | CreateNewStorage |
-| Create nodes and workboards | Automated | Add node (`Ctrl+N`) and Add workboard (`Ctrl+Alt+N`) in FolderManager |
+| Create nodes and worknodes | Automated | Add node (`Ctrl+N`) and Add worknode (`Ctrl+Alt+N`) in FolderManager |
 | Rename keeping the fixed prefix (`PJ.001_`) | Automated | Rename (`F2`) edits only the editable part |
 | Order folders among their siblings | Automated | Move up and Move down |
-| Set status and owner of a workboard | Automated | Details panel, saved in `.ant/info.json` |
+| Set status and owner of a worknode | Automated | Details panel, saved in `.ant/info.json` |
 | Find folders by name, status or owner | Automated | Search (`Ctrl+F`) with `in:`, `status:` and `owner:` filters |
 | Create the `Outcomes` folders and keep the review shortcuts up to date | Automated | The app handles them after rename, move and delete |
 | Move your existing folders into the storage | Manual | Planned for FolderManager |
@@ -49,22 +49,22 @@ Match each group of content to one of the top-level categories, such as `100.PER
 - Reference material that serves a whole node goes in its `RES.` resources folder. See [Support Nodes](/en/foundationals/support-nodes).
 - Levels 1 and 2 hold no loose files. Whatever you cannot place yet waits in a review folder (Phase 5).
 
-## Phase 4: Turn projects into workboards
+## Phase 4: Turn projects into worknodes
 
-Every project, course or homework you are still working on becomes a [workboard](/en/foundationals/workboard-nodes).
+Every project, course or homework you are still working on becomes a [worknode](/en/foundationals/worknodes).
 
-1. In the category where it belongs, use **Add workboard**. The app creates `PJ.NNN_New-Workboard` with the next free tracker.
+1. In the category where it belongs, use **Add worknode**. The app creates `PJ.NNN_New-Worknode` with the next free tracker.
 2. Rename it with `F2`. The fixed prefix stays, and you only type the name.
-3. Copy or move your old project files inside the new workboard.
+3. Copy or move your old project files inside the new worknode.
 4. Set its **status** and **owner** in the details panel.
 
 The folder name follows the `TRACKING_NAME` pattern, for example `PJ.145_Thesis-Draft`. See [Naming Conventions](/en/foundationals/naming-conventions#control-naming-for-folders) for the identifiers (`PJ`, `HW`, `PR`, `CR`, `TK`).
 
 <Callout type="info" title="Metadata is not in the name">
-  The date, holder, area and status of a workboard are not written in its name. For folders they live in the ANT database and in a hidden `.ant/info.json` that FolderManager manages. For files they are meant to go in the file properties, which is not implemented yet.
+  The date, holder, area and status of a worknode are not written in its name. For folders they live in the ANT database and in a hidden `.ant/info.json` that FolderManager manages. For files they are meant to go in the file properties, which is not implemented yet.
 </Callout>
 
-FolderManager only creates workboards with the `PJ` identifier. For `HW`, `PR`, `CR` or `TK`, rename the folder in your file explorer. **Change type** in the context menu changes how the app treats the folder, but does not rename it.
+FolderManager only creates worknodes with the `PJ` identifier. For `HW`, `PR`, `CR` or `TK`, rename the folder in your file explorer. **Change type** in the context menu changes how the app treats the folder, but does not rename it.
 
 ## Phase 5: Move in batches
 
@@ -80,7 +80,7 @@ File names do not need to be changed in one go. When you touch a file, give it t
 Go through this checklist before you delete anything from the original location.
 
 - [ ] Level 1 holds only the numbered categories and the support nodes.
-- [ ] Every project you still work on is a workboard with a status and an owner.
+- [ ] Every project you still work on is a worknode with a status and an owner.
 - [ ] The `REV.` folders have no forgotten items, or you have a date to clear them.
 - [ ] You can find three random files with the search box (`Ctrl+F`).
 - [ ] Your original files are copied to a drive that is not the one you migrated to.

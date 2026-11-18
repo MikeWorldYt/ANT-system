@@ -10,13 +10,26 @@ Abre la ventana de ajustes con el botón del engranaje junto al nombre del almac
 
 | Página | Qué puedes hacer |
 | --- | --- |
-| General | Fijar los favoritos arriba de cada lista. Ocultar tableros con estado done. Elegir qué abrir al iniciar (continuar donde lo dejaste, o la raíz) y la vista inicial (continuar, Tree o Columns). Activar o desactivar **Confirm before deleting**. |
+| General | Fijar los favoritos arriba de cada lista. Ocultar worknodes con estado done. Elegir qué abrir al iniciar (continuar donde lo dejaste, o la raíz) y la vista inicial (continuar, Tree o Columns). Activar o desactivar **Confirm before deleting**. Activar (por defecto) o desactivar **Batch drops join their group**. |
 | Appearance | Tema (System, Light, Dark), color de acento y tamaño del texto (Small, Medium, Large). |
 | Shortcuts | Editar los seis atajos editables: pulsa **Edit**, luego las teclas nuevas, o `Esc` para cancelar. Un atajo necesita `Ctrl` o `Alt` con una tecla, sin `Shift`, y no puede repetir otro atajo ni uno fijo. **Reset** restaura los valores por defecto. |
 | Storage | Renombrar la carpeta del almacenamiento, con registro y **Revert last rename**, y ver dónde está. **Reindex Storage** tras mover archivos fuera de la app. **Watch for external changes** revisa una vez al día. |
 | Backup | Respaldo automático, su frecuencia y carpeta, y exportar e importar. Mira [Respaldos](/es/folder-manager/backups). |
 | Extensions | Añadir, activar, desactivar y quitar extensiones. Mira [Extensiones](/es/folder-manager/extensions). |
-| Advanced | Registro de depuración, abrir la carpeta de registros, abrir las herramientas de desarrollo y restablecer preferencias. Mira [Solución de problemas](/es/folder-manager/troubleshooting#solución-de-problemas). |
+| Advanced | Registro de depuración, abrir la carpeta de registros, abrir las herramientas de desarrollo, **Let AI agents change this storage** (mira abajo) y restablecer preferencias. Mira [Solución de problemas](/es/folder-manager/troubleshooting#solución-de-problemas). |
 | About | Versión de la app, ruta del almacenamiento, búsqueda de actualizaciones, el interruptor de búsqueda automática, documentación, novedades y **Report a bug** (una incidencia con datos previos en GitHub, o un correo a `info@mikeworld.dev`). |
 
 Renombrar la carpeta del almacenamiento cambia su ruta, así que cierra antes cualquier programa que la esté leyendo. La revisión diaria de **Watch for external changes** corre como tarea programada, que por ahora solo está disponible en Windows.
+
+## Los agentes de IA son de solo lectura por defecto
+
+Un asistente conectado por MCP solo puede leer tu almacenamiento hasta que actives **Let AI agents change this storage** en **Advanced**. Mientras tanto, toda herramienta que cambie algo se niega y no se modifica nada. El interruptor es de cada almacenamiento, te pide confirmar al activarlo y **Reset preferences** lo vuelve a apagar. Mira [Conectar tu IA](/es/folder-manager/connect-ai).
+
+Con el interruptor activo, el asistente puede crear, renombrar y cambiar carpetas, pero algunos cambios siguen esperando tu sí en la ventana de FolderManager:
+
+- Borrar, mover, reordenar, aplicar o deshacer una ordenación de proyectos, borrar un archivo y reemplazar el diccionario.
+- Cualquier llamada que cambie varios elementos a la vez, como varias tarjetas de un tablero.
+
+La ventana espera 60 segundos. Si rechazas, dejas que se agote el tiempo, mantienes la ventana oculta o tienes abierto otro almacenamiento, no cambia nada. Mantén la ventana visible mientras el asistente trabaja. Además, una llamada tiene un límite de 50 tarjetas, 50 planes de proyecto y 500 archivos; una mayor se rechaza antes de ejecutar nada.
+
+Los nombres de carpetas y archivos que lee el asistente se marcan como datos del almacenamiento, no como instrucciones.

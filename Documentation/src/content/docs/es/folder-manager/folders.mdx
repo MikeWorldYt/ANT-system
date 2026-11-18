@@ -6,15 +6,15 @@ import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
 
 ## Añadir, renombrar y mover
 
-- **Añadir nodo** y **Añadir tablero** crean una carpeta nueva junto a la seleccionada. Están disponibles desde el nivel 2 hacia abajo; las carpetas de nivel 1 y las reservadas tienen sus propias reglas de creación.
+- **Añadir nodo** y **Añadir worknode** crean una carpeta nueva junto a la seleccionada. Están disponibles desde el nivel 2 hacia abajo; las carpetas de nivel 1 y las reservadas tienen sus propias reglas de creación.
 - **Renombrar** edita solo la parte editable del nombre. El prefijo fijo, como `PJ.001_`, se mantiene.
 - **Subir** y **Bajar** cambian el orden de la carpeta seleccionada entre sus hermanas.
 - **Actualizar** vuelve a leer el almacenamiento. La app también se actualiza sola cuando su ventana recibe el foco, así que los cambios hechos en tu explorador de archivos aparecen.
 
 <ImagePlaceholder label="Captura: Añadir, renombrar y mover" />
 
-:::note[Identificadores de tablero]
-La documentación de ANT define `PJ`, `PR`, `HW`, `TK` y `CR` como identificadores oficiales. Hoy la app solo reconoce `PJ.`, `PR.` y `HW.` como tableros, y todo tablero nuevo que crea empieza como `PJ.`.
+:::note[Identificadores de worknode]
+La documentación de ANT define `PJ`, `PR`, `HW`, `TK` y `CR` como identificadores oficiales. Hoy la app solo reconoce `PJ.`, `PR.` y `HW.` como worknodes, y todo worknode nuevo que crea empieza como `PJ.`.
 :::
 
 ## Menú contextual
@@ -28,8 +28,8 @@ Haz clic derecho en una carpeta, o pulsa la tecla de menú o `Shift+F10`, para v
 | Open | Abre la carpeta en el explorador de archivos del sistema |
 | Rename | Edita el nombre en el lugar |
 | Add to favorites / Remove from favorites | Marca la carpeta como favorita |
-| Change type | Cambia entre Node, Workboard y Portfolio |
-| Status | Solo para tableros: Hold, In progress, For review o Done |
+| Change type | Cambia entre Node, Worknode y Portfolio |
+| Status | Solo para worknodes: Hold, In progress, For review o Done |
 | Copy path | Copia la ruta absoluta al portapapeles |
 | Delete | Envía la carpeta a la Papelera de reciclaje (la papelera del sistema en Linux y macOS) |
 | Opciones de extensiones | Las añaden las [extensiones](/es/folder-manager/extensions) con ese permiso, al final del menú |
