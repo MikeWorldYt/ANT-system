@@ -68,6 +68,15 @@ Los metadatos del archivo van en las [propiedades del archivo](#archivos-propied
   FolderManager todavía no escribe metadatos en las propiedades de los archivos. Mientras tanto, agrégalos a mano desde el cuadro de propiedades del archivo o desde la aplicación que lo creó.
 </Callout>
 
+### Nombres de archivo automatizados
+Las [automatizaciones](/es/advanced/automations) renombran los archivos con esta forma:
+
+```text
+(<fecha>)-[responsable]_<tema>-<palabras clave> <versión o (n)>
+```
+
+Las palabras clave son cualquier texto extra del nombre. Sin símbolos el orden es el mismo, solo que sin los corchetes.
+
 ## Almacenamiento de los metadatos
 
 ### Carpetas: base de datos y .ant/info.json
