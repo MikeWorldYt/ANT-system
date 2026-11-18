@@ -8,7 +8,7 @@ import Toggle from '/src/components/ui/Toggle.astro';
 
 A **naming convention** is a rule for naming things the same way every time, so they sort in a predictable order and are easy to find.
 
-ANT uses three of them: **Chill Naming** and **Block Naming** for categories, and **Control Naming** for workboards and files.
+ANT uses three of them: **Chill Naming** and **Block Naming** for categories, and **Control Naming** for worknodes and files.
 
 ## Chill Naming
 Uses a two-digit incremental number (01–89), followed by a dot and a name in Train-Case (each word capitalized and joined by hyphens).
@@ -41,7 +41,7 @@ Everything else (date, area or breadcrumb, holder or client, owner, status, vers
 </Callout>
 
 ### Control Naming (for Folders)
-Used by [Workboard Nodes](/en/foundationals/workboard-nodes), it was designed for quick recognition and easy filtering between projects.
+Used by [Worknodes](/en/foundationals/worknodes), it was designed for quick recognition and easy filtering between projects.
 
 ```fs title="Use example" ins="PJ.145" ins="HW.024" ins="CR.015"
 📁 PJ.145_Thesis-Draft
@@ -68,6 +68,15 @@ The file's metadata goes into the [file properties](#files-file-properties), not
   FolderManager does not write metadata into file properties yet. Until it does, add it by hand from the file's properties dialog or the app that created the file.
 </Callout>
 
+### Automated file names
+The [automations](/en/advanced/automations) rename files with this shape:
+
+```text
+(<date>)-[owner]_<topic>-<keywords> <version or (n)>
+```
+
+Keywords are any extra text in the name. Without symbols the order is the same, just without the brackets.
+
 ## Where the Metadata Lives
 
 ### Folders: Database and .ant/info.json
@@ -86,7 +95,7 @@ Each storage keeps its metadata in two places, both managed by FolderManager:
 
 | Key | Meaning |
 |-----|---------|
-| `owner` | Who the workboard belongs to. `holder` and `client` are read as the same field. |
+| `owner` | Who the worknode belongs to. `holder` and `client` are read as the same field. |
 | `created` | Start date, in the short `YY-MM-DD` form. |
 | `status` | `in-progress`, `for-review`, `hold` or `done`. |
 | `favorite` | `true` when the folder is marked as a favorite. |
@@ -112,11 +121,11 @@ FolderManager automates these rules so you don't apply them by hand. Some are co
 
 | Rule | FolderManager |
 |------|---------------|
-| Next tracker for a new workboard (`PJ.NNN_New-Workboard`) | ✅ Yes |
-| Keeps the tracking part fixed when renaming a workboard | ✅ Yes |
-| Recognises `PJ.`, `PR.` and `HW.` folders as workboards | ✅ Yes |
-| Recognises `TK.` and `CR.` folders as workboards | ❌ Not yet |
-| Creates `.ant/info.json` with `owner` and `status` for new workboards | ✅ Yes |
+| Next tracker for a new worknode (`PJ.NNN_New-Worknode`) | ✅ Yes |
+| Keeps the tracking part fixed when renaming a worknode | ✅ Yes |
+| Recognises `PJ.`, `PR.` and `HW.` folders as worknodes | ✅ Yes |
+| Recognises `TK.` and `CR.` folders as worknodes | ❌ Not yet |
+| Creates `.ant/info.json` with `owner` and `status` for new worknodes | ✅ Yes |
 | Indexes the database and `info.json` fields for search | ✅ Yes |
 | Writes metadata into file properties | ❌ Not yet |
 
@@ -127,7 +136,7 @@ The tracking part is the [identifier](#identifiers) joined by a dot to the [trac
 It tells at a glance what kind of item it is and in which order it was created.
 
 ### Identifiers
-The identifier is a **two-letter code** that identifies the type of workboard.  
+The identifier is a **two-letter code** that identifies the type of worknode.  
 The official identifiers are:
 - `PJ`: Project
 - `PR`: Practice
@@ -136,7 +145,7 @@ The official identifiers are:
 - `TK`: Task
 
 <Callout type="info" title="Support in FolderManager">
-  FolderManager recognises `PJ.`, `PR.` and `HW.` as workboard identifiers today, and new workboards start as `PJ.`. `CR.` and `TK.` are not handled by the app yet.
+  FolderManager recognises `PJ.`, `PR.` and `HW.` as worknode identifiers today, and new worknodes start as `PJ.`. `CR.` and `TK.` are not handled by the app yet.
 </Callout>
 
 ### Identifiers (for Files)
@@ -154,7 +163,7 @@ Files with the same identifier sort together, so a contract never ends up betwee
 The tracker is a sequential index that provides chronological order and simple referencing.  
 > While many systems can sort by date, a tracker provides a quick way to follow progress without relying on timestamps.
 
-Used in tandem with the identifier, it instantly communicates the type and order of the workboard.
+Used in tandem with the identifier, it instantly communicates the type and order of the worknode.
 
 ```fs title="Use example" ins="PJ.005" ins="PJ.006" ins="HW.015" ins="HW.016"
 📁 PJ.005_Tutorial-Organize-Documents ← for projects
@@ -165,7 +174,7 @@ Used in tandem with the identifier, it instantly communicates the type and order
 ```
 
 <Callout type="warning" title="Only need 3-digit counters">
-  As [workboard nodes](/en/foundationals/workboard-nodes) are temporary and meant to be eventually stored or removed, **3-digit counters are recommended**: they allow up to 999 items per type. FolderManager keeps counting past 999 (`PJ.1000`) instead of resetting.
+  As [worknodes](/en/foundationals/worknodes) are temporary and meant to be eventually stored or removed, **3-digit counters are recommended**: they allow up to 999 items per type. FolderManager keeps counting past 999 (`PJ.1000`) instead of resetting.
 </Callout>
 
 ### Name
@@ -202,12 +211,12 @@ Although labeled as "Date", this element works like a flexible timestamp that ad
 - `S2`, `S3`, `S4` (Semester): for school semesters, often used in curriculum tracking.
 
 ### Breadcrumbs
-A breadcrumb defines the contextual type of the workboard, usually based on the parent folder's category. It is metadata, so it acts like a category tag you can search by, without creating more levels.
+A breadcrumb defines the contextual type of the worknode, usually based on the parent folder's category. It is metadata, so it acts like a category tag you can search by, without creating more levels.
 
 <div class="usage-tabs">
 <Tabs>
   <TabItem label="Use example" icon="approve-check">
-    With a breadcrumb in the metadata, workboards of different kinds share the same level.
+    With a breadcrumb in the metadata, worknodes of different kinds share the same level.
 
     ```fs
     📁 02.Video-Edition
@@ -231,7 +240,7 @@ A breadcrumb defines the contextual type of the workboard, usually based on the 
 </div>
 
 ### Holders and Clients
-The holder identifies who the workboard belongs to (client, brand, organization, school, owner). It is stored as `owner` (folders) or as the author or owner property (files).
+The holder identifies who the worknode belongs to (client, brand, organization, school, owner). It is stored as `owner` (folders) or as the author or owner property (files).
 
 > It provides ownership context and is especially useful when managing multiple clients or people.
 

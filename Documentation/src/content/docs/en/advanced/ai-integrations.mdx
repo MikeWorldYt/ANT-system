@@ -91,7 +91,7 @@ Read tools never take the storage lock and never write.
 | `search_folders` | Folders whose names or fields match the query, from the index or by walking the disk. | `query`, `disk` |
 | `search_files` | Files whose names hold every word of the query. | `query` |
 | `suggest_search` | Completions for a `key:` filter, as in the app's search box. | `key`, `prefix` |
-| `get_dictionary` | A folder's own [dictionary](/en/advanced/automations#dictionaries) entries and the ones it inherits. | `relParts` |
+| `get_dictionary` | A folder's own [dictionary](/en/advanced/dictionaries) entries and the ones it inherits. | `relParts` |
 
 ### Write
 
@@ -100,22 +100,22 @@ Write tools take the storage lock for each change and update the indexes, as the
 | Tool | What it does | Arguments |
 | --- | --- | --- |
 | `add_node` | Creates a folder inside `parent`; an empty parent adds a root category. | `parent`, `name` |
-| `add_workboard` | Creates a workboard inside `parent`; the app numbers it. | `parent`, `name` |
+| `add_worknode` | Creates a worknode inside `parent`; the app numbers it. | `parent`, `name` |
 | `rename` | Renames a folder; its linked support and review folders follow. | `relParts`, `name` |
 | `move` (destructive) | Moves a folder into `destination`, where it takes the next free id. | `source`, `destination` |
 | `copy` | Copies a folder into `destination`, keeping its id under the next free `(n)` name. | `source`, `destination` |
 | `reorder` (destructive) | Swaps a folder's id with its sibling above or below. | `relParts`, `direction` |
 | `delete` (destructive) | Sends a folder to the Recycle Bin. | `relParts`, `confirmNonEmpty`, `expectGhost` |
-| `set_type` | Makes a folder a `NODE` or a workboard (`WKB`), optionally with a status. | `relParts`, `type`, `status` |
-| `set_status` | Sets a workboard's status: `in-progress`, `for-review`, `hold` or `done`. | `relParts`, `status` |
-| `set_owner` | Sets a workboard's owner. | `relParts`, `owner` |
+| `set_type` | Makes a folder a `NODE` or a worknode (`WKB`), optionally with a status. | `relParts`, `type`, `status` |
+| `set_status` | Sets a worknode's status: `in-progress`, `for-review`, `hold` or `done`. | `relParts`, `status` |
+| `set_owner` | Sets a worknode's owner. | `relParts`, `owner` |
 | `set_favorite` | Stars or unstars a folder. | `relParts`, `on` |
-| `set_important` | Marks or unmarks a workboard as important. | `relParts`, `on` |
+| `set_important` | Marks or unmarks a worknode as important. | `relParts`, `on` |
 | `hide` | Hides or shows a folder below the root level. | `relParts`, `hidden` |
-| `set_board` | Places workboards in the task board columns and order. | `cards` |
+| `set_board` | Places worknodes in the task board columns and order. | `cards` |
 | `rename_file` | Renames a file inside a storage folder, extension included. | `relParts`, `name` |
 | `delete_file` (destructive) | Sends a file to the Recycle Bin. | `relParts` |
-| `set_dictionary` | Replaces a folder's [dictionary](/en/advanced/automations#dictionaries) file from structured entries. Safe to repeat; send `[]` to empty it. The path must be a folder inside the storage. | `relParts`, `entries` (required) |
+| `set_dictionary` | Replaces a folder's [dictionary](/en/advanced/dictionaries) file from structured entries. Safe to repeat; send `[]` to empty it. The path must be a folder inside the storage. | `relParts`, `entries` (required) |
 
 `delete` and `delete_file` never delete for good. A folder that holds files or folders is refused with their count unless the call includes `confirmNonEmpty: true`. `expectGhost` is for forgetting a folder that is missing on disk and must match what `get_node` reports.
 
@@ -128,7 +128,7 @@ These work on the loose files of a review folder, such as `REV.<Title>` (older s
 | Tool | What it does | Arguments |
 | --- | --- | --- |
 | `preview_project_groups` | The projects the loose files would be sorted into; read only, changes nothing. | `folder` |
-| `apply_project_groups` (destructive) | Moves the loose files into new workboards, as previewed or adjusted. | `folder`, `plans` |
+| `apply_project_groups` (destructive) | Moves the loose files into new worknodes, as previewed or adjusted. | `folder`, `plans` |
 | `undo_project_sort` (destructive) | Puts the files of the last project sort back and removes the folders it made. | none |
 
 ### Interface
@@ -148,7 +148,7 @@ These act on the open window and only when the client calls them. They need Fold
 The server teaches the client how ANT works, so you do not have to explain it in every chat.
 
 - **On connect:** it sends short ANT basics as MCP `instructions`.
-- **On demand:** it exposes the resource `ant://guide` (the basics and an index) and one per topic: `ant://guide/model`, `ant://guide/review`, `ant://guide/dictionary`, `ant://guide/workboards` and `ant://guide/safety`.
+- **On demand:** it exposes the resource `ant://guide` (the basics and an index) and one per topic: `ant://guide/model`, `ant://guide/review`, `ant://guide/dictionary`, `ant://guide/worknodes` and `ant://guide/safety`.
 - **Read only what is needed:** an agent lists the resources (`resources/list`) and reads just the topic it needs (`resources/read`).
 
 ## Safety

@@ -2,9 +2,14 @@
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 
+import nestedHeadingIds from './src/plugins/nested-heading-ids.mjs';
+
 export default defineConfig({
 	site: 'https://ant-system.vercel.app',
 	// Starlight has no root locale, so nothing is built at "/"
+	markdown: {
+		rehypePlugins: [nestedHeadingIds],
+	},
 	redirects: {
 		'/': '/en/',
 	},
@@ -54,7 +59,7 @@ export default defineConfig({
 							{ label: 'Folder Structure', link: 'foundationals/folder-structure', translations: { es: 'Estructura de Carpetas' } },
 							{ label: 'Naming Conventions', link: 'foundationals/naming-conventions', translations: { es: 'Nomenclaturas' } },
 							{ label: 'Support Nodes', link: 'foundationals/support-nodes', translations: { es: 'Nodos de Soporte' } },
-							{ label: 'Workboard Nodes', link: 'foundationals/workboard-nodes', translations: { es: 'Nodos del Tablero de Trabajo' } },
+							{ label: 'Worknodes', link: 'foundationals/worknodes', translations: { es: 'Worknodes' } },
 						]
 					},
 					{
@@ -81,6 +86,7 @@ export default defineConfig({
 							{ label: 'CLI', slug: 'advanced/cli', translations: { es: 'CLI' } },
 							{ label: 'AI integrations', slug: 'advanced/ai-integrations', translations: { es: 'Integraciones de IA' } },
 							{ label: 'Automations', slug: 'advanced/automations', translations: { es: 'Automatizaciones' } },
+							{ label: 'Dictionaries', slug: 'advanced/dictionaries', translations: { es: 'Diccionarios' } },
 						],
 					},
 					{
