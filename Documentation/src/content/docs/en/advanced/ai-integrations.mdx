@@ -91,7 +91,7 @@ Read tools never take the storage lock and never write.
 | `search_folders` | Folders whose names or fields match the query, from the index or by walking the disk. | `query`, `disk` |
 | `search_files` | Files whose names hold every word of the query. | `query` |
 | `suggest_search` | Completions for a `key:` filter, as in the app's search box. | `key`, `prefix` |
-| `get_dictionary` | A folder's own [dictionary](/en/advanced/automations#dictionaries) entries and the ones it inherits. | `relParts` |
+| `get_dictionary` | A folder's own [dictionary](/en/advanced/dictionaries) entries and the ones it inherits. | `relParts` |
 
 ### Write
 
@@ -115,7 +115,7 @@ Write tools take the storage lock for each change and update the indexes, as the
 | `set_board` | Places worknodes in the task board columns and order. | `cards` |
 | `rename_file` | Renames a file inside a storage folder, extension included. | `relParts`, `name` |
 | `delete_file` (destructive) | Sends a file to the Recycle Bin. | `relParts` |
-| `set_dictionary` | Replaces a folder's [dictionary](/en/advanced/automations#dictionaries) file from structured entries. Safe to repeat; send `[]` to empty it. The path must be a folder inside the storage. | `relParts`, `entries` (required) |
+| `set_dictionary` | Replaces a folder's [dictionary](/en/advanced/dictionaries) file from structured entries. Safe to repeat; send `[]` to empty it. The path must be a folder inside the storage. | `relParts`, `entries` (required) |
 
 `delete` and `delete_file` never delete for good. A folder that holds files or folders is refused with their count unless the call includes `confirmNonEmpty: true`. `expectGhost` is for forgetting a folder that is missing on disk and must match what `get_node` reports.
 

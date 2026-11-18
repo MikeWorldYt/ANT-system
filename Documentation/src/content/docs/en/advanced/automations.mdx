@@ -10,7 +10,7 @@ To begin automating, you need to know:
 
 - **Batch mode:** shows a dry-run with a diff, in red higlights thats is remove and in green that is add. Nothing changes until you press **Run**.
 - **Grouping:** Each group proposed has a header that fold/unfold on double click, inside are ordered by their new name, Further you can drag files each one groups or inside.
-- **[Dictionaries](#dictionaries):** Arguably the most powerful automation tool; they dictate grouping rules and can be modified in real time, either by AI agents or manually.
+- **[Dictionaries](/en/advanced/dictionaries):** Arguably the most powerful automation tool; they dictate grouping rules and can be modified in real time, either by AI agents or manually.
 - **Run on every new file:** turns the ticked automations on for every file that lands in that folder, with no dry-run. we recommend review it each automation works before active this
 
 ## Automations Methods
@@ -22,7 +22,7 @@ Each method performs a specific case, and they are applied in ascending order. R
 | 1 | [Clean up names](#clean-up-names) | Strips hashes, site ids and noise, and moves a date written in the name to the front. |
 | 2 | [Add date](#add-date) | Puts a date in front of every name, using the file's creation time when the name has none. |
 | 3 | [Remove date](#remove-date) | Takes the date out of the name. |
-| 4 | [Group by dictionary](#group-by-dictionary) | Moves files into folders and renames them using your [dictionary](#dictionaries). |
+| 4 | [Group by dictionary](#group-by-dictionary) | Moves files into folders and renames them using your [dictionary](/en/advanced/dictionaries). |
 | 5 | [Sort by projects](#sort-by-projects) | Groups loose files that look like one project into worknodes. |
 | 6 | [Remove symbols](#remove-symbols) | Removes brackets and joins what is left. |
 
@@ -60,7 +60,7 @@ Takes the `(…)` date prefix and any date written in the name out. If both are 
 
 ### Group by dictionary
 
-Matches the name against your dictionary, renames it by the entry and moves it to the entry's folder. See [Dictionaries](#dictionaries).
+Matches the name against your dictionary, renames it by the entry and moves it to the entry's folder. See [Dictionaries](/en/advanced/dictionaries).
 
 ### Sort by projects
 
@@ -69,140 +69,3 @@ Groups loose files that look like one project into worknodes named `PJ_<title>`.
 ### Remove symbols
 
 Runs last. It removes `( ) [ ] { }` and joins what is left, so `[Mike]_PJ.001_Web (v2).zip` becomes `Mike_PJ.001_Web v2.zip`. A copy counter such as ` (2)` at the end of the name stays, so copies keep their number instead of getting a new one.
-
-## Dictionaries
-
-A dictionary sets the grouping rules that **Group by dictionary** follows to rename your files and send them to the right folder. You can change it at any time, by hand or through an [AI agent](/en/advanced/ai-integrations), and the run uses these rules.
-
-- **Where it lives:** `<node>/.ant/dictionary.md`, a plain Markdown file that Obsidian opens fine.
-- **Where it applies:** to the review folders at or below that node. A closer dictionary adds to the farther ones and replaces their entries of the same name.
-- **Comments:** generated files start with a `%%` comment block that links to this page. Anything between `%%` and `%%` is a comment and is never read.
-
-Format:
-```markdown
-%% Comments, ignored by the batch %%
-
-# Single title
-- <global key values>
-
-## Entry
-- `- key: values` lines refine the entry. Values are comma-separated.
-
-### files %% files entry %%
-- `- key: values` lines with exact file names grouping in the entry
-```
-
-### Keys
-| Key | What it does |
-| --- | --- |
-| `term` | Matches the filename and is **removed** from it. |
-| `[topics](#topics)` | Matches and is **kept** once in filename, written in Train-Case (`noa ushio` becomes `Noa-Ushio`). If repeats are removed the repeats. |
-| `only` | Strict and **kept**: case and symbols must match exactly. |
-| `exclude` | **Removed** from the filename only. |
-| `pattern` | A case-insensitive regular expression, one per line. Its match is **removed**. |
-| `ext` | Matches by extension, for example `.exe .msi`. |
-| `prefix` | Text **added** at the start of each file the entry groups. It wins over a global `prefix`. |
-| `suffix` | Text **added** at the end of each file the entry groups, before the extension and any ` (2)` counter. It wins over a global `suffix`. |
-
-
-#### `topics` 
-this value can list derivatives (other forms) in parentheses:
-
-\- topics: `value` (derivatives values), `another value` (derivatives values)
-e.g. `- topics: Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza)`
-
-rewrites every derivatives form to the value. Commas inside the parentheses do not split topics.
-
-Short terms under 4 letters only count as a whole word or in capitals.
-
-### Global values
-
-Declared right after the `# Title` line, these keys apply globally, whatever the rules of each group. A dictionary may only hold `term`, `pattern`, `prefix` and `suffix` keys there.
-
-```markdown
-# Anime art
-- term: sample
-- pattern: [0-9a-f]{32}
-
-## Touhou
-```
-
-Other keys there, such as `topics`, `only`, `ext` and `exclude`, are flagged as errors by the editor.
-
-### Headings
-
-| Heading | Where the files go |
-| --- | --- |
-| `## Name` | A subfolder of the review folder. |
-| `## Do not group` | They stay where they are but are still renamed by the entry. |
-| `## NODE.Title` | A node beside the review folder, a child of the dictionary's folder. It is found by its title without the id, so reordering nodes never breaks it. |
-| `## NODE^.Title` | One level up, a sibling of the dictionary's folder. |
-| `## NODE^.Blue-Archive/Fanarts` | A path walks down from there. |
-
-A node that accepts files keeps them. Otherwise they go to its own review folder, where its own automations run. Renaming a node in the app updates its `NODE` headings (only the first path segment). A `NODE` heading whose node is missing groups nothing.
-
-#### Absolute headings
-
-| Heading | Where the files go |
-| --- | --- |
-| `## @/500.HOBBIES/08.Art` | The node at that path from the storage root. |
-| `## ./*.Art/*.Touhou` | A path that starts at the dictionary's folder; each `../` before it climbs one level, as in `## ../*.Art`. |
-
-- **Segments:** each one can be the full folder name (`08.Art`) or just its title (`Art`). They match like `NODE.` headings: case-insensitive, with spaces and underscores equal to dashes.
-- **Wildcard:** a segment can use `*` for any id, as in `## @/300.ACADEMIC/*.Teachnology/PJ.*_Kestrel`. The app finds the folder by the rest of the name, so ids need not be exact.
-- **Same from anywhere:** unlike `NODE.` and `NODE^.`, which start at the dictionary's folder, `@/` reads the same in any dictionary.
-- **Where files land:** the node files them into its review folder and runs that folder's automations.
-- **Missing last folder:** only the last segment may be missing. Batch then shows that destination as "(new)" with a sparkle icon, and running it creates the folder and sends the files in.
-- **What gets created:** a segment shaped like a worknode (tracker, dot, number or `*`, underscore, title, such as `PJ.*_Kestrel` or `PJ.006_Kestrel`) creates a worknode. Anything else (`*.Physics`, `Physics`) creates a node. The new folder takes the next free id or track number; only its title comes from the heading.
-- **Missing earlier segment:** if any earlier segment is missing, the entry groups nothing.
-- **Bare `@/`:** the editor flags a heading that is only `## @/`.
-
-### Pinning files to an entry
-
-Under a `## heading`, a `### files` section lists exact file names with extension, one or more per `- ` line. Several lines also work.
-
-```markdown
-## Touhou
-### files
-- photo.jpg, notes.pdf
-```
-
-- **It wins:** a file listed there goes to that entry whatever other rules match it.
-- **Exact names:** the name must match exactly, ignoring case, so `a.jpg` and `a.png` are different.
-- **One entry only:** a name is pinned to one entry only.
-- **Other `###` headings:** any other `###` heading still opens an entry as before.
-- **Above any entry:** `### files` before the first entry is an editor error.
-
-In Batch mode (Grid), drag a tile, or a selection of tiles, onto another group. Its name is written under that group's `### files` in the dictionary that holds the entry. The app writes all names on one line; you can split them across lines. Groups made by **Sort by projects** take no drops.
-
-Files dropped from another app while a batch is open land in the batch folder. Into Downloads they are copied, never moved, and a name already there is skipped. Dropped on a group, they are also pinned to it. This is the **Batch drops join their group** preference in Settings > General, on by default. Off, dropped files only land in the folder and the dictionary rules place them.
-
-### Example
-
-```markdown
-%%
-Generated by ANT. Format and keys: https://ant.mikeworld.dev/en/advanced/automations#dictionaries/
-%%
-
-# Anime art
-
-## NODE^.Blue-Archive/Fanarts
-- term: blue archive, ba
-- topics: Noa Ushio, Hoshino (Takanashi Hoshino, Hoshino Takanashi)
-- exclude: wallpaper
-- pattern: ^ba[_-]\d+
-
-## Touhou
-- term: touhou
-- topics: Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza), Remilia
-- only: TH
-
-## Installers
-- ext: .exe .msi
-
-## Do not group
-- term: draft
-- only: WIP
-```
-
-AI clients can read and write dictionaries too. See [AI integrations](/en/advanced/ai-integrations).
