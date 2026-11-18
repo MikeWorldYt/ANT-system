@@ -3,29 +3,32 @@ title: Automations
 description: Clean up, date, group and sort the loose files of a review folder, and teach FolderManager your own groups with a dictionary.
 ---
 
-Automations tidy the loose files that land in a review folder. They live in the side panel of the review folder (`REV.<Title>`; older storages use `98.`), and you can preview what they would do before anything moves.
+Automations tidy the loose files that land in a node folder, by default review folder have it.
+Anywise, you can get this by right-clicking the node and selecting "activate automation" from the context menu.
 
-- **Batch mode:** shows a dry run as a diff, with the current name in red and the new name in green. Nothing changes until you press **Run**.
-- **Groups first:** the folders the files will move to are listed first. Each group has a sticky header that folds and unfolds on double click, and the rows inside are ordered by their new name.
-- **Untick to skip:** untick any row to leave that file as it is. **Run** applies the rest.
-- **Run on every new file:** turns the ticked automations on for every file that lands in that review folder, with no dry run. It covers auto reduce, auto add date, auto remove date, auto sort, auto group and auto remove symbols.
+To begin automating, you need to know:
+
+- **Batch mode:** shows a dry-run with a diff, in red higlights thats is remove and in green that is add. Nothing changes until you press **Run**.
+- **Grouping:** Each group proposed has a header that fold/unfold on double click, inside are ordered by their new name, Further you can drag files each one groups or inside.
+- **[Dictionaries](#dictionaries):** Arguably the most powerful automation tool; they dictate grouping rules and can be modified in real time, either by AI agents or manually.
+- **Run on every new file:** turns the ticked automations on for every file that lands in that folder, with no dry-run. we recommend review it each automation works before active this
+
+## Automations Methods
+
+Each method performs a specific case, and they are applied in ascending order.
+
+| # | Automation | What it does |
+| --- | --- | --- |
+| 1 | [Clean up names](#clean-up-names) | Strips hashes, site ids and noise, and moves a date written in the name to the front. |
+| 2 | [Add date](#add-date) | Puts a date in front of every name, using the file's creation time when the name has none. |
+| 3 | [Remove date](#remove-date) | Takes the date out of the name. |
+| 4 | [Group by dictionary](#group-by-dictionary) | Moves files into folders and renames them using your [dictionary](#dictionaries). |
+| 5 | [Sort by projects](#sort-by-projects) | Groups loose files that look like one project into worknodes. |
+| 6 | [Remove symbols](#remove-symbols) | Removes brackets and joins what is left. |
 
 :::note[Temporary files]
 Files whose name starts with `~` are temporary files that apps hold open. No automation ever touches them.
 :::
-
-## The automations
-
-They apply to a name in this order.
-
-| # | Automation | What it does |
-| --- | --- | --- |
-| 1 | Clean up names | Strips hashes, site ids and noise, and moves a date written in the name to the front. |
-| 2 | Add date | Puts a date in front of every name, using the file's creation time when the name has none. |
-| 3 | Remove date | Takes the date out of the name. |
-| 4 | Group by dictionary | Moves files into folders and renames them using your [dictionary](#dictionaries). |
-| 5 | Sort by projects | Groups loose files that look like one project into worknodes. |
-| 6 | Remove symbols | Removes brackets and joins what is left. |
 
 ### Clean up names
 
@@ -36,16 +39,16 @@ They apply to a name in this order.
 - **Size codes:** `Ganyu.600.3545662` becomes `Ganyu_3545`.
 - **Dates:** a date written in the name moves to the front as `(yy-mm-dd)_`, or `(yy-mm-dd_hh-mm)_` when the name also has a time. Impossible dates are left alone.
 
-These date formats are recognised:
+These formats are recognised and cleaned:
 
 | Kind | Example |
 | --- | --- |
 | Compact and ISO | `20250825`, `2025-08-25`, `20240905121359` |
-| Camera names | `PXL_…`, `IMG_…`, `VID_…` |
+| Camera prefixes | `PXL_`, `IMG_`, `VID_` |
 | Screenshots | `Screenshot 2025-01-02 9.05.33 PM` |
 | WhatsApp | `2026-03-09 at 16.44.50` |
-| Month names, in English, Spanish or French, in either order | `27 sept 2026, 11_18_05 a.m.`, `Mar 28, 2025, 03_18_41 PM`, `3 diciembre 2024` |
-| Unix time in milliseconds (13 digits) | `FB_IMG_1525739935595`, converted to your local time |
+| Date formats | `27 sept 2026, 11_18_05 a.m.`, `Mar 28, 2025, 03_18_41 PM`, `3 diciembre 2024` |
+| Old Unix time format | `FB_IMG_1525739935595` |
 
 ### Add date
 
@@ -79,28 +82,44 @@ Keywords are any extra text in the name. Without symbols the order is the same, 
 
 ## Dictionaries
 
-A dictionary teaches the **Group by dictionary** automation what your files are about, so it can rename them and send them to the right folder.
+A dictionary sets the grouping rules that **Group by dictionary** follows to rename your files and send them to the right folder. You can change it at any time, by hand or through an [AI agent](/en/advanced/ai-integrations), and the run uses these rules.
 
 - **Where it lives:** `<node>/.ant/dictionary.md`, a plain Markdown file that Obsidian opens fine.
 - **Where it applies:** to the review folders at or below that node. A closer dictionary adds to the farther ones and replaces their entries of the same name.
 - **Comments:** generated files start with a `%%` comment block that links to this page. Anything between `%%` and `%%` is a comment and is never read.
 
-### Format
+Format:
+```markdown
+%% Comments, ignored by the batch %%
 
-- The first single `#` heading is the title.
-- Every other heading (`##`) is an entry.
+# Single title
+- <global key values>
+
+## Entry
 - `- key: values` lines refine the entry. Values are comma-separated.
 
+### files %% files entry %%
+- `- key: values` lines with exact file names grouping in the entry
+```
+
+### Keys
 | Key | What it does |
 | --- | --- |
-| `term` | Matches the name and is removed from it. |
-| `topics` | Matches and is kept once in the name, written in Train-Case (`noa ushio` becomes `Noa-Ushio`). The first one found moves right after the date and owner; repeats are removed. |
-| `only` | Strict and kept: case and symbols must match exactly, as a whole word. |
-| `exclude` | Removed from the name only; it never decides the group. |
+| `term` | Matches the filename and is **removed** from it. |
+| `[topics](#topics)` | Matches and is **kept** once in filename, written in Train-Case (`noa ushio` becomes `Noa-Ushio`). If repeats are removed the repeats. |
+| `only` | Strict and **kept**: case and symbols must match exactly. |
+| `exclude` | **Removed** from the filename only. |
+| `pattern` | A case-insensitive regular expression, one per line. Its match is **removed**. |
 | `ext` | Matches by extension, for example `.exe .msi`. |
-| `pattern` | A case-insensitive regular expression, one per line. Its match is removed. |
 
-A `topics` value can list other forms in parentheses: `- topics: Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza)` rewrites every form to `Sakuya`. Commas inside the parentheses do not split topics.
+
+#### `topics` 
+this value can list derivatives (other forms) in parentheses:
+
+\- topics: `value` (derivatives values), `another value` (derivatives values)
+e.g. `- topics: Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza)`
+
+rewrites every derivatives form to the value. Commas inside the parentheses do not split topics.
 
 Short terms under 4 letters only count as a whole word or in capitals.
 

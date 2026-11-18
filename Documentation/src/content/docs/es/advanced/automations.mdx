@@ -20,12 +20,12 @@ Se aplican a un nombre en este orden.
 
 | # | Automatización | Qué hace |
 | --- | --- | --- |
-| 1 | Limpiar nombres (**Clean up names**) | Quita hashes, ids de sitios y ruido, y mueve al principio una fecha escrita en el nombre. |
-| 2 | Añadir fecha (**Add date**) | Pone una fecha delante de cada nombre, usando la hora de creación del archivo cuando el nombre no tiene ninguna. |
-| 3 | Quitar fecha (**Remove date**) | Saca la fecha del nombre. |
-| 4 | Agrupar por diccionario (**Group by dictionary**) | Mueve los archivos a carpetas y los renombra según tu [diccionario](#dictionaries). |
-| 5 | Ordenar por proyectos (**Sort by projects**) | Agrupa en worknodes los archivos sueltos que parecen de un mismo proyecto. |
-| 6 | Quitar símbolos (**Remove symbols**) | Quita los corchetes y paréntesis y une lo que queda. |
+| 1 | [Limpiar nombres](#limpiar-nombres) (**Clean up names**) | Quita hashes, ids de sitios y ruido, y mueve al principio una fecha escrita en el nombre. |
+| 2 | [Añadir fecha](#añadir-fecha) (**Add date**) | Pone una fecha delante de cada nombre, usando la hora de creación del archivo cuando el nombre no tiene ninguna. |
+| 3 | [Quitar fecha](#quitar-fecha) (**Remove date**) | Saca la fecha del nombre. |
+| 4 | [Agrupar por diccionario](#agrupar-por-diccionario) (**Group by dictionary**) | Mueve los archivos a carpetas y los renombra según tu [diccionario](#diccionarios). |
+| 5 | [Ordenar por proyectos](#ordenar-por-proyectos) (**Sort by projects**) | Agrupa en worknodes los archivos sueltos que parecen de un mismo proyecto. |
+| 6 | [Quitar símbolos](#quitar-símbolos) (**Remove symbols**) | Quita los corchetes y paréntesis y une lo que queda. |
 
 ### Limpiar nombres
 
@@ -81,7 +81,7 @@ Las palabras clave son cualquier texto extra del nombre. Sin símbolos el orden 
 
 ## Diccionarios
 
-Un diccionario le enseña a la automatización **Agrupar por diccionario** de qué tratan tus archivos, para que pueda renombrarlos y enviarlos a la carpeta correcta.
+Un diccionario define las reglas de agrupación que sigue **Agrupar por diccionario** para renombrar tus archivos y enviarlos a la carpeta correcta. Puedes cambiarlo en cualquier momento, a mano o con un [agente de IA](/es/advanced/ai-integrations), y la siguiente ejecución usa las reglas nuevas.
 
 - **Dónde vive:** `<nodo>/.ant/dictionary.md`, un archivo Markdown simple que Obsidian abre sin problema.
 - **Dónde se aplica:** a las carpetas de revisión de ese nodo y de las que están debajo. Un diccionario más cercano suma a los más lejanos y reemplaza sus entradas del mismo nombre.
