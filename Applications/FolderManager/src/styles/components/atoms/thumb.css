@@ -1,0 +1,7 @@
+/* The loader holds a thumbnail's place in the accent color until the picture arrives. */
+.loader { display: inline-flex; width: 28px; height: 28px; color: var(--accent); }
+.loader svg { width: 100%; height: 100%; }
+.thumb-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.thumb-wrap.loading { min-width: 18px; min-height: 18px; }
+.thumb-wrap.loading .thumb { position: absolute; inset: 0; opacity: 0; }
+.grid.list .loader, .graph-files-box.view-list .loader, .graph-files-box.view-cards .loader { width: 16px; height: 16px; }

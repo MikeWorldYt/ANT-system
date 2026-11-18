@@ -1,8 +1,8 @@
 // Batch mode in Grid: each file as the grid shows it, with its real icon and one name that mixes what goes (red) and what comes (green).
 import { el } from "../../dom";
 import { nameIcon } from "../../atoms/icons";
+import { fileThumb } from "../../atoms/thumb";
 import { batch, changes } from "../../../hooks/automations/batch";
-import { nativeImage } from "../../../services/file-images";
 import { diffRuns } from "../../../services/text-diff";
 import { keyOf, select, selectKeys, state } from "../../../services/store/state";
 import type { TreeNode } from "../../../services/ipc/types";
@@ -26,8 +26,7 @@ function tile(row: BatchRow, folder: string[], detail: "none" | "kind" | "column
   const key = keyOf(parts);
   shown.set(key, { parts, row });
   // The thumbnail is read from where the file is now; only its path and name matter to the image cache.
-  const src = nativeImage({ relParts: parts, name: file.file } as unknown as TreeNode, true);
-  const art = el("span", { class: "grid-art" }, src ? el("img", { class: "thumb", src, alt: "", draggable: "false" }) : nameIcon(file.file));
+  const art = el("span", { class: "grid-art" }, fileThumb({ relParts: parts, name: file.file } as unknown as TreeNode, () => nameIcon(file.file), { draggable: "false" }));
   const after = changes(file) ? diffRuns(file.file, file.name).mixed.map((r) => (r.mark === "same" ? r.text : el(r.mark, {}, r.text))) : [file.name];
   const item = el("div", { class: "grid-item batch-tile", title: file.name, "data-key": key }, row.box, art, el("span", { class: "batch-tile-name" }, ...after));
   // Details shows the file's own dates and size as it is now, beside the type it will have.

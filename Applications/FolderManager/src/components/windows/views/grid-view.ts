@@ -2,7 +2,7 @@
 import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "../../organisms/menus/context-menu";
 import { el } from "../../dom";
 import { folderIcon } from "../../atoms/icons";
-import { nativeImage } from "../../../services/file-images";
+import { fileThumb } from "../../atoms/thumb";
 import { statusMark } from "../../atoms/status-mark";
 import { favoriteMark, hideBox, importantMark, nameCell } from "../../molecules/name-cell";
 import { nodeToggle } from "../../atoms/node-toggle";
@@ -77,8 +77,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
 
   // A file's thumbnail replaces its icon once the shell has drawn it.
   function previewIcon(n: TreeNode): HTMLElement {
-    const src = nativeImage(n, true);
-    return src ? el("img", { class: "thumb", src, alt: "" }) : folderIcon(n);
+    return fileThumb(n, () => folderIcon(n)) as HTMLElement;
   }
 
   function buildItem(n: TreeNode, tabbable: boolean): HTMLElement {

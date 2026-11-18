@@ -82,7 +82,8 @@ export async function moveDragged(sources: string[][], target: string[], copy: b
 }
 
 // The storage root has the empty key, which is never a node.
-const partsOf = (key: string | undefined): string[] | null => (key ? key.split("/") : null);
+// A graph files box carries its folder's key with "#files" after it, so a drop there lands in that folder.
+const partsOf = (key: string | undefined): string[] | null => (key ? key.replace(/#files$/, "").split("/") : null);
 
 interface Drag {
   key: string;

@@ -40,6 +40,8 @@ export function bandSelect(box: HTMLElement): void {
       window.removeEventListener("pointerup", up);
       if (!band) return;
       band.remove();
+      // The click that ends a band must not then select the box's folder over the marked files.
+      box.dataset.banded = "1";
       selectKeys(picked);
     };
     window.addEventListener("pointermove", move);

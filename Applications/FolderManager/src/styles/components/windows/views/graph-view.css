@@ -18,7 +18,7 @@
 .graph-node-box[data-status="hold"] { border-color: var(--st-hold); }
 .graph-node-box[data-status="for-review"] { border-color: var(--st-review); }
 .graph-node-box[data-status="done"] { border-color: var(--st-done); }
-.graph-files-box { list-style: none; margin: 0; padding: 6px; min-width: 200px; max-width: 320px; max-height: 320px; overflow: auto; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); }
+.graph-files-box { list-style: none; margin: 0; padding: 12px; min-width: 200px; width: var(--auto-w, auto); max-height: 320px; overflow: auto; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); }
 .graph-file { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
 .graph-file:hover, .graph-file.selected { background: var(--highlight); }
 .graph-file.selected { box-shadow: inset 0 0 0 1px var(--button); }
@@ -56,8 +56,8 @@
 /* A box drags taller from its corner; one at the end of a line also drags wider. A size set by hand lifts the default caps. */
 .graph-files-box:not(.loading) { resize: both; }
 .graph-under > .graph-files-box:not(.loading) { resize: vertical; }
-.graph-files-box[style*="height"] { max-height: none; }
-.graph-files-box[style*="width"] { max-width: none; }
+.graph-files-box[style^="height"], .graph-files-box[style*=" height"] { max-height: none; }
+.graph-files-box[style^="width"], .graph-files-box[style*=" width"] { max-width: none; }
 .graph-files-box.loading { min-width: 140px; animation: graph-loading 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .graph-files-box.loading { animation: none; } }
 .graph-entry { color: var(--text); }
@@ -68,12 +68,17 @@
 /* Inside a files box: List is one line a file, Cards adds the kind under the name, Grid shows tiles with pictures. */
 .graph-file-text { display: flex; flex-direction: column; min-width: 0; }
 .graph-file-kind { color: var(--muted); font-size: 11px; }
-.graph-files-box.view-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 4px; }
+.graph-files-box.view-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
 .graph-files-box.view-cards .graph-file { padding: 6px; }
 .graph-files-box.view-cards .graph-file > svg, .graph-files-box.view-cards .graph-file > .gui-icon { width: 28px; height: 28px; flex: none; }
-.graph-files-box.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
-.graph-files-box.view-grid .graph-file { flex-direction: column; align-items: center; padding: 6px 4px; text-align: center; }
-.graph-files-box.view-grid .graph-file > svg, .graph-files-box.view-grid .graph-file > .gui-icon { width: 40px; height: 40px; }
-.graph-files-box.view-grid .graph-file > .thumb { width: 56px; height: 56px; object-fit: contain; }
-.graph-files-box.view-grid .graph-file-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: normal; overflow: hidden; overflow-wrap: anywhere; }
-.graph-files-box.view-grid .graph-file-text { align-items: center; width: 100%; }
+.graph-files-box.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
+/* Every tile keeps a fixed picture slot and at most three name lines, so a picture still loading never lets tiles overlap. */
+.graph-files-box.view-grid .graph-file { display: grid; grid-template-rows: 56px auto; justify-items: center; align-content: start; gap: 4px; padding: 6px 4px; text-align: center; }
+.graph-files-box.view-grid .graph-file > :first-child { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; }
+.graph-files-box.view-grid .graph-file > :first-child:not(.thumb-wrap) > *, .graph-files-box.view-grid .graph-file > svg { width: 40px; height: 40px; }
+.graph-files-box.view-grid .graph-file .thumb { width: 56px; height: 56px; object-fit: contain; }
+.graph-files-box.view-grid .graph-file-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; max-height: 3.9em; line-height: 1.3; white-space: normal; overflow: hidden; overflow-wrap: anywhere; }
+.graph-files-box.view-grid .graph-file-text { align-items: center; width: 100%; min-height: 0; }
+/* A box hanging under its card stays narrow; a list fills its rows top to bottom, then starts the next column. */
+.graph-under > .graph-files-box { width: auto; max-width: 320px; }
+.graph-files-box.view-list { display: grid; grid-auto-flow: column; grid-template-rows: repeat(var(--rows, 14), auto); grid-auto-columns: minmax(160px, 1fr); column-gap: 8px; align-content: start; }

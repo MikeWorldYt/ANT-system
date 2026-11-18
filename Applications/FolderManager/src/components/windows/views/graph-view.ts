@@ -12,7 +12,7 @@ import { openVirtual } from "../../../hooks/virtual-nav";
 import { guiIcon } from "../../atoms/gui-icons";
 import { sendPacket } from "./graph-packets";
 import { bandSelect } from "./graph-band";
-import { boxMenu, boxView, fileArt, fileDetail, keepSize, sortedFiles } from "./graph-box-view";
+import { boxMenu, boxView, fileArt, fileDetail, fitWidth, keepSize, sortedFiles } from "./graph-box-view";
 import type { FilesMoved } from "../../../hooks/automations/batch-replay";
 import { DOWNLOADS_ROOT, type TreeNode } from "../../../services/ipc/types";
 import { listChildren } from "../../../services/ipc/api";
@@ -214,7 +214,9 @@ export function createGraphView(): ViewMode {
 
   // Outside the node structure every folder unfolds as cards, and its files share one box beside them.
   function filesBox(n: TreeNode, folders: number): HTMLElement[] {
-    if (n.nodeType?.base === "NODE" || !state.expanded.has(keyOf(n.relParts))) return [];
+    if (!state.expanded.has(keyOf(n.relParts))) return [];
+    // A node keeps its files in its review folder, so an open node with no sub-nodes says it is empty instead of showing nothing.
+    if (n.nodeType?.base === "NODE") return folders === 0 && !loading(n) ? [fileList({ ...n, children: [] })] : [];
     const files = (n.children ?? []).filter((c) => c.file);
     return files.length > 0 || folders === 0 ? [fileList({ ...n, children: files })] : [];
   }
@@ -239,6 +241,7 @@ export function createGraphView(): ViewMode {
       return row;
     });
     const box = el("ul", { class: `graph-files-box view-${view}`, "data-key": `${key}#files`, "aria-label": `Contents of ${n.name}` }, ...(items.length > 0 ? items : [el("li", { class: "graph-file-empty" }, "Empty")]));
+    fitWidth(box, view, entries.length);
     keepSize(box, key);
     bandSelect(box);
     boxMenu(box, n);
@@ -270,7 +273,12 @@ export function createGraphView(): ViewMode {
       if (open.length > 0) {
         for (const c of open) state.expanded.delete(keyOf(c.relParts));
         notify();
-      } else if (n.hasChildren) {
+      } else if (!n.hasChildren) {
+        // A folder with nothing inside still opens, to its Empty box.
+        if (state.expanded.has(key)) state.expanded.delete(key);
+        else state.expanded.add(key);
+        notify();
+      } else {
         // Only one support folder opens at a time, so a new one never hides behind the last.
         const owner = isSupport(n) ? findNode(n.relParts.slice(0, -1)) : null;
         for (const c of owner?.children ?? []) if (c !== n && isSupport(c)) state.expanded.delete(keyOf(c.relParts));
