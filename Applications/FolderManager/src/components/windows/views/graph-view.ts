@@ -8,7 +8,7 @@ import { folderMoveActive } from "../../../hooks/folder-move";
 import { openFolder } from "../../../hooks/path-actions";
 import { readPref, savePref } from "../../../services/store/prefs";
 import { reportError } from "../../organisms/bars/status-line";
-import { findNode, hydrate, isVirtualShown, notify, keyOf, select, state } from "../../../services/store/state";
+import { clickSelect, findNode, hydrate, isVirtualShown, notify, keyOf, select, state } from "../../../services/store/state";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { guiIcon } from "../../atoms/gui-icons";
 import { sendPacket } from "./graph-packets";
@@ -117,6 +117,14 @@ export function createGraphView(): ViewMode {
       const n = findNode(k.split("/"));
       return n !== null && isSupport(n);
     });
+  // Several support boxes may stand open across the graph; only the one on the current path, or else the last one opened, closes.
+  let lastOpened: string | null = null;
+  const currentOverlay = (): string | null => {
+    const open = openOverlays();
+    const sel = state.selectedKey;
+    const onPath = sel === null ? [] : open.filter((k) => sel === k || sel.startsWith(`${k}/`)).sort((a, b) => b.length - a.length);
+    return onPath[0] ?? (lastOpened !== null && open.includes(lastOpened) ? lastOpened : null);
+  };
 
   // While files are dragged, resting on the empty graph closes what covers the branches, and resting on a node with its support box open brings its sub-nodes back, so the way to a destination opens as the pointer goes.
   const REST_MS = 600;
@@ -136,7 +144,7 @@ export function createGraphView(): ViewMode {
     if (spot === "box") return;
     const shut = card
       ? (findNode((card.dataset.key ?? "").split("/"))?.children ?? []).filter((c) => isSupport(c) && state.expanded.has(keyOf(c.relParts))).map((c) => keyOf(c.relParts))
-      : openOverlays();
+      : [currentOverlay()].filter((k): k is string => k !== null);
     if (shut.length === 0) return;
     rest = {
       spot,
@@ -150,13 +158,16 @@ export function createGraphView(): ViewMode {
 
   root.addEventListener("click", (ev) => {
     if (!(ev.target instanceof Element) || ev.target.closest(".graph-node-box, .graph-files-box, .graph-file")) return;
-    const open = openOverlays();
-    if (open.length === 0) return;
-    for (const k of open) state.expanded.delete(k);
-    const back = beforeOverlay;
-    beforeOverlay = null;
+    const shut = currentOverlay();
+    if (shut === null) return;
+    state.expanded.delete(shut);
+    const back = shut === lastOpened ? beforeOverlay : null;
+    if (shut === lastOpened) {
+      beforeOverlay = null;
+      lastOpened = null;
+    }
     // Without a remembered path, a selection inside what closed goes up to the folder that held it.
-    const inside = open.find((k) => k !== DOWNLOADS_ROOT && state.selectedKey !== null && (state.selectedKey === k || state.selectedKey.startsWith(`${k}/`)));
+    const inside = shut !== DOWNLOADS_ROOT && state.selectedKey !== null && (state.selectedKey === shut || state.selectedKey.startsWith(`${shut}/`)) ? shut : undefined;
     if (back !== null && findNode(back.split("/"))) select(back.split("/"));
     else if (inside) select(inside.split("/").slice(0, -1));
     else notify();
@@ -293,7 +304,11 @@ export function createGraphView(): ViewMode {
     const items = entries.map((c) => {
       const fileKey = keyOf(c.relParts);
       const row = el("li", { class: arrived.has(fileKey) || state.selectedKeys.includes(fileKey) ? "graph-file selected" : "graph-file", title: c.name, "data-key": fileKey }, fileArt(c, view, folderIcon(c, false)), el("span", { class: "graph-file-text" }, el("span", { class: "graph-file-name" }, c.name), ...fileDetail(c, view)));
-      row.addEventListener("click", () => select(c.relParts));
+      // Ctrl adds or removes one file, Shift takes the run from the last pick, as in the other views.
+      row.addEventListener("click", (ev) => {
+        if (ev.ctrlKey || ev.shiftKey) clickSelect(c.relParts, entries.map((e) => keyOf(e.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
+        else select(c.relParts);
+      });
       row.addEventListener("dblclick", () => void openFolder(c));
       row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, c, root));
       return row;
@@ -324,7 +339,10 @@ export function createGraphView(): ViewMode {
     item.addEventListener("click", () => {
       // Clicking an open card that is not selected only moves to it; it closes from a click once selected.
       const wasSelected = state.selectedKey === key;
-      if (isSupport(n) && !state.expanded.has(key)) beforeOverlay = state.selectedKey;
+      if (isSupport(n) && !state.expanded.has(key)) {
+        beforeOverlay = state.selectedKey;
+        lastOpened = key;
+      }
       select(n.relParts);
       // With a support folder open, the parent's click brings its sub-nodes back instead of folding it.
       const open = (n.children ?? []).filter((c) => isSupport(c) && state.expanded.has(keyOf(c.relParts)));
@@ -550,6 +568,7 @@ export function createGraphView(): ViewMode {
       if (open) state.expanded.delete(DOWNLOADS_ROOT);
       else {
         beforeOverlay = state.selectedKey;
+        lastOpened = DOWNLOADS_ROOT;
         state.expanded.add(DOWNLOADS_ROOT);
         readDownloads();
       }

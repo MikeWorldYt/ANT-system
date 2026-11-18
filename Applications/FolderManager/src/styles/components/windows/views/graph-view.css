@@ -86,3 +86,6 @@
 .graph-support > .graph-files-box { max-height: min(70vh, 640px); }
 /* Only the boxes of contents let what stands behind them show through; their files stay fully opaque. */
 .graph-files-box, .graph-support .graph-files-box { background: color-mix(in srgb, var(--input-bg) 78%, transparent); }
+/* A box with nothing in it stays faint and says so in its middle. */
+.graph-files-box:has(> .graph-file-empty:only-child) { display: grid; grid-template: none / none; grid-auto-columns: auto; grid-auto-flow: row; place-content: center; place-items: center; background: color-mix(in srgb, var(--input-bg) 20%, transparent); border-color: color-mix(in srgb, var(--border) 50%, transparent); }
+.graph-files-box > .graph-file-empty:only-child { text-align: center; }
