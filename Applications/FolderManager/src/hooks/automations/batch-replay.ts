@@ -72,6 +72,24 @@ function pin(stage: HTMLElement, pane: HTMLElement): void {
   stage.addEventListener("replay-end", () => watch.disconnect(), { once: true });
 }
 
+// The graph fades out and the user's own view fades back in, rather than snapping from one to the other.
+async function leave(r: Replay): Promise<void> {
+  const views = paneOn(r.right)?.views;
+  if (!r.graph || !views || views.current().id === r.back) return;
+  // The views are kept and mounted again later, so no fade may stay on them once it has played.
+  const fade = async (from: number, to: number) => {
+    const root = [...r.pane.children].find((c) => c !== r.stage.element);
+    if (!(root instanceof HTMLElement)) return;
+    const a = r.clock.track(root.animate([{ opacity: from }, { opacity: to }], { duration: FADE_MS / 2, easing: "ease-in-out", fill: "forwards" }));
+    await ended(a);
+    return () => a.cancel();
+  };
+  const clear = await fade(1, 0);
+  show(r, r.back);
+  clear?.();
+  (await fade(0, 1))?.();
+}
+
 function finish(r: Replay): void {
   r.stage.element.dispatchEvent(new Event("replay-end"));
   r.stage.element.remove();
@@ -119,8 +137,12 @@ async function travel(r: Replay, rows: PlannedFile[], chained: Chained[]): Promi
   await r.clock.wait(500);
 }
 
-async function play(r: Replay, rows: PlannedFile[], chained: Chained[]): Promise<void> {
-  const steps = [() => r.clock.wait(300), () => Promise.all([r.stage.rename(r.clock), r.stage.addFolders(r.clock)]), () => r.clock.wait(350), () => r.stage.file(r.clock), () => r.clock.wait(250), () => travel(r, rows, chained)];
+// `done` brings where the files went once the run is over, or null when it failed and there is no trip to show.
+async function play(r: Replay, rows: PlannedFile[], done: Promise<Chained[] | null>): Promise<void> {
+  const steps = [() => Promise.all([r.stage.rename(r.clock), r.stage.addFolders(r.clock)]), () => r.clock.wait(350), () => r.stage.file(r.clock), () => r.clock.wait(250), async () => {
+    const chained = await done;
+    if (chained) await travel(r, rows, chained);
+  }, () => leave(r)];
   for (const step of steps) {
     if (r.clock.stopped) return;
     await step();
@@ -128,7 +150,7 @@ async function play(r: Replay, rows: PlannedFile[], chained: Chained[]): Promise
   finish(r);
 }
 
-export function startReplay(shot: Snapshot, folder: string[], rows: PlannedFile[], dirs: Set<string>, right: boolean, chained: Chained[]): void {
+export function startReplay(shot: Snapshot, folder: string[], rows: PlannedFile[], dirs: Set<string>, right: boolean, done: Promise<Chained[] | null>): void {
   // It runs even with reduced motion: the user asked for it, and Esc ends it.
   const at = side(right);
   const p = paneOn(at);
@@ -142,7 +164,7 @@ export function startReplay(shot: Snapshot, folder: string[], rows: PlannedFile[
   if (grid) grid.scrollTop = shot.scroll;
   const r: Replay = { clock: createClock(), stage, pane: p.host, right: at, back: p.views.current().id, graph: false };
   live = r;
-  void play(r, rows, chained);
+  void play(r, rows, done);
 }
 
 // Esc ends the show at once; the files were moved long before it.

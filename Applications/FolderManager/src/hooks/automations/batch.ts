@@ -223,16 +223,21 @@ export async function runBatch(): Promise<void> {
   const shot = snapshotView(right);
   stopWatch();
   savePref(SAVED, "");
-  try {
-    const picked = rows.filter(isTicked);
-    const { changed, chained } = picked.length > 0 ? await api.applyAutomations(folder, picked) : { changed: 0, chained: [] };
-    batch = null;
+  const picked = rows.filter(isTicked);
+  // The batch closes at once and the replay starts while the run works; the graph part waits for where the files really went.
+  batch = null;
+  notify();
+  const run = (async () => {
+    const outcome = picked.length > 0 ? await api.applyAutomations(folder, picked) : { changed: 0, chained: [] };
     await refresh();
-    if (inDownloads(folder)) startReplay(shot, folder, picked, dirs, right, chained);
+    return outcome;
+  })();
+  if (inDownloads(folder)) startReplay(shot, folder, picked, dirs, right, run.then((o) => o.chained, () => null));
+  try {
+    const { changed } = await run;
     setStatus("info", changed > 0 ? `Automations changed ${plural(changed, "file")}.` : "No file changed.");
   } catch (e) {
     reportError("error", e);
-    batch = null;
     await refresh();
   }
 }

@@ -4,10 +4,10 @@ import { nameIcon } from "../../atoms/icons";
 import { ended, type ReplayClock } from "../../../hooks/automations/replay-clock";
 import type { PlannedFile } from "../../../services/ipc/types";
 
-const TYPE_MS = 34;
-const GATHER_MS = 520;
-const ENTER_MS = 360;
-const SETTLE_MS = 320;
+const TYPE_MS = 11;
+const GATHER_MS = 390;
+const ENTER_MS = 270;
+const SETTLE_MS = 240;
 
 export interface Stage {
   element: HTMLElement;
@@ -112,17 +112,20 @@ export function createStage(view: HTMLElement | null, folder: string[], rows: Pl
     if (rest.length > 0) head.append(el("span", { class: "replay-count" }, String(pile.length)));
   }
 
-  // A pile bound for a folder in Downloads flies into it and the grid closes up; a node's pile stays for its trip through the graph.
-  async function enter(clock: ReplayClock, pile: HTMLElement, into: HTMLElement): Promise<void> {
-    const from = pile.getBoundingClientRect();
-    const to = into.getBoundingClientRect();
-    const move = `translate(${to.left - from.left}px, ${to.top - from.top}px)`;
-    pile.style.zIndex = "20";
-    await ended(clock.track(pile.animate([{ transform: "none" }, { transform: `${move} scale(0.85)` }], { duration: GATHER_MS, easing: "cubic-bezier(.3,.7,.3,1)", fill: "forwards" })));
-    into.classList.add("replay-receiving");
-    await ended(clock.track(pile.animate([{ transform: `${move} scale(0.85)`, opacity: 1 }, { transform: `${move} scale(0.2)`, opacity: 0 }], { duration: ENTER_MS, easing: "ease-in", fill: "forwards" })));
-    into.classList.remove("replay-receiving");
-    if (!clock.stopped) await closeUp(clock, grid, [pile], () => pile.remove());
+  // The piles bound for folders in Downloads all fly into them at once, then the grid closes up in one move; a node's pile stays for its trip through the graph.
+  async function enterAll(clock: ReplayClock, trips: [HTMLElement, HTMLElement][]): Promise<void> {
+    if (trips.length === 0) return;
+    const moves = trips.map(([pile, into]) => {
+      const from = pile.getBoundingClientRect();
+      const to = into.getBoundingClientRect();
+      pile.style.zIndex = "20";
+      return `translate(${to.left - from.left}px, ${to.top - from.top}px)`;
+    });
+    await Promise.all(trips.map(([pile], k) => ended(clock.track(pile.animate([{ transform: "none" }, { transform: `${moves[k]!} scale(0.85)` }], { duration: GATHER_MS, easing: "cubic-bezier(.3,.7,.3,1)", fill: "forwards" })))));
+    trips.forEach(([, into]) => into.classList.add("replay-receiving"));
+    await Promise.all(trips.map(([pile], k) => ended(clock.track(pile.animate([{ transform: `${moves[k]!} scale(0.85)`, opacity: 1 }, { transform: `${moves[k]!} scale(0.2)`, opacity: 0 }], { duration: ENTER_MS, easing: "ease-in", fill: "forwards" })))));
+    trips.forEach(([, into]) => into.classList.remove("replay-receiving"));
+    if (!clock.stopped) await closeUp(clock, grid, trips.map(([pile]) => pile), () => trips.forEach(([pile]) => pile.remove()));
   }
 
   return {
@@ -151,13 +154,12 @@ export function createStage(view: HTMLElement | null, folder: string[], rows: Pl
         if (g && t) groups.set(g, [...(groups.get(g) ?? []), t]);
       }
       await pileUp(clock, [...groups.values()]);
-      for (const [g, pile] of groups) {
-        const into = g.startsWith("@") ? null : folders.get(g);
-        if (clock.stopped) return;
-        if (!into || !pile[0]) continue;
-        await enter(clock, pile[0], into);
-        await clock.wait(160);
-      }
+      if (clock.stopped) return;
+      const trips = [...groups].flatMap(([g, pile]): [HTMLElement, HTMLElement][] => {
+        const into = g.startsWith("@") ? undefined : folders.get(g);
+        return into && pile[0] ? [[pile[0], into]] : [];
+      });
+      await enterAll(clock, trips);
     },
   };
 }

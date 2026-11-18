@@ -471,7 +471,20 @@ export function createGraphView(): ViewMode {
   // A file dropped in a node lands in its review folder; a worknode keeps it.
   const landing = (n: TreeNode): TreeNode => (n.nodeType?.base === "NODE" ? ((n.children ?? []).find((c) => c.nodeType?.base === "REV") ?? n) : n);
 
-  // The trip runs through folders that may be folded, so they open first and the packets leave one by one once the graph has settled.
+  // Packets leave one after another at the same pace, so on a shared line they keep their distance instead of colliding.
+  const GAP_MS = 252;
+  const cardOf = (k: string) => canvas.querySelector<HTMLElement>(`.graph-card[data-key="${CSS.escape(k)}"]`);
+  const prefixes = (parts: string[]) => parts.map((_, k) => keyOf(parts.slice(0, k + 1)));
+
+  // Sends every route in order, top branches first; only the last packet steers the view, so they never fight over the scroll.
+  async function wave(routes: HTMLElement[][], news: FilesMoved): Promise<void> {
+    const trips = routes.map((cards, k) =>
+      news.wait(k * GAP_MS).then(() => sendPacket(stage, canvas, { cards }, news.track, k === routes.length - 1 ? (p) => p.scrollIntoView({ block: "nearest", inline: "nearest" }) : () => undefined)),
+    );
+    await Promise.all(trips);
+  }
+
+  // The trips run through folders that may be folded, so they open first; the packets all travel, then every destination opens at once.
   async function showMoves(news: FilesMoved): Promise<void> {
     const virtual = state.virtual;
     const selected = state.selectedKey;
@@ -482,7 +495,7 @@ export function createGraphView(): ViewMode {
     }
     state.selectedKey = null;
     state.selectedKeys = [];
-    for (const { parts } of news.targets) for (let i = 1; i <= parts.length; i++) state.expanded.add(keyOf(parts.slice(0, i)));
+    for (const parts of [...news.targets.map((t) => t.parts), ...news.chained.map((c) => c.to)]) for (const k of prefixes(parts)) state.expanded.add(k);
     try {
       await hydrate();
     } catch (e) {
@@ -490,93 +503,79 @@ export function createGraphView(): ViewMode {
     }
     notify();
     await news.wait(SHIFT_MS + 200);
-    const cardOf = (k: string) => canvas.querySelector<HTMLElement>(`.graph-card[data-key="${CSS.escape(k)}"]`);
-    for (const [i, moved] of news.targets.entries()) {
-      const { parts } = moved;
-      const start = canvas.querySelector<HTMLElement>('[data-entry="downloads"]');
-      if (!start) return;
+    const start = canvas.querySelector<HTMLElement>('[data-entry="downloads"]');
+    if (!start) return;
+    start.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+    const order = (a: string[], b: string[]) => keyOf(a).localeCompare(keyOf(b), undefined, { numeric: true });
+    const targets = [...news.targets].sort((a, b) => order(a.parts, b.parts));
+    const shown: { end: TreeNode; names: string[] }[] = [];
+    const first: HTMLElement[][] = [];
+    const onward: { from: TreeNode; to: string[]; names: string[] }[] = [];
+    for (const { parts, names } of targets) {
       const node = findNode(parts);
       const end = node ? landing(node) : null;
-      const keys = [...parts.map((_, i) => keyOf(parts.slice(0, i + 1))), ...(end && end !== node ? [keyOf(end.relParts)] : [])];
-      const cards = [start, cardOf(""), ...keys.map(cardOf)].filter((c): c is HTMLElement => c !== null);
-      // Each trip starts with Downloads in view, and the view then keeps the packet in sight wherever it goes.
-      start.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
-      await news.wait(450);
-      await sendPacket(stage, canvas, { cards }, news.track, (p) => p.scrollIntoView({ block: "nearest", inline: "nearest" }));
-      const last = i === news.targets.length - 1;
+      first.push([start, cardOf(""), ...[...prefixes(parts), ...(end && end !== node ? [keyOf(end.relParts)] : [])].map(cardOf)].filter((c): c is HTMLElement => c !== null));
       if (!end) continue;
-      const onward = news.chained.filter((c) => keyOf(c.from) === keyOf(end.relParts));
-      // The last destination stays open twice as long, so the show ends on it.
-      await revealLanding(end, moved.names, news, last && onward.length === 0 ? 900 : 450);
-      await passOn(end, onward, news, last);
+      const passed = news.chained.filter((c) => keyOf(c.from) === keyOf(end.relParts));
+      const stays = names.filter((n) => !passed.some((c) => c.name === n));
+      if (stays.length > 0) shown.push({ end, names: stays });
+      const groups = new Map<string, { from: TreeNode; to: string[]; names: string[] }>();
+      for (const c of passed) {
+        const g = groups.get(keyOf(c.to)) ?? { from: end, to: c.to, names: [] };
+        g.names.push(c.name);
+        groups.set(keyOf(c.to), g);
+      }
+      onward.push(...groups.values());
     }
-    // The trip borrowed the selection to light each path; the user's own place comes back.
+    await wave(first, news);
+    // A review folder that runs on its own sends its files on: a second wave leaves from it, up to the shared folder and down to the next node.
+    const second = onward.sort((a, b) => order(a.to, b.to)).map(({ from, to, names }) => {
+      let common = 0;
+      while (common < from.relParts.length && common < to.length && from.relParts[common] === to[common]) common++;
+      const node = findNode(to);
+      const end = node ? landing(node) : null;
+      if (end) shown.push({ end, names });
+      const up = [...prefixes(from.relParts.slice(0, -1)).slice(Math.max(common - 1, 0)).reverse(), ...(common === 0 ? [""] : [])];
+      return [keyOf(from.relParts), ...up, ...prefixes(to).slice(common), ...(end && end !== node ? [keyOf(end.relParts)] : [])].map(cardOf).filter((c): c is HTMLElement => c !== null);
+    });
+    if (second.length > 0) await wave(second, news);
+    await revealAll(shown, news);
+    // The trip borrowed the selection; the user's own place comes back.
     if (virtual) await openVirtual(virtual);
     else select(selected?.split("/") ?? null);
   }
 
-  // A review folder that runs on its own sends its files on: a second trip leaves from it, up to the shared folder and down to the next node.
-  async function passOn(from: TreeNode, onward: FilesMoved["chained"], news: FilesMoved, last: boolean): Promise<void> {
-    const groups = new Map<string, { to: string[]; names: string[] }>();
-    for (const c of onward) {
-      const g = groups.get(keyOf(c.to)) ?? { to: c.to, names: [] };
-      g.names.push(c.name);
-      groups.set(keyOf(c.to), g);
+  // Every destination opens together with its new files on top and lit, holds a moment, then closes.
+  async function revealAll(shown: { end: TreeNode; names: string[] }[], news: FilesMoved): Promise<void> {
+    if (shown.length === 0) return;
+    const keys = shown.map(({ end }) => keyOf(end.relParts));
+    for (const { end } of shown) {
+      state.expanded.add(keyOf(end.relParts));
+      // What the graph holds for it was read before the run, often empty, so it is read again.
+      const fresh = findNode(end.relParts) ?? end;
+      fresh.children = null;
+      fresh.hasChildren = true;
     }
-    const cardOf = (k: string) => canvas.querySelector<HTMLElement>(`.graph-card[data-key="${CSS.escape(k)}"]`);
-    for (const [j, { to, names }] of [...groups.values()].entries()) {
-      for (let k = 1; k <= to.length; k++) state.expanded.add(keyOf(to.slice(0, k)));
-      try {
-        await hydrate();
-      } catch (e) {
-        reportError("warning", e, "Map path");
-      }
-      notify();
-      await news.wait(SHIFT_MS + 200);
-      let shared = 0;
-      while (shared < from.relParts.length && shared < to.length && from.relParts[shared] === to[shared]) shared++;
-      const node = findNode(to);
-      const end = node ? landing(node) : null;
-      // Up through every folder above it that the next node does not share, to the root when they share none.
-      const up = [...from.relParts.slice(0, -1).map((_, k) => keyOf(from.relParts.slice(0, k + 1))).slice(Math.max(shared - 1, 0)).reverse(), ...(shared === 0 ? [""] : [])];
-      const down = to.map((_, k) => keyOf(to.slice(0, k + 1))).slice(shared);
-      const keys = [keyOf(from.relParts), ...up, ...down, ...(end && end !== node ? [keyOf(end.relParts)] : [])];
-      const cards = keys.map(cardOf).filter((c): c is HTMLElement => c !== null);
-      await sendPacket(stage, canvas, { cards }, news.track, (p) => p.scrollIntoView({ block: "nearest", inline: "nearest" }));
-      if (end) await revealLanding(end, names, news, last && j === groups.size - 1 ? 900 : 450);
-    }
-  }
-
-  // Where the packet landed lights its path and opens, so the files show in their new place for a moment before the next trip.
-  async function revealLanding(end: TreeNode, names: string[], news: FilesMoved, hold: number): Promise<void> {
-    const key = keyOf(end.relParts);
-    const owner = isSupport(end) ? findNode(end.relParts.slice(0, -1)) : null;
-    for (const c of owner?.children ?? []) if (c !== end && isSupport(c)) state.expanded.delete(keyOf(c.relParts));
-    state.expanded.add(key);
-    // What the graph holds for it was read before the run, often empty, so it is read again to show the files that just came in.
-    const fresh = findNode(end.relParts) ?? end;
-    fresh.children = null;
-    fresh.hasChildren = true;
-    select(end.relParts);
     try {
       await hydrate();
     } catch (e) {
       reportError("warning", e, "Map path");
     }
-    // The run may still be filing them, so the files are drawn where they are going rather than where the disk has them yet.
-    // Narrowed to null above, though the read just filled it.
-    const listed = (fresh.children as TreeNode[] | null) ?? [];
-    // They lead the list whatever the sort, only for the show; the next read puts the folder back in order.
-    const byName = new Map(listed.map((c) => [c.name, c]));
-    const arriving = names.map((name) => byName.get(name) ?? ({ name, file: true, relParts: [...end.relParts, name], children: null, hasChildren: false, flags: [], ghost: false, nodeType: null } as unknown as TreeNode));
-    fresh.children = [...arriving, ...listed.filter((c) => !names.includes(c.name))];
-    arrived = new Set(arriving.map((c) => keyOf(c.relParts)));
+    const lit = new Set<string>();
+    for (const { end, names } of shown) {
+      const fresh = findNode(end.relParts) ?? end;
+      const listed = fresh.children ?? [];
+      // The run may still be filing them, so they are drawn where they are going; they lead the list whatever the sort, only for the show.
+      const byName = new Map(listed.map((c) => [c.name, c]));
+      const arriving = names.map((name) => byName.get(name) ?? ({ name, file: true, relParts: [...end.relParts, name], children: null, hasChildren: false, flags: [], ghost: false, nodeType: null } as unknown as TreeNode));
+      fresh.children = [...arriving, ...listed.filter((c) => !names.includes(c.name))];
+      for (const c of arriving) lit.add(keyOf(c.relParts));
+    }
+    arrived = lit;
     notify();
-    await news.wait(SHIFT_MS + 450);
-    canvas.querySelector(`[data-key="${CSS.escape(key)}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
-    await news.wait(hold);
+    await news.wait(SHIFT_MS + 900);
     arrived = new Set();
-    state.expanded.delete(key);
+    for (const k of keys) state.expanded.delete(k);
     notify();
     await news.wait(SHIFT_MS);
   }
