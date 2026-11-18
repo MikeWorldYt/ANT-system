@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::dict_match::{classify, cut_globals, renamed};
 use super::dictionary;
-use super::reduce_name::{dated_name, new_name, unbracketed_name, undated_name, unique_name};
+use super::reduce_name::{affixed, dated_name, new_name, unbracketed_name, undated_name, unique_name};
 use crate::domain::error::R;
 use crate::domain::project_group::{self, Tier};
 use crate::infra::fs_safe::{dir_entries, join_rel, validate_component};
@@ -42,9 +42,10 @@ fn folder_files(root: &Path, folder: &[String]) -> R<Vec<String>> {
     let mut names = Vec::new();
     for entry in dir_entries(&dir, "list folder")? {
         let entry = entry?;
-        // "~$report.docx" and other "~" files are temporary copies an app holds open; no automation touches them.
-        if entry.path().is_file() && !entry.file_name().to_string_lossy().starts_with('~') {
-            names.push(entry.file_name().to_string_lossy().into_owned());
+        // "~$report.docx" and other "~" files are temporary copies an app holds open; hidden, system and dot files ("desktop.ini", ".gitignore") are kept out of sight for a reason. No automation touches them.
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if entry.path().is_file() && !name.starts_with('~') && !crate::services::downloads::is_concealed(&entry) {
+            names.push(name);
         }
     }
     names.sort();
@@ -68,7 +69,7 @@ fn created_secs(path: &Path) -> Option<i64> {
 }
 
 // A rename after the grouping; names stay unique in each destination.
-fn retitle(root: &Path, folder: &[String], rows: &mut [PlannedFile], change: impl Fn(&str) -> String) -> R<()> {
+fn retitle(root: &Path, folder: &[String], rows: &mut [PlannedFile], change: impl Fn(&PlannedFile) -> String) -> R<()> {
     let mut taken: HashMap<Option<String>, HashSet<String>> = HashMap::new();
     for row in rows.iter() {
         if row.folder.is_some() && !taken.contains_key(&row.folder) {
@@ -78,7 +79,7 @@ fn retitle(root: &Path, folder: &[String], rows: &mut [PlannedFile], change: imp
         taken.entry(row.folder.clone()).or_default().insert(row.name.to_lowercase());
     }
     for row in rows.iter_mut() {
-        let wanted = change(&row.name);
+        let wanted = change(row);
         if wanted == row.name {
             continue;
         }
@@ -126,12 +127,19 @@ pub(super) fn plan_with(root: &Path, folder: &[String], only: &[String], picks: 
         group_by_dictionary(root, folder, &entries, &mut rows)?;
         // The global cuts come after the grouping, which read the names whole, so they never change where a file goes.
         if !globals.is_empty() {
-            retitle(root, folder, &mut rows, |name| cut_globals(globals, name))?;
+            retitle(root, folder, &mut rows, |r| cut_globals(globals, &r.name))?;
         }
+        // An entry's own prefix or suffix wins over the dictionary's, which reaches every file of the folder.
+        let affix = |r: &PlannedFile| {
+            let entry = r.entry.as_ref().and_then(|f| entries.iter().find(|e| e.folder == *f));
+            let pick = |own: Option<&String>, all: &String| own.filter(|v| !v.is_empty()).unwrap_or(all).clone();
+            affixed(&r.name, &pick(entry.map(|e| &e.prefix), &globals.prefix), &pick(entry.map(|e| &e.suffix), &globals.suffix))
+        };
+        retitle(root, folder, &mut rows, affix)?;
     }
     // Last of the renames, so the dictionary still reads the "(date)" and "[owner]" it places the topic after.
     if picks.remove_symbols {
-        retitle(root, folder, &mut rows, unbracketed_name)?;
+        retitle(root, folder, &mut rows, |r| unbracketed_name(&r.name))?;
     }
     if picks.sort {
         let loose: Vec<usize> = (0..rows.len()).filter(|&i| rows[i].folder.is_none()).collect();

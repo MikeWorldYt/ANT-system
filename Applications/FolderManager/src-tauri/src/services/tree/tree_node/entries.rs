@@ -25,6 +25,7 @@ pub(super) struct Entry {
     pub(super) favorite: bool,
     pub(super) hidden: bool,
     pub(super) file: bool,
+    pub(super) concealed: bool,
 }
 
 pub(super) fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>> {
@@ -65,7 +66,7 @@ pub(super) fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R
                 let kept_as_heading = owner.len() == 1 && starred_categories.contains(&owner[0]);
                 (kept_as_favorite || kept_as_heading || !hidden.contains(&owner[0])) && !names.contains(name.as_str())
             })
-            .map(|(name, owner)| Entry { favorite: starred.contains(&name), hidden: hidden_links.contains(&name), name, on_disk: true, in_yaml: false, link: Some(owner), file: false })
+            .map(|(name, owner)| Entry { favorite: starred.contains(&name), hidden: hidden_links.contains(&name), name, on_disk: true, in_yaml: false, link: Some(owner), file: false, concealed: false })
             .collect()
     } else {
         Vec::new()
@@ -75,7 +76,7 @@ pub(super) fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R
     let file_entries: Vec<Entry> = if !parent.is_empty() && lists_files(parent) {
         disk_files(&disk_dir)?
             .into_iter()
-            .map(|name| Entry { name, on_disk: true, in_yaml: false, link: None, favorite: false, hidden: false, file: true })
+            .map(|(name, concealed)| Entry { name, on_disk: true, in_yaml: false, link: None, favorite: false, hidden: false, file: true, concealed })
             .collect()
     } else {
         Vec::new()
@@ -90,6 +91,7 @@ pub(super) fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R
             favorite: false,
             hidden: false,
             file: false,
+            concealed: false,
         })
         .filter(|e| !(e.on_disk && !e.in_yaml && is_linked_folder(&e.name)))
         .chain(link_entries)
@@ -126,8 +128,8 @@ fn is_linked_folder(name: &str) -> bool {
     matches!(support_kind(name), Some("REV" | "RES" | "SS" | "REC"))
 }
 
-// Review folders also list their files; hidden files and the Windows desktop.ini stay out.
-fn disk_files(dir: &Path) -> R<Vec<String>> {
+// Folders also list their files, each marked when it is hidden, so the views can fade it or leave it out.
+fn disk_files(dir: &Path) -> R<Vec<(String, bool)>> {
     if !dir.is_dir() {
         return Ok(Vec::new());
     }
@@ -135,11 +137,11 @@ fn disk_files(dir: &Path) -> R<Vec<String>> {
     for entry in dir_entries(dir, "read the folder")? {
         let entry = entry?;
         let name = entry.file_name().to_string_lossy().into_owned();
-        if name.starts_with('.') || name.eq_ignore_ascii_case("desktop.ini") || is_running_app(dir, &entry.file_name()) {
+        if is_running_app(dir, &entry.file_name()) {
             continue;
         }
         if entry.file_type().map_err(|e| io_err("read the folder", dir, &e))?.is_file() {
-            files.push(name);
+            files.push((name, crate::services::downloads::is_concealed(&entry)));
         }
     }
     Ok(files)

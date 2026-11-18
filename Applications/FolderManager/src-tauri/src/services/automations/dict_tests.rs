@@ -148,7 +148,7 @@ fn lint_table() {
     assert!(found("# T\n## NODE.\n- term: a\n", "needs the node name", 2, Level::Error));
     assert!(found("# T\n## F\n- exclude: a\n", "catches nothing", 2, Level::Warning));
     assert!(lint("# T\n- term: a\n- pattern: ^x\n## F\n- term: b\n").is_empty());
-    assert!(found("# T\n- topics: a\n", "only `term` and `pattern`", 2, Level::Error));
+    assert!(found("# T\n- topics: a\n", "only `term`, `pattern`, `prefix` and `suffix`", 2, Level::Error));
     assert!(found("# T\n- pattern: (\n", "does not compile", 2, Level::Error));
     assert!(found("# T\n- color: a\n", "outside any entry", 2, Level::Error));
     assert!(found("# T\n## F\n- term a\n", "Expected `key: values`", 3, Level::Error));

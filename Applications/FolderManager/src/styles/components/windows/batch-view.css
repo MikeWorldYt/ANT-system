@@ -22,6 +22,8 @@
 .batch-tile { position: relative; }
 .batch-tile > input { position: absolute; left: 6px; top: 6px; }
 .batch-tile-name { max-width: 100%; text-align: center; overflow-wrap: anywhere; font-size: 12px; }
+/* Three lines at most, as the grid shows names, so one long name does not stretch its whole row; the editor shows it whole. */
+.batch-grid.grid:not(.list):not(.cards) .batch-tile-name:not(.renaming) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .batch-tile.skipped { opacity: 0.5; }
 .batch-scroll > .details-head { top: var(--batch-head-h, 0); z-index: 2; padding-left: 58px; }
 .batch-columns { display: flex; align-items: flex-start; gap: 8px; overflow-x: auto; min-height: 100%; }
@@ -62,3 +64,6 @@
 .replay-pile { position: relative; isolation: isolate; }
 .replay-pile-under { position: absolute; inset: 0; pointer-events: none; }
 .replay-count { position: absolute; top: 4px; right: 8px; z-index: 2; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--button); color: var(--button-text, #fff); font-size: 8pt; font-weight: 600; line-height: 18px; text-align: center; }
+.batch-tile-name.renaming { position: relative; align-self: stretch; min-height: 1.4em; }
+.batch-name-input { position: absolute; top: 0; left: -4px; right: -4px; z-index: 5; box-sizing: border-box; resize: none; overflow: hidden; font: inherit; font-size: 12px; line-height: 1.35; text-align: center; overflow-wrap: anywhere; white-space: pre-wrap; }
+.batch-grid.grid.list .batch-name-input, .batch-grid.grid.cards .batch-name-input { text-align: left; }

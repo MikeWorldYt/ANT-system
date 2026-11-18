@@ -104,6 +104,7 @@ function node(draft: Draft, parent: string[]): TreeNode {
     favorite: false,
     important: false,
     hidden: false,
+    concealed: false,
     file: draft.file === true,
     info: null,
     children,

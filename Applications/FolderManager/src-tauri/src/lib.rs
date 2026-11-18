@@ -71,6 +71,18 @@ pub fn run() {
                     }
                 },
             ));
+            match app.path().download_dir() {
+                Ok(dir) => {
+                    let emitter = app.handle().clone();
+                    services::watch::watch_downloads(dir, move || {
+                        use tauri::Emitter;
+                        if let Err(e) = emitter.emit("fm://downloads-changed", ()) {
+                            eprintln!("Could not send fm://downloads-changed: {e}");
+                        }
+                    });
+                }
+                Err(e) => eprintln!("No Downloads folder to watch: {e}"),
+            }
             match app::ui_bridge::UiBridge::start(app.handle()) {
                 Ok(bridge) => {
                     app.manage(bridge);

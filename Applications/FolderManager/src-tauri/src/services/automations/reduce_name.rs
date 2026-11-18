@@ -405,10 +405,14 @@ pub fn undated_name(name: &str) -> String {
 // The remove-symbols automation: opening and closing marks go, as owner tags "[Mike]" or a date "(26-05-04)" the user does not want.
 pub fn unbracketed_name(name: &str) -> String {
     let (stem, suffix) = split_ext(name);
-    let bare: Vec<char> = stem.chars().filter(|c| !matches!(c, '(' | ')' | '[' | ']' | '{' | '}')).collect();
+    let chars: Vec<char> = stem.chars().collect();
+    // A " (2)" copy counter keeps its brackets, or the clash it marks would only come back as a new counter.
+    let cut = counter_start(&chars).unwrap_or(chars.len());
+    let counter: String = chars[cut..].iter().collect();
+    let bare: Vec<char> = chars[..cut].iter().copied().filter(|c| !matches!(c, '(' | ')' | '[' | ']' | '{' | '}')).collect();
     let joined: String = collapse_symbol_runs(&bare).into_iter().collect();
     let trimmed = joined.trim_start_matches(is_sep).trim_end_matches(|c| is_sep(c) || c == '.');
-    if trimmed.is_empty() { name.to_string() } else { format!("{trimmed}{suffix}") }
+    if trimmed.is_empty() { name.to_string() } else { format!("{trimmed}{counter}{suffix}") }
 }
 
 pub fn new_name(name: &str) -> String {
@@ -421,6 +425,19 @@ pub fn new_name(name: &str) -> String {
     let cleaned = if chars.is_empty() || is_generic(&chars) { String::new() } else { clean_stem(&chars, name) };
     let extra = if cleaned.is_empty() || cleaned == short_md5(name) { String::new() } else { format!("_{cleaned}") };
     format!("({date}){extra}{suffix}")
+}
+
+// Added once: a name that already carries the prefix or suffix keeps it as it is, so a second run adds nothing; the suffix goes before any " (2)" copy counter.
+pub fn affixed(name: &str, prefix: &str, suffix: &str) -> String {
+    let (stem, ext) = split_ext(name);
+    let chars: Vec<char> = stem.chars().collect();
+    let cut = counter_start(&chars).unwrap_or(chars.len());
+    let body: String = chars[..cut].iter().collect();
+    let counter: String = chars[cut..].iter().collect();
+    let lower = body.to_lowercase();
+    let head = if prefix.is_empty() || lower.starts_with(&prefix.to_lowercase()) { "" } else { prefix };
+    let tail = if suffix.is_empty() || lower.ends_with(&suffix.to_lowercase()) { "" } else { suffix };
+    format!("{head}{body}{tail}{counter}{ext}")
 }
 
 pub fn unique_name(name: &str, taken: &HashSet<String>) -> String {

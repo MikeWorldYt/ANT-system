@@ -143,6 +143,8 @@ fn entry() -> Value {
             "exclude": words("Words removed from the name of a grouped file; they never decide the group"),
             "ext": words("Extensions such as \".jpg\""),
             "pattern": words("Case-insensitive regular expressions on the name without extension; the match is removed"),
+            "prefix": text("Text put at the start of each grouped file's name, unless it already starts with it"),
+            "suffix": text("Text put at the end of each grouped file's name, before the extension and any \" (2)\" counter, unless it already ends with it"),
         }),
         &["folder"],
     )

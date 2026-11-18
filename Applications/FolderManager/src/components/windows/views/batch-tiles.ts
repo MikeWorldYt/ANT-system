@@ -8,7 +8,7 @@ import { keyOf, select, selectKeys, state } from "../../../services/store/state"
 import type { TreeNode } from "../../../services/ipc/types";
 import type { BatchRow } from "./batch-row";
 import { detailCells, fileKind } from "./details-cells";
-import { tileMenu } from "./batch-tile-menu";
+import { renameTile, tileMenu } from "./batch-tile-menu";
 import { groupAt, moveOut, pinTo } from "../../../hooks/automations/batch-drop";
 import { targetAt } from "../../../hooks/folder-move";
 
@@ -40,10 +40,24 @@ function tile(row: BatchRow, folder: string[], detail: "none" | "kind" | "column
   sync();
   // The box ticks the file for the run; the rest of the tile selects it, so the panel shows its details and preview.
   dragToGroup(item, key, file.folder ?? file.project);
+  // Explorer's slow double click: a click on the name of the only selected tile, held apart from a double click, renames it.
+  let wasOnly = false;
+  let slow: number | undefined;
+  item.addEventListener("pointerdown", () => {
+    wasOnly = state.selectedKeys.length === 1 && state.selectedKeys[0] === key;
+  });
+  item.addEventListener("dblclick", () => window.clearTimeout(slow));
   item.addEventListener("click", (ev) => {
+    window.clearTimeout(slow);
     if (ev.target === row.box || item.dataset.dragged) {
       delete item.dataset.dragged;
       return;
+    }
+    const onName = ev.target instanceof Element && ev.target.closest(".batch-tile-name") !== null;
+    if (wasOnly && onName && ev.detail === 1 && !ev.ctrlKey && !ev.shiftKey) {
+      slow = window.setTimeout(() => {
+        if (state.selectedKeys.length === 1 && state.selectedKeys[0] === key) renameTile(document.querySelector<HTMLElement>(`.batch-tile[data-key="${CSS.escape(key)}"]`) ?? item, parts);
+      }, 600);
     }
     if (ev.ctrlKey) selectKeys(state.selectedKeys.includes(key) ? state.selectedKeys.filter((k) => k !== key) : [...state.selectedKeys, key]);
     else select(parts);

@@ -1,6 +1,7 @@
 // Single IPC surface: the only module that calls invoke.
 import { invoke } from "@tauri-apps/api/core";
 import { inDownloads, isFmError } from "./types";
+import { hiddenItemsShown } from "../store/view-prefs";
 import type {
   ApplyOutcome,
   BoardCard,
@@ -60,8 +61,11 @@ export const resolveInvalid = (relParts: string[], resolution: Resolution) =>
   call<Mutation>("resolve_invalid", { relParts, resolution });
 // Downloads paths start with a marker the backend does not take; it only receives the names below Downloads.
 const belowDownloads = (relParts: string[]) => relParts.slice(1);
-export const listChildren = (relParts: string[]) =>
-  inDownloads(relParts) ? call<TreeNode[]>("list_downloads", { relParts: belowDownloads(relParts) }) : call<TreeNode[]>("list_children", { relParts });
+// Hidden, system and dot files reach the views only when Hidden items is on.
+export const listChildren = async (relParts: string[]): Promise<TreeNode[]> => {
+  const nodes = await (inDownloads(relParts) ? call<TreeNode[]>("list_downloads", { relParts: belowDownloads(relParts) }) : call<TreeNode[]>("list_children", { relParts }));
+  return hiddenItemsShown() ? nodes : nodes.filter((n) => !n.concealed);
+};
 export const renameNode = (relParts: string[], newEditable: string) =>
   call<Mutation>("rename_node", { relParts, newEditable });
 export const setNodeType = (relParts: string[], typeBase: EditableType, status: WkbStatus | null) =>

@@ -1,6 +1,7 @@
 // Type and flag text for a node, shown in the details block and as row tooltips.
 import type { EditableType, TreeNode, WkbStatus } from "../ipc/types";
 import { state } from "./state";
+import { extensionsShown } from "./view-prefs";
 
 export const TYPES: [EditableType, string][] = [["NODE", "Node"], ["WKB", "Worknode"]];
 const TYPE_LABELS: [string, string][] = [...TYPES, ["OUT", "Outcomes"]];
@@ -54,6 +55,7 @@ export const displayNodeName = (n: TreeNode): string => {
   if (n.relParts.length === 1 && GLOBAL_PREFIX.test(n.name)) return n.name.replace(GLOBAL_PREFIX, "");
   const support = supportLabel(n);
   if (support) return support;
+  if (n.file && !extensionsShown()) return n.name.lastIndexOf(".") > 0 ? n.name.slice(0, n.name.lastIndexOf(".")) : n.name;
   return n.linked || state.settings.hideDirectoryIdentifiers ? nameWithoutIdentifier(n) : n.name;
 };
 const OWNER_KEYS = ["owner", "holder", "client"];

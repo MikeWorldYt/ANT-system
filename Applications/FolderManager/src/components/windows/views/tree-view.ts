@@ -13,7 +13,7 @@ import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { isTail } from "../../../services/store/sort";
 import { entryBeside, headEntry, rootEntries, virtualEntry } from "../../molecules/virtual-entry";
-import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
+import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
@@ -62,7 +62,7 @@ export function createTreeView(): ViewMode {
     });
     onItemClick(row, n, () => rows.map((r) => keyOf(r.relParts)), () => pick(i), fromToggle);
     row.addEventListener("dblclick", (ev) => {
-      if (!fromToggle(ev)) editOrOpen(n, ev);
+      if (!fromToggle(ev)) openOnDouble(n);
     });
     row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, tree));
     return row;

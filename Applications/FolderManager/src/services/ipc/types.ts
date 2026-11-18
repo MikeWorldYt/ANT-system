@@ -63,6 +63,7 @@ export interface TreeNode {
   favorite: boolean;
   important: boolean;
   hidden: boolean;
+  concealed: boolean;
   file: boolean;
   info: NodeInfo | null;
   children: TreeNode[] | null;

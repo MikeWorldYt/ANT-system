@@ -9,6 +9,7 @@ Each entry is a `## Heading` naming where its files go, refined by keys:
 - `exclude`: only removed from the name; never decides the group.
 - `ext`: extensions, e.g. `.exe .msi`.
 - `pattern`: a case-insensitive regex; its match is removed. One per line.
+- `prefix` / `suffix`: text added at the start / end of each grouped name (the suffix before the extension and any " (2)" counter), once. Above the first entry they reach every file of the folder; an entry's own wins.
 
 Headings:
 - `## Name`: a subfolder of the review folder, created when needed.

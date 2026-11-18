@@ -17,7 +17,7 @@ import { reviewFilter, reviewGroup } from "../../../services/store/review-list";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { entryBeside, headEntry, openEntry, placeEntries, rootEntries, virtualEntries } from "../../molecules/virtual-entry";
-import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
+import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
@@ -78,7 +78,7 @@ export function createColumnsView(): ViewMode {
     }
     onItemClick(item, n, () => siblings, () => pick(n));
     item.addEventListener("dblclick", (ev) => {
-      if (!fromToggle(ev)) editOrOpen(n, ev);
+      if (!fromToggle(ev)) openOnDouble(n);
     });
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
     return item;

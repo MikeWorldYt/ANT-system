@@ -77,8 +77,8 @@ fn removing_a_date_wins_over_adding_one() {
 
 #[test]
 fn symbols_go_last_and_stay_unique() {
-    let dir = storage(&["a (1).png", "a 1.png"], None);
-    assert_eq!(names(&run(&dir, &[], Picks { remove_symbols: true, ..Picks::default() })), [("a (1).png", "a 1 (2).png"), ("a 1.png", "a 1.png")]);
+    let dir = storage(&["[a].png", "a (1).png", "a.png"], None);
+    assert_eq!(names(&run(&dir, &[], Picks { remove_symbols: true, ..Picks::default() })), [("[a].png", "a (2).png"), ("a (1).png", "a (1).png"), ("a.png", "a.png")]);
 }
 
 #[test]
@@ -195,4 +195,23 @@ proptest! {
 
 fn names_of(rows: &[PlannedFile]) -> Vec<(String, String, Option<String>)> {
     rows.iter().map(|r| (r.file.clone(), r.name.clone(), r.folder.clone())).collect()
+}
+
+#[test]
+fn an_entry_affix_wins_over_the_dictionary_one() {
+    let dir = storage(&["sensei-a.png", "loose.png"], Some("# D
+- prefix: X_
+
+## Fans
+- term: sensei
+- suffix: _fan
+"));
+    let rows = run(&dir, &[], Picks { group: true, ..Picks::default() });
+    assert_eq!(names(&rows), [("loose.png", "X_loose.png"), ("sensei-a.png", "X_a_fan.png")]);
+}
+
+#[test]
+fn dot_and_temporary_files_are_left_alone() {
+    let dir = storage(&[".gitignore", "~$a.docx", "b (1).png"], None);
+    assert_eq!(names(&run(&dir, &[], Picks { reduce: true, remove_symbols: true, ..Picks::default() })).iter().map(|(f, _)| *f).collect::<Vec<_>>(), ["b (1).png"]);
 }

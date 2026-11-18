@@ -214,7 +214,9 @@ fn review_folders_always_open_and_list_their_files() {
     let folders = build_children(dir.path(), &data, &rel(&["100.A"])).unwrap();
     let review = folders.iter().find(|n| n.name == "98.A").unwrap();
     assert!(review.has_children);
-    let files = build_children(dir.path(), &data, &review.rel_parts).unwrap();
+    let all = build_children(dir.path(), &data, &review.rel_parts).unwrap();
+    assert!(all.iter().filter(|n| n.name != "notes.txt").all(|n| n.concealed) && all.len() == 3);
+    let files: Vec<_> = all.into_iter().filter(|n| !n.concealed).collect();
     assert_eq!(names(&files), ["notes.txt"]);
     assert!(files[0].file && !files[0].has_children && files[0].actions.rename && !files[0].actions.favorite);
     let empty = folders.iter().find(|n| n.name == "98.B").unwrap();

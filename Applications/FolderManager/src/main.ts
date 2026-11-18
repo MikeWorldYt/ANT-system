@@ -2,10 +2,11 @@
 import "./styles/index.css";
 import { createMainWindow } from "./components/windows/main-window";
 import { openSettings } from "./components/windows/settings";
-import { onDownloadsDictionary, onFileDrag, onReviewIndex, onStorageChanged, onUiRequest, onWindowFocus } from "./services/ipc/events";
+import { onDownloadsChanged, onDownloadsDictionary, onFileDrag, onReviewIndex, onStorageChanged, onUiRequest, onWindowFocus } from "./services/ipc/events";
 import { rememberSelection, state, subscribe } from "./services/store/state";
 import { clearStatus, currentOperationStatus, setStatus, reportError } from "./components/organisms/bars/status-line";
 import { init, refresh, relistLevels } from "./hooks/ops";
+import { relistDownloads } from "./hooks/relist";
 import { autoRefresh } from "./hooks/auto-refresh";
 import { startIdleRefresh } from "./hooks/idle-refresh";
 import { handleFileDrag } from "./hooks/file-drop";
@@ -105,6 +106,8 @@ onWindowFocus(() => {
   lastFocusAt = Date.now();
   void (quick ? Promise.resolve() : relistLevels(null)).finally(() => restoreFocus(() => views.current().focus()));
 }).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
+
+onDownloadsChanged(() => void relistDownloads()).catch((e) => reportError("warning", e, "Live Downloads updates unavailable"));
 
 onDownloadsDictionary(replanAfterDictionary).catch((e) => reportError("warning", e, "Downloads dictionary updates unavailable"));
 

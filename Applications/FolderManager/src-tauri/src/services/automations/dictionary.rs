@@ -34,6 +34,8 @@ pub struct Entry {
     pub create: bool,
     // Exact file names, extension included, that go to this entry whatever else matches them.
     pub files: Vec<String>,
+    pub prefix: String,
+    pub suffix: String,
 }
 
 fn list(value: &str) -> impl Iterator<Item = String> + '_ {
@@ -88,6 +90,8 @@ pub struct Spec {
     pub ext: Vec<String>,
     pub pattern: Vec<String>,
     pub files: Vec<String>,
+    pub prefix: String,
+    pub suffix: String,
 }
 
 // Lines between the title and the first entry name text cut from every file name; they group nothing.
@@ -95,6 +99,8 @@ pub struct Spec {
 pub struct Globals {
     pub terms: Vec<String>,
     pub patterns: Vec<Regex>,
+    pub prefix: String,
+    pub suffix: String,
 }
 
 impl Globals {
@@ -105,6 +111,13 @@ impl Globals {
     fn extend(&mut self, other: Globals) {
         self.terms.extend(other.terms);
         self.patterns.extend(other.patterns);
+        // The closer dictionary's prefix and suffix replace the farther ones.
+        if !other.prefix.is_empty() {
+            self.prefix = other.prefix;
+        }
+        if !other.suffix.is_empty() {
+            self.suffix = other.suffix;
+        }
     }
 }
 
@@ -136,6 +149,8 @@ pub fn parse_globals(text: &str, source: &Path) -> R<Globals> {
                 let re = RegexBuilder::new(&value).case_insensitive(true).build().map_err(|e| FmError::Internal { message: format!("{}: pattern {value}: {e}", source.display()) })?;
                 globals.patterns.push(re);
             }
+            "prefix" => globals.prefix = value,
+            "suffix" => globals.suffix = value,
             _ => {}
         }
     }
@@ -183,6 +198,8 @@ pub fn parse(text: &str) -> Vec<Spec> {
             "exclude" => spec.exclude.extend(list(value)),
             "ext" => spec.ext.extend(exts(value)),
             "pattern" if !value.is_empty() => spec.pattern.push(value.to_string()),
+            "prefix" => spec.prefix = value.to_string(),
+            "suffix" => spec.suffix = value.to_string(),
             _ => {}
         }
     }
@@ -212,6 +229,8 @@ pub fn compile(spec: &Spec, source: &Path) -> R<Entry> {
         node: None,
         create: false,
         files: spec.files.clone(),
+        prefix: spec.prefix.clone(),
+        suffix: spec.suffix.clone(),
     })
 }
 
@@ -239,6 +258,11 @@ fn render_with(title: &str, globals: &[(String, String)], specs: &[Spec]) -> Str
         }
         for pattern in &spec.pattern {
             out.push_str(&format!("- pattern: {pattern}\n"));
+        }
+        for (key, value) in [("prefix", &spec.prefix), ("suffix", &spec.suffix)] {
+            if !value.is_empty() {
+                out.push_str(&format!("- {key}: {value}\n"));
+            }
         }
         if !spec.files.is_empty() {
             out.push_str(&format!("\n### {FILES_HEADING}\n- {}\n", spec.files.join(", ")));

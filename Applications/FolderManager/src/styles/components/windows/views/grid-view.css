@@ -6,6 +6,7 @@
 .grid-item:hover { background: var(--input-bg); }
 .grid-item.selected { background: var(--highlight); }
 .grid-item.ghost { opacity: 0.7; }
+.concealed { opacity: 0.5; }
 .grid-item.ghost .name { color: var(--ghost-text); font-style: italic; }
 .grid-item.locked .name { color: var(--muted); }
 .grid-art { position: relative; display: inline-flex; }

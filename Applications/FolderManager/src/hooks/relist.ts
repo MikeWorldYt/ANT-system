@@ -3,7 +3,7 @@ import * as api from "../services/ipc/api";
 import { findNode, hydrate, keyOf, notify, patchLevels, pruneSelection, state } from "../services/store/state";
 import { loadVirtual } from "../services/store/virtual";
 import { loadOtherVirtual } from "./split";
-import type { TreeNode } from "../services/ipc/types";
+import { DOWNLOADS_ROOT, type TreeNode } from "../services/ipc/types";
 
 // Levels on screen: the root, the open folders and the path down to the selection.
 export function visibleLevels(): string[][] {
@@ -35,6 +35,12 @@ async function relistLevel(parent: string[]): Promise<{ added: boolean; changed:
 }
 
 let queue: Promise<unknown> = Promise.resolve();
+
+// Downloads is not in the tree, so its open folders are read from the expanded keys, and its list is read again in any case.
+export function relistDownloads(): Promise<boolean> {
+  const open = [...state.expanded].filter((k) => k.startsWith(`${DOWNLOADS_ROOT}/`)).map((k) => k.split("/"));
+  return relist(open, true);
+}
 
 // Resolves to whether any level gained a folder; levels are read one after another so batches never overlap.
 export function relist(parents: string[][], reloadLists = false): Promise<boolean> {

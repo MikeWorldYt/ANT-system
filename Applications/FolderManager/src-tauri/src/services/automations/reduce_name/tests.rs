@@ -117,7 +117,9 @@ fn undated_name_drops_the_date_but_never_empties_a_name() {
 #[test]
 fn unbracketed_name_table() {
     for (input, want) in [
-        ("Photo (1).png", "Photo 1.png"),
+        ("Photo (1).png", "Photo (1).png"),
+        ("[Bob] foto (2).jpg", "Bob foto (2).jpg"),
+        ("v (1a).png", "v 1a.png"),
         ("[Mike] (26-05-04) cosa.png", "Mike 26-05-04 cosa.png"),
         ("{a}_[b].txt", "a_b.txt"),
         ("Bob  --  Ross__final.txt", "Bob-Ross_final.txt"),
@@ -201,4 +203,11 @@ proptest! {
             taken.insert(next.to_lowercase());
         }
     }
+}
+
+#[test]
+fn affixed_adds_once_and_keeps_the_counter() {
+    assert_eq!(affixed("foto (1).jpg", "PJ_", "_v2"), "PJ_foto_v2 (1).jpg");
+    assert_eq!(affixed("PJ_foto_v2.jpg", "pj_", "_V2"), "PJ_foto_v2.jpg");
+    assert_eq!(affixed("noext", "", "-x"), "noext-x");
 }

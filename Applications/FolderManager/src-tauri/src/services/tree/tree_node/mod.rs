@@ -56,6 +56,8 @@ pub struct TreeNode {
     pub favorite: bool,
     pub important: bool,
     pub hidden: bool,
+    // A hidden, system or dot file, which the views fade or leave out.
+    pub concealed: bool,
     pub file: bool,
     pub info: Option<NodeInfo>,
     pub children: Option<Vec<TreeNode>>,
@@ -115,7 +117,7 @@ pub(crate) fn managed_children(root: &Path, data: &Mapping, parent: &[String]) -
         let mut rel = parent.to_vec();
         rel.push(name.clone());
         let in_yaml = get_node(data, &rel).is_some();
-        let entry = Entry { name, on_disk: true, in_yaml, link: None, favorite: false, hidden: false, file: false };
+        let entry = Entry { name, on_disk: true, in_yaml, link: None, favorite: false, hidden: false, file: false, concealed: false };
         nodes.push(make_node(root, data, parent, entry, limit)?);
     }
     Ok(nodes)
@@ -129,7 +131,7 @@ fn children_at(root: &Path, data: &Mapping, parent: &[String], limit: usize) -> 
     let mut nodes = Vec::new();
     for entry in level_entries(root, data, parent)? {
         if entry.file {
-            nodes.push(file_node(root, parent, entry.name));
+            nodes.push(file_node(root, parent, entry.name, entry.concealed));
         } else {
             nodes.push(make_node(root, data, parent, entry, limit)?);
         }
@@ -159,7 +161,7 @@ pub(crate) fn lists_files(rel: &[String]) -> bool {
 }
 
 // Files are read from disk when their folder opens; they carry no info, children or actions.
-fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
+fn file_node(root: &Path, parent: &[String], name: String, concealed: bool) -> TreeNode {
     let mut rel_parts = parent.to_vec();
     rel_parts.push(name.clone());
     let abs = join_rel(root, &rel_parts);
@@ -185,6 +187,7 @@ fn file_node(root: &Path, parent: &[String], name: String) -> TreeNode {
         favorite: false,
         important: false,
         hidden: false,
+        concealed,
         file: true,
         info: None,
         children: None,
@@ -261,6 +264,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
         favorite: entry.favorite || info.as_ref().and_then(|i| field_of(i, &["favorite"])).is_some_and(|v| v.eq_ignore_ascii_case("true")),
         important: is_wkb && info.as_ref().and_then(|i| field_of(i, &["important"])).is_some_and(|v| v.eq_ignore_ascii_case("true")),
         hidden: entry.hidden,
+        concealed: entry.concealed,
         file: false,
         info,
         children: None,

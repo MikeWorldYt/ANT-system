@@ -14,7 +14,7 @@ import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { isTail } from "../../../services/store/sort";
 import { openEntry, placeEntries, rootEntries, virtualEntries, type VirtualEntry } from "../../molecules/virtual-entry";
-import { editOrOpen, markNodeItem, onItemClick } from "../../molecules/node-item";
+import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
@@ -88,13 +88,13 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
     if (n.favorite) art.append(favoriteMark());
     if (n.important) art.append(importantMark());
     if (n.status) art.append(statusMark(n.status));
-    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, detail ? el("div", { class: "card-text" }, nameCell(n, false), el("span", { class: "card-detail" }, detail(n))) : nameCell(n, false));
+    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, detail ? el("div", { class: "card-text" }, nameCell(n, false), el("span", { class: "card-detail" }, detail(n))) : nameCell(n, false, false, !columns));
     if (columns) item.append(...detailCells(n));
     markNodeItem(item, n);
     item.prepend(...manageBox(n, item));
     onItemClick(item, n, () => shownNodes().map((s) => keyOf(s.relParts)), () => select(n.relParts));
-    // As in Explorer, the name renames and the rest of the tile opens.
-    item.addEventListener("dblclick", (ev) => (n.file || (ev.target instanceof Element && ev.target.closest(".name")) ? editOrOpen(n, ev) : enter(n)));
+    // As in Explorer, a double click opens; the name renames on a slow second click.
+    item.addEventListener("dblclick", () => (n.file ? openOnDouble(n) : enter(n)));
     item.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, root));
     return item;
   }

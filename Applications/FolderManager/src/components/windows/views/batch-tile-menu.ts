@@ -1,14 +1,15 @@
-// The batch grid's menu: one file can be opened, revealed, renamed to help the batch, or deleted; several can be unticked or deleted together.
+// The batch grid's menu: one file can be opened, revealed, renamed to help the batch, or deleted; several can be unticked, tagged with a prefix or suffix, or deleted together.
 import { closingItem, separator } from "../../molecules/menu";
 import { openMenuWith } from "../../organisms/menus/context-menu";
 import { promptDialog } from "../../organisms/dialogs/action-dialog/form-dialog";
+import { renameInPlace } from "./batch-tile-rename";
 import { warningConfirmDialog } from "../../organisms/dialogs/info-dialog/info-dialog";
 import { reportError } from "../../organisms/bars/status-line";
 import * as api from "../../../services/ipc/api";
 import { batch, replanBatch } from "../../../hooks/automations/batch";
 import { plural } from "../../../services/plural";
 import { inDownloads } from "../../../services/ipc/types";
-import { state } from "../../../services/store/state";
+import { keyOf, state } from "../../../services/store/state";
 import { setRowTicked, type BatchRow } from "./batch-row";
 
 // A change on disk is read again by a fresh dry run with the same picks.
@@ -22,6 +23,30 @@ async function change(work: () => Promise<unknown>): Promise<void> {
 }
 
 const rename = (parts: string[], name: string): Promise<unknown> => (inDownloads(parts) ? api.renameDownload(parts, name) : api.renameFile(parts, name));
+
+// A suffix goes before the extension and any " (2)" copy counter, so the file keeps its type and its place among its copies.
+function affixed(name: string, prefix: string, suffix: string): string {
+  const dot = name.lastIndexOf(".");
+  const ext = dot > 0 ? name.slice(dot) : "";
+  const stem = name.slice(0, name.length - ext.length);
+  const counter = / \(\d+\)$/.exec(stem)?.[0] ?? "";
+  return `${prefix}${stem.slice(0, stem.length - counter.length)}${suffix}${counter}${ext}`;
+}
+
+function affix(all: string[][], side: "prefix" | "suffix"): void {
+  const label = side === "prefix" ? "Add prefix" : "Add suffix";
+  void promptDialog(label, `Text added to the ${side === "prefix" ? "start" : "end"} of ${plural(all.length, "file")}.`, "", label).then((text) => {
+    if (!text) return;
+    void change(async () => {
+      for (const parts of all) {
+        const name = parts.at(-1) ?? "";
+        await rename(parts, side === "prefix" ? affixed(name, text, "") : affixed(name, "", text));
+      }
+    });
+  });
+}
+
+export const renameTile = (tile: HTMLElement, parts: string[]): void => renameInPlace(tile, parts.at(-1) ?? "", (next) => void change(() => rename(parts, next)));
 
 async function remove(all: string[][]): Promise<void> {
   const what = all.length === 1 ? `"${all[0]?.at(-1) ?? ""}" goes` : `${plural(all.length, "file")} go`;
@@ -49,15 +74,19 @@ export function tileMenu(ev: MouseEvent, picked: { parts: string[]; row: BatchRo
             p.row.box.dispatchEvent(new Event("change"));
           }),
         );
-        const del = action("Delete selected", true, () => void change(() => remove(picked.map((p) => p.parts))));
-        return { items: [untick, del], subs: [], content: [untick, separator(), del] };
+        const all = picked.map((p) => p.parts);
+        const prefix = action("Add prefix…", true, () => affix(all, "prefix"));
+        const suffix = action("Add suffix…", true, () => affix(all, "suffix"));
+        const del = action("Delete selected", true, () => void change(() => remove(all)));
+        return { items: [untick, prefix, suffix, del], subs: [], content: [untick, separator(), prefix, suffix, separator(), del] };
       }
-      const name = one.row.file.file;
       const open = action("Open", true, () => void api.openNode(one.parts).catch((e: unknown) => reportError("error", e)));
       const reveal = action("Open folder location", true, () => void api.revealNode(one.parts).catch((e: unknown) => reportError("error", e)));
+      // The menu hands focus back to the tile as it closes, so the editor opens after that or it would close at once.
       const renameItem = action("Rename", true, () =>
-        void promptDialog("Rename", "New name for the file.", name, "Rename").then((next) => {
-          if (next && next.trim() !== name) void change(() => rename(one.parts, next.trim()));
+        setTimeout(() => {
+          const tile = document.querySelector<HTMLElement>(`.batch-tile[data-key="${CSS.escape(keyOf(one.parts))}"]`);
+          if (tile) renameTile(tile, one.parts);
         }),
       );
       const del = action("Delete", true, () => void change(() => remove([one.parts])));

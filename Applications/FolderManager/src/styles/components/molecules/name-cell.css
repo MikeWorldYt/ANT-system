@@ -13,3 +13,5 @@
 }
 .auto-mark { display: inline-flex; flex: none; color: var(--accent); }
 .auto-mark .gui-icon { width: 10px; height: 10px; }
+.name.editing.wrap { position: relative; align-self: stretch; min-height: 1.4em; }
+.name-input.wrap { position: absolute; top: 0; left: -4px; right: -4px; z-index: 5; box-sizing: border-box; resize: none; overflow: hidden; line-height: 1.35; text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; }

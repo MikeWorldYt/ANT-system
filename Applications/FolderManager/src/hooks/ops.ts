@@ -9,7 +9,7 @@ import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
 import { checkExtraReviews } from "./extra-reviews";
 import { checkSupportUpgrade } from "./support-upgrade";
-import { relist, visibleLevels } from "./relist";
+import { relist, relistDownloads, visibleLevels } from "./relist";
 import { loadOther, loadOtherVirtual } from "./split";
 import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../services/store/state";
@@ -308,6 +308,12 @@ export const renameTo = (node: TreeNode, editable: string) =>
   run(async () => {
     const text = editable.trim();
     if (text === node.editableName) return;
+    // Downloads is not the storage: the rename happens on disk and its watcher brings the new name in.
+    if (inDownloads(node.relParts)) {
+      await api.renameDownload(node.relParts, text);
+      await relistDownloads();
+      return;
+    }
     await applyMutation(node.file ? await api.renameFile(node.relParts, text) : await api.renameNode(node.relParts, text));
   });
 
