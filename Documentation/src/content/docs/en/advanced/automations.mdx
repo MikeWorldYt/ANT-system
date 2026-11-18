@@ -143,6 +143,7 @@ A node that accepts files keeps them. Otherwise they go to its own review folder
 | Heading | Where the files go |
 | --- | --- |
 | `## @/500.HOBBIES/08.Art` | The node at that path from the storage root. |
+| `## ./*.Art/*.Touhou` | A path that starts at the dictionary's folder; each `../` before it climbs one level, as in `## ../*.Art`. |
 
 - **Segments:** each one can be the full folder name (`08.Art`) or just its title (`Art`). They match like `NODE.` headings: case-insensitive, with spaces and underscores equal to dashes.
 - **Wildcard:** a segment can use `*` for any id, as in `## @/300.ACADEMIC/*.Teachnology/PJ.*_Kestrel`. The app finds the folder by the rest of the name, so ids need not be exact.

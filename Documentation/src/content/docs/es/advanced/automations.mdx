@@ -145,6 +145,7 @@ Un nodo que acepta archivos se los queda. Si no, van a su propia carpeta de revi
 | Encabezado | A dónde van los archivos |
 | --- | --- |
 | `## @/500.HOBBIES/08.Art` | El nodo en esa ruta desde la raíz del almacenamiento. |
+| `## ./*.Art/*.Touhou` | Una ruta que parte de la carpeta del diccionario; cada `../` delante sube un nivel, como en `## ../*.Art`. |
 
 - **Segmentos:** cada uno puede ser el nombre completo de la carpeta (`08.Art`) o solo su título (`Art`). Coinciden como los encabezados `NODE.`: sin distinguir mayúsculas, y con espacios y guiones bajos iguales a guiones.
 - **Comodín:** un segmento puede usar `*` para cualquier id, como en `## @/300.ACADEMIC/*.Teachnology/PJ.*_Kestrel`. La app encuentra la carpeta por el resto del nombre, así que los ids no tienen que ser exactos.
