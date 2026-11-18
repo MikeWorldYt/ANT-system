@@ -2,9 +2,14 @@
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 
+import nestedHeadingIds from './src/plugins/nested-heading-ids.mjs';
+
 export default defineConfig({
 	site: 'https://ant-system.vercel.app',
 	// Starlight has no root locale, so nothing is built at "/"
+	markdown: {
+		rehypePlugins: [nestedHeadingIds],
+	},
 	redirects: {
 		'/': '/en/',
 	},
