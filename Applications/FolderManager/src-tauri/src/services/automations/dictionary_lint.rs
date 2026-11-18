@@ -121,7 +121,8 @@ pub fn lint(text: &str) -> Vec<Issue> {
             if name.starts_with("@/") && name[2..].trim_matches(['/', ' ']).is_empty() {
                 push(Level::Error, "An @/ heading needs the node path from the storage root, like @/500.HOBBIES/08.Art".to_string());
             }
-            if !name.to_ascii_uppercase().starts_with("NODE") && !name.starts_with("@/") && validate_component(name).is_err() {
+            let path = name.starts_with("@/") || name.starts_with("./") || name.starts_with("../");
+            if !name.to_ascii_uppercase().starts_with("NODE") && !path && validate_component(name).is_err() {
                 push(Level::Error, format!("`{name}` cannot be a folder name, so the entry is ignored"));
             }
             if !names.insert(name.to_lowercase()) {

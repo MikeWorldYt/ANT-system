@@ -20,7 +20,8 @@
 .graph-card[data-status="done"] { border-color: var(--st-done); }
 .graph-files { list-style: none; margin: 0; padding: 6px; min-width: 200px; max-width: 320px; max-height: 320px; overflow: auto; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); }
 .graph-file { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
-.graph-file:hover { background: var(--highlight); }
+.graph-file:hover, .graph-file.selected { background: var(--highlight); }
+.graph-file.selected { box-shadow: inset 0 0 0 1px var(--button); }
 .graph-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .graph-file-empty { padding: 3px 6px; color: var(--muted); }
 @keyframes graph-breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
@@ -54,3 +55,7 @@
 @keyframes graph-loading { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.9; } }
 .graph-files.loading { min-width: 140px; animation: graph-loading 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .graph-files.loading { animation: none; } }
+.graph-entry { color: var(--text); }
+.graph-packet { position: absolute; top: 0; left: 0; z-index: 3; display: grid; place-items: center; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--button); color: var(--button-text, #fff); font-size: 8pt; font-weight: 600; box-shadow: 0 0 8px 2px var(--button); pointer-events: none; }
+@keyframes graph-land { 0% { box-shadow: 0 0 0 0 var(--button); } 40% { box-shadow: 0 0 14px 4px var(--button); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.graph-card.graph-landed { animation: graph-land 700ms ease-out; }

@@ -73,6 +73,18 @@ export interface TreeNode {
 }
 
 // `name` is the file's name after the run; `project` the folder the sort would put it in.
+// A review folder that runs its automations on its own files them on at once; `chained` says where they went next.
+export interface ApplyOutcome {
+  changed: number;
+  chained: Chained[];
+}
+
+export interface Chained {
+  name: string;
+  from: string[];
+  to: string[];
+}
+
 export interface PlannedFile {
   file: string;
   name: string;

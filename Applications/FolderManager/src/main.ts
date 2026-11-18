@@ -19,6 +19,7 @@ import { startBackups } from "./hooks/backups";
 import { installDebugLog, startDebugLog } from "./hooks/debug-log";
 import { applyAppearance } from "./hooks/appearance";
 import { BATCH_VIEWS, batch as batchMode, replanAfterDictionary, restoreBatch } from "./hooks/automations/batch";
+import { bindReplay } from "./hooks/automations/batch-replay";
 import { readPref, savePref } from "./services/store/prefs";
 import { startExtensions } from "./extensions/host";
 import { plural } from "./services/plural";
@@ -28,6 +29,7 @@ const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
 
 const { views, toolbar, navigator, tabBar, search, panel, board, batch, openSelected } = createMainWindow(app);
+bindReplay({ viewChanged: () => toolbar.render() });
 installShortcuts({
   focusSearch: () => search.focus("folders"),
   searchFiles: () => search.focus("files"),

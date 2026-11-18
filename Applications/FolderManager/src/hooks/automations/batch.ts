@@ -9,6 +9,7 @@ import { loadPath } from "../../services/store/virtual";
 import { readPref, savePref } from "../../services/store/prefs";
 import { inDownloads } from "../../services/ipc/types";
 import { DOWNLOADS } from "./scope/review-scope";
+import { snapshotView, startReplay } from "./batch-replay";
 import { reportError, setStatus } from "../../components/organisms/bars/status-line";
 import type { Picks, PlannedFile, TreeNode } from "../../services/ipc/types";
 import type { ReviewScope } from "./scope/review-scope";
@@ -99,7 +100,10 @@ async function load(picks: Picks): Promise<void> {
   if (!batch) return;
   batch.picks = picks;
   const before = new Set(batch.rows.map((r) => r.file));
-  const [rows, children] = await Promise.all([api.planAutomations(batch.folder, batch.only, picks), api.listChildren(batch.folder)]);
+  const open = batch;
+  const [rows, children] = await Promise.all([api.planAutomations(open.folder, open.only, picks), api.listChildren(open.folder)]);
+  // A run or a close may have ended this batch while its dry run was being read.
+  if (batch !== open) return;
   batch.rows = rows;
   batch.dirs = new Set(children.filter((c) => !c.file).map((c) => c.name.toLowerCase()));
   batch.files = new Map(children.filter((c) => c.file).map((c) => [c.name, c]));
@@ -215,14 +219,16 @@ export async function setAuto(review: TreeNode, kinds: (keyof Picks)[]): Promise
 
 export async function runBatch(): Promise<void> {
   if (!batch) return;
-  const { folder, rows } = batch;
+  const { folder, rows, dirs, right } = batch;
+  const shot = snapshotView(right);
   stopWatch();
   savePref(SAVED, "");
   try {
     const picked = rows.filter(isTicked);
-    const changed = picked.length > 0 ? await api.applyAutomations(folder, picked) : 0;
+    const { changed, chained } = picked.length > 0 ? await api.applyAutomations(folder, picked) : { changed: 0, chained: [] };
     batch = null;
     await refresh();
+    if (inDownloads(folder)) startReplay(shot, folder, picked, dirs, right, chained);
     setStatus("info", changed > 0 ? `Automations changed ${plural(changed, "file")}.` : "No file changed.");
   } catch (e) {
     reportError("error", e);

@@ -69,8 +69,35 @@ pub fn new_folder(segment: &str) -> (NewKind, String) {
 
 pub fn resolve(root: &Path, heading: &str) -> R<Option<NodePath>> {
     let Some(path) = heading.strip_prefix(ABS_PREFIX) else { return Ok(None) };
+    resolve_from(root, &[], path)
+}
+
+// `./*.Art/*.Touhou` walks down from the dictionary's own folder and each `../` climbs one level first; a plain name stays a subfolder of the review folder.
+pub fn is_relative(heading: &str) -> bool {
+    heading.starts_with("./") || heading.starts_with("../")
+}
+
+pub fn resolve_relative(root: &Path, dictionary: &[String], heading: &str) -> R<Option<NodePath>> {
+    let mut base = dictionary.to_vec();
+    let mut rest = heading;
+    loop {
+        if let Some(r) = rest.strip_prefix("./") {
+            rest = r;
+        } else if let Some(r) = rest.strip_prefix("../") {
+            if base.pop().is_none() {
+                return Ok(None);
+            }
+            rest = r;
+        } else {
+            break;
+        }
+    }
+    resolve_from(root, &base, rest)
+}
+
+pub fn resolve_from(root: &Path, base: &[String], path: &str) -> R<Option<NodePath>> {
     let segments: Vec<&str> = path.split('/').map(str::trim).filter(|s| !s.is_empty()).collect();
-    let mut rel: Vec<String> = Vec::new();
+    let mut rel: Vec<String> = base.to_vec();
     for (i, segment) in segments.iter().enumerate() {
         let found = list_tracked_subdirs(&join_rel(root, &rel))?.into_iter().find(|n| segment_matches(n, segment));
         match found {
@@ -82,7 +109,7 @@ pub fn resolve(root: &Path, heading: &str) -> R<Option<NodePath>> {
             None => return Ok(None),
         }
     }
-    Ok((!rel.is_empty()).then_some(NodePath { rel, create: false }))
+    Ok((rel.len() > base.len()).then_some(NodePath { rel, create: false }))
 }
 
 // Creates the planned folder once per run, and reuses one that appeared since the dry run; `made` keeps what this run created.
@@ -122,6 +149,19 @@ mod tests {
         assert!(matches!(new_folder("PJ.006_Kestrel"), (NewKind::Worknode, t) if t == "Kestrel"));
         assert!(matches!(new_folder("*.Physics"), (NewKind::Node, t) if t == "Physics"));
         assert!(matches!(new_folder("Physics"), (NewKind::Node, t) if t == "Physics"));
+    }
+
+    #[test]
+    fn a_relative_heading_walks_down_from_the_dictionary_folder() {
+        let dir = crate::test_support::work("node-path-relative");
+        let base = vec!["100.WORK".to_string()];
+        assert!(is_relative("./*.A") && is_relative("../B") && !is_relative("Docs") && !is_relative("@/100.WORK"));
+        let found = resolve_relative(dir.path(), &base, "./*.A/*.Keep").unwrap().unwrap();
+        assert_eq!(found.rel, vec!["100.WORK".to_string(), "01.A".to_string(), "01.Keep".to_string()]);
+        let up = resolve_relative(dir.path(), &[base[0].clone(), "01.A".to_string()], "../*.B").unwrap().unwrap();
+        assert_eq!(up.rel, vec!["100.WORK".to_string(), "02.B".to_string()]);
+        assert!(resolve_relative(dir.path(), &base, "./Missing/Deeper").unwrap().is_none());
+        assert!(resolve_relative(dir.path(), &[], "../x").unwrap().is_none());
     }
 
     #[test]

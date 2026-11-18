@@ -7,6 +7,7 @@ import { isWorknode } from "../services/store/node-info";
 import { readPref, savePref } from "../services/store/prefs";
 import { currentSplit, parkedSplit, restoreSplit, savedSplit, type SavedSplit, type Split } from "./split";
 import { parkBatch, unparkBatch, type ParkedBatch } from "./automations/batch";
+import { parkReplay, unparkReplay, type ParkedReplay } from "./automations/batch-replay";
 import type { ViewSwitcher } from "./view-switch";
 import { findNode, isVirtualShown, keyOf, leaveVirtual, notify, state } from "../services/store/state";
 
@@ -28,6 +29,7 @@ interface Tab {
   view: string;
   split: Split | null;
   batch?: ParkedBatch | null;
+  replay?: ParkedReplay | null;
 }
 
 export interface TabView {
@@ -110,6 +112,7 @@ function capture(): void {
   tab.view = currentView();
   tab.split = currentSplit();
   tab.batch = parkBatch();
+  tab.replay = parkReplay();
 }
 
 async function activate(index: number): Promise<void> {
@@ -127,6 +130,8 @@ async function activate(index: number): Promise<void> {
   unparkBatch(tab.batch ?? null);
   tab.batch = null;
   views?.switchTo(tab.view);
+  unparkReplay(tab.replay ?? null);
+  tab.replay = null;
   try {
     await navigator.enter(tab.trail, tab.place);
   } catch (e) {

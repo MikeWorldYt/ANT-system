@@ -209,3 +209,17 @@ fn a_file_under_files_goes_to_its_entry_whatever_else_matches() {
     assert!(lint(text).is_empty());
     assert!(lint("# D\n### files\n- a.jpg\n").iter().any(|i| i.line == 2 && i.message.contains("belongs inside an entry")));
 }
+
+#[test]
+fn a_relative_glob_heading_passes_the_lint() {
+    assert!(!lint("# D
+
+## ./*.Art/*.Touhou
+- topics: Sakuya
+").iter().any(|i| i.level == Level::Error));
+    assert!(!lint("# D
+
+## ../*.Art
+- topics: Sakuya
+").iter().any(|i| i.level == Level::Error));
+}

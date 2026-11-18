@@ -14,6 +14,7 @@ Headings:
 - `## Name`: a subfolder of the review folder, created when needed.
 - `## Do not group`: files stay where they are but are still renamed by the entry.
 - `## NODE.Title`: a node beside the review folder (a child of the dictionary's folder), matched by title without its id.
+- `## ./*.Art/*.Touhou`: a path from the dictionary's folder, each segment by title or with `*` for any id; every `../` before it climbs one level.
 - `## NODE^.Title`: one level up, a sibling of the dictionary's folder. A path walks down: `NODE^.Blue-Archive/Fanarts`.
 - A node that takes files keeps them; any other passes them to its own review folder. Renaming a node in the app updates its NODE headings.
 

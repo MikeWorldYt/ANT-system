@@ -433,6 +433,12 @@ pub fn load(root: &Path, folder: &[String]) -> R<Vec<Entry>> {
                 entry.group = entry.node.is_some();
             } else if let Some(path) = super::node_path::resolve(root, &entry.folder)? {
                 (entry.node, entry.create, entry.group) = (Some(path.rel), path.create, true);
+            } else if super::node_path::is_relative(&entry.folder) {
+                let path = super::node_path::resolve_relative(root, &folder[..end], &entry.folder)?;
+                entry.group = path.is_some();
+                if let Some(path) = path {
+                    (entry.node, entry.create) = (Some(path.rel), path.create);
+                }
             }
             match at.get(&entry.folder.to_lowercase()) {
                 Some(&i) => entries[i] = entry,

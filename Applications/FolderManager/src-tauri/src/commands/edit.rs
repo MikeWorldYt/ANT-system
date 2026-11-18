@@ -139,12 +139,12 @@ pub async fn plan_automations(app: AppHandle, folder: Vec<String>, only: Vec<Str
 }
 
 #[tauri::command]
-pub async fn apply_automations(app: AppHandle, folder: Vec<String>, rows: Vec<automations::PlannedFile>) -> R<usize> {
+pub async fn apply_automations(app: AppHandle, folder: Vec<String>, rows: Vec<automations::PlannedFile>) -> R<automations::chain::ApplyOutcome> {
     if let Some(sub) = super::downloads::below_downloads(&folder) {
         let (base, sub) = (super::downloads::base(&app)?, sub.to_vec());
         return run_locked(app, move |root| automations::downloads::apply(root, &base, &sub, &rows)).await;
     }
-    run_locked(app, move |root| automations::apply(root, &folder, &rows)).await
+    run_locked(app, move |root| automations::apply(root, &folder, &rows).map(|changed| automations::chain::ApplyOutcome { changed, chained: Vec::new() })).await
 }
 
 #[tauri::command]

@@ -2,6 +2,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { inDownloads, isFmError } from "./types";
 import type {
+  ApplyOutcome,
   BoardCard,
   CopyAnswer,
   HiddenChoice,
@@ -171,7 +172,7 @@ export const openDictionaryWindow = (folder: string[]) => call<void>("open_dicti
 export const readDictionary = (folder: string[]) => call<string>("read_dictionary", { folder });
 export const checkDictionary = (text: string) => call<DictionaryIssue[]>("check_dictionary", { text });
 export const saveDictionary = (folder: string[], text: string) => call<DictionaryIssue[]>("save_dictionary", { folder, text });
-export const applyAutomations = (folder: string[], rows: PlannedFile[]) => call<number>("apply_automations", { folder, rows });
+export const applyAutomations = (folder: string[], rows: PlannedFile[]) => call<ApplyOutcome>("apply_automations", { folder, rows });
 export const renameFile = (relParts: string[], newName: string) => call<Mutation>("rename_file", { relParts, newName });
 export const deleteFile = (relParts: string[]) => call<Mutation>("delete_file", { relParts });
 export const inspectDelete =(relParts: string[]) => call<DeletePreview>("inspect_delete", { relParts });
