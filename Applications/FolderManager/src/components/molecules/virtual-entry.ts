@@ -14,9 +14,9 @@ export interface VirtualEntry {
 }
 
 export const VIRTUAL_ENTRIES: VirtualEntry[] = [
-  { id: "favorites", label: "FAVORITES", icon: "starred", hint: "Every favorite folder in the Storage", empty: "No favorites yet" },
-  { id: "downloads", label: "DOWNLOADS", icon: "download", hint: "The Downloads folder of this computer", empty: "Downloads is empty" },
-  { id: "review", label: "REVIEW", icon: "statusReview", hint: "The review folder of every node in the Storage", empty: "No review folders yet" },
+  { id: "favorites", label: "FAVORITES", icon: "starred", hint: "Favorites folder", empty: "No favorites yet" },
+  { id: "downloads", label: "DOWNLOADS", icon: "download", hint: "Native Downloads folder", empty: "Downloads is empty" },
+  { id: "review", label: "REVIEW", icon: "statusReview", hint: "Review folders Index", empty: "No review folders yet" },
   { id: "board", label: "BOARD", icon: "layout", hint: "Task board of every worknode in the Storage", empty: "No worknodes yet" },
 ];
 

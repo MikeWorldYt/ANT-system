@@ -89,7 +89,8 @@ export const nodeSummary = (n: TreeNode): string => {
   if (!n.file && n.nodeType?.base === "REV") return "Review Folder";
   if (!n.file && n.nodeType?.base === "SS") return "Screenshots Folder";
   if (!n.file && n.nodeType?.base === "REC") return "Recordings Folder";
-  if (!n.file && n.nodeType?.base === "NODE" && n.flags.includes("data") && nodeFlags(n).length === 1) return "Node with free files unsorted";
+  if (!n.file && n.nodeType?.base === "NODE" && n.flags.includes("data") && nodeFlags(n).length === 1) return "Node with free files";
+  if (!n.file && n.nodeType?.base === "NODE" && n.flags.includes("main") && nodeFlags(n).length === 1) return "Main Node";
   return typeLabel(n).replace(/\s*\n\s*/, " ");
 };
 

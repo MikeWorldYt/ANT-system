@@ -83,7 +83,7 @@ export async function sendPacket(stage: HTMLElement, canvas: HTMLElement, route:
   watching = false;
   packet.remove();
   const last = route.cards[route.cards.length - 1]!;
-  const landing = canvas.querySelector<HTMLElement>(`.graph-card[data-key="${CSS.escape(last.dataset.key ?? "")}"]`) ?? last;
+  const landing = canvas.querySelector<HTMLElement>(`.graph-node-box[data-key="${CSS.escape(last.dataset.key ?? "")}"]`) ?? last;
   landing.classList.add("graph-landed");
   landing.addEventListener("animationend", () => landing.classList.remove("graph-landed"), { once: true });
 }

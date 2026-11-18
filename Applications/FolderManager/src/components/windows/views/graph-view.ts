@@ -11,8 +11,11 @@ import { findNode, hydrate, isVirtualShown, notify, keyOf, select, state } from 
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { guiIcon } from "../../atoms/gui-icons";
 import { sendPacket } from "./graph-packets";
+import { bandSelect } from "./graph-band";
+import { boxMenu, boxView, fileArt, fileDetail, keepSize, sortedFiles } from "./graph-box-view";
 import type { FilesMoved } from "../../../hooks/automations/batch-replay";
-import type { TreeNode } from "../../../services/ipc/types";
+import { DOWNLOADS_ROOT, type TreeNode } from "../../../services/ipc/types";
+import { listChildren } from "../../../services/ipc/api";
 import { play, snapshot } from "./graph-motion";
 import type { ViewMode } from "./view-mode";
 
@@ -119,6 +122,9 @@ export function createGraphView(): ViewMode {
     spaceHeld = false;
     root.classList.remove("panning");
   });
+  // The browser would select the cards' text and drag it as a picture; the graph is browsed, not read as text.
+  root.addEventListener("selectstart", (ev) => ev.preventDefault());
+  root.addEventListener("dragstart", (ev) => ev.preventDefault());
   root.addEventListener("pointerdown", (ev) => {
     if (spaceHeld) ev.stopPropagation();
   }, true);
@@ -159,7 +165,7 @@ export function createGraphView(): ViewMode {
 
   function shiftTargets(): Map<string, Element> {
     const found = new Map<string, Element>();
-    for (const c of canvas.querySelectorAll<HTMLElement>(".graph-card.on-path")) {
+    for (const c of canvas.querySelectorAll<HTMLElement>(".graph-node-box.on-path")) {
       const t = shiftTarget(c);
       if (t) found.set(t[0], t[1]);
     }
@@ -170,7 +176,7 @@ export function createGraphView(): ViewMode {
   function restoreShift(): void {
     for (const id of shifted) {
       const [key, kind] = id.split("|");
-      const c = canvas.querySelector<HTMLElement>(`.graph-card[data-key="${CSS.escape(key ?? "")}"]`);
+      const c = canvas.querySelector<HTMLElement>(`.graph-node-box[data-key="${CSS.escape(key ?? "")}"]`);
       const e = kind === "c" ? c : kind === "h" ? c?.parentElement : c?.parentElement?.parentElement;
       e?.classList.add("shift");
     }
@@ -215,21 +221,28 @@ export function createGraphView(): ViewMode {
 
   // An open folder whose contents are still on their way keeps a box in their place, under the same key, so nothing blinks out and back.
   const loading = (n: TreeNode) => n.children === null && n.hasChildren && state.expanded.has(keyOf(n.relParts));
-  const loadingBox = (n: TreeNode): HTMLElement => el("ul", { class: "graph-files loading", "data-key": `${keyOf(n.relParts)}#files`, "aria-busy": "true" }, el("li", { class: "graph-file-empty" }, "Loading…"));
+  const loadingBox = (n: TreeNode): HTMLElement => el("ul", { class: "graph-files-box loading", "data-key": `${keyOf(n.relParts)}#files`, "aria-busy": "true" }, el("li", { class: "graph-file-empty" }, "Loading…"));
 
   // Files a batch just delivered, lit as if selected while the replay shows them.
   let arrived = new Set<string>();
 
   function fileList(n: TreeNode): HTMLElement {
-    const entries = n.children ?? [];
+    const entries = sortedFiles(n);
+    const key = keyOf(n.relParts);
+    const view = boxView(key);
     const items = entries.map((c) => {
-      const row = el("li", { class: arrived.has(keyOf(c.relParts)) ? "graph-file selected" : "graph-file", title: c.name }, folderIcon(c, false), el("span", { class: "graph-file-name" }, c.name));
+      const fileKey = keyOf(c.relParts);
+      const row = el("li", { class: arrived.has(fileKey) || state.selectedKeys.includes(fileKey) ? "graph-file selected" : "graph-file", title: c.name, "data-key": fileKey }, fileArt(c, view, folderIcon(c, false)), el("span", { class: "graph-file-text" }, el("span", { class: "graph-file-name" }, c.name), ...fileDetail(c, view)));
       row.addEventListener("click", () => select(c.relParts));
       row.addEventListener("dblclick", () => void openFolder(c));
       row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, c, root));
       return row;
     });
-    return el("ul", { class: "graph-files", "data-key": `${keyOf(n.relParts)}#files`, "aria-label": `Contents of ${n.name}` }, ...(items.length > 0 ? items : [el("li", { class: "graph-file-empty" }, "Empty")]));
+    const box = el("ul", { class: `graph-files-box view-${view}`, "data-key": `${key}#files`, "aria-label": `Contents of ${n.name}` }, ...(items.length > 0 ? items : [el("li", { class: "graph-file-empty" }, "Empty")]));
+    keepSize(box, key);
+    bandSelect(box);
+    boxMenu(box, n);
+    return box;
   }
 
   // The selected card and every folder above it light up, so the route from the root reads at a glance.
@@ -238,7 +251,7 @@ export function createGraphView(): ViewMode {
   function card(n: TreeNode): HTMLElement {
     const key = keyOf(n.relParts);
     const open = state.expanded.has(key);
-    const item = el("div", { class: "graph-card", role: "treeitem", id: `graph-${key}`, "data-key": key, "aria-selected": String(state.selectedKey === key) }, folderIcon(n, open), el("span", { class: "graph-name" }, n.name));
+    const item = el("div", { class: "graph-node-box", role: "treeitem", id: `graph-${key}`, "data-key": key, "aria-selected": String(state.selectedKey === key) }, folderIcon(n, open), el("span", { class: "graph-name" }, n.name));
     if (n.hasChildren) item.setAttribute("aria-expanded", String(open));
     item.classList.toggle("selected", state.selectedKey === key);
     item.classList.toggle("on-path", onPath(key));
@@ -317,7 +330,7 @@ export function createGraphView(): ViewMode {
     const group: string[] = [];
     const rest = (e: Element) => (e.closest(".graph-branch.selected-branch") ? group : paths);
     for (const b of canvas.querySelectorAll<HTMLElement>(".graph-branch")) {
-      const fromCard = b.querySelector(":scope > .graph-head > .graph-card");
+      const fromCard = b.querySelector(":scope > .graph-head > .graph-node-box");
       const from = fromCard?.getBoundingClientRect();
       const kids = b.querySelector(":scope > .graph-kids");
       if (!from || !kids) continue;
@@ -334,7 +347,7 @@ export function createGraphView(): ViewMode {
         const owner = b.querySelector<HTMLElement>(`:scope > .graph-head [data-key="${CSS.escape(overlay.dataset.for ?? "")}"]`);
         // The sub-nodes behind keep their own lines, faded like them.
         for (const k of kids.children) {
-          const target = k.querySelector(":scope > .graph-head > .graph-card");
+          const target = k.querySelector(":scope > .graph-head > .graph-node-box");
           if (k === overlay || !target) continue;
           const r = target.getBoundingClientRect();
           const x2 = (r.left - box.left) / unit;
@@ -345,7 +358,7 @@ export function createGraphView(): ViewMode {
         const ox = (o.right - box.left) / unit;
         const oy = (o.top + o.height / 2 - box.top) / unit;
         for (const k of overlay.children) {
-          const target = k.querySelector(":scope > .graph-head > .graph-card");
+          const target = k.querySelector(":scope > .graph-head > .graph-node-box");
           const to = (target ?? k).getBoundingClientRect();
           const litHere = owner.classList.contains("on-path") && (target ? target.classList.contains("on-path") : true);
           const x2 = (to.left - box.left) / unit;
@@ -354,7 +367,7 @@ export function createGraphView(): ViewMode {
         continue;
       }
       for (const k of kids.children) {
-        const target = k.classList.contains("graph-files") ? null : k.querySelector(":scope > .graph-head > .graph-card");
+        const target = k.classList.contains("graph-files-box") ? null : k.querySelector(":scope > .graph-head > .graph-node-box");
         const to = (target ?? k).getBoundingClientRect();
         if (!to) continue;
         const x2 = (to.left - box.left) / unit;
@@ -364,19 +377,19 @@ export function createGraphView(): ViewMode {
       }
     }
     for (const h of canvas.querySelectorAll<HTMLElement>(".graph-head")) {
-      const owner = h.querySelector(":scope > .graph-card");
+      const owner = h.querySelector(":scope > .graph-node-box");
       const rect = owner?.getBoundingClientRect();
       if (!owner || !rect) continue;
       const x = (rect.left + 14 - box.left) / unit;
       const y = (rect.bottom - box.top) / unit;
-      for (const u of h.querySelectorAll<HTMLElement>(":scope > .graph-under > .graph-card")) {
+      for (const u of h.querySelectorAll<HTMLElement>(":scope > .graph-under > .graph-node-box")) {
         const r = u.getBoundingClientRect();
         const uy = (r.top + r.height / 2 - box.top) / unit;
         const ux = (r.left - box.left) / unit;
         (behind(h) ? faded : owner.classList.contains("on-path") && u.classList.contains("on-path") ? lit : rest(h)).push(`M${x},${y} V${uy - 6} Q${x},${uy} ${x + 6},${uy} H${ux}`);
       }
       const top = (rect.top - box.top) / unit;
-      for (const u of h.querySelectorAll<HTMLElement>(":scope > .graph-above > .graph-card")) {
+      for (const u of h.querySelectorAll<HTMLElement>(":scope > .graph-above > .graph-node-box")) {
         const r = u.getBoundingClientRect();
         const uy = (r.top + r.height / 2 - box.top) / unit;
         const ux = (r.left - box.left) / unit;
@@ -463,9 +476,23 @@ export function createGraphView(): ViewMode {
   // Downloads hangs under the root like a support folder: files a batch sends out start their trip there.
   function downloadsCard(): HTMLElement[] {
     if (!isVirtualShown("downloads")) return [];
-    const item = el("div", { class: "graph-card graph-entry", role: "treeitem", "data-entry": "downloads" }, guiIcon("download"), el("span", { class: "graph-name" }, "Downloads"));
-    item.addEventListener("click", () => void openVirtual("downloads"));
-    return [el("div", { class: "graph-under", role: "group" }, item)];
+    // Downloads opens in place like any card, listing what it holds; a double click opens it as a list.
+    const open = state.expanded.has(DOWNLOADS_ROOT);
+    const item = el("div", { class: "graph-node-box graph-entry", role: "treeitem", "data-entry": "downloads", "aria-expanded": String(open) }, guiIcon("download"), el("span", { class: "graph-name" }, "Downloads"));
+    item.addEventListener("click", () => {
+      if (open) state.expanded.delete(DOWNLOADS_ROOT);
+      else {
+        state.expanded.add(DOWNLOADS_ROOT);
+        void listChildren([DOWNLOADS_ROOT]).then((nodes) => {
+          state.downloads = nodes;
+          notify();
+        }, (e: unknown) => reportError("warning", e, "Downloads"));
+      }
+      notify();
+    });
+    item.addEventListener("dblclick", () => void openVirtual("downloads"));
+    const box = open ? [fileList({ name: "Downloads", relParts: [DOWNLOADS_ROOT], children: state.downloads } as TreeNode)] : [];
+    return [el("div", { class: "graph-under", role: "group" }, item, ...box)];
   }
 
   // A file dropped in a node lands in its review folder; a worknode keeps it.
@@ -473,7 +500,7 @@ export function createGraphView(): ViewMode {
 
   // Packets leave one after another at the same pace, so on a shared line they keep their distance instead of colliding.
   const GAP_MS = 252;
-  const cardOf = (k: string) => canvas.querySelector<HTMLElement>(`.graph-card[data-key="${CSS.escape(k)}"]`);
+  const cardOf = (k: string) => canvas.querySelector<HTMLElement>(`.graph-node-box[data-key="${CSS.escape(k)}"]`);
   const prefixes = (parts: string[]) => parts.map((_, k) => keyOf(parts.slice(0, k + 1)));
 
   // Sends every route in order, top branches first; only the last packet steers the view, so they never fight over the scroll.
@@ -597,7 +624,7 @@ export function createGraphView(): ViewMode {
     render() {
       // Until the storage is read there is nothing to lay out, so the graph says it is loading instead of showing a lone root.
       if (!state.tree) {
-        canvas.replaceChildren(el("div", { class: "graph-files loading", "aria-busy": "true" }, "Loading…"));
+        canvas.replaceChildren(el("div", { class: "graph-files-box loading", "aria-busy": "true" }, "Loading…"));
         return;
       }
       if (state.tree && restoredFor !== state.tree.root) {
@@ -614,7 +641,7 @@ export function createGraphView(): ViewMode {
       if (!restoring && state.tree) savePref(`fm.graph.expanded:${state.tree.root}`, JSON.stringify([...state.expanded]));
       parents = new Map();
       const tops = nodesOf(state.tree?.nodes);
-      const top = el("div", { class: "graph-card graph-root" }, el("span", { class: "graph-name" }, rootName(state.tree?.root) || "Storage"));
+      const top = el("div", { class: "graph-node-box graph-root" }, el("span", { class: "graph-name" }, rootName(state.tree?.root) || "Storage"));
       // The selected card is held in place on screen, so the centred layout reflowing around it does not look like a jump.
       const sel = state.selectedKey;
       const at = (k: string | null) => (k === null ? undefined : canvas.querySelector(`[data-key="${CSS.escape(k)}"]`)?.getBoundingClientRect());

@@ -37,8 +37,10 @@ async function relistLevel(parent: string[]): Promise<{ added: boolean; changed:
 let queue: Promise<unknown> = Promise.resolve();
 
 // Downloads is not in the tree, so its open folders are read from the expanded keys, and its list is read again in any case.
-export function relistDownloads(): Promise<boolean> {
+export async function relistDownloads(): Promise<boolean> {
   const open = [...state.expanded].filter((k) => k.startsWith(`${DOWNLOADS_ROOT}/`)).map((k) => k.split("/"));
+  // The graph lists Downloads itself when its card is open.
+  if (state.expanded.has(DOWNLOADS_ROOT)) state.downloads = await api.listChildren([DOWNLOADS_ROOT]);
   return relist(open, true);
 }
 

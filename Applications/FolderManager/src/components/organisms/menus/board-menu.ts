@@ -12,6 +12,25 @@ export interface MenuParts {
   content: HTMLElement[];
 }
 
+// The folder's contents are sorted under its own key, not under the column its row stands in.
+export function sortSubmenu(node: TreeNode, close: (restore?: boolean) => void): Submenu {
+  const column = keyOf(node.relParts);
+  const { by, dir } = sortOf(column);
+  const sortChoice = (label: string, icon: GuiIcon, checked: boolean, patch: Partial<ColumnSort>, flip = false) => {
+    const item = menuItem(label, "menuitemradio", true, () => {
+      close();
+      setColumnSort(column, patch);
+    }, "ctx-item ctx-iconed", checked);
+    item.prepend(menuIcon(icon, flip));
+    return item;
+  };
+  const ascending = sortChoice("Ascending", "up", dir === "asc", { dir: "asc" });
+  const sort = submenu("Sort by", [...SORT_KEYS.map(([id, label, icon]) => sortChoice(label, icon, by === id, { by: id })), ascending, sortChoice("Descending", "up", dir === "desc", { dir: "desc" }, true)], true);
+  // submenu() lays out only its choices, so the divider is slotted into the flyout afterwards.
+  ascending.before(separator());
+  return sort;
+}
+
 export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: boolean) => void): MenuParts {
   const action = closingItem(close);
   const idle = !state.busy;
@@ -27,22 +46,7 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   );
   const subs: Submenu[] = [submenu("Change View", viewChoices, true)];
 
-  // The open folder's contents are sorted under its own key, not under the column its row stands in.
-  const column = keyOf(node.relParts);
-  const { by, dir } = sortOf(column);
-  const sortChoice = (label: string, icon: GuiIcon, checked: boolean, patch: Partial<ColumnSort>, flip = false) => {
-    const item = menuItem(label, "menuitemradio", true, () => {
-      close();
-      setColumnSort(column, patch);
-    }, "ctx-item ctx-iconed", checked);
-    item.prepend(menuIcon(icon, flip));
-    return item;
-  };
-  const ascending = sortChoice("Ascending", "up", dir === "asc", { dir: "asc" });
-  const sort = submenu("Sort by", [...SORT_KEYS.map(([id, label, icon]) => sortChoice(label, icon, by === id, { by: id })), ascending, sortChoice("Descending", "up", dir === "desc", { dir: "desc" }, true)], true);
-  // submenu() lays out only its choices, so the divider is slotted into the flyout afterwards.
-  ascending.before(separator());
-  if (views.active() !== "tree") subs.push(sort);
+  if (views.active() !== "tree") subs.push(sortSubmenu(node, close));
 
   const reload = action("Refresh", idle, () => void refresh());
   const canAdd = node.actions.addChild || node.actions.addFolder;
