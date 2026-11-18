@@ -68,7 +68,7 @@ Groups loose files that look like one project into worknodes named `PJ_<title>`.
 
 ### Remove symbols
 
-Runs last. It removes `( ) [ ] { }` and joins what is left, so `[Mike]_PJ.001_Web (v2).zip` becomes `Mike_PJ.001_Web v2.zip`. It also removes copy counters such as `(2)`.
+Runs last. It removes `( ) [ ] { }` and joins what is left, so `[Mike]_PJ.001_Web (v2).zip` becomes `Mike_PJ.001_Web v2.zip`. A copy counter such as ` (2)` at the end of the name stays, so copies keep their number instead of getting a new one.
 
 ## Dictionaries
 
@@ -101,6 +101,8 @@ Format:
 | `exclude` | **Removed** from the filename only. |
 | `pattern` | A case-insensitive regular expression, one per line. Its match is **removed**. |
 | `ext` | Matches by extension, for example `.exe .msi`. |
+| `prefix` | Text **added** at the start of each file the entry groups. It wins over a global `prefix`. |
+| `suffix` | Text **added** at the end of each file the entry groups, before the extension and any ` (2)` counter. It wins over a global `suffix`. |
 
 
 #### `topics` 

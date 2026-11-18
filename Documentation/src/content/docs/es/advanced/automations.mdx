@@ -65,7 +65,7 @@ Agrupa en worknodes llamados `PJ_<título>` los archivos sueltos que parecen de 
 
 ### Quitar símbolos
 
-Va al final. Quita `( ) [ ] { }` y une lo que queda, así que `[Mike]_PJ.001_Web (v2).zip` queda como `Mike_PJ.001_Web v2.zip`. También quita los contadores de copia como `(2)`.
+Va al final. Quita `( ) [ ] { }` y une lo que queda, así que `[Mike]_PJ.001_Web (v2).zip` queda como `Mike_PJ.001_Web v2.zip`. Un contador de copia como ` (2)` al final del nombre se queda, así las copias conservan su número en vez de recibir uno nuevo.
 
 
 <a id="dictionaries"></a>
@@ -92,6 +92,8 @@ Un diccionario define las reglas de agrupación que sigue **Agrupar por dicciona
 | `exclude` | Solo se quita del nombre; nunca decide el grupo. |
 | `ext` | Coincide por extensión, por ejemplo `.exe .msi`. |
 | `pattern` | Una expresión regular sin distinguir mayúsculas, una por línea. Su coincidencia se quita. |
+| `prefix` | Texto que se **añade** al inicio de cada archivo que agrupa la entrada. Gana sobre un `prefix` global. |
+| `suffix` | Texto que se **añade** al final de cada archivo que agrupa la entrada, antes de la extensión y de cualquier contador ` (2)`. Gana sobre un `suffix` global. |
 
 Un valor de `topics` puede listar otras formas entre paréntesis: `- topics: Sakuya (Izayoi Sakuya, Sakuya Izayoi, Iza)` reescribe todas las formas como `Sakuya`. Las comas dentro de los paréntesis no separan temas.
 
