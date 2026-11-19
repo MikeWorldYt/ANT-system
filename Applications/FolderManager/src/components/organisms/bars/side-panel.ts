@@ -15,6 +15,7 @@ import { createAutomationsPanel } from "./automations-panel";
 import { createPreviewPanel } from "./preview-panel";
 import { createReviewAutomations } from "./review-automations";
 import { goToReal, openVirtual, toggleBoard } from "../../../hooks/virtual-nav";
+import { aiConnectDialog } from "../dialogs/ai-connect-dialog/ai-connect-dialog";
 import { sideAction } from "../../molecules/side-action";
 import type { TreeNode } from "../../../services/ipc/types";
 
@@ -99,7 +100,8 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
   const railDelete = iconButton("Delete", "trash", deleteActed);
   railDelete.classList.add("danger");
   const about = iconButton("About", "pageAbout", () => openSettings("about"));
-  about.classList.add("side-rail-end");
+  const connectAi = iconButton("Connect AI", "aiConnect", () => void aiConnectDialog());
+  connectAi.classList.add("side-rail-end");
   const railButtons: Record<RailId, HTMLButtonElement> = {
     settings: iconButton("Settings", "settings", () => openSettings()),
     board: railBoard,
@@ -138,7 +140,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
       children.push(railButtons[id]);
       previous = RAIL_GROUP[id];
     }
-    rail.replaceChildren(...children, about);
+    rail.replaceChildren(...children, connectAi, about);
   }
 
   function section(id: string, label: string, ...actions: HTMLElement[]): HTMLElement {

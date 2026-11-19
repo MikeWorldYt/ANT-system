@@ -1,0 +1,14 @@
+/* Connect AI dialog: one row per client plus the manual-config section. */
+.ai-clients { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
+.ai-client-main { display: flex; align-items: center; gap: 8px; }
+.ai-client-main strong { flex: 1; }
+.ai-client-status { color: var(--muted); }
+.ai-client-note { margin: 4px 0 0; color: var(--accent); }
+.ai-client-restart { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.ai-client-restart[hidden] { display: none; }
+.ai-client-restart .ai-client-note { flex: 1; margin: 0; }
+.ai-client-error, .ai-feedback.is-error { margin: 4px 0 0; color: var(--delete-hover); }
+.ai-client-error:empty, .ai-client-note:empty { display: none; }
+.ai-other h3 { margin: 12px 0 4px; font-size: 10pt; color: var(--title); }
+.ai-feedback { margin: 4px 0 0; color: var(--muted); }
+.ai-client .btn:disabled { opacity: 0.5; cursor: not-allowed; }

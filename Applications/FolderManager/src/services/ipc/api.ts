@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { inDownloads, isFmError } from "./types";
 import { hiddenItemsShown } from "../store/view-prefs";
 import type {
+  AiClient,
   ApplyOutcome,
   BoardCard,
   CopyAnswer,
@@ -252,6 +253,11 @@ export const installRegistryExtension = (id: string) => call<ExtensionInfo>("ins
 export const inspectExtensionRepo = (url: string) => call<ExtensionPreview>("inspect_extension_repo", { url });
 export const installInspectedExtension = (token: string) => call<ExtensionInfo>("install_inspected_extension", { token });
 
+export const aiClients = () => call<AiClient[]>("ai_clients");
+export const aiConnect = (id: AiClient["id"]) => call<AiClient>("ai_connect", { id });
+export const aiDisconnect = (id: AiClient["id"]) => call<AiClient>("ai_disconnect", { id });
+export const aiRestartClient = (id: AiClient["id"]) => call<AiClient>("ai_restart_client", { id });
+export const aiConfigSnippet = () => call<string>("ai_config_snippet");
 
 const path = (parts: string[]) => parts.join("/") || "root";
 

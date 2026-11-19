@@ -216,6 +216,11 @@ pub fn run() {
             commands::start_drag_out,
             commands::create_shortcut_in,
             commands::answer_ui_request,
+            commands::ai_clients,
+            commands::ai_connect,
+            commands::ai_disconnect,
+            commands::ai_restart_client,
+            commands::ai_config_snippet,
         ])
         .build(tauri::generate_context!())
         .expect("error while running Folder Manager")

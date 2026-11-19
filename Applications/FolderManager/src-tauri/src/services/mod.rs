@@ -1,4 +1,5 @@
 // Use cases that combine the app session with the storage and index layers.
+pub mod ai_clients;
 pub mod automations;
 pub mod backup;
 pub mod bridge;

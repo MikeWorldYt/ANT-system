@@ -1,4 +1,5 @@
 // Tauri command layer: runs the pure core under the storage lock off the UI thread.
+mod ai_clients;
 mod backup;
 mod debug;
 mod dictionary;
@@ -29,6 +30,7 @@ use crate::app::storage_session::{Storage, StorageInfo};
 use crate::domain::error::{FmError, R};
 use crate::services::index::ReviewIndexEvent;
 
+pub use ai_clients::*;
 pub use backup::*;
 pub use debug::*;
 pub use dictionary::*;
