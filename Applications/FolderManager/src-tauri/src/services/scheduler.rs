@@ -113,9 +113,9 @@ pub fn logon_xml(task: &Task, user: &str, exe: &Path, root: &Path) -> String {
     )
 }
 
-// Task Scheduler's own SCHED_S_* codes (ready, running, not run yet...) and a watch ended by logoff are no failure of the run.
+// Task Scheduler's own SCHED_S_* codes (ready, running, not run yet...), a run it refused to start and a watch ended by logoff are no failure of the run.
 fn problem(task: &Task, code: i64) -> Option<String> {
-    if code == 0 || (0x41300..=0x4130F).contains(&code) || code == 0xC000_013A || code == 0x4001_0004 {
+    if code == 0 || (0x41300..=0x4130F).contains(&code) || code == 0xC000_013A || code == 0x4001_0004 || code == 0x8007_10E0 {
         return None;
     }
     Some(format!("The scheduled {} failed on its last run (result {code:#x}); turn it off and on again in Settings", task.what))
