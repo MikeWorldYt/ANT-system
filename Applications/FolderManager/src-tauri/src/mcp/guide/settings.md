@@ -16,4 +16,4 @@
 
 ## Storages
 - `list_storages`: the storages Folder Manager knows, which one this server works on, and whether each is still on disk.
-- `switch_storage` makes this server work on another listed storage. The open window keeps its own; each storage has its own writes switch.
+- `switch_storage` makes this server work on another listed storage. The open window keeps its own; each storage has its own writes switch. When the window shows another storage, the result warns: the ui_* tools and the window confirmations are refused until the user opens this one there, so tell the user.

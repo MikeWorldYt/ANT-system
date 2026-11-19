@@ -93,6 +93,11 @@ impl Server {
         let file = self.bridge.as_ref().map_err(|message| FmError::Internal { message: message.clone() })?;
         client::send(file, &root, call).map_err(|message| FmError::Internal { message })
     }
+
+    pub(super) fn window_warning(&self, root: &Path) -> Option<String> {
+        let file = self.bridge.as_ref().ok()?;
+        client::send(file, root, UiCall::GetState).err().map(|m| format!("{m}. Until the user opens this storage in the window, the ui_* tools and the window confirmations for it are refused"))
+    }
 }
 
 // Checked here as the other tools check their paths, so the window never gets one outside the storage or missing from it.

@@ -192,7 +192,8 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
                 let _guard = storage.guard();
                 storage.set_root(root.clone());
                 storage.set_start(root.clone());
-                Ok(json!({ "storage": root, "name": rename::folder_name(&root) }))
+                let warnings: Vec<String> = server.window_warning(&root).into_iter().collect();
+                Ok(json!({ "storage": root, "name": rename::folder_name(&root), "warnings": warnings }))
             })()
         }
         _ => return Err((INVALID_PARAMS, format!("Unknown tool: {name}"))),
