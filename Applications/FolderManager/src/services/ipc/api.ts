@@ -305,3 +305,5 @@ export function describeError(e: unknown): string {
 
 export const cancelTransfer = () => call<void>("cancel_transfer");
 export const pauseTransfer = (paused: boolean) => call<void>("pause_transfer", { paused });
+export const beginDelete = (targets: string[][]) => call<void>("begin_delete", { targets });
+export const endDelete = () => call<void>("end_delete");

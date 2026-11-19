@@ -158,6 +158,8 @@ pub fn run() {
             commands::move_files_in,
             commands::cancel_transfer,
             commands::pause_transfer,
+            commands::begin_delete,
+            commands::end_delete,
             commands::create_file_shortcut_in,
             commands::answer_copy,
             commands::set_user_flag,

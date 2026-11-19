@@ -15,6 +15,7 @@ const PAUSE_POLL: Duration = Duration::from_millis(100);
 #[serde(rename_all = "camelCase")]
 pub struct Progress {
     pub id: u64,
+    pub action: String,
     pub from: String,
     pub to: String,
     pub bytes_total: u64,
@@ -74,10 +75,24 @@ impl Drop for Job {
     }
 }
 
+pub fn size_of(path: &Path) -> u64 {
+    let (mut bytes, mut files) = (0, 0);
+    measure(path, &mut bytes, &mut files);
+    bytes
+}
+
+// A copy counts every file it carries; a deletion counts the items it was given, since each goes to the bin whole.
 pub fn begin(sources: &[PathBuf], to: &str) -> Job {
+    begin_as("Copying", sources, to, false)
+}
+
+pub fn begin_as(action: &str, sources: &[PathBuf], to: &str, per_item: bool) -> Job {
     let (mut bytes_total, mut files_total) = (0, 0);
     for s in sources {
         measure(s, &mut bytes_total, &mut files_total);
+    }
+    if per_item {
+        files_total = sources.len() as u64;
     }
     let id = {
         let mut next = NEXT.lock().unwrap_or_else(|e| e.into_inner());
@@ -87,8 +102,21 @@ pub fn begin(sources: &[PathBuf], to: &str) -> Job {
     let from = sources.first().and_then(|p| p.parent()).and_then(|p| p.file_name()).map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     CANCEL.store(false, Ordering::Relaxed);
     PAUSED.store(false, Ordering::Relaxed);
-    *JOB.lock().unwrap_or_else(|e| e.into_inner()) = Some(Progress { id, from, to: to.to_string(), bytes_total, files_total, ..Progress::default() });
+    *JOB.lock().unwrap_or_else(|e| e.into_inner()) = Some(Progress { id, action: action.to_string(), from, to: to.to_string(), bytes_total, files_total, ..Progress::default() });
     Job
+}
+
+pub fn item_done(name: &str, bytes: u64) {
+    with(|j| {
+        j.current = name.to_string();
+        j.bytes_done += bytes;
+        j.files_done += 1;
+    });
+}
+
+// Called between items, so a paused deletion waits there and a cancelled one stops before the next item.
+pub fn checkpoint() -> io::Result<()> {
+    wait_or_cancel()
 }
 
 fn wait_or_cancel() -> io::Result<()> {

@@ -91,7 +91,7 @@ pub async fn delete_downloads(app: AppHandle, targets: Vec<Vec<String>>) -> R<()
         let base = base(&app)?;
         for rel in &targets {
             let path = downloads::path_of(&base, rel)?;
-            send_to_recycle_bin(&path).map_err(|e| FmError::Internal { message: format!("Could not delete {}: {e}", path.display()) })?;
+            super::transfer::recycle_tracked(&path, send_to_recycle_bin).map_err(|e| FmError::Internal { message: format!("Could not delete {}: {e}", path.display()) })?;
         }
         Ok(())
     })

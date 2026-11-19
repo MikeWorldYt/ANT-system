@@ -40,6 +40,7 @@ export function installTransferPanel(host: HTMLElement): void {
   const [peak, peakValue] = stat("Peak");
   const [total, totalValue] = stat("Total");
   const [files, filesValue] = stat("Files");
+  const filesLabel = files.querySelector(".transfer-stat-label") ?? files;
   const percent = el("span", { class: "transfer-percent" });
   const eta = el("span", { class: "transfer-eta" });
   const bar = el("progress", { class: "transfer-progress", max: "100", value: "0", "aria-label": "Transfer progress" }) as HTMLProgressElement;
@@ -83,8 +84,10 @@ export function installTransferPanel(host: HTMLElement): void {
     const recent = samples.slice(-ETA_SAMPLES);
     const speed = recent.reduce((a, s) => a + s.bytes, 0) / Math.max(1, recent.length);
     const share = p.bytesTotal > 0 ? (p.bytesDone / p.bytesTotal) * 100 : 0;
-    title.textContent = p.paused ? "Paused" : "Transferring";
-    route.textContent = `${plural(p.filesTotal, "file")} from ${p.from || "outside"} to ${p.to}`;
+    const deleting = p.action === "Deleting";
+    title.textContent = p.paused ? "Paused" : p.action;
+    route.textContent = `${plural(p.filesTotal, deleting ? "item" : "file")} from ${p.from || "outside"} to ${p.to}`;
+    filesLabel.textContent = deleting ? "Items" : "Files";
     currentValue.textContent = `${bytesText(samples.at(-1)?.bytes ?? 0)}/s`;
     peakValue.textContent = `${bytesText(top)}/s`;
     totalValue.textContent = `${bytesText(p.bytesDone)} / ${bytesText(p.bytesTotal)}`;

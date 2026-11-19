@@ -311,6 +311,7 @@ export const inDownloads = (parts: string[]): boolean => parts[0] === DOWNLOADS_
 
 export interface TransferProgress {
   id: number;
+  action: string;
   from: string;
   to: string;
   bytesTotal: number;

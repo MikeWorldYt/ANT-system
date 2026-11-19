@@ -56,7 +56,7 @@ pub async fn rename_file(app: AppHandle, rel_parts: Vec<String>, new_name: Strin
 pub async fn delete_file(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
     off_thread(move || {
         let storage = app.state::<Storage>();
-        locked(&storage, |root| mutations::delete_file(root, &rel_parts, send_to_recycle_bin))
+        locked(&storage, |root| mutations::delete_file(root, &rel_parts, |p| super::transfer::recycle_tracked(p, send_to_recycle_bin)))
     })
     .await?
 }
@@ -238,7 +238,7 @@ pub async fn delete_node(
         let flags = (expect_ghost, confirm_non_empty);
         let emit = review_emitter(&app);
         let storage = app.state::<Storage>();
-        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, send_to_recycle_bin)
+        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, |p| super::transfer::recycle_tracked(p, send_to_recycle_bin))
     })
     .await?
 }
