@@ -1,7 +1,8 @@
 // Virtual root entries list real folders from the whole Storage; their nodes are loaded into the tree without expanding it.
 import { listChildren, listFavorites, listReview, listWorknodes } from "../ipc/api";
 import { arrangeReview } from "./review-list";
-import { findNode, keyOf, state, type VirtualId } from "./state";
+import { sortedForColumns } from "./sort";
+import { findNode, keyOf, sortOf, state, type VirtualId } from "./state";
 import { DOWNLOADS_ROOT, type TreeNode } from "../ipc/types";
 
 // Rereading keeps what was already loaded below a folder that is still there, so an open path is not cut.
@@ -41,5 +42,6 @@ export async function loadVirtual(): Promise<void> {
 
 export function virtualNodes(): TreeNode[] {
   const nodes = state.virtualKeys.flatMap((key) => findNode(key.split("/")) ?? []);
-  return state.virtual === "review" ? arrangeReview(nodes) : nodes;
+  if (state.virtual === "review") return arrangeReview(nodes);
+  return state.virtual === "downloads" ? sortedForColumns(nodes, sortOf(DOWNLOADS_ROOT), state.settings.pinFavorites) : nodes;
 }

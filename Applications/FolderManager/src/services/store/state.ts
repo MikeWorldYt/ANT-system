@@ -291,7 +291,7 @@ export function lastSelection(): SavedPlace | null {
 export const sortOf = (columnKey: string): ColumnSort => state.sorts[columnKey] ?? DEFAULT_SORT;
 
 // The column the selection stands in, or the first one when nothing is selected.
-export const activeColumnKey = (): string => state.selectedKey?.split("/").slice(0, -1).join("/") ?? "";
+export const activeColumnKey = (): string => state.selectedKey?.split("/").slice(0, -1).join("/") ?? (state.virtual === "downloads" ? DOWNLOADS_ROOT : "");
 
 export function setColumnSort(columnKey: string, patch: Partial<ColumnSort>): void {
   state.sorts[columnKey] = { ...sortOf(columnKey), ...patch };
