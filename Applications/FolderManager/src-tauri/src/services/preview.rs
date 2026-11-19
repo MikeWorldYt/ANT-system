@@ -38,8 +38,17 @@ fn drawn_image(path: &Path, preview: bool) -> Option<String> {
     shell_first.or_else(|| thumb_cache::cached(&thumb_cache::dir(), path, pixels, || draw(path, pixels)).map(|png| format!("data:image/png;base64,{}", base64(&png))))
 }
 
+// Pictures the webview decodes itself; without a Windows thumbnail they come back as None, and the window shows the file.
+#[cfg(windows)]
+fn webview_picture(path: &Path) -> bool {
+    path.extension().and_then(|e| e.to_str()).is_some_and(|e| ["png", "jpg", "jpeg", "jfif", "gif", "bmp"].contains(&e.to_ascii_lowercase().as_str()))
+}
+
 #[cfg(windows)]
 pub fn file_image(path: &Path, large: bool) -> R<Option<String>> {
+    if large && webview_picture(path) {
+        return Ok(shell::thumbnail_only(path, false));
+    }
     match large.then(|| drawn_image(path, false)).flatten() {
         Some(url) => Ok(Some(url)),
         None => shell::image(path, large),

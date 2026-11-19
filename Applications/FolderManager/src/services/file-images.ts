@@ -21,6 +21,8 @@ const repaintSoon = (): void => {
 
 // Windows draws no thumbnail for these without an extra codec, while the webview decodes them itself.
 export const SELF_DRAWN = /\.(webp|avif)$/i;
+// Windows may have no thumbnail for these either, which the backend reports as none; the webview then draws the file.
+const PICTURE = /\.(png|jpe?g|jfif|gif|bmp)$/i;
 
 export function nativeImage(n: TreeNode, large: boolean): string | null {
   if (large && n.file && SELF_DRAWN.test(n.name)) return convertFileSrc(keyOf(n.relParts), "fmmedia");
@@ -30,7 +32,7 @@ export function nativeImage(n: TreeNode, large: boolean): string | null {
     void fileImage(n.relParts, large).then(
       (src) => {
         settled.add(key);
-        images.set(key, src);
+        images.set(key, src ?? (large && n.file && PICTURE.test(n.name) ? convertFileSrc(keyOf(n.relParts), "fmmedia") : null));
         // Even a file without a native image repaints, so its loader gives way to the icon.
         repaintSoon();
       },
