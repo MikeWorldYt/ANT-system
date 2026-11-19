@@ -16,6 +16,7 @@ const MAX_CHUNK: u64 = 4 * 1024 * 1024;
 const TYPES: &[(&str, &str)] = &[
     ("png", "image/png"), ("jpg", "image/jpeg"), ("jpeg", "image/jpeg"), ("jfif", "image/jpeg"), ("gif", "image/gif"), ("webp", "image/webp"), ("bmp", "image/bmp"), ("svg", "image/svg+xml"), ("avif", "image/avif"),
     ("mp4", "video/mp4"), ("m4v", "video/mp4"), ("webm", "video/webm"), ("mov", "video/mp4"), ("ogv", "video/ogg"),
+    ("mp3", "audio/mpeg"), ("wav", "audio/wav"), ("m4a", "audio/mp4"), ("aac", "audio/aac"), ("ogg", "audio/ogg"), ("oga", "audio/ogg"), ("flac", "audio/flac"),
 ];
 
 pub fn mime(path: &Path) -> Option<&'static str> {
