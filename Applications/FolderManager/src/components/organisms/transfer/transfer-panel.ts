@@ -3,6 +3,7 @@ import { el } from "../../dom";
 import { cancelTransfer, pauseTransfer } from "../../../services/ipc/api";
 import { onTransfer } from "../../../services/ipc/events";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { emit } from "@tauri-apps/api/event";
 import { reportError } from "../bars/status-line";
 import { plural } from "../../../services/plural";
 import { SAMPLES, transferChart, type Sample } from "./transfer-chart";
@@ -105,10 +106,12 @@ export function installTransferPanel(host: HTMLElement): void {
   minimize.addEventListener("click", () => void getCurrentWindow().minimize().catch((e: unknown) => reportError("warning", e, "Minimize")));
   cancel.addEventListener("click", () => void cancelTransfer().catch((e: unknown) => reportError("warning", e, "Cancel")));
 
-  onTransfer((p) => {
+  const listening = onTransfer((p) => {
     if (p.id !== job) reset(p);
     last = p;
     sample(p, performance.now());
     render(p);
-  }).catch((e: unknown) => reportError("warning", e, "Transfer progress unavailable"));
+  });
+  // The backend starts the job only once the window says it listens, so the first frame already has it.
+  listening.then(() => emit("fm://transfer-ready")).catch((e: unknown) => reportError("warning", e, "Transfer progress unavailable"));
 }
