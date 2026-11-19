@@ -25,7 +25,7 @@ const BOOLEAN_SETTINGS: [&str; 16] = [
     "pinFavorites", "hideDone", "hideDirectoryIdentifiers", "confirmDelete", "autoUpdate", "installUpdates", "betaUpdates", "debugLogging", "backupAuto", "watchExternal", "autoOpenColumns", "showFavorites", "showDownloads", "showReview", "mcpWrites", "batchDropToGroup",
 ];
 const ON_LAUNCH_VALUES: [&str; 2] = ["continue", "root"];
-const START_VIEW_VALUES: [&str; 8] = ["continue", "tree", "columns", "grid", "list", "details", "cards", "graph"];
+const START_VIEW_VALUES: [&str; 7] = ["continue", "columns", "grid", "list", "details", "cards", "graph"];
 const TAB_VIEW_VALUES: [&str; 2] = ["last", "default"];
 const THEME_VALUES: [&str; 3] = ["system", "light", "dark"];
 const ACCENT_VALUES: [&str; 5] = ["green", "blue", "purple", "coral", "gold"];

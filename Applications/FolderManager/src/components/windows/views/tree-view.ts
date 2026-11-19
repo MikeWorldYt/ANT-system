@@ -1,4 +1,4 @@
-// Tree view: indented expandable rows with keyboard navigation.
+// The storage tree of the navigation pane: indented expandable rows with keyboard navigation.
 import { isWorknode } from "../../../services/store/node-info";
 import { isMenuKey, nodeContextMenu, nodeMenuFromKey } from "../../organisms/menus/context-menu";
 import { el } from "../../dom";
@@ -11,7 +11,6 @@ import { toggleExpand } from "../../../hooks/ops";
 import { keyOf, leaveVirtual, select, startEdit, state, visibleRows } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
-import { isTail } from "../../../services/store/sort";
 import { entryBeside, headEntry, rootEntries, virtualEntry } from "../../molecules/virtual-entry";
 import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
@@ -176,11 +175,9 @@ export function createTreeView(): ViewMode {
       });
       const own = rows.slice(listCount);
       const ownRows = own.map((n, i) => [buildRow(n, i + listCount), ...emptyLegend(n, n.depth)]);
-      const tail = own.findIndex((n) => n.relParts.length === 1 && !n.file && isTail(n.name));
-      const cut = tail < 0 ? ownRows.length : tail;
-      // Favorites heads the root; Downloads opens the tail group and Review closes it, as in the other views.
+      // Quick access heads the pane, as in Explorer: Favorites, Downloads and Review, then the storage tree.
       const group = (id: string) => groups.filter((g) => g[0]?.dataset.entry === id).flat();
-      tree.replaceChildren(...group("favorites"), ...ownRows.slice(0, cut).flat(), ...group("downloads"), ...ownRows.slice(cut).flat(), ...group("review"));
+      tree.replaceChildren(...group("favorites"), ...group("downloads"), ...group("review"), ...ownRows.flat());
       const i = indexOfSelected();
       const head = rootEntries().find((e) => state.virtual === e.id);
       if (i >= 0) {

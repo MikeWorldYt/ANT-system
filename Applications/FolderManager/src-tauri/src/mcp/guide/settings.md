@@ -4,7 +4,7 @@
 `get_settings` reads them; `set_setting` changes one, with the value as text. The open window picks a change up when it shows the setting again or on its next start.
 - On or off (`"true"` / `"false"`): `pinFavorites`, `hideDone` (hide done worknodes), `hideDirectoryIdentifiers` (hide ids in names), `confirmDelete`, `autoUpdate` (check for updates), `installUpdates`, `betaUpdates`, `debugLogging`, `backupAuto`, `watchExternal` (scheduled sync), `autoOpenColumns`, `showFavorites`, `showDownloads`, `showReview`, `batchDropToGroup`.
 - `onLaunch`: `continue`, `root`.
-- `startView`: `continue`, `tree`, `columns`, `grid`, `list`, `details`, `cards`, `graph`.
+- `startView`: `continue`, `columns`, `grid`, `list`, `details`, `cards`, `graph`.
 - `tabView`: `last`, `default`.
 - `theme`: `system`, `light`, `dark`. `accent` and `iconColor`: `green`, `blue`, `purple`, `coral`, `gold`. `textSize`: `small`, `medium`, `large`.
 - `backupFrequency`: `day`, `week`, `month`. `backupFolder`: a full path.

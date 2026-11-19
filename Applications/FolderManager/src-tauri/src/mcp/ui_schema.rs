@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 
 use super::schema::{nullable, object, output, rel_parts, strings};
 
-pub(super) const VIEWS: [&str; 7] = ["cards", "tree", "columns", "grid", "list", "details", "graph"];
+pub(super) const VIEWS: [&str; 6] = ["cards", "columns", "grid", "list", "details", "graph"];
 
 fn path_or_null(description: &str) -> Value {
     json!({ "type": ["array", "null"], "items": { "type": "string" }, "description": description })

@@ -17,7 +17,7 @@ export interface ViewPicker {
 }
 
 export const SORT_KEYS: [SortBy, string, GuiIcon][] = [["track", "Track", "sortTrack"], ["name", "Name", "sortName"], ["status", "Status", "sortStatus"], ["modified", "Date modified", "sortModified"], ["created", "Date created", "sortCreated"], ["size", "Size", "sortSize"]];
-const VIEW_ORDER = ["tree", "list", "details", "cards", "grid", "columns", "graph"];
+const VIEW_ORDER = ["list", "details", "cards", "grid", "columns", "graph"];
 export const orderedModes = (views: ViewPicker) => [...views.modes].sort((a, b) => VIEW_ORDER.indexOf(a.id) - VIEW_ORDER.indexOf(b.id));
 
 export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trailing: HTMLElement[]; render(): void } {
@@ -87,7 +87,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
       const idle = !state.busy;
       setDisabled(add, !(a?.addNext && idle));
       setDisabled(reload, !idle);
-      sortBtn.hidden = views.active() === "tree" || state.virtual === "board";
+      sortBtn.hidden = state.virtual === "board";
       const { by, dir } = sortOf(activeColumnKey());
       const sortText = `Sort by ${SORT_KEYS.find(([id]) => id === by)?.[1] ?? ""}`;
       sortLabel.textContent = sortText;

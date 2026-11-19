@@ -164,7 +164,7 @@ export function openSplit(): void {
   const here = read();
   const current = focusedPane()?.views.current().id ?? "";
   // The graph is too wide for half a window, so the new pane opens in the default view instead.
-  const fallback = state.settings.startView === "continue" || state.settings.startView === "graph" ? "tree" : state.settings.startView;
+  const fallback = state.settings.startView === "continue" || state.settings.startView === "graph" ? "columns" : state.settings.startView;
   const view = current === "graph" ? fallback : current;
   split = { other: { ...here, expanded: new Set(here.expanded), editing: null }, trail: { history: [], at: -1 }, view, right: false, ratio: 50 };
   otherPane()?.views.switchTo(view);
