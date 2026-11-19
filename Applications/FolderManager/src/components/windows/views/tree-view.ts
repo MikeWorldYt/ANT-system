@@ -8,17 +8,19 @@ import { statusMark } from "../../atoms/status-mark";
 import { hideBox, nameCell } from "../../molecules/name-cell";
 import { fromToggle, nodeToggle } from "../../atoms/node-toggle";
 import { toggleExpand } from "../../../hooks/ops";
-import { keyOf, leaveVirtual, select, startEdit, state, visibleRows } from "../../../services/store/state";
+import { keyOf, leaveVirtual, notify, select, startEdit, state, visibleRows } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { entryBeside, headEntry, rootEntries, virtualEntry } from "../../molecules/virtual-entry";
-import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
+import { markNodeItem } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
-import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
 
 // Files stay in the views; the pane only charts where they live.
 const isFolder = (n: TreeNode): boolean => !n.file;
+// A second click on the marked row after the double-click window, and before this, is a slow double click.
+const DOUBLE_MS = 500;
+const SLOW_MS = 1600;
 
 export function createTreeView(): ViewMode {
   const tree = el("div", { class: "tree", role: "tree", tabindex: "0", "aria-label": "Storage folders" });
@@ -27,16 +29,25 @@ export function createTreeView(): ViewMode {
   let listCount = 0;
   let listDepths: number[] = [];
 
-  const indexOfSelected = () => rows.findIndex((n) => keyOf(n.relParts) === state.selectedKey);
+  // A click only marks a row here; the views open a folder on a double click, as in Explorer's navigation pane.
+  let marked: string | null = null;
+  let lastClick = { key: "", at: 0 };
+  const indexOfSelected = () => rows.findIndex((n) => keyOf(n.relParts) === (marked ?? state.selectedKey));
   // The same folder may also show in the real tree below the list; acting there leaves the list.
   const leaveAt = (i: number) => {
     if (i >= listCount) leaveVirtual();
   };
-  const pick = (i: number) => {
-    const at = Math.max(0, Math.min(rows.length - 1, i));
-    const n = rows[at];
+  const mark = (i: number) => {
+    const n = rows[Math.max(0, Math.min(rows.length - 1, i))];
     if (!n) return;
-    leaveAt(at);
+    marked = keyOf(n.relParts);
+    notify();
+  };
+  const openRow = (i: number) => {
+    const n = rows[i];
+    if (!n) return;
+    leaveAt(i);
+    marked = null;
     select(n.relParts);
   };
 
@@ -52,20 +63,24 @@ export function createTreeView(): ViewMode {
     const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorknode(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
     row.style.setProperty("--depth", String(depth));
     markNodeItem(row, n);
+    row.classList.toggle("marked", marked === key);
     if (folds) row.setAttribute("aria-expanded", String(expanded));
     if (n.status && !isWorknode(n)) row.append(statusMark(n.status));
-    toggle?.addEventListener("click", () => {
-      leaveAt(i);
-      select(n.relParts);
-      void toggleExpand(n);
-    });
+    toggle?.addEventListener("click", () => void toggleExpand(n));
     // Its two clicks already toggled twice, so the double click ends open.
     toggle?.addEventListener("dblclick", () => {
       if (!state.expanded.has(key)) void toggleExpand(n);
     });
-    onItemClick(row, n, () => rows.map((r) => keyOf(r.relParts)), () => pick(i), fromToggle);
+    row.addEventListener("click", (ev) => {
+      if (fromToggle(ev)) return;
+      const since = ev.timeStamp - lastClick.at;
+      const slow = lastClick.key === key && marked === key && since > DOUBLE_MS && since < SLOW_MS;
+      lastClick = { key, at: slow ? 0 : ev.timeStamp };
+      if (slow && folds) void toggleExpand(n);
+      else mark(i);
+    });
     row.addEventListener("dblclick", (ev) => {
-      if (!fromToggle(ev)) openOnDouble(n);
+      if (!fromToggle(ev)) openRow(i);
     });
     row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, tree));
     return row;
@@ -105,26 +120,26 @@ export function createTreeView(): ViewMode {
     switch (ev.key) {
       case "ArrowDown":
         if (onHead && after && (!headOpen || listCount === 0)) void openVirtual(after.id);
-        else pick(i + 1);
+        else mark(i + 1);
         break;
       case "ArrowUp":
         if (onHead) {
           if (before) void openVirtual(before.id);
         } else if (head && i === 0) void openVirtual(listCount > 0 ? head.id : (rootEntries().at(-1)?.id ?? head.id));
-        else pick(i < 0 ? 0 : i - 1);
+        else mark(i < 0 ? 0 : i - 1);
         break;
       case "Home":
-        pick(0);
+        mark(0);
         break;
       case "End":
-        pick(rows.length - 1);
+        mark(rows.length - 1);
         break;
       case "ArrowRight":
         if (head && onHead) {
           if (!headOpen) void openVirtual(head.id);
-          else if (listCount > 0) pick(0);
+          else if (listCount > 0) mark(0);
         } else if (n && n.hasChildren && !open) void toggleExpand(n);
-        else if (open) pick(i + 1);
+        else if (open) mark(i + 1);
         break;
       case "ArrowLeft":
         if (onHead) {
@@ -133,13 +148,12 @@ export function createTreeView(): ViewMode {
         // A listed entry steps back to its virtual list, not to the real folder it lives in.
         else if (i >= 0 && listDepths[i] === 1 && state.virtual !== null) void openVirtual(state.virtual);
         else if (n && n.relParts.length > 1) {
-          leaveAt(i);
-          select(n.relParts.slice(0, -1));
+          const parent = rows.findIndex((r) => keyOf(r.relParts) === keyOf(n.relParts.slice(0, -1)));
+          if (parent >= 0) mark(parent);
         }
         break;
       case "Enter":
-        if (n?.file) void openFolder(n);
-        else if (n) void toggleExpand(n);
+        if (n) openRow(i);
         else if (head && onHead) void (headOpen ? select(null) : openVirtual(head.id));
         break;
       case "F2":
