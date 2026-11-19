@@ -4,6 +4,7 @@ import { el } from "../../dom";
 import { actedNodes } from "../../../services/store/state";
 import { previewImage } from "../../../services/ipc/api";
 import { reportError } from "./status-line";
+import { SELF_DRAWN } from "../../../services/file-images";
 import type { TreeNode } from "../../../services/ipc/types";
 
 const IMAGE = /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i;
@@ -38,6 +39,10 @@ export function createPreviewPanel(): PreviewPanel {
       // A shell thumbnail sized for the panel, not the full picture.
       const img = el("img", { alt: n.name, draggable: "false" });
       frame.replaceChildren(img);
+      if (SELF_DRAWN.test(n.name)) {
+        img.src = convertFileSrc(key, "fmmedia");
+        return;
+      }
       previewImage(n.relParts)
         .then((url) => {
           if (shownKey === key && url) img.src = url;

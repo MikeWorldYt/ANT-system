@@ -1,4 +1,4 @@
-// Serves the storage's and Downloads' videos to the side panel preview, with byte ranges so videos can seek.
+// Serves the storage's and Downloads' videos and pictures to the views, with byte ranges so videos can seek.
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
@@ -10,7 +10,7 @@ use crate::services::downloads::ROOT as DOWNLOADS_ROOT;
 
 pub const SCHEME: &str = "fmmedia";
 
-// Larger ranges are cut, so a seek never reads a whole video into memory.
+// Larger ranges are cut, so a seek never reads a whole video into memory; a plain request, as for a picture, gets the whole file.
 const MAX_CHUNK: u64 = 4 * 1024 * 1024;
 
 const TYPES: &[(&str, &str)] = &[
@@ -39,7 +39,7 @@ fn serve(root: Option<&Path>, downloads: Option<&Path>, request: &Request<Vec<u8
     let size = file.metadata().map_err(|_| StatusCode::NOT_FOUND)?.len();
     let range = request.headers().get("range").and_then(|v| v.to_str().ok()).and_then(|v| parse_range(v, size));
     let (start, end) = range.unwrap_or((0, size.saturating_sub(1)));
-    let end = end.min(start + MAX_CHUNK - 1).min(size.saturating_sub(1));
+    let end = if range.is_some() { end.min(start + MAX_CHUNK - 1) } else { end }.min(size.saturating_sub(1));
     let mut body = vec![0; if size == 0 { 0 } else { (end - start + 1) as usize }];
     file.seek(SeekFrom::Start(start)).and_then(|_| file.read_exact(&mut body)).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let builder = Response::builder().header("Content-Type", mime).header("Accept-Ranges", "bytes").header("Content-Length", body.len().to_string());

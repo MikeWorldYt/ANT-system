@@ -1,4 +1,5 @@
 // Native file images, fetched once per file and size; a repaint shows each one as it arrives.
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { fileImage } from "./ipc/api";
 import { keyOf, notify } from "./store/state";
 import type { TreeNode } from "./ipc/types";
@@ -18,7 +19,11 @@ const repaintSoon = (): void => {
   }, REPAINT_MS);
 };
 
+// Windows draws no thumbnail for these without an extra codec, while the webview decodes them itself.
+export const SELF_DRAWN = /\.(webp|avif)$/i;
+
 export function nativeImage(n: TreeNode, large: boolean): string | null {
+  if (large && n.file && SELF_DRAWN.test(n.name)) return convertFileSrc(keyOf(n.relParts), "fmmedia");
   const key = `${keyOf(n.relParts)}|${large ? "large" : "small"}`;
   if (!images.has(key)) {
     images.set(key, null);
