@@ -70,6 +70,7 @@ pub async fn rename_download(app: AppHandle, rel_parts: Vec<String>, new_name: S
 pub async fn drop_into_downloads(app: AppHandle, rel_parts: Vec<String>, paths: Vec<PathBuf>) -> R<Vec<String>> {
     off_thread(move || {
         let dir = downloads::path_of(&base(&app)?, &rel_parts)?;
+        let _progress = super::transfer::track(&app, &paths, "Downloads");
         let mut added = Vec::new();
         for path in paths.iter().filter(|p| p.is_file()) {
             let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else { continue };
@@ -77,7 +78,13 @@ pub async fn drop_into_downloads(app: AppHandle, rel_parts: Vec<String>, paths: 
             if to.exists() {
                 continue;
             }
-            std::fs::copy(path, &to).map_err(|e| FmError::Internal { message: format!("Could not copy {}: {e}", path.display()) })?;
+            crate::services::transfer::copy(path, &to).map_err(|e| {
+                // A cancelled or failed copy leaves no half-written file behind.
+                if let Err(r) = std::fs::remove_file(&to) {
+                    eprintln!("Could not remove the partial copy {}: {r}", to.display());
+                }
+                FmError::Internal { message: format!("Could not copy {}: {e}", path.display()) }
+            })?;
             added.push(name);
         }
         Ok(added)

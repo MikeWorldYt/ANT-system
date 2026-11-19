@@ -1,12 +1,13 @@
 // OLE drag source for folders: the data object hands Explorer a CF_HDROP list, the drop source follows the mouse.
 use std::mem::ManuallyDrop;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use windows::Win32::Foundation::{DRAGDROP_S_CANCEL, DRAGDROP_S_DROP, DRAGDROP_S_USEDEFAULTCURSORS, DV_E_FORMATETC, E_NOTIMPL, E_OUTOFMEMORY, HGLOBAL, OLE_E_ADVISENOTSUPPORTED, S_OK};
-use windows::Win32::System::Com::{IAdviseSink, IDataObject, IDataObject_Impl, IEnumFORMATETC, IEnumSTATDATA, DATADIR_GET, DVASPECT_CONTENT, FORMATETC, STGMEDIUM, STGMEDIUM_0, TYMED_HGLOBAL};
+use windows::Win32::System::Com::{IBindCtx, IAdviseSink, IDataObject, IDataObject_Impl, IEnumFORMATETC, IEnumSTATDATA, DATADIR_GET, DVASPECT_CONTENT, FORMATETC, STGMEDIUM, STGMEDIUM_0, TYMED_HGLOBAL};
 use windows::Win32::System::Ole::{DoDragDrop, IDropSource, IDropSource_Impl, CF_HDROP, DROPEFFECT, DROPEFFECT_NONE};
 use windows::Win32::System::SystemServices::{MODIFIERKEYS_FLAGS, MK_LBUTTON};
-use windows::Win32::UI::Shell::SHCreateStdEnumFmtEtc;
+use windows::Win32::UI::Shell::{IDataObjectAsyncCapability, IDataObjectAsyncCapability_Impl, SHCreateStdEnumFmtEtc};
 use windows::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_SWAPBUTTON};
 use windows_core::{implement, Error, Ref, Result, BOOL, HRESULT};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON};
@@ -24,9 +25,37 @@ fn is_hdrop(format: *const FORMATETC) -> bool {
     f.cfFormat == CF_HDROP.0 && f.dwAspect == DVASPECT_CONTENT.0 && f.tymed & TYMED_HGLOBAL.0 as u32 != 0
 }
 
-#[implement(IDataObject)]
+// Async capable, so Explorer copies on its own thread with its own progress window instead of inside the drag, where nothing showed it.
+#[implement(IDataObject, IDataObjectAsyncCapability)]
 struct FolderData {
     paths: Vec<PathBuf>,
+    is_async: AtomicBool,
+    running: AtomicBool,
+}
+
+impl IDataObjectAsyncCapability_Impl for FolderData_Impl {
+    fn SetAsyncMode(&self, on: BOOL) -> Result<()> {
+        self.is_async.store(on.as_bool(), Ordering::Relaxed);
+        Ok(())
+    }
+
+    fn GetAsyncMode(&self) -> Result<BOOL> {
+        Ok(self.is_async.load(Ordering::Relaxed).into())
+    }
+
+    fn StartOperation(&self, _reserved: Ref<IBindCtx>) -> Result<()> {
+        self.running.store(true, Ordering::Relaxed);
+        Ok(())
+    }
+
+    fn InOperation(&self) -> Result<BOOL> {
+        Ok(self.running.load(Ordering::Relaxed).into())
+    }
+
+    fn EndOperation(&self, _result: HRESULT, _reserved: Ref<IBindCtx>, _effects: u32) -> Result<()> {
+        self.running.store(false, Ordering::Relaxed);
+        Ok(())
+    }
 }
 
 impl IDataObject_Impl for FolderData_Impl {
@@ -114,7 +143,7 @@ pub fn drag_folders(paths: &[PathBuf], effects: u32) -> R<u32> {
     if !primary_button_down() {
         return Ok(DROPEFFECT_NONE.0);
     }
-    let data: IDataObject = FolderData { paths: paths.to_vec() }.into();
+    let data: IDataObject = FolderData { paths: paths.to_vec(), is_async: AtomicBool::new(true), running: AtomicBool::new(false) }.into();
     let source: IDropSource = FolderSource.into();
     let mut effect = DROPEFFECT_NONE;
     // SAFETY: both objects live until DoDragDrop returns, and the caller is on the OLE-initialized UI thread.
