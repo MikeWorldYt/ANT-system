@@ -98,6 +98,9 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm run typecheck
           pnpm exec vite build
+      - name: Fetch the ffmpeg sidecar
+        if: steps.kind.outputs.tauri == 'true' && hashFiles(format('Applications/{0}/src-tauri/binaries/fetch-ffmpeg.ps1', matrix.app)) != ''
+        run: ./src-tauri/binaries/fetch-ffmpeg.ps1
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
@@ -134,6 +137,11 @@ jobs:
         if: steps.kind.outputs.tauri == 'true'
         with:
           node-version: 24
+      - name: Fetch the ffmpeg sidecar
+        if: steps.kind.outputs.tauri == 'true' && hashFiles(format('Applications/{0}/src-tauri/binaries/fetch-ffmpeg.ps1', matrix.app)) != ''
+        working-directory: Applications/${{ matrix.app }}
+        shell: pwsh
+        run: ./src-tauri/binaries/fetch-ffmpeg.ps1
       - name: Build (Tauri)
         if: steps.kind.outputs.tauri == 'true'
         working-directory: Applications/${{ matrix.app }}
