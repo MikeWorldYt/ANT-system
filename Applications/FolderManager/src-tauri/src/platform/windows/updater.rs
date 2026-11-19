@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use serde_json::Value;
 
-use crate::domain::config::{INSTALLER_ASSET, LATEST_URL, RELEASE_API_URL, RELEASE_TAG_PREFIX};
+use crate::domain::config::{channel_url, INSTALLER_ASSET, RELEASE_API_URL, RELEASE_TAG_PREFIX};
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::io_err;
 use crate::platform::random::hex_token;
@@ -25,13 +25,13 @@ fn fetch(url: &str) -> Result<String, String> {
     run_powershell(FETCH, &[("FM_URL", url.as_ref())], None, Duration::from_secs(10))
 }
 
-pub fn latest_version() -> R<Option<String>> {
-    Ok(newer_release(fetch(LATEST_URL).ok())?.map(|r| r.version))
+pub fn latest_version(beta: bool) -> R<Option<String>> {
+    Ok(newer_release(fetch(channel_url(beta)).ok())?.map(|r| r.version))
 }
 
 // Nothing in the storage takes part: the installer is the asset latest.json names, run only when it matches the SHA-256 listed there.
-pub fn launch_updater() -> R<()> {
-    let json = fetch(LATEST_URL).map_err(|e| fail(format!("the update channel could not be read ({e})")))?;
+pub fn launch_updater(beta: bool) -> R<()> {
+    let json = fetch(channel_url(beta)).map_err(|e| fail(format!("the update channel could not be read ({e})")))?;
     let release = newer_release(Some(json))?.ok_or_else(|| fail("the update channel offers no newer version"))?;
     check_api_digest(&release)?;
     let dir = std::env::temp_dir().join(format!("FolderManager-update-{}", hex_token(8).map_err(fail)?));

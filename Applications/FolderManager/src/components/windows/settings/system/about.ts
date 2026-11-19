@@ -58,6 +58,16 @@ export const aboutPage: SettingsPage = {
       title: "Check for updates automatically",
       control: () => switchControl("Check for updates automatically", state.settings.autoUpdate, (on) => changeSetting("autoUpdate", on)),
     },
+    {
+      title: "Install updates automatically",
+      description: "At launch, a newer version is installed without asking.",
+      control: () => switchControl("Install updates automatically", state.settings.installUpdates, (on) => changeSetting("installUpdates", on)),
+    },
+    {
+      title: "Receive beta updates",
+      description: "Get beta versions as soon as they are out. Off, only stable versions arrive.",
+      control: () => switchControl("Receive beta updates", state.settings.betaUpdates, (on) => changeSetting("betaUpdates", on)),
+    },
     { title: "Documentation", description: "Guides and reference for ANT.", control: () => buttonControl("Open documentation", () => void openOrReport("docs")) },
     { title: "What’s new in this version", control: () => buttonControl("View changelog", () => void openOrReport("changelog")) },
     {

@@ -206,8 +206,8 @@ export interface UpdateInfo {
   current: string;
   latest: string;
 }
-export const checkUpdate = (manual: boolean) => call<UpdateInfo | null>("check_update", { manual });
-export const startUpdate = () => call<void>("start_update");
+export const checkUpdate = (manual: boolean, beta: boolean) => call<UpdateInfo | null>("check_update", { manual, beta });
+export const startUpdate = (beta: boolean) => call<void>("start_update", { beta });
 export const skipVersion = (version: string) => call<void>("skip_version", { version });
 export type ExtensionPermission = "tree:read" | "menu:context" | "panel:own" | "details:field";
 export interface ExtensionInfo {

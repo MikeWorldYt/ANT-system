@@ -21,8 +21,8 @@ const RELEASES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/t
 const DOCS_URL: &str = "https://ant.mikeworld.dev";
 const MAIL_ADDRESS: &str = "info@mikeworld.dev";
 // A new key is added here before the UI can write it: on/off switches, the launch choice and the shortcut overrides.
-const BOOLEAN_SETTINGS: [&str; 14] = [
-    "pinFavorites", "hideDone", "hideDirectoryIdentifiers", "confirmDelete", "autoUpdate", "debugLogging", "backupAuto", "watchExternal", "autoOpenColumns", "showFavorites", "showDownloads", "showReview", "mcpWrites", "batchDropToGroup",
+const BOOLEAN_SETTINGS: [&str; 16] = [
+    "pinFavorites", "hideDone", "hideDirectoryIdentifiers", "confirmDelete", "autoUpdate", "installUpdates", "betaUpdates", "debugLogging", "backupAuto", "watchExternal", "autoOpenColumns", "showFavorites", "showDownloads", "showReview", "mcpWrites", "batchDropToGroup",
 ];
 const ON_LAUNCH_VALUES: [&str; 2] = ["continue", "root"];
 const START_VIEW_VALUES: [&str; 8] = ["continue", "tree", "columns", "grid", "list", "details", "cards", "graph"];
@@ -101,11 +101,14 @@ fn check(key: &str, value: &str) -> R<()> {
 #[tauri::command]
 pub async fn get_settings(app: AppHandle) -> R<HashMap<String, String>> {
     // A read, so the Settings window opens while a long change holds the lock.
-    run_unlocked(app, |_, root| match Store::open_existing(root)? {
+    let mut saved = run_unlocked(app, |_, root| match Store::open_existing(root)? {
         Some(store) => store.settings(),
         None => Ok(HashMap::new()),
     })
-    .await
+    .await?;
+    // Whoever installed a beta keeps getting betas until they turn it off; a stable install gets only stable versions.
+    saved.entry("betaUpdates".into()).or_insert_with(|| CURRENT_VERSION.contains('-').to_string());
+    Ok(saved)
 }
 
 #[tauri::command]
