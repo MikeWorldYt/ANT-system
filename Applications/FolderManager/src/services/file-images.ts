@@ -19,8 +19,8 @@ const repaintSoon = (): void => {
   }, REPAINT_MS);
 };
 
-// Windows draws no thumbnail for these without an extra codec, while the webview decodes them itself.
-export const SELF_DRAWN = /\.(webp|avif)$/i;
+// Windows draws no thumbnail for these without an extra codec, or a black one for SVG, while the webview draws them itself; an SVG shown as an image runs no script.
+export const SELF_DRAWN = /\.(webp|avif|svg)$/i;
 // Windows may have no thumbnail for these either, which the backend reports as none; the webview then draws the file.
 const PICTURE = /\.(png|jpe?g|jfif|gif|bmp)$/i;
 
