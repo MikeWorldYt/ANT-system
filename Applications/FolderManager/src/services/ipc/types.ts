@@ -320,4 +320,5 @@ export interface TransferProgress {
   filesDone: number;
   current: string;
   paused: boolean;
+  finished: boolean;
 }

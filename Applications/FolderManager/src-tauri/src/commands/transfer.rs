@@ -15,7 +15,7 @@ use crate::services::transfer::{self, Job};
 const EVENT: &str = "fm://transfer";
 const TICK: Duration = Duration::from_millis(250);
 const READY_WAIT: Duration = Duration::from_secs(2);
-const LINGER: Duration = Duration::from_millis(900);
+const LINGER: Duration = Duration::from_secs(3);
 const READY_EVENT: &str = "fm://transfer-ready";
 const LABEL: &str = "transfer";
 const MARGIN: f64 = 12.0;
@@ -112,16 +112,17 @@ fn watch(app: &AppHandle, job: Job) -> Tracked {
 // The last numbers are sent while the job still exists, so even an instant move shows what it did.
 impl Drop for Tracked {
     fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
         if let Some(mut p) = transfer::snapshot() {
             // A move within one drive renames instead of copying, so nothing was counted; it is done whole.
             if p.bytes_done == 0 && p.files_done == 0 {
                 (p.bytes_done, p.files_done) = (p.bytes_total, p.files_total);
             }
+            p.finished = true;
             if let Err(e) = self.app.emit(EVENT, &p) {
                 eprintln!("Could not send {EVENT}: {e}");
             }
         }
-        self.stop.store(true, Ordering::Relaxed);
     }
 }
 

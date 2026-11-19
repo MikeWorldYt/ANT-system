@@ -11,6 +11,8 @@ import type { TransferProgress } from "../../../services/ipc/types";
 
 const SAMPLE_MS = 1000;
 const ETA_SAMPLES = 5;
+// Said once the job ends, so it reads as finished rather than stuck at 100%.
+const DONE: Record<string, string> = { Copying: "Copied successfully", Deleting: "Sent to the Recycle Bin" };
 const UNITS = ["B", "KB", "MB", "GB", "TB"];
 
 function bytesText(n: number): string {
@@ -86,7 +88,9 @@ export function installTransferPanel(host: HTMLElement): void {
     const speed = recent.reduce((a, s) => a + s.bytes, 0) / Math.max(1, recent.length);
     const share = p.bytesTotal > 0 ? (p.bytesDone / p.bytesTotal) * 100 : 0;
     const deleting = p.action === "Deleting";
-    title.textContent = p.paused ? "Paused" : p.action;
+    title.textContent = p.finished ? DONE[p.action] ?? "Done" : p.paused ? "Paused" : p.action;
+    panel.classList.toggle("finished", p.finished);
+    pause.hidden = cancel.hidden = p.finished;
     route.textContent = `${plural(p.filesTotal, deleting ? "item" : "file")} from ${p.from || "outside"} to ${p.to}`;
     filesLabel.textContent = deleting ? "Items" : "Files";
     currentValue.textContent = `${bytesText(samples.at(-1)?.bytes ?? 0)}/s`;
@@ -94,7 +98,7 @@ export function installTransferPanel(host: HTMLElement): void {
     totalValue.textContent = `${bytesText(p.bytesDone)} / ${bytesText(p.bytesTotal)}`;
     filesValue.textContent = `${p.filesDone} / ${p.filesTotal}`;
     percent.textContent = `${Math.floor(share)}%`;
-    eta.textContent = speed > 0 && !p.paused ? `${timeText((p.bytesTotal - p.bytesDone) / speed)} remaining` : "Estimating...";
+    eta.textContent = p.finished ? "Done" : speed > 0 && !p.paused ? `${timeText((p.bytesTotal - p.bytesDone) / speed)} remaining` : "Estimating...";
     bar.value = share;
     name.textContent = p.current;
     pause.textContent = p.paused ? "Resume" : "Pause";
@@ -108,6 +112,8 @@ export function installTransferPanel(host: HTMLElement): void {
 
   const listening = onTransfer((p) => {
     if (p.id !== job) reset(p);
+    // A tick sent just before the end must not undo the finished state.
+    else if (last?.finished) return;
     last = p;
     sample(p, performance.now());
     render(p);

@@ -24,6 +24,7 @@ pub struct Progress {
     pub files_done: u64,
     pub current: String,
     pub paused: bool,
+    pub finished: bool,
 }
 
 static JOB: Mutex<Option<Progress>> = Mutex::new(None);

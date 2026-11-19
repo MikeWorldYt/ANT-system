@@ -33,3 +33,4 @@ html.transfer-window, html.transfer-window body, html.transfer-window #app { bac
 .transfer-btn { padding: 4px 12px; border: 1px solid rgba(47, 140, 255, 0.6); border-radius: 6px; background: rgba(47, 140, 255, 0.18); color: inherit; cursor: pointer; }
 .transfer-btn.danger { border-color: rgba(255, 90, 90, 0.6); background: rgba(255, 90, 90, 0.15); }
 .transfer-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.transfer-panel.finished .transfer-title { color: var(--accent); }
