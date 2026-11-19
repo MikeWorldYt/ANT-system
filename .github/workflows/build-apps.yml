@@ -1,5 +1,5 @@
 # Tests and builds the ANT apps whenever their version changes on main and publishes a per-app GitHub Release
-# with SHA256SUMS and latest.json (contract: spec/fm-security/plan.md section 6d).
+# with latest.json, which carries each asset's SHA-256 (contract: spec/fm-security/plan.md section 6d).
 # An app with src-tauri/ is built with Tauri and pnpm, one with only a Cargo.toml with cargo (its version lives there).
 name: Build apps
 
@@ -318,6 +318,7 @@ jobs:
             done
             files=()
             for f in "$out"/*; do files+=("$(basename "$f")"); done
+            # The sums only feed latest.json; GitHub shows each asset's SHA-256 itself, so they are not published apart.
             (cd "$out" && sha256sum -- "${files[@]}" > SHA256SUMS)
             prerelease=false
             case "$version" in *-*) prerelease=true ;; esac
@@ -329,7 +330,7 @@ jobs:
             flags=(--latest=false)
             if [ "$prerelease" = true ]; then flags+=(--prerelease); fi
             # A draft is invisible to clients, so the release appears with every asset and latest.json at once
-            gh release create "$tag" "${files[@]/#/$out/}" "$out/SHA256SUMS" --draft --target "$GITHUB_SHA" \
+            gh release create "$tag" "${files[@]/#/$out/}" --draft --target "$GITHUB_SHA" \
               --title "$app v$version" --notes "Built from $GITHUB_SHA." "${flags[@]}"
             gh release upload "$tag" "$out/latest.json"
             gh release edit "$tag" --draft=false --latest=false
