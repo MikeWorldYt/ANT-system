@@ -33,7 +33,7 @@ pub fn run() {
     }
     #[cfg(windows)]
     if std::env::args_os().nth(1).is_some_and(|a| a == services::preview::PDF_FLAG) {
-        services::preview::render_pdf_headless(std::env::args_os().nth(2), std::env::args_os().nth(3));
+        services::preview::render_pdf_headless(std::env::args_os().nth(2), std::env::args_os().nth(3), std::env::args_os().nth(4));
     }
     if std::env::args_os().nth(1).is_some_and(|a| a == "--mcp") {
         std::process::exit(mcp::run_headless(std::env::args_os().nth(2)));
@@ -159,6 +159,7 @@ pub fn run() {
             commands::cancel_transfer,
             commands::pause_transfer,
             commands::begin_delete,
+            commands::pdf_page,
             commands::end_delete,
             commands::create_file_shortcut_in,
             commands::answer_copy,

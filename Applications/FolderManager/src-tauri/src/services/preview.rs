@@ -44,6 +44,20 @@ fn webview_picture(path: &Path) -> bool {
     path.extension().and_then(|e| e.to_str()).is_some_and(|e| ["png", "jpg", "jpeg", "jfif", "gif", "bmp"].contains(&e.to_ascii_lowercase().as_str()))
 }
 
+// A page of a PDF for the side panel, with how many pages it has; sharp enough to read, unlike the grid's thumbnail.
+#[cfg(windows)]
+pub fn pdf_page(path: &Path, page: u32) -> Option<(u32, String)> {
+    pdf::render(path, PDF_PAGE_PIXELS, page).map(|(count, png)| (count, format!("data:image/png;base64,{}", base64(&png))))
+}
+
+#[cfg(windows)]
+const PDF_PAGE_PIXELS: u32 = 900;
+
+#[cfg(not(windows))]
+pub fn pdf_page(_path: &Path, _page: u32) -> Option<(u32, String)> {
+    None
+}
+
 #[cfg(windows)]
 pub fn file_image(path: &Path, large: bool) -> R<Option<String>> {
     if large && webview_picture(path) {

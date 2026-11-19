@@ -1,23 +1,42 @@
-// Side panel preview of the one selected image, PDF or video, read through the app's own media scheme.
+// Side panel preview of the one selected image, PDF, video or audio file, read through the app's own media scheme.
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { el } from "../../dom";
 import { actedNodes } from "../../../services/store/state";
 import { previewImage } from "../../../services/ipc/api";
 import { reportError } from "./status-line";
 import { SELF_DRAWN } from "../../../services/file-images";
+import { pdfPages } from "./pdf-pages";
 import type { TreeNode } from "../../../services/ipc/types";
 
-// A PDF shows its first page, drawn by the backend like a picture.
-const IMAGE = /\.(png|jpe?g|jfif|gif|webp|bmp|svg|avif|pdf)$/i;
+const IMAGE = /\.(png|jpe?g|jfif|gif|webp|bmp|svg|avif)$/i;
 const VIDEO = /\.(mp4|m4v|webm|mov|ogv)$/i;
+const AUDIO = /\.(mp3|wav|m4a|aac|ogg|oga|flac)$/i;
+// Sound turned on stays on for the next previews this long, then they start muted again.
+const SOUND_MS = 5 * 60 * 1000;
+let soundUntil = 0;
 
 export interface PreviewPanel {
   element: HTMLElement;
   render(): void;
 }
 
-const kindOf = (n: TreeNode | undefined): "image" | "video" | null =>
-  !n?.file ? null : IMAGE.test(n.name) ? "image" : VIDEO.test(n.name) ? "video" : null;
+type Kind = "image" | "pdf" | "video" | "audio";
+
+function kindOf(n: TreeNode | undefined): Kind | null {
+  if (!n?.file) return null;
+  if (IMAGE.test(n.name)) return "image";
+  if (/\.pdf$/i.test(n.name)) return "pdf";
+  if (VIDEO.test(n.name)) return "video";
+  return AUDIO.test(n.name) ? "audio" : null;
+}
+
+// Starts muted unless the user turned the sound on in the last minutes; turning it on or off sets that window.
+function withSound(media: HTMLMediaElement): void {
+  media.muted = Date.now() > soundUntil;
+  media.addEventListener("volumechange", () => {
+    soundUntil = media.muted ? 0 : Date.now() + SOUND_MS;
+  });
+}
 
 export function createPreviewPanel(): PreviewPanel {
   const frame = el("div", { class: "side-preview" });
@@ -51,9 +70,20 @@ export function createPreviewPanel(): PreviewPanel {
         .catch((e: unknown) => reportError("warning", e));
       return;
     }
-    // Videos start on their own but muted; the user turns the sound on from the controls.
+    if (kind === "pdf") {
+      frame.replaceChildren(pdfPages(n, () => shownKey === key));
+      return;
+    }
+    if (kind === "audio") {
+      const audio = el("audio", { src: convertFileSrc(key, "fmmedia"), controls: "", preload: "auto" });
+      withSound(audio);
+      audio.autoplay = true;
+      frame.replaceChildren(audio);
+      return;
+    }
+    // Videos start on their own, muted unless the user recently turned the sound on.
     const video = el("video", { src: convertFileSrc(key, "fmmedia"), controls: "", loop: "", playsinline: "", preload: "auto" });
-    video.muted = true;
+    withSound(video);
     video.autoplay = true;
     frame.replaceChildren(video);
     // Sound but no picture means Windows lacks the video's codec, so a frame drawn by the app stands in, with the controls kept below it.

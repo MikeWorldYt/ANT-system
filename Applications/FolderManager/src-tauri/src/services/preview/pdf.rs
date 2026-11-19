@@ -19,7 +19,7 @@ pub fn is_pdf(path: &Path) -> bool {
     path.extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("pdf"))
 }
 
-fn draw(path: &Path, pixels: u32) -> windows::core::Result<Vec<u8>> {
+fn draw(path: &Path, pixels: u32, index: u32) -> windows::core::Result<(u32, Vec<u8>)> {
     let bytes = std::fs::read(path).map_err(|e| windows::core::Error::new(windows::core::HRESULT(0x8007_0002u32 as i32), e.to_string()))?;
     let source = InMemoryRandomAccessStream::new()?;
     let writer = DataWriter::CreateDataWriter(&source)?;
@@ -28,7 +28,8 @@ fn draw(path: &Path, pixels: u32) -> windows::core::Result<Vec<u8>> {
     writer.DetachStream()?;
     source.Seek(0)?;
     let document = PdfDocument::LoadFromStreamAsync(&source)?.join()?;
-    let page = document.GetPage(0)?;
+    let count = document.PageCount()?;
+    let page = document.GetPage(index.min(count.saturating_sub(1)))?;
     let size = page.Size()?;
     let scale = pixels as f32 / size.Width.max(size.Height).max(1.0);
     let options = PdfPageRenderOptions::new()?;
@@ -45,24 +46,32 @@ fn draw(path: &Path, pixels: u32) -> windows::core::Result<Vec<u8>> {
     reader.Close()?;
     out.Close()?;
     source.Close()?;
-    Ok(png)
+    Ok((count, png))
 }
 
 // Each render runs in a child copy of the app: Windows draws PDFs on the GPU, and some drivers crash the process that used it when it exits.
 pub fn page_png(path: &Path, pixels: u32) -> Option<Vec<u8>> {
+    render(path, pixels, 0).map(|(_, png)| png)
+}
+
+// The child answers with the page count as four little-endian bytes, then the page's PNG.
+pub fn render(path: &Path, pixels: u32, page: u32) -> Option<(u32, Vec<u8>)> {
     let exe = std::env::current_exe().ok()?;
-    let out = Command::new(exe).arg(FLAG).arg(path).arg(pixels.to_string()).creation_flags(CREATE_NO_WINDOW).output().ok()?;
-    (out.status.success() && out.stdout.starts_with(PNG_SIGNATURE)).then_some(out.stdout)
+    let out = Command::new(exe).arg(FLAG).arg(path).arg(pixels.to_string()).arg(page.to_string()).creation_flags(CREATE_NO_WINDOW).output().ok()?;
+    let (head, png) = out.stdout.split_at_checked(4)?;
+    let count = u32::from_le_bytes(head.try_into().ok()?);
+    (out.status.success() && png.starts_with(PNG_SIGNATURE)).then(|| (count, png.to_vec()))
 }
 
 // The child writes the PNG and ends at once, skipping the library teardown where the driver crashes.
-pub fn run_headless(path: Option<OsString>, pixels: Option<OsString>) -> ! {
-    let pixels = pixels.and_then(|p| p.to_str()?.parse().ok()).unwrap_or(128);
+pub fn run_headless(path: Option<OsString>, pixels: Option<OsString>, page: Option<OsString>) -> ! {
+    let number = |v: Option<OsString>, fallback: u32| v.and_then(|p| p.to_str()?.parse().ok()).unwrap_or(fallback);
+    let (pixels, page) = (number(pixels, 128), number(page, 0));
     let initialized = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) }.is_ok();
-    let png = if initialized { path.and_then(|p| draw(Path::new(&p), pixels).ok()) } else { None };
-    let written = png.is_some_and(|png| {
+    let drawn = if initialized { path.and_then(|p| draw(Path::new(&p), pixels, page).ok()) } else { None };
+    let written = drawn.is_some_and(|(count, png)| {
         let mut stdout = std::io::stdout().lock();
-        stdout.write_all(&png).and_then(|()| stdout.flush()).is_ok()
+        stdout.write_all(&count.to_le_bytes()).and_then(|()| stdout.write_all(&png)).and_then(|()| stdout.flush()).is_ok()
     });
     unsafe { TerminateProcess(GetCurrentProcess(), u32::from(!written)) };
     std::process::exit(i32::from(!written))
@@ -99,7 +108,8 @@ mod tests {
         let good = dir.path().join("a.pdf");
         std::fs::write(&good, tiny_pdf()).unwrap();
         unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) }.ok().unwrap();
-        let png = draw(&good, 128).expect("rendered");
+        let (count, png) = draw(&good, 128, 0).expect("rendered");
+        assert_eq!(count, 1);
         assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
 
     }

@@ -56,6 +56,25 @@ pub async fn list_children(app: AppHandle, rel_parts: Vec<String>) -> R<Vec<Tree
     run_unlocked(app, move |_, root| level::children(root, &rel_parts)).await
 }
 
+#[derive(serde::Serialize)]
+pub struct PdfPage {
+    url: String,
+    count: u32,
+}
+
+// One page at a time, so a long PDF opens at once and each page is drawn only when the user turns to it.
+#[tauri::command]
+pub async fn pdf_page(app: AppHandle, rel_parts: Vec<String>, page: u32) -> R<Option<PdfPage>> {
+    off_thread(move || {
+        let path = match super::downloads::below_downloads(&rel_parts) {
+            Some(rest) => crate::services::downloads::path_of(&super::downloads::base(&app)?, rest)?,
+            None => resolve(&app.state::<Storage>().root()?, &rel_parts)?,
+        };
+        Ok(crate::services::preview::pdf_page(&path, page).map(|(count, url)| PdfPage { url, count }))
+    })
+    .await?
+}
+
 // Reads without the storage lock, so a slow shell thumbnail never holds up a change.
 #[tauri::command]
 pub async fn file_image(app: AppHandle, rel_parts: Vec<String>, large: bool, preview: Option<bool>) -> R<Option<String>> {
