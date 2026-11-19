@@ -76,7 +76,12 @@ export function nodeFlags(n: TreeNode): string[] {
 }
 
 // Non-editable types (reviews, resources, templates) keep their stored label.
-export const typeName = (n: TreeNode): string => (n.file ? "File" : TYPE_LABELS.find(([v]) => v === n.nodeType?.base)?.[1] ?? n.nodeType?.raw ?? "—");
+export function fileTypeName(name: string): string {
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? `${name.slice(dot + 1).toUpperCase()} file` : "File";
+}
+
+export const typeName = (n: TreeNode): string => (n.file ? fileTypeName(n.name) : TYPE_LABELS.find(([v]) => v === n.nodeType?.base)?.[1] ?? n.nodeType?.raw ?? "—");
 
 export const typeLabel = (n: TreeNode): string => {
   const flags = nodeFlags(n);
