@@ -8,7 +8,7 @@ use crate::services::automations::dictionary_lint::{lint, Issue};
 
 const LABEL: &str = "dictionary";
 // WebView2 shares one environment per app, so a second window must ask for the same browser arguments as the main one or it fails to start.
-const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required --blink-settings=edgeWebRTCEnabled=false";
+pub(super) const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required --blink-settings=edgeWebRTCEnabled=false";
 
 // One editor at a time: opening another folder's dictionary replaces it, so two windows never write the same file.
 #[tauri::command]

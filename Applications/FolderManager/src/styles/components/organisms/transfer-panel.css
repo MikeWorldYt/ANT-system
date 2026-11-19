@@ -1,19 +1,19 @@
-/* The transfer panel is glass over the app: blue for data, the user's accent for files. */
+/* The transfer window is glass over the desktop: blue for data, the user's accent for files. */
+html.transfer-window, html.transfer-window body, html.transfer-window #app { background: transparent; overflow: hidden; }
 .transfer-panel {
   --transfer-blue: #2f8cff;
-  position: fixed; right: 16px; bottom: 40px; z-index: 900; width: min(760px, calc(100vw - 32px));
+  box-sizing: border-box; height: 100vh;
   display: grid; grid-template-columns: 1fr 300px; overflow: hidden;
   background: rgba(8, 14, 26, 0.62); backdrop-filter: blur(8px);
   border: 1px solid rgba(47, 140, 255, 0.45); border-radius: 10px;
   box-shadow: 0 0 24px rgba(47, 140, 255, 0.25), inset 0 0 18px rgba(47, 140, 255, 0.08);
   color: #e6efff;
 }
-.transfer-panel[hidden] { display: none; }
-.transfer-graph { position: relative; min-height: 150px; border-right: 1px solid rgba(47, 140, 255, 0.25); }
-.transfer-chart { position: absolute; inset: 0; width: 100%; height: 100%; }
+.transfer-graph { position: relative; cursor: move; min-height: 150px; border-right: 1px solid rgba(47, 140, 255, 0.25); }
+.transfer-chart { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .transfer-bars rect { fill: var(--transfer-blue); opacity: 0.75; }
 .transfer-line { fill: none; stroke: var(--accent); stroke-width: 2.5; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px var(--accent)); }
-.transfer-legend { position: absolute; left: 10px; top: 8px; display: flex; gap: 12px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.transfer-legend { pointer-events: none; position: absolute; left: 10px; top: 8px; display: flex; gap: 12px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
 .legend-bars::before, .legend-line::before { content: ""; display: inline-block; width: 10px; margin-right: 5px; vertical-align: middle; }
 .legend-bars::before { height: 10px; background: var(--transfer-blue); }
 .legend-line::before { height: 2px; background: var(--accent); }

@@ -1,13 +1,13 @@
-// A see-through panel that shows a copy or move while it runs, only once it outlasts a moment, so instant renames never flash it.
+// The transfer window's panel: the running copy or move with its graph, progress, pause and cancel.
 import { el } from "../../dom";
 import { cancelTransfer, pauseTransfer } from "../../../services/ipc/api";
-import { onTransfer, onTransferDone } from "../../../services/ipc/events";
+import { onTransfer } from "../../../services/ipc/events";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { reportError } from "../bars/status-line";
 import { plural } from "../../../services/plural";
 import { SAMPLES, transferChart, type Sample } from "./transfer-chart";
 import type { TransferProgress } from "../../../services/ipc/types";
 
-const SHOW_AFTER_MS = 500;
 const SAMPLE_MS = 1000;
 const ETA_SAMPLES = 5;
 const UNITS = ["B", "KB", "MB", "GB", "TB"];
@@ -32,7 +32,7 @@ function stat(label: string): [HTMLElement, HTMLElement] {
   return [el("div", { class: "transfer-stat" }, value, el("span", { class: "transfer-stat-label" }, label)), value];
 }
 
-export function installTransferPanel(): void {
+export function installTransferPanel(host: HTMLElement): void {
   const chart = transferChart();
   const title = el("h2", { class: "transfer-title" });
   const route = el("p", { class: "transfer-route" });
@@ -46,17 +46,17 @@ export function installTransferPanel(): void {
   const name = el("p", { class: "transfer-current" });
   const pause = el("button", { type: "button", class: "transfer-btn" }, "Pause");
   const cancel = el("button", { type: "button", class: "transfer-btn danger" }, "Cancel");
+  const minimize = el("button", { type: "button", class: "transfer-btn" }, "Minimize");
   const legend = el("div", { class: "transfer-legend" }, el("span", { class: "legend-bars" }, "Data"), el("span", { class: "legend-line" }, "Files"));
   const panel = el(
     "section",
-    { class: "transfer-panel", role: "region", "aria-label": "File transfer", hidden: "" },
-    el("div", { class: "transfer-graph" }, chart.element, legend),
-    el("div", { class: "transfer-side" }, title, route, el("div", { class: "transfer-stats" }, current, peak, total, files), el("div", { class: "transfer-row" }, percent, eta), bar, name, el("div", { class: "transfer-actions" }, pause, cancel)),
+    { class: "transfer-panel", role: "region", "aria-label": "File transfer" },
+    el("div", { class: "transfer-graph", "data-tauri-drag-region": "" }, chart.element, legend),
+    el("div", { class: "transfer-side" }, title, route, el("div", { class: "transfer-stats" }, current, peak, total, files), el("div", { class: "transfer-row" }, percent, eta), bar, name, el("div", { class: "transfer-actions" }, minimize, pause, cancel)),
   );
-  document.body.append(panel);
+  host.replaceChildren(panel);
 
   let job = -1;
-  let seen = 0;
   let last: TransferProgress | null = null;
   let mark = { at: 0, bytes: 0, files: 0 };
   let samples: Sample[] = [];
@@ -64,8 +64,7 @@ export function installTransferPanel(): void {
 
   function reset(p: TransferProgress): void {
     job = p.id;
-    seen = performance.now();
-    mark = { at: seen, bytes: 0, files: 0 };
+    mark = { at: performance.now(), bytes: 0, files: 0 };
     samples = [];
     top = 0;
     chart.draw(samples);
@@ -100,19 +99,13 @@ export function installTransferPanel(): void {
   pause.addEventListener("click", () => {
     if (last) void pauseTransfer(!last.paused).catch((e: unknown) => reportError("warning", e, "Pause"));
   });
+  minimize.addEventListener("click", () => void getCurrentWindow().minimize().catch((e: unknown) => reportError("warning", e, "Minimize")));
   cancel.addEventListener("click", () => void cancelTransfer().catch((e: unknown) => reportError("warning", e, "Cancel")));
 
   onTransfer((p) => {
     if (p.id !== job) reset(p);
     last = p;
-    const now = performance.now();
-    sample(p, now);
-    if (panel.hidden && now - seen < SHOW_AFTER_MS) return;
-    panel.hidden = false;
+    sample(p, performance.now());
     render(p);
-  }).catch((e: unknown) => reportError("warning", e, "Transfer progress unavailable"));
-  onTransferDone(() => {
-    panel.hidden = true;
-    last = null;
   }).catch((e: unknown) => reportError("warning", e, "Transfer progress unavailable"));
 }

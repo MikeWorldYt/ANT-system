@@ -8,7 +8,6 @@ import { clearStatus, currentOperationStatus, setStatus, reportError } from "./c
 import { init, refresh, relistLevels } from "./hooks/ops";
 import { relistDownloads } from "./hooks/relist";
 import { installTooltips } from "./components/organisms/tooltip/tooltip";
-import { installTransferPanel } from "./components/organisms/transfer/transfer-panel";
 import { autoRefresh } from "./hooks/auto-refresh";
 import { startIdleRefresh } from "./hooks/idle-refresh";
 import { handleFileDrag } from "./hooks/file-drop";
@@ -126,7 +125,6 @@ onUiRequest((r) => void answerAgent(views, r)).catch((e) => reportError("warning
 
 installDebugLog();
 installTooltips();
-installTransferPanel();
 
 void init().then((ready) => {
   if (state.settings.debugLogging) void startDebugLog();

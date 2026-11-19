@@ -26,5 +26,3 @@ export const onDownloadsDictionary = (fn: () => void) => listen("fm://downloads-
 export const onUiRequest = (fn: (e: UiRequest) => void) => listen<UiRequest>("fm://ui-request", (ev) => fn(ev.payload));
 
 export const onTransfer = (fn: (p: TransferProgress) => void) => listen<TransferProgress>("fm://transfer", (ev) => fn(ev.payload));
-
-export const onTransferDone = (fn: () => void) => listen("fm://transfer-done", () => fn());
