@@ -6,12 +6,11 @@ use tauri::{AppHandle, Manager};
 
 use super::{locked, off_thread, review_emitter, run_locked};
 use crate::app::storage_session::Storage;
-use crate::platform::recycle::send_to_recycle_bin;
 use crate::platform::shortcuts::create_shortcuts;
 use crate::domain::config::{EditableType, NewKind, WkbStatus};
 use crate::services::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
 use crate::domain::error::R;
-use crate::services::{automations, edit};
+use crate::services::{automations, edit, held_trash};
 use crate::services::index::{review_index, Emit};
 
 // Mutations that can add, move or drop 998.Review links rebuild that index along with the search fields.
@@ -56,7 +55,7 @@ pub async fn rename_file(app: AppHandle, rel_parts: Vec<String>, new_name: Strin
 pub async fn delete_file(app: AppHandle, rel_parts: Vec<String>) -> R<Mutation> {
     off_thread(move || {
         let storage = app.state::<Storage>();
-        locked(&storage, |root| mutations::delete_file(root, &rel_parts, |p| super::transfer::recycle_tracked(p, send_to_recycle_bin)))
+        locked(&storage, |root| mutations::delete_file(root, &rel_parts, |p| super::transfer::recycle_tracked(p, |p| held_trash::hold(root, p))))
     })
     .await?
 }
@@ -238,7 +237,26 @@ pub async fn delete_node(
         let flags = (expect_ghost, confirm_non_empty);
         let emit = review_emitter(&app);
         let storage = app.state::<Storage>();
-        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, |p| super::transfer::recycle_tracked(p, send_to_recycle_bin))
+        let root = storage.root()?;
+        delete_flow(&storage, &rel_parts, flags, &emit, create_shortcuts, review_index::rebuild, |p| super::transfer::recycle_tracked(p, |p| held_trash::hold(&root, p)))
     })
     .await?
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Restored {
+    rel_parts: Vec<String>,
+    left: usize,
+}
+
+// Ctrl+Z after a deletion: the newest held item goes back where it was, and the tree reads it again from disk.
+#[tauri::command]
+pub async fn undo_delete(app: AppHandle) -> R<Option<Restored>> {
+    run_locked(app, move |root| {
+        let Some(back) = held_trash::undo_last(root)? else { return Ok(None) };
+        let rel_parts = back.strip_prefix(root).map(|r| r.iter().map(|p| p.to_string_lossy().into_owned()).collect()).unwrap_or_default();
+        Ok(Some(Restored { rel_parts, left: held_trash::pending(root) }))
+    })
+    .await
 }

@@ -1,4 +1,5 @@
 // User operations: call the backend, patch or replace the tree, report errors in the status line.
+import { noteDeleted } from "./undo";
 import * as api from "../services/ipc/api";
 import { choiceDialog, warningConfirmDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
 import { el } from "../components/dom";
@@ -585,7 +586,7 @@ export async function deleteInvalid(relParts: string[]): Promise<boolean> {
     const nonEmpty = preview.files + preview.dirs > 0;
     if (state.settings.confirmDelete && !preview.ghost) {
       const what = nonEmpty ? `contains ${preview.files} files and ${preview.dirs} folders. They go` : "goes";
-      if (!(await warningConfirmDialog("Delete folder", [`"${name}" ${what} to the Recycle Bin`], "Delete", "danger"))) return;
+      if (!(await warningConfirmDialog("Delete folder", [`"${name}" ${what} to the Recycle Bin`, UNDO_HINT], "Delete", "danger"))) return;
     }
     beginOperationStatus(`Deleting "${name}"…`);
     await applyMutation(await api.deleteNode(relParts, preview.ghost, nonEmpty));
@@ -625,7 +626,7 @@ function selectionAfterMoving(moving: string[][]): void {
 
 // Files have no contents to count, so they only need the confirmation and the sibling choice.
 async function removeFile(node: TreeNode): Promise<void> {
-  if (state.settings.confirmDelete && !(await warningConfirmDialog("Delete file", [`"${node.name}" goes to the Recycle Bin`], "Delete", "danger"))) return;
+  if (state.settings.confirmDelete && !(await warningConfirmDialog("Delete file", [`"${node.name}" goes to the Recycle Bin`, UNDO_HINT], "Delete", "danger"))) return;
   beginOperationStatus(`Deleting "${node.name}"…`);
   const sibling = nearestSibling(node);
   await applyMutation(await tracked([node.relParts], () => api.deleteFile(node.relParts)), sibling ?? node.relParts.slice(0, -1));
@@ -638,7 +639,7 @@ export const remove =(node: TreeNode) =>
     const nonEmpty = preview.files + preview.dirs > 0;
     if (state.settings.confirmDelete && !preview.ghost) {
       const what = nonEmpty ? `contains ${preview.files} files and ${preview.dirs} folders. They go` : "goes";
-      if (!(await warningConfirmDialog("Delete folder", [`"${node.name}" ${what} to the Recycle Bin`], "Delete", "danger"))) return;
+      if (!(await warningConfirmDialog("Delete folder", [`"${node.name}" ${what} to the Recycle Bin`, UNDO_HINT], "Delete", "danger"))) return;
     }
     beginOperationStatus(`Deleting "${node.name}"…`);
     const sibling = nearestSibling(node);
@@ -657,12 +658,15 @@ export const removeDownloads = (nodes: TreeNode[]) =>
   }, "Waiting for user decision…");
 
 const CANCELLED = "cancelled by the user";
+const UNDO_HINT = "Changed your mind? Ctrl+Z puts it back for 2 hours, or until the app closes.";
 
 // The transfer window follows a deletion from its first item to its last, however many calls it takes.
 async function tracked<T>(targets: string[][], work: () => Promise<T>): Promise<T> {
   await api.beginDelete(targets).catch((e: unknown) => reportError("warning", e, "Transfer progress"));
   try {
-    return await work();
+    const done = await work();
+    if (!targets.some(inDownloads)) noteDeleted();
+    return done;
   } finally {
     await api.endDelete().catch((e: unknown) => reportError("warning", e, "Transfer progress"));
   }
@@ -673,7 +677,7 @@ export const removeMany = (nodes: TreeNode[]) =>
   run(async () => {
     const keep = new Set(outermost(nodes.map((n) => n.relParts)));
     const picked = nodes.filter((n) => keep.has(n.relParts));
-    if (state.settings.confirmDelete && !(await warningConfirmDialog("Delete items", [`${picked.length} items go to the Recycle Bin. Folders go with their contents.`], "Delete", "danger"))) return;
+    if (state.settings.confirmDelete && !(await warningConfirmDialog("Delete items", [`${picked.length} items go to the Recycle Bin. Folders go with their contents.`, UNDO_HINT], "Delete", "danger"))) return;
     beginOperationStatus(`Deleting ${picked.length} items…`);
     const failures: string[] = [];
     await tracked(picked.map((n) => n.relParts), async () => {

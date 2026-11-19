@@ -16,6 +16,7 @@ pub mod scheduler;
 pub mod snapshot;
 pub mod sync;
 pub mod transfer;
+pub mod held_trash;
 pub mod tree;
 pub mod upgrade;
 pub mod updater;

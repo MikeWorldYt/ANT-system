@@ -308,3 +308,4 @@ export const pauseTransfer = (paused: boolean) => call<void>("pause_transfer", {
 export const beginDelete = (targets: string[][]) => call<void>("begin_delete", { targets });
 export const endDelete = () => call<void>("end_delete");
 export const pdfPage = (relParts: string[], page: number) => call<{ url: string; count: number } | null>("pdf_page", { relParts, page });
+export const undoDelete = () => call<{ relParts: string[]; left: number } | null>("undo_delete");

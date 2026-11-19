@@ -20,6 +20,7 @@ use app::window_state;
 use commands::settings;
 
 const STORAGE_CHANGED: &str = "storage-changed";
+const TRASH_SWEEP: std::time::Duration = std::time::Duration::from_secs(5 * 60);
 
 pub fn run() {
     if std::env::args_os().nth(1).is_some_and(|a| a == "--backup") {
@@ -65,6 +66,20 @@ pub fn run() {
                 }
             }
             std::thread::spawn(|| services::preview::thumb_cache::prune(&services::preview::thumb_cache::dir()));
+            let held = app.handle().clone();
+            // What a closed session left in the trash goes to the Recycle Bin first; after that, each deletion once its two hours are up.
+            std::thread::spawn(move || {
+                let mut older_than = None;
+                loop {
+                    if let Ok(root) = held.state::<Storage>().root() {
+                        for failure in services::held_trash::flush(&root, older_than, platform::recycle::send_to_recycle_bin) {
+                            eprintln!("Could not send a held deletion to the Recycle Bin: {failure}");
+                        }
+                    }
+                    older_than = Some(services::held_trash::HOLD);
+                    std::thread::sleep(TRASH_SWEEP);
+                }
+            });
             let handle = app.handle().clone();
             let emitter = app.handle().clone();
             app.manage(services::watch::GuiWatch::start(
@@ -160,6 +175,7 @@ pub fn run() {
             commands::pause_transfer,
             commands::begin_delete,
             commands::pdf_page,
+            commands::undo_delete,
             commands::end_delete,
             commands::create_file_shortcut_in,
             commands::answer_copy,
@@ -242,6 +258,12 @@ pub fn run() {
                 }
                 if let Some(bridge) = app.try_state::<app::ui_bridge::UiBridge>() {
                     bridge.stop();
+                }
+                // Closing the app ends the undo window: everything held goes to the Recycle Bin now.
+                if let Ok(root) = app.state::<Storage>().root() {
+                    for failure in services::held_trash::flush(&root, None, platform::recycle::send_to_recycle_bin) {
+                        eprintln!("Could not send a held deletion to the Recycle Bin: {failure}");
+                    }
                 }
             }
         });

@@ -1,5 +1,5 @@
 // Every global keyboard shortcut in one table, so adding or changing one never means hunting through the views.
-import { undoProjectSort } from "./automations/sort-projects";
+import { undoLast } from "./undo";
 import { actedNodes, selectedNode, state, type KeyCombo } from "../services/store/state";
 import { deleteActed, favoriteActed, moveActed } from "./acted-nodes";
 import { addNext } from "./ops";
@@ -110,7 +110,7 @@ function bindings(go: ShortcutTargets): Binding[] {
     { code: "KeyA", mod: true, alt: false, plain: false, inFields: false, run: selectAll },
     { code: "KeyC", mod: true, alt: false, plain: false, inFields: false, run: () => void putOnClipboard(actedNodes(), false) },
     { code: "KeyX", mod: true, alt: false, plain: false, inFields: false, run: () => void putOnClipboard(actedNodes(), true) },
-    { code: "KeyZ", mod: true, alt: false, plain: false, inFields: false, run: () => void undoProjectSort() },
+    { code: "KeyZ", mod: true, alt: false, plain: false, inFields: false, run: () => void undoLast() },
     { code: "KeyT", mod: true, alt: false, plain: false, inFields: true, run: go.newTab },
     { code: "KeyW", mod: true, alt: false, plain: false, inFields: true, run: go.closeTab },
     { code: "Tab", mod: true, alt: false, plain: false, inFields: true, run: go.nextTab },
