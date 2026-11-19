@@ -3,12 +3,15 @@ use serde_json::{json, Value};
 
 pub(super) const BASE: &str = include_str!("guide/guide.md");
 
-const TOPICS: [(&str, &str, &str); 5] = [
-    ("model", "Levels, ids and folder types", include_str!("guide/model.md")),
-    ("review", "Review folders and their automations", include_str!("guide/review.md")),
+const TOPICS: [(&str, &str, &str); 8] = [
+    ("model", "Levels, ids, folder types and flags", include_str!("guide/model.md")),
+    ("worknodes", "Worknodes, statuses, output, Outcomes and plain folders", include_str!("guide/worknodes.md")),
+    ("review", "Review folders and where files land", include_str!("guide/review.md")),
+    ("automations", "Automations: plan, show, ask, apply", include_str!("guide/automations.md")),
     ("dictionary", "The .ant/dictionary.md grouping format", include_str!("guide/dictionary.md")),
-    ("worknodes", "Worknodes, statuses and the board", include_str!("guide/worknodes.md")),
-    ("safety", "Locks, confirmations and what never to do", include_str!("guide/safety.md")),
+    ("files", "Moving and copying files, shortcuts and Downloads", include_str!("guide/files.md")),
+    ("settings", "Settings, extensions and storages", include_str!("guide/settings.md")),
+    ("safety", "Locks, the user's OK, limits and what never to do", include_str!("guide/safety.md")),
 ];
 
 const ROOT: &str = "ant://guide";
