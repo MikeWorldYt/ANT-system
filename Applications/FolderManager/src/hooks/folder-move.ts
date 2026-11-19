@@ -1,5 +1,6 @@
 // Folders and files dragged inside the window move onto a folder, or copy with Ctrl; HTML5 drag events never reach the webview.
-import { dropFiles, moveFiles, moveFolders, toggleExpand } from "./ops";
+import { dropFiles, moveFiles, moveFolders } from "./ops";
+import { dwell, redwell, stopDwell } from "./drag-dwell";
 import { dragSources, ITEM } from "./drag-out";
 import { cancelOnEscape, leftWindow, modsOf, mousePress, moveGhost, pastThreshold, pointOf, released, type Mods, type Point } from "./pointer";
 import { warningConfirmDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
@@ -141,25 +142,15 @@ export function targetAt({ x, y }: Point): Drag["target"] {
   return hit && parts && canDropOn(findNode(parts)) ? { el: hit, parts } : null;
 }
 
-// Resting on a closed node box in the graph opens it, so a drag can browse down to where it is going.
-const SPRING_MS = 700;
-let spring: number | undefined;
-
 function retarget(d: Drag, next: Drag["target"]): void {
   if (next?.el === d.target?.el) return;
-  window.clearTimeout(spring);
   d.target?.el.classList.remove(HIGHLIGHT);
   next?.el.classList.add(HIGHLIGHT);
   d.target = next;
-  if (!next || !next.el.matches(".graph-node-box[aria-expanded='false']")) return;
-  spring = window.setTimeout(() => {
-    const n = findNode(next.parts);
-    if (drag?.target === next && n) void toggleExpand(n);
-  }, SPRING_MS);
 }
 
 function cancel(): void {
-  window.clearTimeout(spring);
+  stopDwell();
   if (!drag) return;
   drag.target?.el.classList.remove(HIGHLIGHT);
   drag.ghost?.remove();
@@ -190,7 +181,9 @@ export function installFolderMove(host: HTMLElement): void {
     moveGhost(drag.ghost, now);
     showMode(drag.ghost, ev.ctrlKey);
     retarget(drag, targetAt(now));
+    dwell(now);
   });
+  window.addEventListener("wheel", () => folderMoveActive() && redwell(), { passive: true });
   host.addEventListener("pointerup", (ev) => {
     const done = drag;
     const target = done?.ghost ? done.target : null;
