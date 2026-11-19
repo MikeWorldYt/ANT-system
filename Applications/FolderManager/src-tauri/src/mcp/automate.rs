@@ -68,6 +68,7 @@ fn picks() -> Value {
     let flag = |d: &str| json!({ "type": "boolean", "description": d });
     json!({
         "folder": folder(),
+        "offset": { "type": "integer", "minimum": 0, "description": "Rows to skip; pass the previous result's `next` to read the next page" },
         "only": { "type": "array", "items": { "type": "string" }, "description": "File names to plan; empty plans every file in the folder" },
         "reduce": flag("Shorten names with the dictionary's terms"),
         "sort": flag("Sort files into projects (worknodes)"),
@@ -90,7 +91,7 @@ fn row() -> Value {
 }
 
 fn plan_automations() -> (Value, Value) {
-    (object(picks(), &["folder"]), output(json!({ "rows": { "type": "array", "items": row() } }), &["rows"]))
+    (object(picks(), &["folder"]), output(json!({ "rows": { "type": "array", "items": row() }, "total": { "type": "integer" }, "next": { "type": ["integer", "null"], "description": "Offset of the next page; null on the last" } }), &["rows", "total", "next"]))
 }
 
 fn apply_automations() -> (Value, Value) {
@@ -110,6 +111,8 @@ struct FlagArgs {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct PlanArgs {
     folder: Vec<String>,
+    #[serde(default)]
+    offset: usize,
     #[serde(default)]
     only: Vec<String>,
     #[serde(default)]
@@ -169,7 +172,13 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
         }
         "plan_automations" => {
             let a: PlanArgs = args(name, arguments)?;
-            server.read(|_, root| Ok(json!({ "rows": plan(root, &a)? })))
+            server.read(|_, root| {
+                let rows = plan(root, &a)?;
+                let total = rows.len();
+                let end = total.min(a.offset.saturating_add(MAX_FILES));
+                let next = (end < total).then_some(end);
+                Ok(json!({ "rows": rows.get(a.offset.min(total)..end).unwrap_or_default(), "total": total, "next": next }))
+            })
         }
         "apply_automations" => {
             let a: ApplyArgs = args(name, arguments)?;

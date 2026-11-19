@@ -13,7 +13,7 @@
 
 ## The flow: plan, show, ask, apply
 1. If the task needs dictionary entries, write them with `set_dictionary` (it replaces the whole file; read it with `get_dictionary` first).
-2. `plan_automations` with the folder and the automations wanted: a dry run, nothing changes. Each row gives the file, its new name, its project and its destination.
+2. `plan_automations` with the folder and the automations wanted: a dry run, nothing changes. Each row gives the file, its new name, its project and its destination. At most 500 rows come back at once: when `next` is not null, call again with `offset` set to it.
 3. Show the user the rows that change, old name to new name and where each goes, as a short table.
 4. Ask in the chat whether to run it, unless the user said not to ask again.
 5. `apply_automations` with the rows as shown; drop or edit the rows the user changed. The window also asks for the user's OK.

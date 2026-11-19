@@ -70,7 +70,10 @@ fn automations_are_planned_as_a_dry_run_and_applied_as_planned() {
 ");
     fs::write(dir.path().join("100.A/98.A/[draft] notes.txt"), "x").unwrap();
     let s = writer(dir.path());
-    let rows = ok(&call(&s, "plan_automations", json!({ "folder": ["100.A", "98.A"], "removeSymbols": true })))["rows"].clone();
+    let plan = ok(&call(&s, "plan_automations", json!({ "folder": ["100.A", "98.A"], "removeSymbols": true })));
+    assert_eq!((plan["total"].clone(), plan["next"].clone()), (json!(1), Value::Null));
+    assert_eq!(ok(&call(&s, "plan_automations", json!({ "folder": ["100.A", "98.A"], "removeSymbols": true, "offset": 5 })))["rows"], json!([]));
+    let rows = plan["rows"].clone();
     assert_eq!(rows[0]["file"], "[draft] notes.txt");
     assert!(dir.path().join("100.A/98.A/[draft] notes.txt").is_file(), "the dry run changes nothing");
     let new = rows[0]["name"].as_str().unwrap().to_string();
