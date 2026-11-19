@@ -3,7 +3,6 @@ use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use super::base64;
 use crate::platform::windows::powershell::CREATE_NO_WINDOW;
 
 const VIDEO: &[&str] = &["mp4", "m4v", "mov", "mkv", "avi", "webm", "wmv", "3gp"];
@@ -21,7 +20,7 @@ fn ffmpeg() -> Option<PathBuf> {
 }
 
 // None when ffmpeg is missing or cannot read the file, which leaves the shell's image in place.
-pub fn frame(path: &Path, pixels: u32) -> Option<String> {
+pub fn frame(path: &Path, pixels: u32) -> Option<Vec<u8>> {
     let exe = ffmpeg()?;
     let scale = format!("scale='min({pixels},iw)':-2");
     SEEKS.iter().find_map(|seek| {
@@ -32,6 +31,6 @@ pub fn frame(path: &Path, pixels: u32) -> Option<String> {
             .creation_flags(CREATE_NO_WINDOW)
             .output()
             .ok()?;
-        (out.status.success() && !out.stdout.is_empty()).then(|| format!("data:image/png;base64,{}", base64(&out.stdout)))
+        (out.status.success() && !out.stdout.is_empty()).then_some(out.stdout)
     })
 }

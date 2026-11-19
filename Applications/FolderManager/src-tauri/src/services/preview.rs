@@ -11,21 +11,35 @@ mod shell;
 #[cfg(windows)]
 mod video;
 
+#[cfg(windows)]
+mod pdf;
+
+#[cfg(windows)]
+pub use pdf::{run_headless as render_pdf_headless, FLAG as PDF_FLAG};
+
+pub mod thumb_cache;
+
 #[cfg(not(windows))]
 mod external;
 
-// A video Windows cannot draw, for want of its codec, gets a frame from the bundled ffmpeg before falling back to the type icon.
+// Videos and PDFs Windows cannot draw, for want of a codec or handler, are drawn here and kept in the disk cache, before falling back to the type icon.
 #[cfg(windows)]
-fn video_image(path: &Path, preview: bool) -> Option<String> {
-    if !video::is_video(path) {
+fn drawn_image(path: &Path, preview: bool) -> Option<String> {
+    let draw: fn(&Path, u32) -> Option<Vec<u8>> = if video::is_video(path) {
+        video::frame
+    } else if pdf::is_pdf(path) {
+        pdf::page_png
+    } else {
         return None;
-    }
-    shell::thumbnail_only(path, preview).or_else(|| video::frame(path, shell::pixels(preview)))
+    };
+    let pixels = shell::pixels(preview);
+    shell::thumbnail_only(path, preview)
+        .or_else(|| thumb_cache::cached(&thumb_cache::dir(), path, pixels, || draw(path, pixels)).map(|png| format!("data:image/png;base64,{}", base64(&png))))
 }
 
 #[cfg(windows)]
 pub fn file_image(path: &Path, large: bool) -> R<Option<String>> {
-    match large.then(|| video_image(path, false)).flatten() {
+    match large.then(|| drawn_image(path, false)).flatten() {
         Some(url) => Ok(Some(url)),
         None => shell::image(path, large),
     }
@@ -33,7 +47,7 @@ pub fn file_image(path: &Path, large: bool) -> R<Option<String>> {
 
 #[cfg(windows)]
 pub fn preview_image(path: &Path) -> R<Option<String>> {
-    match video_image(path, true) {
+    match drawn_image(path, true) {
         Some(url) => Ok(Some(url)),
         None => shell::preview(path),
     }
