@@ -22,7 +22,7 @@ pub mod thumb_cache;
 #[cfg(not(windows))]
 mod external;
 
-// Videos and PDFs Windows cannot draw, for want of a codec or handler, are drawn here and kept in the disk cache, before falling back to the type icon.
+// Videos Windows cannot draw, for want of a codec, and every PDF are drawn here and kept in the disk cache, before falling back to the type icon.
 #[cfg(windows)]
 fn drawn_image(path: &Path, preview: bool) -> Option<String> {
     let draw: fn(&Path, u32) -> Option<Vec<u8>> = if video::is_video(path) {
@@ -33,8 +33,9 @@ fn drawn_image(path: &Path, preview: bool) -> Option<String> {
         return None;
     };
     let pixels = shell::pixels(preview);
-    shell::thumbnail_only(path, preview)
-        .or_else(|| thumb_cache::cached(&thumb_cache::dir(), path, pixels, || draw(path, pixels)).map(|png| format!("data:image/png;base64,{}", base64(&png))))
+    // PDF readers such as UPDF hand Windows their logo as the "thumbnail", so PDFs always draw their own page.
+    let shell_first = if pdf::is_pdf(path) { None } else { shell::thumbnail_only(path, preview) };
+    shell_first.or_else(|| thumb_cache::cached(&thumb_cache::dir(), path, pixels, || draw(path, pixels)).map(|png| format!("data:image/png;base64,{}", base64(&png))))
 }
 
 #[cfg(windows)]
