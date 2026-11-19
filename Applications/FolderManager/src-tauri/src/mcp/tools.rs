@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 
 use super::protocol::{RpcError, INVALID_PARAMS};
 use super::view::{Brief, Detail};
-use super::{automate, schema, ui, write, Server};
+use super::{automate, files, schema, ui, write, Server};
 use crate::app::storage_session::StorageInfo;
 use crate::domain::error::{FmError, R};
 use crate::domain::search::{parse_query, suggest_key};
@@ -39,7 +39,7 @@ pub(super) fn list() -> Vec<Value> {
                 "annotations": { "title": title, "readOnlyHint": true, "openWorldHint": false },
             })
         });
-    read.chain(write::list()).chain(automate::list()).chain(ui::list()).collect()
+    read.chain(write::list()).chain(automate::list()).chain(files::list()).chain(ui::list()).collect()
 }
 
 #[derive(Deserialize)]
@@ -100,6 +100,7 @@ pub(super) fn call(server: &Server, params: &Value) -> Result<Value, RpcError> {
         })?,
         name if name.starts_with("ui_") => ui::call(server, name, &arguments)?,
         name if automate::has(name) => automate::call(server, name, &arguments)?,
+        name if files::has(name) => files::call(server, name, &arguments)?,
         _ => write::call(server, name, &arguments)?,
     };
     Ok(result(outcome))

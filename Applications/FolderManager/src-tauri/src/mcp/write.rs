@@ -163,7 +163,7 @@ fn quiet(_: &ReviewIndexEvent) -> Result<(), String> {
     Ok(())
 }
 
-fn indexed(root: &Path, f: impl FnOnce(&Path) -> R<Mutation>) -> R<Mutation> {
+pub(super) fn indexed(root: &Path, f: impl FnOnce(&Path) -> R<Mutation>) -> R<Mutation> {
     edit::indexed(root, &quiet, f)
 }
 
@@ -172,7 +172,7 @@ fn search<'a>(f: &'a dyn Fn(&Path) -> R<Mutation>) -> impl Fn(&Path) -> R<Mutati
 }
 
 // A source under `::Downloads` names a file in the user's Downloads folder; any other is a path in the storage.
-fn source(root: &Path, rel: &[String]) -> R<std::path::PathBuf> {
+pub(super) fn source(root: &Path, rel: &[String]) -> R<std::path::PathBuf> {
     match rel.split_first() {
         Some((first, rest)) if first == downloads::ROOT => {
             let path = downloads::path_of(&downloads::system_base()?, rest)?;

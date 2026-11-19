@@ -44,7 +44,7 @@ fn write_tools_declare_what_they_do() {
     let dir = work("mcp-w-list");
     let replies = exchange(&server(dir.path()), request(1, "tools/list", json!({})).as_bytes());
     let tools = replies[0]["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 40);
+    assert_eq!(tools.len(), 45);
     let hints = |name: &str| {
         let a = &tools.iter().find(|t| t["name"] == name).unwrap()["annotations"];
         (a["readOnlyHint"].clone(), a["destructiveHint"].clone(), a["idempotentHint"].clone())
@@ -93,6 +93,8 @@ fn a_worknode_gets_plain_folders_files_moved_into_them_and_an_output() {
     fs::write(dir.path().join("100.WORK/02.B/PJ.001_Video/logo.png"), "x").unwrap();
     ok(&call(&s, "move_files", json!({ "sources": [["100.WORK", "02.B", "PJ.001_Video", "logo.png"]], "destination": ["100.WORK", "02.B", "PJ.001_Video", "assets", "kit"] })));
     assert!(dir.path().join("100.WORK/02.B/PJ.001_Video/assets/kit/logo.png").is_file());
+    ok(&call(&s, "copy_files", json!({ "sources": [["100.WORK", "02.B", "PJ.001_Video", "assets", "kit", "logo.png"]], "destination": ["100.WORK", "02.B", "PJ.001_Video", "assets"] })));
+    assert!(dir.path().join("100.WORK/02.B/PJ.001_Video/assets/logo.png").is_file() && dir.path().join("100.WORK/02.B/PJ.001_Video/assets/kit/logo.png").is_file());
     ok(&call(&s, "set_output", json!({ "relParts": wkb, "output": "assets" })));
     assert!(info(dir.path(), "100.WORK/02.B/PJ.001_Video").contains("\"output\": \"assets\""));
 }
