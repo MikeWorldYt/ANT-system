@@ -218,9 +218,13 @@ fn asks(name: &str, items: &[String]) -> (&'static str, bool) {
 impl Server {
     // The mutation takes the cross-process lock itself, as in the app; the in-process guard only mirrors `commands::locked`.
     fn change(&self, name: &str, items: Vec<String>, changed: String, f: impl Fn(&Path) -> R<Mutation>) -> R<Value> {
+        let (title, confirm) = asks(name, &items);
+        self.change_as(title, confirm, items, changed, f)
+    }
+
+    pub(super) fn change_as(&self, title: &str, confirm: bool, items: Vec<String>, changed: String, f: impl Fn(&Path) -> R<Mutation>) -> R<Value> {
         let storage = self.storage()?;
         let root = storage.root()?;
-        let (title, confirm) = asks(name, &items);
         self.allow(&root, title, confirm, items)?;
         let _guard = storage.guard();
         let mut change = Change::of(changed, retrying(self.retry, || f(&root))?);

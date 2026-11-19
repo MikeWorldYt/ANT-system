@@ -44,7 +44,7 @@ fn write_tools_declare_what_they_do() {
     let dir = work("mcp-w-list");
     let replies = exchange(&server(dir.path()), request(1, "tools/list", json!({})).as_bytes());
     let tools = replies[0]["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 36);
+    assert_eq!(tools.len(), 40);
     let hints = |name: &str| {
         let a = &tools.iter().find(|t| t["name"] == name).unwrap()["annotations"];
         (a["readOnlyHint"].clone(), a["destructiveHint"].clone(), a["idempotentHint"].clone())
@@ -60,6 +60,24 @@ fn write_tools_declare_what_they_do() {
     }
     assert_eq!(hints("preview_project_groups").0, json!(true));
     assert_eq!(hints("get_dictionary").0, json!(true));
+}
+
+#[test]
+fn automations_are_planned_as_a_dry_run_and_applied_as_planned() {
+    let dir = storage("mcp-w-autom", &["100.A/98.A"], "100.A:
+  98.A:
+    type: REV-L2
+");
+    fs::write(dir.path().join("100.A/98.A/[draft] notes.txt"), "x").unwrap();
+    let s = writer(dir.path());
+    let rows = ok(&call(&s, "plan_automations", json!({ "folder": ["100.A", "98.A"], "removeSymbols": true })))["rows"].clone();
+    assert_eq!(rows[0]["file"], "[draft] notes.txt");
+    assert!(dir.path().join("100.A/98.A/[draft] notes.txt").is_file(), "the dry run changes nothing");
+    let new = rows[0]["name"].as_str().unwrap().to_string();
+    ok(&call(&s, "apply_automations", json!({ "folder": ["100.A", "98.A"], "rows": rows })));
+    assert!(dir.path().join("100.A/98.A").join(&new).is_file(), "{new}");
+    ok(&call(&s, "set_review_automation", json!({ "relParts": ["100.A", "98.A"], "automation": "removeSymbols", "on": true })));
+    assert!(node(&s, &["100.A", "98.A"])["flags"].to_string().contains("auto-remove-symbols"), "{}", node(&s, &["100.A", "98.A"]));
 }
 
 #[test]
