@@ -6,6 +6,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use crate::domain::config::TRASH_DIR;
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::io_err;
+use crate::services::ops_log;
 
 pub const HOLD: Duration = Duration::from_secs(2 * 60 * 60);
 const ORIGIN: &str = "origin.txt";
@@ -20,6 +21,12 @@ fn now_ms() -> u128 {
 
 // Each deletion gets a folder named for its time, holding the item and the path it came from.
 pub fn hold(root: &Path, path: &Path) -> Result<(), String> {
+    let held = hold_in(root, path);
+    ops_log::outcome(root, "delete (held for Ctrl+Z)", &ops_log::rel(root, path), &held);
+    held
+}
+
+fn hold_in(root: &Path, path: &Path) -> Result<(), String> {
     let rel = path.strip_prefix(root).map_err(|_| format!("{} is outside the storage", path.display()))?;
     let name = path.file_name().ok_or_else(|| format!("{} has no name", path.display()))?;
     let bin = trash(root);
@@ -79,7 +86,9 @@ pub fn undo_last(root: &Path) -> R<Option<PathBuf>> {
     if let Some(parent) = last.origin.parent() {
         fs::create_dir_all(parent).map_err(|e| io_err("make the folder again", parent, &e))?;
     }
-    fs::rename(&last.item, &last.origin).map_err(|e| io_err("put back from the trash", &last.item, &e))?;
+    let back = fs::rename(&last.item, &last.origin);
+    ops_log::outcome(root, "restore (Ctrl+Z)", &ops_log::rel(root, &last.origin), &back);
+    back.map_err(|e| io_err("put back from the trash", &last.item, &e))?;
     if let Err(e) = fs::remove_dir_all(&last.dir) {
         eprintln!("Could not remove the trash entry {}: {e}", last.dir.display());
     }
@@ -91,7 +100,9 @@ pub fn flush(root: &Path, older_than: Option<Duration>, recycle: impl Fn(&Path) 
     let limit = older_than.map(|d| now_ms().saturating_sub(d.as_millis()));
     let mut failures = Vec::new();
     for e in entries(root).into_iter().filter(|e| limit.is_none_or(|l| e.held_ms <= l)) {
-        match recycle(&e.item) {
+        let sent = recycle(&e.item);
+        ops_log::outcome(root, "to Recycle Bin", &ops_log::rel(root, &e.origin), &sent);
+        match sent {
             Ok(()) => {
                 if let Err(r) = fs::remove_dir_all(&e.dir) {
                     failures.push(format!("{}: {r}", e.dir.display()));

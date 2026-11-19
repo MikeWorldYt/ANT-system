@@ -186,7 +186,9 @@ pub async fn move_folder(app: AppHandle, source: Vec<String>, destination: Vec<S
     let sender = app.clone();
     run_indexed(app, move |root| {
         let _progress = super::transfer::track(&sender, &[mutations::source_path(root, &source)?], &super::file_drop::place_name(root, &destination));
-        mutations::move_folder(root, &source, &destination, copy)
+        let done = mutations::move_folder(root, &source, &destination, copy);
+        crate::services::ops_log::outcome(root, if copy { "copy folder" } else { "move folder" }, &format!("{} → {}", source.join("/"), destination.join("/")), &done);
+        done
     })
     .await
 }

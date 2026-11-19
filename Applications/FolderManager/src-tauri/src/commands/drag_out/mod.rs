@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 
 use serde_yaml::Mapping;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use super::{off_thread, run_locked};
 use crate::domain::error::{FmError, R};
@@ -26,6 +26,7 @@ pub async fn start_drag_out(app: AppHandle, targets: Vec<Vec<String>>) -> R<u32>
     })
     .await?;
     let effects = if paths.iter().all(|p| p.is_file()) { FILE_EFFECTS } else { ALLOWED_EFFECTS };
+    let logged = paths.clone();
     let (tx, rx) = mpsc::channel();
     app.run_on_main_thread(move || {
         if tx.send(drag_folders(&paths, effects)).is_err() {
@@ -37,6 +38,12 @@ pub async fn start_drag_out(app: AppHandle, targets: Vec<Vec<String>>) -> R<u32>
     let effect = off_thread(move || rx.recv())
         .await?
         .map_err(|_| FmError::Internal { message: "The drag ended without a result".to_string() })?;
+    if let (Ok(root), Ok(done)) = (app.state::<crate::app::storage_session::Storage>().root(), &effect) {
+        if *done != 0 {
+            let names: Vec<String> = logged.iter().map(|p| crate::services::ops_log::rel(&root, p)).collect();
+            crate::services::ops_log::record(&root, if *done & 2 != 0 { "drag out (move)" } else { "drag out (copy)" }, &names.join(", "));
+        }
+    }
     effect
 }
 
