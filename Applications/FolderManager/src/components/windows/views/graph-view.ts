@@ -3,6 +3,7 @@ import { el } from "../../dom";
 import { rootName } from "../../organisms/bars/path-input";
 import { nodeContextMenu } from "../../organisms/menus/context-menu";
 import { folderIcon } from "../../atoms/icons";
+import { keepExtensionInSight } from "../../atoms/fit-name";
 import { toggleExpand } from "../../../hooks/ops";
 import { folderMoveActive } from "../../../hooks/folder-move";
 import { openFolder } from "../../../hooks/path-actions";
@@ -304,7 +305,7 @@ export function createGraphView(): ViewMode {
     const view = boxView(key);
     const items = entries.map((c) => {
       const fileKey = keyOf(c.relParts);
-      const row = el("li", { class: arrived.has(fileKey) || state.selectedKeys.includes(fileKey) ? "graph-file selected" : "graph-file", title: c.name, "data-key": fileKey }, fileArt(c, view, folderIcon(c, false)), el("span", { class: "graph-file-text" }, el("span", { class: "graph-file-name" }, c.name), ...fileDetail(c, view)));
+      const row = el("li", { class: arrived.has(fileKey) || state.selectedKeys.includes(fileKey) ? "graph-file selected" : "graph-file", title: c.name, "data-key": fileKey }, fileArt(c, view, folderIcon(c, false)), el("span", { class: "graph-file-text" }, (view === "grid" && c.file ? keepExtensionInSight(el("span", { class: "graph-file-name" }, c.name), c.name) : el("span", { class: "graph-file-name" }, c.name)), ...fileDetail(c, view)));
       // Ctrl adds or removes one file, Shift takes the run from the last pick, as in the other views.
       row.addEventListener("click", (ev) => {
         if (ev.ctrlKey || ev.shiftKey) clickSelect(c.relParts, entries.map((e) => keyOf(e.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
