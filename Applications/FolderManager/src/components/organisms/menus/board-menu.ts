@@ -46,7 +46,7 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   );
   const subs: Submenu[] = [submenu("Change View", viewChoices, true)];
 
-  if (views.active() !== "tree") subs.push(sortSubmenu(node, close));
+  subs.push(sortSubmenu(node, close));
 
   const reload = action("Refresh", idle, () => void refresh());
   const canAdd = node.actions.addChild || node.actions.addFolder;

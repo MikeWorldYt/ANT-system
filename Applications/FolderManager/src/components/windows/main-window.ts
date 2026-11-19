@@ -22,16 +22,17 @@ import { createBoardView } from "./views/board-view";
 import { createColumnsView } from "./views/columns-view";
 import { createCardsView, createDetailsView, createGridView, createListView } from "./views/grid-view";
 import { createGraphView } from "./views/graph-view";
-import { createTreeView } from "./views/tree-view";
+import { createNavPane } from "../organisms/bars/nav-pane";
 
 export function createMainWindow(app: HTMLElement) {
   const host = el("section", { class: "tree-host", "aria-label": "Storage" });
   const rightHost = el("section", { class: "tree-host", "aria-label": "Split storage" });
   const panes = el("div", { class: "panes" }, host, rightHost);
-  const leftViews = createViewSwitcher(host, [createCardsView(), createTreeView(), createColumnsView(), createGridView(), createListView(), createDetailsView(), createGraphView()]);
-  const rightViews = createViewSwitcher(rightHost, [createCardsView(), createTreeView(), createColumnsView(), createGridView(), createListView(), createDetailsView(), createGraphView()]);
+  const leftViews = createViewSwitcher(host, [createCardsView(), createColumnsView(), createGridView(), createListView(), createDetailsView(), createGraphView()]);
+  const rightViews = createViewSwitcher(rightHost, [createCardsView(), createColumnsView(), createGridView(), createListView(), createDetailsView(), createGraphView()]);
   const views = focusedViews(leftViews.modes);
-  for (const pane of [host, rightHost]) {
+  const nav = createNavPane();
+  for (const pane of [host, rightHost, nav.element]) {
     trackPasteTarget(pane);
     installDragOut(pane);
     installFolderMove(pane);
@@ -65,8 +66,8 @@ export function createMainWindow(app: HTMLElement) {
   const board = createBoardView(panes, panel.editDetails);
   const batchViews = [createBatchView(panes, false), createBatchView(panes, true)];
   const batch = { render: () => batchViews.forEach((b) => b.render()) };
-  const main = el("main", { class: "app-main" }, panes, board.element, ...batchViews.map((b) => b.element), ...panel.elements);
+  const main = el("main", { class: "app-main" }, nav.element, panes, board.element, ...batchViews.map((b) => b.element), ...panel.elements);
   app.append(tabBar.element, navigator.element, main, createStatusLine());
   installContextMenu(panes, () => views.current().focus(), viewPicker);
-  return { views, toolbar, navigator, tabBar, search, panel, board, batch, openSelected };
+  return { views, toolbar, navigator, tabBar, search, panel, board, batch, nav, openSelected };
 }

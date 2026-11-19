@@ -3,12 +3,15 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::recycle::move_to_bin;
-use super::{finish, scope, load_synced_at, parent_of, Mutation};
+use super::{finish, scope, load_synced_at, locate, parent_of, Mutation};
 
 use crate::domain::config::is_hidden_dir;
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{rename_no_replace, resolve, validate_component, StorageLock};
+use crate::domain::names::is_worknode_name;
+use crate::domain::tree_types::type_base;
+use crate::infra::fs_safe::{io_err, rename_no_replace, resolve, validate_component, StorageLock};
 use crate::services::tree::tree_node::lists_files;
+use crate::services::tree::tree_store::get_type;
 
 // The file a review folder lists; folders, links and missing paths are refused.
 pub fn file_path(root: &Path, rel: &[String]) -> R<PathBuf> {
@@ -45,6 +48,36 @@ pub fn rename_file(root: &Path, rel: &[String], new_name: &str) -> R<Mutation> {
     let mut renamed = parent.clone();
     renamed.push(new_name.to_string());
     Ok(finish(root, &data, false, Some(renamed), Vec::new(), scope(&synced, vec![parent])))
+}
+
+// A worknode keeps its working folders as the user names them, untracked by the tree; anywhere else a folder is a node, made with add_node.
+pub fn add_folder(root: &Path, parent: &[String], path: &[String]) -> R<Mutation> {
+    let _lock = StorageLock::acquire(root)?;
+    if path.is_empty() {
+        return Err(FmError::InvalidName { name: String::new(), reason: "no folder name".to_string() });
+    }
+    for part in path {
+        validate_component(part)?;
+        if is_hidden_dir(part) {
+            return Err(FmError::InvalidName { name: part.clone(), reason: "reserved name".to_string() });
+        }
+    }
+    let (data, synced) = load_synced_at(root, parent)?;
+    let target = locate(root, &data, parent)?;
+    if target.ghost {
+        return Err(FmError::GhostNotAllowed { op: "add a folder to".to_string() });
+    }
+    let in_worknode = (1..=parent.len()).any(|end| type_base(&get_type(&data, &parent[..end])) == "WKB" || is_worknode_name(&parent[end - 1]));
+    if !in_worknode {
+        return Err(FmError::InvalidPath { rel_parts: parent.to_vec(), reason: "plain folders go inside a worknode; add_node makes a node here".to_string() });
+    }
+    let dir = path.iter().fold(target.abs.clone(), |dir, part| dir.join(part));
+    if dir.exists() {
+        return Err(FmError::AlreadyExists { name: path.join("/") });
+    }
+    fs::create_dir_all(&dir).map_err(|e| io_err("create the folder", &dir, &e))?;
+    let made = [parent, path].concat();
+    Ok(finish(root, &data, false, Some(made), Vec::new(), scope(&synced, vec![parent.to_vec()])))
 }
 
 // The Recycle Bin takes the file from its own folder under the lock, as it takes folders.

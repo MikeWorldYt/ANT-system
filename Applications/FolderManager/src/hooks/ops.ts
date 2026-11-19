@@ -238,6 +238,7 @@ export async function relistLevels(folders: string[][] | null): Promise<void> {
   }
   try {
     const added = await relist(folders ?? visibleLevels(), folders !== null);
+    if (folders === null && state.virtual === "downloads") await relistDownloads();
     if (added && folders !== null) {
       void runIntake(reload);
       void checkRootFolders(resolveInvalid, deleteInvalid);
@@ -627,7 +628,7 @@ async function removeFile(node: TreeNode): Promise<void> {
   if (state.settings.confirmDelete && !(await warningConfirmDialog("Delete file", [`"${node.name}" goes to the Recycle Bin`], "Delete", "danger"))) return;
   beginOperationStatus(`Deleting "${node.name}"…`);
   const sibling = nearestSibling(node);
-  await applyMutation(await api.deleteFile(node.relParts), sibling ?? node.relParts.slice(0, -1));
+  await applyMutation(await tracked([node.relParts], () => api.deleteFile(node.relParts)), sibling ?? node.relParts.slice(0, -1));
 }
 
 export const remove =(node: TreeNode) =>
@@ -641,10 +642,31 @@ export const remove =(node: TreeNode) =>
     }
     beginOperationStatus(`Deleting "${node.name}"…`);
     const sibling = nearestSibling(node);
-    const m = await api.deleteNode(node.relParts, preview.ghost, nonEmpty);
+    const m = await tracked([node.relParts], () => api.deleteNode(node.relParts, preview.ghost, nonEmpty));
     const parent = node.relParts.slice(0, -1);
     await applyMutation(m, sibling ?? orRoot(parent));
   }, "Waiting for user decision…");
+
+export const removeDownloads = (nodes: TreeNode[]) =>
+  run(async () => {
+    const what = nodes.length === 1 ? `"${nodes[0]?.name ?? ""}" goes` : `${plural(nodes.length, "item")} go`;
+    if (state.settings.confirmDelete && !(await warningConfirmDialog("Delete", [`${what} to the Recycle Bin`], "Delete", "danger"))) return;
+    beginOperationStatus(`Deleting ${plural(nodes.length, "item")}…`);
+    await tracked(nodes.map((n) => n.relParts), () => api.deleteDownloads(nodes.map((n) => n.relParts)));
+    await relistDownloads();
+  }, "Waiting for user decision…");
+
+const CANCELLED = "cancelled by the user";
+
+// The transfer window follows a deletion from its first item to its last, however many calls it takes.
+async function tracked<T>(targets: string[][], work: () => Promise<T>): Promise<T> {
+  await api.beginDelete(targets).catch((e: unknown) => reportError("warning", e, "Transfer progress"));
+  try {
+    return await work();
+  } finally {
+    await api.endDelete().catch((e: unknown) => reportError("warning", e, "Transfer progress"));
+  }
+}
 
 // One confirmation for the batch; each item is then deleted on its own, so one refusal does not stop the rest.
 export const removeMany = (nodes: TreeNode[]) =>
@@ -654,17 +676,22 @@ export const removeMany = (nodes: TreeNode[]) =>
     if (state.settings.confirmDelete && !(await warningConfirmDialog("Delete items", [`${picked.length} items go to the Recycle Bin. Folders go with their contents.`], "Delete", "danger"))) return;
     beginOperationStatus(`Deleting ${picked.length} items…`);
     const failures: string[] = [];
-    for (const node of picked) {
-      try {
-        if (node.file) {
-          await applyMutation(await api.deleteFile(node.relParts));
-        } else {
-          const preview = await api.inspectDelete(node.relParts);
-          await applyMutation(await api.deleteNode(node.relParts, preview.ghost, preview.files + preview.dirs > 0));
+    await tracked(picked.map((n) => n.relParts), async () => {
+      for (const node of picked) {
+        try {
+          if (node.file) {
+            await applyMutation(await api.deleteFile(node.relParts));
+          } else {
+            const preview = await api.inspectDelete(node.relParts);
+            await applyMutation(await api.deleteNode(node.relParts, preview.ghost, preview.files + preview.dirs > 0));
+          }
+        } catch (e) {
+          const why = api.describeError(e);
+          // Cancel in the transfer window stops the batch; the rest stay where they are.
+          if (why.includes(CANCELLED)) break;
+          failures.push(why);
         }
-      } catch (e) {
-        failures.push(api.describeError(e));
       }
-    }
+    });
     if (failures.length > 0) setStatus("error", failures.join(". "));
   }, "Waiting for user decision…");

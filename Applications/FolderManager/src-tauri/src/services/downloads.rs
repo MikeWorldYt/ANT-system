@@ -8,6 +8,26 @@ use crate::services::tree::tree_node::{stamps_of, NodeActions, TreeNode};
 // ':' cannot appear in a Windows file name, so no storage folder can share this first part.
 pub const ROOT: &str = "::Downloads";
 
+// The MCP process has no Tauri path resolver, so it asks the OS for the user's Downloads folder itself.
+#[cfg(windows)]
+pub fn system_base() -> R<PathBuf> {
+    use windows::Win32::System::Com::CoTaskMemFree;
+    use windows::Win32::UI::Shell::{FOLDERID_Downloads, SHGetKnownFolderPath, KF_FLAG_DEFAULT};
+    let fail = |e: String| crate::domain::error::FmError::Internal { message: format!("Could not find the Downloads folder: {e}") };
+    // SAFETY: the returned buffer is read once into an owned string and then freed with the allocator Windows used.
+    unsafe {
+        let raw = SHGetKnownFolderPath(&FOLDERID_Downloads, KF_FLAG_DEFAULT, None).map_err(|e| fail(e.to_string()))?;
+        let path = raw.to_string().map_err(|e| fail(e.to_string()));
+        CoTaskMemFree(Some(raw.0 as *const _));
+        path.map(PathBuf::from)
+    }
+}
+
+#[cfg(not(windows))]
+pub fn system_base() -> R<PathBuf> {
+    std::env::var_os("HOME").map(|home| PathBuf::from(home).join("Downloads")).ok_or_else(|| crate::domain::error::FmError::Internal { message: "Could not find the Downloads folder: HOME is not set".to_string() })
+}
+
 // Only names under Downloads are accepted, each validated, so a caller can never name a path outside it.
 pub fn path_of(base: &Path, rel: &[String]) -> R<PathBuf> {
     resolve(base, rel)

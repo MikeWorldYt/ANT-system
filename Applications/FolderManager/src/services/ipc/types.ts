@@ -293,7 +293,32 @@ export function isFmError(e: unknown): e is FmError {
   return typeof e === "object" && e !== null && typeof (e as { kind?: unknown }).kind === "string";
 }
 
+export type AiClientId = "claudeDesktop" | "claudeCode";
+
+export interface AiClient {
+  id: AiClientId;
+  name: string;
+  installed: boolean;
+  connected: boolean;
+  configPath: string | null;
+  restartNeeded: boolean;
+}
+
 // The first part of every path inside the system Downloads folder; ':' cannot occur in a folder name, so it never matches a storage folder.
 export const DOWNLOADS_ROOT = "::Downloads";
 
 export const inDownloads = (parts: string[]): boolean => parts[0] === DOWNLOADS_ROOT;
+
+export interface TransferProgress {
+  id: number;
+  action: string;
+  from: string;
+  to: string;
+  bytesTotal: number;
+  bytesDone: number;
+  filesTotal: number;
+  filesDone: number;
+  current: string;
+  paused: boolean;
+  finished: boolean;
+}

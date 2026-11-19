@@ -25,12 +25,12 @@ import { bindReplay } from "./hooks/automations/batch-replay";
 import { readPref, savePref } from "./services/store/prefs";
 import { startExtensions } from "./extensions/host";
 import { plural } from "./services/plural";
-import { onTourStart, startTour, tourSeen } from "./components/organisms/tour/onboarding-tour";
+import { onTourStart } from "./components/organisms/tour/onboarding-tour";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
 
-const { views, toolbar, navigator, tabBar, search, panel, board, batch, openSelected } = createMainWindow(app);
+const { views, toolbar, navigator, tabBar, search, panel, board, batch, nav, openSelected } = createMainWindow(app);
 bindReplay({ viewChanged: () => toolbar.render() });
 installShortcuts({
   focusSearch: () => search.focus("folders"),
@@ -40,6 +40,7 @@ installShortcuts({
   goUp: navigator.goUp,
   openSelected,
   toggleSidePanel: panel.toggleCollapsed,
+  toggleNavPane: nav.toggle,
   editDetails: panel.editDetails,
   newTab: () => openTab(),
   closeTab: () => closeTab(),
@@ -74,6 +75,7 @@ subscribe(() => {
   syncTabs();
   tabBar.render();
   views.current().render();
+  nav.render();
   renderOther();
   board.render();
   batch.render();
@@ -148,8 +150,8 @@ void init().then((ready) => {
       toolbar.render();
     },
   });
-  if (ready && !tourSeen()) void startTour();
-  else if (ready)
+  // The tutorial no longer starts by itself; until it is taken, About and its Show tutorial button pulse instead.
+  if (ready)
     void restoreBatch().then((open) => {
       const view = readPref(BATCH_VIEW);
       if (open && view && view !== "list" && BATCH_VIEWS.includes(view)) {

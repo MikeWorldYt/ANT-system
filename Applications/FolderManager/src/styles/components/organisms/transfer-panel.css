@@ -1,0 +1,36 @@
+/* The transfer window is glass over the desktop: blue for data, the user's accent for files. */
+html.transfer-window, html.transfer-window body, html.transfer-window #app { background: transparent; overflow: hidden; }
+.transfer-panel {
+  --transfer-blue: #2f8cff;
+  box-sizing: border-box; height: 100vh;
+  display: grid; grid-template-columns: 1fr 380px; overflow: hidden;
+  background: rgba(8, 14, 26, 0.62); backdrop-filter: blur(8px);
+  border: 1px solid rgba(47, 140, 255, 0.45); border-radius: 10px;
+  box-shadow: 0 0 24px rgba(47, 140, 255, 0.25), inset 0 0 18px rgba(47, 140, 255, 0.08);
+  color: #e6efff;
+}
+.transfer-graph { position: relative; cursor: move; min-height: 150px; border-right: 1px solid rgba(47, 140, 255, 0.25); }
+.transfer-chart { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.transfer-bars rect { fill: var(--transfer-blue); opacity: 0.75; }
+.transfer-line { fill: none; stroke: var(--accent); stroke-width: 2.5; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px var(--accent)); }
+.transfer-legend { pointer-events: none; position: absolute; left: 10px; top: 8px; display: flex; gap: 12px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.legend-bars::before, .legend-line::before { content: ""; display: inline-block; width: 10px; margin-right: 5px; vertical-align: middle; }
+.legend-bars::before { height: 10px; background: var(--transfer-blue); }
+.legend-line::before { height: 2px; background: var(--accent); }
+.transfer-side { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 16px 18px; }
+.transfer-title { margin: 0; font-size: 17px; }
+.transfer-route, .transfer-current { margin: 0; font-size: 12px; opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.transfer-stats { display: grid; grid-template-columns: repeat(4, minmax(0, auto)); justify-content: space-between; gap: 10px; margin-top: 4px; }
+.transfer-stat { display: grid; gap: 2px; min-width: 0; }
+.transfer-stat-value { font-size: 13px; white-space: nowrap; }
+.transfer-stat-label { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
+.transfer-row { display: flex; justify-content: space-between; font-size: 12px; }
+.transfer-percent { color: var(--transfer-blue); font-weight: 600; }
+.transfer-progress { width: 100%; height: 6px; appearance: none; border: 0; border-radius: 3px; background: rgba(255, 255, 255, 0.12); }
+.transfer-progress::-webkit-progress-bar { background: rgba(255, 255, 255, 0.12); border-radius: 3px; }
+.transfer-progress::-webkit-progress-value { background: var(--transfer-blue); border-radius: 3px; box-shadow: 0 0 8px var(--transfer-blue); }
+.transfer-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: auto; }
+.transfer-btn { padding: 4px 12px; border: 1px solid rgba(47, 140, 255, 0.6); border-radius: 6px; background: rgba(47, 140, 255, 0.18); color: inherit; cursor: pointer; }
+.transfer-btn.danger { border-color: rgba(255, 90, 90, 0.6); background: rgba(255, 90, 90, 0.15); }
+.transfer-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.transfer-panel.finished .transfer-title { color: var(--accent); }

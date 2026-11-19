@@ -4,6 +4,7 @@ import { actedNodes, selectedNode, state, type KeyCombo } from "../services/stor
 import { deleteActed, favoriteActed, moveActed } from "./acted-nodes";
 import { addNext } from "./ops";
 import { pasteHere } from "./paste-target";
+import { selectAll } from "./select-all";
 import { putOnClipboard } from "./folder-share";
 
 export interface ShortcutTargets {
@@ -14,6 +15,7 @@ export interface ShortcutTargets {
   goUp(): void;
   openSelected(): void;
   toggleSidePanel(): void;
+  toggleNavPane(): void;
   editDetails(): void;
   newTab(): void;
   closeTab(): void;
@@ -38,12 +40,13 @@ export const EDITABLE_SHORTCUTS: { id: string; label: string; combo: KeyCombo }[
   { id: "openSettings", label: "Open Settings", combo: { code: "Comma", mod: true, alt: false } },
   { id: "goUp", label: "Go up one level", combo: { code: "ArrowUp", mod: false, alt: true } },
   { id: "toggleSidePanel", label: "Collapse/Expand side panel", combo: { code: "ArrowRight", mod: true, alt: false } },
+  { id: "toggleNavPane", label: "Show/Hide navigation pane", combo: { code: "ArrowLeft", mod: true, alt: false } },
   { id: "moveDown", label: "Move down", combo: { code: "ArrowDown", mod: false, alt: true } },
   { id: "toggleFavorite", label: "Add/remove to favorite", combo: { code: "KeyD", mod: true, alt: false } },
   { id: "editDetails", label: "Edit details", combo: { code: "KeyE", mod: true, alt: false } },
 ];
 
-const NOT_IN_FIELDS = new Set(["toggleSidePanel", "moveDown", "toggleFavorite", "editDetails"]);
+const NOT_IN_FIELDS = new Set(["toggleSidePanel", "toggleNavPane", "moveDown", "toggleFavorite", "editDetails"]);
 
 // The folder views own these keys, so the settings page never offers them.
 const FIXED_SHORTCUTS: KeyCombo[] = [
@@ -52,6 +55,7 @@ const FIXED_SHORTCUTS: KeyCombo[] = [
   { code: "KeyO", mod: true, alt: false },
   { code: "Enter", mod: true, alt: false },
   { code: "KeyV", mod: true, alt: false },
+  { code: "KeyA", mod: true, alt: false },
   { code: "KeyC", mod: true, alt: false },
   { code: "KeyX", mod: true, alt: false },
   { code: "KeyZ", mod: true, alt: false },
@@ -74,7 +78,7 @@ export function conflictWith(combo: KeyCombo, exceptId: string): string | null {
 export const isField = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
 
-const onViews = (t: EventTarget | null) => t === document.body || (t instanceof Element && t.closest(".tree-host") !== null);
+const onViews = (t: EventTarget | null) => t === document.body || (t instanceof Element && t.closest(".tree-host, .nav-pane") !== null);
 
 const overlayOpen = () => document.querySelector('dialog[open], [role="menu"]') !== null;
 
@@ -103,6 +107,7 @@ function bindings(go: ShortcutTargets): Binding[] {
     { code: "KeyO", mod: true, alt: false, plain: false, inFields: false, run: go.openSelected },
     { code: "Enter", mod: true, alt: false, plain: false, inFields: false, run: go.openSelected },
     { code: "KeyV", mod: true, alt: false, plain: false, inFields: false, run: pasteHere },
+    { code: "KeyA", mod: true, alt: false, plain: false, inFields: false, run: selectAll },
     { code: "KeyC", mod: true, alt: false, plain: false, inFields: false, run: () => void putOnClipboard(actedNodes(), false) },
     { code: "KeyX", mod: true, alt: false, plain: false, inFields: false, run: () => void putOnClipboard(actedNodes(), true) },
     { code: "KeyZ", mod: true, alt: false, plain: false, inFields: false, run: () => void undoProjectSort() },

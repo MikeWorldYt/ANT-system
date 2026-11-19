@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use crate::domain::config::{INSTALLER_ASSET, RELEASE_APP, RELEASE_DOWNLOAD_URL, RELEASE_TAG_PREFIX};
 #[cfg(not(windows))]
-use crate::domain::config::LATEST_URL;
+use crate::domain::config::channel_url;
 use crate::domain::error::{FmError, R};
 use crate::domain::version::compare_versions;
 #[cfg(windows)]
@@ -62,14 +62,14 @@ pub fn newer_release(fetched: Option<String>) -> R<Option<Release>> {
 }
 
 #[cfg(not(windows))]
-pub fn latest_version() -> R<Option<String>> {
-    let out = std::process::Command::new("curl").args(["-fsSL", "--max-time", "10", "-A", "FolderManager-Updater", LATEST_URL]).output().ok();
+pub fn latest_version(beta: bool) -> R<Option<String>> {
+    let out = std::process::Command::new("curl").args(["-fsSL", "--max-time", "10", "-A", "FolderManager-Updater", channel_url(beta)]).output().ok();
     let fetched = out.filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).into_owned());
     Ok(newer_release(fetched)?.map(|r| r.version))
 }
 
 #[cfg(not(windows))]
-pub fn launch_updater() -> R<()> {
+pub fn launch_updater(_beta: bool) -> R<()> {
     Err(FmError::Internal { message: "Automatic update is only available on Windows".to_string() })
 }
 

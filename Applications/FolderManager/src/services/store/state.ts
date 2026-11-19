@@ -40,7 +40,7 @@ interface State {
 
 export type VirtualId = "favorites" | "downloads" | "review" | "board";
 
-const START_VIEWS: StartView[] = ["tree", "columns", "grid", "list", "details", "cards", "graph"];
+const START_VIEWS: StartView[] = ["columns", "grid", "list", "details", "cards", "graph"];
 
 export interface KeyCombo {
   code: string;
@@ -54,7 +54,7 @@ export type Theme = "system" | "light" | "dark";
 export type AccentId = "green" | "blue" | "purple" | "coral" | "gold";
 export type TextSize = "small" | "medium" | "large";
 export type TabView = "last" | "default";
-export type StartView = "continue" | "tree" | "columns" | "grid" | "list" | "details" | "cards" | "graph";
+export type StartView = "continue" | "columns" | "grid" | "list" | "details" | "cards" | "graph";
 
 export interface Settings {
   pinFavorites: boolean;
@@ -64,6 +64,8 @@ export interface Settings {
   // In Batch mode a file dropped on a group is pinned to it; off, it only lands in the folder and the rules place it.
   batchDropToGroup: boolean;
   autoUpdate: boolean;
+  installUpdates: boolean;
+  betaUpdates: boolean;
   debugLogging: boolean;
   backupAuto: boolean;
   watchExternal: boolean;
@@ -121,7 +123,7 @@ export const state: State = {
   hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, batchDropToGroup: true, autoUpdate: true, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, mcpWrites: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, batchDropToGroup: true, autoUpdate: true, installUpdates: true, betaUpdates: false, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, mcpWrites: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
   virtual: null,
   marked: null,
   virtualKeys: [],
@@ -230,6 +232,8 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.confirmDelete = saved.confirmDelete !== "false";
   state.settings.batchDropToGroup = saved.batchDropToGroup !== "false";
   state.settings.autoUpdate = saved.autoUpdate !== "false";
+  state.settings.installUpdates = saved.installUpdates !== "false";
+  state.settings.betaUpdates = saved.betaUpdates === "true";
   state.settings.debugLogging = saved.debugLogging === "true";
   state.settings.backupAuto = saved.backupAuto === "true";
   state.settings.watchExternal = saved.watchExternal !== "false";
@@ -287,7 +291,7 @@ export function lastSelection(): SavedPlace | null {
 export const sortOf = (columnKey: string): ColumnSort => state.sorts[columnKey] ?? DEFAULT_SORT;
 
 // The column the selection stands in, or the first one when nothing is selected.
-export const activeColumnKey = (): string => state.selectedKey?.split("/").slice(0, -1).join("/") ?? "";
+export const activeColumnKey = (): string => state.selectedKey?.split("/").slice(0, -1).join("/") ?? (state.virtual === "downloads" ? DOWNLOADS_ROOT : "");
 
 export function setColumnSort(columnKey: string, patch: Partial<ColumnSort>): void {
   state.sorts[columnKey] = { ...sortOf(columnKey), ...patch };

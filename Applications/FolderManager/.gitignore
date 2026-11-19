@@ -6,3 +6,4 @@ src-tauri/target
 src-tauri/gen
 desktop.ini
 CLAUDE.md
+src-tauri/binaries/*.exe

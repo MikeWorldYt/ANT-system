@@ -5,6 +5,7 @@ use tauri::AppHandle;
 
 use crate::services::index::after_mutation::with_search_index;
 use super::run_locked;
+use super::transfer::track;
 use crate::domain::error::R;
 use crate::platform::clipboard::{self, Paste};
 use crate::platform::recycle::send_to_recycle_bin;
@@ -16,9 +17,11 @@ use crate::platform::windows::input::ctrl_held;
 #[tauri::command]
 pub async fn drop_files(app: AppHandle, target: Vec<String>, paths: Vec<String>, replace: Vec<String>) -> R<DropOutcome> {
     let copy = ctrl_held();
+    let sender = app.clone();
     run_locked(app, move |root| {
         let paths: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).collect();
         let replace: Vec<PathBuf> = replace.into_iter().map(PathBuf::from).collect();
+        let _progress = track(&sender, &paths, &place_name(root, &target));
         place(root, &target, &paths, copy, &replace)
     })
     .await
@@ -27,8 +30,10 @@ pub async fn drop_files(app: AppHandle, target: Vec<String>, paths: Vec<String>,
 // Paste follows the clipboard's cut or copy, never the Ctrl key.
 #[tauri::command]
 pub async fn paste_files(app: AppHandle, target: Vec<String>) -> R<DropOutcome> {
+    let sender = app.clone();
     run_locked(app, move |root| {
         let Paste { paths, copy } = clipboard::paste_plan(clipboard::read()?)?;
+        let _progress = track(&sender, &paths, &place_name(root, &target));
         place(root, &target, &paths, copy, &[])
     })
     .await
@@ -36,6 +41,10 @@ pub async fn paste_files(app: AppHandle, target: Vec<String>) -> R<DropOutcome> 
 
 fn place(root: &Path, target: &[String], paths: &[PathBuf], copy: bool, replace: &[PathBuf]) -> R<DropOutcome> {
     indexed(root, mutations::drop_files(root, target, paths, copy, replace, &send_to_recycle_bin)?)
+}
+
+pub(super) fn place_name(root: &Path, target: &[String]) -> String {
+    target.last().cloned().unwrap_or_else(|| root.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default())
 }
 
 fn indexed(root: &Path, DropOutcome { mutation, placed, conflicts }: DropOutcome) -> R<DropOutcome> {
@@ -50,8 +59,10 @@ fn ctrl_held() -> bool {
 // Files already in the storage move (or copy with Ctrl) into a folder, through the same rules as files dropped from Explorer.
 #[tauri::command]
 pub async fn move_files_in(app: AppHandle, sources: Vec<Vec<String>>, target: Vec<String>, copy: bool) -> R<DropOutcome> {
+    let sender = app.clone();
     run_locked(app, move |root| {
         let paths = sources.iter().map(|rel| mutations::source_path(root, rel)).collect::<R<Vec<PathBuf>>>()?;
+        let _progress = track(&sender, &paths, &place_name(root, &target));
         indexed(root, mutations::move_in(root, &target, &paths, copy, &send_to_recycle_bin)?)
     })
     .await

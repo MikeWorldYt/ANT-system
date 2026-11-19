@@ -8,17 +8,73 @@ pub mod media;
 #[cfg(windows)]
 mod shell;
 
+#[cfg(windows)]
+mod video;
+
+#[cfg(windows)]
+mod pdf;
+
+#[cfg(windows)]
+pub use pdf::{run_headless as render_pdf_headless, FLAG as PDF_FLAG};
+
+pub mod thumb_cache;
+
 #[cfg(not(windows))]
 mod external;
 
+// Videos Windows cannot draw, for want of a codec, and every PDF are drawn here and kept in the disk cache, before falling back to the type icon.
+#[cfg(windows)]
+fn drawn_image(path: &Path, preview: bool) -> Option<String> {
+    let draw: fn(&Path, u32) -> Option<Vec<u8>> = if video::is_video(path) {
+        video::frame
+    } else if pdf::is_pdf(path) {
+        pdf::page_png
+    } else {
+        return None;
+    };
+    let pixels = shell::pixels(preview);
+    // PDF readers such as UPDF hand Windows their logo as the "thumbnail", so PDFs always draw their own page.
+    let shell_first = if pdf::is_pdf(path) { None } else { shell::thumbnail_only(path, preview) };
+    shell_first.or_else(|| thumb_cache::cached(&thumb_cache::dir(), path, pixels, || draw(path, pixels)).map(|png| format!("data:image/png;base64,{}", base64(&png))))
+}
+
+// Pictures the webview decodes itself; without a Windows thumbnail they come back as None, and the window shows the file.
+#[cfg(windows)]
+fn webview_picture(path: &Path) -> bool {
+    path.extension().and_then(|e| e.to_str()).is_some_and(|e| ["png", "jpg", "jpeg", "jfif", "gif", "bmp"].contains(&e.to_ascii_lowercase().as_str()))
+}
+
+// A page of a PDF for the side panel, with how many pages it has; sharp enough to read, unlike the grid's thumbnail.
+#[cfg(windows)]
+pub fn pdf_page(path: &Path, page: u32) -> Option<(u32, String)> {
+    pdf::render(path, PDF_PAGE_PIXELS, page).map(|(count, png)| (count, format!("data:image/png;base64,{}", base64(&png))))
+}
+
+#[cfg(windows)]
+const PDF_PAGE_PIXELS: u32 = 900;
+
+#[cfg(not(windows))]
+pub fn pdf_page(_path: &Path, _page: u32) -> Option<(u32, String)> {
+    None
+}
+
 #[cfg(windows)]
 pub fn file_image(path: &Path, large: bool) -> R<Option<String>> {
-    shell::image(path, large)
+    if large && webview_picture(path) {
+        return Ok(shell::thumbnail_only(path, false));
+    }
+    match large.then(|| drawn_image(path, false)).flatten() {
+        Some(url) => Ok(Some(url)),
+        None => shell::image(path, large),
+    }
 }
 
 #[cfg(windows)]
 pub fn preview_image(path: &Path) -> R<Option<String>> {
-    shell::preview(path)
+    match drawn_image(path, true) {
+        Some(url) => Ok(Some(url)),
+        None => shell::preview(path),
+    }
 }
 
 #[cfg(not(windows))]

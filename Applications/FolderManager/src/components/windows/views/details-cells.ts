@@ -1,13 +1,10 @@
 // The Details view's columns: date modified, type, size and date created beside each name, under a header that sorts by them.
 import { el } from "../../dom";
 import { setColumnSort, sortOf, type SortBy } from "../../../services/store/state";
+import { fileTypeName } from "../../../services/store/node-info";
 import type { TreeNode } from "../../../services/ipc/types";
 
-export function fileKind(n: TreeNode): string {
-  if (!n.file) return "Folder";
-  const dot = n.name.lastIndexOf(".");
-  return dot > 0 ? `${n.name.slice(dot + 1).toUpperCase()} file` : "File";
-}
+export const fileKind = (n: TreeNode): string => (n.file ? fileTypeName(n.name) : "Folder");
 
 const stamp = (ms: number | null): string => (ms === null ? "" : new Date(ms).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" }));
 

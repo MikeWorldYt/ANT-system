@@ -98,6 +98,9 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm run typecheck
           pnpm exec vite build
+      - name: Fetch the ffmpeg sidecar
+        if: steps.kind.outputs.tauri == 'true' && hashFiles(format('Applications/{0}/src-tauri/binaries/fetch-ffmpeg.ps1', matrix.app)) != ''
+        run: ./src-tauri/binaries/fetch-ffmpeg.ps1
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
@@ -134,6 +137,11 @@ jobs:
         if: steps.kind.outputs.tauri == 'true'
         with:
           node-version: 24
+      - name: Fetch the ffmpeg sidecar
+        if: steps.kind.outputs.tauri == 'true' && hashFiles(format('Applications/{0}/src-tauri/binaries/fetch-ffmpeg.ps1', matrix.app)) != ''
+        working-directory: Applications/${{ matrix.app }}
+        shell: pwsh
+        run: ./src-tauri/binaries/fetch-ffmpeg.ps1
       - name: Build (Tauri)
         if: steps.kind.outputs.tauri == 'true'
         working-directory: Applications/${{ matrix.app }}
@@ -334,13 +342,18 @@ jobs:
               --title "$app v$version" --notes "Built from $GITHUB_SHA." "${flags[@]}"
             gh release upload "$tag" "$out/latest.json"
             gh release edit "$tag" --draft=false --latest=false
-            # The channel release holds only latest.json, so its URL never changes; it is the one asset replaced in place
-            channel="$slug-latest"
-            if ! gh release view "$channel" >/dev/null 2>&1; then
-              gh release create "$channel" --target "$GITHUB_SHA" --title "$app update channel" \
-                --notes "latest.json of the newest $app release." --prerelease --latest=false
-            fi
-            gh release upload "$channel" "$out/latest.json" --clobber
+            # A channel release holds only latest.json, so its URL never changes; it is the one asset replaced in place.
+            # `latest` follows every version, betas included; `stable` only the versions without a suffix.
+            channels=(latest)
+            if [ "$prerelease" = false ]; then channels+=(stable); fi
+            for kind in "${channels[@]}"; do
+              channel="$slug-$kind"
+              if ! gh release view "$channel" >/dev/null 2>&1; then
+                gh release create "$channel" --target "$GITHUB_SHA" --title "$app $kind update channel" \
+                  --notes "latest.json of the newest $kind $app release." --prerelease --latest=false
+              fi
+              gh release upload "$channel" "$out/latest.json" --clobber
+            done
           done < tags.txt
 
   # Clients older than the latest.json updater still download dist/FolderManager.exe from main; drop this job once they are gone

@@ -1,4 +1,5 @@
 // Interface icons from assets/gui, inlined so they take the surrounding text color.
+import aiConnect from "../../assets/gui/ai-connect.svg?raw";
 import add from "../../assets/gui/add.svg?raw";
 import back from "../../assets/gui/back.svg?raw";
 import chevronDown from "../../assets/gui/chevron-down.svg?raw";
@@ -52,7 +53,7 @@ import viewGraph from "../../assets/gui/view-graph.svg?raw";
 import viewTree from "../../assets/gui/view-tree.svg?raw";
 import warning from "../../assets/gui/warning.svg?raw";
 
-const SOURCES = { add, back, chevronDown, chevronRight, chevronsLeft, chevronsRight, download, forward, hide, important, layout, link, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, play, recordings, refresh, screenshots, search, separator, settings, sparkle, sortCreated, sortModified, sortName, sortSize, sortStatus, sortTrack, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, viewColumns, viewCards, viewDetails, viewGrid, viewList, viewGraph, viewTree, warning };
+const SOURCES = { add, aiConnect, back, chevronDown, chevronRight, chevronsLeft, chevronsRight, download, forward, hide, important, layout, link, moveDown, moveUp, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, pencil, play, recordings, refresh, screenshots, search, separator, settings, sparkle, sortCreated, sortModified, sortName, sortSize, sortStatus, sortTrack, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, viewColumns, viewCards, viewDetails, viewGrid, viewList, viewGraph, viewTree, warning };
 
 export type GuiIcon = keyof typeof SOURCES;
 

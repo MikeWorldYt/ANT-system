@@ -15,7 +15,7 @@ import { openVirtual } from "../../../hooks/virtual-nav";
 import { isTail } from "../../../services/store/sort";
 import { openEntry, placeEntries, rootEntries, virtualEntries, type VirtualEntry } from "../../molecules/virtual-entry";
 import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
-import type { TreeNode } from "../../../services/ipc/types";
+import { DOWNLOADS_ROOT, type TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
 import { detailCells, detailsHeader, fileKind } from "./details-cells";
@@ -207,7 +207,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       const open = folderNode();
       const empty = nodes.length === 0 && open !== null && open.children !== null;
       const legend = listing && nodes.length === 0 ? listing.empty : empty ? "Empty" : null;
-      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns ? [detailsHeader(folder ?? "")] : [])];
+      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns ? [detailsHeader(folder ?? (state.virtual === "downloads" ? DOWNLOADS_ROOT : ""))] : [])];
       const entryOptions = { tabbable: entryTabbable, mark: markEntry };
       const items = nodes.map((n) => buildItem(n, n === tabbable));
       const tail = nodes.findIndex((n) => !n.file && isTail(n.name));

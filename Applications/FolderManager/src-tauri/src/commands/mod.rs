@@ -1,4 +1,5 @@
 // Tauri command layer: runs the pure core under the storage lock off the UI thread.
+mod ai_clients;
 mod backup;
 mod debug;
 mod dictionary;
@@ -16,6 +17,7 @@ mod share;
 mod storage;
 #[cfg(test)]
 mod tests;
+pub(crate) mod transfer;
 mod tree;
 mod ui_bridge;
 mod update;
@@ -29,6 +31,7 @@ use crate::app::storage_session::{Storage, StorageInfo};
 use crate::domain::error::{FmError, R};
 use crate::services::index::ReviewIndexEvent;
 
+pub use ai_clients::*;
 pub use backup::*;
 pub use debug::*;
 pub use dictionary::*;
@@ -43,6 +46,7 @@ pub use open::*;
 pub use search::*;
 pub use share::*;
 pub use storage::*;
+pub use transfer::*;
 pub use tree::*;
 pub use ui_bridge::*;
 pub use update::*;

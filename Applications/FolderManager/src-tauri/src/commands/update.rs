@@ -41,15 +41,15 @@ pub struct UpdateInfo {
 
 // The download runs outside the storage lock so a slow network never blocks the tree.
 #[tauri::command]
-pub async fn check_update(app: AppHandle, manual: bool) -> R<Option<UpdateInfo>> {
-    let Some(latest) = off_thread(updater::latest_version).await?? else { return Ok(None) };
+pub async fn check_update(app: AppHandle, manual: bool, beta: bool) -> R<Option<UpdateInfo>> {
+    let Some(latest) = off_thread(move || updater::latest_version(beta)).await?? else { return Ok(None) };
     let skipped = run_locked(app, move |root| skipped_for(root, manual)).await?;
     Ok((latest != skipped).then(|| UpdateInfo { current: updater::CURRENT_VERSION.to_string(), latest }))
 }
 
 #[tauri::command]
-pub async fn start_update(app: AppHandle) -> R<()> {
-    let launched = off_thread(updater::launch_updater).await?;
+pub async fn start_update(app: AppHandle, beta: bool) -> R<()> {
+    let launched = off_thread(move || updater::launch_updater(beta)).await?;
     log_failure(&launched);
     launched?;
     app.exit(0);

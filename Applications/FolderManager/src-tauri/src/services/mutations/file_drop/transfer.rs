@@ -5,6 +5,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use crate::services::mutations::recycle::move_to_bin;
+use crate::services::transfer as progress;
 use crate::infra::fs_safe::{io_err, redirects};
 
 // FAT drives round modified times to 2 seconds. Only an original newer than its copy counts, since a copy made off Windows gets its own time.
@@ -77,7 +78,9 @@ fn copy_contents(from: &Path, to: &Path) -> Result<(), String> {
         if meta.is_dir() {
             copy_tree(&path, &copy_to)?;
         } else {
-            fs::copy(&path, &copy_to).map_err(|e| io_err("copy file", &path, &e).to_string())?;
+            if let Err(e) = progress::copy(&path, &copy_to) {
+                return Err(io_err("copy file", &path, &e).to_string());
+            }
         }
     }
     Ok(())
@@ -90,7 +93,7 @@ pub(super) fn copy_new(from: &Path, to: &Path) -> Result<(), String> {
         .create_new(true)
         .open(to)
         .map_err(|e| io_err("create file", to, &e).to_string())?;
-    let Err(e) = fs::copy(from, to) else { return Ok(()) };
+    let Err(e) = progress::copy(from, to) else { return Ok(()) };
     let cause = io_err("copy file", from, &e).to_string();
     match fs::remove_file(to) {
         Ok(()) => Err(cause),

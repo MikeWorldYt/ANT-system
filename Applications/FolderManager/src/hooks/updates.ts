@@ -1,5 +1,6 @@
-// Offers a newer published version, at launch or on demand; failures only reach the status line.
+// Offers a newer published version, at launch or on demand, or installs it unasked when the user lets it; failures only reach the status line.
 import { checkUpdate, skipVersion, startUpdate } from "../services/ipc/api";
+import { state } from "../services/store/state";
 import { choiceDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
 import { setStatus, reportError } from "../components/organisms/bars/status-line";
 
@@ -7,17 +8,24 @@ export type UpdateOutcome = "latest" | "offered" | "failed";
 
 export async function checkForUpdates(announceCurrent = false): Promise<UpdateOutcome> {
   try {
-    const info = await checkUpdate(announceCurrent);
+    const beta = state.settings.betaUpdates;
+    const info = await checkUpdate(announceCurrent, beta);
     if (!info) {
       if (announceCurrent) setStatus("info", "You have the latest version");
       return "latest";
+    }
+    // The launch check installs at once, before any work is open; a manual check still asks.
+    if (!announceCurrent && state.settings.installUpdates) {
+      setStatus("info", `Updating to ${info.latest}…`);
+      await startUpdate(beta);
+      return "offered";
     }
     const choice = await choiceDialog("New version available", `Current: ${info.current}\nLatest: ${info.latest}\nThe app will close to apply the update.`, [
       ["later", "Remind me later"],
       ["skip", "Skip version"],
       ["update", "Update"],
     ]);
-    if (choice === "update") await startUpdate();
+    if (choice === "update") await startUpdate(beta);
     else if (choice === "skip") await skipVersion(info.latest);
     return "offered";
   } catch (e) {

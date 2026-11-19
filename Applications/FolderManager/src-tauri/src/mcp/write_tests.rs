@@ -44,22 +44,72 @@ fn write_tools_declare_what_they_do() {
     let dir = work("mcp-w-list");
     let replies = exchange(&server(dir.path()), request(1, "tools/list", json!({})).as_bytes());
     let tools = replies[0]["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 33);
+    assert_eq!(tools.len(), 54);
     let hints = |name: &str| {
         let a = &tools.iter().find(|t| t["name"] == name).unwrap()["annotations"];
         (a["readOnlyHint"].clone(), a["destructiveHint"].clone(), a["idempotentHint"].clone())
     };
-    for name in ["move", "reorder", "delete", "delete_file", "apply_project_groups", "undo_project_sort", "set_dictionary"] {
+    for name in ["move", "move_files", "reorder", "delete", "delete_file", "apply_project_groups", "undo_project_sort", "set_dictionary"] {
         assert_eq!(hints(name), (json!(false), json!(true), json!(false)), "{name}");
     }
-    for name in ["set_type", "set_status", "set_owner", "set_favorite", "set_important", "hide", "set_board"] {
+    for name in ["set_type", "set_status", "set_owner", "set_output", "set_favorite", "set_important", "hide", "set_board"] {
         assert_eq!(hints(name), (json!(false), json!(false), json!(true)), "{name}");
     }
-    for name in ["add_node", "add_worknode", "rename", "copy", "rename_file"] {
+    for name in ["add_node", "add_folder", "add_worknode", "rename", "copy", "rename_file"] {
         assert_eq!(hints(name), (json!(false), json!(false), json!(false)), "{name}");
     }
     assert_eq!(hints("preview_project_groups").0, json!(true));
     assert_eq!(hints("get_dictionary").0, json!(true));
+}
+
+#[test]
+fn automations_are_planned_as_a_dry_run_and_applied_as_planned() {
+    let dir = storage("mcp-w-autom", &["100.A/98.A"], "100.A:
+  98.A:
+    type: REV-L2
+");
+    fs::write(dir.path().join("100.A/98.A/[draft] notes.txt"), "x").unwrap();
+    let s = writer(dir.path());
+    let plan = ok(&call(&s, "plan_automations", json!({ "folder": ["100.A", "98.A"], "removeSymbols": true })));
+    assert_eq!((plan["total"].clone(), plan["next"].clone()), (json!(1), Value::Null));
+    assert_eq!(ok(&call(&s, "plan_automations", json!({ "folder": ["100.A", "98.A"], "removeSymbols": true, "offset": 5 })))["rows"], json!([]));
+    let rows = plan["rows"].clone();
+    assert_eq!(rows[0]["file"], "[draft] notes.txt");
+    assert!(dir.path().join("100.A/98.A/[draft] notes.txt").is_file(), "the dry run changes nothing");
+    let new = rows[0]["name"].as_str().unwrap().to_string();
+    ok(&call(&s, "apply_automations", json!({ "folder": ["100.A", "98.A"], "rows": rows })));
+    assert!(dir.path().join("100.A/98.A").join(&new).is_file(), "{new}");
+    ok(&call(&s, "set_review_automation", json!({ "relParts": ["100.A", "98.A"], "automation": "removeSymbols", "on": true })));
+    assert!(node(&s, &["100.A", "98.A"])["flags"].to_string().contains("auto-remove-symbols"), "{}", node(&s, &["100.A", "98.A"]));
+}
+
+#[test]
+fn settings_are_read_and_changed_but_never_the_ai_writes_switch() {
+    let dir = work("mcp-w-settings");
+    let s = writer(dir.path());
+    ok(&call(&s, "set_setting", json!({ "key": "theme", "value": "light" })));
+    assert_eq!(ok(&call(&s, "get_settings", json!({})))["settings"]["theme"], "light");
+    assert_eq!(call(&s, "set_setting", json!({ "key": "mcpWrites", "value": "false" })), Value::Null);
+    assert_eq!(call(&s, "set_setting", json!({ "key": "theme", "value": "neon" })), Value::Null);
+}
+
+#[test]
+fn a_worknode_gets_plain_folders_files_moved_into_them_and_an_output() {
+    let dir = work("mcp-w-plain");
+    let s = writer(dir.path());
+    ok(&call(&s, "add_worknode", json!({ "parent": ["100.WORK", "02.B"], "name": "video" })));
+    let wkb = ["100.WORK", "02.B", "PJ.001_Video"];
+    let made = ok(&call(&s, "add_folder", json!({ "parent": wkb, "path": "assets/kit" })));
+    assert_eq!(made["relParts"], json!(["100.WORK", "02.B", "PJ.001_Video", "assets", "kit"]));
+    assert!(dir.path().join("100.WORK/02.B/PJ.001_Video/assets/kit").is_dir());
+    assert!(failed(&call(&s, "add_folder", json!({ "parent": ["100.WORK", "02.B"], "path": "loose" }))).to_string().contains("worknode"));
+    fs::write(dir.path().join("100.WORK/02.B/PJ.001_Video/logo.png"), "x").unwrap();
+    ok(&call(&s, "move_files", json!({ "sources": [["100.WORK", "02.B", "PJ.001_Video", "logo.png"]], "destination": ["100.WORK", "02.B", "PJ.001_Video", "assets", "kit"] })));
+    assert!(dir.path().join("100.WORK/02.B/PJ.001_Video/assets/kit/logo.png").is_file());
+    ok(&call(&s, "copy_files", json!({ "sources": [["100.WORK", "02.B", "PJ.001_Video", "assets", "kit", "logo.png"]], "destination": ["100.WORK", "02.B", "PJ.001_Video", "assets"] })));
+    assert!(dir.path().join("100.WORK/02.B/PJ.001_Video/assets/logo.png").is_file() && dir.path().join("100.WORK/02.B/PJ.001_Video/assets/kit/logo.png").is_file());
+    ok(&call(&s, "set_output", json!({ "relParts": wkb, "output": "assets" })));
+    assert!(info(dir.path(), "100.WORK/02.B/PJ.001_Video").contains("\"output\": \"assets\""));
 }
 
 #[test]

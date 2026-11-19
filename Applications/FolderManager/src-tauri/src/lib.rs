@@ -31,6 +31,10 @@ pub fn run() {
     if std::env::args_os().nth(1).is_some_and(|a| a == "--watch") {
         std::process::exit(services::watch::run_headless(std::env::args_os().nth(2)));
     }
+    #[cfg(windows)]
+    if std::env::args_os().nth(1).is_some_and(|a| a == services::preview::PDF_FLAG) {
+        services::preview::render_pdf_headless(std::env::args_os().nth(2), std::env::args_os().nth(3), std::env::args_os().nth(4));
+    }
     if std::env::args_os().nth(1).is_some_and(|a| a == "--mcp") {
         std::process::exit(mcp::run_headless(std::env::args_os().nth(2)));
     }
@@ -60,6 +64,7 @@ pub fn run() {
                     window.set_title(&commands::window_title(&infra::storage::rename::folder_name(&root)))?;
                 }
             }
+            std::thread::spawn(|| services::preview::thumb_cache::prune(&services::preview::thumb_cache::dir()));
             let handle = app.handle().clone();
             let emitter = app.handle().clone();
             app.manage(services::watch::GuiWatch::start(
@@ -151,6 +156,11 @@ pub fn run() {
             commands::delete_file,
             commands::copy_items,
             commands::move_files_in,
+            commands::cancel_transfer,
+            commands::pause_transfer,
+            commands::begin_delete,
+            commands::pdf_page,
+            commands::end_delete,
             commands::create_file_shortcut_in,
             commands::answer_copy,
             commands::set_user_flag,
@@ -216,6 +226,11 @@ pub fn run() {
             commands::start_drag_out,
             commands::create_shortcut_in,
             commands::answer_ui_request,
+            commands::ai_clients,
+            commands::ai_connect,
+            commands::ai_disconnect,
+            commands::ai_restart_client,
+            commands::ai_config_snippet,
         ])
         .build(tauri::generate_context!())
         .expect("error while running Folder Manager")

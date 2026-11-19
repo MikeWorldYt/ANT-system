@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { inDownloads, isFmError } from "./types";
 import { hiddenItemsShown } from "../store/view-prefs";
 import type {
+  AiClient,
   ApplyOutcome,
   BoardCard,
   CopyAnswer,
@@ -206,8 +207,8 @@ export interface UpdateInfo {
   current: string;
   latest: string;
 }
-export const checkUpdate = (manual: boolean) => call<UpdateInfo | null>("check_update", { manual });
-export const startUpdate = () => call<void>("start_update");
+export const checkUpdate = (manual: boolean, beta: boolean) => call<UpdateInfo | null>("check_update", { manual, beta });
+export const startUpdate = (beta: boolean) => call<void>("start_update", { beta });
 export const skipVersion = (version: string) => call<void>("skip_version", { version });
 export type ExtensionPermission = "tree:read" | "menu:context" | "panel:own" | "details:field";
 export interface ExtensionInfo {
@@ -252,6 +253,11 @@ export const installRegistryExtension = (id: string) => call<ExtensionInfo>("ins
 export const inspectExtensionRepo = (url: string) => call<ExtensionPreview>("inspect_extension_repo", { url });
 export const installInspectedExtension = (token: string) => call<ExtensionInfo>("install_inspected_extension", { token });
 
+export const aiClients = () => call<AiClient[]>("ai_clients");
+export const aiConnect = (id: AiClient["id"]) => call<AiClient>("ai_connect", { id });
+export const aiDisconnect = (id: AiClient["id"]) => call<AiClient>("ai_disconnect", { id });
+export const aiRestartClient = (id: AiClient["id"]) => call<AiClient>("ai_restart_client", { id });
+export const aiConfigSnippet = () => call<string>("ai_config_snippet");
 
 const path = (parts: string[]) => parts.join("/") || "root";
 
@@ -296,3 +302,9 @@ export function describeError(e: unknown): string {
       return `${e.path} was written by a newer Folder Manager. Update the app to open this Storage`;
   }
 }
+
+export const cancelTransfer = () => call<void>("cancel_transfer");
+export const pauseTransfer = (paused: boolean) => call<void>("pause_transfer", { paused });
+export const beginDelete = (targets: string[][]) => call<void>("begin_delete", { targets });
+export const endDelete = () => call<void>("end_delete");
+export const pdfPage = (relParts: string[], page: number) => call<{ url: string; count: number } | null>("pdf_page", { relParts, page });

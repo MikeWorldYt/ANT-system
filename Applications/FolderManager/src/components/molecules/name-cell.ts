@@ -1,6 +1,7 @@
 // Name column of a row: plain text, or the in-place editor when this node is being renamed.
 import { el, keepClicks } from "../dom";
 import { guiIcon } from "../atoms/gui-icons";
+import { keepExtensionInSight } from "../atoms/fit-name";
 import { hideCheckbox } from "../atoms/checkbox";
 import { textInput } from "../atoms/text-input";
 import { extOf, growToFit, keepExtension, selectStem } from "./keep-extension";
@@ -33,7 +34,9 @@ export function nameCell(n: TreeNode, inlineStar = true, staircase = false, wrap
   if (!edit || edit.key !== key) {
     const review = inReviewList(n);
     const text = review ? (staircase ? "-".repeat(reviewLevel(n) - 1) : "") + reviewName(n) : (staircase ? linkDashes(n) : "") + displayNodeName(n);
-    return el("span", { class: isTopLink(n) || (review && reviewLevel(n) === 1) ? "name top-link" : "name" }, el("span", { class: "name-text" }, text), ...(n.favorite && inlineStar ? [favoriteMark()] : []), ...(n.important && inlineStar ? [importantMark()] : []), ...(runsAuto(n) ? [autoMark()] : []));
+    const shown = el("span", { class: "name-text" }, text);
+    if (wrap && n.file) keepExtensionInSight(shown, text);
+    return el("span", { class: isTopLink(n) || (review && reviewLevel(n) === 1) ? "name top-link" : "name" }, shown, ...(n.favorite && inlineStar ? [favoriteMark()] : []), ...(n.important && inlineStar ? [importantMark()] : []), ...(runsAuto(n) ? [autoMark()] : []));
   }
 
   const input = wrap ? el("textarea", { class: "name-input wrap", "aria-label": `Rename ${n.name}`, spellcheck: "false", rows: "1" }) : textInput({ class: "name-input", "aria-label": `Rename ${n.name}` });

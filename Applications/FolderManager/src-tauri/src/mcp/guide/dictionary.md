@@ -19,4 +19,6 @@ Headings:
 - `## NODE^.Title`: one level up, a sibling of the dictionary's folder. A path walks down: `NODE^.Blue-Archive/Fanarts`.
 - A node that takes files keeps them; any other passes them to its own review folder. Renaming a node in the app updates its NODE headings.
 
+To see what a dictionary does before anything moves, run `plan_automations` on the folder and show the user the result (see ant://guide/automations).
+
 The longest matching term, topic or only across entries wins; `ext` and `pattern` decide only when no word matched. `%% ... %%` blocks are comments.

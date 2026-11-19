@@ -8,7 +8,7 @@ import { columnSortToggle } from "../../atoms/column-sort";
 import { favoriteMark, hideBox, importantMark, nameCell } from "../../molecules/name-cell";
 import { fromToggle, nodeToggle } from "../../atoms/node-toggle";
 import { hiddenCategories, isReviewRoot, isWorknode, linkCategory } from "../../../services/store/node-info";
-import { sortedForColumns, isTail } from "../../../services/store/sort";
+import { sortedForColumns, isTailNode } from "../../../services/store/sort";
 import { buildColumns, type Column } from "../../../hooks/column-model";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
@@ -121,7 +121,7 @@ export function createColumnsView(): ViewMode {
       const prev = nodes[i - 1];
       // Review links are grouped by category, so a change of category gets a line between the groups.
       const groupStart = prev && (listing?.id === "review" ? reviewGroup(prev) !== reviewGroup(n) : prev.linked && n.linked && linkCategory(prev) !== linkCategory(n));
-      const tailStart = prev && !prev.file && !n.file && !isTail(prev.name) && isTail(n.name);
+      const tailStart = prev && !prev.file && !n.file && !isTailNode(prev) && isTailNode(n);
       const item = buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey, siblings);
       return groupStart || tailStart ? [el("div", { class: "col-sep", role: "separator" }), item] : [item];
     });

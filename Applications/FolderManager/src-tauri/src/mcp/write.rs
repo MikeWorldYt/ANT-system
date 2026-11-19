@@ -15,6 +15,7 @@ use crate::domain::error::R;
 use crate::infra::storage::changes;
 use crate::platform::shortcuts::create_shortcuts;
 use crate::services::automations::dictionary::{self, Spec};
+use crate::services::downloads;
 use crate::services::edit;
 use crate::services::index::{review_index, ReviewIndexEvent};
 use crate::services::mutations::{self, BoardCard, MoveDirection, Mutation, ProjectPlan};
@@ -29,8 +30,9 @@ enum Kind {
     Destructive,
 }
 
-const TOOLS: [(&str, &str, &str, Schemas, Kind); 21] = [
+const TOOLS: [(&str, &str, &str, Schemas, Kind); 24] = [
     ("add_node", "Add folder", "Creates a folder inside `parent` (an empty parent adds a root category) with the given name.", schema::add_node, Kind::Change),
+    ("add_folder", "Add plain folder", "Creates plain folders inside a worknode, untracked and without an id, e.g. `assets/kit`; anywhere else use add_node.", schema::add_folder, Kind::Change),
     ("add_worknode", "Add worknode", "Creates a worknode inside `parent` with the given name; the app numbers it.", schema::add_worknode, Kind::Change),
     ("rename", "Rename folder", "Renames a folder; its linked support and review folders follow.", schema::rename, Kind::Change),
     ("move", "Move folder", "Moves a folder into `destination`, where it takes the next free id.", schema::move_folder, Kind::Destructive),
@@ -44,6 +46,8 @@ const TOOLS: [(&str, &str, &str, Schemas, Kind); 21] = [
     ("set_important", "Set important", "Marks or unmarks a worknode as important.", schema::set_flag, Kind::Idempotent),
     ("hide", "Hide folder", "Hides or shows a folder below the root level.", schema::hide, Kind::Idempotent),
     ("set_board", "Place board cards", "Places worknodes in task board columns and orders.", schema::set_board, Kind::Idempotent),
+    ("move_files", "Move files", "Moves files (or plain folders) into a folder, as a drop in the app: files dropped on a node land in its review folder. Sources may be in the storage or under `::Downloads`, as ui_get_state lists the selection.", schema::move_files, Kind::Destructive),
+    ("set_output", "Set output", "Sets the folder or file inside a worknode that is its deliverable (its `output` in info.json), or clears it with null.", schema::set_output, Kind::Idempotent),
     ("rename_file", "Rename file", "Renames a file inside a storage folder.", schema::rename_file, Kind::Change),
     ("delete_file", "Delete file", "Sends a file to the Recycle Bin, never deleting it for good.", schema::delete_file, Kind::Destructive),
     ("preview_project_groups", "Preview project sort", "The projects a review folder's loose files would be sorted into; changes nothing.", schema::preview_project_groups, Kind::Read),
@@ -97,6 +101,27 @@ struct NodeArgs {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct FolderArgs {
+    parent: Vec<String>,
+    path: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FilesArgs {
+    sources: Vec<Vec<String>>,
+    destination: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct OutputArgs {
+    rel_parts: Vec<String>,
+    output: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct MoveArgs {
     source: Vec<String>,
     destination: Vec<String>,
@@ -138,12 +163,26 @@ fn quiet(_: &ReviewIndexEvent) -> Result<(), String> {
     Ok(())
 }
 
-fn indexed(root: &Path, f: impl FnOnce(&Path) -> R<Mutation>) -> R<Mutation> {
+pub(super) fn indexed(root: &Path, f: impl FnOnce(&Path) -> R<Mutation>) -> R<Mutation> {
     edit::indexed(root, &quiet, f)
 }
 
 fn search<'a>(f: &'a dyn Fn(&Path) -> R<Mutation>) -> impl Fn(&Path) -> R<Mutation> + 'a {
     move |root| edit::search_indexed(root, f)
+}
+
+// A source under `::Downloads` names a file in the user's Downloads folder; any other is a path in the storage.
+pub(super) fn source(root: &Path, rel: &[String]) -> R<std::path::PathBuf> {
+    match rel.split_first() {
+        Some((first, rest)) if first == downloads::ROOT => {
+            let path = downloads::path_of(&downloads::system_base()?, rest)?;
+            if !path.exists() {
+                return Err(crate::domain::error::FmError::NotFound { rel_parts: rel.to_vec() });
+            }
+            Ok(path)
+        }
+        _ => mutations::source_path(root, rel),
+    }
 }
 
 fn plain(rel: &[String]) -> String {
@@ -179,9 +218,13 @@ fn asks(name: &str, items: &[String]) -> (&'static str, bool) {
 impl Server {
     // The mutation takes the cross-process lock itself, as in the app; the in-process guard only mirrors `commands::locked`.
     fn change(&self, name: &str, items: Vec<String>, changed: String, f: impl Fn(&Path) -> R<Mutation>) -> R<Value> {
+        let (title, confirm) = asks(name, &items);
+        self.change_as(title, confirm, items, changed, f)
+    }
+
+    pub(super) fn change_as(&self, title: &str, confirm: bool, items: Vec<String>, changed: String, f: impl Fn(&Path) -> R<Mutation>) -> R<Value> {
         let storage = self.storage()?;
         let root = storage.root()?;
-        let (title, confirm) = asks(name, &items);
         self.allow(&root, title, confirm, items)?;
         let _guard = storage.guard();
         let mut change = Change::of(changed, retrying(self.retry, || f(&root))?);
@@ -202,6 +245,30 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
             server.change(name, Vec::new(), format!("Added a {what} {} in {}", quoted(&a.name), quoted(&format!("/{}", plain(&a.parent)))), |root| {
                 indexed(root, |root| mutations::add_node_named(root, &a.parent, kind, Some(&a.name)))
             })
+        }
+        "add_folder" => {
+            let a: FolderArgs = args(name, arguments)?;
+            let parts: Vec<String> = a.path.split(['/', '\\']).filter(|p| !p.is_empty()).map(str::to_string).collect();
+            server.change(name, Vec::new(), format!("Added the folder {} in {}", quoted(&a.path), path(&a.parent)), |root| mutations::add_folder(root, &a.parent, &parts))
+        }
+        "move_files" => {
+            let a: FilesArgs = args(name, arguments)?;
+            limit(name, "files", a.sources.len(), MAX_FILES)?;
+            let items = a.sources.iter().map(|s| format!("{} → {}", plain(s), plain(&a.destination))).collect();
+            server.change(name, items, format!("Moved {} items into {}", a.sources.len(), path(&a.destination)), |root| {
+                let paths = a.sources.iter().map(|rel| source(root, rel)).collect::<R<Vec<_>>>()?;
+                indexed(root, |root| {
+                    let outcome = mutations::move_in(root, &a.destination, &paths, false, &server.recycle)?;
+                    let mut mutation = outcome.mutation;
+                    mutation.warnings.extend(outcome.conflicts.iter().map(|c| format!("{} is already in the storage; nothing was placed for it", c.name)));
+                    Ok(mutation)
+                })
+            })
+        }
+        "set_output" => {
+            let a: OutputArgs = args(name, arguments)?;
+            let what = a.output.as_deref().map_or("Cleared the output of".to_string(), |o| format!("Set the output to {} on", quoted(o)));
+            server.change(name, vec![plain(&a.rel_parts)], format!("{what} {}", path(&a.rel_parts)), search(&|root| mutations::set_output(root, &a.rel_parts, a.output.as_deref())))
         }
         "move" | "copy" => {
             let a: MoveArgs = args(name, arguments)?;

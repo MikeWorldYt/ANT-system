@@ -76,9 +76,13 @@ export function nodeFlags(n: TreeNode): string[] {
 }
 
 // Non-editable types (reviews, resources, templates) keep their stored label.
-export const typeName = (n: TreeNode): string => (n.file ? "File" : TYPE_LABELS.find(([v]) => v === n.nodeType?.base)?.[1] ?? n.nodeType?.raw ?? "—");
+export function fileTypeName(name: string): string {
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? `${name.slice(dot + 1).toUpperCase()} file` : "File";
+}
 
-// Flags sit in parentheses after the type, e.g. "Node (reserved)".
+export const typeName = (n: TreeNode): string => (n.file ? fileTypeName(n.name) : TYPE_LABELS.find(([v]) => v === n.nodeType?.base)?.[1] ?? n.nodeType?.raw ?? "—");
+
 export const typeLabel = (n: TreeNode): string => {
   const flags = nodeFlags(n);
   return flags.length > 0 ? `${typeName(n)}\n(${flags.join(", ")})` : typeName(n);
@@ -121,7 +125,7 @@ export function nodeDetails(n: TreeNode): [string, string][] {
   if (wkb) rows.push(["Output", outputOf(n) ?? UNKNOWN]);
   if (wkb) rows.push(["Status", n.status ? statusLabel(n.status) : UNKNOWN]);
   if (n.linked) rows.push(["Path", n.linkPath ?? UNKNOWN]);
-  else if (!isReviewRoot(n) && n.relParts.length > 1) rows.push(["Type", typeLabel(n)]);
+  else if (!isReviewRoot(n) && n.relParts.length > 1) rows.push(["Type", typeName(n)]);
   if (wkb) rows.push(["Owner", ownerOf(n) ?? UNKNOWN]);
   if (n.info?.error) rows.push(["Info", n.info.error]);
   for (const f of n.info?.fields ?? []) {

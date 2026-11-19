@@ -9,7 +9,7 @@ use windows::Win32::Graphics::Gdi::{
     CreateCompatibleDC, DeleteDC, DeleteObject, GetDIBits, GetObjectW, BITMAP, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS, HBITMAP, HGDIOBJ,
 };
 use windows::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED};
-use windows::Win32::UI::Shell::{IShellItemImageFactory, SHCreateItemFromParsingName, SIIGBF, SIIGBF_ICONONLY};
+use windows::Win32::UI::Shell::{IShellItemImageFactory, SHCreateItemFromParsingName, SIIGBF, SIIGBF_ICONONLY, SIIGBF_THUMBNAILONLY};
 
 use super::png_data_url;
 use crate::domain::error::{FmError, R};
@@ -27,6 +27,15 @@ pub fn image(path: &Path, large: bool) -> R<Option<String>> {
 
 pub fn preview(path: &Path) -> R<Option<String>> {
     sized(path, PREVIEW_PIXELS, SIIGBF(0))
+}
+
+// None when Windows has no thumbnail for the file, rather than its type icon.
+pub fn thumbnail_only(path: &Path, preview: bool) -> Option<String> {
+    sized(path, if preview { PREVIEW_PIXELS } else { THUMBNAIL_PIXELS }, SIIGBF_THUMBNAILONLY).ok().flatten()
+}
+
+pub const fn pixels(preview: bool) -> u32 {
+    (if preview { PREVIEW_PIXELS } else { THUMBNAIL_PIXELS }) as u32
 }
 
 fn sized(path: &Path, pixels: i32, flags: SIIGBF) -> R<Option<String>> {

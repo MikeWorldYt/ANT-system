@@ -3,6 +3,7 @@ import { el } from "../../dom";
 import { rootName } from "../../organisms/bars/path-input";
 import { nodeContextMenu } from "../../organisms/menus/context-menu";
 import { folderIcon } from "../../atoms/icons";
+import { keepExtensionInSight } from "../../atoms/fit-name";
 import { toggleExpand } from "../../../hooks/ops";
 import { folderMoveActive } from "../../../hooks/folder-move";
 import { openFolder } from "../../../hooks/path-actions";
@@ -10,13 +11,14 @@ import { readPref, savePref } from "../../../services/store/prefs";
 import { reportError } from "../../organisms/bars/status-line";
 import { clickSelect, findNode, hydrate, isVirtualShown, notify, keyOf, select, state } from "../../../services/store/state";
 import { openVirtual } from "../../../hooks/virtual-nav";
+import { keepChildren } from "../../../services/store/virtual";
 import { guiIcon } from "../../atoms/gui-icons";
 import { sendPacket } from "./graph-packets";
 import type { Trip } from "../../../hooks/file-trips";
 import { bandSelect } from "./graph-band";
 import { boxMenu, boxView, fileArt, fileDetail, fitWidth, keepSize, sortedFiles } from "./graph-box-view";
 import type { FilesMoved } from "../../../hooks/automations/batch-replay";
-import { DOWNLOADS_ROOT, type TreeNode } from "../../../services/ipc/types";
+import { DOWNLOADS_ROOT, inDownloads, type TreeNode } from "../../../services/ipc/types";
 import { listChildren } from "../../../services/ipc/api";
 import { play, snapshot } from "./graph-motion";
 import type { ViewMode } from "./view-mode";
@@ -303,17 +305,18 @@ export function createGraphView(): ViewMode {
     const view = boxView(key);
     const items = entries.map((c) => {
       const fileKey = keyOf(c.relParts);
-      const row = el("li", { class: arrived.has(fileKey) || state.selectedKeys.includes(fileKey) ? "graph-file selected" : "graph-file", title: c.name, "data-key": fileKey }, fileArt(c, view, folderIcon(c, false)), el("span", { class: "graph-file-text" }, el("span", { class: "graph-file-name" }, c.name), ...fileDetail(c, view)));
+      const row = el("li", { class: arrived.has(fileKey) || state.selectedKeys.includes(fileKey) ? "graph-file selected" : "graph-file", title: c.name, "data-key": fileKey }, fileArt(c, view, folderIcon(c, false)), el("span", { class: "graph-file-text" }, (view === "grid" && c.file ? keepExtensionInSight(el("span", { class: "graph-file-name" }, c.name), c.name) : el("span", { class: "graph-file-name" }, c.name)), ...fileDetail(c, view)));
       // Ctrl adds or removes one file, Shift takes the run from the last pick, as in the other views.
       row.addEventListener("click", (ev) => {
         if (ev.ctrlKey || ev.shiftKey) clickSelect(c.relParts, entries.map((e) => keyOf(e.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
         else select(c.relParts);
       });
-      row.addEventListener("dblclick", () => void openFolder(c));
+      row.addEventListener("dblclick", () => (!c.file && inDownloads(c.relParts) ? void enterDownloads(c.relParts) : void openFolder(c)));
       row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, c, root));
       return row;
     });
-    const box = el("ul", { class: `graph-files-box view-${view}`, "data-key": `${key}#files`, "aria-label": `Contents of ${n.name}` }, ...(items.length > 0 ? items : [el("li", { class: "graph-file-empty" }, "Empty")]));
+    const up = inDownloads(n.relParts) && n.relParts.length > 1 ? [upRow(n.relParts)] : [];
+    const box = el("ul", { class: `graph-files-box view-${view}`, "data-key": `${key}#files`, "aria-label": `Contents of ${n.name}` }, ...up, ...(items.length > 0 ? items : [el("li", { class: "graph-file-empty" }, "Empty")]));
     fitWidth(box, view, entries.length);
     keepSize(box, key);
     bandSelect(box);
@@ -499,6 +502,7 @@ export function createGraphView(): ViewMode {
 
   function step(dir: "up" | "down" | "left" | "right"): void {
     const key = state.selectedKey;
+    if (key && inDownloads(key.split("/")) && state.expanded.has(DOWNLOADS_ROOT)) return downloadsStep(key, dir);
     const tops = nodesOf(state.tree?.nodes);
     const n = key && parents.has(key) ? findShown(key) : null;
     if (!n) {
@@ -578,13 +582,50 @@ export function createGraphView(): ViewMode {
     return [el("div", { class: "graph-under", role: "group" }, item)];
   }
 
+  // The Downloads box browses its subfolders in place; the folder shown is kept while the graph lives.
+  let downloadsAt: string[] = [DOWNLOADS_ROOT];
+  const downloadsShown = (): TreeNode | null => (downloadsAt.length > 1 ? findNode(downloadsAt) : ({ name: "Downloads", relParts: [DOWNLOADS_ROOT], children: state.downloads } as TreeNode));
+
+  async function enterDownloads(parts: string[]): Promise<void> {
+    const n = parts.length > 1 ? findNode(parts) : null;
+    try {
+      if (n && n.children === null) n.children = await listChildren(parts);
+    } catch (e) {
+      reportError("warning", e, "Downloads");
+      return;
+    }
+    downloadsAt = n || parts.length === 1 ? parts : [DOWNLOADS_ROOT];
+    const first = sortedFiles(downloadsShown() ?? ({ children: [] } as unknown as TreeNode))[0];
+    if (first) select(first.relParts);
+    else notify();
+  }
+
+  function upRow(parts: string[]): HTMLElement {
+    const row = el("li", { class: "graph-file graph-file-up", title: "Up one folder" }, guiIcon("up"), el("span", { class: "graph-file-text" }, el("span", { class: "graph-file-name" }, "..")));
+    row.addEventListener("dblclick", () => void enterDownloads(parts.slice(0, -1)));
+    return row;
+  }
+
+  function downloadsStep(key: string, dir: "up" | "down" | "left" | "right"): void {
+    const entries = sortedFiles(downloadsShown() ?? ({ children: [] } as unknown as TreeNode));
+    const i = entries.findIndex((e) => keyOf(e.relParts) === key);
+    const n = entries[i];
+    if (dir === "up" && i > 0) select(entries[i - 1]!.relParts);
+    else if (dir === "down" && i < entries.length - 1) select(entries[i + 1]!.relParts);
+    else if (dir === "right" && n && !n.file) void enterDownloads(n.relParts);
+    else if (dir === "left") {
+      if (downloadsAt.length > 1) void enterDownloads(downloadsAt.slice(0, -1));
+      else select([DOWNLOADS_ROOT]);
+    } else if (i < 0 && entries[0]) select(entries[0].relParts);
+  }
+
   // Downloads is read when its box opens, and also when the graph comes back with it already open; until then the box shows it is loading.
   let downloadsRead = false;
   let downloadsLoaded = false;
   function readDownloads(): void {
     downloadsRead = true;
     void listChildren([DOWNLOADS_ROOT]).then((nodes) => {
-      state.downloads = nodes;
+      state.downloads = keepChildren(nodes);
       downloadsLoaded = true;
       notify();
     }, (e: unknown) => reportError("warning", e, "Downloads"));
@@ -594,7 +635,8 @@ export function createGraphView(): ViewMode {
     const branches = tops.map((n) => branch(n, null));
     if (!isVirtualShown("downloads") || !state.expanded.has(DOWNLOADS_ROOT)) return el("div", { class: "graph-kids", role: "group" }, ...branches);
     branches.forEach((b, i) => (b.style.gridArea = `${i + 1} / 1`));
-    const downloads = { name: "Downloads", relParts: [DOWNLOADS_ROOT], children: state.downloads } as TreeNode;
+    if (downloadsAt.length > 1 && !findNode(downloadsAt)) downloadsAt = [DOWNLOADS_ROOT];
+    const downloads = downloadsShown() ?? ({ name: "Downloads", relParts: [DOWNLOADS_ROOT], children: state.downloads } as TreeNode);
     if (!downloadsRead) readDownloads();
     const overlay = el("div", { class: "graph-support", "data-for": DOWNLOADS_ROOT }, state.downloads.length > 0 || downloadsLoaded ? fileList(downloads) : loadingBox(downloads));
     overlay.style.gridRow = `1 / span ${Math.max(tops.length, 1)}`;

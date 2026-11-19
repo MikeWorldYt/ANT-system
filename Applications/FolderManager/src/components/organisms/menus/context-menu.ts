@@ -3,7 +3,7 @@ import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
 import { statusIcon } from "../../atoms/status-mark";
 import { importantLabel, isWorknode, ownerOf, STATUSES, TYPES } from "../../../services/store/node-info";
-import { addChild, hideMany, hideNode, pasteFiles, remove, removeMany, setDetails, setFavorite, setFavorites, setImportant, setLinkHidden, setManyDetails, setType, setUserFlag } from "../../../hooks/ops";
+import { addChild, hideMany, hideNode, pasteFiles, remove, removeDownloads, removeMany, setDetails, setFavorite, setFavorites, setImportant, setLinkHidden, setManyDetails, setType, setUserFlag } from "../../../hooks/ops";
 import { suggestSearch } from "../../../services/ipc/api";
 import { reportError } from "../bars/status-line";
 import { createShortcut, putOnClipboard } from "../../../hooks/folder-share";
@@ -75,10 +75,25 @@ function downloadsMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
   const action = closingItem(close);
   const [one] = nodes.length === 1 ? nodes : [];
   const copy = action("Copy", true, () => void putOnClipboard(nodes, false));
-  if (!one) return { items: [copy], subs: [], content: [copy] };
+  const del = menuItem("Delete", "menuitem", true, () => {
+    close();
+    void removeDownloads(nodes);
+  }, "ctx-item danger");
+  del.prepend(guiIcon("trash"));
+  if (!one) return { items: [copy, del], subs: [], content: [copy, separator(), del] };
   const open = action(one.file ? "Open" : "Open folder location", one.actions.open, () => void openFolder(one));
   const copyPathItem = action("Copy path", one.actions.copyPath, () => void copyPath(one));
-  return { items: [open, copyPathItem, copy], subs: [], content: [open, copyPathItem, separator(), copy] };
+  const rename = menuItem("Rename", "menuitem", one.actions.rename, () => {
+    close(false);
+    startEdit(one.relParts);
+  });
+  return { items: [open, copyPathItem, copy, rename, del], subs: [], content: [open, copyPathItem, separator(), copy, rename, separator(), del] };
+}
+
+// Empty space in a Downloads folder offers the folder itself, never its deletion.
+function downloadsBackground(folder: TreeNode, close: (restore?: boolean) => void): MenuParts {
+  const open = closingItem(close)("Open folder location", folder.actions.open, () => void openFolder(folder));
+  return { items: [open], subs: [], content: [open] };
 }
 
 function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts {
@@ -251,7 +266,7 @@ function openMenu({ node, nodes, x, y, folderOnly }: MenuRequest, restoreFocus: 
   const label = group ? `Actions for ${group.length} items` : `Actions for ${node.name}`;
   const downloads = (group ?? [node]).every((n) => inDownloads(n.relParts));
   openMenuWith(
-    (close) => (group && downloads ? downloadsMenu(group, close) : folderOnly && !downloads ? boardMenu(node, views, close) : group ? selectionMenu(group, close) : nodeMenu(node, close)),
+    (close) => (group && downloads ? downloadsMenu(group, close) : folderOnly && downloads ? downloadsBackground(node, close) : folderOnly && !downloads ? boardMenu(node, views, close) : group ? selectionMenu(group, close) : nodeMenu(node, close)),
     label,
     x,
     y,

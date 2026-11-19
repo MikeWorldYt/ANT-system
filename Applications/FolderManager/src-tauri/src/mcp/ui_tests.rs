@@ -49,7 +49,7 @@ fn the_ui_tools_are_listed_and_only_ui_get_state_is_read_only() {
         assert_eq!((tool["annotations"]["readOnlyHint"].clone(), tool["annotations"]["destructiveHint"].clone()), (json!(false), json!(false)), "{tool}");
     }
     assert_eq!(tools[2]["annotations"]["idempotentHint"], false);
-    assert_eq!(tools[4]["inputSchema"]["properties"]["view"]["enum"], json!(["cards", "tree", "columns", "grid", "list", "details", "graph"]));
+    assert_eq!(tools[4]["inputSchema"]["properties"]["view"]["enum"], json!(["cards", "columns", "grid", "list", "details", "graph"]));
 }
 
 // The window's view list lives in the frontend; both sides must offer the same views.
@@ -119,7 +119,7 @@ fn without_the_app_ui_tools_say_so_and_background_tools_still_work() {
     let dir = work("mcp-ui-closed");
     let bridges = TempDir::new("mcp-ui-closed-bridge");
     let s = bridged(dir.path(), endpoint::file(bridges.path(), Path::new("C:\\Apps\\fm.exe")));
-    for (tool, arguments) in [("ui_get_state", json!({})), ("ui_reveal", json!({ "relParts": ["100.WORK"] })), ("ui_set_view", json!({ "view": "tree" }))] {
+    for (tool, arguments) in [("ui_get_state", json!({})), ("ui_reveal", json!({ "relParts": ["100.WORK"] })), ("ui_set_view", json!({ "view": "grid" }))] {
         let err = failed(&call(&s, tool, arguments));
         assert!(err["message"].as_str().unwrap().contains("not running"), "{tool}: {err}");
     }
