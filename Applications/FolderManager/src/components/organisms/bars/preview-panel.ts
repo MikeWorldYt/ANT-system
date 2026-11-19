@@ -1,4 +1,4 @@
-// Side panel preview of the one selected image or video, read through the app's own media scheme.
+// Side panel preview of the one selected image, PDF or video, read through the app's own media scheme.
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { el } from "../../dom";
 import { actedNodes } from "../../../services/store/state";
@@ -7,7 +7,8 @@ import { reportError } from "./status-line";
 import { SELF_DRAWN } from "../../../services/file-images";
 import type { TreeNode } from "../../../services/ipc/types";
 
-const IMAGE = /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i;
+// A PDF shows its first page, drawn by the backend like a picture.
+const IMAGE = /\.(png|jpe?g|gif|webp|bmp|svg|avif|pdf)$/i;
 const VIDEO = /\.(mp4|m4v|webm|mov|ogv)$/i;
 
 export interface PreviewPanel {
