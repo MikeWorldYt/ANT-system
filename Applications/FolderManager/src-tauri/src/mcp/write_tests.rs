@@ -44,22 +44,39 @@ fn write_tools_declare_what_they_do() {
     let dir = work("mcp-w-list");
     let replies = exchange(&server(dir.path()), request(1, "tools/list", json!({})).as_bytes());
     let tools = replies[0]["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 33);
+    assert_eq!(tools.len(), 36);
     let hints = |name: &str| {
         let a = &tools.iter().find(|t| t["name"] == name).unwrap()["annotations"];
         (a["readOnlyHint"].clone(), a["destructiveHint"].clone(), a["idempotentHint"].clone())
     };
-    for name in ["move", "reorder", "delete", "delete_file", "apply_project_groups", "undo_project_sort", "set_dictionary"] {
+    for name in ["move", "move_files", "reorder", "delete", "delete_file", "apply_project_groups", "undo_project_sort", "set_dictionary"] {
         assert_eq!(hints(name), (json!(false), json!(true), json!(false)), "{name}");
     }
-    for name in ["set_type", "set_status", "set_owner", "set_favorite", "set_important", "hide", "set_board"] {
+    for name in ["set_type", "set_status", "set_owner", "set_output", "set_favorite", "set_important", "hide", "set_board"] {
         assert_eq!(hints(name), (json!(false), json!(false), json!(true)), "{name}");
     }
-    for name in ["add_node", "add_worknode", "rename", "copy", "rename_file"] {
+    for name in ["add_node", "add_folder", "add_worknode", "rename", "copy", "rename_file"] {
         assert_eq!(hints(name), (json!(false), json!(false), json!(false)), "{name}");
     }
     assert_eq!(hints("preview_project_groups").0, json!(true));
     assert_eq!(hints("get_dictionary").0, json!(true));
+}
+
+#[test]
+fn a_worknode_gets_plain_folders_files_moved_into_them_and_an_output() {
+    let dir = work("mcp-w-plain");
+    let s = writer(dir.path());
+    ok(&call(&s, "add_worknode", json!({ "parent": ["100.WORK", "02.B"], "name": "video" })));
+    let wkb = ["100.WORK", "02.B", "PJ.001_Video"];
+    let made = ok(&call(&s, "add_folder", json!({ "parent": wkb, "path": "assets/kit" })));
+    assert_eq!(made["relParts"], json!(["100.WORK", "02.B", "PJ.001_Video", "assets", "kit"]));
+    assert!(dir.path().join("100.WORK/02.B/PJ.001_Video/assets/kit").is_dir());
+    assert!(failed(&call(&s, "add_folder", json!({ "parent": ["100.WORK", "02.B"], "path": "loose" }))).to_string().contains("worknode"));
+    fs::write(dir.path().join("100.WORK/02.B/PJ.001_Video/logo.png"), "x").unwrap();
+    ok(&call(&s, "move_files", json!({ "sources": [["100.WORK", "02.B", "PJ.001_Video", "logo.png"]], "destination": ["100.WORK", "02.B", "PJ.001_Video", "assets", "kit"] })));
+    assert!(dir.path().join("100.WORK/02.B/PJ.001_Video/assets/kit/logo.png").is_file());
+    ok(&call(&s, "set_output", json!({ "relParts": wkb, "output": "assets" })));
+    assert!(info(dir.path(), "100.WORK/02.B/PJ.001_Video").contains("\"output\": \"assets\""));
 }
 
 #[test]

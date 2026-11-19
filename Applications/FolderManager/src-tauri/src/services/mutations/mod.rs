@@ -32,7 +32,7 @@ pub use copy_answer::{answer_copy, CopyAnswer};
 pub use delete::{delete_node, inspect_delete, DeletePreview};
 pub use favorite::set_favorite;
 pub use important::set_important;
-pub use file_ops::{delete_file, file_path, rename_file, source_path};
+pub use file_ops::{add_folder, delete_file, file_path, rename_file, source_path};
 pub use link_hidden::set_link_hidden;
 pub use file_drop::{drop_files, move_in, DropOutcome};
 pub use move_folder::{move_folder, move_to_review};

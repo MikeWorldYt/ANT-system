@@ -50,6 +50,26 @@ pub(super) fn add_worknode() -> (Value, Value) {
     (input, change())
 }
 
+pub(super) fn add_folder() -> (Value, Value) {
+    let input = object(json!({ "parent": rel_parts(1), "path": text("The folder to make, with `/` between levels for nested ones, e.g. \"assets/kit\"") }), &["parent", "path"]);
+    (input, change())
+}
+
+pub(super) fn move_files() -> (Value, Value) {
+    let input = object(
+        json!({
+            "sources": { "type": "array", "minItems": 1, "items": rel_parts(1), "description": "Each file as relParts; a Downloads file starts with \"::Downloads\"" },
+            "destination": rel_parts(1),
+        }),
+        &["sources", "destination"],
+    );
+    (input, change())
+}
+
+pub(super) fn set_output() -> (Value, Value) {
+    on_node(json!({ "output": { "type": ["string", "null"], "description": "Path inside the worknode, e.g. \"render\"; null clears it" } }), &["output"])
+}
+
 pub(super) fn rename() -> (Value, Value) {
     on_node(json!({ "name": text(NAME) }), &["name"])
 }
