@@ -55,6 +55,17 @@ export function createPreviewPanel(): PreviewPanel {
     video.muted = true;
     video.autoplay = true;
     frame.replaceChildren(video);
+    // Sound but no picture means Windows lacks the video's codec, so a frame drawn by the app stands in, with the controls kept below it.
+    video.addEventListener("loadedmetadata", () => {
+      if (video.videoWidth > 0) return;
+      previewImage(n.relParts)
+        .then((url) => {
+          if (shownKey !== key || !url) return;
+          video.poster = url;
+          frame.replaceChildren(el("img", { src: url, alt: n.name, draggable: "false" }), video, el("p", { class: "side-preview-note" }, "This video's codec is not installed in Windows; showing a still frame."));
+        })
+        .catch((e: unknown) => reportError("warning", e));
+    }, { once: true });
   }
 
   return { element, render };

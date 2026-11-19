@@ -8,17 +8,35 @@ pub mod media;
 #[cfg(windows)]
 mod shell;
 
+#[cfg(windows)]
+mod video;
+
 #[cfg(not(windows))]
 mod external;
 
+// A video Windows cannot draw, for want of its codec, gets a frame from the bundled ffmpeg before falling back to the type icon.
+#[cfg(windows)]
+fn video_image(path: &Path, preview: bool) -> Option<String> {
+    if !video::is_video(path) {
+        return None;
+    }
+    shell::thumbnail_only(path, preview).or_else(|| video::frame(path, shell::pixels(preview)))
+}
+
 #[cfg(windows)]
 pub fn file_image(path: &Path, large: bool) -> R<Option<String>> {
-    shell::image(path, large)
+    match large.then(|| video_image(path, false)).flatten() {
+        Some(url) => Ok(Some(url)),
+        None => shell::image(path, large),
+    }
 }
 
 #[cfg(windows)]
 pub fn preview_image(path: &Path) -> R<Option<String>> {
-    shell::preview(path)
+    match video_image(path, true) {
+        Some(url) => Ok(Some(url)),
+        None => shell::preview(path),
+    }
 }
 
 #[cfg(not(windows))]
