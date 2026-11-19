@@ -4,6 +4,7 @@ import { actedNodes, selectedNode, state, type KeyCombo } from "../services/stor
 import { deleteActed, favoriteActed, moveActed } from "./acted-nodes";
 import { addNext } from "./ops";
 import { pasteHere } from "./paste-target";
+import { selectAll } from "./select-all";
 import { putOnClipboard } from "./folder-share";
 
 export interface ShortcutTargets {
@@ -52,6 +53,7 @@ const FIXED_SHORTCUTS: KeyCombo[] = [
   { code: "KeyO", mod: true, alt: false },
   { code: "Enter", mod: true, alt: false },
   { code: "KeyV", mod: true, alt: false },
+  { code: "KeyA", mod: true, alt: false },
   { code: "KeyC", mod: true, alt: false },
   { code: "KeyX", mod: true, alt: false },
   { code: "KeyZ", mod: true, alt: false },
@@ -103,6 +105,7 @@ function bindings(go: ShortcutTargets): Binding[] {
     { code: "KeyO", mod: true, alt: false, plain: false, inFields: false, run: go.openSelected },
     { code: "Enter", mod: true, alt: false, plain: false, inFields: false, run: go.openSelected },
     { code: "KeyV", mod: true, alt: false, plain: false, inFields: false, run: pasteHere },
+    { code: "KeyA", mod: true, alt: false, plain: false, inFields: false, run: selectAll },
     { code: "KeyC", mod: true, alt: false, plain: false, inFields: false, run: () => void putOnClipboard(actedNodes(), false) },
     { code: "KeyX", mod: true, alt: false, plain: false, inFields: false, run: () => void putOnClipboard(actedNodes(), true) },
     { code: "KeyZ", mod: true, alt: false, plain: false, inFields: false, run: () => void undoProjectSort() },
