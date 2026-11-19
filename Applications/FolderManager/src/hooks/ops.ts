@@ -646,6 +646,15 @@ export const remove =(node: TreeNode) =>
     await applyMutation(m, sibling ?? orRoot(parent));
   }, "Waiting for user decision…");
 
+export const removeDownloads = (nodes: TreeNode[]) =>
+  run(async () => {
+    const what = nodes.length === 1 ? `"${nodes[0]?.name ?? ""}" goes` : `${plural(nodes.length, "item")} go`;
+    if (state.settings.confirmDelete && !(await warningConfirmDialog("Delete", [`${what} to the Recycle Bin`], "Delete", "danger"))) return;
+    beginOperationStatus(`Deleting ${plural(nodes.length, "item")}…`);
+    await api.deleteDownloads(nodes.map((n) => n.relParts));
+    await relistDownloads();
+  }, "Waiting for user decision…");
+
 // One confirmation for the batch; each item is then deleted on its own, so one refusal does not stop the rest.
 export const removeMany = (nodes: TreeNode[]) =>
   run(async () => {

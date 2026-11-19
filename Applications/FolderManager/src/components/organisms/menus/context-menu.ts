@@ -3,7 +3,7 @@ import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
 import { statusIcon } from "../../atoms/status-mark";
 import { importantLabel, isWorknode, ownerOf, STATUSES, TYPES } from "../../../services/store/node-info";
-import { addChild, hideMany, hideNode, pasteFiles, remove, removeMany, setDetails, setFavorite, setFavorites, setImportant, setLinkHidden, setManyDetails, setType, setUserFlag } from "../../../hooks/ops";
+import { addChild, hideMany, hideNode, pasteFiles, remove, removeDownloads, removeMany, setDetails, setFavorite, setFavorites, setImportant, setLinkHidden, setManyDetails, setType, setUserFlag } from "../../../hooks/ops";
 import { suggestSearch } from "../../../services/ipc/api";
 import { reportError } from "../bars/status-line";
 import { createShortcut, putOnClipboard } from "../../../hooks/folder-share";
@@ -75,10 +75,15 @@ function downloadsMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
   const action = closingItem(close);
   const [one] = nodes.length === 1 ? nodes : [];
   const copy = action("Copy", true, () => void putOnClipboard(nodes, false));
-  if (!one) return { items: [copy], subs: [], content: [copy] };
+  const del = menuItem("Delete", "menuitem", true, () => {
+    close();
+    void removeDownloads(nodes);
+  }, "ctx-item danger");
+  del.prepend(guiIcon("trash"));
+  if (!one) return { items: [copy, del], subs: [], content: [copy, separator(), del] };
   const open = action(one.file ? "Open" : "Open folder location", one.actions.open, () => void openFolder(one));
   const copyPathItem = action("Copy path", one.actions.copyPath, () => void copyPath(one));
-  return { items: [open, copyPathItem, copy], subs: [], content: [open, copyPathItem, separator(), copy] };
+  return { items: [open, copyPathItem, copy, del], subs: [], content: [open, copyPathItem, separator(), copy, separator(), del] };
 }
 
 function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts {
