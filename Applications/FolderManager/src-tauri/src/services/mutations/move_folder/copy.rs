@@ -10,6 +10,7 @@ use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::{dir_entries, io_err, redirects};
 use crate::services::index::footprint;
 use crate::services::mutations::{finish, scope, register_ids, Drift, Mutation};
+use crate::services::transfer as progress;
 use crate::services::tree::depth;
 use crate::services::tree::tree_store;
 
@@ -63,7 +64,7 @@ fn copy_contents(from: &Path, to: &Path, warnings: &mut Vec<String>) -> R<()> {
             fs::create_dir(&target).map_err(|e| io_err("create folder", &target, &e))?;
             copy_contents(&path, &target, warnings)?;
         } else {
-            fs::copy(&path, &target).map_err(|e| io_err("copy file", &path, &e))?;
+            progress::copy(&path, &target).map_err(|e| io_err("copy file", &path, &e))?;
         }
     }
     Ok(())

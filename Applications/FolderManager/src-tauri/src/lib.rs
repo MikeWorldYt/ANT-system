@@ -151,6 +151,8 @@ pub fn run() {
             commands::delete_file,
             commands::copy_items,
             commands::move_files_in,
+            commands::cancel_transfer,
+            commands::pause_transfer,
             commands::create_file_shortcut_in,
             commands::answer_copy,
             commands::set_user_flag,

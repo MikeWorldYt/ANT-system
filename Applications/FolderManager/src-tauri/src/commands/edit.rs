@@ -184,7 +184,12 @@ pub async fn move_node(app: AppHandle, rel_parts: Vec<String>, direction: MoveDi
 
 #[tauri::command]
 pub async fn move_folder(app: AppHandle, source: Vec<String>, destination: Vec<String>, copy: bool) -> R<Mutation> {
-    run_indexed(app, move |root| mutations::move_folder(root, &source, &destination, copy)).await
+    let sender = app.clone();
+    run_indexed(app, move |root| {
+        let _progress = super::transfer::track(&sender, &[mutations::source_path(root, &source)?], &super::file_drop::place_name(root, &destination));
+        mutations::move_folder(root, &source, &destination, copy)
+    })
+    .await
 }
 
 #[tauri::command]

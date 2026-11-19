@@ -308,3 +308,15 @@ export interface AiClient {
 export const DOWNLOADS_ROOT = "::Downloads";
 
 export const inDownloads = (parts: string[]): boolean => parts[0] === DOWNLOADS_ROOT;
+
+export interface TransferProgress {
+  id: number;
+  from: string;
+  to: string;
+  bytesTotal: number;
+  bytesDone: number;
+  filesTotal: number;
+  filesDone: number;
+  current: string;
+  paused: boolean;
+}

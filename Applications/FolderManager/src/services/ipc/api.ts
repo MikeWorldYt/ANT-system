@@ -302,3 +302,6 @@ export function describeError(e: unknown): string {
       return `${e.path} was written by a newer Folder Manager. Update the app to open this Storage`;
   }
 }
+
+export const cancelTransfer = () => call<void>("cancel_transfer");
+export const pauseTransfer = (paused: boolean) => call<void>("pause_transfer", { paused });

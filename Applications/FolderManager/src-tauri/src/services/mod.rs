@@ -15,6 +15,7 @@ pub mod rename;
 pub mod scheduler;
 pub mod snapshot;
 pub mod sync;
+pub mod transfer;
 pub mod tree;
 pub mod upgrade;
 pub mod updater;

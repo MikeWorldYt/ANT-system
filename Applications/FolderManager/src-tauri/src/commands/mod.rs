@@ -17,6 +17,7 @@ mod share;
 mod storage;
 #[cfg(test)]
 mod tests;
+pub(crate) mod transfer;
 mod tree;
 mod ui_bridge;
 mod update;
@@ -45,6 +46,7 @@ pub use open::*;
 pub use search::*;
 pub use share::*;
 pub use storage::*;
+pub use transfer::*;
 pub use tree::*;
 pub use ui_bridge::*;
 pub use update::*;
