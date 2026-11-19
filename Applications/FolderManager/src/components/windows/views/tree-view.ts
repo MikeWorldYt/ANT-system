@@ -17,6 +17,9 @@ import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
 
+// Files stay in the views; the pane only charts where they live.
+const isFolder = (n: TreeNode): boolean => !n.file;
+
 export function createTreeView(): ViewMode {
   const tree = el("div", { class: "tree", role: "tree", tabindex: "0", "aria-label": "Storage folders" });
   let rows: TreeNode[] = [];
@@ -39,7 +42,8 @@ export function createTreeView(): ViewMode {
 
   function buildRow(n: TreeNode, i: number): HTMLElement {
     const key = keyOf(n.relParts);
-    const folds = n.hasChildren;
+    // Once its contents are known, a folder holding only files has nothing to unfold here.
+    const folds = n.hasChildren && (n.children === null || n.children.some(isFolder));
     const depth = listDepths[i] ?? n.depth;
     const expanded = state.expanded.has(key);
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(folds ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
@@ -157,13 +161,13 @@ export function createTreeView(): ViewMode {
     render() {
       const list: TreeNode[] = [];
       listDepths = [];
-      for (const n of state.virtual !== null ? virtualNodes() : []) {
-        const below = state.expanded.has(keyOf(n.relParts)) && n.children ? visibleRows(n.children) : [];
+      for (const n of state.virtual !== null ? virtualNodes().filter(isFolder) : []) {
+        const below = state.expanded.has(keyOf(n.relParts)) && n.children ? visibleRows(n.children).filter(isFolder) : [];
         list.push(n, ...below);
         listDepths.push(1, ...below.map((b) => 1 + b.depth - n.depth));
       }
       listCount = list.length;
-      rows = [...list, ...visibleRows()];
+      rows = [...list, ...visibleRows().filter(isFolder)];
       const listRows = list.flatMap((n, i) => [buildRow(n, i), ...emptyLegend(n, listDepths[i] ?? 1)]);
       const groups = rootEntries().map((e) => {
         const open = state.virtual === e.id;
