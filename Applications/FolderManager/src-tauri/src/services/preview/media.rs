@@ -14,7 +14,7 @@ pub const SCHEME: &str = "fmmedia";
 const MAX_CHUNK: u64 = 4 * 1024 * 1024;
 
 const TYPES: &[(&str, &str)] = &[
-    ("png", "image/png"), ("jpg", "image/jpeg"), ("jpeg", "image/jpeg"), ("gif", "image/gif"), ("webp", "image/webp"), ("bmp", "image/bmp"), ("svg", "image/svg+xml"), ("avif", "image/avif"),
+    ("png", "image/png"), ("jpg", "image/jpeg"), ("jpeg", "image/jpeg"), ("jfif", "image/jpeg"), ("gif", "image/gif"), ("webp", "image/webp"), ("bmp", "image/bmp"), ("svg", "image/svg+xml"), ("avif", "image/avif"),
     ("mp4", "video/mp4"), ("m4v", "video/mp4"), ("webm", "video/webm"), ("mov", "video/mp4"), ("ogv", "video/ogg"),
 ];
 
