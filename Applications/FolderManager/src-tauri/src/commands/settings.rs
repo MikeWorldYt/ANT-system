@@ -78,7 +78,7 @@ fn shortcuts_valid(value: &str) -> bool {
     })
 }
 
-fn check(key: &str, value: &str) -> R<()> {
+pub(crate) fn check(key: &str, value: &str) -> R<()> {
     let valid = match key {
         "onLaunch" => ON_LAUNCH_VALUES.contains(&value),
         "startView" => START_VIEW_VALUES.contains(&value),

@@ -44,7 +44,7 @@ fn write_tools_declare_what_they_do() {
     let dir = work("mcp-w-list");
     let replies = exchange(&server(dir.path()), request(1, "tools/list", json!({})).as_bytes());
     let tools = replies[0]["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 45);
+    assert_eq!(tools.len(), 54);
     let hints = |name: &str| {
         let a = &tools.iter().find(|t| t["name"] == name).unwrap()["annotations"];
         (a["readOnlyHint"].clone(), a["destructiveHint"].clone(), a["idempotentHint"].clone())
@@ -78,6 +78,16 @@ fn automations_are_planned_as_a_dry_run_and_applied_as_planned() {
     assert!(dir.path().join("100.A/98.A").join(&new).is_file(), "{new}");
     ok(&call(&s, "set_review_automation", json!({ "relParts": ["100.A", "98.A"], "automation": "removeSymbols", "on": true })));
     assert!(node(&s, &["100.A", "98.A"])["flags"].to_string().contains("auto-remove-symbols"), "{}", node(&s, &["100.A", "98.A"]));
+}
+
+#[test]
+fn settings_are_read_and_changed_but_never_the_ai_writes_switch() {
+    let dir = work("mcp-w-settings");
+    let s = writer(dir.path());
+    ok(&call(&s, "set_setting", json!({ "key": "theme", "value": "light" })));
+    assert_eq!(ok(&call(&s, "get_settings", json!({})))["settings"]["theme"], "light");
+    assert_eq!(call(&s, "set_setting", json!({ "key": "mcpWrites", "value": "false" })), Value::Null);
+    assert_eq!(call(&s, "set_setting", json!({ "key": "theme", "value": "neon" })), Value::Null);
 }
 
 #[test]
