@@ -12,7 +12,8 @@ use crate::platform::random::hex_token;
 use crate::platform::windows::powershell::run_powershell;
 use crate::services::updater::{newer_release, Release};
 
-const FETCH: &str = "(Invoke-WebRequest -UseBasicParsing -Uri $env:FM_URL -TimeoutSec 5 -Headers @{'User-Agent'='FolderManager-Updater'}).Content";
+// GitHub serves release assets as application/octet-stream, for which Windows PowerShell 5.1 gives `.Content` as bytes, so the body is decoded here.
+const FETCH: &str = "[Console]::OutputEncoding = [Text.Encoding]::UTF8; [Text.Encoding]::UTF8.GetString((Invoke-WebRequest -UseBasicParsing -Uri $env:FM_URL -TimeoutSec 5 -Headers @{'User-Agent'='FolderManager-Updater'}).RawContentStream.ToArray())";
 // Windows PowerShell 5.1 downloads a large file many times slower while it draws the progress bar.
 const DOWNLOAD: &str = "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Uri $env:FM_URL -OutFile $env:FM_OUT -TimeoutSec 60 -Headers @{'User-Agent'='FolderManager-Updater'}";
 
