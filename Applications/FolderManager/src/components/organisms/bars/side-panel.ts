@@ -17,6 +17,7 @@ import { createReviewAutomations } from "./review-automations";
 import { goToReal, openVirtual, toggleBoard } from "../../../hooks/virtual-nav";
 import { aiConnectDialog } from "../dialogs/ai-connect-dialog/ai-connect-dialog";
 import { sideAction } from "../../molecules/side-action";
+import { tourSeen } from "../tour/onboarding-tour";
 import type { TreeNode } from "../../../services/ipc/types";
 
 const PANEL_PREF = "fm.details";
@@ -204,6 +205,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
   }
 
   function render(): void {
+    about.classList.toggle("tour-pulse", !tourSeen());
     details.render();
     automations.render();
     reviewTools.render();

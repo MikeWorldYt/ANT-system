@@ -63,3 +63,7 @@ body.tour-restrict .ctx-menu .ctx-item:not(.tour-allow), body.tour-restrict dial
 .tour-cheer-mark { width: 64px; height: 64px; border-radius: 50%; background: var(--accent) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 40px no-repeat; }
 @keyframes tour-pop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); } }
 @media (prefers-reduced-motion: reduce) { .tour-cheer { animation: none; } }
+/* Until the tutorial is taken, its way in pulses instead of the tour starting by itself. */
+.tour-pulse { animation: tour-pulse 1.8s ease-out infinite; }
+@keyframes tour-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent); } 70%, 100% { box-shadow: 0 0 0 10px transparent; } }
+@media (prefers-reduced-motion: reduce) { .tour-pulse { animation: none; box-shadow: 0 0 0 2px var(--accent); } }

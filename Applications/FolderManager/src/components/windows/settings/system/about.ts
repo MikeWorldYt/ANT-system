@@ -4,7 +4,7 @@ import { checkForUpdates, type UpdateOutcome } from "../../../../hooks/updates";
 import { openLink } from "../../../../services/ipc/api";
 import { state } from "../../../../services/store/state";
 import { reportError } from "../../../organisms/bars/status-line";
-import { startTour } from "../../../organisms/tour/onboarding-tour";
+import { startTour, tourSeen } from "../../../organisms/tour/onboarding-tour";
 import { buttonControl } from "../../../atoms/button";
 import { pathControl, valueControl } from "../../../atoms/label";
 import { switchControl } from "../../../atoms/switch";
@@ -45,6 +45,7 @@ export const aboutPage: SettingsPage = {
           button.closest("dialog")?.close();
           void startTour();
         }, "outline");
+        button.classList.toggle("tour-pulse", !tourSeen());
         return button;
       },
     },
