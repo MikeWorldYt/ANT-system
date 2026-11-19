@@ -334,13 +334,18 @@ jobs:
               --title "$app v$version" --notes "Built from $GITHUB_SHA." "${flags[@]}"
             gh release upload "$tag" "$out/latest.json"
             gh release edit "$tag" --draft=false --latest=false
-            # The channel release holds only latest.json, so its URL never changes; it is the one asset replaced in place
-            channel="$slug-latest"
-            if ! gh release view "$channel" >/dev/null 2>&1; then
-              gh release create "$channel" --target "$GITHUB_SHA" --title "$app update channel" \
-                --notes "latest.json of the newest $app release." --prerelease --latest=false
-            fi
-            gh release upload "$channel" "$out/latest.json" --clobber
+            # A channel release holds only latest.json, so its URL never changes; it is the one asset replaced in place.
+            # `latest` follows every version, betas included; `stable` only the versions without a suffix.
+            channels=(latest)
+            if [ "$prerelease" = false ]; then channels+=(stable); fi
+            for kind in "${channels[@]}"; do
+              channel="$slug-$kind"
+              if ! gh release view "$channel" >/dev/null 2>&1; then
+                gh release create "$channel" --target "$GITHUB_SHA" --title "$app $kind update channel" \
+                  --notes "latest.json of the newest $kind $app release." --prerelease --latest=false
+              fi
+              gh release upload "$channel" "$out/latest.json" --clobber
+            done
           done < tags.txt
 
   # Clients older than the latest.json updater still download dist/FolderManager.exe from main; drop this job once they are gone
