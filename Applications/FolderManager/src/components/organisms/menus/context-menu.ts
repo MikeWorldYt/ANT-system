@@ -83,7 +83,17 @@ function downloadsMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
   if (!one) return { items: [copy, del], subs: [], content: [copy, separator(), del] };
   const open = action(one.file ? "Open" : "Open folder location", one.actions.open, () => void openFolder(one));
   const copyPathItem = action("Copy path", one.actions.copyPath, () => void copyPath(one));
-  return { items: [open, copyPathItem, copy, del], subs: [], content: [open, copyPathItem, separator(), copy, separator(), del] };
+  const rename = menuItem("Rename", "menuitem", one.actions.rename, () => {
+    close(false);
+    startEdit(one.relParts);
+  });
+  return { items: [open, copyPathItem, copy, rename, del], subs: [], content: [open, copyPathItem, separator(), copy, rename, separator(), del] };
+}
+
+// Empty space in a Downloads folder offers the folder itself, never its deletion.
+function downloadsBackground(folder: TreeNode, close: (restore?: boolean) => void): MenuParts {
+  const open = closingItem(close)("Open folder location", folder.actions.open, () => void openFolder(folder));
+  return { items: [open], subs: [], content: [open] };
 }
 
 function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts {
@@ -256,7 +266,7 @@ function openMenu({ node, nodes, x, y, folderOnly }: MenuRequest, restoreFocus: 
   const label = group ? `Actions for ${group.length} items` : `Actions for ${node.name}`;
   const downloads = (group ?? [node]).every((n) => inDownloads(n.relParts));
   openMenuWith(
-    (close) => (group && downloads ? downloadsMenu(group, close) : folderOnly && !downloads ? boardMenu(node, views, close) : group ? selectionMenu(group, close) : nodeMenu(node, close)),
+    (close) => (group && downloads ? downloadsMenu(group, close) : folderOnly && downloads ? downloadsBackground(node, close) : folderOnly && !downloads ? boardMenu(node, views, close) : group ? selectionMenu(group, close) : nodeMenu(node, close)),
     label,
     x,
     y,

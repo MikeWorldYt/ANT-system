@@ -6,10 +6,10 @@ import { findNode, keyOf, sortOf, state, type VirtualId } from "./state";
 import { DOWNLOADS_ROOT, type TreeNode } from "../ipc/types";
 
 // Rereading keeps what was already loaded below a folder that is still there, so an open path is not cut.
+export const keepChildren = (fresh: TreeNode[]): TreeNode[] => fresh.map((n) => ({ ...n, children: state.downloads.find((o) => o.name === n.name)?.children ?? null }));
+
 async function listDownloadsTop(): Promise<string[][]> {
-  const before = state.downloads;
-  const fresh = await listChildren([DOWNLOADS_ROOT]);
-  state.downloads = fresh.map((n) => ({ ...n, children: before.find((o) => o.name === n.name)?.children ?? null }));
+  state.downloads = keepChildren(await listChildren([DOWNLOADS_ROOT]));
   return state.downloads.map((n) => n.relParts);
 }
 

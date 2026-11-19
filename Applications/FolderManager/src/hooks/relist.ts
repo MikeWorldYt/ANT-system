@@ -1,7 +1,7 @@
 // Re-reads single levels from disk so a focus or a watcher batch never needs the full backend sync.
 import * as api from "../services/ipc/api";
 import { findNode, hydrate, keyOf, notify, patchLevels, pruneSelection, state } from "../services/store/state";
-import { loadVirtual } from "../services/store/virtual";
+import { keepChildren, loadVirtual } from "../services/store/virtual";
 import { loadOtherVirtual } from "./split";
 import { noteListing } from "./file-trips";
 import { DOWNLOADS_ROOT, type TreeNode } from "../services/ipc/types";
@@ -42,7 +42,7 @@ let queue: Promise<unknown> = Promise.resolve();
 export async function relistDownloads(): Promise<boolean> {
   const open = [...state.expanded].filter((k) => k.startsWith(`${DOWNLOADS_ROOT}/`)).map((k) => k.split("/"));
   // The graph lists Downloads itself when its card is open.
-  if (state.expanded.has(DOWNLOADS_ROOT)) state.downloads = await api.listChildren([DOWNLOADS_ROOT]);
+  if (state.expanded.has(DOWNLOADS_ROOT)) state.downloads = keepChildren(await api.listChildren([DOWNLOADS_ROOT]));
   return relist(open, true);
 }
 

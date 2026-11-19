@@ -1,6 +1,6 @@
 // Pure list ordering shared by the store and the columns view.
 import { STATUSES } from "./node-info";
-import type { TreeNode } from "../ipc/types";
+import { inDownloads, type TreeNode } from "../ipc/types";
 
 export type SortBy = "track" | "name" | "status" | "modified" | "created" | "size";
 export interface ColumnSort {
@@ -14,6 +14,9 @@ export const SORT_BYS: readonly SortBy[] = ["track", "name", "status", "modified
 export function isTail(name: string): boolean {
   return /^(REV|RES|TPL|SS|REC|ANT)\./i.test(name) || /^(90|97|98|998|999)\./.test(name);
 }
+
+// Downloads is not the storage, so its names follow no tail rule.
+export const isTailNode = (n: TreeNode): boolean => !inDownloads(n.relParts) && isTail(n.name);
 
 const statusRank = (n: TreeNode): number => STATUSES.findIndex(([v]) => v === n.status) + 1 || STATUSES.length + 1;
 
@@ -35,8 +38,8 @@ export function favoritesFirst(nodes: TreeNode[], pin: boolean): TreeNode[] {
   const heads = nodes.filter(isPortfolio);
   const rest = nodes.filter((n) => !isPortfolio(n));
   if (!pin) return [...heads, ...rest];
-  const body = rest.filter((n) => !isTail(n.name));
-  return [...heads, ...body.filter((n) => n.favorite), ...body.filter((n) => !n.favorite), ...rest.filter((n) => isTail(n.name))];
+  const body = rest.filter((n) => !isTailNode(n));
+  return [...heads, ...body.filter((n) => n.favorite), ...body.filter((n) => !n.favorite), ...rest.filter(isTailNode)];
 }
 
 // Folders come before files in every list, whatever the sort direction.
@@ -46,14 +49,14 @@ export function foldersFirst(nodes: TreeNode[]): TreeNode[] {
 
 // Ties keep the incoming name order, and the tail folders close the list in either direction.
 export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort, pin: boolean): TreeNode[] {
-  const head = nodes.filter((n) => !isTail(n.name));
+  const head = nodes.filter((n) => !isTailNode(n));
   const key = sortValue[by];
   const ordered = [...head].sort((a, b) => {
     const [x, y] = [key(a), key(b)];
     return typeof x === "string" && typeof y === "string" ? x.localeCompare(y, undefined, { numeric: true }) : x < y ? -1 : x > y ? 1 : 0;
   });
   if (dir === "desc") ordered.reverse();
-  return foldersFirst(favoritesFirst([...ordered, ...nodes.filter((n) => isTail(n.name))], pin));
+  return foldersFirst(favoritesFirst([...ordered, ...nodes.filter(isTailNode)], pin));
 }
 
 // Board cards come from many folders, so the track is read from each name instead of the backend's per-level order.

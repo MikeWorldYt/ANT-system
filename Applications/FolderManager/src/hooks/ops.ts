@@ -238,6 +238,7 @@ export async function relistLevels(folders: string[][] | null): Promise<void> {
   }
   try {
     const added = await relist(folders ?? visibleLevels(), folders !== null);
+    if (folders === null && state.virtual === "downloads") await relistDownloads();
     if (added && folders !== null) {
       void runIntake(reload);
       void checkRootFolders(resolveInvalid, deleteInvalid);

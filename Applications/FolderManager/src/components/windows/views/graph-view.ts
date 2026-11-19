@@ -10,6 +10,7 @@ import { readPref, savePref } from "../../../services/store/prefs";
 import { reportError } from "../../organisms/bars/status-line";
 import { clickSelect, findNode, hydrate, isVirtualShown, notify, keyOf, select, state } from "../../../services/store/state";
 import { openVirtual } from "../../../hooks/virtual-nav";
+import { keepChildren } from "../../../services/store/virtual";
 import { guiIcon } from "../../atoms/gui-icons";
 import { sendPacket } from "./graph-packets";
 import type { Trip } from "../../../hooks/file-trips";
@@ -584,7 +585,7 @@ export function createGraphView(): ViewMode {
   function readDownloads(): void {
     downloadsRead = true;
     void listChildren([DOWNLOADS_ROOT]).then((nodes) => {
-      state.downloads = nodes;
+      state.downloads = keepChildren(nodes);
       downloadsLoaded = true;
       notify();
     }, (e: unknown) => reportError("warning", e, "Downloads"));
