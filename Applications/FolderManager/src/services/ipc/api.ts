@@ -168,7 +168,7 @@ export interface ShortcutCreated {
 export const createShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_shortcut_in", { target, folder });
 export const copyItems = (targets: string[][], cut: boolean) =>
-  targets.every(inDownloads) ? call<void>("copy_downloads", { targets: targets.map(belowDownloads) }) : call<void>("copy_items", { targets, cut });
+  targets.every(inDownloads) ? call<void>("copy_downloads", { targets: targets.map(belowDownloads), cut }) : call<void>("copy_items", { targets, cut });
 export const createFileShortcutIn = (target: string[], folder: string) =>
   call<ShortcutCreated>("create_file_shortcut_in", { target, folder });
 export const setReviewAutomation = (relParts: string[], automation: keyof Picks, on: boolean) => call<Mutation>("set_review_automation", { relParts, automation, on });
@@ -308,3 +308,4 @@ export const pauseTransfer = (paused: boolean) => call<void>("pause_transfer", {
 export const beginDelete = (targets: string[][]) => call<void>("begin_delete", { targets });
 export const endDelete = () => call<void>("end_delete");
 export const pdfPage = (relParts: string[], page: number) => call<{ url: string; count: number } | null>("pdf_page", { relParts, page });
+export const undoDelete = () => call<{ relParts: string[]; left: number } | null>("undo_delete");

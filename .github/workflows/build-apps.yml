@@ -341,7 +341,8 @@ jobs:
             gh release create "$tag" "${files[@]/#/$out/}" --draft --target "$GITHUB_SHA" \
               --title "$app v$version" --notes "Built from $GITHUB_SHA." "${flags[@]}"
             gh release upload "$tag" "$out/latest.json"
-            gh release edit "$tag" --draft=false --latest=false
+            # A stable version becomes the repository's Latest release, so its download links reach it; betas never do.
+            gh release edit "$tag" --draft=false --latest="$([ "$prerelease" = false ] && echo true || echo false)"
             # A channel release holds only latest.json, so its URL never changes; it is the one asset replaced in place.
             # `latest` follows every version, betas included; `stable` only the versions without a suffix.
             channels=(latest)

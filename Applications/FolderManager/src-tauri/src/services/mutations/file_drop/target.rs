@@ -9,6 +9,11 @@ use crate::services::mutations::child_rel;
 use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::is_locked_type;
 
+// A plain node that keeps no files and has no review folder yet, which a drop on it makes first.
+pub(crate) fn lacks_review(rel: &[String], node: &Mapping) -> bool {
+    type_base(node_type(node)) == "NODE" && !flags_in(node).iter().any(|f| f == DATA_FLAG) && review_child(rel, node).is_none()
+}
+
 pub(crate) fn destination(rel: &[String], node: &Mapping) -> R<Vec<String>> {
     let refuse = |reason: &str| FmError::InvalidPath { rel_parts: rel.to_vec(), reason: reason.to_string() };
     let Some(top) = rel.first() else {

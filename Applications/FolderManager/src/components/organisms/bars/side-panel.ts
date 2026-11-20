@@ -14,7 +14,8 @@ import { canEdit, createDetailsPanel } from "./details-panel";
 import { createAutomationsPanel } from "./automations-panel";
 import { createPreviewPanel } from "./preview-panel";
 import { createReviewAutomations } from "./review-automations";
-import { goToReal, openVirtual, toggleBoard } from "../../../hooks/virtual-nav";
+import { openVirtual, toggleBoard } from "../../../hooks/virtual-nav";
+import { openInApp } from "../../../hooks/path-actions";
 import { aiConnectDialog } from "../dialogs/ai-connect-dialog/ai-connect-dialog";
 import { sideAction } from "../../molecules/side-action";
 import { tourSeen } from "../tour/onboarding-tour";
@@ -120,7 +121,8 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
   // The global media folders sit at the root under their type, whatever their exact name.
   function openMedia(base: string): void {
     const node = state.tree?.nodes.find((n) => !n.file && n.nodeType?.base === base);
-    if (node) void goToReal(node.relParts);
+    // Entered like a double click, so the views show its contents, even empty, instead of only selecting it in the root.
+    if (node) void openInApp(node);
   }
   const rail = el("aside", { class: "side-rail", "aria-label": "Side panel" });
   let railKey: string | null = null;
