@@ -105,13 +105,13 @@ pub async fn delete_downloads(app: AppHandle, targets: Vec<Vec<String>>) -> R<()
     .await?
 }
 
-// Copy only: Downloads is not ours to cut from.
+// A cut pasted into the storage moves the files there; the originals go to the Recycle Bin, as with a drag.
 #[tauri::command]
-pub async fn copy_downloads(app: AppHandle, targets: Vec<Vec<String>>) -> R<()> {
+pub async fn copy_downloads(app: AppHandle, targets: Vec<Vec<String>>, cut: bool) -> R<()> {
     off_thread(move || {
         let base = base(&app)?;
         let paths = targets.iter().map(|rel| downloads::path_of(&base, rel)).collect::<R<Vec<PathBuf>>>()?;
-        clipboard::write(&paths, clipboard::drop_effect(false))
+        clipboard::write(&paths, clipboard::drop_effect(cut))
     })
     .await?
 }

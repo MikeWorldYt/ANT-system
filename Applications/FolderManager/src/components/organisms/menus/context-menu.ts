@@ -75,19 +75,20 @@ function downloadsMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
   const action = closingItem(close);
   const [one] = nodes.length === 1 ? nodes : [];
   const copy = action("Copy", true, () => void putOnClipboard(nodes, false));
+  const cut = action("Cut", true, () => void putOnClipboard(nodes, true));
   const del = menuItem("Delete", "menuitem", true, () => {
     close();
     void removeDownloads(nodes);
   }, "ctx-item danger");
   del.prepend(guiIcon("trash"));
-  if (!one) return { items: [copy, del], subs: [], content: [copy, separator(), del] };
+  if (!one) return { items: [copy, cut, del], subs: [], content: [copy, cut, separator(), del] };
   const open = action(one.file ? "Open" : "Open folder location", one.actions.open, () => void openFolder(one));
   const copyPathItem = action("Copy path", one.actions.copyPath, () => void copyPath(one));
   const rename = menuItem("Rename", "menuitem", one.actions.rename, () => {
     close(false);
     startEdit(one.relParts);
   });
-  return { items: [open, copyPathItem, copy, rename, del], subs: [], content: [open, copyPathItem, separator(), copy, rename, separator(), del] };
+  return { items: [open, copyPathItem, copy, cut, rename, del], subs: [], content: [open, copyPathItem, separator(), copy, cut, rename, separator(), del] };
 }
 
 // Empty space in a Downloads folder offers the folder itself, never its deletion.
