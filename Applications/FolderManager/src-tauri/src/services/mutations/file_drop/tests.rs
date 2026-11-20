@@ -338,8 +338,7 @@ fn a_refused_target_changes_nothing_on_disk() {
     let (dir, src) = fixture("drop-refused");
     let before = names(&dir.path().join("100.PERSONAL"));
     let refused = [
-        &["100.PERSONAL", "05.Bare"][..],
-        &["100.PERSONAL", "06.Ghost"],
+        &["100.PERSONAL", "06.Ghost"][..],
         &["999.Settings"],
         &[],
     ];
@@ -347,8 +346,16 @@ fn a_refused_target_changes_nothing_on_disk() {
         assert!(drop_at(&dir, &src, target, &["report.pdf"], false).is_err(), "{target:?}");
     }
     assert_eq!(names(&dir.path().join("100.PERSONAL")), before);
-    assert!(names(&dir.path().join("100.PERSONAL/05.Bare")).is_empty());
     assert_eq!(names(src.path()), ["notes", "report.pdf"]);
+}
+
+#[test]
+fn a_drop_on_a_node_without_a_review_folder_makes_one_and_lands_there() {
+    let (dir, src) = fixture("drop-makes-review");
+    drop_at(&dir, &src, &["100.PERSONAL", "05.Bare"], &["report.pdf"], true).unwrap();
+    let reviews: Vec<String> = names(&dir.path().join("100.PERSONAL/05.Bare"));
+    assert_eq!(reviews.len(), 1, "{reviews:?}");
+    assert!(dir.path().join("100.PERSONAL/05.Bare").join(&reviews[0]).join("report.pdf").is_file(), "{reviews:?}");
 }
 
 #[test]

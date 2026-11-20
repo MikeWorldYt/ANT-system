@@ -22,7 +22,7 @@ use crate::services::tree::tree_node::is_reserved;
 use crate::services::tree::tree_store::{self, get_node};
 use crate::services::tree::{depth, review_links};
 use plain::{place_folder, Outcome, Place};
-use target::destination;
+use target::{destination, lacks_review};
 use worknode::{Worknode, WorknodeDrop};
 
 const ALREADY_INSIDE: &str = "it is already in the storage; drag it inside the app to move it";
@@ -84,6 +84,10 @@ fn place_all(
     recycle: &dyn Fn(&Path) -> Result<(), String>,
 ) -> R<DropOutcome> {
     let copy = placement == Placement::Copy;
+    // Made before the lock is taken, since the restore takes it itself.
+    if !review_links::is_link_path(target) && get_node(&tree_store::load(root)?, target).is_some_and(|n| lacks_review(target, n)) {
+        crate::services::index::review_folders::restore(root)?;
+    }
     let _lock = StorageLock::acquire(root)?;
     // Only a 998.Review link needs the tree before the sync, and then the same load serves both.
     let loaded = if review_links::is_link_path(target) { Some(tree_store::load(root)?) } else { None };
