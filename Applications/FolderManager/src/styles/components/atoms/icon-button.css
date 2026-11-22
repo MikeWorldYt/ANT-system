@@ -1,7 +1,7 @@
 /* Icon-only buttons; disabled ones stay focusable and only look greyed. */
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center; padding: 0;
-  width: 32px; height: 32px; border: 0; border-radius: var(--radius-sm);
+  width: 36px; height: 36px; border: 0; border-radius: var(--radius-sm);
   background: var(--input-bg); color: var(--accent); font-size: 14pt; cursor: pointer;
 }
 .icon-btn:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--field-bg); }

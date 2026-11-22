@@ -1,6 +1,6 @@
 /* Navigation bar row and its breadcrumb or typed path. */
 .nav-bar { display: flex; align-items: center; gap: 6px; padding: 12px 12px 10px; }
-.nav-bar .icon-btn { width: 30px; height: 30px; background: transparent; }
+.nav-bar .icon-btn { width: 36px; height: 36px; background: transparent; }
 .nav-bar .nav-add { background: var(--accent); color: var(--bg); }
 .breadcrumb {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 5px 12px;
