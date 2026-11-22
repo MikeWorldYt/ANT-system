@@ -11,6 +11,7 @@
   --disabled-text: #a0a6a6;
   --ghost-text: #b04a4a;
   --delete-hover: #d6453a;
+  --hover-btn: color-mix(in srgb, var(--button) 80%, #000);
   --switch-off: #b9bebe;
   --st-progress: #b8921c;
   --st-hold: #3f86c4;
@@ -36,6 +37,7 @@
     --disabled-text: #a0a6a6;
     --ghost-text: #b04a4a;
     --delete-hover: #d6453a;
+    --hover-btn: color-mix(in srgb, var(--button) 80%, #000);
     --switch-off: #b9bebe;
     --st-progress: #b8921c;
     --st-hold: #3f86c4;
