@@ -1,7 +1,7 @@
 /* Side panel and its collapsed icon rail. */
 .details-panel {
   width: var(--panel-w); flex: none; display: flex; flex-direction: column; gap: 14px;
-  overflow-y: auto; background: var(--input-bg); padding: 12px; border-radius: var(--radius-md);
+  overflow-y: auto; background: var(--tree-bg); padding: 12px; border-radius: var(--radius-md);
 }
 .side-head { display: flex; align-items: center; gap: 2px; }
 .side-title { flex: 1; min-width: 0; margin: 0; font-size: 11pt; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
