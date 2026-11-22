@@ -6,13 +6,14 @@ import { iconButton } from "../../atoms/icon-button";
 import { BATCH_VIEWS, batch } from "../../../hooks/automations/batch";
 import { attachMenu } from "../menus/anchored-menu";
 import { EDGE, openPopup, place, popupTrigger } from "../../molecules/menu";
-import { addNext, refresh } from "../../../hooks/ops";
+import { addChild, addNext, refresh } from "../../../hooks/ops";
 import { activeColumnKey, selectedNode, setColumnSort, sortOf, state, type SortBy } from "../../../services/store/state";
 import type { TreeNode } from "../../../services/ipc/types";
 
 export interface ViewPicker {
   modes: { id: string; label: string }[];
   active(): string;
+  folder(): TreeNode | null | undefined;
   onSelect(id: string): void;
 }
 
@@ -21,21 +22,34 @@ const VIEW_ORDER = ["list", "details", "cards", "grid", "columns", "graph"];
 export const orderedModes = (views: ViewPicker) => [...views.modes].sort((a, b) => VIEW_ORDER.indexOf(a.id) - VIEW_ORDER.indexOf(b.id));
 
 export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trailing: HTMLElement[]; render(): void } {
-  const withSelected = (fn: (n: TreeNode) => void) => {
-    const n = selectedNode();
-    if (n) fn(n);
-  };
-
   // ─────────♦ ADD ────────────────────────────────────────────────────────────────
+  // Folder views add inside the folder on screen; tree and columns add next to the selected row.
+  function addItems(): { label: string; run: () => void }[] {
+    const shown = state.virtual === null ? views.folder() : undefined;
+    if (shown === null) {
+      const anchor = state.tree?.nodes.find((n) => n.actions.addNext);
+      return anchor ? [{ label: "New main category", run: () => void addNext(anchor, "node") }] : [];
+    }
+    if (shown) {
+      const { addChild: canNode, addFolder } = shown.actions;
+      if (!canNode && !addFolder) return [];
+      return [
+        { label: `New ${addFolder ? "folder" : "node"} in "${shown.name}"`, run: () => void addChild(shown, "node") },
+        ...(shown.relParts.length > 1 ? [{ label: `New worknode in "${shown.name}"`, run: () => void addChild(shown, "worknode") }] : []),
+      ];
+    }
+    const n = selectedNode();
+    if (!n?.actions.addNext) return [];
+    if (n.relParts.length === 1) return [{ label: "New main category", run: () => void addNext(n, "node") }];
+    const parent = n.relParts[n.relParts.length - 2];
+    return [
+      { label: `New node in "${parent}"`, run: () => void addNext(n, "node") },
+      { label: `New worknode in "${parent}"`, run: () => void addNext(n, "worknode") },
+    ];
+  }
   const add = iconButton("Add", "add");
   add.classList.add("nav-add");
-  attachMenu(add, "Add", () => {
-    const atRoot = selectedNode()?.relParts.length === 1;
-    return [
-      { label: atRoot ? "Add main category" : "New node", run: () => withSelected((n) => void addNext(n, "node")) },
-      ...(!atRoot ? [{ label: "New worknode", run: () => withSelected((n) => void addNext(n, "worknode")) }] : []),
-    ];
-  });
+  attachMenu(add, "Add", addItems);
 
   // ─────────♦ SORT AND VIEW ────────────────────────────────────────────────────
   const sortLabel = el("span", {});
@@ -83,9 +97,8 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     navLead: [add, divider],
     trailing: [sortBtn, viewBtn, reload],
     render() {
-      const a = selectedNode()?.actions;
       const idle = !state.busy;
-      setDisabled(add, !(a?.addNext && idle));
+      setDisabled(add, !(addItems().length > 0 && idle));
       setDisabled(reload, !idle);
       sortBtn.hidden = state.virtual === "board";
       const { by, dir } = sortOf(activeColumnKey());

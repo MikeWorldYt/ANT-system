@@ -186,6 +186,10 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
   return {
     id,
     label,
+    openFolder() {
+      syncFolder();
+      return folderNode();
+    },
     mount(host) {
       root.addEventListener("keydown", onKey);
       root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, folderNode(), root));

@@ -41,6 +41,7 @@ export function createMainWindow(app: HTMLElement) {
   const viewPicker: ViewPicker = {
     modes: views.modes,
     active: () => views.current().id,
+    folder: () => views.current().openFolder?.(),
     onSelect: (id) => {
       views.switchTo(id);
       rememberView(id);
