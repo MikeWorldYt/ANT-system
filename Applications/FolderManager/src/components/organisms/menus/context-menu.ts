@@ -154,6 +154,9 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     item.replaceChildren(guiIcon(statusIcon(value)), label);
     return item;
   });
+  // Rarely used actions sit one level down, so the everyday ones stay short to scan.
+  const openIn = submenu("Open in", [newTab, splitTab], true);
+  const rules = fileItems.length > 1 ? submenu("ANT rules", fileItems, true) : null;
   const subs: Submenu[] = [submenu("Change type", typeChoices, a.changeType)];
   if (node.nodeType?.base === "WKB") subs.push(submenu("Change status", statusChoices, a.editDetails));
   const newNode = action(a.addFolder ? "New folder" : "New node", a.addChild || a.addFolder, () => void addChild(node, "node"));
@@ -180,12 +183,12 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [openHere, open, newTab, splitTab, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorknode, hideElement, del, ...extras],
-    subs,
+    items: [openHere, open, openIn.trigger, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...(rules ? [rules.trigger] : fileItems), newNode, newWorknode, hideElement, del, ...extras],
+    subs: [openIn, ...subs, ...(rules ? [rules] : [])],
     content: [
-      openHere, open, newTab, splitTab, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
+      openHere, open, openIn.element, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
       rename, copy, cut, ...shareItems, separator(),
-      ...subs.map((s) => s.element), ...fileItems, separator(),
+      ...subs.map((s) => s.element), ...(rules ? [rules.element] : fileItems), separator(),
       newNode, newWorknode, separator(),
       hideElement, del, ...(extras.length > 0 ? [separator(), ...extras] : []),
     ],
