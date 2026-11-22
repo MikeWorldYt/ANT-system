@@ -10,7 +10,7 @@ export interface SideAction {
 export function sideAction(label: string, icon: GuiIcon | null, run: () => void, tone = ""): SideAction {
   const text = el("span", { class: "side-action-label" }, label);
   const slot = el("span", { class: "side-action-icon" }, ...(icon ? [guiIcon(icon)] : []));
-  const button = el("button", { type: "button", class: `side-action ${tone}`.trim() }, text, ...(icon ? [slot] : []));
+  const button = el("button", { type: "button", class: `side-action ${tone}`.trim() }, ...(icon ? [slot] : []), text);
   button.addEventListener("click", () => {
     if (!isDisabled(button)) run();
   });
