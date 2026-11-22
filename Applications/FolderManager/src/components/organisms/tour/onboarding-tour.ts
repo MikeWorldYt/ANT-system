@@ -258,6 +258,7 @@ function cheer(then: () => void): void {
 }
 
 export const tourSeen = (): boolean => readPref(DONE_KEY) === "true";
+export const skipTour = (): void => savePref(DONE_KEY, "true");
 
 // The main window owns the views: it puts the tour's own view in place, and lets a step read or change the active one.
 interface TourHost {

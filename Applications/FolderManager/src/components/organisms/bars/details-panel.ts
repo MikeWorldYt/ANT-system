@@ -14,6 +14,8 @@ import { detailFields, onDetailsChange, runDetailsAction } from "../../../extens
 import { keyOf, selectedNode } from "../../../services/store/state";
 import { shownEntry } from "../../molecules/virtual-entry";
 import { statusPicker, type StatusPicker } from "../../molecules/status-picker";
+import { tourSeen } from "../tour/onboarding-tour";
+import { welcomeCard } from "./welcome-card";
 import type { TreeNode, WkbStatus } from "../../../services/ipc/types";
 
 // Status and owner live in info.json, so a broken file blocks them but not the rename.
@@ -38,7 +40,8 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
   const edit = iconButton("Edit details", "pencil", () => startEdit());
   const head = el("div", { class: "details-head" }, el("h3", { id: "details-title", class: "side-label" }, "Details"), edit);
   const empty = el("p", { class: "details-empty" }, "Select a folder to see its details.");
-  const element = el("section", { class: "side-section", "aria-labelledby": "details-title" }, head, list, empty, extensionArea());
+  const welcome = welcomeCard();
+  const element = el("section", { class: "side-section", "aria-labelledby": "details-title" }, head, list, empty, welcome, extensionArea());
   let editing: string | null = null;
   // Built once per editing key, so store notifications do not discard what was typed.
   let form: { key: string; inputs: Record<string, Node> } | null = null;
@@ -119,7 +122,9 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     if (!n || (editing !== null && (editing !== keyOf(n.relParts) || !canEdit(n)))) editing = null;
     edit.hidden = !n || !canEdit(n);
     const entry = n ? null : shownEntry();
-    empty.hidden = n !== null || entry !== null;
+    const idle = n === null && entry === null;
+    welcome.hidden = !idle || tourSeen();
+    empty.hidden = !idle || !welcome.hidden;
     list.hidden = n === null && entry === null;
     const ended = editing === null && form !== null;
     if (editing === null) form = null;
