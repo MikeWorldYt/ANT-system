@@ -39,3 +39,4 @@
 .detail-sort.detail-size { text-align: right; }
 .detail-sort:hover, .detail-sort[aria-pressed="true"] { color: var(--text); }
 .detail-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.grid-item .tile-hint { margin-top: -4px; color: var(--muted); font-size: 11px; text-align: center; }

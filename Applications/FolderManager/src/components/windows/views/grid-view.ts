@@ -11,6 +11,7 @@ import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
 import { findNode, keyOf, listed, select, selectedNode, notify, sortOf, startEdit, state, type VirtualId } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
+import { isMainCategory } from "../../../services/store/node-info";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { isTail } from "../../../services/store/sort";
 import { openEntry, placeEntries, rootEntries, virtualEntries, type VirtualEntry } from "../../molecules/virtual-entry";
@@ -19,6 +20,12 @@ import { DOWNLOADS_ROOT, type TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
 import { detailCells, detailsHeader, fileKind } from "./details-cells";
+
+// One line under each root tile in the grid says what it is for, so a new Storage explains itself.
+const ENTRY_HINTS: Record<string, string> = { favorites: "Pinned folders", downloads: "Your downloads", review: "Files to sort" };
+const ROOT_HINTS: Record<string, string> = { REC: "Screen recordings", SS: "Captures" };
+const rootHint = (n: TreeNode): string | null => (n.file ? null : (ROOT_HINTS[n.nodeType?.base ?? ""] ?? (isMainCategory(n) ? "Your area" : null)));
+const hintLine = (text: string) => el("span", { class: "tile-hint" }, text);
 
 function createFolderView(id: string, label: string, rootClass: string, detail?: (n: TreeNode) => string, columns = false): ViewMode {
   const root = el("div", { class: rootClass, role: "listbox", "aria-label": "Folder contents" });
@@ -216,6 +223,13 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       const items = nodes.map((n) => buildItem(n, n === tabbable));
       const tail = nodes.findIndex((n) => !n.file && isTail(n.name));
       const placed = listing ? items : folder === null ? placeEntries(virtualEntries("grid-item", "option", entryOptions), items, tail < 0 ? items.length : tail) : items;
+      if (id === "grid" && folder === null && !listing) {
+        for (const tile of placed) {
+          const node = tile.dataset.key ? findNode(tile.dataset.key.split("/")) : null;
+          const hint = tile.dataset.entry ? ENTRY_HINTS[tile.dataset.entry] : node ? rootHint(node) : null;
+          if (hint) tile.append(hintLine(hint));
+        }
+      }
       root.replaceChildren(...header, ...placed, ...(legend ? [el("p", { class: "grid-legend" }, legend)] : []));
       built = manageSnapshot();
       showMark();
