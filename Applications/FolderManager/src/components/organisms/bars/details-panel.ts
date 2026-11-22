@@ -25,10 +25,6 @@ const termId = (label: string) => `details-term-${label.toLowerCase()}`;
 const fieldId = (label: string) => `details-field-${label.toLowerCase()}`;
 const labelled = (label: string) => ({ id: fieldId(label), "aria-labelledby": termId(label) });
 const detailField = (...children: HTMLElement[]) => el("div", { class: "detail-field" }, ...children);
-// A break is allowed only between folders, so each folder stays whole and the line fills before it wraps.
-const pathSegments = (path: string): (HTMLElement | string)[] =>
-  path.split("/").flatMap((folder, i, all) => (i < all.length - 1 ? [el("span", { class: "seg" }, `${folder}/`), "​"] : [el("span", { class: "seg" }, folder)]));
-
 export interface DetailsSection {
   element: HTMLElement;
   render(): void;
@@ -123,6 +119,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     edit.hidden = !n || !canEdit(n);
     const entry = n ? null : shownEntry();
     const idle = n === null && entry === null;
+    list.toggleAttribute("data-editing", editing !== null);
     welcome.hidden = !idle || tourSeen();
     empty.hidden = !idle || !welcome.hidden;
     list.hidden = n === null && entry === null;
@@ -131,9 +128,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     else if (n && form?.key !== editing) form = { key: editing, inputs: controls(n) };
     const inputs = form?.inputs ?? {};
     const rows = (n ? nodeDetails(n) : entry ? [["Name", entry.label]] as [string, string][] : []).map(([k, v]) =>
-      k === "Path"
-        ? detailField(el("dt", { id: termId(k) }, k), el("dd", { class: "path" }, ...pathSegments(v)))
-        : detailField(el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))),
+      detailField(el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))),
     );
     if (inputs["Allow files"]) rows.push(detailField(el("dt", { id: termId("Allow files") }, "Allow files"), el("dd", {}, inputs["Allow files"])));
     if (inputs[""]) rows.push(detailField(el("dd", {}, inputs[""])));

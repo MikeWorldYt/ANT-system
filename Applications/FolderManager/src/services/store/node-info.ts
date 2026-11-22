@@ -132,13 +132,16 @@ export const hiddenCategories = (n: TreeNode): string[] =>
 export function nodeDetails(n: TreeNode): [string, string][] {
   const rows: [string, string][] = [["Name", n.name]];
   const wkb = isWorknode(n);
-  if (wkb) rows.push(["Output", outputOf(n) ?? UNKNOWN]);
+  if (!n.linked && !isReviewRoot(n) && n.relParts.length > 1) rows.push(["Type", typeName(n)]);
+  if (wkb) {
+    const output = outputOf(n);
+    rows.push(["Output", output === null ? UNKNOWN : `/${output.replace(/^\/+/, "")}`]);
+  }
   if (wkb) rows.push(["Status", n.status ? statusLabel(n.status) : UNKNOWN]);
-  if (n.linked) rows.push(["Path", n.linkPath ?? UNKNOWN]);
-  else if (!isReviewRoot(n) && n.relParts.length > 1) rows.push(["Type", typeName(n)]);
   if (wkb) rows.push(["Owner", ownerOf(n) ?? UNKNOWN]);
   if (n.info?.error) rows.push(["Info", n.info.error]);
   for (const f of n.info?.fields ?? []) {
+    if (f.key.toLowerCase() === "breadcrumb") continue;
     // Status, owner and output of a worknode already have their own rows.
     if (wkb && (f.key.toLowerCase() === "status" || f.key.toLowerCase() === "output" || OWNER_KEYS.includes(f.key.toLowerCase()))) continue;
     // Favorite is toggled from the quick actions, never edited as a field.
@@ -151,5 +154,25 @@ export function nodeDetails(n: TreeNode): [string, string][] {
     if (isReviewRoot(n) && (f.key.toLowerCase() === "hidden" || f.key.toLowerCase() === "favorites")) continue;
     rows.push([f.key.charAt(0).toUpperCase() + f.key.slice(1), f.value]);
   }
+  if (n.stamps.modified !== null) {
+    const created = rows.findIndex(([key]) => key.toLowerCase() === "created");
+    const d = new Date(n.stamps.modified);
+    const modified = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    rows.splice(created < 0 ? rows.length : created + 1, 0, ["Modified", modified]);
+  }
+  const created = rows.find(([key]) => key.toLowerCase() === "created");
+  if (created) created[1] = formatDate(created[1]);
   return rows;
+}
+
+function formatDate(value: string): string {
+  const match = /^(\d{1,4})[-/.](\d{1,2})[-/.](\d{1,4})$/.exec(value.trim());
+  if (!match) return value;
+  const dayFirst = match[1].length < 3 && match[3].length === 4;
+  const yearPart = dayFirst ? match[3] : match[1];
+  const year = yearPart.length === 2 ? 2000 + Number(yearPart) : Number(yearPart);
+  const month = Number(match[2]);
+  const day = Number(dayFirst ? match[1] : match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return value;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }

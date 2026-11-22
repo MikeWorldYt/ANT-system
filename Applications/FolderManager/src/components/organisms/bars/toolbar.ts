@@ -17,7 +17,7 @@ export interface ViewPicker {
   onSelect(id: string): void;
 }
 
-export const SORT_KEYS: [SortBy, string, GuiIcon][] = [["track", "Track", "sortTrack"], ["name", "Name", "sortName"], ["status", "Status", "sortStatus"], ["modified", "Date modified", "sortModified"], ["created", "Date created", "sortCreated"], ["size", "Size", "sortSize"]];
+export const SORT_KEYS: [SortBy, string, GuiIcon][] = [["track", "Track", "sortTrack"], ["name", "Name", "sortName"], ["status", "Status", "sortStatus"], ["created", "Date created", "sortCreated"], ["modified", "Date modified", "sortModified"], ["size", "Size", "sortSize"]];
 const VIEW_ORDER = ["list", "details", "cards", "grid", "columns", "graph"];
 export const orderedModes = (views: ViewPicker) => [...views.modes].sort((a, b) => VIEW_ORDER.indexOf(a.id) - VIEW_ORDER.indexOf(b.id));
 
