@@ -5,6 +5,12 @@ import folderOpenSvg from "../../assets/icons/folder-open.svg?raw";
 import folderOpenNoFlagSvg from "../../assets/icons/folder-open-noflag.svg?raw";
 import folderLnkSvg from "../../assets/icons/folder-lnk.svg?raw";
 import folderLockedSvg from "../../assets/icons/folder-locked.svg?raw";
+import folderRevSvg from "../../assets/icons/folder-rev.svg?raw";
+import folderResSvg from "../../assets/icons/folder-res.svg?raw";
+import folderRecSvg from "../../assets/icons/folder-rec.svg?raw";
+import folderSsSvg from "../../assets/icons/folder-ss.svg?raw";
+import folderTplSvg from "../../assets/icons/folder-tpl.svg?raw";
+import folderCfgSvg from "../../assets/icons/folder-cfg.svg?raw";
 import folderWkbSvg from "../../assets/icons/folder-wkb.svg?raw";
 import folderWkbGitSvg from "../../assets/icons/folder-wkb-git.svg?raw";
 import gitSvg from "../../assets/icons/git.svg?raw";
@@ -28,9 +34,9 @@ const shade = (hex: string) => {
   return `#${dark(n >> 16)}${dark((n >> 8) & 255)}${dark(n & 255)}`;
 };
 
-const LOCKED_LABEL = "System folder, locked";
+const LOCKED_LABEL = "System folder";
 
-const SVGS = { folder: folderSvg, noflag: folderNoFlagSvg, open: folderOpenSvg, openNoflag: folderOpenNoFlagSvg, lnk: folderLnkSvg, locked: folderLockedSvg, wkb: folderWkbSvg, wkbGit: folderWkbGitSvg, git: gitSvg };
+const SVGS = { folder: folderSvg, noflag: folderNoFlagSvg, open: folderOpenSvg, openNoflag: folderOpenNoFlagSvg, lnk: folderLnkSvg, locked: folderLockedSvg, REV: folderRevSvg, RES: folderResSvg, REC: folderRecSvg, SS: folderSsSvg, TPL: folderTplSvg, CFG: folderCfgSvg, wkb: folderWkbSvg, wkbGit: folderWkbGitSvg, git: gitSvg };
 type Kind = keyof typeof SVGS;
 
 const urls = new Map<string, string>();
@@ -55,8 +61,14 @@ export function setIconColor(base: string | null): void {
 }
 
 // A folder in Downloads follows no storage rule, so it never gets the barred icon of a node that takes no files.
+// Support folders show what they hold with a corner badge; the padlock is left for a locked type with no badge.
+const lockedKind = (n: TreeNode): Kind => {
+  const base = n.nodeType?.base ?? "";
+  return base in SVGS ? (base as Kind) : "locked";
+};
+
 const kindOf = (n: TreeNode, open: boolean): Kind =>
-  inDownloads(n.relParts) ? (open ? "open" : "folder") : n.linked ? "lnk" : n.locked ? "locked" : isWorknode(n) ? (n.isGit ? "wkbGit" : "wkb") : n.isGit ? "git" : n.flags.includes("data") ? (open ? "open" : "folder") : open ? "openNoflag" : "noflag";
+  inDownloads(n.relParts) ? (open ? "open" : "folder") : n.linked ? "lnk" : n.locked ? lockedKind(n) : isWorknode(n) ? (n.isGit ? "wkbGit" : "wkb") : n.isGit ? "git" : n.flags.includes("data") ? (open ? "open" : "folder") : open ? "openNoflag" : "noflag";
 
 // The global media folders at the root show the same icons as their side panel shortcuts.
 const MEDIA_URLS: Record<string, string> = { REC: `data:image/svg+xml,${encodeURIComponent(recordingsSvg)}`, SS: `data:image/svg+xml,${encodeURIComponent(screenshotsSvg)}` };
@@ -69,9 +81,7 @@ export const folderIcon = (n: TreeNode, open = false) => {
   const media = !n.file && n.relParts.length === 1 ? MEDIA_URLS[n.nodeType?.base ?? ""] : undefined;
   const src = media ?? (shortcut ? urlOf("lnk") : n.file ? (nativeImage(n, false) ?? fileUrl) : urlOf(kindOf(n, open)));
   const locked = !n.file && !n.linked && n.locked;
-  const img = el("img", { class: "icon", src, alt: locked ? LOCKED_LABEL : "", width: "16", height: "16", draggable: "false" });
-  if (locked) img.title = LOCKED_LABEL;
-  return img;
+  return el("img", { class: "icon", src, alt: locked ? LOCKED_LABEL : "", width: "16", height: "16", draggable: "false" });
 };
 
 // A search hit past the loaded levels has only its name, so the icon is guessed from the naming convention.

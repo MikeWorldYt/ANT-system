@@ -17,10 +17,7 @@ export function markNodeItem(item: HTMLElement, n: TreeNode): void {
     item.classList.add("ghost");
     item.setAttribute("aria-label", `${n.name} (missing on disk)`);
   }
-  if (n.locked) {
-    item.classList.add("locked");
-    item.setAttribute("aria-disabled", "true");
-  }
+  item.classList.toggle("locked", n.locked);
   item.classList.toggle("reserved", n.reserved);
   item.classList.toggle("concealed", n.concealed);
   item.classList.toggle("rev", n.nodeType?.base === "REV");

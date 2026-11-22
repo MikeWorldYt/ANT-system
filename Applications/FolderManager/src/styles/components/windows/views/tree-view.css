@@ -5,6 +5,5 @@
 .row:hover { background: var(--input-bg); }
 .row.selected { background: var(--highlight); }
 .row.ghost .name { color: var(--ghost-text); font-style: italic; }
-.row.locked .name { color: var(--muted); }
 .tree-legend { padding: 3px 8px 3px calc(8px + var(--depth, 0) * 18px); color: var(--muted); font-size: 9pt; }
 .row.marked:not(.selected) { background: color-mix(in srgb, var(--highlight) 55%, transparent); }

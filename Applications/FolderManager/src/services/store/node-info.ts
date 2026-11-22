@@ -89,14 +89,24 @@ export const typeLabel = (n: TreeNode): string => {
 };
 
 // A tooltip is one line in plain words, so the internal type names give way to what the folder is for.
-export const nodeSummary = (n: TreeNode): string => {
-  if (!n.file && n.nodeType?.base === "REV") return "Review Folder";
-  if (!n.file && n.nodeType?.base === "SS") return "Screenshots Folder";
-  if (!n.file && n.nodeType?.base === "REC") return "Recordings Folder";
+const SUPPORT_SUMMARY: Record<string, (owner: string) => string> = {
+  REV: (o) => `Review: files waiting to be sorted into ${o}`,
+  RES: (o) => `Resources: reference files shared by ${o}`,
+  REC: (o) => `Recordings of ${o}`,
+  SS: (o) => `Screenshots of ${o}`,
+  TPL: (o) => `Templates for ${o}`,
+  CFG: (o) => `Settings files of ${o}`,
+};
+
+const baseSummary = (n: TreeNode): string => {
+  const support = n.file ? undefined : SUPPORT_SUMMARY[n.nodeType?.base ?? ""];
+  if (support) return support(n.relParts.length > 1 ? readable(n.relParts[n.relParts.length - 2].replace(/^[^.]*\./, "")) : "the Storage");
   if (!n.file && n.nodeType?.base === "NODE" && n.flags.includes("data") && nodeFlags(n).length === 1) return "Node with free files";
   if (!n.file && n.nodeType?.base === "NODE" && n.flags.includes("main") && nodeFlags(n).length === 1) return "Main Node";
   return typeLabel(n).replace(/\s*\n\s*/, " ");
 };
+
+export const nodeSummary = (n: TreeNode): string => (n.concealed ? `${baseSummary(n)} · Hidden, shown faded because hidden items are on` : baseSummary(n));
 
 export const isReviewRoot = (n: TreeNode) => n.relParts.length === 1 && n.name.toLowerCase() === "998.review";
 export const isMainCategory = (n: TreeNode) => n.depth === 0 && !n.ghost && /^[1-8]00\./.test(n.name);
