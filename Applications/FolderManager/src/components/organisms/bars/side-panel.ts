@@ -215,7 +215,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     layoutRail();
     const n = selectedNode();
     const idle = !state.busy;
-    title.textContent = n ? nameWithoutIdentifier(n) : (shownEntry()?.label ?? "Details");
+    title.textContent = n ? (n.depth === 0 ? n.name.replace(/^[^.]+\./, "") : n.fixedPrefix ? n.fixedPrefix.replace(/[._]+$/, "") : nameWithoutIdentifier(n)) : (shownEntry()?.label ?? "Details");
     for (const b of [board, railBoard]) b.setAttribute("aria-pressed", String(state.virtual === "board"));
     // The review root keeps its filter but no details; its links show the same filter above their details.
     const review = n !== null && isReviewRoot(n);
