@@ -16,7 +16,9 @@
   --st-progress: #b8921c;
   --st-hold: #3f86c4;
   --st-review: #d46f1c;
-  --shadow-pop: 0 4px 14px rgb(0 0 0 / 0.18);
+  --elev-1: 0 1px 3px rgb(0 0 0 / 0.12);
+  --elev-2: 0 4px 14px rgb(0 0 0 / 0.18);
+  --elev-3: 0 6px 24px rgb(0 0 0 / 0.2);
   --diff-del-bg: #fde9e9;
   --diff-del-mark: #f4a6a6;
   --diff-add-bg: #e2f5e8;
@@ -42,7 +44,9 @@
     --st-progress: #b8921c;
     --st-hold: #3f86c4;
     --st-review: #d46f1c;
-    --shadow-pop: 0 4px 14px rgb(0 0 0 / 0.18);
+    --elev-1: 0 1px 3px rgb(0 0 0 / 0.12);
+    --elev-2: 0 4px 14px rgb(0 0 0 / 0.18);
+    --elev-3: 0 6px 24px rgb(0 0 0 / 0.2);
     --diff-del-bg: #fde9e9;
     --diff-del-mark: #f4a6a6;
     --diff-add-bg: #e2f5e8;

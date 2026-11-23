@@ -4,7 +4,8 @@
   width: 36px; height: 36px; border: 0; border-radius: var(--radius-sm);
   background: var(--input-bg); color: var(--accent); font-size: 14pt; cursor: pointer;
 }
-.icon-btn:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--field-bg); }
+.icon-btn:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--state-hover); }
+.icon-btn:active:not(:disabled):not([aria-disabled="true"]) { background: var(--state-press); }
 .icon-btn .gui-icon { width: 18px; height: 18px; }
 .icon-btn[hidden] { display: none; }
 .icon-btn:disabled, .icon-btn[aria-disabled="true"] { color: var(--disabled-text); cursor: default; }

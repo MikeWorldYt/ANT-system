@@ -1,7 +1,7 @@
 /* Navigation bar row and its breadcrumb or typed path. */
-.nav-bar { display: flex; align-items: center; gap: 6px; padding: 12px 12px 10px; }
-.nav-bar .icon-btn { width: 36px; height: 36px; background: transparent; }
-.nav-bar .nav-add { background: var(--accent); color: var(--bg); }
+.nav-bar { position: relative; display: flex; align-items: center; gap: 6px; padding: 10px 12px; background: var(--bg); border-radius: var(--radius-md) var(--radius-md) 0 0; }
+.nav-bar .icon-btn { width: 30px; height: 30px; background: transparent; }
+.nav-bar .nav-add { background: var(--accent); color: var(--bg); border-radius: calc(var(--radius-md) - 5px); }
 .breadcrumb {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 5px 12px;
   overflow-x: auto; white-space: nowrap; scrollbar-width: none; background: var(--input-bg);
@@ -17,7 +17,7 @@
 .crumb { color: var(--text); }
 .crumb-root { color: var(--title); }
 .crumb-sep { color: var(--disabled-text); }
-.crumb-btn { border: 0; background: transparent; padding: 0 2px; font: inherit; cursor: pointer; border-radius: 3px; }
-.crumb-btn:hover { background: var(--field-bg); }
+.crumb-btn { border: 0; background: transparent; padding: 0 2px; font: inherit; cursor: pointer; border-radius: var(--radius-xs); }
+.crumb-btn:hover { background: var(--state-hover); }
 .crumb-btn.current { font-weight: 600; }
 .crumb-sep.db-edge { color: #e8b931; }

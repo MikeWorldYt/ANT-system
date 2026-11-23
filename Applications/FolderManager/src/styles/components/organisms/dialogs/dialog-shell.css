@@ -4,11 +4,11 @@ dialog.confirm {
   background: var(--input-bg); color: var(--text);
 }
 dialog.confirm::backdrop { background: rgb(0 0 0 / 0.6); }
-dialog.confirm h2 { margin: 0 0 8px; font-size: 11pt; color: var(--title); }
+dialog.confirm h2 { margin: 0 0 8px; font-size: var(--fs-title); color: var(--title); }
 dialog.dialog-wide { max-width: min(860px, calc(100vw - 32px)); border-radius: var(--radius-md); }
 dialog.warning-confirm {
   position: relative; overflow: visible; width: calc(100vw - 48px); max-width: 460px; padding: 24px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 dialog.warning-confirm form { position: relative; }
 .warning-confirm-icon {
@@ -23,7 +23,7 @@ dialog.warning-confirm form { position: relative; }
 .warning-confirm-copy p { margin: 0; line-height: 1.45; }
 .warning-confirm-copy a { color: var(--st-review); text-underline-offset: 2px; }
 .agent-confirm-items { max-height: 200px; margin: 0; padding-left: 20px; overflow: auto; overflow-wrap: anywhere; }
-.warning-confirm .btn { border-radius: 6px; }
+.warning-confirm .btn { border-radius: var(--radius-sm); }
 .warning-confirm .dialog-buttons { margin-top: 24px; }
 .dialog-text { white-space: pre-line; }
 .dialog-input { width: 100%; padding: 8px; font: inherit; color: var(--text); background: var(--field-bg); border: 1px solid transparent; border-radius: var(--radius-sm); }

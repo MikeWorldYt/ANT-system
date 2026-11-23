@@ -9,6 +9,6 @@
 .ai-client-restart .ai-client-note { flex: 1; margin: 0; }
 .ai-client-error, .ai-feedback.is-error { margin: 4px 0 0; color: var(--delete-hover); }
 .ai-client-error:empty, .ai-client-note:empty { display: none; }
-.ai-other h3 { margin: 12px 0 4px; font-size: 10pt; color: var(--title); }
+.ai-other h3 { margin: 12px 0 4px; font-size: var(--fs-body); color: var(--title); }
 .ai-feedback { margin: 4px 0 0; color: var(--muted); }
 .ai-client .btn:disabled { opacity: 0.5; cursor: not-allowed; }

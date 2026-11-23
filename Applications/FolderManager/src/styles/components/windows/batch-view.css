@@ -2,7 +2,7 @@
 .batch { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--tree-bg); border-radius: var(--radius-md); overflow: hidden; }
 .batch[hidden] { display: none; }
 .batch-scroll { flex: 1; min-height: 0; overflow: auto; }
-.batch-table { width: 100%; border-collapse: collapse; font-size: 10pt; table-layout: fixed; }
+.batch-table { width: 100%; border-collapse: collapse; font-size: var(--fs-body); table-layout: fixed; }
 .batch-table th, .batch-table td { padding: 4px 10px; text-align: left; font-weight: 400; overflow-wrap: anywhere; }
 .batch-table thead th { position: sticky; top: 0; z-index: 2; background: var(--input-bg); color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); }
 .batch-table .batch-check { width: 32px; }
@@ -10,7 +10,7 @@
 .batch-table tr.changed .batch-before { background: var(--diff-del-bg); }
 .batch-table tr.changed .batch-after { background: var(--diff-add-bg); }
 .batch-table tr.changed .batch-check { background: var(--diff-del-bg); }
-.batch-table del, .batch-table ins { text-decoration: none; border-radius: 2px; color: inherit; }
+.batch-table del, .batch-table ins { text-decoration: none; border-radius: var(--radius-xs); color: inherit; }
 .batch-table del { background: var(--diff-del-mark); }
 .batch-table ins { background: var(--diff-add-mark); }
 .batch-table tr.skipped th, .batch-table tr.skipped td { opacity: 0.45; }
@@ -21,7 +21,7 @@
 .batch-grid { height: auto; overflow: visible; padding: 8px 4px; }
 .batch-tile { position: relative; }
 .batch-tile > input { position: absolute; left: 6px; top: 6px; }
-.batch-tile-name { max-width: 100%; text-align: center; overflow-wrap: anywhere; font-size: 12px; }
+.batch-tile-name { max-width: 100%; text-align: center; overflow-wrap: anywhere; font-size: var(--fs-label); }
 /* Three lines at most, as the grid shows names, so one long name does not stretch its whole row; the editor shows it whole. */
 .batch-grid.grid:not(.list):not(.cards) .batch-tile-name:not(.renaming) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .batch-tile.skipped { opacity: 0.5; }
@@ -32,7 +32,7 @@
 .batch-grid.grid.list .batch-tile-name, .batch-grid.grid.cards .batch-tile-name { flex: 1; min-width: 0; text-align: left; }
 .batch-box.drop-target, .batch-loose.drop-target, .batch-scroll.drop-target { outline: 2px solid var(--accent); outline-offset: -2px; }
 .batch-tile.dragging { opacity: 0.4; }
-.batch-ghost { position: fixed; z-index: 1000; pointer-events: none; padding: 2px 8px; border-radius: 4px; background: var(--accent); color: var(--on-accent); font-size: 12px; white-space: nowrap; }
+.batch-ghost { position: fixed; z-index: 1000; pointer-events: none; padding: 2px 8px; border-radius: var(--radius-xs); background: var(--accent); color: var(--on-accent); font-size: var(--fs-label); white-space: nowrap; }
 .batch-tile-name del { text-decoration: line-through; }
 .batch-new { display: inline-flex; flex: none; width: 14px; height: 14px; color: var(--accent); }
 .batch-new svg { width: 100%; height: 100%; }
@@ -63,7 +63,7 @@
 .replay-hint { position: absolute; left: 0; right: 0; bottom: 12px; margin: 0; text-align: center; font-weight: 600; color: var(--title); text-shadow: 0 1px 3px #000; pointer-events: none; }
 .replay-pile { position: relative; isolation: isolate; }
 .replay-pile-under { position: absolute; inset: 0; pointer-events: none; }
-.replay-count { position: absolute; top: 4px; right: 8px; z-index: 2; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--button); color: var(--button-text, #fff); font-size: 8pt; font-weight: 600; line-height: 18px; text-align: center; }
+.replay-count { position: absolute; top: 4px; right: 8px; z-index: 2; min-width: 18px; height: 18px; padding: 0 4px; border-radius: var(--radius-md); background: var(--button); color: var(--button-text, #fff); font-size: var(--fs-caption); font-weight: 600; line-height: 18px; text-align: center; }
 .batch-tile-name.renaming { position: relative; align-self: stretch; min-height: 1.4em; }
-.batch-name-input { position: absolute; top: 0; left: -4px; right: -4px; z-index: 5; box-sizing: border-box; resize: none; overflow: hidden; font: inherit; font-size: 12px; line-height: 1.35; text-align: center; overflow-wrap: anywhere; white-space: pre-wrap; }
+.batch-name-input { position: absolute; top: 0; left: -4px; right: -4px; z-index: 5; box-sizing: border-box; resize: none; overflow: hidden; font: inherit; font-size: var(--fs-label); line-height: 1.35; text-align: center; overflow-wrap: anywhere; white-space: pre-wrap; }
 .batch-grid.grid.list .batch-name-input, .batch-grid.grid.cards .batch-name-input { text-align: left; }

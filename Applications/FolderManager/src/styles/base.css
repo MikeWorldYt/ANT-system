@@ -4,7 +4,7 @@ html, body, #app { height: 100%; margin: 0; }
 body {
   background: var(--bg);
   color: var(--text);
-  font: 10pt "Segoe UI", system-ui, sans-serif;
+  font: var(--fs-body) "Segoe UI", system-ui, sans-serif;
 }
 #app { display: flex; flex-direction: column; }
 :focus-visible { outline: 2px solid var(--button); outline-offset: 2px; }

@@ -1,9 +1,10 @@
 /* Labelled action rows of the side panel. */
 .side-action {
   display: flex; align-items: center; gap: 10px; width: 100%; min-height: 32px; padding: 6px 8px; border: 0; border-radius: var(--radius-sm);
-  background: transparent; color: var(--text); font: inherit; font-size: 9pt; text-align: left; cursor: pointer;
+  background: transparent; color: var(--text); font: inherit; font-size: var(--fs-label); text-align: left; cursor: pointer;
 }
-.side-action:hover:not([aria-disabled="true"]):not(:disabled) { background: var(--field-bg); }
+.side-action:hover:not([aria-disabled="true"]):not(:disabled) { background: var(--state-hover); }
+.side-action:active:not([aria-disabled="true"]):not(:disabled) { background: var(--state-press); }
 /* A text button can carry the row look, so the base .btn fill and weight give way to it. */
 .btn.side-action { font-weight: normal; }
 .btn.side-action:not(:hover) { background: transparent; }

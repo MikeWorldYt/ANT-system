@@ -17,9 +17,17 @@
 }
 .details-input:focus { border-color: var(--button); box-shadow: 0 0 0 1px var(--button); }
 .details-name { display: flex; align-items: center; }
+.details[data-editing] .details-name .name-fixed { display: none; }
 .details-name .details-input { flex: 1; min-width: 0; width: auto; }
+.owner-autocomplete { position: relative; min-width: 0; }
+.owner-choices { position: absolute; z-index: 5; top: calc(100% + 2px); left: 0; right: 0; max-height: 132px; overflow-y: auto; background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-xs); box-shadow: var(--shadow-pop); }
+.owner-choices[hidden] { display: none; }
+.owner-choice { display: block; width: 100%; padding: 4px 6px; border: 0; background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.owner-choice:hover, .owner-choice:focus-visible { background: var(--highlight); outline: none; }
+.details-output-pick { flex: none; width: 28px; height: 28px; background: transparent; }
 .details-actions { display: flex; gap: 6px; margin-top: 4px; }
-.details-actions .btn { flex: 1; min-width: 0; }
+.details-actions .btn { flex: 1; min-width: 0; white-space: nowrap; }
 .details-actions .btn:not(.btn-primary):hover { background: var(--delete-hover); }
 .detail-field:has(> dd > .details-actions) { grid-column: 1 / -1; }
+.detail-field:has(> dd > .details-actions) > dd { grid-column: 1 / -1; }
 .details-empty { margin: 0; color: var(--muted); }

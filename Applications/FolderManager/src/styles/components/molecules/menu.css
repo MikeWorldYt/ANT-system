@@ -2,9 +2,9 @@
 .ctx-menu {
   position: fixed; top: 0; left: 0; z-index: 1000; min-width: 190px; max-height: calc(100vh - 8px);
   overflow-y: auto; padding: 4px 0; background: var(--input-bg); border: 1px solid var(--border);
-  box-shadow: var(--shadow-pop);
+  box-shadow: var(--elev-2);
 }
-.ctx-node, .ctx-node .ctx-flyout { border-radius: 3px; }
+.ctx-node, .ctx-node .ctx-flyout { border-radius: var(--radius-xs); }
 /* Room on the left of the node menu for an icon, kept free on rows without one so the labels line up. */
 .ctx-node > .ctx-item, .ctx-node > .ctx-sub > .ctx-item { padding-left: 34px; }
 .ctx-node > .ctx-item > .gui-icon { position: absolute; left: 10px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); }

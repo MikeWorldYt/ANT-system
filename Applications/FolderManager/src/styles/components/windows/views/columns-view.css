@@ -5,11 +5,11 @@
 .col-sep { height: 1px; margin: 6px 8px; background: var(--border); }
 .top-link .name-text { color: var(--accent); }
 .column.review-list { width: calc(var(--panel-w) * 2); }
-.column-legend { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; white-space: nowrap; color: var(--muted); font-size: 9pt; }
+.column-legend { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; white-space: nowrap; color: var(--muted); font-size: var(--fs-label); }
 .col-item { padding: 3px 8px; }
 .col-item:focus-visible { outline-offset: -2px; }
 .col-item .name { flex: 1; }
-.col-item:hover { background: var(--input-bg); }
+.col-item:hover { background: var(--state-hover); }
 .col-item.on-path { background: var(--input-bg); }
 .col-item.selected { background: var(--highlight); }
 .col-item.ghost { opacity: 0.7; }

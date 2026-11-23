@@ -1,6 +1,6 @@
 /* Scrolling table body of the action dialogs that settle one row per folder. */
 .dialog-table-scroll { max-height: min(420px, 60vh); overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
-.dialog-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+.dialog-table { width: 100%; border-collapse: collapse; font-size: var(--fs-body); }
 .dialog-table th, .dialog-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
 .dialog-table thead th { position: sticky; top: 0; background: var(--input-bg); color: var(--muted); font-weight: 600; }
 .dialog-table td:not(:first-child) { text-align: center; }

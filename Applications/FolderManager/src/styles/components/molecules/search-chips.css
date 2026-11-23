@@ -1,7 +1,7 @@
 /* Filter chips inside the search box. */
 .search-chip {
   display: inline-flex; align-items: center; flex: none; gap: 4px; max-width: 150px; padding: 0 2px 0 6px;
-  font-size: 9pt; white-space: nowrap; background: var(--highlight); border-radius: 4px;
+  font-size: var(--fs-label); white-space: nowrap; background: var(--highlight); border-radius: var(--radius-xs);
 }
 .chip-key { color: var(--title); }
 .chip-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

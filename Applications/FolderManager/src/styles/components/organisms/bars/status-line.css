@@ -1,5 +1,5 @@
 /* Footer status line, colored by level. */
-.status-line { display: flex; gap: 12px; min-height: 28px; padding: 6px 12px; font-size: 9pt; color: var(--muted); border-top: 1px solid var(--border); }
+.status-line { display: flex; gap: 12px; min-height: 28px; padding: 6px 12px; font-size: var(--fs-label); color: var(--muted); border-top: 1px solid var(--border); }
 .status-text[data-level="info"] { color: var(--text); }
 .status-text[data-level="warning"] { color: var(--st-review); }
 .status-text[data-level="error"] { color: var(--delete-hover); }
