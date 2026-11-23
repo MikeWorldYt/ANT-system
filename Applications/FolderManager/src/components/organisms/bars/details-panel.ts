@@ -16,6 +16,8 @@ import { shownEntry } from "../../molecules/virtual-entry";
 import { statusPicker, type StatusPicker } from "../../molecules/status-picker";
 import { tourSeen } from "../tour/onboarding-tour";
 import { welcomeCard } from "./welcome-card";
+import { suggestSearch } from "../../../services/ipc/api";
+import { reportError } from "./status-line";
 import type { TreeNode, WkbStatus } from "../../../services/ipc/types";
 
 // Status and owner live in info.json, so a broken file blocks them but not the rename.
@@ -74,7 +76,29 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
       owner = textInput({ class: "details-input", ...labelled("Owner"), placeholder: UNKNOWN });
       owner.value = ownerOf(n) ?? "";
       inputs.Status = status.button;
-      inputs.Owner = owner;
+      const ownerChoices = el("div", { class: "owner-choices", hidden: "" });
+      const ownerBox = el("div", { class: "owner-autocomplete" }, owner, ownerChoices);
+      inputs.Owner = ownerBox;
+      let ownerNames: string[] = [];
+      const updateOwners = () => {
+        const query = owner!.value.trim().toLowerCase();
+        const matches = ownerNames.filter((value) => value.toLowerCase().includes(query) && value !== owner!.value).slice(0, 5);
+        ownerChoices.hidden = matches.length === 0;
+        ownerChoices.replaceChildren(...matches.map((value) => {
+          const choice = el("button", { type: "button", class: "owner-choice" }, value);
+          choice.addEventListener("mousedown", (event) => event.preventDefault());
+          choice.addEventListener("click", () => { owner!.value = value; ownerChoices.hidden = true; });
+          return choice;
+        }));
+      };
+      owner.addEventListener("input", updateOwners);
+      owner.addEventListener("focus", updateOwners);
+      owner.addEventListener("blur", () => { ownerChoices.hidden = true; });
+      void suggestSearch("owner", "")
+        .then((owners) => {
+          ownerNames = [...new Set(owners.map((item) => item.value).filter(Boolean))];
+        })
+        .catch((e: unknown) => reportError("warning", e));
       first ??= owner;
       const outputField = textInput({ class: "details-input", ...labelled("Output"), placeholder: UNKNOWN });
       outputField.value = outputOf(n) ?? "";
@@ -84,6 +108,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
         if (picked.relative === null) setStatus("warning", "Pick a folder inside the worknode");
         else outputField.value = picked.relative;
       });
+      pick.classList.add("details-output-pick");
       output = outputField;
       inputs.Output = el("div", { class: "details-name" }, outputField, pick);
     }
@@ -92,19 +117,25 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     const save = textButton("Save", "btn-primary", async () => {
       // The store may have refreshed the node since the form was built.
       const current = selectedNode();
+      const requestedName = name?.value.trim() ?? "";
       stop();
       if (!current) return;
       if (files && files.checked !== current.flags.includes("data") && !(await setUserFlag(current, files.checked))) return;
       if (output && output.value.trim() !== (outputOf(current) ?? "") && !(await setOutput(current, output.value.trim() || null))) return;
-      const fieldsChanged = (status?.value && status.value !== current.status) || (owner && owner.value.trim() !== (ownerOf(current) ?? ""));
-      if (fieldsChanged && !(await setDetails(current, (status?.value || null) as WkbStatus | null, owner?.value ?? null))) return;
+      const nextOwner = owner ? owner.value.trim() || UNKNOWN : null;
+      const fieldsChanged = (status?.value && status.value !== current.status) || (nextOwner !== null && nextOwner !== (ownerOf(current) ?? UNKNOWN));
+      if (fieldsChanged && !(await setDetails(current, (status?.value || null) as WkbStatus | null, nextOwner))) return;
       // A details save re-selects the node, so the rename works on its fresh copy.
       const fresh = selectedNode();
-      if (name && fresh && name.value.trim() !== fresh.editableName) await renameTo(fresh, name.value);
+      if (name && fresh && requestedName && requestedName !== fresh.editableName) await renameTo(fresh, requestedName);
     });
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") stop();
-      else if (ev.key === "Enter" && ev.target !== status?.button) save.click();
+      else if (ev.key === "Enter") {
+        ev.preventDefault();
+        ev.stopPropagation();
+        save.click();
+      }
     };
     const fields: (HTMLElement | null)[] = [name, status?.button ?? null, owner, output, files];
     for (const field of fields) field?.addEventListener("keydown", onKey);
