@@ -165,6 +165,9 @@ fn drop_fixed_name(task: &Task, root: &Path) -> R<()> {
 
 #[cfg(windows)]
 fn write_logon(task: &Task, root: &Path) -> R<()> {
+    if dev_build(task) {
+        return Ok(());
+    }
     let exe = app_exe()?;
     let user = current_user()?;
     // Task Scheduler reads a UTF-16 file with a byte order mark.
@@ -195,6 +198,9 @@ pub fn apply_logon(task: &Task, _on: bool, _root: &Path) -> R<()> {
 
 #[cfg(windows)]
 fn write(task: &Task, schedule: Option<&str>, root: &Path) -> R<()> {
+    if schedule.is_some() && dev_build(task) {
+        return Ok(());
+    }
     let exe = app_exe()?;
     let args = args(task, schedule, &exe, root);
     // Querying first makes a missing task a success without parsing localized error text.
@@ -234,6 +240,15 @@ pub fn migrate_logon(task: &Task, root: &Path) -> R<()> {
 #[cfg(not(windows))]
 pub fn migrate_logon(_task: &Task, _root: &Path) -> R<()> {
     Ok(())
+}
+
+// A debug build has a console window, so a task pointing at it would open one at every logon.
+#[cfg(windows)]
+fn dev_build(task: &Task) -> bool {
+    if cfg!(debug_assertions) {
+        eprintln!("Debug build: the scheduled {} is not created", task.what);
+    }
+    cfg!(debug_assertions)
 }
 
 #[cfg(windows)]
