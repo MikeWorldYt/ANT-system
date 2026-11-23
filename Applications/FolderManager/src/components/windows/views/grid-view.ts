@@ -51,7 +51,9 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       }
     }
     if (key === folder || parent === folder) return;
-    folder = selectedNode()?.hasChildren ? key : parent;
+    const next = selectedNode()?.hasChildren ? key : parent;
+    // Downloads itself is no node, so a selection left on a deleted entry falls back to its list.
+    folder = next === DOWNLOADS_ROOT && state.virtual === "downloads" ? null : next;
   }
 
   let built: ManageSnapshot | null = null;
