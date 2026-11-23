@@ -67,7 +67,7 @@ export function createMainWindow(app: HTMLElement) {
   const board = createBoardView(panes, panel.editDetails);
   const batchViews = [createBatchView(panes, false), createBatchView(panes, true)];
   const batch = { render: () => batchViews.forEach((b) => b.render()) };
-  const main = el("main", { class: "app-main" }, nav.element, panes, board.element, ...batchViews.map((b) => b.element), ...panel.elements);
+  const main = el("main", { class: "app-main" }, nav.element, nav.handle, panes, board.element, ...batchViews.map((b) => b.element), ...panel.elements);
   app.append(tabBar.element, navigator.element, main, createStatusLine());
   installContextMenu(panes, () => views.current().focus(), viewPicker);
   return { views, toolbar, navigator, tabBar, search, panel, board, batch, nav, openSelected };
