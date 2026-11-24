@@ -7,7 +7,8 @@ import { state, type AccentId, type TextSize, type Theme } from "../../../../ser
 import { ACCENTS } from "../../../../hooks/appearance";
 import { selectControl } from "../../../atoms/select";
 import { switchControl } from "../../../atoms/switch";
-import { dotsControl, segControl } from "../../../molecules/choice-group";
+import { segControl } from "../../../molecules/choice-group";
+import { colorControl } from "../../../molecules/color-choice";
 import type { SettingsPage } from "../page";
 import { railEditor } from "./rail-editor";
 
@@ -34,12 +35,12 @@ export const appearancePage: SettingsPage = {
     {
       title: "Accent color",
       description: "Used for buttons, titles and active states",
-      control: () => dotsControl<AccentId>("Accent color", ACCENTS, state.settings.accent, (value) => void changeSetting("accent", value)),
+      control: () => colorControl<AccentId>("Accent color", ACCENTS, state.settings.accent, (value) => void changeSetting("accent", value)),
     },
     {
       title: "Icon color",
       description: "Used for folder and project icons",
-      control: () => dotsControl<AccentId>("Icon color", ACCENTS, state.settings.iconColor, (value) => void changeSetting("iconColor", value)),
+      control: () => colorControl<AccentId>("Icon color", ACCENTS, state.settings.iconColor, (value) => void changeSetting("iconColor", value)),
     },
     {
       title: "Text size",

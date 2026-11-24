@@ -1,5 +1,6 @@
 // Puts the theme, accent color and text size from the settings onto the page.
 import { state, type AccentId, type TextSize } from "../services/store/state";
+import { isHexColor } from "../services/store/hex-color";
 import { setIconColor } from "../components/atoms/icons";
 
 export const ACCENTS: { value: AccentId; label: string; color: string }[] = [
@@ -9,6 +10,8 @@ export const ACCENTS: { value: AccentId; label: string; color: string }[] = [
   { value: "coral", label: "Coral", color: "#ef7a5c" },
   { value: "gold", label: "Gold", color: "#e5b93c" },
 ];
+
+export const accentColor = (value: string): string | undefined => (isHexColor(value) ? value : ACCENTS.find((a) => a.value === value)?.color);
 
 type Rgb = [number, number, number];
 const toRgb = (hex: string): Rgb => {
@@ -55,12 +58,12 @@ const TEXT_ZOOM: Record<TextSize, string> = { small: "1", medium: "1.1", large: 
 export function applyAppearance(): void {
   const root = document.documentElement;
   const { theme, accent, iconColor, textSize } = state.settings;
-  const color = ACCENTS.find((a) => a.value === accent)?.color ?? "#00b386";
+  const color = accentColor(accent) ?? "#00b386";
   root.dataset.theme = theme;
   const readable = readableAccent(color, theme === "light" || (theme === "system" && lightQuery.matches));
   for (const token of ["--title", "--button", "--accent"]) root.style.setProperty(token, readable);
   root.style.setProperty("--on-accent", onColor(readable));
   // Purple is the color the icons were drawn in, so it keeps their original shading.
-  setIconColor(iconColor === "purple" ? null : (ACCENTS.find((a) => a.value === iconColor)?.color ?? null));
+  setIconColor(iconColor === "purple" ? null : (accentColor(iconColor) ?? null));
   root.style.zoom = TEXT_ZOOM[textSize];
 }
