@@ -1,6 +1,7 @@
 // The Details view's columns beside each name, under a header that sorts, resizes and picks them as Explorer's does.
 import { el } from "../../dom";
-import { notify, setColumnSort, sortOf } from "../../../services/store/state";
+import { keyOf, notify, setColumnSort, sortOf } from "../../../services/store/state";
+import { folderSizeOf } from "../../../services/store/folder-size";
 import { fileTypeName, ownerOf, statusLabel, typeName } from "../../../services/store/node-info";
 import { COLUMNS, isShown, MIN_WIDTH, onColumnsChange, setWidths, shownColumns, toggleColumn, widthOf, type ColumnDef, type ColumnId } from "../../../services/store/details-columns";
 import { closingItem, menuItem, separator } from "../../molecules/menu";
@@ -13,12 +14,12 @@ export const fileKind = (n: TreeNode): string => (n.file ? fileTypeName(n.name) 
 const stamp = (ms: number | null): string => (ms === null ? "" : new Date(ms).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" }));
 
 // Rounded up to whole KB, as Explorer shows it, so a tiny file never reads as 0.
-const size = (bytes: number | null): string => (bytes === null ? "" : `${Math.max(1, Math.ceil(bytes / 1024)).toLocaleString()} KB`);
+export const formatSize = (bytes: number | null): string => (bytes === null ? "" : `${Math.max(1, Math.ceil(bytes / 1024)).toLocaleString()} KB`);
 
 const VALUES: Record<Exclude<ColumnId, "name">, (n: TreeNode) => string> = {
   modified: (n) => stamp(n.stamps.modified),
   type: fileKind,
-  size: (n) => size(n.stamps.size),
+  size: (n) => formatSize(n.stamps.size ?? folderSizeOf(keyOf(n.relParts))),
   created: (n) => stamp(n.stamps.created),
   status: (n) => (n.status ? statusLabel(n.status) : ""),
   owner: (n) => (n.file ? "" : (ownerOf(n) ?? "")),

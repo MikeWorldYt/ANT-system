@@ -7,6 +7,7 @@ pub mod debug_log;
 pub mod downloads;
 pub mod edit;
 pub mod extensions;
+pub mod folder_size;
 pub mod index;
 pub mod intake;
 pub mod mutations;

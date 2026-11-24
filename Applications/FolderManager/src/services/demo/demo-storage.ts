@@ -244,6 +244,7 @@ export function createDemoStorage(): DemoStorage {
           return name.includes(".") ? fileIcon(name) : null;
         }
         case "download_image":
+        case "folder_sizes":
           return null;
         default:
           throw { kind: "internal", message: "Not available in the tutorial." };

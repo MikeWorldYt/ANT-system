@@ -162,6 +162,7 @@ pub fn run() {
             commands::set_link_hidden,
             commands::file_image,
             commands::list_downloads,
+            commands::folder_sizes,
             commands::system_folders,
             commands::open_download,
             commands::copy_downloads,

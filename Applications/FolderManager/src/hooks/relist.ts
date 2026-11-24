@@ -2,6 +2,7 @@
 import * as api from "../services/ipc/api";
 import { findNode, hydrate, keyOf, notify, patchLevels, pruneSelection, state, virtualRoot } from "../services/store/state";
 import { keepChildren, loadUnfoldedLists, loadVirtual, unfoldedRoots } from "../services/store/virtual";
+import { invalidateSizes } from "../services/store/folder-size";
 import { loadOtherVirtual } from "./split";
 import { noteListing } from "./file-trips";
 import { DOWNLOADS_ROOT, SYSTEM_ROOTS, type TreeNode } from "../services/ipc/types";
@@ -54,6 +55,7 @@ export async function relistSystem(only?: string): Promise<boolean> {
 // Resolves to whether any level gained a folder; levels are read one after another so batches never overlap.
 export function relist(parents: string[][], reloadLists = false): Promise<boolean> {
   const run = async (): Promise<boolean> => {
+    invalidateSizes();
     let added = false;
     let changed = false;
     for (const parent of parents) {

@@ -16,6 +16,7 @@ import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, virtualRoot, type Settings } from "../services/store/state";
 import { sortedForColumns } from "../services/store/sort";
 import { loadVirtual, virtualNodes } from "../services/store/virtual";
+import { invalidateSizes } from "../services/store/folder-size";
 import { saveReviewFilter } from "../services/store/review-list";
 import { outputOf } from "../services/store/node-info";
 import { goToPlace, toggleBoard } from "./virtual-nav";
@@ -28,6 +29,7 @@ import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDir
 
 async function reload(snapshot?: TreeSnapshot, full = true): Promise<void> {
   markRefreshed();
+  invalidateSizes();
   const tree = snapshot ?? (await api.refresh(full));
   setTree(tree);
   if (tree.warnings.length > 0) setStatus("warning", tree.warnings.join(". "));

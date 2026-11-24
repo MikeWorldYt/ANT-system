@@ -1,5 +1,6 @@
 // Pure list ordering shared by the store and the columns view.
 import { STATUSES } from "./node-info";
+import { folderSizeOf } from "./folder-size";
 import { inSystem, type TreeNode } from "../ipc/types";
 
 export type SortBy = "track" | "name" | "status" | "modified" | "created" | "size";
@@ -25,10 +26,10 @@ const sortValue: Record<SortBy, (n: TreeNode) => string | number> = {
   track: () => 0,
   name: (n) => (n.editableName || n.name).toLocaleLowerCase(),
   status: statusRank,
-  // Ghosts, links and folders have no size or stamp, so they sort as the smallest.
+  // Ghosts and links have no size or stamp, and a folder has one only once its total is known, so they sort as the smallest.
   modified: (n) => n.stamps.modified ?? -1,
   created: (n) => n.stamps.created ?? -1,
-  size: (n) => n.stamps.size ?? -1,
+  size: (n) => n.stamps.size ?? folderSizeOf(n.relParts.join("/")) ?? -1,
 };
 
 const isPortfolio = (n: TreeNode): boolean => n.nodeType?.base === "OUT";

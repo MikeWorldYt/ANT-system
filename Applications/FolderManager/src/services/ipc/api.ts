@@ -69,6 +69,8 @@ export const listChildren = async (relParts: string[]): Promise<TreeNode[]> => {
   const nodes = await (inSystem(relParts) ? call<TreeNode[]>("list_downloads", native(relParts)) : call<TreeNode[]>("list_children", { relParts }));
   return hiddenItemsShown() ? nodes : nodes.filter((n) => !n.concealed);
 };
+// Answers arrive as folder-size events, one per folder, while the call runs.
+export const folderSizes = (targets: string[][]) => call<void>("folder_sizes", { targets });
 export const renameNode = (relParts: string[], newEditable: string) =>
   call<Mutation>("rename_node", { relParts, newEditable });
 export const setNodeType = (relParts: string[], typeBase: EditableType, status: WkbStatus | null) =>

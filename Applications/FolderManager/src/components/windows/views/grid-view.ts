@@ -20,6 +20,7 @@ import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import { isTemplatesHome, newTemplateItem } from "../../molecules/new-template-item";
 import type { ViewMode } from "./view-mode";
+import { requestFolderSizes } from "../../../hooks/folder-sizes";
 import { detailCells, detailsHeader, entryCells, detailTemplate, fileKind } from "./details-cells";
 
 // One line under each root tile in the grid says what it is for, so a new Storage explains itself.
@@ -257,6 +258,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus({ preventScroll: true });
       loadChildren();
+      if (columns) requestFolderSizes(nodes);
     },
     focus() {
       root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus();
