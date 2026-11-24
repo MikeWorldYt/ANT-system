@@ -356,6 +356,11 @@ export function select(parts: string[] | null): void {
 export function clickSelect(parts: string[], siblings: string[], mods: { ctrl: boolean; shift: boolean }): void {
   const key = keyOf(parts);
   const anchor = state.selectedKey;
+  // Level 1 folders are picked one at a time.
+  if (parts.length === 1) {
+    select(parts);
+    return;
+  }
   if (mods.shift && anchor !== null && siblings.includes(anchor) && siblings.includes(key)) {
     const a = siblings.indexOf(anchor);
     const b = siblings.indexOf(key);
