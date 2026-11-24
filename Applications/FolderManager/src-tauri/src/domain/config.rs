@@ -54,6 +54,8 @@ pub const WKB_IDENTIFIERS: &[&str] = &["PJ.", "PR.", "HW.", "CR.", "TK."];
 pub const SUPPORT_NODES: &[(&str, &str, &str)] = &[("RES.", "90.", "RES"), ("TPL.", "97.", "TPL"), ("REV.", "98.", "REV")];
 pub const REVIEW_PREFIX: &str = "REV.";
 // Media folders: the word prefix of a category's folder, the type it gives, and the global folder at the root.
+// The root folder whose subfolders are worknode templates, named "<identifier><Title>" such as "PJ.Video-Short".
+pub const TEMPLATES_ROOT: &str = "ANT.TEMPLATES";
 pub const MEDIA_NODES: &[(&str, &str, &str)] = &[("SS.", "SS", "ANT.SCREENSHOTS"), ("REC.", "REC", "ANT.RECORDINGS")];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -3,6 +3,7 @@ import { sortedForColumns } from "../services/store/sort";
 import { isReviewRoot } from "../services/store/node-info";
 import { findNode, keyOf, listed, sortOf, state } from "../services/store/state";
 import { virtualNodes } from "../services/store/virtual";
+import { isTemplatesHome } from "../components/molecules/new-template-item";
 import type { TreeNode } from "../services/ipc/types";
 
 export interface Column {
@@ -31,9 +32,16 @@ export function buildColumns(opened: string | null): Column[] {
   const cols: Column[] = [{ nodes: sorted(rootNodes, null), loading: false, parent: null, listing: false, pathKey: state.virtual === null ? (chain[0] ?? null) : null }];
   // An open virtual entry lists its folders beside the root, wherever they live, and its path continues from there.
   if (state.virtual !== null) cols.push({ nodes: virtualNodes(), loading: false, parent: null, listing: true, pathKey: chain[0] ?? null });
+  // Review entries are shortcuts: they lead to their folder in the tree instead of listing it beside the list.
+  if (state.virtual === "review") return cols;
   for (const [i, key] of chain.entries()) {
     const open = findNode(key.split("/"));
-    if (!open || !open.hasChildren) break;
+    if (!open) break;
+    // An empty templates folder still opens, so its column shows the row that creates the first template.
+    if (!open.hasChildren) {
+      if (isTemplatesHome(open) && key === opened) cols.push({ nodes: [], loading: false, parent: open, listing: false, pathKey: null });
+      break;
+    }
     // The review folder's list stays open while it is selected, so its filter legend has a column to sit in.
     if (key === state.selectedKey && key !== opened && !isReviewRoot(open)) break;
     if (open.children === null) {

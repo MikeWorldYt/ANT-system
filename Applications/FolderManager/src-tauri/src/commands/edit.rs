@@ -107,6 +107,11 @@ pub async fn set_outcome_default(app: AppHandle, rel_parts: Vec<String>, key: St
 }
 
 #[tauri::command]
+pub async fn create_template(app: AppHandle, identifier: String, name: String, description: Option<String>) -> R<Vec<String>> {
+    run_locked(app, move |root| mutations::create_template(root, &identifier, &name, description.as_deref())).await
+}
+
+#[tauri::command]
 pub async fn set_node_output(app: AppHandle, rel_parts: Vec<String>, output: Option<String>) -> R<Mutation> {
     run_search_indexed(app, move |root| mutations::set_output(root, &rel_parts, output.as_deref())).await
 }

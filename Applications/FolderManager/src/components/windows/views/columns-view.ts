@@ -12,7 +12,7 @@ import { sortedForColumns, isTailNode } from "../../../services/store/sort";
 import { buildColumns, type Column } from "../../../hooks/column-model";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
-import { findNode, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, startEdit, state, type VirtualId } from "../../../services/store/state";
+import { findNode, keyOf, leaveVirtual, listed, reveal as revealPath, select, selectedNode, sortOf, startEdit, state, type VirtualId } from "../../../services/store/state";
 import { reviewFilter, reviewGroup } from "../../../services/store/review-list";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
@@ -21,6 +21,7 @@ import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-it
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import type { ViewMode } from "./view-mode";
+import { isTemplatesHome, newTemplateItem } from "../../molecules/new-template-item";
 
 // Why an empty column is empty: a filter hides the review list, or the folder has no content.
 function emptyLegend(parent: TreeNode | null): string | null {
@@ -51,7 +52,17 @@ export function createColumnsView(): ViewMode {
     select(n.relParts);
   }
 
+  async function goTo(n: TreeNode): Promise<void> {
+    openKey = keyOf(n.relParts);
+    leaveVirtual();
+    await revealPath(n.relParts);
+  }
+
   function pick(n: TreeNode): void {
+    if (state.virtual === "review" && !n.file) {
+      void goTo(n);
+      return;
+    }
     if (n.hasChildren && state.settings.autoOpenColumns) openColumn(n);
     else select(n.relParts);
   }
@@ -125,17 +136,26 @@ export function createColumnsView(): ViewMode {
       const item = buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey, siblings);
       return groupStart || tailStart ? [el("div", { class: "col-sep", role: "separator" }), item] : [item];
     });
+    const creator = !listing && isTemplatesHome(parentNode) ? newTemplateItem(parentNode, "col-item", "option") : null;
     column.append(
       ...(listing ? [] : [columnSortToggle(column.dataset.key ?? "")]),
       ...(managed ? [manageHeader("col-item")] : []),
+      ...(creator ? [creator] : []),
       ...(index === 0 ? placeEntries(virtualEntries("col-item", "option", { tabbable: state.selectedKey === null, marker: "chevron" }), rows, sepCut(rows)) : rows),
-      ...(legend ? [el("p", { class: "column-legend" }, legend)] : []),
+      ...(legend && !creator ? [el("p", { class: "column-legend" }, legend)] : []),
     );
     return column;
   }
 
 
   async function enterChildren(n: TreeNode): Promise<void> {
+    if (state.virtual === "review") return goTo(n);
+    if (!n.hasChildren) {
+      if (!isTemplatesHome(n)) return;
+      openColumn(n);
+      requestAnimationFrame(() => root.querySelector<HTMLElement>(".new-template")?.focus());
+      return;
+    }
     if (n.children === null) await expand(n);
     const first = sortedForColumns(listed(n.children ?? []), sortOf(keyOf(n.relParts)), state.settings.pinFavorites)[0];
     if (first) select(first.relParts);
@@ -215,7 +235,8 @@ export function createColumnsView(): ViewMode {
     };
     const move = (j: number) => {
       const target = at(j);
-      if (target) pick(target);
+      // Stepping through the review list only selects; Enter or Right goes to the folder.
+      if (target) state.virtual === "review" ? select(target.relParts) : pick(target);
     };
     switch (ev.key) {
       // The ends wrap around, so the last row leads back to the first and the first to the last.
@@ -233,7 +254,7 @@ export function createColumnsView(): ViewMode {
         move(siblings.length - 1);
         break;
       case "ArrowRight":
-        if (n?.hasChildren) void enterChildren(n);
+        if (n) void enterChildren(n);
         break;
       case "ArrowLeft": {
         // A listed entry steps back to its virtual list, not to the real folder it lives in.
@@ -251,6 +272,7 @@ export function createColumnsView(): ViewMode {
         break;
       case "Enter":
         if (n?.file) void openFolder(n);
+        else if (n) void enterChildren(n);
         else go(Math.max(i, 0));
         break;
       case " ":

@@ -18,12 +18,13 @@ import { openEntry, placeEntries, rootEntries, virtualEntries, type VirtualEntry
 import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
 import { DOWNLOADS_ROOT, type TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
+import { isTemplatesHome, newTemplateItem } from "../../molecules/new-template-item";
 import type { ViewMode } from "./view-mode";
 import { detailCells, detailsHeader, fileKind } from "./details-cells";
 
 // One line under each root tile in the grid says what it is for, so a new Storage explains itself.
 const ENTRY_HINTS: Record<string, string> = { favorites: "Pinned folders", downloads: "Your downloads", review: "Files to sort" };
-const ROOT_HINTS: Record<string, string> = { REC: "Screen recordings", SS: "Captures" };
+const ROOT_HINTS: Record<string, string> = { REC: "Screen recordings", SS: "Captures", TPL: "Worknode templates" };
 const rootHint = (n: TreeNode): string | null => (n.file ? null : (ROOT_HINTS[n.nodeType?.base ?? ""] ?? (isMainCategory(n) ? "Your area" : null)));
 const hintLine = (text: string) => el("span", { class: "tile-hint" }, text);
 
@@ -232,7 +233,8 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
           if (hint) tile.append(hintLine(hint));
         }
       }
-      root.replaceChildren(...header, ...placed, ...(legend ? [el("p", { class: "grid-legend" }, legend)] : []));
+      const creator = !listing && isTemplatesHome(open) ? [newTemplateItem(open, "grid-item", "option")] : [];
+      root.replaceChildren(...header, ...creator, ...placed, ...(legend && creator.length === 0 ? [el("p", { class: "grid-legend" }, legend)] : []));
       built = manageSnapshot();
       showMark();
       root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });

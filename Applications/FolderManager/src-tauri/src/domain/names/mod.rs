@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::domain::config::{MEDIA_NODES, SUPPORT_NODES, WKB_IDENTIFIERS};
+use crate::domain::config::{MEDIA_NODES, SUPPORT_NODES, TEMPLATES_ROOT, WKB_IDENTIFIERS};
 use crate::domain::tree_types::type_base;
 
 pub(crate) const FORBIDDEN: &[char] = &['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
@@ -85,7 +85,7 @@ pub fn is_system_root_name(name: &str) -> bool {
 }
 
 pub fn is_valid_root_name(name: &str) -> bool {
-    is_main_category(name) || is_system_root_name(name) || is_global_media(name)
+    is_main_category(name) || is_system_root_name(name) || is_global_media(name) || name.eq_ignore_ascii_case(TEMPLATES_ROOT)
 }
 
 pub fn is_global_media(name: &str) -> bool {
@@ -94,6 +94,9 @@ pub fn is_global_media(name: &str) -> bool {
 
 // The type a support folder gives ("REV", "RES", "TPL"): the word prefix in any case, or the numeric one of older storages.
 pub fn support_kind(name: &str) -> Option<&'static str> {
+    if name.eq_ignore_ascii_case(TEMPLATES_ROOT) {
+        return Some("TPL");
+    }
     let has_word = |word: &str| name.get(..word.len()).is_some_and(|head| head.eq_ignore_ascii_case(word));
     let media = MEDIA_NODES.iter().find_map(|(word, kind, global)| (has_word(word) || name.eq_ignore_ascii_case(global)).then_some(*kind));
     media.or_else(|| SUPPORT_NODES.iter().find_map(|(word, legacy, kind)| (has_word(word) || name.starts_with(legacy)).then_some(*kind)))

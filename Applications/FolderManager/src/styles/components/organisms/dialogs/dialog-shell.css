@@ -27,6 +27,9 @@ dialog.warning-confirm form { position: relative; }
 .warning-confirm .dialog-buttons { margin-top: 24px; }
 .dialog-text { white-space: pre-line; }
 .dialog-input { width: 100%; padding: 8px; font: inherit; color: var(--text); background: var(--field-bg); border: 1px solid transparent; border-radius: var(--radius-sm); }
+.dialog-fields { display: grid; gap: 10px; }
+.dialog-field { display: grid; gap: 4px; font-size: var(--fs-label); color: var(--muted); }
+textarea.dialog-input { resize: vertical; }
 .dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .warning-skip { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
 .warning-skip input { accent-color: var(--accent); }

@@ -78,7 +78,8 @@ pub fn add_node_named(root: &Path, parent: &[String], kind: NewKind, name: Optio
     let new_name = if parent.is_empty() {
         format!("{:03}.{}", next_main_category_id(&taken), named.unwrap_or("NEW-CATEGORY"))
     } else if worknode {
-        format!("PJ.{:03}_{}", next_track_number("PJ.", &taken), named.unwrap_or("New-Worknode"))
+        let id = super::automations::default_template(root, &target.abs, parent_yaml).map_or("PJ.", |t| super::automations::template_identifier(&t));
+        format!("{id}{:03}_{}", next_track_number(id, &taken), named.unwrap_or("New-Worknode"))
     } else {
         format!("{:02}.{}", next_available_id(&taken), named.unwrap_or("New-Node"))
     };
@@ -121,7 +122,7 @@ pub fn add_node_named(root: &Path, parent: &[String], kind: NewKind, name: Optio
     if let Err(e) = mark_folder(&new_abs, worknode, parent.last().map_or("", String::as_str)) {
         warnings.push(format!("Could not set up {DATA_DIR}: {e}"));
     } else if worknode {
-        let defaults = get_node(&data, parent).map_or(Ok(()), |node| super::automations::apply_defaults(&target.abs, node, &new_abs));
+        let defaults = get_node(&data, parent).map_or(Ok(()), |node| super::automations::apply_defaults(root, &target.abs, node, &new_abs));
         if let Err(e) = defaults {
             warnings.push(format!("Could not apply the Outcomes defaults: {e}"));
         }

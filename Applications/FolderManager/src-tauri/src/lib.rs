@@ -142,6 +142,7 @@ pub fn run() {
             commands::set_node_details,
             commands::set_node_output,
             commands::set_outcome_default,
+            commands::create_template,
             commands::deliver_output,
             commands::restore_output,
             commands::set_node_hidden,

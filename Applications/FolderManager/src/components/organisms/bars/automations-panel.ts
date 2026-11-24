@@ -3,13 +3,14 @@ import { el } from "../../dom";
 import { selectBox } from "../../atoms/select";
 import { textInput } from "../../atoms/text-input";
 import { setOutcomeDefault } from "../../../hooks/ops";
-import { suggestSearch } from "../../../services/ipc/api";
+import { listChildren, suggestSearch } from "../../../services/ipc/api";
 import { STATUSES } from "../../../services/store/node-info";
-import { keyOf, selectedNode } from "../../../services/store/state";
+import { keyOf, selectedNode, state } from "../../../services/store/state";
 import { reportError } from "./status-line";
 import type { TreeNode } from "../../../services/ipc/types";
 
 const fieldOf = (n: TreeNode, key: string): string => n.info?.fields.find((f) => f.key === key)?.value ?? "";
+const TEMPLATES_ROOT = "ANT.TEMPLATES";
 const row = (id: string, label: string, control: HTMLElement) => el("div", { class: "detail-field" }, el("dt", { id }, label), el("dd", {}, control));
 
 export function createAutomationsPanel(): { element: HTMLElement; render(): void } {
@@ -44,7 +45,19 @@ export function createAutomationsPanel(): { element: HTMLElement; render(): void
       })
       .catch((e: unknown) => reportError("warning", e));
 
-    list.replaceChildren(row("auto-output", "Default output", output), row("auto-status", "Default status", status), row("auto-owner", "Default owner", owner));
+    // Each folder of ANT.TEMPLATES is one template; a saved one whose folder is gone stays listed so the choice shows.
+    const chosen = fieldOf(n, "defaultTemplate");
+    const template = selectBox("Default template", [["", "None"], ...(chosen ? [[chosen, chosen] as [string, string]] : [])], "details-input");
+    template.setAttribute("aria-labelledby", "auto-template");
+    template.value = chosen;
+    template.addEventListener("change", () => void setOutcomeDefault(n, "defaultTemplate", template.value || null));
+    const home = state.tree?.nodes.find((t) => t.name.toUpperCase() === TEMPLATES_ROOT);
+    if (home)
+      void listChildren(home.relParts)
+        .then((kids) => template.append(...kids.filter((k) => !k.file && k.name !== chosen).map((k) => el("option", { value: k.name }, k.name))))
+        .catch((e: unknown) => reportError("warning", e));
+
+    list.replaceChildren(row("auto-output", "Default output", output), row("auto-status", "Default status", status), row("auto-owner", "Default owner", owner), row("auto-template", "Default template", template));
   }
 
   function render(): void {
@@ -56,7 +69,7 @@ export function createAutomationsPanel(): { element: HTMLElement; render(): void
       return;
     }
     // Rebuilt only when the folder or its saved values change, so a field being typed in keeps its text.
-    const key = `${keyOf(n.relParts)}|${fieldOf(n, "defaultOutput")}|${fieldOf(n, "defaultStatus")}|${fieldOf(n, "defaultOwner")}`;
+    const key = `${keyOf(n.relParts)}|${fieldOf(n, "defaultOutput")}|${fieldOf(n, "defaultStatus")}|${fieldOf(n, "defaultOwner")}|${fieldOf(n, "defaultTemplate")}`;
     if (key === built) return;
     built = key;
     build(n);
