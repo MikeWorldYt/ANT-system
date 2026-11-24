@@ -51,7 +51,7 @@ export function createMainWindow(app: HTMLElement) {
     },
   };
   const toolbar = createToolbar(viewPicker);
-  const navigator = createNavigator();
+  const navigator = createNavigator(() => views.current().openFolder?.());
   bindPanes({ host, views: leftViews }, { host: rightHost, views: rightViews }, navigator);
   bindTabs(navigator, views);
   const tabBar = createTabBar();

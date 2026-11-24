@@ -30,6 +30,8 @@ interface Tab {
   split: Split | null;
   batch?: ParkedBatch | null;
   replay?: ParkedReplay | null;
+  // The folder the view shows, which differs from the selection; undefined when the view has no single folder.
+  shown?: string | null;
 }
 
 export interface TabView {
@@ -43,6 +45,10 @@ const PREF = "fm.tabs";
 let navigator: TabNavigator | null = null;
 let views: Pick<ViewSwitcher, "current" | "switchTo"> | null = null;
 const currentView = () => views?.current().id ?? "";
+const shownFolder = (): string | null | undefined => {
+  const open = views?.current().openFolder?.();
+  return open === undefined ? undefined : open && keyOf(open.relParts);
+};
 const newTab = (place: Place, expanded: Set<string>, view = currentView()): Tab => ({ place, expanded, trail: { history: [], at: -1 }, view, split: null });
 
 let tabs: Tab[] = [newTab(currentPlace(), state.expanded)];
@@ -99,6 +105,7 @@ export function syncTabs(): void {
     tab.place = currentPlace();
     tab.view = currentView();
     tab.split = currentSplit();
+    tab.shown = shownFolder();
   }
   saveTabs();
 }
@@ -205,9 +212,10 @@ export function closeTab(index = active): void {
 }
 
 // A tab names where it stands, not what is selected: the project around the selection, else the folder holding it.
-function labelOf(place: Place): string {
-  if (place.key !== null) {
-    const parts = place.key.split("/");
+function labelOf(place: Place, shown?: string | null): string {
+  const key = shown === undefined ? place.key : shown;
+  if (key !== null) {
+    const parts = key.split("/");
     const project = parts.findIndex((_, i) => {
       const n = findNode(parts.slice(0, i + 1));
       return n !== null && n !== undefined && isWorknode(n);
@@ -221,7 +229,7 @@ function labelOf(place: Place): string {
 }
 
 export const tabViews = (): TabView[] =>
-  tabs.map((t, i) => ({ label: labelOf(t.place), title: t.place.key ?? labelOf(t.place), active: i === active, split: t.split ? (t.split.right ? "right" : "left") : null }));
+  tabs.map((t, i) => ({ label: labelOf(t.place, t.shown), title: (t.shown === undefined ? t.place.key : t.shown) ?? labelOf(t.place, t.shown), active: i === active, split: t.split ? (t.split.right ? "right" : "left") : null }));
 
 export const tabStates = () =>
   tabs.map((t, i) => ({ label: labelOf(t.place), relParts: t.place.key?.split("/") ?? [], virtual: t.place.virtual, view: t.view, active: i === active }));

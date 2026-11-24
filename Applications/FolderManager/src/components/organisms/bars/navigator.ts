@@ -9,6 +9,7 @@ import { goToPlace, openVirtual } from "../../../hooks/virtual-nav";
 import { openEntry } from "../../molecules/virtual-entry";
 import { reportError } from "./status-line";
 import type { Trail } from "../../../hooks/tabs";
+import type { TreeNode } from "../../../services/ipc/types";
 import { currentSplit, focusPane, paneOn, type Split } from "../../../hooks/split";
 
 interface Crumb {
@@ -17,7 +18,7 @@ interface Crumb {
   depth?: number;
 }
 
-export function createNavigator(): { element: HTMLElement; render(): void; editPath(): void; goUp(): void; trail(): Trail; setTrail(trail: Trail): void; enter(trail: Trail, place: Place): Promise<void> } {
+export function createNavigator(shownFolder: () => TreeNode | null | undefined): { element: HTMLElement; render(): void; editPath(): void; goUp(): void; trail(): Trail; setTrail(trail: Trail): void; enter(trail: Trail, place: Place): Promise<void> } {
   let history: Place[] = [];
   let at = -1;
   // Restoring a place passes through others (the entry, its favorite), which must not become entries.
@@ -151,13 +152,14 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
 
   // Inside a virtual entry the trail runs through it and the entry the selection went through, not the real folders.
   function trail(): Crumb[] {
-    // A selected file cannot be opened as a folder, so the trail ends at the folder that holds it.
-    const parts = (state.selectedKey?.split("/") ?? []).slice(0, selectedNode()?.file ? -1 : undefined);
+    // The trail is the folder on screen; a view with no single folder falls back to the selection, minus a selected file.
+    const shown = shownFolder();
+    const parts = shown !== undefined ? (shown?.relParts ?? []) : (state.selectedKey?.split("/") ?? []).slice(0, selectedNode()?.file ? -1 : undefined);
     const crumb = (end: number): Crumb => ({ label: parts[end - 1] ?? "", go: () => select(parts.slice(0, end)), depth: end });
     const entry = openEntry();
     if (entry === null) return parts.map((_, i) => crumb(i + 1));
     const head: Crumb = { label: entry.label, go: () => void openVirtual(entry.id) };
-    if (state.via === null) return [head];
+    if (state.via === null || parts.length === 0) return [head];
     const from = state.via.split("/").length;
     return [head, ...parts.slice(from - 1).map((_, i) => crumb(from + i))];
   }
