@@ -13,8 +13,15 @@ export const fileKind = (n: TreeNode): string => (n.file ? fileTypeName(n.name) 
 
 const stamp = (ms: number | null): string => (ms === null ? "" : new Date(ms).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" }));
 
-// Rounded up to whole KB, as Explorer shows it, so a tiny file never reads as 0.
-export const formatSize = (bytes: number | null): string => (bytes === null ? "" : `${Math.max(1, Math.ceil(bytes / 1024)).toLocaleString()} KB`);
+// KB rounds up so a tiny file never reads as 0; decimals use a comma, as the user reads them.
+export const formatSize = (bytes: number | null): string => {
+  if (bytes === null) return "";
+  const kb = Math.max(1, Math.ceil(bytes / 1024));
+  if (kb < 1024) return `${kb.toLocaleString("es")} KB`;
+  let value = kb / 1024, unit = 0;
+  while (value >= 1024 && unit < 2) { value /= 1024; unit++; }
+  return `${value.toLocaleString("es", { maximumFractionDigits: 1 })} ${["MB", "GB", "TB"][unit]}`;
+};
 
 const VALUES: Record<Exclude<ColumnId, "name">, (n: TreeNode) => string> = {
   modified: (n) => stamp(n.stamps.modified),
