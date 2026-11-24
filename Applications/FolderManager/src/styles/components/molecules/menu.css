@@ -35,3 +35,7 @@
 .ctx-iconed > .ctx-icon.ctx-icon-flip { transform: translateY(-50%) rotate(180deg); }
 .ctx-iconed[aria-checked="true"] > .ctx-icon { color: var(--accent); }
 .ctx-iconed > .ctx-lead { width: 16px; height: 16px; }
+.ctx-check { padding-left: 30px; }
+.ctx-item.ctx-check[aria-checked="true"] { background: none; box-shadow: none; }
+.ctx-item.ctx-check[aria-checked="true"]::before { content: "✓"; position: absolute; left: 11px; color: var(--accent); }
+.ctx-item.ctx-check:hover, .ctx-item.ctx-check:focus-visible { background: var(--highlight); }

@@ -20,7 +20,7 @@ import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import { isTemplatesHome, newTemplateItem } from "../../molecules/new-template-item";
 import type { ViewMode } from "./view-mode";
-import { detailCells, detailsHeader, fileKind } from "./details-cells";
+import { detailCells, detailsHeader, detailTemplate, fileKind } from "./details-cells";
 
 // One line under each root tile in the grid says what it is for, so a new Storage explains itself.
 const ENTRY_HINTS: Record<string, string> = { favorites: "Pinned folders", downloads: "Your downloads", review: "Files to sort", documents: "System documents", pictures: "System pictures", music: "System music", videos: "System videos", desktop: "System desktop" };
@@ -97,10 +97,13 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
     if (n.favorite) art.append(favoriteMark());
     if (n.important) art.append(importantMark());
     if (n.status) art.append(statusMark(n.status));
-    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, detail ? el("div", { class: "card-text" }, nameCell(n, false), el("span", { class: "card-detail" }, detail(n))) : nameCell(n, false, false, !columns));
+    const lead = [...hideBox(n), art, detail ? el("div", { class: "card-text" }, nameCell(n, false), el("span", { class: "card-detail" }, detail(n))) : nameCell(n, false, false, !columns)];
+    // In Details the icon, its marks and the name share the Name column, so every row lines up under the header.
+    const leadBox = columns ? el("span", { class: "detail-lead" }, ...lead) : null;
+    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...(leadBox ? [leadBox] : lead));
     if (columns) item.append(...detailCells(n));
     markNodeItem(item, n);
-    item.prepend(...manageBox(n, item));
+    (leadBox ?? item).prepend(...manageBox(n, item));
     onItemClick(item, n, () => shownNodes().map((s) => keyOf(s.relParts)), () => select(n.relParts));
     // As in Explorer, a double click opens; the name renames on a slow second click.
     item.addEventListener("dblclick", () => (n.file ? openOnDouble(n) : enter(n)));
@@ -221,7 +224,9 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       const open = folderNode();
       const empty = nodes.length === 0 && open !== null && open.children !== null;
       const legend = listing && nodes.length === 0 ? listing.empty : empty ? "Empty" : null;
-      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns ? [detailsHeader(folder ?? virtualRoot(state.virtual) ?? "")] : [])];
+      const columnKey = folder ?? virtualRoot(state.virtual) ?? "";
+      if (columns) root.style.setProperty("--detail-cols", detailTemplate(columnKey));
+      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns ? [detailsHeader(columnKey)] : [])];
       const entryOptions = { tabbable: entryTabbable, mark: markEntry };
       const items = nodes.map((n) => buildItem(n, n === tabbable));
       const tail = nodes.findIndex((n) => !n.file && isTail(n.name));
