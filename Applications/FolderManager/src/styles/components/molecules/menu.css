@@ -11,8 +11,8 @@
 .ctx-node > .ctx-item.ctx-favorite-add > .gui-icon { color: var(--st-progress); }
 .ctx-node > .ctx-item.ctx-important-add > .gui-icon { color: var(--accent); }
 .ctx-item {
-  display: block; position: relative; width: 100%; padding: 6px 14px; border: 0; background: transparent;
-  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  display: block; position: relative; width: 100%; padding: 4px 14px; border: 0; background: transparent;
+  color: var(--text); font: inherit; font-size: 0.93em; text-align: left; cursor: pointer;
 }
 .ctx-item:focus-visible { outline-offset: -2px; }
 .ctx-item:hover, .ctx-item:focus-visible { background: var(--highlight); }
@@ -30,7 +30,7 @@
 .ctx-status[aria-checked="true"]::before { content: none; }
 .ctx-status[aria-checked="true"] { background: var(--highlight); box-shadow: inset 3px 0 0 var(--st); font-weight: 600; }
 .ctx-menu[role="listbox"] .ctx-item[aria-disabled="true"] { padding-left: 10px; }
-.ctx-sep { height: 1px; margin: 4px 0; background: var(--border); }
+.ctx-sep { height: 1px; margin: 3px 0; background: var(--border); }
 .ctx-iconed > .ctx-icon { position: absolute; left: 9px; top: 50%; width: 14px; height: 14px; transform: translateY(-50%); color: var(--muted); }
 .ctx-iconed > .ctx-icon.ctx-icon-flip { transform: translateY(-50%) rotate(180deg); }
 .ctx-iconed[aria-checked="true"] > .ctx-icon { color: var(--accent); }
