@@ -3,7 +3,6 @@ import { sortedForColumns } from "../services/store/sort";
 import { isReviewRoot } from "../services/store/node-info";
 import { findNode, keyOf, listed, sortOf, state } from "../services/store/state";
 import { virtualNodes } from "../services/store/virtual";
-import { isTemplatesHome } from "../components/molecules/new-template-item";
 import type { TreeNode } from "../services/ipc/types";
 
 export interface Column {
@@ -35,9 +34,9 @@ export function buildColumns(opened: string | null): Column[] {
   for (const [i, key] of chain.entries()) {
     const open = findNode(key.split("/"));
     if (!open) break;
-    // An empty templates folder still opens, so its column shows the row that creates the first template.
+    // An empty folder still opens when entered, so its column says it is empty.
     if (!open.hasChildren) {
-      if (isTemplatesHome(open) && key === opened) cols.push({ nodes: [], loading: false, parent: open, listing: false, pathKey: null });
+      if (!open.file && key === opened) cols.push({ nodes: [], loading: false, parent: open, listing: false, pathKey: null });
       break;
     }
     // The review folder's list stays open while it is selected, so its filter legend has a column to sit in.

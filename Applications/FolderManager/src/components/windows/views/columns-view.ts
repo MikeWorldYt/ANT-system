@@ -140,15 +140,16 @@ export function createColumnsView(): ViewMode {
 
 
   async function enterChildren(n: TreeNode): Promise<void> {
+    if (n.file) return;
     if (!n.hasChildren) {
-      if (!isTemplatesHome(n)) return;
       openColumn(n);
-      requestAnimationFrame(() => root.querySelector<HTMLElement>(".new-template")?.focus());
+      if (isTemplatesHome(n)) requestAnimationFrame(() => root.querySelector<HTMLElement>(".new-template")?.focus());
       return;
     }
     if (n.children === null) await expand(n);
     const first = sortedForColumns(listed(n.children ?? []), sortOf(keyOf(n.relParts)), state.settings.pinFavorites)[0];
     if (first) select(first.relParts);
+    else openColumn(n);
   }
 
   // The entries sit between the root folders, so the root column steps in the order it is drawn.

@@ -46,7 +46,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
     const parent = parts.length > 1 ? parts.slice(0, -1).join("/") : null;
     if (key === state.entering) {
       state.entering = null;
-      if (selectedNode()?.hasChildren) {
+      if (selectedNode()?.file === false) {
         folder = key;
         return;
       }
@@ -80,7 +80,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
   }
 
   function enter(n: TreeNode): void {
-    if (!n.hasChildren) return;
+    if (n.file) return;
     folder = keyOf(n.relParts);
     select(n.relParts);
   }
