@@ -2,7 +2,7 @@
 import { el } from "../../dom";
 import { iconButton } from "../../atoms/icon-button";
 import { closeSplit, openSplit } from "../../../hooks/split";
-import { closingItem } from "../../molecules/menu";
+import { closingItem, menuIcon } from "../../molecules/menu";
 import { openMenuWith } from "../menus/context-menu";
 import { closeTab, duplicateTab, moveTab, openTab, selectTab, tabViews, type TabView } from "../../../hooks/tabs";
 
@@ -21,6 +21,10 @@ function tabMenu(ev: MouseEvent, index: number, split: boolean): void {
   openMenuWith((close) => {
     const action = closingItem(close);
     const items = [action("Split tab", !split, openSplit), action("Duplicate tab", true, () => duplicateTab(index))];
+    for (const [item, icon] of [[items[0], "split"], [items[1], "duplicate"]] as const) {
+      item?.classList.add("ctx-iconed");
+      item?.prepend(menuIcon(icon));
+    }
     return { items, subs: [], content: items };
   }, "Tab", ev.clientX, ev.clientY, () => undefined);
 }

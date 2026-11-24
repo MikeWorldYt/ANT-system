@@ -1,6 +1,8 @@
 // Context menu shared by every view; item enablement comes only from node.actions.
 import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
+import { kindIcon } from "../../atoms/icons";
+import { menuKeys } from "../tooltip/tooltip";
 import { statusIcon } from "../../atoms/status-mark";
 import { importantLabel, isWorknode, ownerOf, STATUSES, TYPES } from "../../../services/store/node-info";
 import { hideMany, hideNode, remove, removeDownloads, removeMany, setDetails, setFavorite, setFavorites, setImportant, setLinkHidden, setManyDetails, setType, setUserFlag } from "../../../hooks/ops";
@@ -11,7 +13,7 @@ import { openTab } from "../../../hooks/tabs";
 import { copyPath, openFolder, openInApp, openInSplit } from "../../../hooks/path-actions";
 import { isSelected, keyOf, selectedNodes, startEdit, state } from "../../../services/store/state";
 import { menuItems, runMenuItem } from "../../../extensions/host";
-import { autoDismiss, focusInitial, closingItem, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
+import { autoDismiss, menuIcon, focusInitial, closingItem, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
 import { boardMenu, type MenuParts } from "./board-menu";
 import type { ViewPicker } from "../bars/toolbar";
 import { allInSystem } from "../../../services/store/system-folders";
@@ -129,9 +131,14 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     return { items: [open, copyPathItem, favorite, ...hideItems, copy], subs: [], content: [open, copyPathItem, favorite, ...hideItems, separator(), copy] };
   }
   const shortcut = action("Create shortcut", true, () => void createShortcut(node));
+  for (const [item, icon] of [[rename, "pencil"], [copy, "duplicate"], [cut, "cut"], [shortcut, "link"]] as const) item.prepend(guiIcon(icon));
   const openHere = action("Open", true, () => void openInApp(node));
   const newTab = action("Open in new tab", true, () => openTab(node.relParts));
   const splitTab = action("Open in split tab", true, () => void openInSplit(node));
+  for (const [item, icon] of [[newTab, "add"], [splitTab, "split"]] as const) {
+    item.classList.add("ctx-iconed");
+    item.prepend(menuIcon(icon));
+  }
   const shareItems = node.reserved || node.ghost ? [] : [shortcut];
   const allowsFiles = node.flags.includes("data");
   const files = action(allowsFiles ? "Deny files" : "Allow files", a.editFlags, () => void setUserFlag(node, !allowsFiles));
@@ -139,12 +146,16 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   const autom = action(automated ? "Deactivate automations" : "Activate automations", !node.ghost && !node.locked && !node.reserved && node.relParts.length > 1, () => void setUserFlag(node, !automated, "autom"));
   const base = node.nodeType?.base ?? "";
   const fileItems = [...(base === "NODE" ? [files] : []), ...(["REV", "SS", "REC", "RES"].includes(base) ? [] : [autom])];
-  const typeChoices = TYPES.map(([base, label]) =>
-    menuItem(label, "menuitemradio", a.changeType, () => {
+  const typeChoices = TYPES.map(([base, label]) => {
+    const item = menuItem(label, "menuitemradio", a.changeType, () => {
       close();
       void setType(node, base, node.status ?? "in-progress");
-    }, "ctx-item", node.nodeType?.base === base),
-  );
+    }, "ctx-item ctx-iconed", node.nodeType?.base === base);
+    const icon = kindIcon(base === "WKB" ? "wkb" : "folder");
+    icon.classList.add("ctx-icon");
+    item.prepend(icon);
+    return item;
+  });
   const statusChoices = STATUSES.map(([value, label]) => {
     const item = menuItem(label, "menuitemradio", a.editDetails, () => {
       close();
@@ -277,6 +288,10 @@ function openMenu({ node, nodes, x, y, folderOnly }: MenuRequest, restoreFocus: 
 export function openMenuWith(build: (close: (restore?: boolean) => void) => MenuParts, label: string, x: number, y: number, restoreFocus: () => void): void {
   dismissOpen?.();
   const { items, subs, content } = build(close);
+  for (const item of [...items, ...subs.flatMap((s) => s.choices)]) {
+    const keys = subs.some((s) => s.trigger === item) ? [] : menuKeys(item.textContent?.trim() ?? "");
+    if (keys.length > 0) item.append(el("span", { class: "app-tooltip-keys ctx-keys", "aria-hidden": "true" }, ...keys.map((k) => el("kbd", {}, k))));
+  }
   const closeSubs = () => subs.filter((s) => !s.element.contains(document.activeElement)).forEach((s) => s.close());
   items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
   subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));

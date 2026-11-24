@@ -191,7 +191,7 @@ export function openTab(parts?: string[]): Promise<void> {
   return activate(tabs.length - 1);
 }
 
-export function duplicateTab(index: number): void {
+export function duplicateTab(index = active): void {
   if (moving) return;
   capture();
   const tab = tabs[index];

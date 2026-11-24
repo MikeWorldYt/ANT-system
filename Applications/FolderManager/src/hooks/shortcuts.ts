@@ -6,6 +6,8 @@ import { addNext } from "./ops";
 import { pasteHere } from "./paste-target";
 import { selectAll } from "./select-all";
 import { putOnClipboard } from "./folder-share";
+import { openSplit } from "./split";
+import { duplicateTab } from "./tabs";
 
 export interface ShortcutTargets {
   focusSearch(): void;
@@ -43,6 +45,8 @@ export const EDITABLE_SHORTCUTS: { id: string; label: string; combo: KeyCombo }[
   { id: "toggleNavPane", label: "Show/Hide navigation pane", combo: { code: "ArrowLeft", mod: true, alt: false } },
   { id: "toggleFavorite", label: "Add/remove to favorite", combo: { code: "KeyD", mod: true, alt: false } },
   { id: "editDetails", label: "Edit details", combo: { code: "KeyE", mod: true, alt: false } },
+  { id: "splitTab", label: "Split tab", combo: { code: "KeyS", mod: true, alt: true } },
+  { id: "duplicateTab", label: "Duplicate tab", combo: { code: "KeyD", mod: true, alt: true } },
 ];
 
 const NOT_IN_FIELDS = new Set(["toggleSidePanel", "toggleNavPane", "toggleFavorite", "editDetails"]);
@@ -91,6 +95,8 @@ function bindings(go: ShortcutTargets): Binding[] {
     newNode: withSelected((n) => n.actions.addNext && void addNext(n, "node")),
     newWorknode: withSelected((n) => n.actions.addNext && n.relParts.length > 1 && void addNext(n, "worknode")),
     toggleFavorite: favoriteActed,
+    splitTab: openSplit,
+    duplicateTab: () => duplicateTab(),
   };
   return [
     ...EDITABLE_SHORTCUTS.map((s) => ({ ...comboOf(s.id), plain: false, inFields: !NOT_IN_FIELDS.has(s.id), run: runs[s.id]! })),

@@ -3,8 +3,9 @@ import { addChild, manageHidden, pasteFiles, refresh } from "../../../hooks/ops"
 import { canReorderIds, reorderIds } from "../../../hooks/reorder-ids";
 import { keyOf, setColumnSort, sortOf, state, type ColumnSort } from "../../../services/store/state";
 import { SORT_KEYS, orderedModes, type ViewPicker } from "../bars/toolbar";
+import { VIEW_ICONS } from "../../molecules/view-choice";
 import { menuIcon, closingItem, menuItem, separator, submenu, type Submenu } from "../../molecules/menu";
-import type { GuiIcon } from "../../atoms/gui-icons";
+import { guiIcon, type GuiIcon } from "../../atoms/gui-icons";
 import type { TreeNode } from "../../../services/ipc/types";
 
 export interface MenuParts {
@@ -39,12 +40,14 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   const paste = action("Paste", true, () => void pasteFiles(node.relParts));
   const pasteItems = node.reserved || node.ghost ? [] : [paste];
 
-  const viewChoices = orderedModes(views).map((m) =>
-    menuItem(m.label, "menuitemradio", true, () => {
+  const viewChoices = orderedModes(views).map((m) => {
+    const item = menuItem(m.label, "menuitemradio", true, () => {
       views.onSelect(m.id);
       close();
-    }, "ctx-item", m.id === views.active()),
-  );
+    }, "ctx-item ctx-iconed", m.id === views.active());
+    item.prepend(menuIcon(VIEW_ICONS[m.id] ?? "layout"));
+    return item;
+  });
   const subs: Submenu[] = [submenu("Change View", viewChoices, true)];
 
   subs.push(sortSubmenu(node, close));
@@ -55,6 +58,10 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   const newWorknode = action("New worknode", canAdd, () => void addChild(node, "worknode"));
   // Like the toolbar's Add menu, a main category gets no worknode.
   const addItems = node.relParts.length === 1 ? [newNode] : [newNode, newWorknode];
+  paste.prepend(guiIcon("paste"));
+  reload.prepend(guiIcon("refresh"));
+  newNode.prepend(guiIcon("add"));
+  newWorknode.prepend(guiIcon("board"));
   const manage = action("Manage hidden nodes", true, () => void manageHidden(node.relParts));
   const reorderItems = canReorderIds(node) ? [action("Reorder by id…", true, () => void reorderIds(node))] : [];
 
