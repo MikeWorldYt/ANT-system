@@ -32,7 +32,9 @@ async function walk(level: TreeNode[], typed: string[]): Promise<string[] | null
 // `/favorites/<favorite>/...` and `/board` name the virtual root entries, which live in no folder on disk.
 async function resolveVirtual(id: VirtualId, rest: string[]): Promise<Place | null> {
   const [name, ...below] = rest;
-  if (!isVirtualShown(id)) return null;
+  // A typed path still reaches a native folder hidden from the lists, as long as the machine has it.
+  const native = id !== "downloads" ? virtualRoot(id) : null;
+  if (native !== null ? !state.systemFound.includes(native) : !isVirtualShown(id)) return null;
   if (name === undefined) return { virtual: id, via: null, key: null };
   if (id === "board") return null;
   const system = virtualRoot(id);
