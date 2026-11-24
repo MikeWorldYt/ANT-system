@@ -16,7 +16,6 @@ const SHORTCUTS: Record<string, string | KeyCombo> = {
   "Collapse side panel": "toggleSidePanel",
   "Expand side panel": "toggleSidePanel",
   "Edit details": "editDetails",
-  "Move down": "moveDown",
   Delete: { code: "Delete", mod: false, alt: false },
 };
 

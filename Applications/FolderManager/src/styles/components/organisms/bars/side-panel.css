@@ -1,19 +1,20 @@
 /* Side panel and its collapsed icon rail. */
 .details-panel {
-  width: var(--panel-w); flex: none; display: flex; flex-direction: column; gap: 14px;
-  overflow-y: auto; background: var(--tree-bg); padding: 12px; border-radius: var(--radius-md);
+  width: var(--panel-w); flex: none; display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto; background: var(--tree-bg); padding: 10px 12px; border-radius: var(--radius-md);
 }
-.side-head { display: flex; align-items: center; gap: 2px; }
+/* The head is as tall as the Details header, so the first section line meets the view's header line. */
+.side-head { display: flex; align-items: center; gap: 2px; height: 28px; margin-bottom: -2px; }
 .side-title { flex: 1; min-width: 0; margin: 0; font-size: var(--fs-title); font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.side-head .icon-btn, .details-head .icon-btn { width: 32px; height: 32px; background: transparent; }
+.side-head .icon-btn, .details-head .icon-btn { width: 28px; height: 28px; background: transparent; }
 .side-head .side-collapse { background: var(--accent); color: var(--bg); }
-.side-section { display: flex; flex-direction: column; gap: 2px; padding-top: 10px; border-top: 1px solid var(--border); }
+.side-section { display: flex; flex-direction: column; gap: 2px; padding-top: 8px; border-top: 1px solid var(--border); }
 .side-label { margin: 0 0 4px; font-size: var(--fs-caption); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .side-categories { display: flex; flex-direction: column; }
 .side-category { display: flex; align-items: center; gap: 8px; padding: 3px 6px; font-size: var(--fs-label); color: var(--text); cursor: pointer; }
 .side-link { display: block; padding: 3px 6px; font-size: var(--fs-label); color: var(--accent); text-decoration: none; }
 .side-link:hover, .side-link.is-active { text-decoration: underline; }
-.side-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
+.side-foot { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
 .side-rail { flex: none; width: 40px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0; background: var(--input-bg); border-radius: var(--radius-md); }
 /* Inner radius = rail radius minus the 5px inset of each button (rail 40px, button 30px). */
 .side-rail .icon-btn { width: 36px; height: 36px; background: transparent; border-radius: calc(var(--radius-md) - 5px); }

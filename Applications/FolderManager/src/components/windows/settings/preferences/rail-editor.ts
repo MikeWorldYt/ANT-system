@@ -10,8 +10,6 @@ const ROWS: Record<RailId, { label: string; icon: GuiIcon }> = {
   board: { label: "Board", icon: "layout" },
   favorite: { label: "Favorite", icon: "starred" },
   edit: { label: "Edit details", icon: "pencil" },
-  moveUp: { label: "Move up", icon: "moveUp" },
-  moveDown: { label: "Move down", icon: "moveDown" },
   delete: { label: "Delete", icon: "trash" },
 };
 

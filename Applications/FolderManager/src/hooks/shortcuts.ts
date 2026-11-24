@@ -1,7 +1,7 @@
 // Every global keyboard shortcut in one table, so adding or changing one never means hunting through the views.
 import { undoLast } from "./undo";
 import { actedNodes, selectedNode, state, type KeyCombo } from "../services/store/state";
-import { deleteActed, favoriteActed, moveActed } from "./acted-nodes";
+import { deleteActed, favoriteActed } from "./acted-nodes";
 import { addNext } from "./ops";
 import { pasteHere } from "./paste-target";
 import { selectAll } from "./select-all";
@@ -41,12 +41,11 @@ export const EDITABLE_SHORTCUTS: { id: string; label: string; combo: KeyCombo }[
   { id: "goUp", label: "Go up one level", combo: { code: "ArrowUp", mod: false, alt: true } },
   { id: "toggleSidePanel", label: "Collapse/Expand side panel", combo: { code: "ArrowRight", mod: true, alt: false } },
   { id: "toggleNavPane", label: "Show/Hide navigation pane", combo: { code: "ArrowLeft", mod: true, alt: false } },
-  { id: "moveDown", label: "Move down", combo: { code: "ArrowDown", mod: false, alt: true } },
   { id: "toggleFavorite", label: "Add/remove to favorite", combo: { code: "KeyD", mod: true, alt: false } },
   { id: "editDetails", label: "Edit details", combo: { code: "KeyE", mod: true, alt: false } },
 ];
 
-const NOT_IN_FIELDS = new Set(["toggleSidePanel", "toggleNavPane", "moveDown", "toggleFavorite", "editDetails"]);
+const NOT_IN_FIELDS = new Set(["toggleSidePanel", "toggleNavPane", "toggleFavorite", "editDetails"]);
 
 // The folder views own these keys, so the settings page never offers them.
 const FIXED_SHORTCUTS: KeyCombo[] = [
@@ -91,7 +90,6 @@ function bindings(go: ShortcutTargets): Binding[] {
     ...go,
     newNode: withSelected((n) => n.actions.addNext && void addNext(n, "node")),
     newWorknode: withSelected((n) => n.actions.addNext && n.relParts.length > 1 && void addNext(n, "worknode")),
-    moveDown: () => moveActed("down"),
     toggleFavorite: favoriteActed,
   };
   return [
