@@ -61,6 +61,8 @@ export function createTreeView(): ViewMode {
     const parts = it.node.relParts;
     if (it.list === null) {
       leaveVirtual();
+      state.entering = keyOf(parts);
+      if (it.node.hasChildren && !state.expanded.has(state.entering)) void toggleExpand(it.node);
       return select(parts);
     }
     const within = state.virtual === it.list && (virtualRoot(it.list) !== null || state.via === it.via || keyOf(parts) === it.via);
@@ -90,8 +92,8 @@ export function createTreeView(): ViewMode {
     const expanded = state.expanded.has(key);
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(folds ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
     const icon = folderIcon(n, expanded && folds);
-    const toggle = folds ? nodeToggle(`${expanded ? "Collapse" : "Expand"} ${n.name}`, expanded, caret, icon) : null;
-    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(it.depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorknode(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
+    const toggle = folds ? nodeToggle(`${expanded ? "Collapse" : "Expand"} ${n.name}`, expanded, caret) : null;
+    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(it.depth + 1) }, ...hideBox(n), toggle ?? caret, icon, ...(isWorknode(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
     row.style.setProperty("--depth", String(it.depth));
     markNodeItem(row, n);
     row.classList.toggle("marked", marked === id);
@@ -107,7 +109,8 @@ export function createTreeView(): ViewMode {
       const since = ev.timeStamp - lastClick.at;
       const slow = lastClick.id === id && marked === id && since > DOUBLE_MS && since < SLOW_MS;
       lastClick = { id, at: slow ? 0 : ev.timeStamp };
-      if (slow && folds) void toggleExpand(n);
+      // Only a slow second click on the name renames, as in Explorer.
+      if (slow && n.actions.rename && ev.target instanceof Element && ev.target.closest(".name")) startEdit(n.relParts);
       else mark(i);
     });
     row.addEventListener("dblclick", (ev) => {

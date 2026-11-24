@@ -65,7 +65,7 @@ export function virtualEntry(entry: VirtualEntry, cls: string, role: string, { t
   const open = state.virtual === entry.id;
   const folded = unfold?.open ?? open;
   const icon = el("span", { class: "virtual-icon", "aria-hidden": "true" }, guiIcon(entry.icon));
-  const lead = marker === "caret" ? [nodeToggle(`${folded ? "Collapse" : "Expand"} ${entry.label}`, folded, el("span", { class: "caret", "aria-hidden": "true" }, guiIcon(folded ? "chevronDown" : "chevronRight")), icon)] : [icon];
+  const lead = marker === "caret" ? [nodeToggle(`${folded ? "Collapse" : "Expand"} ${entry.label}`, folded, el("span", { class: "caret", "aria-hidden": "true" }, guiIcon(folded ? "chevronDown" : "chevronRight"))), icon] : [icon];
   const item = el(
     "div",
     { class: `${cls} virtual-entry`, "data-entry": entry.id, role, title: entry.hint, "aria-selected": String(open && state.selectedKey === null) },
@@ -84,7 +84,7 @@ export function virtualEntry(entry: VirtualEntry, cls: string, role: string, { t
   if (mark) {
     item.addEventListener("click", (ev) => (unfold && fromToggle(ev) ? unfold.set(!unfold.open) : mark(entry.id)));
     // Its two clicks already toggled twice, so a double click on the caret ends unfolded.
-    item.addEventListener("dblclick", (ev) => (unfold && fromToggle(ev) ? unfold.set(true) : activate()));
+    item.addEventListener("dblclick", (ev) => (unfold && fromToggle(ev) ? unfold.set(true) : (unfold?.set(true), activate())));
   } else item.addEventListener("click", activate);
   // The view's own keys would act on the selected folder instead.
   item.addEventListener("keydown", (ev) => {

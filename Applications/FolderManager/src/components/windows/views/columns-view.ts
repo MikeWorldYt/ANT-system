@@ -297,6 +297,11 @@ export function createColumnsView(): ViewMode {
     },
     render() {
       // An opened column lasts only while its folder stays selected; selecting another row closes it.
+      // A folder opened from elsewhere, such as the navigation pane, shows its column.
+      if (state.entering !== null && state.entering === state.selectedKey) {
+        openKey = state.entering;
+        state.entering = null;
+      }
       if (openKey !== state.selectedKey) openKey = null;
       if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
