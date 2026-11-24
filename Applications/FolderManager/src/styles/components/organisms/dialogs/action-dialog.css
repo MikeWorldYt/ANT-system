@@ -21,11 +21,13 @@
 .reorder-input { width: 7ch; padding: 2px 4px; font-variant-numeric: tabular-nums; }
 .reorder-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .reorder-input[aria-invalid="true"], .reorder-input.is-bad-key { outline: 2px solid var(--delete-hover); outline-offset: 1px; }
-.reorder-new { min-width: 4ch; font-variant-numeric: tabular-nums; }
+.reorder-was { min-width: 9ch; color: var(--muted); font-variant-numeric: tabular-nums; }
+.reorder-tracker { padding: 2px 4px; }
+.reorder-tracker:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.reorder-list li.is-selected { background: var(--highlight); }
 .reorder-problem { color: var(--delete-hover); font-size: var(--fs-caption); }
 .reorder-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.reorder-new { font-weight: 600; }
-.reorder-list li.is-unchanged .reorder-new { font-weight: 400; color: var(--muted); }
+.reorder-list li:not(.is-unchanged) .reorder-input { font-weight: 600; }
 .reorder-list.is-sorting, .reorder-list.is-sorting * { cursor: grabbing; }
 .reorder-list li.is-lifted { opacity: 0.5; background: var(--field-bg); }
 .reorder-list li.drop-before::before, .reorder-list li.drop-after::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: var(--accent); border-radius: var(--radius-xs); pointer-events: none; }

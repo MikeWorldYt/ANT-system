@@ -157,11 +157,14 @@ export interface ReorderPlan {
   nodes: string[];
   worknodes: string[];
   taken: IdKey[];
+  trackers: string[];
 }
 
 export interface IdTarget {
   name: string;
   newId: string;
+  // Only for a worknode whose tracker changes.
+  newTracker?: string;
 }
 
 export interface Mutation {

@@ -23,6 +23,9 @@ pub use plan::ReorderPlan;
 pub struct IdTarget {
     pub name: String,
     pub new_id: String,
+    // Only worknodes take one; none keeps the current tracker.
+    #[serde(default)]
+    pub new_tracker: Option<String>,
 }
 
 // Read without the lock: the dialog only shows it, and the reorder checks everything again.
@@ -51,7 +54,7 @@ pub fn reorder_ids(root: &Path, parent: &[String], targets: &[IdTarget]) -> R<Mu
     let mut renames: Vec<(String, String, IdKind)> = Vec::new();
     for target in targets {
         let kind = if plan.nodes.contains(&target.name) { IdKind::Node } else { IdKind::Worknode };
-        let (new, key) = renamed(&target.name, kind, parent.is_empty(), &target.new_id)?;
+        let (new, key) = renamed(&target.name, kind, parent.is_empty(), &target.new_id, target.new_tracker.as_deref())?;
         if used.contains(&key) {
             return Err(FmError::AlreadyExists { name: new });
         }

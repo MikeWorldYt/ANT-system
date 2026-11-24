@@ -1,41 +1,26 @@
-// One group of the reorder dialog: rows that move by pointer or Alt+Arrow, each with its id to type; HTML5 drag events never reach the webview.
+// One group of the reorder dialog: rows to select like the views, moved as a block by pointer or Alt+Arrow; HTML5 drag events never reach the webview.
 import { countAbove, pastThreshold, pointOf, released, type Point } from "../../../../hooks/pointer";
 import { el } from "../../../dom";
 import { folderIcon, kindIcon } from "../../../atoms/icons";
-import { idOf, padId, type IdKind } from "../../../../services/store/id-order";
-import { fitMoved } from "../../../../services/store/id-fit";
+import { fitBlock } from "../../../../services/store/id-fit";
+import { idRow, paintRow, rowKey, type IdGroup, type RowResult } from "./reorder-row";
 import type { TreeNode } from "../../../../services/ipc/types";
+
+export type { IdGroup, RowResult } from "./reorder-row";
 
 const LIFTED = "is-lifted";
 const SORTING = "is-sorting";
 const DROP_BEFORE = "drop-before";
 const DROP_AFTER = "drop-after";
-const BAD_KEY = "is-bad-key";
-const BAD_KEY_MS = 600;
-
-export interface IdGroup {
-  kind: IdKind;
-  title: string;
-  root: boolean;
-  order: string[];
-  // Every row's new id as digits; starts as its current id.
-  ids: Map<string, string>;
-  typed: Map<string, string>;
-  taken: Set<string>;
-}
-
-export interface RowResult {
-  name: string;
-  id: string;
-  problem: string | null;
-}
 
 interface Drag {
-  row: HTMLElement;
-  from: number;
+  name: string;
+  block: string[];
   start: Point;
   lifted: boolean;
   slot: number | null;
+  // A press on a row of a larger selection narrows it to that row, unless it turns into a drag.
+  narrow: boolean;
 }
 
 let nextId = 0;
@@ -45,113 +30,96 @@ export function idList(group: IdGroup, icons: Map<string, TreeNode>, onChange: (
   const list = el("ul", { class: "reorder-list", "aria-labelledby": headingId });
   let drag: Drag | null = null;
   let last = new Map<string, RowResult>();
+  let selected = new Set<string>();
+  let anchor: string | null = null;
 
   const rows = (): HTMLElement[] => Array.from(list.children) as HTMLElement[];
-  const rowOf = (target: EventTarget | null): HTMLElement | null => (target instanceof Element ? target.closest<HTMLElement>("li[data-index]") : null);
-  const titleOf = (name: string): string => {
-    const id = idOf(name, group.kind);
-    return name.slice(name.indexOf(id) + id.length).replace(/^[._]/, "");
-  };
+  const rowOf = (target: EventTarget | null): HTMLElement | null => (target instanceof Element ? target.closest<HTMLElement>("li[data-name]") : null);
+  const inControl = (target: EventTarget | null): boolean => target instanceof Element && target.closest("input, select") !== null;
+  const nameOf = (li: HTMLElement): string => li.dataset.name ?? "";
+  const rowNamed = (name: string): HTMLElement | undefined => rows()[group.order.indexOf(name)];
+  const blockOf = (name: string): string[] => (selected.has(name) ? group.order.filter((n) => selected.has(n)) : [name]);
 
-  function rejectKey(input: HTMLInputElement): void {
-    input.classList.add(BAD_KEY);
-    window.setTimeout(() => input.classList.remove(BAD_KEY), BAD_KEY_MS);
-    announce("Ids take digits only.");
+  function selectOnly(name: string): void {
+    selected = new Set([name]);
+    anchor = name;
   }
 
-  function idInput(name: string): HTMLInputElement {
-    const input = el("input", { class: "reorder-input", type: "text", inputmode: "numeric", maxlength: "6", "aria-label": `New id for ${name}`, value: group.typed.get(name) ?? idOf(name, group.kind) });
-    input.addEventListener("beforeinput", (ev) => {
-      if (ev.data === null || /^\d*$/.test(ev.data)) return;
-      ev.preventDefault();
-      rejectKey(input);
-    });
-    // Drops and autofill can skip beforeinput, so whatever still slips in is taken out.
-    input.addEventListener("input", () => {
-      if (/\D/.test(input.value)) {
-        input.value = input.value.replace(/\D/g, "");
-        rejectKey(input);
-      }
-      group.typed.set(name, input.value);
-      group.ids.set(name, input.value);
-      onChange();
-    });
-    const commit = () => {
-      if (input.value === "" || !group.typed.has(name)) return;
-      input.value = padId(input.value, group.kind, group.root);
-      group.typed.set(name, input.value);
-      group.ids.set(name, input.value);
-      onChange();
-    };
-    input.addEventListener("blur", commit);
-    // Enter would submit the dialog form, so it only commits the id.
-    input.addEventListener("keydown", (ev) => {
-      if (ev.key !== "Enter") return;
-      ev.preventDefault();
-      commit();
-    });
-    return input;
+  function selectRange(name: string): void {
+    const [a, b] = [group.order.indexOf(anchor ?? name), group.order.indexOf(name)];
+    selected = new Set(group.order.slice(Math.min(a, b), Math.max(a, b) + 1));
   }
 
-  function row(name: string, index: number): HTMLElement {
-    const node = icons.get(name);
-    const problemId = `${headingId}-p${index}`;
-    const input = idInput(name);
-    input.setAttribute("aria-describedby", problemId);
-    return el(
-      "li",
-      { tabindex: "0", "data-index": String(index), "data-name": name },
-      node ? folderIcon(node) : kindIcon(group.kind === "worknode" ? "wkb" : "folder"),
-      input,
-      el("span", { class: "reorder-title" }, titleOf(name)),
-      el("span", { class: "reorder-arrow", "aria-hidden": "true" }, "→"),
-      el("span", { class: "reorder-new" }),
-      el("span", { class: "reorder-problem", id: problemId }),
-    );
+  function toggle(name: string): void {
+    if (!selected.delete(name)) selected.add(name);
+    anchor = name;
   }
 
   function update(results: Map<string, RowResult>): void {
     last = results;
-    const count = group.order.length;
     rows().forEach((li, i) => {
       const name = group.order[i] ?? "";
       const res = results.get(name);
-      if (!res) return;
-      const same = res.name === name && res.problem === null;
-      li.classList.toggle("is-unchanged", same);
-      li.setAttribute("aria-label", `${name}, ${i + 1} of ${count}, ${res.problem ?? (same ? "unchanged" : `new id ${res.id}`)}`);
-      li.querySelector(".reorder-input")?.setAttribute("aria-invalid", String(res.problem !== null));
-      const shown = li.querySelector(".reorder-new");
-      if (shown) shown.textContent = same ? "unchanged" : res.id;
-      const problem = li.querySelector(".reorder-problem");
-      if (problem) problem.textContent = res.problem ?? "";
+      if (res) paintRow(li, group, name, res, i, selected.has(name));
     });
   }
 
+  const hooks = {
+    onId: (name: string, digits: string) => {
+      group.ids.set(name, digits);
+      onChange();
+    },
+    // With several worknodes selected, the tracker picked on one of them applies to all.
+    onTracker: (name: string, tracker: string) => {
+      for (const n of blockOf(name)) group.trackers.set(n, tracker);
+      render();
+      onChange();
+      rowNamed(name)?.querySelector("select")?.focus();
+    },
+    announce,
+  };
+
   function render(): void {
-    list.replaceChildren(...group.order.map(row));
+    list.replaceChildren(...group.order.map((name, i) => {
+      const node = icons.get(name);
+      return idRow(group, name, i, headingId, node ? folderIcon(node) : kindIcon(group.kind === "worknode" ? "wkb" : "folder"), hooks);
+    }));
     update(last);
   }
 
-  function move(from: number, to: number): void {
-    const name = group.order[from];
-    if (name === undefined || to === from || to < 0 || to >= group.order.length) return;
-    group.order = group.order.filter((_, i) => i !== from);
-    group.order.splice(to, 0, name);
-    group.ids = fitMoved(group, name);
-    // A shifted row that had a typed id shows the id it now takes.
-    for (const [typed, digits] of group.typed) if (group.ids.get(typed) !== digits) group.typed.set(typed, group.ids.get(typed) ?? digits);
+  const placed = (block: string[], at: number): string[] => {
+    const rest = group.order.filter((n) => !block.includes(n));
+    rest.splice(at, 0, ...block);
+    return rest;
+  };
+  const sameOrder = (order: string[]) => order.every((n, i) => n === group.order[i]);
+
+  function moveBlock(block: string[], at: number, focus: string): void {
+    const order = placed(block, at);
+    if (sameOrder(order)) return;
+    group.order = order;
+    group.ids = fitBlock({ ...group, key: (name, digits) => rowKey(group, name, digits) }, block);
     render();
     onChange();
-    // The rows are rebuilt, so focus follows the moved folder to its new row.
-    rows()[to]?.focus();
-    announce(`${name} moved to position ${to + 1} of ${group.order.length}.`);
+    // The rows are rebuilt, so focus follows the row it was on.
+    rowNamed(focus)?.focus();
+    const where = group.order.indexOf(block[0] ?? "") + 1;
+    announce(`${block.length > 1 ? `${block.length} folders` : (block[0] ?? "")} moved to position ${where} of ${group.order.length}.`);
   }
 
-  // The gap under the pointer, counted in rows above it; both edges of the dragged row leave it in place.
+  // Alt+Arrow moves the block one row past its neighbour; a scattered selection gathers where its first row is.
+  function step(name: string, up: boolean): void {
+    const block = blockOf(name);
+    const top = group.order.indexOf(block[0] ?? "");
+    const bottom = group.order.indexOf(block[block.length - 1] ?? "") - (block.length - 1);
+    moveBlock(block, up ? Math.max(0, top - 1) : Math.min(group.order.length - block.length, bottom + 1), name);
+  }
+
+  // The gap under the pointer, counted in rows above it; a drop that changes nothing has none.
   function slotAt(d: Drag, y: number): number | null {
     const slot = countAbove(rows(), y);
-    return slot === d.from || slot === d.from + 1 ? null : slot;
+    const at = slot - d.block.filter((n) => group.order.indexOf(n) < slot).length;
+    return sameOrder(placed(d.block, at)) ? null : slot;
   }
 
   function mark(slot: number | null): void {
@@ -164,7 +132,7 @@ export function idList(group: IdGroup, icons: Map<string, TreeNode>, onChange: (
 
   function end(): void {
     if (!drag) return;
-    drag.row.classList.remove(LIFTED);
+    for (const r of rows()) r.classList.remove(LIFTED);
     list.classList.remove(SORTING);
     mark(null);
     document.removeEventListener("keydown", onEscape, true);
@@ -182,9 +150,18 @@ export function idList(group: IdGroup, icons: Map<string, TreeNode>, onChange: (
 
   list.addEventListener("pointerdown", (ev) => {
     end();
-    const inField = ev.target instanceof HTMLInputElement;
-    const target = ev.button === 0 && !inField ? rowOf(ev.target) : null;
-    if (target) drag = { row: target, from: rows().indexOf(target), start: pointOf(ev), lifted: false, slot: null };
+    const li = ev.button === 0 && !inControl(ev.target) ? rowOf(ev.target) : null;
+    if (!li) return;
+    const name = nameOf(li);
+    if (ev.ctrlKey || ev.metaKey || ev.shiftKey) {
+      if (ev.shiftKey) selectRange(name);
+      else toggle(name);
+      return update(last);
+    }
+    const narrow = selected.has(name) && selected.size > 1;
+    if (!selected.has(name)) selectOnly(name);
+    update(last);
+    drag = { name, block: blockOf(name), start: pointOf(ev), lifted: false, slot: null, narrow };
   });
   list.addEventListener("pointermove", (ev) => {
     if (!drag) return;
@@ -192,7 +169,7 @@ export function idList(group: IdGroup, icons: Map<string, TreeNode>, onChange: (
     if (!drag.lifted) {
       if (!pastThreshold(drag.start, pointOf(ev))) return;
       drag.lifted = true;
-      drag.row.classList.add(LIFTED);
+      for (const n of drag.block) rowNamed(n)?.classList.add(LIFTED);
       list.classList.add(SORTING);
       if (!list.hasPointerCapture(ev.pointerId)) list.setPointerCapture(ev.pointerId);
       document.addEventListener("keydown", onEscape, true);
@@ -204,16 +181,43 @@ export function idList(group: IdGroup, icons: Map<string, TreeNode>, onChange: (
   list.addEventListener("pointerup", () => {
     const done = drag;
     end();
-    if (done?.lifted && done.slot !== null) move(done.from, done.slot > done.from ? done.slot - 1 : done.slot);
+    if (!done) return;
+    if (done.lifted && done.slot !== null) {
+      const slot = done.slot;
+      return moveBlock(done.block, slot - done.block.filter((n) => group.order.indexOf(n) < slot).length, done.name);
+    }
+    if (!done.lifted && done.narrow) {
+      selectOnly(done.name);
+      update(last);
+    }
   });
   list.addEventListener("pointercancel", end);
   list.addEventListener("keydown", (ev) => {
-    if (!ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey || (ev.key !== "ArrowUp" && ev.key !== "ArrowDown")) return;
-    const target = rowOf(ev.target);
-    if (!target) return;
+    const li = rowOf(ev.target);
+    if (!li || ev.ctrlKey || ev.metaKey) return;
+    const name = nameOf(li);
+    const arrow = ev.key === "ArrowUp" || ev.key === "ArrowDown";
+    if (ev.altKey && !ev.shiftKey && arrow) {
+      ev.preventDefault();
+      return step(name, ev.key === "ArrowUp");
+    }
+    // Inside a field the keys type and move the caret, so only the row itself selects.
+    if (ev.target !== li || ev.altKey) return;
+    if (ev.key === " ") {
+      ev.preventDefault();
+      toggle(name);
+      return update(last);
+    }
+    if (!arrow) return;
     ev.preventDefault();
-    const from = rows().indexOf(target);
-    move(from, ev.key === "ArrowUp" ? from - 1 : from + 1);
+    const next = group.order[group.order.indexOf(name) + (ev.key === "ArrowUp" ? -1 : 1)];
+    if (next === undefined) return;
+    if (ev.shiftKey) {
+      if (anchor === null) anchor = name;
+      selectRange(next);
+    } else selectOnly(next);
+    update(last);
+    rowNamed(next)?.focus();
   });
 
   render();

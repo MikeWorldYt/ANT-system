@@ -9,15 +9,14 @@ const NODE_ID = /^(\d+)(?=\.)/;
 
 export const isTracked = (name: string): boolean => TRACK.test(name);
 
-const trackerOf = (name: string, kind: IdKind): string => (kind === "worknode" ? (TRACK.exec(name)?.[1] ?? "") : "");
+export const trackerOf = (name: string, kind: IdKind): string => (kind === "worknode" ? (TRACK.exec(name)?.[1] ?? "") : "");
 
 // The id as written: "05" of "05.Math", "001" of "PJ.001_Web".
 export const idOf = (name: string, kind: IdKind): string => (kind === "worknode" ? TRACK.exec(name)?.[2] : NODE_ID.exec(name)?.[1]) ?? "";
 
-export function withId(name: string, kind: IdKind, id: string): string {
-  const at = trackerOf(name, kind).length;
-  return name.slice(0, at) + id + name.slice(at + idOf(name, kind).length);
-}
+// The name with its id, and for a worknode its tracker, replaced; the title stays.
+export const withId = (name: string, kind: IdKind, id: string, tracker = trackerOf(name, kind)): string =>
+  tracker + id + name.slice(trackerOf(name, kind).length + idOf(name, kind).length);
 
 // A node id pads to 2 digits, a worknode number to at least 3; a main category keeps its plain number.
 export const padId = (digits: string, kind: IdKind, root: boolean): string =>
@@ -33,8 +32,8 @@ export function idProblem(digits: string, kind: IdKind, root: boolean): string |
   return n > 99 ? "Node ids go up to 99" : null;
 }
 
-// Same key as the backend: the tracker, if any, and the number.
-export const keyFor = (name: string, kind: IdKind, digits: string): string => `${trackerOf(name, kind)}${Number(digits)}`;
+// Same key as the backend: the tracker, empty for a node, and the number.
+export const keyFor = (tracker: string, digits: string): string => `${tracker}${Number(digits)}`;
 
 export const takenKey = (key: IdKey): string => `${key.tracker}${key.number}`;
 

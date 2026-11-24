@@ -3,7 +3,7 @@ use super::*;
 use crate::test_support::*;
 
 fn targets(pairs: &[(&str, &str)]) -> Vec<IdTarget> {
-    pairs.iter().map(|(name, id)| IdTarget { name: name.to_string(), new_id: id.to_string() }).collect()
+    pairs.iter().map(|(name, id)| IdTarget { name: name.to_string(), new_id: id.to_string(), new_tracker: None }).collect()
 }
 
 fn order(dir: &Path, parent: &[&str], pairs: &[(&str, &str)]) -> R<Mutation> {
@@ -107,6 +107,44 @@ fn a_worknode_takes_its_linked_review_folder_along() {
     order(dir.path(), &["100.WORK"], &[("PJ.001_Web", "2"), ("PJ.002_App", "1")]).unwrap();
     assert_eq!(names(&dir.path().join("100.WORK/PJ.002_Web")), ["REV.002_Web"]);
     assert!(dir.path().join("100.WORK/PJ.001_App").is_dir());
+}
+
+fn retrack(name: &str, id: &str, tracker: &str) -> IdTarget {
+    IdTarget { name: name.to_string(), new_id: id.to_string(), new_tracker: Some(tracker.to_string()) }
+}
+
+#[test]
+fn a_worknode_changes_its_tracker_and_keeps_its_linked_folder() {
+    let dir = storage("reorder-tracker", &["100.WORK/PJ.001_Web/REV.001_Web", "100.WORK/HW.001_Essay"], "100.WORK:
+  type: NODE-L1
+  PJ.001_Web: {type: WKB-L2}
+  HW.001_Essay: {type: WKB-L2}
+");
+    let essay = IdTarget { name: "HW.001_Essay".to_string(), new_id: "1".to_string(), new_tracker: None };
+    let clash = reorder_ids(dir.path(), &rel(&["100.WORK"]), &[retrack("PJ.001_Web", "1", "HW."), essay.clone()]);
+    assert!(matches!(clash, Err(FmError::AlreadyExists { .. })), "HW.001 is held");
+    let unknown = reorder_ids(dir.path(), &rel(&["100.WORK"]), &[retrack("PJ.001_Web", "1", "XX."), essay.clone()]);
+    assert!(matches!(unknown, Err(FmError::InvalidName { .. })));
+    reorder_ids(dir.path(), &rel(&["100.WORK"]), &[retrack("PJ.001_Web", "1", "TK."), essay.clone()]).unwrap();
+    assert_eq!(names(&dir.path().join("100.WORK")), ["HW.001_Essay", "TK.001_Web"]);
+    assert_eq!(names(&dir.path().join("100.WORK/TK.001_Web")), ["REV.001_Web"]);
+    assert_eq!(yaml_type(dir.path(), &["100.WORK", "TK.001_Web"]), "WKB-L2");
+}
+
+#[test]
+fn a_worknode_changes_tracker_and_number_together() {
+    let dir = storage("reorder-tracker-number", &["100.WORK/PJ.001_Web/REV.001_Web", "100.WORK/01.A"], "100.WORK:
+  type: NODE-L1
+  01.A: {type: NODE-L2}
+  PJ.001_Web: {type: WKB-L2}
+");
+    let node = IdTarget { name: "01.A".to_string(), new_id: "01".to_string(), new_tracker: Some("PJ.".to_string()) };
+    let refused = reorder_ids(dir.path(), &rel(&["100.WORK"]), &[node, retrack("PJ.001_Web", "3", "HW.")]);
+    assert!(matches!(refused, Err(FmError::InvalidName { .. })), "a node takes no tracker");
+    let node = IdTarget { name: "01.A".to_string(), new_id: "01".to_string(), new_tracker: None };
+    reorder_ids(dir.path(), &rel(&["100.WORK"]), &[node, retrack("PJ.001_Web", "3", "HW.")]).unwrap();
+    assert_eq!(names(&dir.path().join("100.WORK")), ["01.A", "HW.003_Web"]);
+    assert_eq!(names(&dir.path().join("100.WORK/HW.003_Web")), ["REV.003_Web"]);
 }
 
 #[test]

@@ -33,6 +33,7 @@ pub struct ReorderPlan {
     pub nodes: Vec<String>,
     pub worknodes: Vec<String>,
     pub taken: Vec<IdKey>,
+    pub trackers: Vec<String>,
 }
 
 // A worknode name split as tracker, number and the rest: "PJ.", "001", "_Fabi-web".
@@ -92,12 +93,15 @@ pub(super) fn groups(root: &Path, data: &Mapping, parent: &[String]) -> R<Reorde
     let by_number = |kind| move |a: &String, b: &String| key_of(a, kind).map(|k| k.number).cmp(&key_of(b, kind).map(|k| k.number)).then(a.cmp(b));
     nodes.sort_by(by_number(IdKind::Node));
     worknodes.sort_by(by_number(IdKind::Worknode));
-    Ok(ReorderPlan { nodes, worknodes, taken })
+    Ok(ReorderPlan { nodes, worknodes, taken, trackers: WKB_IDENTIFIERS.iter().map(|t| t.to_string()).collect() })
 }
 
 // Digits only, then padded: a node id to 2 digits, a worknode number to at least 3; a main category keeps its plain number.
-pub(super) fn renamed(name: &str, kind: IdKind, at_root: bool, raw: &str) -> R<(String, IdKey)> {
+pub(super) fn renamed(name: &str, kind: IdKind, at_root: bool, raw: &str, new_tracker: Option<&str>) -> R<(String, IdKey)> {
     let bad = |reason: &str| FmError::InvalidName { name: raw.to_string(), reason: reason.to_string() };
+    if kind == IdKind::Node && new_tracker.is_some() {
+        return Err(FmError::InvalidName { name: name.to_string(), reason: "only a worknode has a tracker".to_string() });
+    }
     if raw.is_empty() || !raw.bytes().all(|b| b.is_ascii_digit()) {
         return Err(bad("an id takes digits only"));
     }
@@ -115,7 +119,11 @@ pub(super) fn renamed(name: &str, kind: IdKind, at_root: bool, raw: &str) -> R<(
         IdKind::Node => Ok((format!("{number:02}.{}", editable_part(name)), IdKey { tracker: String::new(), number })),
         IdKind::Worknode if number == 0 => Err(bad("a worknode number starts at 1")),
         IdKind::Worknode => {
-            let (tracker, _, rest) = track_parts(name).ok_or_else(|| bad("not a worknode name"))?;
+            let (current, _, rest) = track_parts(name).ok_or_else(|| bad("not a worknode name"))?;
+            let tracker = match new_tracker {
+                Some(t) => *WKB_IDENTIFIERS.iter().find(|known| **known == t).ok_or_else(|| FmError::InvalidName { name: t.to_string(), reason: "not a worknode tracker".to_string() })?,
+                None => current,
+            };
             Ok((format!("{tracker}{number:03}{rest}"), IdKey { tracker: tracker.to_string(), number }))
         }
     }
