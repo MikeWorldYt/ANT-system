@@ -15,7 +15,7 @@ import { bindPanes, focusedViews } from "../../hooks/split";
 import { bindTabs } from "../../hooks/tabs";
 import { createViewSwitcher, rememberView } from "../../hooks/view-switch";
 import { openFolder } from "../../hooks/path-actions";
-import { selectedNode } from "../../services/store/state";
+import { keyOf, selectedNode, state } from "../../services/store/state";
 import { openSettings } from "./settings";
 import { createBatchView } from "./views/batch-view";
 import { createBoardView } from "./views/board-view";
@@ -43,6 +43,10 @@ export function createMainWindow(app: HTMLElement) {
     active: () => views.current().id,
     folder: () => views.current().openFolder?.(),
     onSelect: (id) => {
+      // The next view keeps the folder on screen instead of entering the selected one.
+      const shown = views.current().openFolder?.();
+      state.showing = shown === undefined ? undefined : shown && keyOf(shown.relParts);
+      state.entering = null;
       views.switchTo(id);
       rememberView(id);
       toolbar.render();

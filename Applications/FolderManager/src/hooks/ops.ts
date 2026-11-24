@@ -150,6 +150,7 @@ export async function init(): Promise<boolean> {
     ready = true;
     const last = state.settings.onLaunch === "continue" ? lastSelection() : null;
     if (!last) return;
+    state.showing = last.shown;
     if (last.key) await reveal(last.key.split("/"));
     if (last.virtual === "board") await toggleBoard();
     else if (last.virtual !== null && isVirtualShown(last.virtual)) await goToPlace(last);

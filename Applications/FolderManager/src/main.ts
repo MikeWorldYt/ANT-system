@@ -70,11 +70,12 @@ function followBatch(): void {
 subscribe(() => {
   if (isRenderingOther()) return;
   followBatch();
+  // The view settles which folder it shows first, so the breadcrumb and the tab read that folder.
+  views.current().render();
   toolbar.render();
   navigator.render();
   syncTabs();
   tabBar.render();
-  views.current().render();
   nav.render();
   renderOther();
   board.render();

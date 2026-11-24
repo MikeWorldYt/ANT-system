@@ -9,6 +9,10 @@ interface State {
   tree: TreeSnapshot | null;
   // Set by an explicit open, so a view that lists a folder enters this one instead of showing it among its siblings.
   entering: string | null;
+  // The folder a restored place showed around its selection, which a view keeps instead of entering the selected folder.
+  showing: string | null | undefined;
+  // The folder the active view shows now, saved with the selection for the next launch.
+  shownNow: string | null | undefined;
   selectedKey: string | null;
   // Every selected key, the primary one included; a plain click leaves just that one.
   selectedKeys: string[];
@@ -120,6 +124,8 @@ function readSorts(): Record<string, ColumnSort> {
 export const state: State = {
   tree: null,
   entering: null,
+  showing: undefined,
+  shownNow: undefined,
   selectedKey: null,
   selectedKeys: [],
   pasteKey: null,
@@ -271,6 +277,7 @@ const LAST_PREF = "fm.last";
 
 export interface SavedPlace {
   key: string | null;
+  shown?: string | null;
   virtual: VirtualId | null;
   via: string | null;
 }
@@ -291,14 +298,14 @@ export function rememberSelection(): void {
   if (!state.tree) return;
   const before = state.virtual === "board" ? readSaved() : null;
   const key = state.virtual === "board" ? (before?.root === state.tree.root ? (before.key ?? null) : null) : state.selectedKey;
-  savePref(LAST_PREF, JSON.stringify({ root: state.tree.root, key, virtual: state.virtual, via: state.virtual === "board" ? null : state.via }));
+  savePref(LAST_PREF, JSON.stringify({ root: state.tree.root, key, shown: state.virtual === "board" ? before?.shown : state.shownNow, virtual: state.virtual, via: state.virtual === "board" ? null : state.via }));
 }
 
 // Where the user stood when the app closed, if it belongs to the Storage now open.
 export function lastSelection(): SavedPlace | null {
   const saved = readSaved();
   if (!saved || !state.tree || saved.root !== state.tree.root) return null;
-  return { key: saved.key ?? null, virtual: saved.virtual ?? null, via: saved.via ?? null };
+  return { key: saved.key ?? null, shown: saved.shown, virtual: saved.virtual ?? null, via: saved.via ?? null };
 }
 
 export const sortOf = (columnKey: string): ColumnSort => state.sorts[columnKey] ?? DEFAULT_SORT;

@@ -63,21 +63,32 @@ export function bindTabs(nav: TabNavigator, switcher: Pick<ViewSwitcher, "curren
   views = switcher;
 }
 
-function readSaved(): { places: Place[]; views: string[]; splits: (SavedSplit | null)[]; active: number } {
+interface SavedTabs {
+  places: Place[];
+  views: string[];
+  splits: (SavedSplit | null)[];
+  shown: (string | null | undefined)[];
+  active: number;
+}
+
+const NO_TABS: SavedTabs = { places: [], views: [], splits: [], shown: [], active: 0 };
+
+function readSaved(): SavedTabs {
   const raw = readPref(`${PREF}:${root}`);
-  if (raw === null) return { places: [], views: [], splits: [], active: 0 };
+  if (raw === null) return NO_TABS;
   try {
-    const saved = JSON.parse(raw) as { places?: Place[]; views?: string[]; splits?: (SavedSplit | null)[]; active?: number };
-    return { places: Array.isArray(saved.places) ? saved.places : [], views: Array.isArray(saved.views) ? saved.views : [], splits: Array.isArray(saved.splits) ? saved.splits : [], active: saved.active ?? 0 };
+    const saved = JSON.parse(raw) as Partial<SavedTabs>;
+    const list = <T>(v: T[] | undefined): T[] => (Array.isArray(v) ? v : []);
+    return { places: list(saved.places), views: list(saved.views), splits: list(saved.splits), shown: list(saved.shown), active: saved.active ?? 0 };
   } catch (e) {
     console.warn("Saved tabs are unreadable", e);
-    return { places: [], views: [], splits: [], active: 0 };
+    return NO_TABS;
   }
 }
 
 // The current tab stays as it is, because the launch restores its place on its own.
 function loadTabs(): void {
-  const saved = state.settings.onLaunch === "continue" ? readSaved() : { places: [], views: [], splits: [], active: 0 };
+  const saved = state.settings.onLaunch === "continue" ? readSaved() : NO_TABS;
   const usable = saved.places.map((place, i) => ({ place, i })).filter(({ place }) => place.virtual === null || isVirtualShown(place.virtual));
   const current = tabs[active] ?? newTab(currentPlace(), state.expanded);
   const at = usable.findIndex(({ i }) => i === saved.active);
@@ -86,11 +97,12 @@ function loadTabs(): void {
   tabs.forEach((tab, i) => {
     const split = saved.splits[usable[i]?.i ?? -1];
     if (split) tab.split = parkedSplit(split);
+    if (tab !== current) tab.shown = saved.shown[usable[i]?.i ?? -1] ?? undefined;
   });
   restoreSplit(tabs[active]?.split ?? null);
 }
 
-const saveTabs = () => savePref(`${PREF}:${root}`, JSON.stringify({ places: tabs.map((t) => t.place), views: tabs.map((t) => t.view), splits: tabs.map((t) => savedSplit(t.split)), active }));
+const saveTabs = () => savePref(`${PREF}:${root}`, JSON.stringify({ places: tabs.map((t) => t.place), views: tabs.map((t) => t.view), splits: tabs.map((t) => savedSplit(t.split)), shown: tabs.map((t) => t.shown ?? null), active }));
 
 // Follows the store after every change, so the labels and what the next launch restores stay current.
 export function syncTabs(): void {
@@ -106,6 +118,7 @@ export function syncTabs(): void {
     tab.view = currentView();
     tab.split = currentSplit();
     tab.shown = shownFolder();
+    state.shownNow = tab.shown;
   }
   saveTabs();
 }
@@ -139,6 +152,9 @@ async function activate(index: number): Promise<void> {
   views?.switchTo(tab.view);
   unparkReplay(tab.replay ?? null);
   tab.replay = null;
+  // A tab from an older save has no shown folder, so it shows the one around its selection.
+  state.showing = tab.shown !== undefined ? tab.shown : tab.place.virtual === null && tab.place.key !== null ? (tab.place.key.split("/").slice(0, -1).join("/") || null) : undefined;
+  state.entering = null;
   try {
     await navigator.enter(tab.trail, tab.place);
   } catch (e) {
