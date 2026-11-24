@@ -316,7 +316,7 @@ export function leaveVirtual(): void {
   state.via = null;
 }
 
-// A virtual list stays open while one of its entries, or in FAVORITES something below the one entered, is selected.
+// A virtual list stays open while one of its entries, or in FAVORITES and REVIEW something below the one entered, is selected.
 function keepVirtual(key: string | null): boolean {
   if (key === null) return false;
   // Everything under Downloads belongs to its list; the entry it went through is the top-level one.
@@ -324,7 +324,7 @@ function keepVirtual(key: string | null): boolean {
     state.via = key.split("/").slice(0, 2).join("/");
     return true;
   }
-  if (state.virtual === "favorites" && state.via !== null && key.startsWith(`${state.via}/`)) return true;
+  if ((state.virtual === "favorites" || state.virtual === "review") && state.via !== null && key.startsWith(`${state.via}/`)) return true;
   if (!state.virtualKeys.includes(key)) return false;
   state.via = key;
   return true;

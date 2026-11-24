@@ -32,8 +32,6 @@ export function buildColumns(opened: string | null): Column[] {
   const cols: Column[] = [{ nodes: sorted(rootNodes, null), loading: false, parent: null, listing: false, pathKey: state.virtual === null ? (chain[0] ?? null) : null }];
   // An open virtual entry lists its folders beside the root, wherever they live, and its path continues from there.
   if (state.virtual !== null) cols.push({ nodes: virtualNodes(), loading: false, parent: null, listing: true, pathKey: chain[0] ?? null });
-  // Review entries are shortcuts: they lead to their folder in the tree instead of listing it beside the list.
-  if (state.virtual === "review") return cols;
   for (const [i, key] of chain.entries()) {
     const open = findNode(key.split("/"));
     if (!open) break;

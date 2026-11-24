@@ -12,7 +12,7 @@ import { sortedForColumns, isTailNode } from "../../../services/store/sort";
 import { buildColumns, type Column } from "../../../hooks/column-model";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
-import { findNode, keyOf, leaveVirtual, listed, reveal as revealPath, select, selectedNode, sortOf, startEdit, state, type VirtualId } from "../../../services/store/state";
+import { findNode, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, startEdit, state, type VirtualId } from "../../../services/store/state";
 import { reviewFilter, reviewGroup } from "../../../services/store/review-list";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
@@ -52,18 +52,9 @@ export function createColumnsView(): ViewMode {
     select(n.relParts);
   }
 
-  async function goTo(n: TreeNode): Promise<void> {
-    openKey = keyOf(n.relParts);
-    leaveVirtual();
-    await revealPath(n.relParts);
-  }
-
   function pick(n: TreeNode): void {
-    if (state.virtual === "review" && !n.file) {
-      void goTo(n);
-      return;
-    }
-    if (n.hasChildren && state.settings.autoOpenColumns) openColumn(n);
+    // A review entry always lists its contents beside the list, like a favorite.
+    if (n.hasChildren && (state.settings.autoOpenColumns || state.virtual === "review")) openColumn(n);
     else select(n.relParts);
   }
 
@@ -149,7 +140,6 @@ export function createColumnsView(): ViewMode {
 
 
   async function enterChildren(n: TreeNode): Promise<void> {
-    if (state.virtual === "review") return goTo(n);
     if (!n.hasChildren) {
       if (!isTemplatesHome(n)) return;
       openColumn(n);
@@ -235,8 +225,7 @@ export function createColumnsView(): ViewMode {
     };
     const move = (j: number) => {
       const target = at(j);
-      // Stepping through the review list only selects; Enter or Right goes to the folder.
-      if (target) state.virtual === "review" ? select(target.relParts) : pick(target);
+      if (target) pick(target);
     };
     switch (ev.key) {
       // The ends wrap around, so the last row leads back to the first and the first to the last.
