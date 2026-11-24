@@ -2,6 +2,7 @@
 import { listChildren } from "../ipc/api";
 import { favoritesFirst, foldersFirst, SORT_BYS, type ColumnSort, type SortBy } from "./sort";
 import { readPref, savePref } from "./prefs";
+import { isHexColor, type HexColor } from "./hex-color";
 import { DOWNLOADS_ROOT, SYSTEM_ROOTS, inSystem, systemRootOf } from "../ipc/types";
 import type { HiddenChoice, LevelPatch, TreeNode, TreeSnapshot } from "../ipc/types";
 
@@ -63,6 +64,7 @@ export type OnLaunch = "continue" | "root";
 export type BackupFrequency = "day" | "week" | "month";
 export type Theme = "system" | "light" | "dark";
 export type AccentId = "green" | "blue" | "purple" | "coral" | "gold";
+export type AccentValue = AccentId | HexColor;
 export type TextSize = "small" | "medium" | "large";
 export type TabView = "last" | "default";
 export type StartView = "continue" | "columns" | "grid" | "list" | "details" | "cards" | "graph";
@@ -86,9 +88,10 @@ export interface Settings {
   showReview: boolean;
   showSystemFolders: boolean;
   mcpWrites: boolean;
+  adminIdentifiers: boolean;
   theme: Theme;
-  accent: AccentId;
-  iconColor: AccentId;
+  accent: AccentValue;
+  iconColor: AccentValue;
   textSize: TextSize;
   backupFrequency: BackupFrequency;
   // Empty means the default folder inside the Storage.
@@ -137,7 +140,7 @@ export const state: State = {
   hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, batchDropToGroup: true, autoUpdate: true, installUpdates: true, betaUpdates: false, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, showSystemFolders: false, mcpWrites: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, batchDropToGroup: true, autoUpdate: true, installUpdates: true, betaUpdates: false, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, showSystemFolders: false, mcpWrites: false, adminIdentifiers: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
   virtual: null,
   marked: null,
   virtualKeys: [],
@@ -261,9 +264,10 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.showReview = saved.showReview !== "false";
   state.settings.showSystemFolders = saved.showSystemFolders === "true";
   state.settings.mcpWrites = saved.mcpWrites === "true";
+  state.settings.adminIdentifiers = saved.adminIdentifiers === "true";
   state.settings.theme = saved.theme === "light" || saved.theme === "system" ? saved.theme : "dark";
-  state.settings.accent = ["blue", "purple", "coral", "gold"].includes(saved.accent ?? "") ? (saved.accent as AccentId) : "green";
-  state.settings.iconColor = ["green", "blue", "coral", "gold"].includes(saved.iconColor ?? "") ? (saved.iconColor as AccentId) : "purple";
+  state.settings.accent = isHexColor(saved.accent) || ["blue", "purple", "coral", "gold"].includes(saved.accent ?? "") ? (saved.accent as AccentValue) : "green";
+  state.settings.iconColor = isHexColor(saved.iconColor) || ["green", "blue", "coral", "gold"].includes(saved.iconColor ?? "") ? (saved.iconColor as AccentValue) : "purple";
   state.settings.textSize = saved.textSize === "medium" || saved.textSize === "large" ? saved.textSize : "small";
   state.settings.backupFrequency = saved.backupFrequency === "week" || saved.backupFrequency === "month" ? saved.backupFrequency : "day";
   state.settings.backupFolder = saved.backupFolder ?? "";

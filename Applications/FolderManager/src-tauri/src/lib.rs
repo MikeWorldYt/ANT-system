@@ -135,6 +135,8 @@ pub fn run() {
             commands::add_node,
             commands::add_child,
             commands::move_node,
+            commands::reorder_plan,
+            commands::reorder_ids,
             commands::move_folder,
             commands::preview_invalid,
             commands::resolve_invalid,

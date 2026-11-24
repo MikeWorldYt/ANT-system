@@ -15,6 +15,7 @@ import { loadOther, loadOtherVirtual } from "./split";
 import { dropNotice, type Notice } from "./drop-summary";
 import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, virtualRoot, type Settings } from "../services/store/state";
 import { sortedForColumns } from "../services/store/sort";
+import { followReorder } from "../services/store/id-order";
 import { loadVirtual, virtualNodes } from "../services/store/virtual";
 import { invalidateSizes } from "../services/store/folder-size";
 import { saveReviewFilter } from "../services/store/review-list";
@@ -25,7 +26,7 @@ import { inSystem, isFmError } from "../services/ipc/types";
 import { noFilesMessage, takesFiles } from "../services/store/system-folders";
 import { plural } from "../services/plural";
 import { localStamp } from "../services/stamp";
-import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Picks, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../services/ipc/types";
+import type { BoardCard, Copied, EditableType, HiddenChoice, IdTarget, LevelPatch, Mutation, NewKind, Picks, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../services/ipc/types";
 
 async function reload(snapshot?: TreeSnapshot, full = true): Promise<void> {
   markRefreshed();
@@ -313,8 +314,12 @@ export const addChild = (node: TreeNode, kind: NewKind) =>
     `Creating ${kind === "worknode" ? "worknode" : "node"} in "${node.name}"…`,
   );
 
-export const move = (node: TreeNode, dir: MoveDirection) =>
-  run(async () => applyMutation(await api.moveNode(node.relParts, dir), node.relParts), `Moving "${node.name}" ${dir}…`);
+export const reorderChildren = (folder: TreeNode, targets: IdTarget[], renames: Map<string, string>) =>
+  run(async () => {
+    const m = await api.reorderIds(folder.relParts, targets);
+    followReorder(folder.relParts, renames);
+    await applyMutation(m);
+  }, `Reordering ids in "${folder.name}"…`);
 
 export const renameTo = (node: TreeNode, editable: string) =>
   run(async () => {

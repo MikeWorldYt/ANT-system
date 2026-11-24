@@ -1,5 +1,6 @@
 // Background menu of the open folder: paste into it, switch the view, sort its contents and add folders.
 import { addChild, manageHidden, pasteFiles, refresh } from "../../../hooks/ops";
+import { canReorderIds, reorderIds } from "../../../hooks/reorder-ids";
 import { keyOf, setColumnSort, sortOf, state, type ColumnSort } from "../../../services/store/state";
 import { SORT_KEYS, orderedModes, type ViewPicker } from "../bars/toolbar";
 import { menuIcon, closingItem, menuItem, separator, submenu, type Submenu } from "../../molecules/menu";
@@ -55,10 +56,11 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   // Like the toolbar's Add menu, a main category gets no worknode.
   const addItems = node.relParts.length === 1 ? [newNode] : [newNode, newWorknode];
   const manage = action("Manage hidden nodes", true, () => void manageHidden(node.relParts));
+  const reorderItems = canReorderIds(node) ? [action("Reorder by id…", true, () => void reorderIds(node))] : [];
 
   return {
-    items: [...pasteItems, ...subs.map((s) => s.trigger), reload, ...addItems, manage],
+    items: [...pasteItems, ...subs.map((s) => s.trigger), reload, ...addItems, manage, ...reorderItems],
     subs,
-    content: [...pasteItems, ...(pasteItems.length > 0 ? [separator()] : []), ...subs.map((s) => s.element), reload, separator(), ...addItems, separator(), manage],
+    content: [...pasteItems, ...(pasteItems.length > 0 ? [separator()] : []), ...subs.map((s) => s.element), reload, separator(), ...addItems, separator(), manage, ...reorderItems],
   };
 }

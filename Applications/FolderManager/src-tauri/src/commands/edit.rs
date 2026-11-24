@@ -4,11 +4,11 @@ use std::path::{Path, PathBuf};
 use serde_yaml::Mapping;
 use tauri::{AppHandle, Manager};
 
-use super::{locked, off_thread, review_emitter, run_locked};
+use super::{locked, off_thread, review_emitter, run_locked, run_unlocked};
 use crate::app::storage_session::Storage;
 use crate::platform::shortcuts::create_shortcuts;
 use crate::domain::config::{EditableType, NewKind, WkbStatus};
-use crate::services::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
+use crate::services::mutations::{self, CopyAnswer, DeletePreview, IdTarget, MoveDirection, Mutation, ReorderPlan};
 use crate::domain::error::R;
 use crate::services::{automations, edit, held_trash};
 use crate::services::index::{review_index, Emit};
@@ -184,6 +184,16 @@ pub async fn add_child(app: AppHandle, rel_parts: Vec<String>, kind: NewKind) ->
 #[tauri::command]
 pub async fn move_node(app: AppHandle, rel_parts: Vec<String>, direction: MoveDirection) -> R<Mutation> {
     run_indexed(app, move |root| mutations::move_node(root, &rel_parts, direction)).await
+}
+
+#[tauri::command]
+pub async fn reorder_plan(app: AppHandle, parent_rel_parts: Vec<String>) -> R<ReorderPlan> {
+    run_unlocked(app, move |_, root| mutations::reorder_plan(root, &parent_rel_parts)).await
+}
+
+#[tauri::command]
+pub async fn reorder_ids(app: AppHandle, parent_rel_parts: Vec<String>, targets: Vec<IdTarget>) -> R<Mutation> {
+    run_indexed(app, move |root| mutations::reorder_ids(root, &parent_rel_parts, &targets)).await
 }
 
 #[tauri::command]

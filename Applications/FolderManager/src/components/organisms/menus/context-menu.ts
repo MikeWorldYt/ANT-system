@@ -7,6 +7,7 @@ import { addChild, hideMany, hideNode, pasteFiles, remove, removeDownloads, remo
 import { suggestSearch } from "../../../services/ipc/api";
 import { reportError } from "../bars/status-line";
 import { createShortcut, putOnClipboard } from "../../../hooks/folder-share";
+import { canReorderIds, reorderIds } from "../../../hooks/reorder-ids";
 import { openTab } from "../../../hooks/tabs";
 import { copyPath, openFolder, openInApp, openInSplit } from "../../../hooks/path-actions";
 import { isSelected, keyOf, selectedNodes, startEdit, state } from "../../../services/store/state";
@@ -169,6 +170,7 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   del.prepend(guiIcon("trash"));
   const hideElement = action("Hide element", a.hide, () => void hideNode(node));
   hideElement.prepend(guiIcon("hide"));
+  const reorderItems = canReorderIds(node) ? [action("Reorder by id…", true, () => void reorderIds(node))] : [];
 
   // A file offers only the actions that apply to one file.
   if (node.file) {
@@ -184,13 +186,13 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [openHere, open, openIn.trigger, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...(rules ? [rules.trigger] : fileItems), newNode, newWorknode, hideElement, del, ...extras],
+    items: [openHere, open, openIn.trigger, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...(rules ? [rules.trigger] : fileItems), newNode, newWorknode, ...reorderItems, hideElement, del, ...extras],
     subs: [openIn, ...subs, ...(rules ? [rules] : [])],
     content: [
       openHere, open, openIn.element, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
       rename, copy, cut, ...shareItems, separator(),
       ...subs.map((s) => s.element), ...(rules ? [rules.element] : fileItems), separator(),
-      newNode, newWorknode, separator(),
+      newNode, newWorknode, ...reorderItems, separator(),
       hideElement, del, ...(extras.length > 0 ? [separator(), ...extras] : []),
     ],
   };

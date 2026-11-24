@@ -1,4 +1,4 @@
-// Advanced page: the developer debug log, its folder, the webview console, AI agent write access and the way back to default preferences.
+// Advanced page: the developer debug log, its folder, the webview console, AI agent write access, id administration and the way back to default preferences.
 import { resetPreferences, changeSetting } from "../../../../hooks/ops";
 import { startDebugLog } from "../../../../hooks/debug-log";
 import { openDevtools, openLogsFolder, stopDebugLog } from "../../../../services/ipc/api";
@@ -47,6 +47,11 @@ export const advancedPage: SettingsPage = {
       title: "Let AI agents change this storage",
       description: "Off: agents connected through MCP can only read. On: they can change folders, and deletes, moves and batches still ask you here first",
       control: () => switchControl("Let AI agents change this storage", state.settings.mcpWrites, toggleAgentWrites),
+    },
+    {
+      title: "Administrate identifiers",
+      description: "Adds \"Reorder by id…\" to the context menu to renumber a folder's items",
+      control: () => switchControl("Administrate identifiers", state.settings.adminIdentifiers, (on) => changeSetting("adminIdentifiers", on)),
     },
     {
       title: "Reset preferences",

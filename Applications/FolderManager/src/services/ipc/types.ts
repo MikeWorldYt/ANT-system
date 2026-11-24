@@ -146,6 +146,24 @@ export interface LevelPatch {
 }
 
 // A null tree means a local change: only the listed levels are patched.
+// An id a folder already holds; node ids have an empty tracker, worknode numbers count per tracker ("PJ.").
+export interface IdKey {
+  tracker: string;
+  number: number;
+}
+
+// The children a reorder by id may renumber, each list in id order, and the ids the other siblings hold.
+export interface ReorderPlan {
+  nodes: string[];
+  worknodes: string[];
+  taken: IdKey[];
+}
+
+export interface IdTarget {
+  name: string;
+  newId: string;
+}
+
 export interface Mutation {
   tree: TreeSnapshot | null;
   levels: LevelPatch[];

@@ -14,9 +14,11 @@ import type {
   ExtraReview,
   FmError,
   IntakeReport,
+  IdTarget,
   MoveDirection,
   NewKind,
   Mutation,
+  ReorderPlan,
   Resolution,
   RootCheck,
   SupportCheck,
@@ -69,6 +71,8 @@ export const listChildren = async (relParts: string[]): Promise<TreeNode[]> => {
   const nodes = await (inSystem(relParts) ? call<TreeNode[]>("list_downloads", native(relParts)) : call<TreeNode[]>("list_children", { relParts }));
   return hiddenItemsShown() ? nodes : nodes.filter((n) => !n.concealed);
 };
+// A reorder renames concealed folders too, so they are listed whatever Hidden items says.
+export const listAllChildren = (relParts: string[]) => call<TreeNode[]>("list_children", { relParts });
 // Answers arrive as folder-size events, one per folder, while the call runs.
 export const folderSizes = (targets: string[][]) => call<void>("folder_sizes", { targets });
 export const renameNode = (relParts: string[], newEditable: string) =>
@@ -160,6 +164,8 @@ export const addNode = (relParts: string[], kind: NewKind) => call<Mutation>("ad
 export const addChild = (relParts: string[], kind: NewKind) => call<Mutation>("add_child", { relParts, kind });
 export const moveNode = (relParts: string[], direction: MoveDirection) =>
   call<Mutation>("move_node", { relParts, direction });
+export const reorderPlan = (parentRelParts: string[]) => call<ReorderPlan>("reorder_plan", { parentRelParts });
+export const reorderIds = (parentRelParts: string[], targets: IdTarget[]) => call<Mutation>("reorder_ids", { parentRelParts, targets });
 export const dropFiles = (target: string[], paths: string[], replace: string[] = []) => call<DropOutcome>("drop_files", { target, paths, replace });
 export const pasteFiles = (target: string[]) => call<DropOutcome>("paste_files", { target });
 export const moveFilesIn = (sources: string[][], target: string[], copy: boolean) =>
