@@ -14,18 +14,24 @@ import { virtualNodes } from "../../../services/store/virtual";
 import { isMainCategory } from "../../../services/store/node-info";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { isTail } from "../../../services/store/sort";
-import { openEntry, placeEntries, rootEntries, virtualEntries, type VirtualEntry } from "../../molecules/virtual-entry";
+import { entryType, openEntry, placeEntries, rootEntries, virtualEntries, type VirtualEntry } from "../../molecules/virtual-entry";
 import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import { isTemplatesHome, newTemplateItem } from "../../molecules/new-template-item";
 import type { ViewMode } from "./view-mode";
-import { detailCells, detailsHeader, detailTemplate, fileKind } from "./details-cells";
+import { detailCells, detailsHeader, entryCells, detailTemplate, fileKind } from "./details-cells";
 
 // One line under each root tile in the grid says what it is for, so a new Storage explains itself.
 const ENTRY_HINTS: Record<string, string> = { favorites: "Pinned folders", downloads: "Your downloads", review: "Files to sort", documents: "System documents", pictures: "System pictures", music: "System music", videos: "System videos", desktop: "System desktop" };
 const ROOT_HINTS: Record<string, string> = { REC: "Screen recordings", SS: "Captures", TPL: "Worknode templates" };
 const rootHint = (n: TreeNode): string | null => (n.file ? null : (ROOT_HINTS[n.nodeType?.base ?? ""] ?? (isMainCategory(n) ? "Your area" : null)));
+// In Details an entry lines up as a row: its icon and label take the Name column and its kind the Type column.
+function asDetailRow(entry: HTMLElement): HTMLElement {
+  entry.replaceChildren(el("span", { class: "detail-lead" }, ...entry.childNodes), ...entryCells(entryType(entry.dataset.entry as VirtualId)));
+  return entry;
+}
+
 const hintLine = (text: string) => el("span", { class: "tile-hint" }, text);
 
 function createFolderView(id: string, label: string, rootClass: string, detail?: (n: TreeNode) => string, columns = false): ViewMode {
@@ -50,6 +56,12 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
         folder = key;
         return;
       }
+    }
+    // A restored tab or launch shows the folder it showed, not the folder selected in it.
+    if (state.showing !== undefined && (state.showing === parent || state.showing === key)) {
+      folder = state.showing;
+      state.showing = undefined;
+      return;
     }
     if (key === folder || parent === folder) return;
     const next = selectedNode()?.hasChildren ? key : parent;
@@ -230,7 +242,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       const entryOptions = { tabbable: entryTabbable, mark: markEntry };
       const items = nodes.map((n) => buildItem(n, n === tabbable));
       const tail = nodes.findIndex((n) => !n.file && isTail(n.name));
-      const placed = listing ? items : folder === null ? placeEntries(virtualEntries("grid-item", "option", entryOptions), items, tail < 0 ? items.length : tail) : items;
+      const placed = listing ? items : folder === null ? placeEntries(virtualEntries("grid-item", "option", entryOptions).map((e) => (columns ? asDetailRow(e) : e)), items, tail < 0 ? items.length : tail) : items;
       if (id === "grid" && folder === null && !listing) {
         for (const tile of placed) {
           const node = tile.dataset.key ? findNode(tile.dataset.key.split("/")) : null;

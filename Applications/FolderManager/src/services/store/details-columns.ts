@@ -14,10 +14,10 @@ export interface ColumnDef {
 
 export const COLUMNS: ColumnDef[] = [
   { id: "name", label: "Name", sort: "name", width: 360, shown: true },
+  { id: "created", label: "Date created", sort: "created", width: 150, shown: true },
   { id: "modified", label: "Date modified", sort: "modified", width: 150, shown: true },
   { id: "type", label: "Type", sort: null, width: 110, shown: true },
   { id: "size", label: "Size", sort: "size", width: 70, shown: true },
-  { id: "created", label: "Date created", sort: "created", width: 150, shown: true },
   { id: "status", label: "Status", sort: "status", width: 100, shown: false },
   { id: "owner", label: "Owner", sort: null, width: 110, shown: false },
 ];

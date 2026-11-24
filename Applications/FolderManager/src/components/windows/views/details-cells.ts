@@ -29,6 +29,10 @@ const cellClass = (id: ColumnId) => `detail-cell detail-${id}`;
 export const detailCells = (n: TreeNode): HTMLElement[] =>
   shownColumns().flatMap((c) => (c.id === "name" ? [] : [el("span", { class: cellClass(c.id) }, VALUES[c.id](n))]));
 
+// A root entry is no folder on disk, so it only fills the Type column.
+export const entryCells = (type: string): HTMLElement[] =>
+  shownColumns().flatMap((c) => (c.id === "name" ? [] : [el("span", { class: cellClass(c.id) }, c.id === "type" ? type : "")]));
+
 // One column template shared by the header and every row, which line up on it as the columns of a sheet.
 export const detailTemplate = (folder: string, over?: { id: ColumnId; width: number }): string =>
   shownColumns().map((c) => `${over?.id === c.id ? over.width : widthOf(folder, c.id)}px`).join(" ");
@@ -67,8 +71,7 @@ function fitWidth(host: Element, id: ColumnId): number {
   };
   const widths = rows.map((c) => (id === "name" ? nameEnd(c) : c.firstChild ? contentWidth(c.firstChild, null) : 0));
   if (head?.firstChild) widths.push(contentWidth(head.firstChild, head.querySelector(".detail-grip")));
-  const pad = id === "size" ? 12 : 0;
-  return Math.ceil(Math.max(MIN_WIDTH, ...widths)) + pad + 6;
+  return Math.ceil(Math.max(MIN_WIDTH, ...widths)) + 6;
 }
 
 function columnMenu(ev: MouseEvent, host: Element, folder: string, at: ColumnDef | null): void {

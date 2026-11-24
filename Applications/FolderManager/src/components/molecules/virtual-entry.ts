@@ -110,3 +110,6 @@ export function placeEntries(entries: HTMLElement[], items: HTMLElement[], cut: 
 // Only the head entry can hold the roving focus.
 export const virtualEntries = (cls: string, role: string, options: EntryOptions = {}): HTMLElement[] =>
   rootEntries().map((e) => virtualEntry(e, cls, role, { ...options, tabbable: options.tabbable === true && e.id === headEntry()?.id }));
+
+// The type an entry shows in the Details view, beside the storage's own folder types.
+export const entryType = (id: VirtualId): string => (id === "favorites" ? "Favorites Node" : id === "review" ? "Review Catalog" : id === "board" ? "" : "Native Folder");

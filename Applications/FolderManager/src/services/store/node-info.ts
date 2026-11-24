@@ -4,7 +4,7 @@ import { state } from "./state";
 import { extensionsShown } from "./view-prefs";
 
 export const TYPES: [EditableType, string][] = [["NODE", "Node"], ["WKB", "Worknode"]];
-const TYPE_LABELS: [string, string][] = [...TYPES, ["OUT", "Outcomes"]];
+const TYPE_LABELS: [string, string][] = [...TYPES, ["OUT", "Outcomes"], ["RES", "Resource Node"], ["REV", "Review Node"], ["SS", "Screenshots Node"], ["REC", "Recordings Node"], ["TPL", "Templates Node"]];
 export const STATUSES: [WkbStatus, string][] = [
   ["hold", "Hold"],
   ["in-progress", "In progress"],
@@ -81,7 +81,8 @@ export function fileTypeName(name: string): string {
   return dot > 0 ? `${name.slice(dot + 1).toUpperCase()} file` : "File";
 }
 
-export const typeName = (n: TreeNode): string => (n.file ? fileTypeName(n.name) : TYPE_LABELS.find(([v]) => v === n.nodeType?.base)?.[1] ?? n.nodeType?.raw ?? "—");
+// A level 1 node heads one area of the storage, so it reads as a main node; deeper nodes say their level.
+export const typeName = (n: TreeNode): string => (n.file ? fileTypeName(n.name) : n.nodeType?.base === "NODE" ? (n.relParts.length === 1 ? "Main Node" : `Node (Level ${n.relParts.length})`) : TYPE_LABELS.find(([v]) => v === n.nodeType?.base)?.[1] ?? n.nodeType?.raw ?? "—");
 
 export const typeLabel = (n: TreeNode): string => {
   const flags = nodeFlags(n);
