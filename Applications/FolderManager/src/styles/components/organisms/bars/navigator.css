@@ -21,3 +21,7 @@
 .crumb-btn:hover { background: var(--state-hover); }
 .crumb-btn.current { font-weight: 600; }
 .crumb-sep.db-edge { color: #e8b931; }
+.crumb-menu { background: none; border: 0; padding: 0 2px; cursor: pointer; border-radius: var(--radius-sm, 4px); }
+.crumb-menu:hover, .crumb-menu:focus-visible, .crumb-menu[aria-expanded="true"] { background: var(--tab-outline); outline: none; }
+.crumb-menu .gui-icon { transition: transform 0.12s; }
+.crumb-menu[aria-expanded="true"] .gui-icon { transform: rotate(90deg); }

@@ -4,7 +4,9 @@ import { guiIcon } from "../../atoms/gui-icons";
 import { iconButton } from "../../atoms/icon-button";
 import { createPathInput, rootName } from "./path-input";
 import { currentPlace, folderOf, samePlace, type Place } from "../../../services/store/place";
-import { findNode, select, selectedNode, state } from "../../../services/store/state";
+import { findNode, keyOf, select, selectedNode, state } from "../../../services/store/state";
+import { attachMenu } from "../menus/anchored-menu";
+import { folderIcon } from "../../atoms/icons";
 import { goToPlace, openVirtual } from "../../../hooks/virtual-nav";
 import { openEntry } from "../../molecules/virtual-entry";
 import { reportError } from "./status-line";
@@ -16,6 +18,7 @@ interface Crumb {
   label: string;
   go(): void;
   depth?: number;
+  parts?: string[];
 }
 
 export function createNavigator(shownFolder: () => TreeNode | null | undefined): { element: HTMLElement; render(): void; editPath(): void; goUp(): void; trail(): Trail; setTrail(trail: Trail): void; enter(trail: Trail, place: Place): Promise<void> } {
@@ -155,7 +158,7 @@ export function createNavigator(shownFolder: () => TreeNode | null | undefined):
     // The trail is the folder on screen; a view with no single folder falls back to the selection, minus a selected file.
     const shown = shownFolder();
     const parts = shown !== undefined ? (shown?.relParts ?? []) : (state.selectedKey?.split("/") ?? []).slice(0, selectedNode()?.file ? -1 : undefined);
-    const crumb = (end: number): Crumb => ({ label: parts[end - 1] ?? "", go: () => select(parts.slice(0, end)), depth: end });
+    const crumb = (end: number): Crumb => ({ label: parts[end - 1] ?? "", go: () => select(parts.slice(0, end)), depth: end, parts: parts.slice(0, end) });
     const entry = openEntry();
     if (entry === null) return parts.map((_, i) => crumb(i + 1));
     const head: Crumb = { label: entry.label, go: () => void openVirtual(entry.id) };
@@ -167,19 +170,30 @@ export function createNavigator(shownFolder: () => TreeNode | null | undefined):
   function crumbs(): (Node | string)[] {
     const out: (Node | string)[] = [];
     // Steps inside the levels the database indexes are marked, so where its scope ends shows.
-    const sep = (depth = 1) => el("span", { class: depth <= state.depthLimit ? "crumb-sep db-edge" : "crumb-sep", "aria-hidden": "true" }, guiIcon("separator"));
+    const sepClass = (depth: number) => (depth <= state.depthLimit ? "crumb-sep db-edge" : "crumb-sep");
+    // A separator after a real folder lists its subfolders, as Explorer's address bar does, to jump sideways without leaving the bar.
+    const sep = (depth = 1, parent?: string[], next?: string) => {
+      if (!parent) return el("span", { class: sepClass(depth), "aria-hidden": "true" }, guiIcon("separator"));
+      const b = el("button", { type: "button", class: `${sepClass(depth)} crumb-menu`, "aria-label": `Folders in ${parent.at(-1) ?? rootName(state.tree?.root)}` }, guiIcon("separator"));
+      const folders = () => (parent.length === 0 ? (state.tree?.nodes ?? []) : (findNode(parent)?.children ?? [])).filter((n) => !n.file);
+      attachMenu(b, "Folders", () => folders().map((n) => ({ label: n.name, checked: n.name === next, lead: () => folderIcon(n), run: () => {
+        state.entering = keyOf(n.relParts);
+        select(n.relParts);
+      } })), false, true);
+      return b;
+    };
     const rootBtn = el("button", { type: "button", class: "crumb crumb-btn crumb-root", title: state.tree?.root ?? "" }, rootName(state.tree?.root));
     rootBtn.addEventListener("click", () => select(null));
     out.push(rootBtn);
     const steps = trail();
-    if (steps.length > 0) out.push(sep());
+    if (steps.length > 0) out.push(steps[0]?.parts ? sep(1, [], steps[0].parts.at(-1)) : sep());
     steps.forEach((s, i) => {
       const leaf = i === steps.length - 1;
       const b = el("button", { type: "button", class: leaf ? "crumb crumb-btn current" : "crumb crumb-btn" }, s.label);
       if (leaf) b.setAttribute("aria-current", "location");
       b.addEventListener("click", s.go);
       out.push(b);
-      if (!leaf) out.push(sep(steps[i + 1]?.depth));
+      if (!leaf) out.push(sep(steps[i + 1]?.depth, s.parts, steps[i + 1]?.parts?.at(-1)));
     });
     return out;
   }

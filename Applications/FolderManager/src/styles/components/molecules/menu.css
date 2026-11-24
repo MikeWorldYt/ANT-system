@@ -34,3 +34,4 @@
 .ctx-iconed > .ctx-icon { position: absolute; left: 9px; top: 50%; width: 14px; height: 14px; transform: translateY(-50%); color: var(--muted); }
 .ctx-iconed > .ctx-icon.ctx-icon-flip { transform: translateY(-50%) rotate(180deg); }
 .ctx-iconed[aria-checked="true"] > .ctx-icon { color: var(--accent); }
+.ctx-iconed > .ctx-lead { width: 16px; height: 16px; }
