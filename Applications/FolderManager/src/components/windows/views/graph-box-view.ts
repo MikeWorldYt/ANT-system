@@ -7,6 +7,7 @@ import { sortSubmenu } from "../../organisms/menus/board-menu";
 import { pasteFiles } from "../../../hooks/ops";
 import { keyOf, notify, select, selectKeys, sortOf, state } from "../../../services/store/state";
 import { sortedForColumns } from "../../../services/store/sort";
+import { takesFiles } from "../../../services/store/system-folders";
 import { inSystem, type TreeNode } from "../../../services/ipc/types";
 import { fileKind } from "./details-cells";
 
@@ -122,7 +123,7 @@ export function boxMenu(box: HTMLElement, n: TreeNode): void {
     openMenuWith(
       (close) => {
         const action = closingItem(close);
-        const paste = action("Paste", !n.reserved && !n.ghost && !inSystem(n.relParts), () => void pasteFiles(n.relParts));
+        const paste = action("Paste", !n.reserved && !n.ghost && takesFiles(n.relParts), () => void pasteFiles(n.relParts));
         const choices = VIEWS.map(([v, label]) =>
           menuItem(label, "menuitemradio", true, () => {
             close();

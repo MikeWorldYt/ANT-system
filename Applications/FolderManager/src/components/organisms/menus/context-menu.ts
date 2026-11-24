@@ -14,6 +14,7 @@ import { menuItems, runMenuItem } from "../../../extensions/host";
 import { autoDismiss, focusInitial, closingItem, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
 import { boardMenu, type MenuParts } from "./board-menu";
 import type { ViewPicker } from "../bars/toolbar";
+import { allInSystem } from "../../../services/store/system-folders";
 import { inSystem, type TreeNode } from "../../../services/ipc/types";
 
 interface MenuRequest {
@@ -268,7 +269,7 @@ function selectionMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
 function openMenu({ node, nodes, x, y, folderOnly }: MenuRequest, restoreFocus: () => void, views: ViewPicker): void {
   const group = nodes !== undefined && nodes.length > 1 ? nodes : null;
   const label = group ? `Actions for ${group.length} items` : `Actions for ${node.name}`;
-  const downloads = (group ?? [node]).every((n) => inSystem(n.relParts));
+  const downloads = allInSystem(group ?? [node]);
   openMenuWith(
     (close) => (group && downloads ? downloadsMenu(group, close) : folderOnly && downloads ? downloadsBackground(node, close) : folderOnly && !downloads ? boardMenu(node, views, close) : group ? selectionMenu(group, close) : nodeMenu(node, close)),
     label,

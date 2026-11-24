@@ -3,7 +3,7 @@ import { dropFiles } from "./ops";
 import { announceDrop, DROP_TARGET, folderMoveActive } from "./folder-move";
 import { setStatus } from "../components/organisms/bars/status-line";
 import type { DragDropEvent } from "@tauri-apps/api/webview";
-import { inSystem } from "../services/ipc/types";
+import { takesFiles } from "../services/store/system-folders";
 import { batch } from "./automations/batch";
 import { dropIntoBatch, groupAt } from "./automations/batch-drop";
 
@@ -42,8 +42,8 @@ export function handleFileDrag(e: DragDropEvent): void {
   }
   const hit = dialogOpen() ? null : nodeElementAt(e.position);
   // Reserved, missing and locked folders take no files, except review folders; a refused drop still reaches the backend for its message.
-  const outside = inSystem(hit?.dataset.key?.replace(/#files$/, "").split("/") ?? []);
-  if (e.type !== "drop") return mark(hit && !outside && !hit.matches(".reserved, .ghost, .locked:not(.rev)") && hit.dataset.key !== "" ? hit : null);
+  const accepts = takesFiles(hit?.dataset.key?.replace(/#files$/, "").split("/") ?? []);
+  if (e.type !== "drop") return mark(hit && accepts && !hit.matches(".reserved, .ghost, .locked:not(.rev)") && hit.dataset.key !== "" ? hit : null);
   mark(null);
   if (dialogOpen()) return;
   // A graph box carries its folder's key with "#files" after it; the files land in that folder.

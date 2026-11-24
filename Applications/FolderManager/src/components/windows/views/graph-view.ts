@@ -19,7 +19,8 @@ import type { Trip } from "../../../hooks/file-trips";
 import { bandSelect } from "./graph-band";
 import { boxMenu, boxView, fileArt, fileDetail, fitWidth, keepSize, sortedFiles } from "./graph-box-view";
 import type { FilesMoved } from "../../../hooks/automations/batch-replay";
-import { DOWNLOADS_ROOT, inSystem, systemName, systemRootOf, type TreeNode } from "../../../services/ipc/types";
+import { DOWNLOADS_ROOT, inSystem, systemName, type TreeNode } from "../../../services/ipc/types";
+import { isSystemRoot } from "../../../services/store/system-folders";
 import { listChildren } from "../../../services/ipc/api";
 import { play, snapshot } from "./graph-motion";
 import type { ViewMode } from "./view-mode";
@@ -116,7 +117,7 @@ export function createGraphView(): ViewMode {
   let beforeOverlay: string | null = null;
   const openOverlays = (): string[] =>
     [...state.expanded].filter((k) => {
-      if (systemRootOf([k]) === k) return true;
+      if (isSystemRoot(k)) return true;
       const n = findNode(k.split("/"));
       return n !== null && isSupport(n);
     });
@@ -170,7 +171,7 @@ export function createGraphView(): ViewMode {
       lastOpened = null;
     }
     // Without a remembered path, a selection inside what closed goes up to the folder that held it.
-    const inside = systemRootOf([shut]) !== shut && state.selectedKey !== null && (state.selectedKey === shut || state.selectedKey.startsWith(`${shut}/`)) ? shut : undefined;
+    const inside = !isSystemRoot(shut) && state.selectedKey !== null && (state.selectedKey === shut || state.selectedKey.startsWith(`${shut}/`)) ? shut : undefined;
     if (back !== null && findNode(back.split("/"))) select(back.split("/"));
     else if (inside) select(inside.split("/").slice(0, -1));
     else notify();

@@ -20,7 +20,8 @@ import { saveReviewFilter } from "../services/store/review-list";
 import { outputOf } from "../services/store/node-info";
 import { goToPlace, toggleBoard } from "./virtual-nav";
 import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
-import { inSystem, isFmError, systemName } from "../services/ipc/types";
+import { inSystem, isFmError } from "../services/ipc/types";
+import { noFilesMessage, takesFiles } from "../services/store/system-folders";
 import { plural } from "../services/plural";
 import { localStamp } from "../services/stamp";
 import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Picks, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../services/ipc/types";
@@ -482,8 +483,14 @@ async function revalidate(): Promise<void> {
   void checkRootFolders(resolveInvalid, deleteInvalid);
 }
 
+const refusedAsNative = (target: string[]): boolean => {
+  if (takesFiles(target)) return false;
+  setStatus("warning", noFilesMessage(target));
+  return true;
+};
+
 export const dropFiles = async (target: string[], paths: string[]): Promise<void> => {
-  if (inSystem(target)) return setStatus("warning", `${systemName(target)} takes no files from here`);
+  if (refusedAsNative(target)) return;
   const ok = await run(
     async () => {
       const { mutation, placed, conflicts } = await api.dropFiles(target, paths);
@@ -522,17 +529,18 @@ export const dropFiles = async (target: string[], paths: string[]): Promise<void
   if (ok) await revalidate();
 };
 
-export const pasteFiles = (target: string[]) =>
-  inSystem(target) ? Promise.resolve(setStatus("warning", `${systemName(target)} takes no files from here`)) : run(
+export const pasteFiles = async (target: string[]): Promise<void> => {
+  if (refusedAsNative(target)) return;
+  const ok = await run(
     async () => {
       const { mutation, placed } = await api.pasteFiles(target);
       await applyMutation(mutation);
       doneNotice = dropNotice(placed, mutation.warnings);
     },
     `Pasting files in "${target[target.length - 1]}"…`,
-  ).then(async (ok) => {
-    if (ok) await revalidate();
-  });
+  );
+  if (ok) await revalidate();
+};
 
 // Files already in the storage move (or copy) into a folder, with the same placement as files dropped from Explorer.
 export const moveFiles = (sources: string[][], target: string[], copy: boolean) =>

@@ -1,11 +1,12 @@
 // Ctrl+A marks every item of the folder the selection stands in, as Explorer does, instead of selecting the page's text.
 import { activeColumnKey, findNode, keyOf, listed, selectKeys, state, virtualRoot } from "../services/store/state";
 import { virtualNodes } from "../services/store/virtual";
-import { systemRootOf, type TreeNode } from "../services/ipc/types";
+import { isSystemRoot } from "../services/store/system-folders";
+import type { TreeNode } from "../services/ipc/types";
 
 function siblings(): TreeNode[] {
   const parent = activeColumnKey();
-  if (systemRootOf([parent]) === parent) return virtualRoot(state.virtual) === parent ? virtualNodes() : (state.system[parent] ?? []);
+  if (isSystemRoot(parent)) return virtualRoot(state.virtual) === parent ? virtualNodes() : (state.system[parent] ?? []);
   if (parent === "") return state.virtual !== null ? virtualNodes() : (state.tree?.nodes ?? []);
   return findNode(parent.split("/"))?.children ?? [];
 }

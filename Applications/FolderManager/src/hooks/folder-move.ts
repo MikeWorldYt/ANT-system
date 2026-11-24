@@ -13,6 +13,7 @@ import { noteTrip } from "./file-trips";
 import { plural } from "../services/plural";
 import { reportError } from "../components/organisms/bars/status-line";
 import { folderIcon } from "../components/atoms/icons";
+import { takesFiles } from "../services/store/system-folders";
 import { inSystem, type TreeNode } from "../services/ipc/types";
 
 export const HIGHLIGHT = "drop-target";
@@ -36,7 +37,7 @@ export const canMove = (n: Movable | null): boolean =>
 export const canDropOn = (n: Movable | null): boolean =>
   n !== null &&
   !n.file &&
-  !inSystem(n.relParts) &&
+  takesFiles(n.relParts) &&
   !n.reserved &&
   !n.ghost &&
   ((!n.locked && (isPlain(n) || n.nodeType?.base === "NODE" || n.nodeType?.base === "WKB")) || ["REV", "SS", "REC"].includes(n.nodeType?.base ?? ""));
