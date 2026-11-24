@@ -51,7 +51,7 @@ pub fn run() {
         .register_uri_scheme_protocol(services::preview::media::SCHEME, |ctx, request| {
             use tauri::Manager;
             let app = ctx.app_handle();
-            services::preview::media::response(app.state::<Storage>().root().ok().as_deref(), app.path().download_dir().ok().as_deref(), &request)
+            services::preview::media::response(app.state::<Storage>().root().ok().as_deref(), |marker| commands::base_of(app, marker).ok(), &request)
         })
         .setup(move |app| {
             use tauri::Manager;
@@ -91,17 +91,19 @@ pub fn run() {
                     }
                 },
             ));
-            match app.path().download_dir() {
+            // Only Downloads is watched: the other native folders are kept out of daily use, so they are read again on a refresh.
+            let marker = services::downloads::ROOT;
+            match commands::base_of(app.handle(), marker) {
                 Ok(dir) => {
                     let emitter = app.handle().clone();
-                    services::watch::watch_downloads(dir, move || {
+                    services::watch::watch_system_folder(dir, move || {
                         use tauri::Emitter;
-                        if let Err(e) = emitter.emit("fm://downloads-changed", ()) {
+                        if let Err(e) = emitter.emit("fm://downloads-changed", marker) {
                             eprintln!("Could not send fm://downloads-changed: {e}");
                         }
                     });
                 }
-                Err(e) => eprintln!("No Downloads folder to watch: {e}"),
+                Err(e) => eprintln!("No {marker} folder to watch: {e}"),
             }
             match app::ui_bridge::UiBridge::start(app.handle()) {
                 Ok(bridge) => {
@@ -160,6 +162,7 @@ pub fn run() {
             commands::set_link_hidden,
             commands::file_image,
             commands::list_downloads,
+            commands::system_folders,
             commands::open_download,
             commands::copy_downloads,
             commands::reveal_download,

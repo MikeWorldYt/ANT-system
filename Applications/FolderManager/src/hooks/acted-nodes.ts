@@ -1,15 +1,15 @@
 // Commands on the marked items, shared by the side panel and the shortcuts so both read a selection the same way.
 import { actedNodes, state } from "../services/store/state";
 import { hideNode, move, remove, removeDownloads, removeMany, setFavorite, setImportant } from "./ops";
-import { inDownloads, type MoveDirection, type NodeActions, type TreeNode } from "../services/ipc/types";
+import { inSystem, type MoveDirection, type NodeActions, type TreeNode } from "../services/ipc/types";
 
-const allDownloads = (nodes: TreeNode[]): boolean => nodes.length > 0 && nodes.every((n) => inDownloads(n.relParts));
+const allDownloads = (nodes: TreeNode[]): boolean => nodes.length > 0 && nodes.every((n) => inSystem(n.relParts));
 
 // Only delete has a batch form so far; every other command needs exactly one item.
 export function canActOn(action: keyof NodeActions): boolean {
   const nodes = actedNodes();
   if (action === "delete" && allDownloads(nodes)) return true;
-  if (action === "delete" && nodes.length > 1) return !nodes.some((n) => inDownloads(n.relParts));
+  if (action === "delete" && nodes.length > 1) return !nodes.some((n) => inSystem(n.relParts));
   return nodes.length === 1 && !!nodes[0]?.actions[action];
 }
 

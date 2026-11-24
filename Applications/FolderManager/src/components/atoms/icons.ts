@@ -21,7 +21,7 @@ import fileUrl from "../../assets/icons/file.svg?url";
 import { el } from "../dom";
 import { nativeImage } from "../../services/file-images";
 import { isWorknode } from "../../services/store/node-info";
-import { inDownloads, type TreeNode } from "../../services/ipc/types";
+import { inSystem, type TreeNode } from "../../services/ipc/types";
 
 // The colors the SVGs were drawn with; the link arrow's blues are not in this list, so they stay.
 const DRAWN_BASE = /#7e54d1/gi;
@@ -72,7 +72,7 @@ const lockedKind = (n: TreeNode): Kind => {
 };
 
 const kindOf = (n: TreeNode, open: boolean): Kind =>
-  inDownloads(n.relParts) ? (open ? "open" : "folder") : n.linked ? "lnk" : n.locked ? lockedKind(n) : isWorknode(n) ? (n.isGit ? "wkbGit" : "wkb") : n.isGit ? "git" : n.flags.includes("data") ? (open ? "open" : "folder") : open ? "openNoflag" : "noflag";
+  inSystem(n.relParts) ? (open ? "open" : "folder") : n.linked ? "lnk" : n.locked ? lockedKind(n) : isWorknode(n) ? (n.isGit ? "wkbGit" : "wkb") : n.isGit ? "git" : n.flags.includes("data") ? (open ? "open" : "folder") : open ? "openNoflag" : "noflag";
 
 // The global media and templates folders at the root show the same icons as their side panel shortcuts.
 const MEDIA_SVGS: Record<string, string> = { REC: recordingsSvg, SS: screenshotsSvg, TPL: templatesSvg };

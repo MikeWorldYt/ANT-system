@@ -16,7 +16,7 @@ import { findNode, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, st
 import { reviewFilter, reviewGroup } from "../../../services/store/review-list";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
-import { entryBeside, headEntry, openEntry, placeEntries, rootEntries, virtualEntries } from "../../molecules/virtual-entry";
+import { entryBeside, headEntry, leadEntries, openEntry, placeEntries, virtualEntries } from "../../molecules/virtual-entry";
 import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
@@ -234,7 +234,7 @@ export function createColumnsView(): ViewMode {
         move(i + 1 >= siblings.length ? 0 : i + 1);
         break;
       case "ArrowUp":
-        if (head && i === 0 && siblings === cols[0]?.nodes) void openVirtual(rootEntries().at(-1)?.id ?? head.id);
+        if (head && i === 0 && siblings === cols[0]?.nodes) void openVirtual(leadEntries().at(-1)?.id ?? head.id);
         else move(i < 0 ? 0 : i === 0 ? siblings.length - 1 : i - 1);
         break;
       case "Home":

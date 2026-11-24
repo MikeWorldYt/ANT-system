@@ -7,7 +7,7 @@ import { sortSubmenu } from "../../organisms/menus/board-menu";
 import { pasteFiles } from "../../../hooks/ops";
 import { keyOf, notify, select, selectKeys, sortOf, state } from "../../../services/store/state";
 import { sortedForColumns } from "../../../services/store/sort";
-import { inDownloads, type TreeNode } from "../../../services/ipc/types";
+import { inSystem, type TreeNode } from "../../../services/ipc/types";
 import { fileKind } from "./details-cells";
 
 export type BoxView = "list" | "cards" | "grid";
@@ -104,7 +104,7 @@ export function boxMenu(box: HTMLElement, n: TreeNode): void {
   const key = keyOf(n.relParts);
   // The box stands for its folder, so a click or right-click on its empty space puts the path there, as its node box does.
   const pick = (): void => {
-    if (!inDownloads(n.relParts) && state.selectedKey !== key) select(n.relParts);
+    if (!inSystem(n.relParts) && state.selectedKey !== key) select(n.relParts);
   };
   box.addEventListener("click", (ev) => {
     if (box.dataset.banded) {
@@ -122,7 +122,7 @@ export function boxMenu(box: HTMLElement, n: TreeNode): void {
     openMenuWith(
       (close) => {
         const action = closingItem(close);
-        const paste = action("Paste", !n.reserved && !n.ghost && !inDownloads(n.relParts), () => void pasteFiles(n.relParts));
+        const paste = action("Paste", !n.reserved && !n.ghost && !inSystem(n.relParts), () => void pasteFiles(n.relParts));
         const choices = VIEWS.map(([v, label]) =>
           menuItem(label, "menuitemradio", true, () => {
             close();

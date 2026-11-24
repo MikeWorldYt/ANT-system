@@ -1,10 +1,10 @@
 // Re-reads single levels from disk so a focus or a watcher batch never needs the full backend sync.
 import * as api from "../services/ipc/api";
-import { findNode, hydrate, keyOf, notify, patchLevels, pruneSelection, state } from "../services/store/state";
-import { keepChildren, loadVirtual } from "../services/store/virtual";
+import { findNode, hydrate, keyOf, notify, patchLevels, pruneSelection, state, virtualRoot } from "../services/store/state";
+import { keepChildren, loadUnfoldedLists, loadVirtual, unfoldedRoots } from "../services/store/virtual";
 import { loadOtherVirtual } from "./split";
 import { noteListing } from "./file-trips";
-import { DOWNLOADS_ROOT, type TreeNode } from "../services/ipc/types";
+import { DOWNLOADS_ROOT, SYSTEM_ROOTS, type TreeNode } from "../services/ipc/types";
 
 // Levels on screen: the root, the open folders and the path down to the selection.
 export function visibleLevels(): string[][] {
@@ -38,11 +38,16 @@ async function relistLevel(parent: string[]): Promise<{ added: boolean; changed:
 
 let queue: Promise<unknown> = Promise.resolve();
 
-// Downloads is not in the tree, so its open folders are read from the expanded keys, and its list is read again in any case.
-export async function relistDownloads(): Promise<boolean> {
-  const open = [...state.expanded].filter((k) => k.startsWith(`${DOWNLOADS_ROOT}/`)).map((k) => k.split("/"));
-  // The graph lists Downloads itself when its card is open.
-  if (state.expanded.has(DOWNLOADS_ROOT)) state.downloads = keepChildren(await api.listChildren([DOWNLOADS_ROOT]));
+// A native folder nobody has open needs no read when its watcher fires.
+const inUse = (root: string): boolean => virtualRoot(state.virtual) === root || unfoldedRoots().includes(root) || [...state.expanded].some((k) => k === root || k.startsWith(`${root}/`));
+
+// Native folders are not in the tree, so their open folders are read from the expanded keys; Downloads' list is read again in any case.
+export async function relistSystem(only?: string): Promise<boolean> {
+  const roots = (only !== undefined ? [only] : [DOWNLOADS_ROOT, ...SYSTEM_ROOTS]).filter((r) => r === DOWNLOADS_ROOT || inUse(r));
+  if (roots.length === 0) return false;
+  const open = [...state.expanded].filter((k) => roots.some((r) => k.startsWith(`${r}/`))).map((k) => k.split("/"));
+  // The graph lists a native folder itself when its card is open.
+  for (const r of roots) if (state.expanded.has(r)) state.system[r] = keepChildren(r, await api.listChildren([r]));
   return relist(open, true);
 }
 
@@ -61,6 +66,7 @@ export function relist(parents: string[][], reloadLists = false): Promise<boolea
     if (changed || reloadLists) {
       await loadVirtual();
       await loadOtherVirtual();
+      await loadUnfoldedLists();
     }
     notify();
     return added;

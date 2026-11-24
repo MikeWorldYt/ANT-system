@@ -100,6 +100,12 @@ export const generalPage: SettingsPage = {
     },
     {
       section: "Preferences",
+      title: "Show all native System folders",
+      description: "Adds the system Documents, Pictures, Music, Videos and Desktop folders at the end of the lists",
+      control: () => switchControl("Show all native System folders", state.settings.showSystemFolders, (on) => changeSetting("showSystemFolders", on)),
+    },
+    {
+      section: "Preferences",
       title: "Auto-open columns",
       description: "In Columns view, selecting a folder opens its contents",
       control: () => switchControl("Auto-open columns", state.settings.autoOpenColumns, (on) => changeSetting("autoOpenColumns", on)),

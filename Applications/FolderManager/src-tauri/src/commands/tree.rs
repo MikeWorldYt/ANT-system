@@ -66,8 +66,8 @@ pub struct PdfPage {
 #[tauri::command]
 pub async fn pdf_page(app: AppHandle, rel_parts: Vec<String>, page: u32) -> R<Option<PdfPage>> {
     off_thread(move || {
-        let path = match super::downloads::below_downloads(&rel_parts) {
-            Some(rest) => crate::services::downloads::path_of(&super::downloads::base(&app)?, rest)?,
+        let path = match super::downloads::system_path(&app, &rel_parts) {
+            Some(path) => path?,
             None => resolve(&app.state::<Storage>().root()?, &rel_parts)?,
         };
         Ok(crate::services::preview::pdf_page(&path, page).map(|(count, url)| PdfPage { url, count }))

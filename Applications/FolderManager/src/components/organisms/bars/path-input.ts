@@ -1,13 +1,13 @@
 // Typed-path editing for the navigation bar: turns the breadcrumb into an input and goes to the place it names.
 import { listChildren, listFavorites, listReview } from "../../../services/ipc/api";
-import { findNode, isVirtualShown, keyOf, state, type VirtualId } from "../../../services/store/state";
+import { findNode, isVirtualShown, keyOf, state, virtualRoot, type VirtualId } from "../../../services/store/state";
 import { loadPath } from "../../../services/store/virtual";
 import type { Place } from "../../../services/store/place";
 import { clearStatus, setStatus, reportError } from "./status-line";
 import { textInput } from "../../atoms/text-input";
-import { DOWNLOADS_ROOT, type TreeNode } from "../../../services/ipc/types";
+import type { TreeNode } from "../../../services/ipc/types";
 
-const VIRTUAL_IDS: VirtualId[] = ["favorites", "downloads", "review", "board"];
+const VIRTUAL_IDS: VirtualId[] = ["favorites", "downloads", "review", "board", "documents", "pictures", "music", "videos", "desktop"];
 
 const cleaned = (text: string): string => text.trim().replace(/^"+|"+$/g, "");
 const splitPath = (text: string): string[] => cleaned(text).split(/[\\/]/).filter(Boolean);
@@ -35,10 +35,12 @@ async function resolveVirtual(id: VirtualId, rest: string[]): Promise<Place | nu
   if (!isVirtualShown(id)) return null;
   if (name === undefined) return { virtual: id, via: null, key: null };
   if (id === "board") return null;
-  if (id === "downloads") {
-    state.downloads = await listChildren([DOWNLOADS_ROOT]);
-    const found = await walk(state.downloads, [name, ...below]);
-    return found && { virtual: id, via: keyOf([DOWNLOADS_ROOT, found[0] ?? name]), key: keyOf([DOWNLOADS_ROOT, ...found]) };
+  const system = virtualRoot(id);
+  if (system !== null) {
+    const top = await listChildren([system]);
+    state.system[system] = top;
+    const found = await walk(top, [name, ...below]);
+    return found && { virtual: id, via: keyOf([system, found[0] ?? name]), key: keyOf([system, ...found]) };
   }
   const favorite = (await (id === "review" ? listReview() : listFavorites())).find((p) => same(p.at(-1) ?? "", name));
   if (!favorite) return null;

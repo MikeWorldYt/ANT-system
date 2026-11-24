@@ -2,16 +2,17 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { copyItems, createFileShortcutIn, createShortcutIn } from "../services/ipc/api";
 import { setStatus, reportError } from "../components/organisms/bars/status-line";
-import { inDownloads, type TreeNode } from "../services/ipc/types";
+import { inSystem, systemName, type TreeNode } from "../services/ipc/types";
 
 // Explorer moves a cut folder out of the storage, so only folders that hold loose data may leave; Downloads is not the storage, so anything there can be cut.
 const cuttable = (node: TreeNode) => node.file || node.flags.includes("data") || node.nodeType?.base === "WKB";
 
 export async function putOnClipboard(nodes: TreeNode[], cut: boolean): Promise<void> {
   if (nodes.length === 0) return;
-  const downloads = nodes.filter((n) => inDownloads(n.relParts)).length;
-  if (downloads > 0 && downloads < nodes.length) return setStatus("warning", "Copy items from Downloads and from the Storage separately");
-  if (cut && downloads === 0 && !nodes.every(cuttable)) return setStatus("warning", "Only data folders and worknodes can be cut");
+  const native = nodes.filter((n) => inSystem(n.relParts));
+  if (native.length > 0 && native.length < nodes.length) return setStatus("warning", `Copy items from ${systemName(native[0]?.relParts ?? [])} and from the Storage separately`);
+  if (new Set(native.map((n) => n.relParts[0])).size > 1) return setStatus("warning", "Copy items from each system folder separately");
+  if (cut && native.length === 0 && !nodes.every(cuttable)) return setStatus("warning", "Only data folders and worknodes can be cut");
   const label = nodes.length === 1 ? `"${nodes[0].name}"` : `${nodes.length} items`;
   try {
     await copyItems(nodes.map((n) => n.relParts), cut);

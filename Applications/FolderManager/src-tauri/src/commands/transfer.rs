@@ -144,11 +144,10 @@ pub async fn begin_delete(app: AppHandle, targets: Vec<Vec<String>>) -> R<()> {
     let sender = app.clone();
     off_thread(move || {
         let root = app.state::<Storage>().root().ok();
-        let downloads = super::downloads::base(&app).ok();
         let paths: Vec<PathBuf> = targets
             .iter()
-            .filter_map(|rel| match super::downloads::below_downloads(rel) {
-                Some(rest) => downloads.as_ref().and_then(|b| crate::services::downloads::path_of(b, rest).ok()),
+            .filter_map(|rel| match super::downloads::system_path(&app, rel) {
+                Some(path) => path.ok(),
                 None => root.as_ref().and_then(|r| crate::services::mutations::source_path(r, rel).ok()),
             })
             .collect();

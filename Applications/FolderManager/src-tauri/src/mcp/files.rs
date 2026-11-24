@@ -156,7 +156,7 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
             let a: DownloadArgs = args(name, arguments)?;
             in_downloads(&a.rel_parts).and_then(|_| {
                 let rest = &a.rel_parts[1..];
-                let nodes = downloads::list(&downloads::system_base()?, rest)?;
+                let nodes = downloads::list(&downloads::system_base()?, downloads::ROOT, rest)?;
                 let rows: Vec<Value> = nodes.iter().filter(|n| !n.concealed).map(|n| json!({ "name": n.name, "relParts": n.rel_parts, "file": n.file })).collect();
                 Ok(json!({ "nodes": rows }))
             })

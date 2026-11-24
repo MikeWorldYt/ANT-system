@@ -9,21 +9,21 @@ import { nodeToggle } from "../../atoms/node-toggle";
 import { sortedForColumns } from "../../../services/store/sort";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
-import { findNode, keyOf, listed, select, selectedNode, notify, sortOf, startEdit, state, type VirtualId } from "../../../services/store/state";
+import { findNode, keyOf, listed, select, selectedNode, notify, sortOf, startEdit, state, virtualRoot, type VirtualId } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
 import { isMainCategory } from "../../../services/store/node-info";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { isTail } from "../../../services/store/sort";
 import { openEntry, placeEntries, rootEntries, virtualEntries, type VirtualEntry } from "../../molecules/virtual-entry";
 import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
-import { DOWNLOADS_ROOT, type TreeNode } from "../../../services/ipc/types";
+import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
 import { isTemplatesHome, newTemplateItem } from "../../molecules/new-template-item";
 import type { ViewMode } from "./view-mode";
 import { detailCells, detailsHeader, fileKind } from "./details-cells";
 
 // One line under each root tile in the grid says what it is for, so a new Storage explains itself.
-const ENTRY_HINTS: Record<string, string> = { favorites: "Pinned folders", downloads: "Your downloads", review: "Files to sort" };
+const ENTRY_HINTS: Record<string, string> = { favorites: "Pinned folders", downloads: "Your downloads", review: "Files to sort", documents: "System documents", pictures: "System pictures", music: "System music", videos: "System videos", desktop: "System desktop" };
 const ROOT_HINTS: Record<string, string> = { REC: "Screen recordings", SS: "Captures", TPL: "Worknode templates" };
 const rootHint = (n: TreeNode): string | null => (n.file ? null : (ROOT_HINTS[n.nodeType?.base ?? ""] ?? (isMainCategory(n) ? "Your area" : null)));
 const hintLine = (text: string) => el("span", { class: "tile-hint" }, text);
@@ -53,8 +53,8 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
     }
     if (key === folder || parent === folder) return;
     const next = selectedNode()?.hasChildren ? key : parent;
-    // Downloads itself is no node, so a selection left on a deleted entry falls back to its list.
-    folder = next === DOWNLOADS_ROOT && state.virtual === "downloads" ? null : next;
+    // A native folder itself is no node, so a selection left on a deleted entry falls back to its list.
+    folder = next !== null && next === virtualRoot(state.virtual) ? null : next;
   }
 
   let built: ManageSnapshot | null = null;
@@ -221,7 +221,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       const open = folderNode();
       const empty = nodes.length === 0 && open !== null && open.children !== null;
       const legend = listing && nodes.length === 0 ? listing.empty : empty ? "Empty" : null;
-      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns ? [detailsHeader(folder ?? (state.virtual === "downloads" ? DOWNLOADS_ROOT : ""))] : [])];
+      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns ? [detailsHeader(folder ?? virtualRoot(state.virtual) ?? "")] : [])];
       const entryOptions = { tabbable: entryTabbable, mark: markEntry };
       const items = nodes.map((n) => buildItem(n, n === tabbable));
       const tail = nodes.findIndex((n) => !n.file && isTail(n.name));

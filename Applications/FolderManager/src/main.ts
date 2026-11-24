@@ -6,7 +6,7 @@ import { onDownloadsChanged, onDownloadsDictionary, onFileDrag, onReviewIndex, o
 import { rememberSelection, state, subscribe } from "./services/store/state";
 import { clearStatus, currentOperationStatus, setStatus, reportError } from "./components/organisms/bars/status-line";
 import { init, refresh, relistLevels } from "./hooks/ops";
-import { relistDownloads } from "./hooks/relist";
+import { relistSystem } from "./hooks/relist";
 import { installTooltips } from "./components/organisms/tooltip/tooltip";
 import { autoRefresh } from "./hooks/auto-refresh";
 import { startIdleRefresh } from "./hooks/idle-refresh";
@@ -110,7 +110,7 @@ onWindowFocus(() => {
   void (quick ? Promise.resolve() : relistLevels(null)).finally(() => restoreFocus(() => views.current().focus()));
 }).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
 
-onDownloadsChanged(() => void relistDownloads()).catch((e) => reportError("warning", e, "Live Downloads updates unavailable"));
+onDownloadsChanged((root) => void relistSystem(root)).catch((e) => reportError("warning", e, "Live Downloads updates unavailable"));
 
 onDownloadsDictionary(replanAfterDictionary).catch((e) => reportError("warning", e, "Downloads dictionary updates unavailable"));
 

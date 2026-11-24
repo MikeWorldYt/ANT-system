@@ -1,15 +1,29 @@
 // Opening a virtual root entry, going back to a place in one, and leaving it for the real folder one of its entries stands for.
-import { loadVirtual } from "../services/store/virtual";
-import { leaveVirtual, notify, reveal, select, selectVirtual, state, type VirtualId } from "../services/store/state";
+import { loadUnfolded, loadVirtual, setUnfolded } from "../services/store/virtual";
+import { leaveVirtual, notify, reveal, select, selectVirtual, state, virtualRoot, type VirtualId } from "../services/store/state";
 import { currentPlace, type Place } from "../services/store/place";
 import { reportError } from "../components/organisms/bars/status-line";
 
 export async function openVirtual(id: VirtualId): Promise<void> {
   selectVirtual(id);
-  // Opening the entry reads Downloads afresh; later reloads keep what is loaded below it.
-  if (id === "downloads") state.downloads = [];
+  // Opening the entry reads its native folder afresh; later reloads keep what is loaded below it.
+  const root = virtualRoot(id);
+  if (root !== null) state.system[root] = [];
   try {
     await loadVirtual();
+  } catch (e) {
+    reportError("error", e);
+  }
+  notify();
+}
+
+// Unfolding an entry in the navigation pane only lists it there; the views, the selection and the breadcrumb stay where they are.
+export async function unfoldEntry(id: VirtualId, on: boolean): Promise<void> {
+  if (!setUnfolded(id, on)) return;
+  notify();
+  if (!on) return;
+  try {
+    await loadUnfolded(id);
   } catch (e) {
     reportError("error", e);
   }

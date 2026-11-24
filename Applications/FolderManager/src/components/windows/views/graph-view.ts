@@ -9,16 +9,17 @@ import { folderMoveActive } from "../../../hooks/folder-move";
 import { openFolder } from "../../../hooks/path-actions";
 import { readPref, savePref } from "../../../services/store/prefs";
 import { reportError } from "../../organisms/bars/status-line";
-import { clickSelect, findNode, hydrate, isVirtualShown, notify, keyOf, select, state } from "../../../services/store/state";
+import { clickSelect, findNode, hydrate, isVirtualShown, notify, keyOf, select, state, virtualRoot } from "../../../services/store/state";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { keepChildren } from "../../../services/store/virtual";
+import { VIRTUAL_ENTRIES } from "../../molecules/virtual-entry";
 import { guiIcon } from "../../atoms/gui-icons";
 import { sendPacket } from "./graph-packets";
 import type { Trip } from "../../../hooks/file-trips";
 import { bandSelect } from "./graph-band";
 import { boxMenu, boxView, fileArt, fileDetail, fitWidth, keepSize, sortedFiles } from "./graph-box-view";
 import type { FilesMoved } from "../../../hooks/automations/batch-replay";
-import { DOWNLOADS_ROOT, inDownloads, type TreeNode } from "../../../services/ipc/types";
+import { DOWNLOADS_ROOT, inSystem, systemName, systemRootOf, type TreeNode } from "../../../services/ipc/types";
 import { listChildren } from "../../../services/ipc/api";
 import { play, snapshot } from "./graph-motion";
 import type { ViewMode } from "./view-mode";
@@ -111,11 +112,11 @@ export function createGraphView(): ViewMode {
     if (over > 0) scroller().scrollBy({ left: Math.min(over, cardBox.left - view.left - 24), behavior: "smooth" });
   }
 
-  // The path held when a support folder or Downloads opened over the branches; a click on the empty graph closes it and goes back there.
+  // The path held when a support folder or a native folder opened over the branches; a click on the empty graph closes it and goes back there.
   let beforeOverlay: string | null = null;
   const openOverlays = (): string[] =>
     [...state.expanded].filter((k) => {
-      if (k === DOWNLOADS_ROOT) return true;
+      if (systemRootOf([k]) === k) return true;
       const n = findNode(k.split("/"));
       return n !== null && isSupport(n);
     });
@@ -169,7 +170,7 @@ export function createGraphView(): ViewMode {
       lastOpened = null;
     }
     // Without a remembered path, a selection inside what closed goes up to the folder that held it.
-    const inside = shut !== DOWNLOADS_ROOT && state.selectedKey !== null && (state.selectedKey === shut || state.selectedKey.startsWith(`${shut}/`)) ? shut : undefined;
+    const inside = systemRootOf([shut]) !== shut && state.selectedKey !== null && (state.selectedKey === shut || state.selectedKey.startsWith(`${shut}/`)) ? shut : undefined;
     if (back !== null && findNode(back.split("/"))) select(back.split("/"));
     else if (inside) select(inside.split("/").slice(0, -1));
     else notify();
@@ -311,11 +312,11 @@ export function createGraphView(): ViewMode {
         if (ev.ctrlKey || ev.shiftKey) clickSelect(c.relParts, entries.map((e) => keyOf(e.relParts)), { ctrl: ev.ctrlKey, shift: ev.shiftKey });
         else select(c.relParts);
       });
-      row.addEventListener("dblclick", () => (!c.file && inDownloads(c.relParts) ? void enterDownloads(c.relParts) : void openFolder(c)));
+      row.addEventListener("dblclick", () => (!c.file && inSystem(c.relParts) ? void enterSystem(c.relParts) : void openFolder(c)));
       row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, c, root));
       return row;
     });
-    const up = inDownloads(n.relParts) && n.relParts.length > 1 ? [upRow(n.relParts)] : [];
+    const up = inSystem(n.relParts) && n.relParts.length > 1 ? [upRow(n.relParts)] : [];
     const box = el("ul", { class: `graph-files-box view-${view}`, "data-key": `${key}#files`, "aria-label": `Contents of ${n.name}` }, ...up, ...(items.length > 0 ? items : [el("li", { class: "graph-file-empty" }, "Empty")]));
     fitWidth(box, view, entries.length);
     keepSize(box, key);
@@ -502,7 +503,7 @@ export function createGraphView(): ViewMode {
 
   function step(dir: "up" | "down" | "left" | "right"): void {
     const key = state.selectedKey;
-    if (key && inDownloads(key.split("/")) && state.expanded.has(DOWNLOADS_ROOT)) return downloadsStep(key, dir);
+    if (key && inSystem(key.split("/")) && state.expanded.has(key.split("/")[0] ?? "")) return systemStep(key, dir);
     const tops = nodesOf(state.tree?.nodes);
     const n = key && parents.has(key) ? findShown(key) : null;
     if (!n) {
@@ -562,83 +563,98 @@ export function createGraphView(): ViewMode {
     zoomBy(ev.deltaY < 0 ? 0.1 : -0.1);
   }, { passive: false });
 
-  // Downloads hangs under the root like a support folder: files a batch sends out start their trip there.
-  function downloadsCard(): HTMLElement[] {
-    if (!isVirtualShown("downloads")) return [];
-    // Downloads opens like a support folder: its files show to the right, over the top nodes, which blur behind them; a double click opens it as a list.
-    const open = state.expanded.has(DOWNLOADS_ROOT);
-    const item = el("div", { class: "graph-node-box graph-entry", role: "treeitem", "data-entry": "downloads", "data-key": DOWNLOADS_ROOT, "aria-expanded": String(open) }, guiIcon("download"), el("span", { class: "graph-name" }, "Downloads"));
-    item.addEventListener("click", () => {
-      if (open) state.expanded.delete(DOWNLOADS_ROOT);
-      else {
-        beforeOverlay = state.selectedKey;
-        lastOpened = DOWNLOADS_ROOT;
-        state.expanded.add(DOWNLOADS_ROOT);
-        readDownloads();
-      }
-      notify();
+  // The native folders shown, Downloads first, each with the root marker of its paths.
+  const systemEntries = () => VIRTUAL_ENTRIES.flatMap((e) => {
+    const root = virtualRoot(e.id);
+    return root !== null && isVirtualShown(e.id) ? [{ entry: e, root }] : [];
+  });
+  // Only one native folder's box stands open over the branches at a time.
+  const openSystem = (): string | null => systemEntries().find(({ root }) => state.expanded.has(root))?.root ?? null;
+
+  // Downloads hangs under the root like a support folder, the other native folders below it; files a batch sends out start their trip from Downloads.
+  function systemCards(): HTMLElement[] {
+    const shown = systemEntries();
+    if (shown.length === 0) return [];
+    // A native folder opens like a support folder: its files show to the right, over the top nodes, which blur behind them; a double click opens it as a list.
+    const cards = shown.map(({ entry, root }) => {
+      const open = state.expanded.has(root);
+      const item = el("div", { class: "graph-node-box graph-entry", role: "treeitem", "data-entry": entry.id, "data-key": root, "aria-expanded": String(open) }, guiIcon(entry.icon), el("span", { class: "graph-name" }, systemName([root])));
+      item.addEventListener("click", () => {
+        if (open) state.expanded.delete(root);
+        else {
+          if (openSystem() === null) beforeOverlay = state.selectedKey;
+          for (const other of shown) state.expanded.delete(other.root);
+          lastOpened = root;
+          state.expanded.add(root);
+          readSystem(root);
+        }
+        notify();
+      });
+      item.addEventListener("dblclick", () => void openVirtual(entry.id));
+      return item;
     });
-    item.addEventListener("dblclick", () => void openVirtual("downloads"));
-    return [el("div", { class: "graph-under", role: "group" }, item)];
+    return [el("div", { class: "graph-under", role: "group" }, ...cards)];
   }
 
-  // The Downloads box browses its subfolders in place; the folder shown is kept while the graph lives.
-  let downloadsAt: string[] = [DOWNLOADS_ROOT];
-  const downloadsShown = (): TreeNode | null => (downloadsAt.length > 1 ? findNode(downloadsAt) : ({ name: "Downloads", relParts: [DOWNLOADS_ROOT], children: state.downloads } as TreeNode));
+  // A native folder's box browses its subfolders in place; the folder shown is kept while the graph lives.
+  let systemAt: string[] = [DOWNLOADS_ROOT];
+  const systemTop = (root: string): TreeNode => ({ name: systemName([root]), relParts: [root], children: state.system[root] ?? [] }) as unknown as TreeNode;
+  const systemShown = (): TreeNode | null => (systemAt.length > 1 ? findNode(systemAt) : systemTop(systemAt[0] ?? DOWNLOADS_ROOT));
 
-  async function enterDownloads(parts: string[]): Promise<void> {
+  async function enterSystem(parts: string[]): Promise<void> {
     const n = parts.length > 1 ? findNode(parts) : null;
     try {
       if (n && n.children === null) n.children = await listChildren(parts);
     } catch (e) {
-      reportError("warning", e, "Downloads");
+      reportError("warning", e, systemName(parts));
       return;
     }
-    downloadsAt = n || parts.length === 1 ? parts : [DOWNLOADS_ROOT];
-    const first = sortedFiles(downloadsShown() ?? ({ children: [] } as unknown as TreeNode))[0];
+    systemAt = n || parts.length === 1 ? parts : parts.slice(0, 1);
+    const first = sortedFiles(systemShown() ?? ({ children: [] } as unknown as TreeNode))[0];
     if (first) select(first.relParts);
     else notify();
   }
 
   function upRow(parts: string[]): HTMLElement {
     const row = el("li", { class: "graph-file graph-file-up", title: "Up one folder" }, guiIcon("up"), el("span", { class: "graph-file-text" }, el("span", { class: "graph-file-name" }, "..")));
-    row.addEventListener("dblclick", () => void enterDownloads(parts.slice(0, -1)));
+    row.addEventListener("dblclick", () => void enterSystem(parts.slice(0, -1)));
     return row;
   }
 
-  function downloadsStep(key: string, dir: "up" | "down" | "left" | "right"): void {
-    const entries = sortedFiles(downloadsShown() ?? ({ children: [] } as unknown as TreeNode));
+  function systemStep(key: string, dir: "up" | "down" | "left" | "right"): void {
+    const entries = sortedFiles(systemShown() ?? ({ children: [] } as unknown as TreeNode));
     const i = entries.findIndex((e) => keyOf(e.relParts) === key);
     const n = entries[i];
     if (dir === "up" && i > 0) select(entries[i - 1]!.relParts);
     else if (dir === "down" && i < entries.length - 1) select(entries[i + 1]!.relParts);
-    else if (dir === "right" && n && !n.file) void enterDownloads(n.relParts);
+    else if (dir === "right" && n && !n.file) void enterSystem(n.relParts);
     else if (dir === "left") {
-      if (downloadsAt.length > 1) void enterDownloads(downloadsAt.slice(0, -1));
-      else select([DOWNLOADS_ROOT]);
+      if (systemAt.length > 1) void enterSystem(systemAt.slice(0, -1));
+      else select(systemAt.slice(0, 1));
     } else if (i < 0 && entries[0]) select(entries[0].relParts);
   }
 
-  // Downloads is read when its box opens, and also when the graph comes back with it already open; until then the box shows it is loading.
-  let downloadsRead = false;
-  let downloadsLoaded = false;
-  function readDownloads(): void {
-    downloadsRead = true;
-    void listChildren([DOWNLOADS_ROOT]).then((nodes) => {
-      state.downloads = keepChildren(nodes);
-      downloadsLoaded = true;
+  // A native folder is read when its box opens, and also when the graph comes back with it already open; until then the box shows it is loading.
+  const systemRead = new Set<string>();
+  const systemLoaded = new Set<string>();
+  function readSystem(root: string): void {
+    systemRead.add(root);
+    void listChildren([root]).then((nodes) => {
+      state.system[root] = keepChildren(root, nodes);
+      systemLoaded.add(root);
       notify();
-    }, (e: unknown) => reportError("warning", e, "Downloads"));
+    }, (e: unknown) => reportError("warning", e, systemName([root])));
   }
 
   function rootKids(tops: TreeNode[]): HTMLElement {
     const branches = tops.map((n) => branch(n, null));
-    if (!isVirtualShown("downloads") || !state.expanded.has(DOWNLOADS_ROOT)) return el("div", { class: "graph-kids", role: "group" }, ...branches);
+    const shown = openSystem();
+    if (shown === null) return el("div", { class: "graph-kids", role: "group" }, ...branches);
     branches.forEach((b, i) => (b.style.gridArea = `${i + 1} / 1`));
-    if (downloadsAt.length > 1 && !findNode(downloadsAt)) downloadsAt = [DOWNLOADS_ROOT];
-    const downloads = downloadsShown() ?? ({ name: "Downloads", relParts: [DOWNLOADS_ROOT], children: state.downloads } as TreeNode);
-    if (!downloadsRead) readDownloads();
-    const overlay = el("div", { class: "graph-support", "data-for": DOWNLOADS_ROOT }, state.downloads.length > 0 || downloadsLoaded ? fileList(downloads) : loadingBox(downloads));
+    if (systemAt[0] !== shown || (systemAt.length > 1 && !findNode(systemAt))) systemAt = [shown];
+    const folder = systemShown() ?? systemTop(shown);
+    if (!systemRead.has(shown)) readSystem(shown);
+    const overlay = el("div", { class: "graph-support", "data-for": shown }, (state.system[shown]?.length ?? 0) > 0 || systemLoaded.has(shown) ? fileList(folder) : loadingBox(folder));
     overlay.style.gridRow = `1 / span ${Math.max(tops.length, 1)}`;
     return el("div", { class: `graph-kids${blurred.has("") ? " behind" : ""}`, role: "group", "data-owner": "", "data-support": "1" }, ...branches, overlay);
   }
@@ -823,7 +839,7 @@ export function createGraphView(): ViewMode {
       const at = (k: string | null) => (k === null ? undefined : canvas.querySelector(`[data-key="${CSS.escape(k)}"]`)?.getBoundingClientRect());
       const before = at(sel);
       const layout = snapshot(canvas);
-      canvas.replaceChildren(el("div", { class: "graph-branch" }, el("div", { class: "graph-head" }, top, ...downloadsCard()), ...(tops.length > 0 || state.expanded.has(DOWNLOADS_ROOT) ? [rootKids(tops)] : [])));
+      canvas.replaceChildren(el("div", { class: "graph-branch" }, el("div", { class: "graph-head" }, top, ...systemCards()), ...(tops.length > 0 || openSystem() !== null ? [rootKids(tops)] : [])));
       restoreShift();
       top.classList.toggle("on-path", state.selectedKey !== null && parents.has(state.selectedKey));
       if (state.selectedKey && parents.has(state.selectedKey)) {

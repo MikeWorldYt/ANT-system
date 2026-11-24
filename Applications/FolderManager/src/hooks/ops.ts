@@ -10,17 +10,17 @@ import { runIntake } from "./intake";
 import { checkRootFolders } from "./root-check";
 import { checkExtraReviews } from "./extra-reviews";
 import { checkSupportUpgrade } from "./support-upgrade";
-import { relist, relistDownloads, visibleLevels } from "./relist";
+import { relist, relistSystem, visibleLevels } from "./relist";
 import { loadOther, loadOtherVirtual } from "./split";
 import { dropNotice, type Notice } from "./drop-summary";
-import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, type Settings } from "../services/store/state";
+import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, virtualRoot, type Settings } from "../services/store/state";
 import { sortedForColumns } from "../services/store/sort";
 import { loadVirtual, virtualNodes } from "../services/store/virtual";
 import { saveReviewFilter } from "../services/store/review-list";
 import { outputOf } from "../services/store/node-info";
 import { goToPlace, toggleBoard } from "./virtual-nav";
 import { isDelivery, pickInside, todayStamp, type Delivery } from "./outputs";
-import { inDownloads, isFmError } from "../services/ipc/types";
+import { inSystem, isFmError, systemName } from "../services/ipc/types";
 import { plural } from "../services/plural";
 import { localStamp } from "../services/stamp";
 import type { BoardCard, Copied, EditableType, HiddenChoice, LevelPatch, MoveDirection, Mutation, NewKind, Picks, Resolution, TreeNode, TreeSnapshot, WkbStatus } from "../services/ipc/types";
@@ -134,6 +134,11 @@ export async function init(): Promise<boolean> {
       reportError("warning", e, "Settings");
     }
     try {
+      state.systemFound = await api.systemFolders();
+    } catch (e) {
+      reportError("warning", e, "System folders");
+    }
+    try {
       const { depthWarning, maxDepth } = await api.getStorage();
       state.depthLimit = maxDepth;
       if (depthWarning) setStatus("warning", depthWarning);
@@ -239,7 +244,8 @@ export async function relistLevels(folders: string[][] | null): Promise<void> {
   }
   try {
     const added = await relist(folders ?? visibleLevels(), folders !== null);
-    if (folders === null && state.virtual === "downloads") await relistDownloads();
+    const shownRoot = virtualRoot(state.virtual);
+    if (folders === null && shownRoot !== null) await relistSystem(shownRoot);
     if (added && folders !== null) {
       void runIntake(reload);
       void checkRootFolders(resolveInvalid, deleteInvalid);
@@ -310,10 +316,10 @@ export const renameTo = (node: TreeNode, editable: string) =>
   run(async () => {
     const text = editable.trim();
     if (text === node.editableName) return;
-    // Downloads is not the storage: the rename happens on disk and its watcher brings the new name in.
-    if (inDownloads(node.relParts)) {
+    // A native folder is not the storage: the rename happens on disk and its watcher brings the new name in.
+    if (inSystem(node.relParts)) {
       await api.renameDownload(node.relParts, text);
-      await relistDownloads();
+      await relistSystem(node.relParts[0]);
       return;
     }
     await applyMutation(node.file ? await api.renameFile(node.relParts, text) : await api.renameNode(node.relParts, text));
@@ -477,7 +483,7 @@ async function revalidate(): Promise<void> {
 }
 
 export const dropFiles = async (target: string[], paths: string[]): Promise<void> => {
-  if (inDownloads(target)) return setStatus("warning", "Downloads takes no files from here");
+  if (inSystem(target)) return setStatus("warning", `${systemName(target)} takes no files from here`);
   const ok = await run(
     async () => {
       const { mutation, placed, conflicts } = await api.dropFiles(target, paths);
@@ -517,7 +523,7 @@ export const dropFiles = async (target: string[], paths: string[]): Promise<void
 };
 
 export const pasteFiles = (target: string[]) =>
-  inDownloads(target) ? Promise.resolve(setStatus("warning", "Downloads takes no files from here")) : run(
+  inSystem(target) ? Promise.resolve(setStatus("warning", `${systemName(target)} takes no files from here`)) : run(
     async () => {
       const { mutation, placed } = await api.pasteFiles(target);
       await applyMutation(mutation);
@@ -654,7 +660,7 @@ export const removeDownloads = (nodes: TreeNode[]) =>
     if (state.settings.confirmDelete && !(await warningConfirmDialog("Delete", [`${what} to the Recycle Bin`], "Delete", "danger"))) return;
     beginOperationStatus(`Deleting ${plural(nodes.length, "item")}…`);
     await tracked(nodes.map((n) => n.relParts), () => api.deleteDownloads(nodes.map((n) => n.relParts)));
-    await relistDownloads();
+    await relistSystem();
   }, "Waiting for user decision…");
 
 const CANCELLED = "cancelled by the user";
@@ -665,7 +671,7 @@ async function tracked<T>(targets: string[][], work: () => Promise<T>): Promise<
   await api.beginDelete(targets).catch((e: unknown) => reportError("warning", e, "Transfer progress"));
   try {
     const done = await work();
-    if (!targets.some(inDownloads)) noteDeleted();
+    if (!targets.some(inSystem)) noteDeleted();
     return done;
   } finally {
     await api.endDelete().catch((e: unknown) => reportError("warning", e, "Transfer progress"));

@@ -8,10 +8,10 @@ import { statusMark } from "../../atoms/status-mark";
 import { hideBox, nameCell } from "../../molecules/name-cell";
 import { fromToggle, nodeToggle } from "../../atoms/node-toggle";
 import { toggleExpand } from "../../../hooks/ops";
-import { keyOf, leaveVirtual, notify, select, startEdit, state, visibleRows } from "../../../services/store/state";
-import { virtualNodes } from "../../../services/store/virtual";
-import { openVirtual } from "../../../hooks/virtual-nav";
-import { entryBeside, headEntry, rootEntries, virtualEntry } from "../../molecules/virtual-entry";
+import { keyOf, leaveVirtual, notify, select, startEdit, state, virtualRoot, visibleRows, type VirtualId } from "../../../services/store/state";
+import { isUnfolded, unfoldedNodes, unfoldLoading } from "../../../services/store/virtual";
+import { goToPlace, openVirtual, unfoldEntry } from "../../../hooks/virtual-nav";
+import { leadEntries, tailEntries, virtualEntry, type VirtualEntry } from "../../molecules/virtual-entry";
 import { markNodeItem } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import type { ViewMode } from "./view-mode";
@@ -22,48 +22,79 @@ const isFolder = (n: TreeNode): boolean => !n.file;
 const DOUBLE_MS = 500;
 const SLOW_MS = 1600;
 
+// A line of the pane: a root entry, or a folder with the entry whose unfolded list shows it (null in the storage tree) and the listed folder it sits under.
+type Row = { node: TreeNode; depth: number; list: VirtualId | null; via: string | null };
+type Item = { entry: VirtualEntry } | Row;
+
+// ':' and '|' cannot occur in a folder name, so an entry's id never matches a row's, and a folder listed twice keeps two.
+const idOf = (it: Item): string => ("entry" in it ? `entry:${it.entry.id}` : `${it.list ?? ""}|${keyOf(it.node.relParts)}`);
+
 export function createTreeView(): ViewMode {
   const tree = el("div", { class: "tree", role: "tree", tabindex: "0", "aria-label": "Storage folders" });
-  let rows: TreeNode[] = [];
-  // Rows of an open virtual list, with what unfolds under them, come first in `rows`; they stand for folders that live elsewhere.
-  let listCount = 0;
-  let listDepths: number[] = [];
+  let items: Item[] = [];
 
-  // A click only marks a row here; the views open a folder on a double click, as in Explorer's navigation pane.
+  // A click only marks a line here; the views open a folder on a double click, as in Explorer's navigation pane.
   let marked: string | null = null;
-  let lastClick = { key: "", at: 0 };
-  const indexOfSelected = () => rows.findIndex((n) => keyOf(n.relParts) === (marked ?? state.selectedKey));
-  // The same folder may also show in the real tree below the list; acting there leaves the list.
-  const leaveAt = (i: number) => {
-    if (i >= listCount) leaveVirtual();
-  };
+  let lastClick = { id: "", at: 0 };
+
+  // The marked line, else the one standing for what the views show.
+  function current(): number {
+    const at = marked === null ? -1 : items.findIndex((it) => idOf(it) === marked);
+    if (at >= 0) return at;
+    const key = state.selectedKey;
+    if (key === null) return items.findIndex((it) => "entry" in it && it.entry.id === state.virtual);
+    const listed = items.findIndex((it) => "node" in it && it.list === state.virtual && keyOf(it.node.relParts) === key);
+    return listed >= 0 ? listed : items.findIndex((it) => "node" in it && it.list === null && keyOf(it.node.relParts) === key);
+  }
+
   const mark = (i: number) => {
-    const n = rows[Math.max(0, Math.min(rows.length - 1, i))];
-    if (!n) return;
-    marked = keyOf(n.relParts);
+    const it = items[Math.max(0, Math.min(items.length - 1, i))];
+    if (!it) return;
+    marked = idOf(it);
     notify();
   };
-  const openRow = (i: number) => {
-    const n = rows[i];
-    if (!n) return;
-    leaveAt(i);
-    marked = null;
-    select(n.relParts);
-  };
 
-  function buildRow(n: TreeNode, i: number): HTMLElement {
+  // A listed folder opens through its entry, so the views show it inside that list, as they do after a double click there.
+  function openItem(it: Item): void {
+    marked = null;
+    if ("entry" in it) return void openVirtual(it.entry.id);
+    const parts = it.node.relParts;
+    if (it.list === null) {
+      leaveVirtual();
+      return select(parts);
+    }
+    const within = state.virtual === it.list && (virtualRoot(it.list) !== null || state.via === it.via || keyOf(parts) === it.via);
+    if (within) select(parts);
+    else void goToPlace({ virtual: it.list, via: it.via, key: keyOf(parts) });
+  }
+
+  // The line a folder folds back to: its parent row, or the entry that lists it.
+  function parentOf(i: number): number {
+    const it = items[i];
+    if (!it || "entry" in it) return -1;
+    if (it.list !== null && it.depth === 1) return items.findIndex((x) => "entry" in x && x.entry.id === it.list);
+    const parent = keyOf(it.node.relParts.slice(0, -1));
+    for (let j = i - 1; j >= 0; j--) {
+      const x = items[j];
+      if (x && "node" in x && x.list === it.list && keyOf(x.node.relParts) === parent) return j;
+    }
+    return -1;
+  }
+
+  function buildRow(it: Row, i: number): HTMLElement {
+    const n = it.node;
     const key = keyOf(n.relParts);
+    const id = idOf(it);
     // Once its contents are known, a folder holding only files has nothing to unfold here.
     const folds = n.hasChildren && (n.children === null || n.children.some(isFolder));
-    const depth = listDepths[i] ?? n.depth;
     const expanded = state.expanded.has(key);
     const caret = el("span", { class: "caret", "aria-hidden": "true" }, ...(folds ? [guiIcon(expanded ? "chevronDown" : "chevronRight")] : []));
     const icon = folderIcon(n, expanded && folds);
     const toggle = folds ? nodeToggle(`${expanded ? "Collapse" : "Expand"} ${n.name}`, expanded, caret, icon) : null;
-    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorknode(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
-    row.style.setProperty("--depth", String(depth));
+    const row = el("div", { class: "row", role: "treeitem", id: `row-${i}`, "aria-level": String(it.depth + 1) }, ...hideBox(n), ...(toggle ? [toggle] : [caret, icon]), ...(isWorknode(n) && n.status ? [statusMark(n.status)] : []), nameCell(n, true, true));
+    row.style.setProperty("--depth", String(it.depth));
     markNodeItem(row, n);
-    row.classList.toggle("marked", marked === key);
+    row.classList.toggle("marked", marked === id);
     if (folds) row.setAttribute("aria-expanded", String(expanded));
     if (n.status && !isWorknode(n)) row.append(statusMark(n.status));
     toggle?.addEventListener("click", () => void toggleExpand(n));
@@ -74,16 +105,25 @@ export function createTreeView(): ViewMode {
     row.addEventListener("click", (ev) => {
       if (fromToggle(ev)) return;
       const since = ev.timeStamp - lastClick.at;
-      const slow = lastClick.key === key && marked === key && since > DOUBLE_MS && since < SLOW_MS;
-      lastClick = { key, at: slow ? 0 : ev.timeStamp };
+      const slow = lastClick.id === id && marked === id && since > DOUBLE_MS && since < SLOW_MS;
+      lastClick = { id, at: slow ? 0 : ev.timeStamp };
       if (slow && folds) void toggleExpand(n);
       else mark(i);
     });
     row.addEventListener("dblclick", (ev) => {
-      if (!fromToggle(ev)) openRow(i);
+      if (!fromToggle(ev)) openItem(it);
     });
     row.addEventListener("contextmenu", (ev) => nodeContextMenu(ev, n, tree));
     return row;
+  }
+
+  function buildEntry(e: VirtualEntry, i: number): HTMLElement {
+    const open = isUnfolded(e.id);
+    const item = virtualEntry(e, "row", "treeitem", { marker: "caret", mark: () => mark(i), unfold: { open, set: (on) => void unfoldEntry(e.id, on) } });
+    item.id = `row-${i}`;
+    item.setAttribute("aria-expanded", String(open));
+    item.classList.toggle("marked", marked === `entry:${e.id}`);
+    return item;
   }
 
   // An opened folder with nothing in it gets a line under its row, so the row does not look unfinished.
@@ -94,24 +134,31 @@ export function createTreeView(): ViewMode {
     return [legend];
   }
 
-  function listLegend(text: string): HTMLElement {
-    const legend = el("div", { class: "tree-legend" }, text);
+  function listLegend(e: VirtualEntry): HTMLElement[] {
+    if (!isUnfolded(e.id) || unfoldedNodes(e.id).some(isFolder)) return [];
+    const legend = el("div", { class: "tree-legend" }, unfoldLoading(e.id) ? "Loading…" : e.empty);
     legend.style.setProperty("--depth", "1");
-    return legend;
+    return [legend];
   }
 
+  function listOf(e: VirtualEntry): Item[] {
+    if (!isUnfolded(e.id)) return [];
+    return unfoldedNodes(e.id).filter(isFolder).flatMap((n) => {
+      const via = keyOf(n.relParts);
+      const below = state.expanded.has(via) && n.children ? visibleRows(n.children).filter(isFolder) : [];
+      return [{ node: n, depth: 1, list: e.id, via }, ...below.map((b) => ({ node: b, depth: 1 + b.depth - n.depth, list: e.id, via }))];
+    });
+  }
+
+  // Right unfolds and Left folds an entry or a folder; Enter opens it in the views.
   function onKey(ev: KeyboardEvent): void {
     // Modified arrows belong to the global shortcuts (Ctrl+Right, Alt+Down, Alt+Up).
     if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
-    const i = indexOfSelected();
-    const n = rows[i];
+    const i = current();
+    const it = items[i];
+    const entry = it && "entry" in it ? it.entry : undefined;
+    const n = it && "node" in it ? it.node : undefined;
     const open = n !== undefined && state.expanded.has(keyOf(n.relParts));
-    const head = headEntry();
-    // The entry rows precede every other row, so with nothing selected the keys act on the current one.
-    const onHead = head !== undefined && n === undefined && state.selectedKey === null && state.virtual !== "board";
-    const headOpen = head !== undefined && state.virtual === head.id;
-    const before = entryBeside(head, -1);
-    const after = entryBeside(head, 1);
     if (isMenuKey(ev)) {
       if (n) nodeMenuFromKey(tree, n, tree.querySelector(`#row-${i}`));
       ev.preventDefault();
@@ -119,42 +166,32 @@ export function createTreeView(): ViewMode {
     }
     switch (ev.key) {
       case "ArrowDown":
-        if (onHead && after && (!headOpen || listCount === 0)) void openVirtual(after.id);
-        else mark(i + 1);
+        mark(i + 1);
         break;
       case "ArrowUp":
-        if (onHead) {
-          if (before) void openVirtual(before.id);
-        } else if (head && i === 0) void openVirtual(listCount > 0 ? head.id : (rootEntries().at(-1)?.id ?? head.id));
-        else mark(i < 0 ? 0 : i - 1);
+        mark(i < 0 ? 0 : i - 1);
         break;
       case "Home":
         mark(0);
         break;
       case "End":
-        mark(rows.length - 1);
+        mark(items.length - 1);
         break;
-      case "ArrowRight":
-        if (head && onHead) {
-          if (!headOpen) void openVirtual(head.id);
-          else if (listCount > 0) mark(0);
-        } else if (n && n.hasChildren && !open) void toggleExpand(n);
+      case "ArrowRight": {
+        const next = items[i + 1];
+        if (entry && !isUnfolded(entry.id)) void unfoldEntry(entry.id, true);
+        else if (entry && next && "node" in next && next.list === entry.id) mark(i + 1);
+        else if (n && n.hasChildren && !open) void toggleExpand(n);
         else if (open) mark(i + 1);
         break;
+      }
       case "ArrowLeft":
-        if (onHead) {
-          if (headOpen) select(null);
-        } else if (n && open) void toggleExpand(n);
-        // A listed entry steps back to its virtual list, not to the real folder it lives in.
-        else if (i >= 0 && listDepths[i] === 1 && state.virtual !== null) void openVirtual(state.virtual);
-        else if (n && n.relParts.length > 1) {
-          const parent = rows.findIndex((r) => keyOf(r.relParts) === keyOf(n.relParts.slice(0, -1)));
-          if (parent >= 0) mark(parent);
-        }
+        if (entry) void unfoldEntry(entry.id, false);
+        else if (n && open) void toggleExpand(n);
+        else if (parentOf(i) >= 0) mark(parentOf(i));
         break;
       case "Enter":
-        if (n) openRow(i);
-        else if (head && onHead) void (headOpen ? select(null) : openVirtual(head.id));
+        if (it) openItem(it);
         break;
       case "F2":
         if (n) startEdit(n.relParts);
@@ -173,37 +210,15 @@ export function createTreeView(): ViewMode {
       host.append(tree);
     },
     render() {
-      const list: TreeNode[] = [];
-      listDepths = [];
-      for (const n of state.virtual !== null ? virtualNodes().filter(isFolder) : []) {
-        const below = state.expanded.has(keyOf(n.relParts)) && n.children ? visibleRows(n.children).filter(isFolder) : [];
-        list.push(n, ...below);
-        listDepths.push(1, ...below.map((b) => 1 + b.depth - n.depth));
-      }
-      listCount = list.length;
-      rows = [...list, ...visibleRows().filter(isFolder)];
-      const listRows = list.flatMap((n, i) => [buildRow(n, i), ...emptyLegend(n, listDepths[i] ?? 1)]);
-      const groups = rootEntries().map((e) => {
-        const open = state.virtual === e.id;
-        const entry = virtualEntry(e, "row", "treeitem", { toggle: true, marker: "caret" });
-        entry.id = `row-${e.id}`;
-        entry.setAttribute("aria-expanded", String(open));
-        if (!open) return [entry];
-        return [entry, ...(listRows.length > 0 ? listRows : [listLegend(e.empty)])];
-      });
-      const own = rows.slice(listCount);
-      const ownRows = own.map((n, i) => [buildRow(n, i + listCount), ...emptyLegend(n, n.depth)]);
-      // Quick access heads the pane, as in Explorer: Favorites, Downloads and Review, then the storage tree.
-      const group = (id: string) => groups.filter((g) => g[0]?.dataset.entry === id).flat();
-      tree.replaceChildren(...group("favorites"), ...group("downloads"), ...group("review"), ...ownRows.flat());
-      const i = indexOfSelected();
-      const head = rootEntries().find((e) => state.virtual === e.id);
+      const group = (e: VirtualEntry): Item[] => [{ entry: e }, ...listOf(e)];
+      const own = visibleRows().filter(isFolder).map((n): Item => ({ node: n, depth: n.depth, list: null, via: null }));
+      // Quick access heads the pane, as in Explorer: Favorites, Downloads and Review, then the storage tree, then the other native folders.
+      items = [...leadEntries().flatMap(group), ...own, ...tailEntries().flatMap(group)];
+      tree.replaceChildren(...items.flatMap((it, i) => ("entry" in it ? [buildEntry(it.entry, i), ...listLegend(it.entry)] : [buildRow(it, i), ...emptyLegend(it.node, it.depth)])));
+      const i = current();
       if (i >= 0) {
         tree.setAttribute("aria-activedescendant", `row-${i}`);
         tree.querySelector(`#row-${i}`)?.scrollIntoView({ block: "nearest" });
-      } else if (head && state.selectedKey === null) {
-        tree.setAttribute("aria-activedescendant", `row-${head.id}`);
-        tree.querySelector(`#row-${head.id}`)?.scrollIntoView({ block: "nearest" });
       } else {
         tree.removeAttribute("aria-activedescendant");
       }

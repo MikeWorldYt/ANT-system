@@ -1,4 +1,4 @@
-// The system Downloads folder lives outside the storage, so its own watcher tells the window when to read it again.
+// Downloads and the other native folders live outside the storage, so each has its own watcher telling the window when to read it again.
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::thread;
@@ -9,10 +9,10 @@ use notify::{Event, EventKind, RecursiveMode, Watcher};
 // A download or a copy fires many events; one quiet stretch ends the batch.
 const QUIET: Duration = Duration::from_millis(400);
 
-pub fn watch_downloads(dir: PathBuf, on_changed: impl Fn() + Send + 'static) {
+pub fn watch_system_folder(dir: PathBuf, on_changed: impl Fn() + Send + 'static) {
     thread::spawn(move || {
         if let Err(e) = run(&dir, &on_changed) {
-            super::log("error", &format!("Downloads watch stopped: {e}"));
+            super::log("error", &format!("Watch of {} stopped: {e}", dir.display()));
         }
     });
 }

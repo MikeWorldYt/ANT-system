@@ -307,7 +307,17 @@ export interface AiClient {
 // The first part of every path inside the system Downloads folder; ':' cannot occur in a folder name, so it never matches a storage folder.
 export const DOWNLOADS_ROOT = "::Downloads";
 
+// The other native folders, in the order they close the root; they browse and change as Downloads does, without its automations.
+export const SYSTEM_ROOTS = ["::Documents", "::Pictures", "::Music", "::Videos", "::Desktop"];
+
 export const inDownloads = (parts: string[]): boolean => parts[0] === DOWNLOADS_ROOT;
+
+// The native folder a path lies in, Downloads included; null for the storage.
+export const systemRootOf = (parts: string[]): string | null => (parts[0] === DOWNLOADS_ROOT || SYSTEM_ROOTS.includes(parts[0] ?? "") ? (parts[0] ?? null) : null);
+
+export const inSystem = (parts: string[]): boolean => systemRootOf(parts) !== null;
+
+export const systemName = (parts: string[]): string => (systemRootOf(parts) ?? DOWNLOADS_ROOT).slice(2);
 
 export interface TransferProgress {
   id: number;

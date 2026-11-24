@@ -2,7 +2,7 @@
 import { listChildren } from "../ipc/api";
 import { favoritesFirst, foldersFirst, SORT_BYS, type ColumnSort, type SortBy } from "./sort";
 import { readPref, savePref } from "./prefs";
-import { DOWNLOADS_ROOT, inDownloads } from "../ipc/types";
+import { DOWNLOADS_ROOT, SYSTEM_ROOTS, inSystem, systemRootOf } from "../ipc/types";
 import type { HiddenChoice, LevelPatch, TreeNode, TreeSnapshot } from "../ipc/types";
 
 interface State {
@@ -32,13 +32,20 @@ interface State {
   // A root entry stood on but not opened, so the side panel can describe it.
   marked: VirtualId | null;
   virtualKeys: string[];
-  // The system Downloads folder read so far; its paths start with DOWNLOADS_ROOT and live outside `tree`.
-  downloads: TreeNode[];
+  // Each native folder read so far, by its root marker (DOWNLOADS_ROOT and the rest); their paths live outside `tree`.
+  system: Record<string, TreeNode[]>;
+  // The native folders besides Downloads that this machine has.
+  systemFound: string[];
   // The listed entry the selection went through; inside FAVORITES the path stays symbolic below it.
   via: string | null;
 }
 
-export type VirtualId = "favorites" | "downloads" | "review" | "board";
+export type VirtualId = "favorites" | "downloads" | "review" | "board" | "documents" | "pictures" | "music" | "videos" | "desktop";
+
+// The entries that list a native folder, by the root marker of their paths.
+const SYSTEM_VIRTUALS: Partial<Record<VirtualId, string>> = { downloads: DOWNLOADS_ROOT, documents: SYSTEM_ROOTS[0], pictures: SYSTEM_ROOTS[1], music: SYSTEM_ROOTS[2], videos: SYSTEM_ROOTS[3], desktop: SYSTEM_ROOTS[4] };
+
+export const virtualRoot = (id: VirtualId | null): string | null => (id === null ? null : (SYSTEM_VIRTUALS[id] ?? null));
 
 const START_VIEWS: StartView[] = ["columns", "grid", "list", "details", "cards", "graph"];
 
@@ -73,6 +80,7 @@ export interface Settings {
   showFavorites: boolean;
   showDownloads: boolean;
   showReview: boolean;
+  showSystemFolders: boolean;
   mcpWrites: boolean;
   theme: Theme;
   accent: AccentId;
@@ -123,11 +131,12 @@ export const state: State = {
   hiddenChoices: [],
   editing: null,
   sorts: readSorts(),
-  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, batchDropToGroup: true, autoUpdate: true, installUpdates: true, betaUpdates: false, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, mcpWrites: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
+  settings: { pinFavorites: true, hideDone: false, hideDirectoryIdentifiers: false, confirmDelete: true, batchDropToGroup: true, autoUpdate: true, installUpdates: true, betaUpdates: false, debugLogging: false, backupAuto: false, watchExternal: true, autoOpenColumns: false, showFavorites: true, showDownloads: true, showReview: true, showSystemFolders: false, mcpWrites: false, theme: "dark", accent: "green", iconColor: "purple", textSize: "small", backupFrequency: "day", backupFolder: "", onLaunch: "continue", startView: "continue", tabView: "last", shortcuts: {} },
   virtual: null,
   marked: null,
   virtualKeys: [],
-  downloads: [],
+  system: {},
+  systemFound: [],
   via: null,
 };
 
@@ -144,14 +153,17 @@ export function notify(): void {
   listeners.forEach((fn) => fn());
 }
 
-// The nodes at the top of a path: the storage's, or Downloads' when the path starts with its marker.
-const topLevel = (parts: string[]): TreeNode[] => (inDownloads(parts) ? state.downloads : (state.tree?.nodes ?? []));
+// The nodes at the top of a path: the storage's, or a native folder's when the path starts with its marker.
+const topLevel = (parts: string[]): TreeNode[] => {
+  const root = systemRootOf(parts);
+  return root ? (state.system[root] ?? []) : (state.tree?.nodes ?? []);
+};
 
 export function findNode(parts: string[]): TreeNode | null {
   let level: TreeNode[] = topLevel(parts.slice(0, 1));
   let found: TreeNode | null = null;
-  // The Downloads marker names the list itself, not a node in it.
-  for (const part of inDownloads(parts) ? parts.slice(1) : parts) {
+  // A native folder's marker names the list itself, not a node in it.
+  for (const part of inSystem(parts) ? parts.slice(1) : parts) {
     found = level.find((n) => n.name === part) ?? null;
     if (!found) return null;
     level = found.children ?? [];
@@ -241,6 +253,7 @@ export function applySettings(saved: Record<string, string>): void {
   state.settings.showFavorites = saved.showFavorites !== "false";
   state.settings.showDownloads = saved.showDownloads !== "false";
   state.settings.showReview = saved.showReview !== "false";
+  state.settings.showSystemFolders = saved.showSystemFolders === "true";
   state.settings.mcpWrites = saved.mcpWrites === "true";
   state.settings.theme = saved.theme === "light" || saved.theme === "system" ? saved.theme : "dark";
   state.settings.accent = ["blue", "purple", "coral", "gold"].includes(saved.accent ?? "") ? (saved.accent as AccentId) : "green";
@@ -291,7 +304,7 @@ export function lastSelection(): SavedPlace | null {
 export const sortOf = (columnKey: string): ColumnSort => state.sorts[columnKey] ?? DEFAULT_SORT;
 
 // The column the selection stands in, or the first one when nothing is selected.
-export const activeColumnKey = (): string => state.selectedKey?.split("/").slice(0, -1).join("/") ?? (state.virtual === "downloads" ? DOWNLOADS_ROOT : "");
+export const activeColumnKey = (): string => state.selectedKey?.split("/").slice(0, -1).join("/") ?? virtualRoot(state.virtual) ?? "";
 
 export function setColumnSort(columnKey: string, patch: Partial<ColumnSort>): void {
   state.sorts[columnKey] = { ...sortOf(columnKey), ...patch };
@@ -307,8 +320,14 @@ function inManagedScope(key: string | null): boolean {
   return key === managed || (at < 0 ? "" : key.slice(0, at)) === managed;
 }
 
-// Favorites and Downloads can be switched off in the settings; the board has no switch.
-export const isVirtualShown = (id: VirtualId): boolean => (id === "favorites" ? state.settings.showFavorites : id === "downloads" ? state.settings.showDownloads : id === "review" ? state.settings.showReview : true);
+// Favorites, Downloads, Review and the other native folders can be switched off in the settings; the board has no switch. A native folder this machine lacks never shows.
+export const isVirtualShown = (id: VirtualId): boolean => {
+  if (id === "favorites") return state.settings.showFavorites;
+  if (id === "downloads") return state.settings.showDownloads;
+  if (id === "review") return state.settings.showReview;
+  const root = virtualRoot(id);
+  return root === null || (state.settings.showSystemFolders && state.systemFound.includes(root));
+};
 
 export function leaveVirtual(): void {
   state.virtual = null;
@@ -319,8 +338,9 @@ export function leaveVirtual(): void {
 // A virtual list stays open while one of its entries, or in FAVORITES and REVIEW something below the one entered, is selected.
 function keepVirtual(key: string | null): boolean {
   if (key === null) return false;
-  // Everything under Downloads belongs to its list; the entry it went through is the top-level one.
-  if (state.virtual === "downloads" && key.startsWith(`${DOWNLOADS_ROOT}/`)) {
+  // Everything under a native folder belongs to its list; the entry it went through is the top-level one.
+  const root = virtualRoot(state.virtual);
+  if (root !== null && key.startsWith(`${root}/`)) {
     state.via = key.split("/").slice(0, 2).join("/");
     return true;
   }
@@ -403,8 +423,8 @@ export async function reveal(parts: string[]): Promise<void> {
   await hydrate();
   const resolved: string[] = [];
   let level: TreeNode[] = topLevel(parts.slice(0, 1));
-  for (const part of inDownloads(parts) ? parts.slice(1) : parts) {
-    const id = inDownloads(parts) ? null : idOf(part);
+  for (const part of inSystem(parts) ? parts.slice(1) : parts) {
+    const id = inSystem(parts) ? null : idOf(part);
     const sameId = id === null ? [] : level.filter((n) => idOf(n.name) === id);
     const found = level.find((n) => n.name === part) ?? (sameId.length === 1 ? sameId[0] : undefined);
     if (!found) break;
@@ -412,7 +432,7 @@ export async function reveal(parts: string[]): Promise<void> {
     resolved.push(found.name);
     level = found.children ?? [];
   }
-  const path = inDownloads(parts) && resolved.length > 0 ? [parts[0] ?? "", ...resolved] : resolved;
+  const path = inSystem(parts) && resolved.length > 0 ? [parts[0] ?? "", ...resolved] : resolved;
   for (let i = 1; i < path.length; i++) state.expanded.add(keyOf(path.slice(0, i)));
   select(path.length > 0 && findNode(path) ? path : null);
 }
@@ -434,8 +454,8 @@ function followPath(parts: string[]): string[] | null {
   const resolved: string[] = [];
   let level: TreeNode[] = topLevel(parts.slice(0, 1));
   for (const part of parts) {
-    // File names in Downloads are not identifiers, so only an exact name is followed there.
-    const id = inDownloads(parts) ? null : idOf(part);
+    // File names in a native folder are not identifiers, so only an exact name is followed there.
+    const id = inSystem(parts) ? null : idOf(part);
     const sameId = id === null ? [] : level.filter((n) => idOf(n.name) === id);
     const found = level.find((n) => n.name === part) ?? (sameId.length === 1 ? sameId[0] : undefined);
     if (!found) return null;
@@ -516,7 +536,7 @@ export function patchLevels(levels: LevelPatch[]): TreeNode[][] | null {
 }
 
 // Loads children of every expanded node under `nodes` whose children are not fetched yet.
-export async function hydrate(nodes: TreeNode[] = [...(state.tree?.nodes ?? []), ...state.downloads]): Promise<void> {
+export async function hydrate(nodes: TreeNode[] = [...(state.tree?.nodes ?? []), ...Object.values(state.system).flat()]): Promise<void> {
   const walk = async (level: TreeNode[]): Promise<void> => {
     for (const n of level) {
       // Preloaded levels are walked even when collapsed, so a deeper folder opened from the columns view still loads.

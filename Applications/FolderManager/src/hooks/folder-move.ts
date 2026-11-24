@@ -13,7 +13,7 @@ import { noteTrip } from "./file-trips";
 import { plural } from "../services/plural";
 import { reportError } from "../components/organisms/bars/status-line";
 import { folderIcon } from "../components/atoms/icons";
-import { DOWNLOADS_ROOT, inDownloads, type TreeNode } from "../services/ipc/types";
+import { inSystem, type TreeNode } from "../services/ipc/types";
 
 export const HIGHLIGHT = "drop-target";
 export const DROP_TARGET = "[data-key]:not(.graph-file)";
@@ -36,7 +36,7 @@ export const canMove = (n: Movable | null): boolean =>
 export const canDropOn = (n: Movable | null): boolean =>
   n !== null &&
   !n.file &&
-  !inDownloads(n.relParts) &&
+  !inSystem(n.relParts) &&
   !n.reserved &&
   !n.ghost &&
   ((!n.locked && (isPlain(n) || n.nodeType?.base === "NODE" || n.nodeType?.base === "WKB")) || ["REV", "SS", "REC"].includes(n.nodeType?.base ?? ""));
@@ -66,10 +66,10 @@ async function confirmNodeMove(count: number, target: string[]): Promise<boolean
 
 // An unflagged node can break its paths in other apps, so moving it asks first; copies never do.
 export async function moveDragged(sources: string[][], target: string[], copy: boolean): Promise<void> {
-  // Downloads lies outside the storage, so its items arrive like files dropped from Explorer, by their absolute path.
-  const external = outermost(sources.filter(inDownloads)).flatMap((parts) => findNode(parts)?.absPath ?? []);
+  // The native folders lie outside the storage, so their items arrive like files dropped from Explorer, by their absolute path.
+  const external = outermost(sources.filter(inSystem)).flatMap((parts) => findNode(parts)?.absPath ?? []);
   if (external.length > 0) await dropFiles(target, external);
-  const nodes = outermost(sources.filter((parts) => !inDownloads(parts)))
+  const nodes = outermost(sources.filter((parts) => !inSystem(parts)))
     .filter((parts) => !holds(parts, target))
     .flatMap((parts) => {
       const node = findNode(parts);
@@ -84,7 +84,7 @@ export async function moveDragged(sources: string[][], target: string[], copy: b
   if (unflagged.length > 0 && !copy && !(await confirmNodeMove(unflagged.length, folderTarget))) return;
   if (files.length > 0) await moveFiles(files, target, copy);
   if (folders.length > 0) await moveFolders(folders.map(({ parts }) => parts), target, copy);
-  if (files.length > 0 || external.length > 0) announceDrop(target, files.length + external.length, files[0]?.slice(0, -1) ?? (external.length > 0 ? [DOWNLOADS_ROOT] : null));
+  if (files.length > 0 || external.length > 0) announceDrop(target, files.length + external.length, files[0]?.slice(0, -1) ?? (external.length > 0 ? (sources.find(inSystem)?.slice(0, 1) ?? null) : null));
 }
 
 // Views that draw where files went, like the graph's packets, listen for this. A node that keeps no files passes them to its review folder,

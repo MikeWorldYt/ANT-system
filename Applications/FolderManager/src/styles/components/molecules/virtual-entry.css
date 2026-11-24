@@ -5,5 +5,5 @@
 .virtual-icon .gui-icon { width: 16px; height: 16px; }
 .row.on-path, .grid-item.on-path { background: var(--input-bg); }
 .grid-item .virtual-icon .gui-icon { width: 56px; height: 56px; }
-.virtual-entry:is([data-entry="downloads"], [data-entry="review"]) :is(.name-text, .virtual-icon, .chevron) { color: inherit; font-weight: inherit; }
+.virtual-entry:is([data-entry="downloads"], [data-entry="review"], [data-entry="documents"], [data-entry="pictures"], [data-entry="music"], [data-entry="videos"], [data-entry="desktop"]) :is(.name-text, .virtual-icon, .chevron) { color: inherit; font-weight: inherit; }
 .virtual-icon .tint { stroke: var(--icon-tint, #7e54d1); color: var(--icon-tint, #7e54d1); }

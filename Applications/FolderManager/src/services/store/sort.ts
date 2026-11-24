@@ -1,6 +1,6 @@
 // Pure list ordering shared by the store and the columns view.
 import { STATUSES } from "./node-info";
-import { inDownloads, type TreeNode } from "../ipc/types";
+import { inSystem, type TreeNode } from "../ipc/types";
 
 export type SortBy = "track" | "name" | "status" | "modified" | "created" | "size";
 export interface ColumnSort {
@@ -16,7 +16,7 @@ export function isTail(name: string): boolean {
 }
 
 // Downloads is not the storage, so its names follow no tail rule.
-export const isTailNode = (n: TreeNode): boolean => !inDownloads(n.relParts) && isTail(n.name);
+export const isTailNode = (n: TreeNode): boolean => !inSystem(n.relParts) && isTail(n.name);
 
 const statusRank = (n: TreeNode): number => STATUSES.findIndex(([v]) => v === n.status) + 1 || STATUSES.length + 1;
 
