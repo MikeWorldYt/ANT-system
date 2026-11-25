@@ -48,7 +48,7 @@ export function foldersFirst(nodes: TreeNode[]): TreeNode[] {
   return [...nodes.filter((n) => !n.file), ...nodes.filter((n) => n.file)];
 }
 
-// Ties keep the incoming name order, and the tail folders close the list in either direction.
+// Ties keep the incoming name order, and the tail folders close the list in either direction, below the files too: they support the content, they are not part of it.
 export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort, pin: boolean): TreeNode[] {
   const head = nodes.filter((n) => !isTailNode(n));
   const key = sortValue[by];
@@ -57,7 +57,8 @@ export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort, pin
     return typeof x === "string" && typeof y === "string" ? x.localeCompare(y, undefined, { numeric: true }) : x < y ? -1 : x > y ? 1 : 0;
   });
   if (dir === "desc") ordered.reverse();
-  return foldersFirst(favoritesFirst([...ordered, ...nodes.filter(isTailNode)], pin));
+  const listed = foldersFirst(favoritesFirst([...ordered, ...nodes.filter(isTailNode)], pin));
+  return [...listed.filter((n) => !isTailNode(n)), ...listed.filter(isTailNode)];
 }
 
 // Board cards come from many folders, so the track is read from each name instead of the backend's per-level order.
