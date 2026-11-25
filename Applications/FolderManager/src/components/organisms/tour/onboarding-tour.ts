@@ -30,6 +30,8 @@ interface Step {
   confirmText?: string;
   // Once shown (a menu item), the tip sits beside it and points there instead of at the targets.
   pointAt?: () => Element | null;
+  // The tip points at this element instead of the lit targets.
+  anchor?: () => Element | null;
   // A looping clip under the text that acts out what the step explains.
   media?: string;
   // The lit targets are only shown: the shield covers them too.
@@ -116,11 +118,13 @@ function steps(): Step[] {
     { targets: categories, part: 0, title: "Main categories", text: "These are the main categories of your Storage, the top level of everything you keep. Try opening one.", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0, right: true },
     { targets: rowsIn(1), part: 0, title: "Level 2", text: "Each folder you open takes you one level deeper. You are on level 2, where we suggest keeping the subcategories of the one before. Try going to level 3.", onNext: (rows) => openRow(rows, "03."), done: () => rowsIn(2)().length > 0 },
     { targets: rowsIn(2), part: 0, title: "Nodes", text: "This is level 3, by default the deepest level we suggest. In ANT, folders are called nodes.", advanceOn: () => [] },
-    { targets: () => rowOf(REVIEW), part: 0, title: "Review Nodes", text: "By default they refuse any files and send them to the Review node of the same level until you sort them.", enter: showProjects, advanceOn: () => [], inert: true, media: nodeReviewGif },
+    { targets: () => rowOf(REVIEW), part: 0, title: "Review Nodes", text: "By default index levels refuse any files and send them to the Review node of the same level until you sort them.", enter: showProjects, advanceOn: () => [], inert: true, media: nodeReviewGif },
     {
       targets: () => dropZones(EXAMPLE),
       separate: true,
       part: 0, title: "Files",
+      left: true,
+      anchor: () => [...document.querySelectorAll(`.tree-host .column[data-key="${CSS.escape(EXAMPLE)}"] > .col-item`)].at(-1) ?? null,
       text: "Your files should live on the levels past the index. The default depth is 3, so your files stay on level 4 or deeper.",
       enter: () => {
         showProjects();
@@ -132,7 +136,7 @@ function steps(): Step[] {
     {
       targets: () => rowOf(UPPER),
       part: 0, title: "Allow files",
-      text: "Even so, you can always allow files in a node inside the index when you need to. Try it: right-click it to open its context menu and choose Allow files.",
+      text: "Even so, you can always allow files in a node inside the index when you need to. Try it with a right-click to open its context menu and choose Allow files.",
       media: allowFilesGif,
       pointAt: () => allowFiles()[0] ?? null,
       allow: allowFiles,
@@ -428,7 +432,8 @@ export async function startTour(): Promise<void> {
     const menu = document.querySelector(".ctx-menu, .view-segment");
     const pointed = all[index]?.pointAt?.() ?? null;
     pointed?.classList.add("tour-point");
-    const r = pointed ? pointed.getBoundingClientRect() : ((menu ? union([...(all[index]?.targets() ?? []), menu]) : null) ?? lit);
+    const anchored = all[index]?.anchor?.() ?? null;
+    const r = pointed ? pointed.getBoundingClientRect() : anchored ? anchored.getBoundingClientRect() : ((menu ? union([...(all[index]?.targets() ?? []), menu]) : null) ?? lit);
     const t = tip.getBoundingClientRect();
     const margin = 12;
     // Below the target when it fits, else beside it for tall targets such as the tree and the rail.
@@ -504,6 +509,7 @@ export async function startTour(): Promise<void> {
 
   // A "Good job" card may call back after the user already left the tour.
   let over = false;
+  let fadeIn = 0;
   function show(from: number): void {
     if (over) return;
     const i = all.findIndex((s, n) => n >= from && (s.when?.() ?? true) && s.targets().length > 0);
@@ -524,6 +530,15 @@ export async function startTour(): Promise<void> {
       }
     }
     jumping = false;
+    // Between steps the tip vanishes at once and fades in where the next step puts it, once its view has settled.
+    if (i !== index) {
+      tip.classList.add("tour-switching");
+      window.clearTimeout(fadeIn);
+      fadeIn = window.setTimeout(() => {
+        place();
+        tip.classList.remove("tour-switching");
+      }, 250);
+    }
     index = i;
     saveDevStep(i);
     step.enter?.();

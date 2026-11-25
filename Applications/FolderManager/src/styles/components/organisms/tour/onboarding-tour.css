@@ -2,7 +2,8 @@
 .tour-spot { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 900; pointer-events: none; }
 .tour-dim { fill: rgba(0, 0, 0, 0.55); fill-rule: evenodd; }
 .tour-rim { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
-.tour-tip { position: fixed; z-index: 903; width: 300px; padding: 16px; border-radius: var(--radius-md); background: var(--bg); color: var(--text); box-shadow: var(--elev-2); border: 1px solid var(--border); transition: left 0.25s ease, top 0.25s ease; }
+.tour-tip { position: fixed; z-index: 903; width: 300px; padding: 16px; border-radius: var(--radius-md); background: var(--bg); color: var(--text); box-shadow: var(--elev-2); border: 1px solid var(--border); transition: left 0.25s ease, top 0.25s ease, opacity 0.2s ease; }
+.tour-tip.tour-switching { opacity: 0; transition: none; }
 .tour-tip h2 { margin: 0 0 6px; font-size: var(--fs-title); color: var(--title); }
 .tour-text { margin: 0 0 14px; line-height: 1.4; }
 .tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
