@@ -8,6 +8,8 @@ import { createDemoStorage, type DemoStorage } from "../../../services/demo/demo
 import { fakeExplorer, type FakeExplorer } from "./fake-explorer";
 import { findNode, select, state } from "../../../services/store/state";
 import type { TreeNode } from "../../../services/ipc/types";
+import nodeReviewGif from "../../../assets/tour/node-review.gif";
+import allowFilesGif from "../../../assets/tour/allow-files.gif";
 
 const DONE_KEY = "fm.tour.done";
 
@@ -28,10 +30,16 @@ interface Step {
   confirmText?: string;
   // Once shown (a menu item), the tip sits beside it and points there instead of at the targets.
   pointAt?: () => Element | null;
+  // A looping clip under the text that acts out what the step explains.
+  media?: string;
+  // The lit targets are only shown: the shield covers them too.
+  inert?: boolean;
   // Lights each target on its own instead of one box around all of them.
   separate?: boolean;
   // Forces the tip to the left of the targets, for the side panel whose fields sit below them.
   left?: boolean;
+  // Puts the tip right of the targets when it fits, where the empty view leaves room.
+  right?: boolean;
   // A pick in the menu or popup this control opens closes it, so the tour opens it again to let the user keep trying.
   reopen?: () => HTMLElement | null;
   // Runs when the tour moves past the step or ends.
@@ -53,18 +61,19 @@ const rowsIn = (column: number) => (): Element[] => [...(document.querySelectorA
 // Only numbered user categories count; Downloads, Recordings, Screenshots and the 9xx system folders come later.
 const categories = (): Element[] => rowsIn(0)().filter((r) => /^[1-8]\d\d\./.test((r as HTMLElement).dataset.key ?? ""));
 
-// Columns open a folder on a double-click of its arrow (on the name it starts an edit), so Next sends one there.
+// Columns open a folder with a click on its arrow (on the name it starts an edit), so Next sends one there.
 const openRow = (rows: Element[], prefer?: string): void => {
   const row = (prefer ? rows.find((r) => r.textContent?.trim().startsWith(prefer)) : undefined) ?? rows[0];
-  row?.querySelector(".chevron")?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+  row?.querySelector(".chevron")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 };
-const selectRow = (rows: Element[]): void => {
-  if (rows[0] instanceof HTMLElement) rows[0].click();
-};
-const depth = (): number => state.selectedKey?.split("/").length ?? 0;
 
 const menuChoice = (label: string) => (): Element[] => menuItems(false)().filter((e) => e.textContent?.trim() === label);
-const newNode = menuChoice("New node");
+const allowFiles = menuChoice("Allow files");
+// Selecting a node closes its open column, so these steps only open the Projects list through its arrow when it is not shown.
+// The demo's Projects list holds a review node with loose files and the example project with files inside.
+const UPPER = "200.WORK/03.Projects";
+const REVIEW = `${UPPER}/REV.Projects`;
+const EXAMPLE = `${UPPER}/PJ.001_Example-Project`;
 const newWorknode = menuChoice("New worknode");
 
 // The first worknode of the demo (PJ.001_Example-Project) is selected, so its folder opens beside the projects list.
@@ -84,60 +93,50 @@ const nameField = (): Element[] => [...document.querySelectorAll(".details-name"
 const saveButton = (): Element[] => [...document.querySelectorAll(".details-panel .btn-primary")].filter((e) => e.textContent?.trim() === "Save" && visible(e)).slice(0, 1);
 const selectedStatus = (): string | null => (state.selectedKey ? (findNode(state.selectedKey.split("/"))?.status ?? null) : null);
 
-// The confirmation's Delete button once it is open, else the context menu's Delete item.
-const deleteControl = (): Element | null => document.querySelector("dialog[open] .btn-danger") ?? document.querySelector(".ctx-menu .ctx-item.danger");
-
 // Columns shows the project and its contents side by side, so a drop is easy to see.
 const easyDropView = (): void => {
   if (host.currentView() !== "columns") host.showView("columns");
 };
 // Opens the project's column through its arrow, so the dropped files show beside it.
 const openColumnOf = (key: string | null): void => {
-  if (key) document.querySelector(`.tree-host .col-item[data-key="${CSS.escape(key)}"] .chevron`)?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+  if (key) document.querySelector(`.tree-host .col-item[data-key="${CSS.escape(key)}"] .chevron`)?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 };
 // The project row and, once open, the column listing its contents both take a drop.
 const dropZones = (key: string | null): Element[] => (key ? [...itemOf(key), ...document.querySelectorAll(`.tree-host .column[data-key="${CSS.escape(key)}"]`)] : []);
+const showProjects = (): void => {
+  if (rowOf(REVIEW).length === 0) openColumnOf(UPPER);
+};
 const itemOf = (key: string | null): Element[] => (key ? [...document.querySelectorAll(`.tree-host [data-key="${CSS.escape(key)}"]`)].slice(0, 1) : []);
 
 function steps(): Step[] {
-  let parent: string | null = null;
   let project: string | null = null;
   let explorer: FakeExplorer | null = null;
   const projectKey = (): string | null => project ?? firstWorknode(state.tree?.nodes ?? [])?.join("/") ?? null;
-  let doomed: string | null = null;
-  // Only the node made during the tour is offered for deletion, never a folder of the demo template.
-  const created = (): string | null => {
-    const key = state.selectedKey;
-    return parent && key?.startsWith(`${parent}/`) && key.endsWith(".New-Node") ? key : null;
-  };
   return [
-    { targets: categories, part: 0, title: "Main categories", text: "These are the main categories of your Storage, the top level of everything you keep. Double-click the arrow of one to open it.", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0 },
-    { targets: rowsIn(1), part: 0, title: "Subcategories (Level 2)", text: "Each category holds its subcategories. Click one to select level 2.", onNext: selectRow, done: () => depth() >= 2 },
+    { targets: categories, part: 0, title: "Main categories", text: "These are the main categories of your Storage, the top level of everything you keep. Try opening one.", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0, right: true },
+    { targets: rowsIn(1), part: 0, title: "Level 2", text: "Each folder you open takes you one level deeper. You are on level 2, where we suggest keeping the subcategories of the one before. Try going to level 3.", onNext: (rows) => openRow(rows, "03."), done: () => rowsIn(2)().length > 0 },
+    { targets: rowsIn(2), part: 0, title: "Nodes", text: "This is level 3, by default the deepest level we suggest. In ANT, folders are called nodes.", advanceOn: () => [] },
+    { targets: () => rowOf(REVIEW), part: 0, title: "Review Nodes", text: "By default they refuse any files and send them to the Review node of the same level until you sort them.", enter: showProjects, advanceOn: () => [], inert: true, media: nodeReviewGif },
     {
-      targets: one(".nav-add"),
-      part: 0, title: "Create a node",
-      text: "Press + and choose New node. A numbered folder appears next to the open subcategory.",
-      advanceOn: newNode,
-      allow: newNode,
-      when: () => {
-        const parts = state.selectedKey?.split("/") ?? [];
-        parent = parts.length >= 2 ? parts.slice(0, -1).join("/") : null;
-        return parent !== null;
+      targets: () => dropZones(EXAMPLE),
+      separate: true,
+      part: 0, title: "Files",
+      text: "Your files should live on the levels past the index. The default depth is 3, so your files stay on level 4 or deeper.",
+      enter: () => {
+        showProjects();
+        setTimeout(() => openColumnOf(EXAMPLE), 100);
       },
+      advanceOn: () => [],
+      inert: true,
     },
     {
-      targets: () => rowOf(doomed),
-      part: 0, title: "Delete a node",
-      text: "Right-click your new node and choose Delete. In a real Storage it goes to the Recycle Bin.",
-      confirmText: "Confirm with Delete. Here it only leaves the tutorial Storage.",
-      pointAt: deleteControl,
-      allow: () => [deleteControl()].filter((e): e is Element => e !== null),
-      when: () => {
-        doomed = created();
-        return doomed !== null;
-      },
-      // Done once the node is gone, so a cancelled confirmation keeps the step.
-      done: () => doomed !== null && rowOf(doomed).length === 0 && !document.querySelector("dialog[open]"),
+      targets: () => rowOf(UPPER),
+      part: 0, title: "Allow files",
+      text: "Even so, you can always allow files in a node inside the index when you need to. Try it: right-click it to open its context menu and choose Allow files.",
+      media: allowFilesGif,
+      pointAt: () => allowFiles()[0] ?? null,
+      allow: allowFiles,
+      done: () => findNode(UPPER.split("/"))?.flags.includes("data") ?? false,
     },
     {
       targets: one(".nav-add"),
@@ -267,8 +266,31 @@ interface TourHost {
   showView(id: string): void;
 }
 let host: TourHost = { prepare: () => {}, currentView: () => "", showView: () => {} };
+// Dev only: the step survives a Vite reload, so a step can be reworked without walking the tour again.
+const DEV_STEP = "fm.devTourStep";
+const devStep = (): number | null => {
+  if (!import.meta.env.DEV) return null;
+  try {
+    const raw = sessionStorage.getItem(DEV_STEP);
+    return raw === null ? null : Number(raw);
+  } catch (e) {
+    console.warn("Dev tour step unreadable", e);
+    return null;
+  }
+};
+const saveDevStep = (i: number | null): void => {
+  if (!import.meta.env.DEV) return;
+  try {
+    if (i === null) sessionStorage.removeItem(DEV_STEP);
+    else sessionStorage.setItem(DEV_STEP, String(i));
+  } catch (e) {
+    console.warn("Dev tour step not saved", e);
+  }
+};
+
 export function onTourStart(next: TourHost): void {
   host = next;
+  if (devStep() !== null) void startTour();
 }
 
 // The tour runs on a demo Storage from the bundled template; the real one is read again when it ends.
@@ -328,6 +350,9 @@ export async function startTour(): Promise<void> {
   const shields = [shield];
   const title = el("h2", { id: "tour-title" });
   const text = el("p", { class: "tour-text", id: "tour-text" });
+  const media = el("img", { class: "tour-media", alt: "", hidden: "" });
+  // The tip grows once the clip loads, so it is placed again.
+  media.addEventListener("load", () => place());
   const next = textButton("Next", "btn-primary", () => {
     const step = all[index];
     // onNext acts on a target itself, and the click or the `done` check it causes moves the tour on.
@@ -343,7 +368,7 @@ export async function startTour(): Promise<void> {
     else jumpTo(part + 1);
   });
   skip.addEventListener("click", finish);
-  const tip = el("div", { class: "tour-tip", role: "dialog", tabindex: "-1", "aria-labelledby": "tour-title", "aria-describedby": "tour-text" }, el("div", { class: "tour-arrow" }), el("div", { class: "tour-head" }, title, count), text, el("div", { class: "tour-actions" }, skip, el("span", { class: "tour-forward" }, skipPart, next)));
+  const tip = el("div", { class: "tour-tip", role: "dialog", tabindex: "-1", "aria-labelledby": "tour-title", "aria-describedby": "tour-text" }, el("div", { class: "tour-arrow" }), el("div", { class: "tour-head" }, title, count), text, media, el("div", { class: "tour-actions" }, skip, el("span", { class: "tour-forward" }, skipPart, next)));
 
   // The chapter checklist: done chapters are ticked, any chapter can be opened again, and the bar shows how far the user got.
   const finished = new Set<number>();
@@ -398,7 +423,7 @@ export async function startTour(): Promise<void> {
     spot.setAttribute("viewBox", `0 0 ${w} ${h}`);
     dim.setAttribute("d", frame);
     rim.setAttribute("d", cut);
-    shield.style.clipPath = `path(evenodd, "${frame}")`;
+    shield.style.clipPath = all[index]?.inert ? "none" : `path(evenodd, "${frame}")`;
     // A menu the control opened is kept clear too, so its choices and the tip show together.
     const menu = document.querySelector(".ctx-menu, .view-segment");
     const pointed = all[index]?.pointAt?.() ?? null;
@@ -412,8 +437,8 @@ export async function startTour(): Promise<void> {
     if (text.textContent !== wanted) text.textContent = wanted;
     // Beside a menu item, so the menu stays readable; under a dialog button, so the dialog's other buttons stay clear.
     const forceLeft = all[index]?.left === true && !pointed;
-    const below = !forceLeft && (inDialog || !pointed) && r.bottom + margin + t.height <= window.innerHeight;
     const right = !forceLeft && r.right + margin + t.width <= window.innerWidth;
+    const below = !forceLeft && !(all[index]?.right && right && !pointed) && (inDialog || !pointed) && r.bottom + margin + t.height <= window.innerHeight;
     let left: number;
     let top: number;
     let side: string;
@@ -500,10 +525,14 @@ export async function startTour(): Promise<void> {
     }
     jumping = false;
     index = i;
+    saveDevStep(i);
     step.enter?.();
     watching = Boolean(step.done);
     title.textContent = step.title;
     text.textContent = step.text;
+    media.hidden = !step.media;
+    if (step.media) media.src = step.media;
+    else media.removeAttribute("src");
     next.textContent = i === all.length - 1 ? "Finish" : "Next";
     // The count runs inside the chapter; a one-step chapter needs none.
     const inPart = all.filter((s) => s.part === step.part);
@@ -521,6 +550,8 @@ export async function startTour(): Promise<void> {
 
   function finish(): void {
     over = true;
+    saveDevStep(null);
+    devBar?.remove();
     document.querySelector(".tour-cheer")?.remove();
     savePref(DONE_KEY, "true");
     all[index]?.leave?.();
@@ -554,5 +585,27 @@ export async function startTour(): Promise<void> {
   document.addEventListener("keydown", onKey);
   document.addEventListener("click", onClick, true);
   document.addEventListener("click", onPicked);
-  show(0);
+  const resume = devStep();
+  const devBar = import.meta.env.DEV ? debugBar() : null;
+  if (devBar) document.body.append(devBar);
+  jumping = resume !== null;
+  show(resume ?? 0);
+
+  // Dev only, unstyled on purpose: steps back and forth while debugging the tour.
+  function debugBar(): HTMLElement {
+    const usable = (i: number): boolean => (all[i]?.when?.() ?? true) && (all[i]?.targets().length ?? 0) > 0;
+    const step = (dir: -1 | 1) => () => {
+      for (let i = index + dir; i >= 0 && i < all.length; i += dir) {
+        if (!usable(i)) continue;
+        jumping = true;
+        show(i);
+        return;
+      }
+    };
+    const back = el("button", { type: "button" }, "◀ Prev step");
+    const ahead = el("button", { type: "button" }, "Next step ▶");
+    back.addEventListener("click", step(-1));
+    ahead.addEventListener("click", step(1));
+    return el("div", { style: "position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;gap:8px" }, back, ahead);
+  }
 }

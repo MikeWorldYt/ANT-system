@@ -76,7 +76,10 @@ export function createColumnsView(): ViewMode {
       lead.addEventListener("dblclick", () => openColumn(n));
       const chevron = nodeToggle(`Show contents of ${n.name}`, null, guiIcon("chevronRight"));
       chevron.classList.add("chevron");
-      chevron.addEventListener("dblclick", () => openColumn(n));
+      chevron.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        openColumn(n);
+      });
       item.append(chevron);
     }
     onItemClick(item, n, () => siblings, () => pick(n));

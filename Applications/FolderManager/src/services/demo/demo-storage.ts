@@ -12,6 +12,8 @@ interface Draft {
   stamp?: number;
   file?: boolean;
   size?: number;
+  support?: "REV" | "REC" | "RES" | "SS";
+  data?: boolean;
 }
 
 const DAY = 86_400_000;
@@ -30,7 +32,7 @@ const SAMPLE_STATUSES: (WkbStatus | null)[] = ["in-progress", "hold", "for-revie
 const kebab = (text: string): string => text.trim().replace(/\s+/g, "-");
 const pad = (n: number, width: number): string => String(n).padStart(width, "0");
 // The fixed part of a name: the number of a node, or the tracker and number of a worknode.
-const prefixOf = (name: string): string => /^(?:PJ\.\d+_|\d+\.)/.exec(name)?.[0] ?? "";
+const prefixOf = (name: string): string => /^(?:PJ\.\d+_|\d+\.|(?:REV|REC|RES|SS)\.)/.exec(name)?.[0] ?? "";
 
 // Same reading as CreateNewStorage: `##` categories, `-` subcategories, indented `-` topics and `PJ:` projects; support folders are left out.
 function parse(text: string): Draft[] {
@@ -56,9 +58,32 @@ function parse(text: string): Draft[] {
   return cats;
 }
 
+// The tour shows loose files waiting in a review folder and others filed inside a project, so the Projects list gets both.
+const LOOSE = ["scan_0042.pdf", "IMG_20261103.png", "invoice-final-v2.pdf", "notes (1).docx", "budget_copy.xlsx"];
+const FILED = ["Brief.pdf", "Moodboard.png", "Schedule.xlsx", "Meeting-notes.docx"];
+function addSamples(cats: Draft[]): void {
+  const list = cats.find((c) => c.name === "200.WORK")?.kids.find((k) => k.name.endsWith(".Projects"));
+  if (!list) return;
+  const file = (name: string, i: number): Draft => ({ name, kids: [], project: false, file: true, size: 40_000 * (i + 3), stamp: Date.now() - i * DAY });
+  list.kids.find((k) => k.project)?.kids.push(...FILED.map(file));
+  list.kids.find((k) => k.name === "REV.Projects")?.kids.push(...LOOSE.map(file));
+}
+
+// As CreateNewStorage does: each category gets its Recordings, Resources, Review and Screenshots, and each subcategory and topic its Review.
+function addSupports(list: Draft[], level: number): void {
+  for (const d of list.filter((k) => !k.project && !k.file && !k.support)) {
+    addSupports(d.kids, level + 1);
+    const title = d.name.slice(prefixOf(d.name).length);
+    const support = (kind: "REV" | "REC" | "RES" | "SS", name = title): Draft => ({ name: `${kind}.${name}`, kids: [], project: false, support: kind });
+    if (level === 1) d.kids.push(support("REC"), support("RES", "Resources"), support("REV"), support("SS"));
+    else if (level < 4) d.kids.push(support("REV"));
+  }
+}
+
 function actions(level: number): NodeActions {
   const editable = level > 1;
   return {
+    editFlags: editable,
     rename: editable,
     changeType: editable,
     addNext: true,
@@ -72,7 +97,6 @@ function actions(level: number): NodeActions {
     favorite: false,
     important: false,
     editDetails: false,
-    editFlags: false,
     hideLink: false,
     hide: false,
   };
@@ -89,14 +113,14 @@ function node(draft: Draft, parent: string[]): TreeNode {
     depth: parent.length,
     ghost: false,
     inYaml: true,
-    nodeType: draft.file ? null : draft.project ? { raw: "WKB", base: "WKB", level: null } : { raw: `NODE-L${level}`, base: "NODE", level },
+    nodeType: draft.file ? null : draft.project ? { raw: "WKB", base: "WKB", level: null } : draft.support ? { raw: draft.support, base: draft.support, level: null } : { raw: `NODE-L${level}`, base: "NODE", level },
     status: draft.status ?? null,
     statusRaw: draft.status ?? null,
     locked: false,
     reserved: false,
     linked: false,
     linkPath: null,
-    flags: [],
+    flags: draft.data ? ["data"] : [],
     hasChildren: children.length > 0,
     isGit: false,
     fixedPrefix: prefix,
@@ -124,6 +148,8 @@ export interface DemoStorage {
 // A level-1 sibling would be a new category, which the tutorial does not offer, so new nodes go next to a deeper one.
 export function createDemoStorage(): DemoStorage {
   const cats = parse(template);
+  addSupports(cats, 1);
+  addSamples(cats);
   const find = (parts: string[]): { list: Draft[]; at: number } | null => {
     let list = cats;
     for (const [i, part] of parts.entries()) {
@@ -145,7 +171,7 @@ export function createDemoStorage(): DemoStorage {
   function addNext(relParts: string[], kind: unknown): Mutation {
     const spot = find(relParts);
     if (!spot || relParts.length < 2) throw { kind: "internal", message: "The tutorial adds nodes inside a category." };
-    const used = spot.list.filter((d) => !d.project).length;
+    const used = spot.list.filter((d) => !d.project && !d.support && !d.file).length;
     const draft: Draft =
       kind === "worknode"
         ? { name: `PJ.${pad(nextProject(spot.list), 3)}_New-Worknode`, kids: [], project: true }
@@ -178,6 +204,13 @@ export function createDemoStorage(): DemoStorage {
     const spot = find(relParts);
     const draft = spot?.list[spot.at];
     if (draft) draft.status = (status as WkbStatus | null) ?? null;
+    return mutation(relParts);
+  }
+
+  function setFlag(relParts: string[], on: unknown, flag: unknown): Mutation {
+    const spot = find(relParts);
+    const draft = spot?.list[spot.at];
+    if (draft && flag === "data") draft.data = on === true;
     return mutation(relParts);
   }
 
@@ -222,6 +255,8 @@ export function createDemoStorage(): DemoStorage {
           return rename(parts(args), args?.newEditable);
         case "set_node_details":
           return setStatus(parts(args), args?.status);
+        case "set_user_flag":
+          return setFlag(parts(args), args?.on, args?.flag);
         case "inspect_delete":
           return { ghost: false, files: 0, dirs: 0 };
         case "delete_node":

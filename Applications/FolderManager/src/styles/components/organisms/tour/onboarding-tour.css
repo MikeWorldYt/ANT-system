@@ -67,3 +67,5 @@ body.tour-restrict .ctx-menu .ctx-item:not(.tour-allow), body.tour-restrict dial
 .tour-pulse { animation: tour-pulse 1.8s ease-out infinite; }
 @keyframes tour-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent); } 70%, 100% { box-shadow: 0 0 0 10px transparent; } }
 @media (prefers-reduced-motion: reduce) { .tour-pulse { animation: none; box-shadow: 0 0 0 2px var(--accent); } }
+.tour-media { display: block; width: 100%; margin: 0 0 14px; border-radius: 6px; }
+.tour-media[hidden] { display: none; }
