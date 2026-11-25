@@ -102,13 +102,18 @@ onReviewIndex((e) => {
     else clearStatus();
   }
 }).catch((e) => reportError("warning", e, "Review index updates unavailable"));
-trackFieldFocus();
+trackFieldFocus(() => views.current().focus());
+// The webview's own focus events need no backend round trip, so arrows work at once; the backend's one repeats it after the relist.
+window.addEventListener("focus", restoreFocus);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") restoreFocus();
+});
 const FOCUS_GAP_MS = 5_000;
 let lastFocusAt = 0;
 onWindowFocus(() => {
   const quick = Date.now() - lastFocusAt < FOCUS_GAP_MS;
   lastFocusAt = Date.now();
-  void (quick ? Promise.resolve() : relistLevels(null)).finally(() => restoreFocus(() => views.current().focus()));
+  void (quick ? Promise.resolve() : relistLevels(null)).finally(restoreFocus);
 }).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
 
 onDownloadsChanged((root) => void relistSystem(root)).catch((e) => reportError("warning", e, "Live Downloads updates unavailable"));

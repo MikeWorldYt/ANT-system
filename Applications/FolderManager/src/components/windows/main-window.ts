@@ -10,6 +10,7 @@ import { installContextMenu } from "../organisms/menus/context-menu";
 import { installDragOut } from "../../hooks/drag-out";
 import { installFolderMove } from "../../hooks/folder-move";
 import { installMarquee } from "../../hooks/marquee";
+import { refocusSelection } from "../../hooks/focus-return";
 import { trackPasteTarget } from "../../hooks/paste-target";
 import { bindPanes, focusedViews } from "../../hooks/split";
 import { bindTabs } from "../../hooks/tabs";
@@ -37,6 +38,8 @@ export function createMainWindow(app: HTMLElement) {
     installDragOut(pane);
     installFolderMove(pane);
     installMarquee(pane);
+    // A press on empty background leaves focus on the page; a frame later the clicks and any band have settled the selection.
+    pane.addEventListener("pointerup", () => requestAnimationFrame(() => refocusSelection()));
   }
   const viewPicker: ViewPicker = {
     modes: views.modes,

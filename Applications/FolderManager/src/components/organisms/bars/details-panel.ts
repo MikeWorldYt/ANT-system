@@ -7,6 +7,7 @@ import { textInput } from "../../atoms/text-input";
 import { statusLabeled } from "../../atoms/status-mark";
 import { isWorknode, nodeDetails, outputOf, ownerOf, UNKNOWN } from "../../../services/store/node-info";
 import { renameTo, setDetails, setOutput, setUserFlag } from "../../../hooks/ops";
+import { refocusSelection } from "../../../hooks/focus-return";
 import { pickInside } from "../../../hooks/outputs";
 import { setStatus } from "./status-line";
 import { extensionArea } from "../../../extensions/panel";
@@ -47,7 +48,8 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
   const stop = () => {
     editing = null;
     render();
-    if (!edit.hidden) edit.focus();
+    // Save and Cancel hand the keys back to the view; behind the board no view item can take them, so the pencil does.
+    if (!refocusSelection(true) && !edit.hidden) edit.focus();
   };
 
   function controls(n: TreeNode): Record<string, Node> {

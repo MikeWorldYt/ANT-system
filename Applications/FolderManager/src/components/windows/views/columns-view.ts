@@ -20,6 +20,7 @@ import { entryBeside, headEntry, leadEntries, openEntry, placeEntries, virtualEn
 import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
+import { focusItem } from "../../../hooks/focus-return";
 import type { ViewMode } from "./view-mode";
 import { isTemplatesHome, newTemplateItem } from "../../molecules/new-template-item";
 
@@ -328,7 +329,7 @@ export function createColumnsView(): ViewMode {
       loadSelectedChildren();
     },
     focus() {
-      root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus();
+      focusItem(root.querySelector<HTMLElement>('.col-item[tabindex="0"]'));
     },
     destroy() {
       revealed = null;

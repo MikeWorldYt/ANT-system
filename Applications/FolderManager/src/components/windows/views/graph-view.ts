@@ -865,7 +865,7 @@ export function createGraphView(): ViewMode {
       frame = requestAnimationFrame(settle);
     },
     focus() {
-      root.focus();
+      root.focus({ preventScroll: true });
     },
     destroy() {
       window.removeEventListener("fm:files-moved", onMoved);

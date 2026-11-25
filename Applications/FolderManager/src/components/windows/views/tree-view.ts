@@ -227,7 +227,7 @@ export function createTreeView(): ViewMode {
       }
     },
     focus() {
-      tree.focus();
+      tree.focus({ preventScroll: true });
     },
     destroy() {
       tree.remove();

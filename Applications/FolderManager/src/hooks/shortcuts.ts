@@ -83,7 +83,7 @@ export const isField = (t: EventTarget | null) =>
 
 const onViews = (t: EventTarget | null) => t === document.body || (t instanceof Element && t.closest(".tree-host, .nav-pane") !== null);
 
-const overlayOpen = () => document.querySelector('dialog[open], [role="menu"]') !== null;
+export const overlayOpen = () => document.querySelector('dialog[open], [role="menu"]') !== null;
 
 function bindings(go: ShortcutTargets): Binding[] {
   const withSelected = (fn: (n: NonNullable<ReturnType<typeof selectedNode>>) => void) => () => {
