@@ -12,6 +12,7 @@ import nodeReviewGif from "../../../assets/tour/node-review.gif";
 import allowFilesGif from "../../../assets/tour/allow-files.gif";
 
 const DONE_KEY = "fm.tour.done";
+const GUARDED = ["pointerdown", "mousedown", "click", "dblclick", "contextmenu"] as const;
 
 // A step lights every element `targets` gives; a click on `advanceOn` (by default the targets) moves on, and Next runs `onNext` instead.
 interface Step {
@@ -71,14 +72,19 @@ const openRow = (rows: Element[], prefer?: string): void => {
 
 const menuChoice = (label: string) => (): Element[] => menuItems(false)().filter((e) => e.textContent?.trim() === label);
 const allowFiles = menuChoice("Allow files");
-// Selecting a node closes its open column, so these steps only open the Projects list through its arrow when it is not shown.
-// The demo's Projects list holds a review node with loose files and the example project with files inside.
-const UPPER = "200.WORK/03.Projects";
-const REVIEW = `${UPPER}/REV.Projects`;
-const EXAMPLE = `${UPPER}/PJ.001_Example-Project`;
+// The level 3 list is whichever level 2 node the user opened; every one holds a review node and folders with files inside.
+const levelList = (): HTMLElement | null => document.querySelectorAll<HTMLElement>(".tree-host .column")[2] ?? null;
+const listRows = (): HTMLElement[] => [...(levelList()?.querySelectorAll<HTMLElement>(".col-item[data-key]") ?? [])];
+const upperKey = (): string | null => levelList()?.dataset.key || null;
+const reviewRow = (): Element[] => listRows().filter((r) => /\/REV\.[^/]*$/.test(r.dataset.key ?? "")).slice(0, 1);
+// A project shows files best; a list without one, as in PERSONAL, falls back to its first node that has contents.
+const filledKey = (): string | null => {
+  const rows = listRows().filter((r) => !/\/REV\./.test(r.dataset.key ?? "") && r.querySelector(".chevron"));
+  return (rows.find((r) => /\/PJ\./.test(r.dataset.key ?? "")) ?? rows[0])?.dataset.key ?? null;
+};
 const newWorknode = menuChoice("New worknode");
 
-// The first worknode of the demo (PJ.001_Example-Project) is selected, so its folder opens beside the projects list.
+// The first worknode of the demo (PJ.001_Portfolio-Web) is selected, so its folder opens beside the projects list.
 function firstWorknode(nodes: TreeNode[]): string[] | null {
   for (const n of nodes) {
     if (n.nodeType?.base === "WKB") return n.relParts;
@@ -105,42 +111,51 @@ const openColumnOf = (key: string | null): void => {
 };
 // The project row and, once open, the column listing its contents both take a drop.
 const dropZones = (key: string | null): Element[] => (key ? [...itemOf(key), ...document.querySelectorAll(`.tree-host .column[data-key="${CSS.escape(key)}"]`)] : []);
-const showProjects = (): void => {
-  if (rowOf(REVIEW).length === 0) openColumnOf(UPPER);
-};
 const itemOf = (key: string | null): Element[] => (key ? [...document.querySelectorAll(`.tree-host [data-key="${CSS.escape(key)}"]`)].slice(0, 1) : []);
 
 function steps(): Step[] {
   let project: string | null = null;
+  let example: string | null = null;
+  let upper: string | null = null;
   let explorer: FakeExplorer | null = null;
   const projectKey = (): string | null => project ?? firstWorknode(state.tree?.nodes ?? [])?.join("/") ?? null;
   return [
-    { targets: categories, part: 0, title: "Main categories", text: "These are the main categories of your Storage, the top level of everything you keep. Try opening one.", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0, right: true },
-    { targets: rowsIn(1), part: 0, title: "Level 2", text: "Each folder you open takes you one level deeper. You are on level 2, where we suggest keeping the subcategories of the one before. Try going to level 3.", onNext: (rows) => openRow(rows, "03."), done: () => rowsIn(2)().length > 0 },
+    { targets: categories, part: 0, title: "Main categories", text: "These are the main categories of your Storage, the top level of everything you keep. Try opening one.", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0, right: true,
+      // Coming back from a later step, the open levels would already meet `done`, so the view starts over at the categories.
+      enter: () => {
+        state.expanded.clear();
+        select(null);
+      },
+    },
+    { targets: rowsIn(1), part: 0, title: "Level 2", text: "Each folder you open takes you one level deeper. You are on level 2, where we suggest keeping the subcategories of the one before. Try going to level 3.", onNext: (rows) => openRow(rows, "01."), done: () => rowsIn(2)().length > 0 },
     { targets: rowsIn(2), part: 0, title: "Nodes", text: "This is level 3, by default the deepest level we suggest. In ANT, folders are called nodes.", advanceOn: () => [] },
-    { targets: () => rowOf(REVIEW), part: 0, title: "Review Nodes", text: "By default index levels refuse any files and send them to the Review node of the same level until you sort them.", enter: showProjects, advanceOn: () => [], inert: true, media: nodeReviewGif },
+    { targets: reviewRow, part: 0, title: "Review Nodes", text: "By default index levels refuse any files and send them to the Review node of the same level until you sort them.", advanceOn: () => [], inert: true, media: nodeReviewGif },
     {
-      targets: () => dropZones(EXAMPLE),
+      targets: () => dropZones(example ?? filledKey()),
       separate: true,
       part: 0, title: "Files",
       left: true,
-      anchor: () => [...document.querySelectorAll(`.tree-host .column[data-key="${CSS.escape(EXAMPLE)}"] > .col-item`)].at(-1) ?? null,
+      // The last of the contents, above the support nodes that close the list.
+      anchor: () => [...document.querySelectorAll<HTMLElement>(`.tree-host .column[data-key="${CSS.escape(example ?? "")}"] > .col-item[data-key]`)].filter((r) => !/\/(REV|RES|TPL|SS|REC)\.[^/]*$/.test(r.dataset.key ?? "")).at(-1) ?? null,
       text: "Your files should live on the levels past the index. The default depth is 3, so your files stay on level 4 or deeper.",
       enter: () => {
-        showProjects();
-        setTimeout(() => openColumnOf(EXAMPLE), 100);
+        example = filledKey();
+        openColumnOf(example);
       },
       advanceOn: () => [],
       inert: true,
     },
     {
-      targets: () => rowOf(UPPER),
+      targets: () => rowOf(upper ?? upperKey()),
+      enter: () => {
+        upper = upperKey();
+      },
       part: 0, title: "Allow files",
       text: "Even so, you can always allow files in a node inside the index when you need to. Try it with a right-click to open its context menu and choose Allow files.",
       media: allowFilesGif,
       pointAt: () => allowFiles()[0] ?? null,
       allow: allowFiles,
-      done: () => findNode(UPPER.split("/"))?.flags.includes("data") ?? false,
+      done: () => upper !== null && (findNode(upper.split("/"))?.flags.includes("data") ?? false),
     },
     {
       targets: one(".nav-add"),
@@ -559,6 +574,44 @@ export async function startTour(): Promise<void> {
     tip.focus();
   }
 
+  // Rows outside the lit targets act as if they were not there: no pointer, no keyboard reaches them.
+  const litRows = (): HTMLElement[] => (all[index]?.inert ? [] : (all[index]?.targets() ?? []).flatMap((e) => (e.matches(".col-item") ? [e as HTMLElement] : [...e.querySelectorAll<HTMLElement>(":scope > .col-item[data-key]")])));
+  const lit = (t: Element): boolean => (all[index]?.targets() ?? []).some((e) => e.contains(t)) && !all[index]?.inert;
+  function guardPointer(ev: Event): void {
+    const t = ev.target instanceof Element ? ev.target : null;
+    const row = t?.closest(".tree-host [data-key], .tree-host [data-entry]");
+    if (!row || lit(row)) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+  }
+
+  // Up and Down step between the lit rows, Right or Enter opens the focused one; other keys work only in the tip, a menu, a dialog or a lit field.
+  function guardKeys(ev: KeyboardEvent): void {
+    if (ev.key === "Escape") return;
+    const t = ev.target instanceof Element ? ev.target : null;
+    const rows = litRows();
+    const row = t?.closest<HTMLElement>(".col-item");
+    const at = row ? rows.indexOf(row) : -1;
+    const stop = (): void => {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+    };
+    if (rows.length > 0 && (ev.key === "ArrowDown" || ev.key === "ArrowUp") && (at >= 0 || t?.closest(".tour-tip"))) {
+      stop();
+      const step = ev.key === "ArrowDown" ? 1 : -1;
+      rows[at < 0 ? (step > 0 ? 0 : rows.length - 1) : (at + step + rows.length) % rows.length]?.focus();
+      return;
+    }
+    if (at >= 0 && (ev.key === "ArrowRight" || ev.key === "Enter")) {
+      stop();
+      rows[at]?.querySelector(".chevron")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      return;
+    }
+    const field = t?.matches("input, textarea, [contenteditable='true']") && lit(t);
+    if (t?.closest(".tour-tip, dialog, .ctx-menu, .view-segment, .tour-checklist") || field) return;
+    stop();
+  }
+
   function onKey(ev: KeyboardEvent): void {
     if (ev.key === "Escape" && !document.querySelector("dialog[open], .ctx-menu")) finish();
   }
@@ -582,6 +635,8 @@ export async function startTour(): Promise<void> {
     window.removeEventListener("resize", place);
     window.removeEventListener("tour-explorer-moved", place);
     document.removeEventListener("keydown", onKey);
+    window.removeEventListener("keydown", guardKeys, true);
+    for (const type of GUARDED) window.removeEventListener(type, guardPointer, true);
     void leaveDemo();
   }
 
@@ -598,6 +653,8 @@ export async function startTour(): Promise<void> {
   window.addEventListener("resize", place);
   window.addEventListener("tour-explorer-moved", place);
   document.addEventListener("keydown", onKey);
+  window.addEventListener("keydown", guardKeys, true);
+  for (const type of GUARDED) window.addEventListener(type, guardPointer, true);
   document.addEventListener("click", onClick, true);
   document.addEventListener("click", onPicked);
   const resume = devStep();
