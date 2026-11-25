@@ -166,7 +166,6 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   });
   // Rarely used actions sit one level down, so the everyday ones stay short to scan.
   const openIn = submenu("Open in", [newTab, splitTab], true);
-  const rules = fileItems.length > 1 ? submenu("ANT rules", fileItems, true) : null;
   const subs: Submenu[] = [submenu("Change type", typeChoices, a.changeType)];
   if (node.nodeType?.base === "WKB") subs.push(submenu("Change status", statusChoices, a.editDetails));
   const del = menuItem("Delete", "menuitem", a.delete, () => {
@@ -191,12 +190,12 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [openHere, open, openIn.trigger, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...(rules ? [rules.trigger] : fileItems), hideElement, del, ...extras],
-    subs: [openIn, ...subs, ...(rules ? [rules] : [])],
+    items: [openHere, open, openIn.trigger, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, hideElement, del, ...extras],
+    subs: [openIn, ...subs],
     content: [
       openHere, open, openIn.element, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
       rename, copy, cut, ...shareItems, separator(),
-      ...subs.map((s) => s.element), ...(rules ? [rules.element] : fileItems), separator(),
+      ...subs.map((s) => s.element), ...fileItems, separator(),
       hideElement, del, ...(extras.length > 0 ? [separator(), ...extras] : []),
     ],
   };
