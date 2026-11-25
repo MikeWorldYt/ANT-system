@@ -15,41 +15,123 @@
 ## PERSONAL
 - Documents
   - Identity
-  - Finance
-  - Health
+  - Certificates
   - Legal
+  - Insurance
+- Finance
+  - Bank
+  - Taxes
+  - Invoices
+  - Budget
+- Health
+  - Records
+  - Prescriptions
+  - Vaccines
+  - Appointments
+- Home
+  - Bills
+  - Rent
+  - Appliances
+  - Vehicle
 - Gallery
   - Photos
   - Videos
-- Home
-  - Bills
-  - Travel
+  - Family
+  - Events
+- Travel
+  - Tickets
+  - Bookings
+  - Itineraries
+  - Visas
 
 ## WORK
-- Administration
-  - Contracts
-  - Invoices
-- Career
-  - CV
-  - Certificates
-- Projects
-  - PJ: Example Project
+- Development
+  - Libraries
+  - Snippets
+  - PJ: Portfolio Web
+  - PJ: Inventory API
+- Design
+  - Brand
+  - Mockups
+  - PJ: Logo Refresh
+  - PJ: Landing Page
+- Video-edition
+  - Footage
+  - Templates
+  - PJ: Product Teaser
+  - PJ: Wedding Film
+- Architecture
+  - References
+  - Standards
+  - PJ: Lake House
+  - PJ: Office Remodel
 
 ## STUDY
-- Courses
-  - Online
-  - Certificates
-- School
-  - Notes
-  - Assignments
-  - Exams
-- Research
-  - PJ: Example Thesis
+- Computer Science
+  - Algorithms
+  - Networks
+  - PJ: Compiler Course
+  - PJ: OS Lab
+- Data Analysis
+  - Statistics
+  - Visualization
+  - PJ: Sales Dashboard
+  - PJ: Survey Study
+- Digital Arts
+  - Illustration
+  - 3D Modeling
+  - PJ: Character Design
+  - PJ: Poster Series
+- Business
+  - Marketing
+  - Finance
+  - PJ: Startup Plan
+  - PJ: Case Study
+- Medicine
+  - Anatomy
+  - Pharmacology
+  - PJ: Clinical Case
+  - PJ: Research Poster
+- Languages
+  - English
+  - Japanese
+  - PJ: Exchange Prep
+  - PJ: Reading Club
+- Math
+  - Calculus
+  - Algebra
+  - PJ: Thesis Proof
+  - PJ: Problem Set
 
 ## HOBBIES
 - Gaming
+  - Arknights Endfield
+  - GTA VI
+  - Minecraft
+  - Fortnite
+  - Hollow Knight Silksong
 - Music
+  - Samples
+  - Sheet Music
+  - PJ: Debut EP
+  - PJ: Cover Session
 - Reading
-- Creative
-  - Drawing
-  - Crafts
+  - Ebooks
+  - Notes
+  - PJ: Reading Challenge
+  - PJ: Book Review Blog
+- Photography
+  - Presets
+  - Raw Files
+  - PJ: Street Series
+  - PJ: Portrait Shoot
+- Cooking
+  - Recipes
+  - Menus
+  - PJ: Family Cookbook
+  - PJ: Dinner Party
+- Fitness
+  - Routines
+  - Nutrition
+  - PJ: Marathon Plan
+  - PJ: Strength Program
