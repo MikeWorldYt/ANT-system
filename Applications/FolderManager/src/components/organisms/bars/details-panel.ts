@@ -30,6 +30,7 @@ const labelled = (label: string) => ({ id: fieldId(label), "aria-labelledby": te
 const detailField = (...children: HTMLElement[]) => el("div", { class: "detail-field" }, ...children);
 export interface DetailsSection {
   element: HTMLElement;
+  welcome: HTMLElement;
   render(): void;
   startEdit(): boolean;
 }
@@ -40,7 +41,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
   const head = el("div", { class: "details-head" }, el("h3", { id: "details-title", class: "side-label" }, "Details"), edit);
   const empty = el("p", { class: "details-empty" }, "Select a folder to see its details.");
   const welcome = welcomeCard();
-  const element = el("section", { class: "side-section", "aria-labelledby": "details-title" }, head, list, empty, welcome, extensionArea());
+  const element = el("section", { class: "side-section", "aria-labelledby": "details-title" }, head, list, empty, extensionArea());
   let editing: string | null = null;
   // Built once per editing key, so store notifications do not discard what was typed.
   let form: { key: string; inputs: Record<string, Node> } | null = null;
@@ -153,7 +154,8 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     const entry = n ? null : shownEntry();
     const idle = n === null && entry === null;
     list.toggleAttribute("data-editing", editing !== null);
-    welcome.hidden = !idle || tourSeen();
+    // The card stays until the tour is taken or skipped, whatever is selected meanwhile.
+    welcome.hidden = tourSeen();
     empty.hidden = !idle || !welcome.hidden;
     list.hidden = n === null && entry === null;
     const ended = editing === null && form !== null;
@@ -192,5 +194,5 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
   }
 
   onDetailsChange(render);
-  return { element, render, startEdit };
+  return { element, welcome, render, startEdit };
 }

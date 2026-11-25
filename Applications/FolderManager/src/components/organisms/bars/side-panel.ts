@@ -79,7 +79,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     toggleHidingLinks();
   });
   const categoriesSection = section("side-categories", "Filters", categories, hideLinks);
-  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, quick, categoriesSection, reviewTools.element, details.element, automations.element, preview.element, foot);
+  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, details.welcome, quick, categoriesSection, reviewTools.element, details.element, automations.element, preview.element, foot);
 
   // ─────────♦ COLLAPSED RAIL ───────────────────────────────────────────────────
   const railExpand = iconButton("Expand side panel", "chevronsLeft", () => {

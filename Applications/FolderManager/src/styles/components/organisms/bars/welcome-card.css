@@ -13,3 +13,4 @@
 .btn.welcome-skip { background: transparent; font-weight: normal; }
 .welcome-last { white-space: nowrap; }
 .welcome-sparkles { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -0.15em; }
+.details-panel > .welcome-card { margin-bottom: 8px; }
