@@ -31,5 +31,3 @@ dialog.warning-confirm form { position: relative; }
 .dialog-field { display: grid; gap: 4px; font-size: var(--fs-label); color: var(--muted); }
 textarea.dialog-input { resize: vertical; }
 .dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
-.warning-skip { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
-.warning-skip input { accent-color: var(--accent); }
