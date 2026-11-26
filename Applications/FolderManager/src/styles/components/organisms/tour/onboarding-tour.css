@@ -5,7 +5,9 @@
 .tour-tip { position: fixed; z-index: 903; width: 300px; padding: 16px; border-radius: var(--radius-md); background: var(--bg); color: var(--text); box-shadow: var(--elev-2); border: 1px solid var(--border); transition: left 0.25s ease, top 0.25s ease, opacity 0.2s ease; }
 .tour-tip.tour-switching { opacity: 0; transition: none; }
 .tour-tip h2 { margin: 0 0 6px; font-size: var(--fs-title); color: var(--title); }
-.tour-text { margin: 0 0 14px; line-height: 1.4; }
+.tour-text { margin: 0 0 14px; line-height: 1.4; white-space: pre-line; }
+.tour-key { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; font: inherit; font-size: var(--fs-caption); line-height: 18px; color: #ffffff; background: var(--tip-key, #656c76); border-radius: var(--radius-xs); vertical-align: 1px; }
+.tour-do { padding: 1px 3px; color: #ffffff; background: #203da0; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .tour-actions .btn[hidden] { display: none; }
 .tour-skip { background: none; border: none; padding: 0; color: var(--muted); cursor: pointer; font: inherit; font-size: var(--fs-label); }

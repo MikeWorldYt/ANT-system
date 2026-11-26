@@ -10,6 +10,9 @@ import { findNode, keyOf, notify, select, state } from "../../../services/store/
 import type { TreeNode } from "../../../services/ipc/types";
 import nodeReviewGif from "../../../assets/tour/node-review.gif";
 import allowFilesGif from "../../../assets/tour/allow-files.gif";
+import newWorknodeGif from "../../../assets/tour/new-worknode.gif";
+import worknodeStatusGif from "../../../assets/tour/worknode-status.gif";
+import outcomesGif from "../../../assets/tour/outcomes.gif";
 
 const DONE_KEY = "fm.tour.done";
 const GUARDED = ["pointerdown", "mousedown", "click", "dblclick", "contextmenu"] as const;
@@ -72,7 +75,7 @@ const openRow = (rows: Element[], prefer?: string): void => {
   row?.querySelector(".chevron")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 };
 
-const menuChoice = (label: string) => (): Element[] => menuItems(false)().filter((e) => e.textContent?.trim() === label);
+const menuChoice = (label: string) => (): Element[] => menuItems(false)().filter((e) => [...e.childNodes].filter((c) => !(c instanceof Element && c.classList.contains("ctx-keys"))).map((c) => c.textContent).join("").trim() === label);
 const allowFiles = menuChoice("Allow files");
 // The level 3 list is whichever level 2 node the user opened; every one holds a review node and folders with files inside.
 const levelList = (): HTMLElement | null => document.querySelectorAll<HTMLElement>(".tree-host .column")[2] ?? null;
@@ -127,16 +130,16 @@ function steps(): Step[] {
   let explorer: FakeExplorer | null = null;
   const projectKey = (): string | null => project ?? firstWorknode(state.tree?.nodes ?? [])?.join("/") ?? null;
   return [
-    { targets: categories, part: 0, title: "Main categories", text: "These are the main categories of your Storage, the top level of everything you keep. Try opening one.", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0, right: true,
+    { targets: categories, part: 0, title: "Main categories", text: "These are the ==Main Categories== of your Storage, the top level of everything you keep. `TASK:` **Try opening one.**", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0, right: true,
       // Coming back from a later step, the open levels would already meet `done`, so the view starts over at the categories.
       enter: () => {
         state.expanded.clear();
         select(null);
       },
     },
-    { targets: rowsIn(1), part: 0, title: "Level 2", text: "Each folder you open takes you one level deeper. You are on level 2, where we suggest keeping the subcategories of the one before. Try going to level 3.", onNext: (rows) => openRow(rows, "01."), done: () => rowsIn(2)().length > 0 },
-    { targets: rowsIn(2), part: 0, title: "Nodes", text: "This is level 3, by default the deepest level we suggest. In ANT, folders are called nodes.", advanceOn: () => [] },
-    { targets: reviewRow, part: 0, title: "Review Nodes", text: "By default index levels refuse any files and send them to the Review node of the same level until you sort them.", advanceOn: () => [], inert: true, media: nodeReviewGif },
+    { targets: rowsIn(1), part: 0, title: "Level 2", text: "Each folder you open takes you one level deeper. You are on ==Level 2==, where we suggest keeping the **subcategories** of the one before. `TASK:` **Try going to level 3.**", onNext: (rows) => openRow(rows, "01."), done: () => rowsIn(2)().length > 0 },
+    { targets: rowsIn(2), part: 0, title: "Nodes", text: "This is ==Level 3==, by default the **deepest level** we suggest. In ANT, folders are called **nodes**.", advanceOn: () => [] },
+    { targets: reviewRow, part: 0, title: "Review Nodes", text: "By default index levels **refuse any files** and send them to the ==Review Node== of the same level until you sort them.", advanceOn: () => [], inert: true, media: nodeReviewGif },
     {
       targets: () => dropZones(example ?? filledKey()),
       separate: true,
@@ -144,7 +147,7 @@ function steps(): Step[] {
       left: true,
       // The last of the contents, above the support nodes that close the list.
       anchor: () => [...document.querySelectorAll<HTMLElement>(`.tree-host .column[data-key="${CSS.escape(example ?? "")}"] > .col-item[data-key]`)].filter((r) => !/\/(REV|RES|TPL|SS|REC)\.[^/]*$/.test(r.dataset.key ?? "")).at(-1) ?? null,
-      text: "Your files should live on the levels past the index. The default depth is 3, so your files stay on level 4 or deeper.",
+      text: "Your ==Files== should live on the levels past the index. The default depth is 3, so your files stay on **level 4 or deeper**.",
       enter: () => {
         example = filledKey();
         openColumnOf(example);
@@ -158,7 +161,7 @@ function steps(): Step[] {
         upper = upperKey();
       },
       part: 0, title: "Allow files",
-      text: "Even so, you can always allow files in a node inside the index when you need to. Try it with a right-click to open its context menu and choose Allow files.",
+      text: "Even so, you can always ==Allow Files== in a node inside the index when you need to. `TASK:` **Try it with a right-click to open its context menu and choose Allow files.**",
       media: allowFilesGif,
       pointAt: () => allowFiles()[0] ?? null,
       allow: allowFiles,
@@ -167,7 +170,8 @@ function steps(): Step[] {
     {
       targets: videoList,
       part: 1, title: "Worknode",
-      text: "Worknodes are temporary project folders designed to hold every file of a task, practice or any project. Try creating one: choose New worknode in the context menu or press Ctrl + Alt + N.",
+      media: newWorknodeGif,
+      text: "==Worknodes== are designed to store your homework, practices or **any project**. `TASK:` **Try creating one: choose New worknode in the context menu or press** `Ctrl` + `Alt` + `N`",
       enter: () => {
         const keys = VIDEO_PROJECTS.map((name) => `${VIDEO}/${name}`);
         select(keys[keys.length - 1]?.split("/") ?? null);
@@ -185,7 +189,7 @@ function steps(): Step[] {
     {
       targets: detailsPanel,
       part: 1, title: "Worknode Metadata Details",
-      text: "Each one keeps metadata: its owner or client, status, created and modified dates, and output.",
+      text: "Each one keeps ==Metadata==: **owner** (client), **status**, created and modified **dates**, etc.",
       enter: () => {
         if (project) select(project.split("/"));
         document.querySelector<HTMLElement>(".side-rail:not([hidden]) .side-rail-expand")?.click();
@@ -196,7 +200,8 @@ function steps(): Step[] {
     {
       targets: detailsPanel,
       part: 1, title: "Status",
-      text: "This stores the project's state. Try changing it to In progress to show your project is underway. Edit and save the details as often as you like.",
+      media: worknodeStatusGif,
+      text: "This stores the ==Project's State==. `TASK:` **Try changing it to \"In progress\" to show your project is coming.**",
       enter: () => (editButton()[0] as HTMLElement | undefined)?.click(),
       left: true,
       done: () => selectedStatus() === "in-progress" && saveButton().length === 0,
@@ -204,19 +209,21 @@ function steps(): Step[] {
     {
       targets: () => rowOf(project),
       part: 1, title: "Outcomes",
-      text: "When you finish a project, the app expects a result: an export, a render, a dist or any outcome. Outcomes gathers them and keeps them together. A file or folder picked as Output before moves there by itself. Right-click your project, change its status to Done and select the rendered video.",
+      media: outcomesGif,
+      text: "When you finish a project, the app expects the result (export, render, dist or any outcome). The ==Outcomes Node== gathers them and keeps them together; a file or folder picked as **Output** previously **moves there by itself**. `TASK:` **Try changing its status to Done and select the rendered video.**",
       enter: () => {
         if (!project || !activeDemo) return;
         const key = project;
         activeDemo.fill(key.split("/"), VIDEO_RENDER);
         void reloadWhenIdle().then(() => openColumnOf(key));
       },
+      left: true,
       done: () => project !== null && findNode(project.split("/"))?.status === "done" && !document.querySelector("dialog[open]"),
     },
     {
       targets: () => rowOf(OUTCOMES),
       part: 1, title: "Outcomes",
-      text: "Open the folder to see the rest of the deliverables.",
+      text: "`TASK:` **Open the folder to see the rest of the deliverables.**",
       onNext: () => openColumnOf(OUTCOMES),
       done: () => document.querySelector(`.tree-host .column[data-key="${CSS.escape(OUTCOMES)}"]`) !== null,
     },
@@ -273,6 +280,24 @@ function steps(): Step[] {
     { targets: one(".search-box"), part: 5, title: "Search", text: "Find any folder or file in the Storage by its name." },
     { targets: one(".side-rail"), part: 5, title: "Side panel", text: "Settings, the board, your downloads, recordings, screenshots and review folders are one click away." },
   ];
+}
+
+// Tip texts take a little Markdown: **bold**, _italic_ and `key` drawn as a keyboard key, as in the tooltips.
+// ==text== marks what the user should do, so the instruction stands out from the explanation around it.
+function richText(into: HTMLElement, source: string): void {
+  into.dataset.source = source;
+  // A task always starts on its own paragraph, under the explanation before it.
+  const laid = source.replace(/\s*(?=`TASK:`)/, (gap, at: number) => (at > 0 ? "\n\n" : gap));
+  into.replaceChildren(...laid.split(/(==[^=]+==)/).filter(Boolean).flatMap((part) => (part.startsWith("==") && part.endsWith("==") && part.length > 4 ? [el("mark", { class: "tour-do" }, ...inline(part.slice(2, -2)))] : inline(part))));
+}
+
+function inline(source: string): Node[] {
+  return source.split(/(\*\*[^*]+\*\*|_[^_]+_|`[^`]+`)/).filter(Boolean).map((part) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) return el("strong", {}, part.slice(2, -2));
+    if (part.startsWith("_") && part.endsWith("_") && part.length > 2) return el("em", {}, part.slice(1, -1));
+    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) return el("kbd", { class: "tour-key" }, part.slice(1, -1));
+    return document.createTextNode(part);
+  });
 }
 
 function union(elements: Element[]): DOMRect | null {
@@ -420,6 +445,8 @@ export async function startTour(): Promise<void> {
     chapters,
   );
   let jumping = false;
+  // A step that sets up its own view (opens a list, the side panel) is shown before its targets exist; the tip is placed once they appear.
+  const usable = (s: Step): boolean => (s.when?.() ?? true) && (s.enter !== undefined || s.targets().length > 0);
   const jumpTo = (part: number): void => {
     const first = all.findIndex((s) => s.part === part);
     if (first < 0) return;
@@ -462,17 +489,17 @@ export async function startTour(): Promise<void> {
     rim.setAttribute("d", cut);
     shield.style.clipPath = all[index]?.inert ? "none" : `path(evenodd, "${frame}")`;
     // A menu the control opened is kept clear too, so its choices and the tip show together.
-    const menu = document.querySelector(".ctx-menu, .view-segment");
+    const menus = [...document.querySelectorAll(".ctx-menu, .view-segment")];
     const pointed = all[index]?.pointAt?.() ?? null;
     pointed?.classList.add("tour-point");
     const anchored = all[index]?.anchor?.() ?? null;
-    const r = pointed ? pointed.getBoundingClientRect() : anchored ? anchored.getBoundingClientRect() : ((menu ? union([...(all[index]?.targets() ?? []), menu]) : null) ?? lit);
+    const r = pointed ? pointed.getBoundingClientRect() : anchored ? anchored.getBoundingClientRect() : ((menus.length ? union([...(all[index]?.targets() ?? []), ...menus]) : null) ?? lit);
     const t = tip.getBoundingClientRect();
     const margin = 12;
     // Below the target when it fits, else beside it for tall targets such as the tree and the rail.
     const inDialog = pointed?.closest("dialog") !== null && pointed !== null;
     const wanted = (inDialog ? all[index]?.confirmText : undefined) ?? all[index]?.text ?? "";
-    if (text.textContent !== wanted) text.textContent = wanted;
+    if (text.dataset.source !== wanted) richText(text, wanted);
     // Beside a menu item, so the menu stays readable; under a dialog button, so the dialog's other buttons stay clear.
     const forceLeft = all[index]?.left === true && !pointed;
     const right = !forceLeft && r.right + margin + t.width <= window.innerWidth;
@@ -485,8 +512,8 @@ export async function startTour(): Promise<void> {
     else [left, top, side] = [r.left - margin - t.width, r.top + Math.min(r.height / 2, 120) - 24, "right"];
     left = Math.max(margin, Math.min(left, window.innerWidth - t.width - margin));
     top = Math.max(margin, Math.min(top, window.innerHeight - t.height - margin));
-    // The tip keeps clear of the pretend explorer: the first spot around the target that it does not cover wins.
-    const blockers = [...document.querySelectorAll(".fx-window, .tour-checklist")].map((e) => e.getBoundingClientRect());
+    // The tip keeps clear of the pretend explorer and of open menus and submenus: the first spot around the target that it does not cover wins.
+    const blockers = [...document.querySelectorAll(".fx-window, .tour-checklist, .ctx-menu")].map((e) => e.getBoundingClientRect());
     const hits = (x: number, y: number): boolean => blockers.some((b) => x < b.right && x + t.width > b.left && y < b.bottom && y + t.height > b.top);
     if (hits(left, top)) {
       const spots: [number, number, string][] = [
@@ -545,7 +572,7 @@ export async function startTour(): Promise<void> {
   let fadeIn = 0;
   function show(from: number): void {
     if (over) return;
-    const i = all.findIndex((s, n) => n >= from && (s.when?.() ?? true) && s.targets().length > 0);
+    const i = all.findIndex((s, n) => n >= from && usable(s));
     const step = all[i];
     if (!step) return finish();
     if (i !== index) all[index]?.leave?.();
@@ -577,7 +604,7 @@ export async function startTour(): Promise<void> {
     step.enter?.();
     watching = Boolean(step.done);
     title.textContent = step.title;
-    text.textContent = step.text;
+    richText(text, step.text);
     media.hidden = !step.media;
     if (step.media) media.src = step.media;
     else media.removeAttribute("src");
@@ -683,10 +710,10 @@ export async function startTour(): Promise<void> {
 
   // Dev only, unstyled on purpose: steps back and forth while debugging the tour.
   function debugBar(): HTMLElement {
-    const usable = (i: number): boolean => (all[i]?.when?.() ?? true) && (all[i]?.targets().length ?? 0) > 0;
+    const usableAt = (i: number): boolean => (all[i] ? usable(all[i]) : false);
     const step = (dir: -1 | 1) => () => {
       for (let i = index + dir; i >= 0 && i < all.length; i += dir) {
-        if (!usable(i)) continue;
+        if (!usableAt(i)) continue;
         jumping = true;
         show(i);
         return;

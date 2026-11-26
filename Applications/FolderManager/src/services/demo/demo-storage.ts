@@ -154,7 +154,7 @@ function actions(level: number, project: boolean): NodeActions {
     open: false,
     favorite: false,
     important: false,
-    editDetails: false,
+    editDetails: project,
     hideLink: false,
     hide: false,
   };
