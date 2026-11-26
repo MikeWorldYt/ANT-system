@@ -82,11 +82,7 @@ pub fn size_of(path: &Path) -> u64 {
     bytes
 }
 
-// A copy counts every file it carries; a deletion counts the items it was given, since each goes to the bin whole.
-pub fn begin(sources: &[PathBuf], to: &str) -> Job {
-    begin_as("Copying", sources, to, false)
-}
-
+// A copy or move counts every file it carries; a deletion counts the items it was given, since each goes to the bin whole.
 pub fn begin_as(action: &str, sources: &[PathBuf], to: &str, per_item: bool) -> Job {
     let (mut bytes_total, mut files_total) = (0, 0);
     for s in sources {

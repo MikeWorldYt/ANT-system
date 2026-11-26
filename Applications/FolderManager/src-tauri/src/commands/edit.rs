@@ -200,7 +200,7 @@ pub async fn reorder_ids(app: AppHandle, parent_rel_parts: Vec<String>, targets:
 pub async fn move_folder(app: AppHandle, source: Vec<String>, destination: Vec<String>, copy: bool) -> R<Mutation> {
     let sender = app.clone();
     run_indexed(app, move |root| {
-        let _progress = super::transfer::track(&sender, &[mutations::source_path(root, &source)?], &super::file_drop::place_name(root, &destination));
+        let _progress = super::transfer::track(&sender, &[crate::infra::fs_safe::resolve(root, &source)?], &super::file_drop::place_name(root, &destination), copy);
         let done = mutations::move_folder(root, &source, &destination, copy);
         crate::services::ops_log::outcome(root, if copy { "copy folder" } else { "move folder" }, &format!("{} → {}", source.join("/"), destination.join("/")), &done);
         done

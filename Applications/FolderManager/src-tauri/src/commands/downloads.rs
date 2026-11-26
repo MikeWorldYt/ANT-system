@@ -106,7 +106,7 @@ pub async fn drop_into_downloads(app: AppHandle, root: Option<String>, rel_parts
     off_thread(move || {
         let root = root.unwrap_or_else(|| downloads::ROOT.to_string());
         let dir = downloads::path_of(&base_of(&app, &root)?, &rel_parts)?;
-        let _progress = super::transfer::track(&app, &paths, root.trim_start_matches(':'));
+        let _progress = super::transfer::track(&app, &paths, root.trim_start_matches(':'), true);
         let mut added = Vec::new();
         for path in paths.iter().filter(|p| p.is_file()) {
             let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else { continue };

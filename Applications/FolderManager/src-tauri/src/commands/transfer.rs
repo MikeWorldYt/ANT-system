@@ -85,8 +85,8 @@ pub(crate) struct Tracked {
     _job: Job,
 }
 
-pub(crate) fn track(app: &AppHandle, sources: &[PathBuf], to: &str) -> Tracked {
-    watch(app, transfer::begin(sources, to))
+pub(crate) fn track(app: &AppHandle, sources: &[PathBuf], to: &str, copy: bool) -> Tracked {
+    watch(app, transfer::begin_as(if copy { "Copying" } else { "Moving" }, sources, to, false))
 }
 
 fn watch(app: &AppHandle, job: Job) -> Tracked {

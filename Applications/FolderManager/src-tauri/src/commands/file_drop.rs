@@ -22,7 +22,7 @@ pub async fn drop_files(app: AppHandle, target: Vec<String>, paths: Vec<String>,
     run_locked(app, move |root| {
         let paths: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).collect();
         let replace: Vec<PathBuf> = replace.into_iter().map(PathBuf::from).collect();
-        let _progress = track(&sender, &paths, &place_name(root, &target));
+        let _progress = track(&sender, &paths, &place_name(root, &target), copy);
         place(root, &target, &paths, copy, &replace)
     })
     .await
@@ -34,7 +34,7 @@ pub async fn paste_files(app: AppHandle, target: Vec<String>) -> R<DropOutcome> 
     let sender = app.clone();
     run_locked(app, move |root| {
         let Paste { paths, copy } = clipboard::paste_plan(clipboard::read()?)?;
-        let _progress = track(&sender, &paths, &place_name(root, &target));
+        let _progress = track(&sender, &paths, &place_name(root, &target), copy);
         place(root, &target, &paths, copy, &[])
     })
     .await
@@ -70,7 +70,7 @@ pub async fn move_files_in(app: AppHandle, sources: Vec<Vec<String>>, target: Ve
     let sender = app.clone();
     run_locked(app, move |root| {
         let paths = sources.iter().map(|rel| mutations::source_path(root, rel)).collect::<R<Vec<PathBuf>>>()?;
-        let _progress = track(&sender, &paths, &place_name(root, &target));
+        let _progress = track(&sender, &paths, &place_name(root, &target), copy);
         let done = mutations::move_in(root, &target, &paths, copy, &send_to_recycle_bin);
         ops_log::outcome(root, if copy { "copy files" } else { "move files" }, &listed(root, &paths, &target), &done);
         indexed(root, done?)
