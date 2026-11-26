@@ -6,7 +6,7 @@ import { refresh } from "../../../hooks/ops";
 import { setDemoHandler } from "../../../services/ipc/api";
 import { createDemoStorage, type DemoStorage } from "../../../services/demo/demo-storage";
 import { fakeExplorer, type FakeExplorer } from "./fake-explorer";
-import { findNode, select, state } from "../../../services/store/state";
+import { findNode, keyOf, notify, select, state } from "../../../services/store/state";
 import type { TreeNode } from "../../../services/ipc/types";
 import nodeReviewGif from "../../../assets/tour/node-review.gif";
 import allowFilesGif from "../../../assets/tour/allow-files.gif";
@@ -33,6 +33,8 @@ interface Step {
   pointAt?: () => Element | null;
   // The tip points at this element instead of the lit targets.
   anchor?: () => Element | null;
+  // Shortcuts the step teaches, which the keyboard lock lets through.
+  keys?: (ev: KeyboardEvent) => boolean;
   // A looping clip under the text that acts out what the step explains.
   media?: string;
   // The lit targets are only shown: the shield covers them too.
@@ -93,11 +95,16 @@ function firstWorknode(nodes: TreeNode[]): string[] | null {
   }
   return null;
 }
-const openProjects = (): void => select(firstWorknode(state.tree?.nodes ?? []));
+// The Projects chapter works in the video projects, whose made-up render shows a delivery best.
+const VIDEO = "200.WORK/03.Video-edition";
+const VIDEO_PROJECTS = ["PJ.005_Product-Teaser", "PJ.006_Wedding-Film"];
+const OUTCOMES = `${VIDEO}/00.Outcomes`;
+const VIDEO_RENDER = ["footage/", "footage/A001_C001.mp4", "footage/A001_C002.mp4", "audio/", "audio/music.wav", "project.prproj", "render/", "render/render.mp4"];
+const videoList = (): Element[] => [...document.querySelectorAll(`.tree-host .column[data-key="${CSS.escape(VIDEO)}"]`)];
 
 const visible = (e: Element): boolean => (e as HTMLElement).offsetParent !== null;
 const editButton = (): Element[] => [...document.querySelectorAll('button[aria-label="Edit details"]')].filter(visible).slice(0, 1);
-const nameField = (): Element[] => [...document.querySelectorAll(".details-name")].filter((e) => e.querySelector(".name-fixed") && visible(e)).slice(0, 1);
+const detailsPanel = (): Element[] => [...document.querySelectorAll(".details-panel")].filter(visible).slice(0, 1);
 const saveButton = (): Element[] => [...document.querySelectorAll(".details-panel .btn-primary")].filter((e) => e.textContent?.trim() === "Save" && visible(e)).slice(0, 1);
 const selectedStatus = (): string | null => (state.selectedKey ? (findNode(state.selectedKey.split("/"))?.status ?? null) : null);
 
@@ -158,49 +165,60 @@ function steps(): Step[] {
       done: () => upper !== null && (findNode(upper.split("/"))?.flags.includes("data") ?? false),
     },
     {
-      targets: one(".nav-add"),
-      part: 1, title: "Create a worknode",
-      text: "Projects live in worknodes. Press + and choose New worknode; it takes the next project number.",
-      enter: openProjects,
-      advanceOn: newWorknode,
+      targets: videoList,
+      part: 1, title: "Worknode",
+      text: "Worknodes are temporary project folders designed to hold every file of a task, practice or any project. Try creating one: choose New worknode in the context menu or press Ctrl + Alt + N.",
+      enter: () => {
+        const keys = VIDEO_PROJECTS.map((name) => `${VIDEO}/${name}`);
+        select(keys[keys.length - 1]?.split("/") ?? null);
+        state.selectedKeys = keys;
+        notify();
+      },
       allow: newWorknode,
-    },
-    {
-      targets: () => rowOf(state.selectedKey?.endsWith("_New-Worknode") ? state.selectedKey : null),
-      part: 1, title: "Your project",
-      when: () => {
-        if (state.selectedKey?.endsWith("_New-Worknode")) project = state.selectedKey;
-        return true;
-      },
-      text: "This is your new project, numbered right after the example. Worknodes track a status from start to done.",
-    },
-    {
-      targets: editButton,
-      part: 1, title: "Edit your project",
-      text: "Press the pencil to edit the details of your project.",
-      onNext: (els) => (els[0] as HTMLElement | undefined)?.click(),
-      done: () => nameField().length > 0,
-    },
-    { targets: nameField, part: 1, title: "Name it", text: "Type a name you like. The PJ number stays; it is how ANT tracks the project. Then press Next.", advanceOn: () => [], left: true },
-    {
-      targets: one(".details-panel .status-picker"),
-      part: 1, title: "Set the status",
-      left: true,
-      text: "Open the status list and choose In progress.",
-      allow: () => [...document.querySelectorAll(".ctx-menu .ctx-status.st-in-progress")],
-      pointAt: () => document.querySelector(".ctx-menu .ctx-status.st-in-progress"),
-      done: () => document.querySelector(".details-panel .status-picker.st-in-progress") !== null,
-    },
-    {
-      targets: saveButton,
-      part: 1, title: "Save",
-      left: true,
-      text: "Save to apply the new name and status.",
+      keys: (ev) => ev.ctrlKey && ev.altKey && ev.code === "KeyN",
       done: () => {
-        const saved = selectedStatus() === "in-progress" && saveButton().length === 0;
-        if (saved) project = state.selectedKey;
-        return saved;
+        const made = findNode(VIDEO.split("/"))?.children?.find((c) => c.name.endsWith("_New-Worknode"));
+        if (made) project = keyOf(made.relParts);
+        return made !== undefined;
       },
+    },
+    {
+      targets: detailsPanel,
+      part: 1, title: "Worknode Metadata Details",
+      text: "Each one keeps metadata: its owner or client, status, created and modified dates, and output.",
+      enter: () => {
+        if (project) select(project.split("/"));
+        document.querySelector<HTMLElement>(".side-rail:not([hidden]) .side-rail-expand")?.click();
+      },
+      advanceOn: () => [],
+      left: true,
+    },
+    {
+      targets: detailsPanel,
+      part: 1, title: "Status",
+      text: "This stores the project's state. Try changing it to In progress to show your project is underway. Edit and save the details as often as you like.",
+      enter: () => (editButton()[0] as HTMLElement | undefined)?.click(),
+      left: true,
+      done: () => selectedStatus() === "in-progress" && saveButton().length === 0,
+    },
+    {
+      targets: () => rowOf(project),
+      part: 1, title: "Outcomes",
+      text: "When you finish a project, the app expects a result: an export, a render, a dist or any outcome. Outcomes gathers them and keeps them together. A file or folder picked as Output before moves there by itself. Right-click your project, change its status to Done and select the rendered video.",
+      enter: () => {
+        if (!project || !activeDemo) return;
+        const key = project;
+        activeDemo.fill(key.split("/"), VIDEO_RENDER);
+        void reloadWhenIdle().then(() => openColumnOf(key));
+      },
+      done: () => project !== null && findNode(project.split("/"))?.status === "done" && !document.querySelector("dialog[open]"),
+    },
+    {
+      targets: () => rowOf(OUTCOMES),
+      part: 1, title: "Outcomes",
+      text: "Open the folder to see the rest of the deliverables.",
+      onNext: () => openColumnOf(OUTCOMES),
+      done: () => document.querySelector(`.tree-host .column[data-key="${CSS.escape(OUTCOMES)}"]`) !== null,
     },
     {
       targets: one(".sort-btn"),
@@ -587,7 +605,7 @@ export async function startTour(): Promise<void> {
 
   // Up and Down step between the lit rows, Right or Enter opens the focused one; other keys work only in the tip, a menu, a dialog or a lit field.
   function guardKeys(ev: KeyboardEvent): void {
-    if (ev.key === "Escape") return;
+    if (ev.key === "Escape" || all[index]?.keys?.(ev)) return;
     const t = ev.target instanceof Element ? ev.target : null;
     const rows = litRows();
     const row = t?.closest<HTMLElement>(".col-item");

@@ -13,6 +13,8 @@ interface Draft {
   file?: boolean;
   size?: number;
   plain?: boolean;
+  outcomes?: boolean;
+  output?: string;
   support?: "REV" | "REC" | "RES" | "SS";
   data?: boolean;
 }
@@ -108,6 +110,8 @@ function addSamples(cats: Draft[]): void {
   for (const area of cats.filter((c) => c.name === "200.WORK" || c.name === "300.STUDY" || c.name === "400.HOBBIES").flatMap((c) => c.kids)) {
     const paths = SKELETONS[area.name.slice(prefixOf(area.name).length)];
     if (paths) for (const pj of area.kids.filter((k) => k.project)) pj.kids.push(...skeleton(paths));
+    // A list of projects delivers its finished work to the Outcomes folder beside them.
+    if (area.kids.some((k) => k.project)) area.kids.unshift({ name: "00.Outcomes", kids: [], project: false, outcomes: true });
   }
   // Gaming holds one node per game, each with its mods and fan art.
   for (const game of cats.find((c) => c.name === "400.HOBBIES")?.kids.find((a) => a.name.endsWith(".Gaming"))?.kids.filter((k) => !k.support) ?? []) {
@@ -167,7 +171,7 @@ function node(draft: Draft, parent: string[]): TreeNode {
     depth: parent.length,
     ghost: false,
     inYaml: true,
-    nodeType: draft.file || draft.plain ? null : draft.project ? { raw: "WKB", base: "WKB", level: null } : draft.support ? { raw: draft.support, base: draft.support, level: null } : { raw: `NODE-L${level}`, base: "NODE", level },
+    nodeType: draft.file || draft.plain ? null : draft.outcomes ? { raw: "OUT", base: "OUT", level: null } : draft.project ? { raw: "WKB", base: "WKB", level: null } : draft.support ? { raw: draft.support, base: draft.support, level: null } : { raw: `NODE-L${level}`, base: "NODE", level },
     status: draft.status ?? null,
     statusRaw: draft.status ?? null,
     locked: false,
@@ -185,7 +189,7 @@ function node(draft: Draft, parent: string[]): TreeNode {
     hidden: false,
     concealed: false,
     file: draft.file === true,
-    info: null,
+    info: draft.output ? { fields: [{ key: "Output", value: draft.output }], error: null } : null,
     children,
     absPath: [ROOT, ...relParts].join("\\"),
     actions: actions(level, draft.project),
@@ -198,6 +202,7 @@ export interface DemoStorage {
   // Fills a folder with made-up worknodes in mixed statuses and dates, so sorting has something to show.
   seedProjects(parent: string[]): void;
   addFile(folder: string[], name: string, size: number): void;
+  fill(folder: string[], paths: string[]): void;
 }
 
 // A level-1 sibling would be a new category, which the tutorial does not offer, so new nodes go next to a deeper one.
@@ -226,7 +231,7 @@ export function createDemoStorage(): DemoStorage {
   function addNext(relParts: string[], kind: unknown): Mutation {
     const spot = find(relParts);
     if (!spot || relParts.length < 2) throw { kind: "internal", message: "The tutorial adds nodes inside a category." };
-    const used = spot.list.filter((d) => !d.project && !d.support && !d.file).length;
+    const used = spot.list.filter((d) => !d.project && !d.support && !d.file && !d.outcomes).length;
     const draft: Draft =
       kind === "worknode"
         ? { name: `PJ.${pad(nextProject(spot.list), 3)}_New-Worknode`, kids: [], project: true }
@@ -260,6 +265,65 @@ export function createDemoStorage(): DemoStorage {
     const draft = spot?.list[spot.at];
     if (draft) draft.status = (status as WkbStatus | null) ?? null;
     return mutation(relParts);
+  }
+
+  function addChild(relParts: string[], kind: unknown): Mutation {
+    const spot = find(relParts);
+    const folder = spot?.list[spot.at];
+    if (!folder || relParts.length < 2) throw { kind: "internal", message: "The tutorial adds nodes inside a category." };
+    const used = folder.kids.filter((d) => !d.project && !d.support && !d.file && !d.outcomes).length;
+    const draft: Draft = kind === "worknode" ? { name: `PJ.${pad(nextProject(folder.kids), 3)}_New-Worknode`, kids: [], project: true } : { name: `${pad(used + 1, 2)}.New-Node`, kids: [], project: false };
+    const tail = folder.kids.findIndex((d) => d.support);
+    folder.kids.splice(tail < 0 ? folder.kids.length : tail, 0, draft);
+    return mutation([...relParts, draft.name]);
+  }
+
+  // A path inside a worknode, as the output and the picker give it.
+  const inside = (root: Draft, path: string): { list: Draft[]; at: number } | null => {
+    let list = root.kids;
+    const parts = path.split("/");
+    for (const [i, part] of parts.entries()) {
+      const at = list.findIndex((d) => d.name === part);
+      if (at < 0) return null;
+      if (i === parts.length - 1) return { list, at };
+      list = list[at]?.kids ?? [];
+    }
+    return null;
+  };
+
+  function setOutput(relParts: string[], output: unknown): Mutation {
+    const spot = find(relParts);
+    const draft = spot?.list[spot.at];
+    if (draft) draft.output = typeof output === "string" ? output : undefined;
+    return mutation(relParts);
+  }
+
+  // As the backend does: the output moves into `(date)_Title` inside the Outcomes folder beside the worknode, and a link stays behind.
+  function deliver(relParts: string[], date: unknown, all: unknown): Mutation {
+    const spot = find(relParts);
+    const worknode = spot?.list[spot.at];
+    const outcomes = spot?.list.find((d) => d.outcomes);
+    if (!worknode || !outcomes) throw { kind: "internal", message: "No Outcomes folder beside this worknode." };
+    const name = `(${String(date)})_${worknode.name.slice(prefixOf(worknode.name).length)}`;
+    const out = worknode.output ? inside(worknode, worknode.output) : null;
+    const picked = out?.list[out.at];
+    let moved: Draft[];
+    let linkHome = worknode.kids;
+    if (all === true || !picked || !out) moved = worknode.kids.splice(0);
+    else if (picked.plain) {
+      moved = picked.kids.splice(0);
+      linkHome = picked.kids;
+    } else moved = out.list.splice(out.at, 1);
+    outcomes.kids.push({ name, kids: moved, project: false, plain: true });
+    linkHome.push({ name: `${name}.lnk`, kids: [], project: false, file: true, size: 1_024, stamp: Date.now() });
+    return mutation(relParts);
+  }
+
+  // The tutorial hands the user's new project a believable set of files to deliver.
+  function fill(relParts: string[], paths: string[]): void {
+    const spot = find(relParts);
+    const draft = spot?.list[spot.at];
+    if (draft && draft.kids.length === 0) draft.kids.push(...skeleton(paths));
   }
 
   function setFlag(relParts: string[], on: unknown, flag: unknown): Mutation {
@@ -297,6 +361,7 @@ export function createDemoStorage(): DemoStorage {
   return {
     seedProjects,
     addFile,
+    fill,
     async handle(cmd, args) {
       switch (cmd) {
         case "load_tree":
@@ -310,6 +375,14 @@ export function createDemoStorage(): DemoStorage {
           return rename(parts(args), args?.newEditable);
         case "set_node_details":
           return setStatus(parts(args), args?.status);
+        case "add_child":
+          return addChild(parts(args), args?.kind);
+        case "set_node_output":
+          return setOutput(parts(args), args?.output);
+        case "deliver_output":
+          return deliver(parts(args), args?.date, args?.all);
+        case "restore_output":
+          return mutation(parts(args));
         case "set_user_flag":
           return setFlag(parts(args), args?.on, args?.flag);
         case "inspect_delete":
