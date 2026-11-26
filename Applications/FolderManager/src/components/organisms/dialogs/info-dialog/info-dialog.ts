@@ -17,9 +17,9 @@ async function confirmed(options: Omit<InfoOptions, "buttons" | "focus">, confir
 }
 
 // The first choice is the safest one and gets focus; Escape resolves to "later".
-export async function choiceDialog(title: string, message: string, choices: [value: string, label: string][]): Promise<string> {
-  const buttons = choices.map(([value, label], i) => dialogButton(label, value, i === choices.length - 1 ? "primary" : undefined));
-  const value = await infoDialog({ title, body: [dialogText(message)], buttons, focus: () => buttons[0]?.focus() });
+export async function choiceDialog(title: string, message: string | HTMLElement, choices: [value: string, label: string, tone?: ButtonTone][]): Promise<string> {
+  const buttons = choices.map(([value, label, tone], i) => dialogButton(label, value, tone ?? (i === choices.length - 1 ? "primary" : undefined)));
+  const value = await infoDialog({ title, body: [typeof message === "string" ? dialogText(message) : message], buttons, focus: () => buttons[0]?.focus() });
   return value === "" ? "later" : value;
 }
 

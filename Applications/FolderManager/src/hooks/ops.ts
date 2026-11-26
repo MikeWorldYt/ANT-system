@@ -414,11 +414,12 @@ export async function setDetails(node: TreeNode, status: WkbStatus | null, owner
   const reopening = status !== null && status !== "done" && current.status === "done";
   let delivery: Delivery | null = null;
   if (finishing && outputOf(current) === null) {
-    const choice = await choiceDialog("Hmmm, Where is the final file?", "Output dir is invalid or missing. What do you want to do?", [
-      ["file", "Choose a file"],
+    const parent = current.relParts.at(-2) ?? "this level";
+    const choice = await choiceDialog("Select an Output File", el("p", { class: "dialog-text" }, "It looks like ", el("strong", {}, "no output"), " was set before.\nPlease ", el("strong", {}, "select the project's final file"), ` to keep it in the Outcomes of ${parent}.`), [
+      ["none", "Do nothing", "danger-soft"],
+      ["all", "Move all project"],
       ["folder", "Choose a folder"],
-      ["all", "Move everything"],
-      ["none", "Do nothing"],
+      ["file", "Choose a file"],
     ]);
     if (!isDelivery(choice)) return false;
     delivery = choice;
