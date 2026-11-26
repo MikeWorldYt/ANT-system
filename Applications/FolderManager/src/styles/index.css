@@ -41,6 +41,7 @@
 @import "./components/organisms/dialogs/invalid-dialog.css";
 @import "./components/organisms/dialogs/ai-connect-dialog.css";
 @import "./components/organisms/dialogs/storage-picker.css";
+@import "./components/organisms/dialogs/pick-inside.css";
 @import "./components/organisms/transfer-panel.css";
 @import "./components/organisms/tour/onboarding-tour.css";
 @import "./components/molecules/setting-row.css";
