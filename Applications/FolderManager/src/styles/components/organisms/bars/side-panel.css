@@ -34,7 +34,13 @@
 .automation-auto-actions { display: flex; gap: 6px; }
 .automation-auto-actions .side-action { flex: 1; }
 .side-action.accent.automation-run-auto, .automation-run-auto .side-action-icon, .automation-run-auto .side-action-label { color: var(--st-review); }
-.automation-dictionary { margin-bottom: 6px; }
+.automation-dictionary { display: flex; gap: 6px; margin-bottom: 6px; }
+.automation-dictionary > .side-action { flex: 1; min-width: 0; }
+.automation-build { flex: none; align-self: stretch; width: 32px; }
+.automation-build[aria-busy="true"] { color: var(--accent); cursor: progress; }
+.automation-build[aria-busy="true"] .gui-icon { animation: automation-build-busy 1.2s ease-in-out infinite; }
+@keyframes automation-build-busy { 0%, 100% { opacity: 0.45; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .automation-build[aria-busy="true"] .gui-icon { animation: none; } }
 .automation-auto[hidden] { display: none; }
 .automation-batch { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-md); }
 .automation-batch[hidden] { display: none; }

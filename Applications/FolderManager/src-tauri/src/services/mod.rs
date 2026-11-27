@@ -4,6 +4,7 @@ pub mod automations;
 pub mod backup;
 pub mod bridge;
 pub mod debug_log;
+pub mod dictionary_ai;
 pub mod downloads;
 pub mod edit;
 pub mod extensions;

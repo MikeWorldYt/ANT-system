@@ -15,17 +15,18 @@ use crate::domain::error::R;
 use crate::infra::storage::changes;
 use crate::services::automations::{self, chain::ApplyOutcome, PlannedFile, Picks};
 use crate::services::downloads;
-use crate::services::{edit, mutations};
+use crate::services::{dictionary_ai, edit, mutations};
 
 type Schemas = fn() -> (Value, Value);
 
 const AUTOMATIONS: [&str; 6] = ["reduce", "sort", "group", "addDate", "removeDate", "removeSymbols"];
 
-const TOOLS: [(&str, &str, &str, Schemas); 4] = [
+const TOOLS: [(&str, &str, &str, Schemas); 5] = [
     ("set_automations", "Turn automations on", "Lets a folder run automations (its `autom` flag); review, screenshot and recording folders always can. Read ant://guide/automations first.", set_automations),
     ("set_review_automation", "Set automatic run", "Makes one automation run on its own on every file that lands in a folder that runs automations.", set_review_automation),
     ("plan_automations", "Plan automations", "Dry run: the new name, project and destination each file of a folder would get; changes nothing. Show it to the user before apply_automations.", plan_automations),
     ("apply_automations", "Run automations", "Renames and moves files as the rows of a plan_automations dry run say; the user confirms in the window.", apply_automations),
+    ("build_dictionary", "Build dictionary", "Has Claude Code write a folder's `.ant/dictionary.md` from the words its review folder's file names share, keeping the entries already there, and replaces the file whole; the user confirms in the window. Takes minutes and needs Claude Code installed and signed in. Check the result with get_dictionary and plan_automations.", build_dictionary),
 ];
 
 pub(super) fn has(name: &str) -> bool {
@@ -40,6 +41,7 @@ pub(super) fn list() -> Vec<Value> {
             let annotations = match *name {
                 "plan_automations" => json!({ "title": title, "readOnlyHint": true, "openWorldHint": false }),
                 "apply_automations" => json!({ "title": title, "readOnlyHint": false, "destructiveHint": true, "idempotentHint": false, "openWorldHint": false }),
+                "build_dictionary" => json!({ "title": title, "readOnlyHint": false, "destructiveHint": true, "idempotentHint": false, "openWorldHint": true }),
                 _ => json!({ "title": title, "readOnlyHint": false, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }),
             };
             json!({ "name": name, "title": title, "description": description, "inputSchema": input, "outputSchema": out, "annotations": annotations })
@@ -99,6 +101,10 @@ fn apply_automations() -> (Value, Value) {
     (input, change())
 }
 
+fn build_dictionary() -> (Value, Value) {
+    (object(json!({ "folder": folder() }), &["folder"]), output(json!({ "changed": { "type": "string" }, "warnings": strings() }), &["changed", "warnings"]))
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct FlagArgs {
@@ -131,6 +137,12 @@ struct PlanArgs {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct BuildArgs {
+    folder: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ApplyArgs {
     folder: Vec<String>,
     rows: Vec<PlannedFile>,
@@ -152,6 +164,25 @@ fn apply(root: &Path, a: &ApplyArgs) -> R<ApplyOutcome> {
     match in_downloads(&a.folder) {
         Some(sub) => automations::downloads::apply(root, &downloads::system_base()?, sub, &a.rows),
         None => automations::apply(root, &a.folder, &a.rows).map(|changed| ApplyOutcome { changed, chained: Vec::new() }),
+    }
+}
+
+// The same build as the editor's button; with no editor to review it in, the answer is written as the editor would save it.
+fn build(root: &Path, folder: &[String]) -> R<String> {
+    let work = dictionary_ai::work_dir(folder, in_downloads(folder).is_some());
+    match in_downloads(folder) {
+        Some(sub) => dictionary_ai::build(&downloads::path_of(&downloads::system_base()?, sub)?, &work, "Downloads", &automations::downloads::read_text()?),
+        None => {
+            let current = automations::dictionary::read_text(root, folder)?;
+            dictionary_ai::build(&dictionary_ai::review_dir(root, folder)?, &work, folder.last().map_or("the storage", String::as_str), &current)
+        }
+    }
+}
+
+fn save(root: &Path, folder: &[String], text: &str) -> R<()> {
+    match in_downloads(folder) {
+        Some(_) => automations::downloads::write_text(text),
+        None => automations::dictionary::write_text(root, folder, text),
     }
 }
 
@@ -196,6 +227,24 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
                     warnings.push(format!("The open Folder Manager may show this change only after its next refresh: {e}"));
                 }
                 Ok(json!({ "changed": format!("Ran the automations on {} files in {:?}", outcome.changed, a.folder.join("/")), "levels": [], "fullTree": true, "warnings": warnings }))
+            })
+        }
+        "build_dictionary" => {
+            let a: BuildArgs = args(name, arguments)?;
+            server.storage().and_then(|storage| {
+                let root = storage.root()?;
+                server.allow(&root, "Build dictionary", true, vec![a.folder.join("/")])?;
+                // Built before the lock is taken, since Claude Code may work for minutes.
+                let text = build(&root, &a.folder)?;
+                let _guard = storage.guard();
+                retrying(server.retry, || save(&root, &a.folder, &text))?;
+                let mut warnings = Vec::new();
+                if in_downloads(&a.folder).is_none() {
+                    if let Err(e) = changes::record(&root, std::slice::from_ref(&a.folder), false) {
+                        warnings.push(format!("The open Folder Manager may show this change only after its next refresh: {e}"));
+                    }
+                }
+                Ok(json!({ "changed": format!("Built the dictionary of {:?} with Claude Code", a.folder.join("/")), "warnings": warnings }))
             })
         }
         _ => return Err((INVALID_PARAMS, format!("Unknown tool: {name}"))),

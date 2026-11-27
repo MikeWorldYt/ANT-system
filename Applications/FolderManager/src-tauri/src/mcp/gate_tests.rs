@@ -67,6 +67,7 @@ fn writes_are_refused_until_the_user_turns_them_on_and_reads_still_work() {
         ("add_node", json!({ "parent": ["100.WORK"], "name": "new" })),
         ("delete", json!({ "relParts": ["100.WORK", "02.B"], "confirmNonEmpty": true })),
         ("set_dictionary", json!({ "relParts": ["100.WORK"], "entries": [] })),
+        ("build_dictionary", json!({ "folder": ["100.WORK"] })),
     ] {
         let refused = failed(&call(&s, tool, arguments));
         let message = refused["message"].as_str().unwrap();

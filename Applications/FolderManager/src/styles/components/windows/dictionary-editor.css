@@ -1,6 +1,12 @@
 /* Dictionary editor window: numbered text beside a gutter that marks the lines with problems, the list of problems, then the status line. */
 .dict-editor { display: flex; flex-direction: column; height: 100vh; background: var(--tree-bg); color: var(--text); }
-.dict-title { margin: 0; padding: 8px 12px; font-size: var(--fs-body); font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.dict-head { display: flex; align-items: center; gap: 8px; padding-right: 6px; border-bottom: 1px solid var(--border); }
+.dict-title { flex: 1; min-width: 0; margin: 0; padding: 8px 12px; font-size: var(--fs-body); font-weight: 600; color: var(--muted); overflow-wrap: anywhere; }
+.dict-build { flex: none; width: 28px; height: 28px; }
+.dict-build[aria-busy="true"] { color: var(--accent); cursor: progress; }
+.dict-build[aria-busy="true"] .gui-icon { animation: dict-build-busy 1.2s ease-in-out infinite; }
+@keyframes dict-build-busy { 0%, 100% { opacity: 0.45; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .dict-build[aria-busy="true"] .gui-icon { animation: none; } }
 .dict-body { flex: 1; min-height: 0; display: flex; font: 10pt/1.6 Consolas, "Cascadia Mono", monospace; }
 .dict-gutter { flex: none; min-width: 3.5em; padding: 8px 6px; overflow: hidden; text-align: right; color: var(--muted); border-right: 1px solid var(--border); user-select: none; }
 .dict-line { padding-right: 4px; border-radius: var(--radius-xs); }

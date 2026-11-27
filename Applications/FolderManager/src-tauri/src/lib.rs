@@ -157,6 +157,7 @@ pub fn run() {
             commands::read_dictionary,
             commands::check_dictionary,
             commands::save_dictionary,
+            commands::build_dictionary_ai,
             commands::apply_automations,
             commands::list_hidden_choices,
             commands::set_favorite,

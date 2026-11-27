@@ -1,10 +1,11 @@
 // The dictionary editor: its own window beside the main one, reading and autosaving a node's `.ant/dictionary.md`.
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
-use super::run_locked;
+use super::{log_failure, off_thread, run_locked, run_unlocked};
 use crate::domain::error::{FmError, R};
 use crate::services::automations::{dictionary, downloads};
 use crate::services::automations::dictionary_lint::{lint, Issue};
+use crate::services::dictionary_ai;
 
 const LABEL: &str = "dictionary";
 // WebView2 shares one environment per app, so a second window must ask for the same browser arguments as the main one or it fails to start.
@@ -72,4 +73,20 @@ pub async fn save_dictionary(app: AppHandle, folder: Vec<String>, text: String) 
         Ok(lint(&text))
     })
     .await
+}
+
+// Claude Code may work for minutes, so no storage lock is held meanwhile; the editor saves the answer as it saves typing.
+#[tauri::command]
+pub async fn build_dictionary_ai(app: AppHandle, folder: Vec<String>, text: String) -> R<String> {
+    let work = dictionary_ai::work_dir(&folder, super::downloads::below_downloads(&folder).is_some());
+    let (dir, title) = match super::downloads::below_downloads(&folder) {
+        Some(sub) => (crate::services::downloads::path_of(&super::downloads::base(&app)?, sub)?, "Downloads".to_string()),
+        None => {
+            let at = folder.clone();
+            (run_unlocked(app, move |_, root| dictionary_ai::review_dir(root, &at)).await?, folder.last().cloned().unwrap_or_else(|| "the storage".to_string()))
+        }
+    };
+    let result = off_thread(move || dictionary_ai::build(&dir, &work, &title, &text)).await?;
+    log_failure(&result);
+    result
 }

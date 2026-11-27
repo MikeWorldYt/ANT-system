@@ -6,7 +6,8 @@ import { guiIcon } from "../../atoms/gui-icons";
 import { confirmAutomation } from "../dialogs/action-dialog/automation-warning";
 import { AUTOMATIONS, autoKinds, batch, closeBatch, labelsOf, openBatch, replanBatch, runBatch, setAuto } from "../../../hooks/automations/batch";
 import { isDownloads, reviewScope, type ReviewScope } from "../../../hooks/automations/scope/review-scope";
-import { openDictionaryWindow } from "../../../services/ipc/api";
+import { iconButton } from "../../atoms/icon-button";
+import { buildDictionaryAi, openDictionaryWindow, readDictionary, saveDictionary } from "../../../services/ipc/api";
 import { reportError, setStatus } from "./status-line";
 import { readPref, savePref } from "../../../services/store/prefs";
 import { state } from "../../../services/store/state";
@@ -92,7 +93,27 @@ export function createReviewAutomations(): { element: HTMLElement; render(): voi
     const review = scope?.review;
     if (review) openDictionaryWindow(isDownloads(review) ? review.relParts : review.relParts.slice(0, -1)).catch((e: unknown) => reportError("error", e, "Dictionary window"));
   });
-  dictionary.classList.add("automation-dictionary");
+  const dictFolder = (): string[] | null => {
+    const review = scope?.review;
+    return review ? (isDownloads(review) ? review.relParts : review.relParts.slice(0, -1)) : null;
+  };
+  // The same build as the editor's sparkles button, saved straight away since no editor is open to review it.
+  const build = iconButton("Build dictionary with AI", "sparkles", () => void buildHere());
+  build.classList.add("automation-build");
+  async function buildHere(): Promise<void> {
+    const folder = dictFolder();
+    if (!folder || build.getAttribute("aria-busy") === "true") return;
+    build.setAttribute("aria-busy", "true");
+    setStatus("info", "Building the dictionary with AI…");
+    try {
+      await saveDictionary(folder, await buildDictionaryAi(folder, await readDictionary(folder)));
+      setStatus("info", "Dictionary built with AI");
+    } catch (e) {
+      reportError("error", e, "Dictionary build");
+    } finally {
+      build.removeAttribute("aria-busy");
+    }
+  }
   // The picks and the run buttons sit in one bordered box, so it reads which automations a run applies.
   const batchBox = el("div", { class: "automation-batch", role: "group", "aria-label": "Automations to run" }, ...all.map((p) => p.element), run, runAuto);
   run.classList.add("automation-run-small");
@@ -101,7 +122,7 @@ export function createReviewAutomations(): { element: HTMLElement; render(): voi
     "section",
     { class: "side-section", "aria-labelledby": "review-automations-title" },
     el("h3", { id: "review-automations-title", class: "side-label" }, "Automations"),
-    dictionary,
+    el("div", { class: "automation-dictionary" }, dictionary, build),
     leave,
     batchBox,
     enter,

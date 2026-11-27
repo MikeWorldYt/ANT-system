@@ -1,8 +1,9 @@
 // The dictionary editor window: a node's dictionary.md with line numbers, saved as the user types and checked line by line.
 import "../../styles/index.css";
 import { el } from "../dom";
+import { iconButton } from "../atoms/icon-button";
 import { installCommentKeys } from "./dictionary-comments";
-import { checkDictionary, describeError, readDictionary, saveDictionary } from "../../services/ipc/api";
+import { buildDictionaryAi, checkDictionary, describeError, readDictionary, saveDictionary } from "../../services/ipc/api";
 import { inDownloads, type DictionaryIssue } from "../../services/ipc/types";
 
 const SAVE_DELAY = 400;
@@ -23,8 +24,11 @@ export async function mountDictionaryEditor(folder: string[]): Promise<void> {
   const block = el("div", { class: "dict-block", "aria-hidden": "true" });
   const status = el("span", { class: "status-text", role: "status", "aria-live": "polite" });
   const list = el("ul", { class: "dict-issues", "aria-label": "Problems" });
+  const build = iconButton("Build dictionary with AI", "sparkles", () => void runBuild());
+  build.classList.add("dict-build");
+  const title = el("h1", { class: "dict-title" }, inDownloads(folder) ? "%TEMP%/ANT/automations/downloads/dictionary.md" : `/${folder.join("/")}/.ant/dictionary.md`);
   app.replaceChildren(
-    el("main", { class: "dict-editor" }, el("h1", { class: "dict-title" }, inDownloads(folder) ? "%TEMP%/ANT/automations/downloads/dictionary.md" : `/${folder.join("/")}/.ant/dictionary.md`), el("div", { class: "dict-body" }, gutter, el("div", { class: "dict-pane" }, block, text)), list, el("footer", { class: "status-line" }, status)),
+    el("main", { class: "dict-editor" }, el("header", { class: "dict-head" }, title, build), el("div", { class: "dict-body" }, gutter, el("div", { class: "dict-pane" }, block, text)), list, el("footer", { class: "status-line" }, status)),
   );
 
   let issues: DictionaryIssue[] = [];
@@ -106,6 +110,35 @@ export async function mountDictionaryEditor(folder: string[]): Promise<void> {
     gutter.scrollTop = text.scrollTop;
     frame();
   });
+  // Claude Code takes minutes, so the text stays locked until it answers; the answer goes in as typing does, saved and undone with Ctrl+Z.
+  const runBuild = async (): Promise<void> => {
+    if (timer !== undefined) {
+      window.clearTimeout(timer);
+      save();
+    }
+    await saving;
+    text.disabled = build.disabled = true;
+    build.setAttribute("aria-busy", "true");
+    setStatus("info", "Building the dictionary with Claude Code, this can take a few minutes…");
+    try {
+      const built = await buildDictionaryAi(folder, text.value);
+      text.disabled = false;
+      text.focus();
+      text.select();
+      if (!document.execCommand("insertText", false, built)) {
+        text.value = built;
+        text.dispatchEvent(new Event("input"));
+      }
+      text.setSelectionRange(0, 0);
+      text.scrollTop = 0;
+    } catch (e) {
+      setStatus("error", `Not built: ${describeError(e)}`);
+    } finally {
+      text.disabled = build.disabled = false;
+      build.removeAttribute("aria-busy");
+    }
+  };
+
   // A save still waiting when the window closes runs at once, so the last keystrokes reach the file.
   window.addEventListener("beforeunload", () => {
     if (timer !== undefined) save();
@@ -117,7 +150,7 @@ export async function mountDictionaryEditor(folder: string[]): Promise<void> {
     issues = await checkDictionary(text.value);
     paint();
   } catch (e) {
-    text.disabled = true;
+    text.disabled = build.disabled = true;
     setStatus("error", `Could not read the dictionary: ${describeError(e)}`);
   }
 }
