@@ -9,6 +9,7 @@ const WIDTH_PREF = "fm.navPaneWidth";
 const DEFAULT_WIDTH = 260;
 // Narrower than this the rows no longer read, so letting go there closes the pane instead.
 const MIN_WIDTH = 150;
+const MAX_WIDTH = 400;
 const KEY_STEP = 20;
 
 export interface NavPane {
@@ -20,10 +21,10 @@ export interface NavPane {
 
 function savedWidth(): number {
   const w = Number(readPref(WIDTH_PREF));
-  return Number.isFinite(w) && w >= MIN_WIDTH ? w : DEFAULT_WIDTH;
+  return Number.isFinite(w) && w >= MIN_WIDTH ? Math.min(w, maxWidth()) : DEFAULT_WIDTH;
 }
 
-const maxWidth = (): number => Math.max(MIN_WIDTH, Math.floor(window.innerWidth / 2));
+const maxWidth = (): number => Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.floor(window.innerWidth / 2)));
 
 export function createNavPane(): NavPane {
   const element = el("aside", { class: "nav-pane", "aria-label": "Navigation" });
