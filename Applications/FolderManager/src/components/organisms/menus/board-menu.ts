@@ -1,9 +1,11 @@
 // Background menu of the open folder: paste into it, switch the view, sort its contents and add folders.
 import { addChild, manageHidden, pasteFiles, refresh } from "../../../hooks/ops";
+import { openFolder } from "../../../hooks/path-actions";
 import { canReorderIds, reorderIds } from "../../../hooks/reorder-ids";
 import { keyOf, setColumnSort, sortOf, state, type ColumnSort } from "../../../services/store/state";
 import { SORT_KEYS, orderedModes, type ViewPicker } from "../bars/toolbar";
 import { VIEW_ICONS } from "../../molecules/view-choice";
+import { folderFlagItems } from "./folder-flags";
 import { menuIcon, closingItem, menuItem, separator, submenu, type Submenu } from "../../molecules/menu";
 import { guiIcon, type GuiIcon } from "../../atoms/gui-icons";
 import type { TreeNode } from "../../../services/ipc/types";
@@ -63,11 +65,13 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   newNode.prepend(guiIcon("add"));
   newWorknode.prepend(guiIcon("board"));
   const manage = action("Manage hidden nodes", true, () => void manageHidden(node.relParts));
+  const open = action("Open folder location", node.actions.open, () => void openFolder(node));
+  const flagItems = folderFlagItems(node, action);
   const reorderItems = canReorderIds(node) ? [action("Reorder by id…", true, () => void reorderIds(node))] : [];
 
   return {
-    items: [...pasteItems, ...subs.map((s) => s.trigger), reload, ...addItems, manage, ...reorderItems],
+    items: [open, ...pasteItems, ...subs.map((s) => s.trigger), reload, ...flagItems, manage, ...reorderItems, ...addItems],
     subs,
-    content: [...pasteItems, ...(pasteItems.length > 0 ? [separator()] : []), ...subs.map((s) => s.element), reload, separator(), ...addItems, separator(), manage, ...reorderItems],
+    content: [open, separator(), ...pasteItems, ...(pasteItems.length > 0 ? [separator()] : []), ...subs.map((s) => s.element), reload, separator(), ...flagItems, manage, ...reorderItems, separator(), ...addItems],
   };
 }

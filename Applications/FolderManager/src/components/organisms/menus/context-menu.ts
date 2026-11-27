@@ -5,7 +5,7 @@ import { kindIcon } from "../../atoms/icons";
 import { menuKeys } from "../tooltip/tooltip";
 import { statusIcon } from "../../atoms/status-mark";
 import { importantLabel, isWorknode, ownerOf, STATUSES, TYPES } from "../../../services/store/node-info";
-import { hideMany, hideNode, remove, removeDownloads, removeMany, setDetails, setFavorite, setFavorites, setImportant, setLinkHidden, setManyDetails, setType, setUserFlag } from "../../../hooks/ops";
+import { hideMany, hideNode, remove, removeDownloads, removeMany, setDetails, setFavorite, setFavorites, setImportant, setLinkHidden, setManyDetails, setType } from "../../../hooks/ops";
 import { suggestSearch } from "../../../services/ipc/api";
 import { reportError } from "../bars/status-line";
 import { createShortcut, putOnClipboard } from "../../../hooks/folder-share";
@@ -15,6 +15,7 @@ import { isSelected, keyOf, selectedNodes, startEdit, state } from "../../../ser
 import { menuItems, runMenuItem } from "../../../extensions/host";
 import { autoDismiss, menuIcon, focusInitial, closingItem, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
 import { boardMenu, type MenuParts } from "./board-menu";
+import { folderFlagItems } from "./folder-flags";
 import type { ViewPicker } from "../bars/toolbar";
 import { allInSystem } from "../../../services/store/system-folders";
 import { inSystem, type TreeNode } from "../../../services/ipc/types";
@@ -140,12 +141,7 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     item.prepend(menuIcon(icon));
   }
   const shareItems = node.reserved || node.ghost ? [] : [shortcut];
-  const allowsFiles = node.flags.includes("data");
-  const files = action(allowsFiles ? "Deny files" : "Allow files", a.editFlags, () => void setUserFlag(node, !allowsFiles));
-  const automated = node.flags.includes("autom");
-  const autom = action(automated ? "Deactivate automations" : "Activate automations", !node.ghost && !node.locked && !node.reserved && node.relParts.length > 1, () => void setUserFlag(node, !automated, "autom"));
-  const base = node.nodeType?.base ?? "";
-  const fileItems = [...(base === "NODE" ? [files] : []), ...(["REV", "SS", "REC", "RES"].includes(base) ? [] : [autom])];
+  const fileItems = folderFlagItems(node, action);
   const typeChoices = TYPES.map(([base, label]) => {
     const item = menuItem(label, "menuitemradio", a.changeType, () => {
       close();
