@@ -5,7 +5,6 @@
 }
 .view-picker:hover { background: var(--field-bg); }
 .view-picker:focus-visible { outline: 2px solid var(--button); outline-offset: 2px; }
-.view-picker .picker-caret { width: 12px; height: 12px; color: var(--muted); }
 .view-picker .gui-icon { width: 16px; height: 16px; }
 .view-picker[hidden] { display: none; }
 .icon-btn[aria-pressed="true"], .icon-btn[aria-pressed="true"]:hover { background: var(--highlight); color: var(--title); }

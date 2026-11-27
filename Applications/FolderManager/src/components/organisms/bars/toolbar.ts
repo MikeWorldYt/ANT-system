@@ -55,12 +55,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
   const sortLabel = el("span", {});
   const sortDir = guiIcon("up");
   sortDir.classList.add("sort-dir");
-  const caret = (): SVGElement => {
-    const icon = guiIcon("chevronDown");
-    icon.classList.add("picker-caret");
-    return icon;
-  };
-  const sortBtn = el("button", { type: "button", class: "view-picker sort-btn" }, sortLabel, sortDir, caret());
+  const sortBtn = el("button", { type: "button", class: "view-picker sort-btn" }, sortLabel, sortDir);
   attachMenu(sortBtn, "Sort by", () => {
     const column = activeColumnKey();
     const { by, dir } = sortOf(column);
@@ -89,8 +84,9 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
     });
     // Keeps a press on the popup from moving focus away before the click lands.
     popup.addEventListener("mousedown", (ev) => ev.preventDefault());
+    // The button sits at the toolbar's end, so the popup lines up with its right edge.
     const r = viewBtn.getBoundingClientRect();
-    closeViewPopup = openPopup(viewBtn, popup, () => place(popup, r.left, r.bottom + EDGE), () => (closeViewPopup = null));
+    closeViewPopup = openPopup(viewBtn, popup, () => place(popup, r.right - popup.offsetWidth, r.bottom + EDGE), () => (closeViewPopup = null));
     modeButtons.find(([id]) => id === views.active())?.[1].focus();
   }
   popupTrigger(viewBtn, [], () => closeViewPopup, openViewPopup);
@@ -117,7 +113,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
       const mode = views.modes.find((m) => m.id === views.active())?.label ?? "";
       viewLabel.textContent = mode;
       viewBtn.setAttribute("aria-label", `View: ${mode}`);
-      viewBtn.replaceChildren(viewLabel, guiIcon(VIEW_ICONS[views.active()] ?? "layout"), caret());
+      viewBtn.replaceChildren(viewLabel, guiIcon(VIEW_ICONS[views.active()] ?? "layout"));
       modeButtons.forEach(([id, b]) => {
         b.setAttribute("aria-pressed", String(id === views.active()));
         setDisabled(b, batch !== null && !BATCH_VIEWS.includes(id));
