@@ -34,9 +34,13 @@ pub(super) fn home_dir() -> Option<PathBuf> {
     std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")).map(PathBuf::from)
 }
 
-pub(super) fn on_path(names: &[&str]) -> bool {
+pub(super) fn find_on_path(names: &[&str]) -> Option<PathBuf> {
     let path = std::env::var_os("PATH").unwrap_or_default();
-    std::env::split_paths(&path).any(|dir| names.iter().any(|n| dir.join(n).is_file()))
+    std::env::split_paths(&path).flat_map(|dir| names.iter().map(move |n| dir.join(n))).find(|p| p.is_file())
+}
+
+pub(super) fn on_path(names: &[&str]) -> bool {
+    find_on_path(names).is_some()
 }
 
 pub(super) fn same_exe(a: &str, b: &str) -> bool {

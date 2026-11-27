@@ -26,9 +26,14 @@ pub struct AiClient {
     pub restart_needed: bool,
 }
 
-// The dictionary build runs the same CLI the connect step finds.
-pub(crate) fn claude_cli() -> R<std::path::PathBuf> {
-    claude_code::required_cli()
+// The dictionary build runs the same CLI the connect step finds; Claude Desktop has none.
+pub(crate) fn headless_cli(id: &str) -> Option<std::path::PathBuf> {
+    match id {
+        "claudeCode" => claude_code::required_cli().ok(),
+        "codex" => shared::find_on_path(&["codex.exe", "codex.cmd"]),
+        "opencode" => shared::find_on_path(&["opencode.exe", "opencode.cmd"]),
+        _ => None,
+    }
 }
 
 pub(crate) fn internal(message: impl Into<String>) -> FmError {

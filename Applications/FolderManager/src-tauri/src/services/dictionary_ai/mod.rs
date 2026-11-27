@@ -1,5 +1,6 @@
-// Builds a folder's dictionary with Claude Code from the names of the files waiting in its review folder, for the editor window and the MCP.
+// Builds a folder's dictionary with the connected AI client from the names of the files waiting in its review folder, for the editor window and the MCP.
 mod agent;
+mod runner;
 mod scan;
 
 use std::fs;
@@ -50,7 +51,7 @@ fn file_names(dir: &Path) -> R<Vec<String>> {
     Ok(names)
 }
 
-// Claude may still wrap its answer in a fence or a sentence; only the fenced block is the dictionary then.
+// The AI may still wrap its answer in a fence or a sentence; only the fenced block is the dictionary then.
 fn unfenced(raw: &str) -> &str {
     let Some(open) = raw.find("```") else { return raw.trim() };
     let body = raw[open..].split_once('\n').map_or("", |(_, rest)| rest);
@@ -58,7 +59,7 @@ fn unfenced(raw: &str) -> &str {
 }
 
 fn checked(raw: &str) -> R<String> {
-    let bad = |why: String| FmError::Internal { message: format!("Claude Code answered with no usable dictionary: {why}") };
+    let bad = |why: String| FmError::Internal { message: format!("The AI answered with no usable dictionary: {why}") };
     let text = unfenced(raw);
     if text.is_empty() {
         return Err(bad("the answer was empty".to_string()));
@@ -77,8 +78,9 @@ fn checked(raw: &str) -> R<String> {
     Ok(format!("{text}\n"))
 }
 
-// Blocks for as long as Claude Code works, up to its timeout; callers run it off the UI thread and without the storage lock.
+// Blocks for as long as the AI client works, up to its timeout; callers run it off the UI thread and without the storage lock.
 pub fn build(dir: &Path, work: &Path, title: &str, current: &str) -> R<String> {
+    let (client, cli) = runner::choose()?;
     let names = file_names(dir)?;
     if names.len() < 2 {
         return Err(FmError::Internal { message: format!("{title} needs at least two files to find the words they share") });
@@ -91,5 +93,5 @@ pub fn build(dir: &Path, work: &Path, title: &str, current: &str) -> R<String> {
     fs::create_dir_all(work).map_err(|e| io_err("create the dictionary build folder", work, &e))?;
     let path = work.join(SCAN_FILE);
     write_atomic(&path, listing.as_bytes())?;
-    checked(&agent::ask(work, agent::prompt(title, current, &listing, &path))?)
+    checked(&agent::ask(client, &cli, work, agent::prompt(title, current, &listing, &path))?)
 }

@@ -1,21 +1,20 @@
-// Runs Claude Code headless, so the build uses the user's own sign-in instead of an API key the app would have to keep.
+// Runs the connected AI client headless, so the build uses the user's own sign-in instead of an API key the app would have to keep.
+use std::fs;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
+use super::runner::{Runner, ANSWER_FILE, PROMPT_FILE};
 use crate::domain::error::R;
-use crate::services::ai_clients::{claude_cli, internal};
+use crate::infra::fs_safe::write_atomic;
+use crate::services::ai_clients::internal;
 
 const TIMEOUT: Duration = Duration::from_secs(300);
 const POLL: Duration = Duration::from_millis(250);
 const DOCS: &str = "https://ant.mikeworld.dev/en/advanced/dictionaries/";
 const GUIDE: &str = include_str!("../../mcp/guide/dictionary.md");
-// The prompt goes through stdin: a long text with quotes and line breaks cannot pass as an argument of the `claude.cmd` shim.
-const ASK: &str = "Follow the instructions given on standard input.";
-// No MCP servers and no shell or edits: the file names it reads are the user's data and must not be able to steer it into the storage.
-const ARGS: [&str; 13] = ["-p", ASK, "--output-format", "text", "--strict-mcp-config", "--allowedTools", "WebFetch(domain:ant.mikeworld.dev)", "Read", "--disallowedTools", "Bash", "Edit", "Write", "NotebookEdit"];
 
 pub(super) fn prompt(title: &str, current: &str, scan: &str, scan_path: &Path) -> String {
     format!(
@@ -33,59 +32,90 @@ pub(super) fn prompt(title: &str, current: &str, scan: &str, scan_path: &Path) -
     )
 }
 
-fn drain(pipe: Option<impl Read + Send + 'static>) -> JoinHandle<String> {
+fn drain(pipe: Option<impl Read + Send + 'static>, name: &'static str) -> JoinHandle<String> {
     thread::spawn(move || {
         let mut bytes = Vec::new();
         if let Some(mut pipe) = pipe {
             if let Err(e) = pipe.read_to_end(&mut bytes) {
-                eprintln!("Could not read the Claude Code output: {e}");
+                eprintln!("Could not read the {name} output: {e}");
             }
         }
         String::from_utf8_lossy(&bytes).into_owned()
     })
 }
 
-fn failure(detail: &str) -> String {
-    let lower = detail.to_lowercase();
-    if ["login", "log in", "api key", "authenticat", "not logged"].iter().any(|w| lower.contains(w)) {
-        return format!("Claude Code is not signed in; run `claude` once and log in ({detail})");
+fn remove(file: &Path) {
+    if let Err(e) = fs::remove_file(file) {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            eprintln!("Could not remove \"{}\": {e}", file.display());
+        }
     }
-    format!("Claude Code could not build the dictionary: {detail}")
 }
 
-// Run in `cwd`, the temp folder holding the scan, so Claude Code reads no project of the user's and its Read stays beside the scan.
-pub(super) fn ask(cwd: &Path, prompt: String) -> R<String> {
-    let cli = claude_cli()?;
-    let mut cmd = Command::new(&cli);
-    cmd.args(ARGS).current_dir(cwd).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+// Run in `cwd`, the temp folder holding the scan, so the client reads no project of the user's and its Read stays beside the scan.
+pub(super) fn ask(runner: Runner, cli: &Path, cwd: &Path, prompt: String) -> R<String> {
+    let (answer, prompt_file) = (cwd.join(ANSWER_FILE), cwd.join(PROMPT_FILE));
+    remove(&answer);
+    if runner.prompt_in_file() {
+        write_atomic(&prompt_file, prompt.as_bytes())?;
+    }
+    let result = run(runner, cli, cwd, &answer, prompt);
+    if runner.prompt_in_file() {
+        remove(&prompt_file);
+    }
+    let text = match result {
+        Ok(stdout) if runner.answer_in_file() => match fs::read_to_string(&answer) {
+            Ok(last) if !last.trim().is_empty() => Ok(last),
+            Ok(_) => Ok(stdout),
+            Err(e) => {
+                if e.kind() != std::io::ErrorKind::NotFound {
+                    eprintln!("Could not read the {} answer file: {e}", runner.name());
+                }
+                Ok(stdout)
+            }
+        },
+        other => other,
+    };
+    remove(&answer);
+    text
+}
+
+fn run(runner: Runner, cli: &Path, cwd: &Path, answer: &Path, prompt: String) -> R<String> {
+    let name = runner.name();
+    let mut cmd = Command::new(cli);
+    cmd.args(runner.args(answer)).envs(runner.env().iter().copied()).current_dir(cwd).stdout(Stdio::piped()).stderr(Stdio::piped());
+    cmd.stdin(if runner.prompt_in_file() { Stdio::null() } else { Stdio::piped() });
     #[cfg(windows)]
     std::os::windows::process::CommandExt::creation_flags(&mut cmd, crate::platform::windows::powershell::CREATE_NO_WINDOW);
-    let mut child = cmd.spawn().map_err(|e| internal(format!("Could not run the Claude Code CLI: {e}")))?;
-    let mut stdin = child.stdin.take().ok_or_else(|| internal("Could not write to the Claude Code CLI"))?;
-    let writer = thread::spawn(move || stdin.write_all(prompt.as_bytes()));
-    let (out, err) = (drain(child.stdout.take()), drain(child.stderr.take()));
+    let mut child = cmd.spawn().map_err(|e| internal(format!("Could not run the {name} CLI: {e}")))?;
+    let writer = match child.stdin.take() {
+        Some(mut stdin) => Some(thread::spawn(move || stdin.write_all(prompt.as_bytes()))),
+        None if runner.prompt_in_file() => None,
+        None => return Err(internal(format!("Could not write to the {name} CLI"))),
+    };
+    let (out, err) = (drain(child.stdout.take(), name), drain(child.stderr.take(), name));
     let deadline = Instant::now() + TIMEOUT;
     let status = loop {
-        if let Some(status) = child.try_wait().map_err(|e| internal(format!("Could not wait for the Claude Code CLI: {e}")))? {
+        if let Some(status) = child.try_wait().map_err(|e| internal(format!("Could not wait for the {name} CLI: {e}")))? {
             break status;
         }
         if Instant::now() >= deadline {
             if let Err(e) = child.kill().and_then(|_| child.wait()) {
-                eprintln!("Could not stop the Claude Code CLI: {e}");
+                eprintln!("Could not stop the {name} CLI: {e}");
             }
-            return Err(internal(format!("Claude Code did not answer within {} minutes, so the dictionary was left as it was", TIMEOUT.as_secs() / 60)));
+            return Err(internal(format!("{name} did not answer within {} minutes, so the dictionary was left as it was", TIMEOUT.as_secs() / 60)));
         }
         thread::sleep(POLL);
     };
-    match writer.join() {
-        Ok(Err(e)) => eprintln!("Could not send the prompt to the Claude Code CLI: {e}"),
-        Err(_) => eprintln!("The prompt writer for the Claude Code CLI panicked"),
-        Ok(Ok(())) => {}
+    match writer.map(|w| w.join()) {
+        Some(Ok(Err(e))) => eprintln!("Could not send the prompt to the {name} CLI: {e}"),
+        Some(Err(_)) => eprintln!("The prompt writer for the {name} CLI panicked"),
+        _ => {}
     }
     let (stdout, stderr) = (out.join().unwrap_or_default(), err.join().unwrap_or_default());
     if status.success() {
         return Ok(stdout);
     }
     let detail = if stderr.trim().is_empty() { stdout.trim() } else { stderr.trim() };
-    Err(internal(failure(if detail.is_empty() { "it stopped without a message" } else { detail })))
+    Err(internal(runner.failure(if detail.is_empty() { "it stopped without a message" } else { detail })))
 }

@@ -75,7 +75,7 @@ pub async fn save_dictionary(app: AppHandle, folder: Vec<String>, text: String) 
     .await
 }
 
-// Claude Code may work for minutes, so no storage lock is held meanwhile; the editor saves the answer as it saves typing.
+// The AI client may work for minutes, so no storage lock is held meanwhile; the editor saves the answer as it saves typing.
 #[tauri::command]
 pub async fn build_dictionary_ai(app: AppHandle, folder: Vec<String>, text: String) -> R<String> {
     let work = dictionary_ai::work_dir(&folder, super::downloads::below_downloads(&folder).is_some());

@@ -110,7 +110,7 @@ export async function mountDictionaryEditor(folder: string[]): Promise<void> {
     gutter.scrollTop = text.scrollTop;
     frame();
   });
-  // Claude Code takes minutes, so the text stays locked until it answers; the answer goes in as typing does, saved and undone with Ctrl+Z.
+  // The AI client takes minutes, so the text stays locked until it answers; the answer goes in as typing does, saved and undone with Ctrl+Z.
   const runBuild = async (): Promise<void> => {
     if (timer !== undefined) {
       window.clearTimeout(timer);
@@ -119,7 +119,7 @@ export async function mountDictionaryEditor(folder: string[]): Promise<void> {
     await saving;
     text.disabled = build.disabled = true;
     build.setAttribute("aria-busy", "true");
-    setStatus("info", "Building the dictionary with Claude Code, this can take a few minutes…");
+    setStatus("info", "Building the dictionary with AI, this can take a few minutes…");
     try {
       const built = await buildDictionaryAi(folder, text.value);
       text.disabled = false;

@@ -26,7 +26,7 @@ const TOOLS: [(&str, &str, &str, Schemas); 5] = [
     ("set_review_automation", "Set automatic run", "Makes one automation run on its own on every file that lands in a folder that runs automations.", set_review_automation),
     ("plan_automations", "Plan automations", "Dry run: the new name, project and destination each file of a folder would get; changes nothing. Show it to the user before apply_automations.", plan_automations),
     ("apply_automations", "Run automations", "Renames and moves files as the rows of a plan_automations dry run say; the user confirms in the window.", apply_automations),
-    ("build_dictionary", "Build dictionary", "Has Claude Code write a folder's `.ant/dictionary.md` from the words its review folder's file names share, keeping the entries already there, and replaces the file whole; the user confirms in the window. Takes minutes and needs Claude Code installed and signed in. Check the result with get_dictionary and plan_automations.", build_dictionary),
+    ("build_dictionary", "Build dictionary", "Has the connected AI client (Claude Code, Codex or OpenCode) write a folder's `.ant/dictionary.md` from the words its review folder's file names share, keeping the entries already there, and replaces the file whole; the user confirms in the window. Takes minutes and needs one of them connected and signed in. Check the result with get_dictionary and plan_automations.", build_dictionary),
 ];
 
 pub(super) fn has(name: &str) -> bool {
@@ -234,7 +234,7 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
             server.storage().and_then(|storage| {
                 let root = storage.root()?;
                 server.allow(&root, "Build dictionary", true, vec![a.folder.join("/")])?;
-                // Built before the lock is taken, since Claude Code may work for minutes.
+                // Built before the lock is taken, since the AI client may work for minutes.
                 let text = build(&root, &a.folder)?;
                 let _guard = storage.guard();
                 retrying(server.retry, || save(&root, &a.folder, &text))?;
@@ -244,7 +244,7 @@ pub(super) fn call(server: &Server, name: &str, arguments: &Value) -> Result<R<V
                         warnings.push(format!("The open Folder Manager may show this change only after its next refresh: {e}"));
                     }
                 }
-                Ok(json!({ "changed": format!("Built the dictionary of {:?} with Claude Code", a.folder.join("/")), "warnings": warnings }))
+                Ok(json!({ "changed": format!("Built the dictionary of {:?} with AI", a.folder.join("/")), "warnings": warnings }))
             })
         }
         _ => return Err((INVALID_PARAMS, format!("Unknown tool: {name}"))),
