@@ -37,6 +37,8 @@ interface State {
   // A root entry stood on but not opened, so the side panel can describe it.
   marked: VirtualId | null;
   virtualKeys: string[];
+  // The main category the board is narrowed to, with the Storage it was chosen in.
+  boardCategory: { root: string; name: string } | null;
   // Each native folder read so far, by its root marker (DOWNLOADS_ROOT and the rest); their paths live outside `tree`.
   system: Record<string, TreeNode[]>;
   // The native folders besides Downloads that this machine has.
@@ -51,6 +53,20 @@ export type VirtualId = "favorites" | "downloads" | "review" | "board" | "docume
 const SYSTEM_VIRTUALS: Partial<Record<VirtualId, string>> = { downloads: DOWNLOADS_ROOT, documents: SYSTEM_ROOTS[0], pictures: SYSTEM_ROOTS[1], music: SYSTEM_ROOTS[2], videos: SYSTEM_ROOTS[3], desktop: SYSTEM_ROOTS[4] };
 
 export const virtualRoot = (id: VirtualId | null): string | null => (id === null ? null : (SYSTEM_VIRTUALS[id] ?? null));
+
+const BOARD_CATEGORY_PREF = "fm.board-category";
+
+function readBoardCategory(): { root: string; name: string } | null {
+  const raw = readPref(BOARD_CATEGORY_PREF);
+  if (raw === null) return null;
+  try {
+    const { root, name } = JSON.parse(raw) as { root?: unknown; name?: unknown };
+    return typeof root === "string" && typeof name === "string" ? { root, name } : null;
+  } catch (e) {
+    console.warn("Saved board category is unreadable", e);
+    return null;
+  }
+}
 
 const START_VIEWS: StartView[] = ["columns", "grid", "list", "details", "cards", "graph"];
 
@@ -144,6 +160,7 @@ export const state: State = {
   virtual: null,
   marked: null,
   virtualKeys: [],
+  boardCategory: readBoardCategory(),
   system: {},
   systemFound: [],
   via: null,
@@ -310,6 +327,19 @@ export function lastSelection(): SavedPlace | null {
   const saved = readSaved();
   if (!saved || !state.tree || saved.root !== state.tree.root) return null;
   return { key: saved.key ?? null, shown: saved.shown, virtual: saved.virtual ?? null, via: saved.via ?? null };
+}
+
+// A saved category that the open Storage no longer has filters nothing.
+export function boardCategory(): string | null {
+  const saved = state.boardCategory;
+  return saved !== null && saved.root === state.tree?.root && state.tree.nodes.some((n) => n.name === saved.name && !n.file) ? saved.name : null;
+}
+
+export function setBoardCategory(name: string | null): void {
+  if (!state.tree) return;
+  state.boardCategory = name === null ? null : { root: state.tree.root, name };
+  savePref(BOARD_CATEGORY_PREF, JSON.stringify(state.boardCategory));
+  notify();
 }
 
 export const sortOf = (columnKey: string): ColumnSort => state.sorts[columnKey] ?? DEFAULT_SORT;

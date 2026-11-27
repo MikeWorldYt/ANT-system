@@ -1,6 +1,7 @@
 // Typed-path editing for the navigation bar: turns the breadcrumb into an input and goes to the place it names.
 import { listChildren, listFavorites, listReview } from "../../../services/ipc/api";
-import { findNode, isVirtualShown, keyOf, state, virtualRoot, type VirtualId } from "../../../services/store/state";
+import { boardCategory, findNode, isVirtualShown, keyOf, setBoardCategory, state, virtualRoot, type VirtualId } from "../../../services/store/state";
+import { isMainCategory, nameWithoutIdentifier } from "../../../services/store/node-info";
 import { loadPath } from "../../../services/store/virtual";
 import type { Place } from "../../../services/store/place";
 import { clearStatus, setStatus, reportError } from "./status-line";
@@ -35,8 +36,14 @@ async function resolveVirtual(id: VirtualId, rest: string[]): Promise<Place | nu
   // A typed path still reaches a native folder hidden from the lists, as long as the machine has it.
   const native = id !== "downloads" ? virtualRoot(id) : null;
   if (native !== null ? !state.systemFound.includes(native) : !isVirtualShown(id)) return null;
+  if (id === "board") {
+    // `/board/<category>` narrows the board to a main category, typed with or without its id.
+    const category = name === undefined ? null : (state.tree?.nodes ?? []).find((n) => isMainCategory(n) && (same(n.name, name) || same(nameWithoutIdentifier(n), name)));
+    if (category === undefined || below.length > 0) return null;
+    setBoardCategory(category?.name ?? null);
+    return { virtual: id, via: null, key: null };
+  }
   if (name === undefined) return { virtual: id, via: null, key: null };
-  if (id === "board") return null;
   const system = virtualRoot(id);
   if (system !== null) {
     const top = await listChildren([system]);
@@ -68,6 +75,8 @@ async function resolveTyped(text: string): Promise<Place | null | undefined> {
 function currentPath(root: string): string {
   const parts = state.selectedKey?.split("/") ?? [];
   if (state.virtual === null) return [root.replace(/[\\/]+$/, ""), ...parts].join("\\");
+  const category = state.virtual === "board" ? findNode([boardCategory() ?? ""]) : null;
+  if (category) return ["", "BOARD", nameWithoutIdentifier(category)].join("\\");
   const below = state.via === null ? [] : parts.slice(state.via.split("/").length - 1);
   return ["", state.virtual.toUpperCase(), ...below].join("\\");
 }

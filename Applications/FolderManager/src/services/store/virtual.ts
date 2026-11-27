@@ -2,7 +2,7 @@
 import { listChildren, listFavorites, listReview, listWorknodes } from "../ipc/api";
 import { arrangeReview } from "./review-list";
 import { sortedForColumns } from "./sort";
-import { findNode, isVirtualShown, keyOf, sortOf, state, virtualRoot, type VirtualId } from "./state";
+import { boardCategory, findNode, isVirtualShown, keyOf, sortOf, state, virtualRoot, type VirtualId } from "./state";
 import type { TreeNode } from "../ipc/types";
 
 // Rereading keeps what was already loaded below a folder that is still there, so an open path is not cut.
@@ -50,7 +50,13 @@ function arrangeList(id: VirtualId, keys: string[]): TreeNode[] {
   return root !== null ? sortedForColumns(nodes, sortOf(root), state.settings.pinFavorites) : nodes;
 }
 
-export const virtualNodes = (): TreeNode[] => (state.virtual === null ? [] : arrangeList(state.virtual, state.virtualKeys));
+// The board narrows to one main category when the breadcrumb picks it.
+function narrowed(nodes: TreeNode[]): TreeNode[] {
+  const category = state.virtual === "board" ? boardCategory() : null;
+  return category === null ? nodes : nodes.filter((n) => n.relParts[0] === category);
+}
+
+export const virtualNodes = (): TreeNode[] => (state.virtual === null ? [] : narrowed(arrangeList(state.virtual, state.virtualKeys)));
 
 // Entries unfolded in the navigation pane with the folders each lists, null while loading; apart from the entry open in the views.
 const unfolded = new Map<VirtualId, string[] | null>();

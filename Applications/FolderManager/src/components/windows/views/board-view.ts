@@ -23,7 +23,8 @@ export function createBoardView(host: HTMLElement, editDetails: () => void): { e
   const element = el("section", { class: "board", "aria-label": "Board" }, columns);
   element.hidden = true;
   let lists: BoardLists = boardLists([]);
-  const collapsed = new Set<BoardColumn>();
+  // Finished work piles up, so Done starts folded out of the way.
+  const collapsed = new Set<BoardColumn>(["done"]);
   // A column without a sort keeps the order the cards were dragged into.
   const sorts = new Map<BoardColumn, ColumnSort>();
   let shown = false;

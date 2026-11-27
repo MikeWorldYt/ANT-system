@@ -4,7 +4,8 @@ import { guiIcon } from "../../atoms/gui-icons";
 import { iconButton } from "../../atoms/icon-button";
 import { createPathInput, rootName } from "./path-input";
 import { currentPlace, folderOf, samePlace, type Place } from "../../../services/store/place";
-import { findNode, keyOf, select, selectedNode, state } from "../../../services/store/state";
+import { boardCategory, findNode, keyOf, select, selectedNode, setBoardCategory, state } from "../../../services/store/state";
+import { isMainCategory } from "../../../services/store/node-info";
 import { attachMenu } from "../menus/anchored-menu";
 import { folderIcon } from "../../atoms/icons";
 import { goToPlace, openVirtual } from "../../../hooks/virtual-nav";
@@ -167,6 +168,17 @@ export function createNavigator(shownFolder: () => TreeNode | null | undefined):
     return [head, ...parts.slice(from - 1).map((_, i) => crumb(from + i))];
   }
 
+  // The board's separator lists the main categories; picking one narrows the board and shows after BOARD.
+  function categorySep(): HTMLElement {
+    const b = el("button", { type: "button", class: "crumb-sep crumb-menu", "aria-label": "Board categories" }, guiIcon("separator"));
+    const categories = () => (state.tree?.nodes ?? []).filter(isMainCategory);
+    attachMenu(b, "Board categories", () => [
+      { label: "All categories", checked: boardCategory() === null, run: () => setBoardCategory(null) },
+      ...categories().map((n, i) => ({ label: n.name, checked: n.name === boardCategory(), divider: i === 0, lead: () => folderIcon(n), run: () => setBoardCategory(n.name) })),
+    ], false, true);
+    return b;
+  }
+
   function crumbs(): (Node | string)[] {
     const out: (Node | string)[] = [];
     // Steps inside the levels the database indexes are marked, so where its scope ends shows.
@@ -186,15 +198,23 @@ export function createNavigator(shownFolder: () => TreeNode | null | undefined):
     rootBtn.addEventListener("click", () => select(null));
     out.push(rootBtn);
     const steps = trail();
+    const onBoard = state.virtual === "board" && steps.length === 1;
+    const category = onBoard ? boardCategory() : null;
     if (steps.length > 0) out.push(steps[0]?.parts ? sep(1, [], steps[0].parts.at(-1)) : sep());
     steps.forEach((s, i) => {
-      const leaf = i === steps.length - 1;
+      const leaf = i === steps.length - 1 && category === null;
       const b = el("button", { type: "button", class: leaf ? "crumb crumb-btn current" : "crumb crumb-btn" }, s.label);
       if (leaf) b.setAttribute("aria-current", "location");
-      b.addEventListener("click", s.go);
+      b.addEventListener("click", onBoard && category !== null ? () => setBoardCategory(null) : s.go);
       out.push(b);
-      if (!leaf) out.push(sep(steps[i + 1]?.depth, s.parts, steps[i + 1]?.parts?.at(-1)));
+      if (!leaf && !onBoard) out.push(sep(steps[i + 1]?.depth, s.parts, steps[i + 1]?.parts?.at(-1)));
     });
+    if (onBoard) {
+      out.push(categorySep());
+      if (category !== null) {
+        out.push(el("button", { type: "button", class: "crumb crumb-btn current", "aria-current": "location" }, category));
+      }
+    }
     return out;
   }
 
