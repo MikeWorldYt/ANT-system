@@ -165,5 +165,6 @@ void init().then((ready) => {
         toolbar.render();
       }
     });
-  if (state.settings.autoUpdate) void checkForUpdates();
+  // Every launch looks for a newer version; the setting only decides whether it installs unasked.
+  void checkForUpdates();
 });

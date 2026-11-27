@@ -46,14 +46,13 @@ export const aboutPage: SettingsPage = {
     },
     {
       section: "Updates",
-      title: "Check for updates automatically",
-      control: () => switchControl("Check for updates automatically", state.settings.autoUpdate, (on) => changeSetting("autoUpdate", on)),
-    },
-    {
-      section: "Updates",
-      title: "Install updates automatically",
-      description: "At launch, a newer version is installed without asking.",
-      control: () => switchControl("Install updates automatically", state.settings.installUpdates, (on) => changeSetting("installUpdates", on)),
+      title: "Check and install updates automatically",
+      description: "At launch, a newer stable version is installed without asking. Betas always ask first.",
+      // One switch drives both settings, since checking without installing only nags at every launch.
+      control: () =>
+        switchControl("Check and install updates automatically", state.settings.autoUpdate && state.settings.installUpdates, (on) =>
+          changeSetting("autoUpdate", on).then(() => changeSetting("installUpdates", on)),
+        ),
     },
     {
       section: "Updates",
