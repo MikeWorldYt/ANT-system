@@ -1,6 +1,7 @@
 // Grid, List, Details and Cards views: the contents of one folder as large icons, plain rows, rows with columns or icons with details, entered with double click or Enter.
 import { folderContextMenu, isMenuKey, nodeContextMenu, nodeMenuFromKey } from "../../organisms/menus/context-menu";
 import { el } from "../../dom";
+import { guiIcon } from "../../atoms/gui-icons";
 import { folderIcon } from "../../atoms/icons";
 import { fileThumb } from "../../atoms/thumb";
 import { statusMark } from "../../atoms/status-mark";
@@ -41,6 +42,27 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
   const loading = new Set<string>();
   // Key of the folder being shown; null is the Storage root.
   let folder: string | null = null;
+  let shownFolder: string | null = null;
+  let revealed: string | null = null;
+  const jump = el("button", { type: "button", class: "jump-selection", "aria-label": "Back to the selected item", title: "Back to the selected item", hidden: "" });
+  jump.addEventListener("click", () => {
+    const sel = root.querySelector<HTMLElement>(".grid-item.selected");
+    sel?.scrollIntoView({ block: "center" });
+    sel?.focus({ preventScroll: true });
+  });
+  // The arrow appears only while the selection is scrolled out of sight, and points the way back to it.
+  function updateJump(): void {
+    const sel = root.querySelector<HTMLElement>(".grid-item.selected");
+    const box = root.getBoundingClientRect();
+    const r = sel?.getBoundingClientRect();
+    const above = r !== undefined && r.bottom < box.top;
+    const below = r !== undefined && r.top > box.bottom;
+    jump.hidden = !(above || below);
+    jump.classList.toggle("down", below);
+    // Fixed to the window, so it is placed at the list's bottom-right corner whatever box holds the list.
+    jump.style.left = `${box.right - 54}px`;
+    jump.style.top = `${box.bottom - 54}px`;
+  }
 
   // Selecting inside the folder keeps it; any other selection (breadcrumb, back, search) moves the grid there.
   function syncFolder(): void {
@@ -223,7 +245,9 @@ ${item.title}`;
     mount(host) {
       root.addEventListener("keydown", onKey);
       root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, folderNode(), root));
-      host.append(root);
+      root.addEventListener("scroll", updateJump, { passive: true });
+      jump.append(guiIcon("up"));
+      host.append(root, jump);
     },
     render() {
       syncFolder();
@@ -256,10 +280,19 @@ ${item.title}`;
         }
       }
       const creator = !listing && isTemplatesHome(open) ? [newTemplateItem(open, "grid-item", "option")] : [];
+      // Rebuilding empties the list for a moment, which would drop the scroll back to the top.
+      const place = `${state.virtual}|${folder}`;
+      const keepScroll = shownFolder === place ? root.scrollTop : 0;
+      shownFolder = place;
       root.replaceChildren(...header, ...creator, ...placed, ...(legend && creator.length === 0 ? [el("p", { class: "grid-legend" }, legend)] : []));
       built = manageSnapshot();
+      root.scrollTop = keepScroll;
       showMark();
-      root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
+      // Only a new selection is brought into view; any other render leaves the scroll where the user put it.
+      const picked = `${place}|${state.selectedKey}`;
+      if (picked !== revealed) root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
+      revealed = picked;
+      updateJump();
       if (hadFocus) root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus({ preventScroll: true });
       loadChildren();
       if (columns) requestFolderSizes(nodes);
@@ -269,6 +302,7 @@ ${item.title}`;
     },
     destroy() {
       root.remove();
+      jump.remove();
     },
   };
 }

@@ -23,10 +23,9 @@ export function refocusSelection(force = false): boolean {
   return !focusLost();
 }
 
-// block "nearest" scrolls only when the item is off-screen, so a refocus never jumps the list.
+// A refocus never moves the list: the user may have scrolled away from the selection on purpose.
 export function focusItem(item: HTMLElement | null | undefined): void {
   item?.focus({ preventScroll: true });
-  item?.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 
 // Details re-renders replace their inputs, so the field is looked up again by id when it was removed.
