@@ -30,3 +30,16 @@ pub(crate) fn delete_node(
     let m = mutations::delete_node(root, rel, flags.0, flags.1, recycle)?;
     with_index(root, Ok(m), emit, create, rebuild)
 }
+
+pub(crate) fn remove_support(
+    root: &Path,
+    rel: &[String],
+    name: &str,
+    emit: Emit,
+    create: impl FnOnce(&[(PathBuf, PathBuf)]) -> Vec<String>,
+    rebuild: impl FnOnce(&Path, &Mapping) -> Vec<String>,
+    recycle: impl FnOnce(&Path) -> Result<(), String>,
+) -> R<Mutation> {
+    let m = mutations::remove_support(root, rel, name, recycle)?;
+    with_index(root, Ok(m), emit, create, rebuild)
+}

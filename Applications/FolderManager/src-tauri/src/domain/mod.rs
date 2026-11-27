@@ -6,6 +6,7 @@ pub mod names;
 pub mod project_group;
 pub mod search;
 pub mod shortcut_names;
+pub mod support_rules;
 pub mod tree_types;
 pub mod validation;
 pub mod version;

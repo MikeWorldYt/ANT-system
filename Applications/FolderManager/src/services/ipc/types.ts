@@ -127,6 +127,14 @@ export interface ItemFacts {
   hidden: boolean;
 }
 
+// One support folder a node may hold: the one it has, or the name it would get; empty tells whether it can be quit.
+export interface SupportRow {
+  kind: string;
+  name: string;
+  exists: boolean;
+  empty: boolean;
+}
+
 export interface Picks {
   reduce: boolean;
   sort: boolean;

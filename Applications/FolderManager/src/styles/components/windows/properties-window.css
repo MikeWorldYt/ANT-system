@@ -1,6 +1,9 @@
-/* Properties window: one General tab with the name, then groups of label and value rows, and OK and Cancel at the bottom. */
+/* Properties window: a tab row (General, and Customise for support nodes), the tab's panel, and OK, Cancel and Apply at the bottom. */
 .prop-window { display: flex; flex-direction: column; height: 100vh; font-size: var(--fs-label); background: var(--tree-bg); color: var(--text); }
-.prop-tab { align-self: flex-start; margin: 8px 10px 0; padding: 4px 12px; font-size: var(--fs-label); font-weight: 600; border: 1px solid var(--border); border-bottom: 2px solid var(--accent); border-radius: var(--radius-xs) var(--radius-xs) 0 0; }
+.prop-tabs { display: flex; gap: 2px; margin: 8px 10px 0; }
+.prop-tab { padding: 4px 12px; font: inherit; font-weight: 600; color: var(--muted); background: none; border: 1px solid transparent; border-bottom: 2px solid transparent; border-radius: var(--radius-xs) var(--radius-xs) 0 0; cursor: pointer; }
+.prop-tab[aria-selected="true"] { color: var(--text); border-color: var(--border); border-bottom-color: var(--accent); }
+.prop-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .prop-body { flex: 1; min-height: 0; margin: 0 10px; padding: 4px 10px; overflow: auto; border: 1px solid var(--border); }
 .prop-head { display: flex; align-items: center; gap: 10px; padding: 4px 0 6px; }
 .prop-icon { flex: none; width: 24px; height: 24px; }
@@ -14,7 +17,17 @@
 .prop-flags { display: flex; gap: 16px; }
 .prop-flag { display: flex; align-items: center; gap: 6px; }
 .prop-flag input { margin: 0; accent-color: var(--accent); }
-.prop-error { margin: 8px 0 0; color: var(--delete-hover); font-size: var(--fs-label); }
+.prop-error { margin: 6px 10px 0; color: var(--delete-hover); font-size: var(--fs-label); }
 .prop-error:empty { display: none; }
 .prop-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 8px 10px; }
 .prop-button { min-width: 72px; padding-block: 4px; font-size: var(--fs-label); }
+.prop-support { min-width: 0; margin: 0; padding: 4px 0; border: 0; }
+.prop-support-title { padding: 0 0 6px; font-weight: 600; }
+.prop-sn-list { border: 1px solid var(--border); border-radius: var(--radius-xs); }
+.prop-sn { width: 100%; border-collapse: collapse; }
+.prop-sn th, .prop-sn td { padding: 4px 8px; text-align: left; font-weight: 400; vertical-align: middle; }
+.prop-sn thead th { color: var(--muted); border-bottom: 1px solid var(--border); }
+.prop-sn .prop-sn-col { width: 44px; text-align: center; }
+.prop-sn input { margin: 0; accent-color: var(--accent); }
+.prop-sn input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.prop-sn-kind { display: block; }

@@ -16,6 +16,7 @@ mod search;
 pub mod settings;
 mod share;
 mod storage;
+mod support;
 #[cfg(test)]
 mod tests;
 pub(crate) mod transfer;
@@ -48,6 +49,7 @@ pub use properties::*;
 pub use search::*;
 pub use share::*;
 pub use storage::*;
+pub use support::*;
 pub use transfer::*;
 pub use tree::*;
 pub use ui_bridge::*;

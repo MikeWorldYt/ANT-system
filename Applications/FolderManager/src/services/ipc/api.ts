@@ -31,6 +31,7 @@ import type {
   DictionaryIssue,
   ItemFacts,
   ItemTotals,
+  SupportRow,
 } from "./types";
 
 // The tutorial serves its in-memory Storage here, so while it runs no command reaches the backend.
@@ -195,6 +196,10 @@ export const openPropertiesWindow = (relParts: string[], icon: string) => call<v
 export const itemProperties = (relParts: string[]) => call<ItemFacts>("item_properties", { relParts });
 // Null when the window closed before the walk ended; partial totals arrive as events meanwhile.
 export const itemTotals = (relParts: string[]) => call<ItemTotals | null>("item_totals", { relParts });
+// Null when the item cannot hold support folders.
+export const supportNodes = (relParts: string[]) => call<SupportRow[] | null>("support_nodes", { relParts });
+export const addSupportNode = (relParts: string[], kind: string) => call<Mutation>("add_support_node", { relParts, kind });
+export const removeSupportNode = (relParts: string[], name: string) => call<Mutation>("remove_support_node", { relParts, name });
 export const readDictionary = (folder: string[]) => call<string>("read_dictionary", { folder });
 export const checkDictionary = (text: string) => call<DictionaryIssue[]>("check_dictionary", { text });
 export const saveDictionary = (folder: string[], text: string) => call<DictionaryIssue[]>("save_dictionary", { folder, text });
