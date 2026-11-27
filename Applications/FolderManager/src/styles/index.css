@@ -32,6 +32,7 @@
 @import "./components/windows/views/graph-view.css";
 @import "./components/windows/views/drag-drop.css";
 @import "./components/molecules/menu.css";
+@import "./components/organisms/bars/nav-storage.css";
 @import "./components/molecules/status-picker.css";
 @import "./extensions/panel.css";
 @import "./components/molecules/manage-row.css";
