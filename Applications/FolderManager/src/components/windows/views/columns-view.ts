@@ -292,6 +292,10 @@ export function createColumnsView(): ViewMode {
   return {
     id: "columns",
     label: "Columns",
+    // A selected folder whose column is not open is only selected, so the folder shown is the deepest column's.
+    openFolder() {
+      return buildColumns(openKey === state.selectedKey ? openKey : null).at(-1)?.parent ?? null;
+    },
     mount(host) {
       root.addEventListener("keydown", onKey);
       // Space beside the columns belongs to the deepest one.
