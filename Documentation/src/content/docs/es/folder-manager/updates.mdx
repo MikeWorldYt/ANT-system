@@ -4,7 +4,10 @@ description: Cómo se actualiza la app.
 ---
 import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
 
-Al abrir, la app compara su versión con la última publicada en el canal `folder-manager-latest` de GitHub Releases (un pequeño archivo `latest.json`), salvo que hayas desactivado **Check for updates automatically** en About. Una versión es más nueva según sus números, y un release gana a su propio `-beta`. El canal también ofrece prereleases. Si el canal no responde, no hay actualización. Si hay una más nueva, elige **Update**, **Remind me later** o **Skip version**. **Check for updates** en About hace la comprobación cuando quieras, incluso para una versión omitida.
+Al abrir, la app compara su versión con la última publicada en su canal de actualizaciones de GitHub Releases (un pequeño archivo `latest.json`), salvo que hayas desactivado **Check for updates automatically** en About. Una versión es más nueva según sus números, y un release gana a su propio `-beta`. Si el canal no responde, no hay actualización. **Check for updates** en About hace la comprobación cuando quieras, incluso para una versión omitida.
+
+- **Receive beta updates:** activado, la app sigue `folder-manager-latest`, que lleva todas las versiones, betas incluidas. Desactivado, sigue `folder-manager-stable`, que solo lleva versiones sin `-beta`. Empieza activado si instalaste una beta y desactivado si instalaste una versión estable. Si lo desactivas en una beta, te quedas en tu versión hasta que salga una estable más nueva.
+- **Install updates automatically:** activado por defecto. Cuando la comprobación al abrir encuentra una versión más nueva, la app la instala sin preguntar y se cierra para aplicarla. Desactivado, pregunta: **Update**, **Remind me later** o **Skip version**. Una comprobación desde About siempre pregunta.
 
 <ImagePlaceholder label="Captura: Actualizaciones" />
 

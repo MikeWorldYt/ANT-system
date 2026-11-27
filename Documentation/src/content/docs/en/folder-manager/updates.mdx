@@ -4,7 +4,10 @@ description: How the app updates.
 ---
 import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
 
-On open, the app compares its version with the latest one published on the `folder-manager-latest` channel of GitHub Releases (a small `latest.json` file), unless you turned off **Check for updates automatically** in About. A release counts as newer by its version numbers, and a release beats its own `-beta`. The channel also offers prereleases. If the channel does not answer, there is no update. If there is a newer one, choose **Update**, **Remind me later** or **Skip version**. **Check for updates** in About runs the check on demand, even for a skipped version.
+On open, the app compares its version with the latest one published on its update channel in GitHub Releases (a small `latest.json` file), unless you turned off **Check for updates automatically** in About. A release counts as newer by its version numbers, and a release beats its own `-beta`. If the channel does not answer, there is no update. **Check for updates** in About runs the check on demand, even for a skipped version.
+
+- **Receive beta updates:** on, the app follows `folder-manager-latest`, which carries every version, betas included. Off, it follows `folder-manager-stable`, which carries only versions without `-beta`. It starts on when you installed a beta and off when you installed a stable version. Turning it off on a beta keeps your version until a newer stable one comes out.
+- **Install updates automatically:** on by default. When the check at open finds a newer version, the app installs it without asking and closes to apply it. Off, it asks: **Update**, **Remind me later** or **Skip version**. A check you run from About always asks.
 
 <ImagePlaceholder label="Screenshot: Updates" />
 
