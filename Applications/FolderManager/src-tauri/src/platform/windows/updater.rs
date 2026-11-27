@@ -42,7 +42,8 @@ pub fn launch_updater(beta: bool) -> R<()> {
         discard(&dir);
         return Err(e);
     }
-    Command::new(&installer).current_dir(&dir).spawn().map(drop).map_err(|e| io_err("start the installer", &installer, &e))
+    // /UPDATE skips the NSIS "uninstall the previous version" page and removes it quietly; /P shows only the progress bar.
+    Command::new(&installer).args(["/P", "/UPDATE"]).current_dir(&dir).spawn().map(drop).map_err(|e| io_err("start the installer", &installer, &e))
 }
 
 // Extra defense: when the Releases API answers (it is rate limited), its digest must agree with latest.json.
