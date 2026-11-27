@@ -10,12 +10,13 @@ import { installContextMenu } from "../organisms/menus/context-menu";
 import { installDragOut } from "../../hooks/drag-out";
 import { installFolderMove } from "../../hooks/folder-move";
 import { installMarquee } from "../../hooks/marquee";
+import { refocusSelection } from "../../hooks/focus-return";
 import { trackPasteTarget } from "../../hooks/paste-target";
 import { bindPanes, focusedViews } from "../../hooks/split";
 import { bindTabs } from "../../hooks/tabs";
 import { createViewSwitcher, rememberView } from "../../hooks/view-switch";
 import { openFolder } from "../../hooks/path-actions";
-import { selectedNode } from "../../services/store/state";
+import { keyOf, selectedNode, state } from "../../services/store/state";
 import { openSettings } from "./settings";
 import { createBatchView } from "./views/batch-view";
 import { createBoardView } from "./views/board-view";
@@ -37,11 +38,18 @@ export function createMainWindow(app: HTMLElement) {
     installDragOut(pane);
     installFolderMove(pane);
     installMarquee(pane);
+    // A press on empty background leaves focus on the page; a frame later the clicks and any band have settled the selection.
+    pane.addEventListener("pointerup", () => requestAnimationFrame(() => refocusSelection()));
   }
   const viewPicker: ViewPicker = {
     modes: views.modes,
     active: () => views.current().id,
+    folder: () => views.current().openFolder?.(),
     onSelect: (id) => {
+      // The next view keeps the folder on screen instead of entering the selected one.
+      const shown = views.current().openFolder?.();
+      state.showing = shown === undefined ? undefined : shown && keyOf(shown.relParts);
+      state.entering = null;
       views.switchTo(id);
       rememberView(id);
       toolbar.render();
@@ -50,7 +58,7 @@ export function createMainWindow(app: HTMLElement) {
     },
   };
   const toolbar = createToolbar(viewPicker);
-  const navigator = createNavigator();
+  const navigator = createNavigator(() => views.current().openFolder?.());
   bindPanes({ host, views: leftViews }, { host: rightHost, views: rightViews }, navigator);
   bindTabs(navigator, views);
   const tabBar = createTabBar();
@@ -66,7 +74,7 @@ export function createMainWindow(app: HTMLElement) {
   const board = createBoardView(panes, panel.editDetails);
   const batchViews = [createBatchView(panes, false), createBatchView(panes, true)];
   const batch = { render: () => batchViews.forEach((b) => b.render()) };
-  const main = el("main", { class: "app-main" }, nav.element, panes, board.element, ...batchViews.map((b) => b.element), ...panel.elements);
+  const main = el("main", { class: "app-main" }, nav.element, nav.handle, panes, board.element, ...batchViews.map((b) => b.element), ...panel.elements);
   app.append(tabBar.element, navigator.element, main, createStatusLine());
   installContextMenu(panes, () => views.current().focus(), viewPicker);
   return { views, toolbar, navigator, tabBar, search, panel, board, batch, nav, openSelected };

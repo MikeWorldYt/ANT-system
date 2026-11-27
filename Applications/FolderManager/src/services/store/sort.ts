@@ -1,6 +1,7 @@
 // Pure list ordering shared by the store and the columns view.
 import { STATUSES } from "./node-info";
-import { inDownloads, type TreeNode } from "../ipc/types";
+import { folderSizeOf } from "./folder-size";
+import { inSystem, type TreeNode } from "../ipc/types";
 
 export type SortBy = "track" | "name" | "status" | "modified" | "created" | "size";
 export interface ColumnSort {
@@ -16,7 +17,7 @@ export function isTail(name: string): boolean {
 }
 
 // Downloads is not the storage, so its names follow no tail rule.
-export const isTailNode = (n: TreeNode): boolean => !inDownloads(n.relParts) && isTail(n.name);
+export const isTailNode = (n: TreeNode): boolean => !inSystem(n.relParts) && isTail(n.name);
 
 const statusRank = (n: TreeNode): number => STATUSES.findIndex(([v]) => v === n.status) + 1 || STATUSES.length + 1;
 
@@ -25,10 +26,10 @@ const sortValue: Record<SortBy, (n: TreeNode) => string | number> = {
   track: () => 0,
   name: (n) => (n.editableName || n.name).toLocaleLowerCase(),
   status: statusRank,
-  // Ghosts, links and folders have no size or stamp, so they sort as the smallest.
+  // Ghosts and links have no size or stamp, and a folder has one only once its total is known, so they sort as the smallest.
   modified: (n) => n.stamps.modified ?? -1,
   created: (n) => n.stamps.created ?? -1,
-  size: (n) => n.stamps.size ?? -1,
+  size: (n) => n.stamps.size ?? folderSizeOf(n.relParts.join("/")) ?? -1,
 };
 
 const isPortfolio = (n: TreeNode): boolean => n.nodeType?.base === "OUT";
@@ -47,7 +48,7 @@ export function foldersFirst(nodes: TreeNode[]): TreeNode[] {
   return [...nodes.filter((n) => !n.file), ...nodes.filter((n) => n.file)];
 }
 
-// Ties keep the incoming name order, and the tail folders close the list in either direction.
+// Ties keep the incoming name order, and the tail folders close the list in either direction, below the files too: they support the content, they are not part of it.
 export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort, pin: boolean): TreeNode[] {
   const head = nodes.filter((n) => !isTailNode(n));
   const key = sortValue[by];
@@ -56,7 +57,8 @@ export function sortedForColumns(nodes: TreeNode[], { by, dir }: ColumnSort, pin
     return typeof x === "string" && typeof y === "string" ? x.localeCompare(y, undefined, { numeric: true }) : x < y ? -1 : x > y ? 1 : 0;
   });
   if (dir === "desc") ordered.reverse();
-  return foldersFirst(favoritesFirst([...ordered, ...nodes.filter(isTailNode)], pin));
+  const listed = foldersFirst(favoritesFirst([...ordered, ...nodes.filter(isTailNode)], pin));
+  return [...listed.filter((n) => !isTailNode(n)), ...listed.filter(isTailNode)];
 }
 
 // Board cards come from many folders, so the track is read from each name instead of the backend's per-level order.

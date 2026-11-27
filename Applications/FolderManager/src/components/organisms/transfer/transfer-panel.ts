@@ -12,7 +12,7 @@ import type { TransferProgress } from "../../../services/ipc/types";
 const SAMPLE_MS = 1000;
 const ETA_SAMPLES = 5;
 // Said once the job ends, so it reads as finished rather than stuck at 100%.
-const DONE: Record<string, string> = { Copying: "Copied successfully", Deleting: "Sent to the Recycle Bin" };
+const DONE: Record<string, string> = { Copying: "Copied successfully", Moving: "Moved successfully", Deleting: "Sent to the Recycle Bin" };
 const UNITS = ["B", "KB", "MB", "GB", "TB"];
 
 function bytesText(n: number): string {

@@ -51,7 +51,7 @@ pub fn run() {
         .register_uri_scheme_protocol(services::preview::media::SCHEME, |ctx, request| {
             use tauri::Manager;
             let app = ctx.app_handle();
-            services::preview::media::response(app.state::<Storage>().root().ok().as_deref(), app.path().download_dir().ok().as_deref(), &request)
+            services::preview::media::response(app.state::<Storage>().root().ok().as_deref(), |marker| commands::base_of(app, marker).ok(), &request)
         })
         .setup(move |app| {
             use tauri::Manager;
@@ -91,17 +91,19 @@ pub fn run() {
                     }
                 },
             ));
-            match app.path().download_dir() {
+            // Only Downloads is watched: the other native folders are kept out of daily use, so they are read again on a refresh.
+            let marker = services::downloads::ROOT;
+            match commands::base_of(app.handle(), marker) {
                 Ok(dir) => {
                     let emitter = app.handle().clone();
-                    services::watch::watch_downloads(dir, move || {
+                    services::watch::watch_system_folder(dir, move || {
                         use tauri::Emitter;
-                        if let Err(e) = emitter.emit("fm://downloads-changed", ()) {
+                        if let Err(e) = emitter.emit("fm://downloads-changed", marker) {
                             eprintln!("Could not send fm://downloads-changed: {e}");
                         }
                     });
                 }
-                Err(e) => eprintln!("No Downloads folder to watch: {e}"),
+                Err(e) => eprintln!("No {marker} folder to watch: {e}"),
             }
             match app::ui_bridge::UiBridge::start(app.handle()) {
                 Ok(bridge) => {
@@ -133,6 +135,8 @@ pub fn run() {
             commands::add_node,
             commands::add_child,
             commands::move_node,
+            commands::reorder_plan,
+            commands::reorder_ids,
             commands::move_folder,
             commands::preview_invalid,
             commands::resolve_invalid,
@@ -142,6 +146,7 @@ pub fn run() {
             commands::set_node_details,
             commands::set_node_output,
             commands::set_outcome_default,
+            commands::create_template,
             commands::deliver_output,
             commands::restore_output,
             commands::set_node_hidden,
@@ -152,6 +157,7 @@ pub fn run() {
             commands::read_dictionary,
             commands::check_dictionary,
             commands::save_dictionary,
+            commands::build_dictionary_ai,
             commands::apply_automations,
             commands::list_hidden_choices,
             commands::set_favorite,
@@ -159,6 +165,8 @@ pub fn run() {
             commands::set_link_hidden,
             commands::file_image,
             commands::list_downloads,
+            commands::folder_sizes,
+            commands::system_folders,
             commands::open_download,
             commands::copy_downloads,
             commands::reveal_download,

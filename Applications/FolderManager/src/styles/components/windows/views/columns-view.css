@@ -5,15 +5,14 @@
 .col-sep { height: 1px; margin: 6px 8px; background: var(--border); }
 .top-link .name-text { color: var(--accent); }
 .column.review-list { width: calc(var(--panel-w) * 2); }
-.column-legend { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; white-space: nowrap; color: var(--muted); font-size: 9pt; }
+.column-legend { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; white-space: nowrap; color: var(--muted); font-size: var(--fs-label); }
 .col-item { padding: 3px 8px; }
 .col-item:focus-visible { outline-offset: -2px; }
 .col-item .name { flex: 1; }
-.col-item:hover { background: var(--input-bg); }
+.col-item:hover { background: var(--state-hover); }
 .col-item.on-path { background: var(--input-bg); }
-.col-item.selected { background: var(--highlight); }
+.col-item.selected { background: var(--highlight); box-shadow: inset 3px 0 0 var(--button); }
 .col-item.ghost { opacity: 0.7; }
 .col-item.ghost .name { color: var(--ghost-text); font-style: italic; }
-.col-item.locked .name { color: var(--muted); }
 /* Only the top third of the edge is yellow; the background stays put while the column scrolls. */
 .column.db-edge { border-right-color: transparent; background: linear-gradient(#e8b931 33.33%, var(--border) 33.33%) right / 1px 100% no-repeat border-box; }

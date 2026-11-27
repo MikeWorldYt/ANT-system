@@ -2,7 +2,7 @@
 use std::path::Path;
 
 use serde_yaml::Mapping;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use super::{off_thread, review_emitter, run_locked, run_unlocked};
 use crate::app::storage_session::Storage;
@@ -66,8 +66,8 @@ pub struct PdfPage {
 #[tauri::command]
 pub async fn pdf_page(app: AppHandle, rel_parts: Vec<String>, page: u32) -> R<Option<PdfPage>> {
     off_thread(move || {
-        let path = match super::downloads::below_downloads(&rel_parts) {
-            Some(rest) => crate::services::downloads::path_of(&super::downloads::base(&app)?, rest)?,
+        let path = match super::downloads::system_path(&app, &rel_parts) {
+            Some(path) => path?,
             None => resolve(&app.state::<Storage>().root()?, &rel_parts)?,
         };
         Ok(crate::services::preview::pdf_page(&path, page).map(|(count, url)| PdfPage { url, count }))
@@ -91,4 +91,33 @@ pub async fn file_image(app: AppHandle, rel_parts: Vec<String>, large: bool, pre
         crate::services::preview::file_image(&resolve(&root, &rel_parts)?, large)
     })
     .await?
+}
+
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct FolderSize {
+    rel_parts: Vec<String>,
+    size: u64,
+}
+
+// Each folder's total is emitted as soon as it is walked, so the rows fill in one by one while the call runs; a folder that cannot be resolved or read just never answers.
+#[tauri::command]
+pub async fn folder_sizes(app: AppHandle, targets: Vec<Vec<String>>) -> R<()> {
+    off_thread(move || {
+        for rel_parts in targets {
+            let path = match super::downloads::system_path(&app, &rel_parts) {
+                Some(path) => path,
+                None => app.state::<Storage>().root().and_then(|root| resolve(&root, &rel_parts)),
+            };
+            let Ok(path) = path else { continue };
+            if !path.is_dir() {
+                continue;
+            }
+            let size = crate::services::folder_size::total(&path);
+            if let Err(e) = app.emit("fm://folder-size", FolderSize { rel_parts, size }) {
+                eprintln!("Could not report a folder size: {e}");
+            }
+        }
+    })
+    .await
 }

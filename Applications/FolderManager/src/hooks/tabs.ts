@@ -30,6 +30,8 @@ interface Tab {
   split: Split | null;
   batch?: ParkedBatch | null;
   replay?: ParkedReplay | null;
+  // The folder the view shows, which differs from the selection; undefined when the view has no single folder.
+  shown?: string | null;
 }
 
 export interface TabView {
@@ -43,6 +45,10 @@ const PREF = "fm.tabs";
 let navigator: TabNavigator | null = null;
 let views: Pick<ViewSwitcher, "current" | "switchTo"> | null = null;
 const currentView = () => views?.current().id ?? "";
+const shownFolder = (): string | null | undefined => {
+  const open = views?.current().openFolder?.();
+  return open === undefined ? undefined : open && keyOf(open.relParts);
+};
 const newTab = (place: Place, expanded: Set<string>, view = currentView()): Tab => ({ place, expanded, trail: { history: [], at: -1 }, view, split: null });
 
 let tabs: Tab[] = [newTab(currentPlace(), state.expanded)];
@@ -57,21 +63,32 @@ export function bindTabs(nav: TabNavigator, switcher: Pick<ViewSwitcher, "curren
   views = switcher;
 }
 
-function readSaved(): { places: Place[]; views: string[]; splits: (SavedSplit | null)[]; active: number } {
+interface SavedTabs {
+  places: Place[];
+  views: string[];
+  splits: (SavedSplit | null)[];
+  shown: (string | null | undefined)[];
+  active: number;
+}
+
+const NO_TABS: SavedTabs = { places: [], views: [], splits: [], shown: [], active: 0 };
+
+function readSaved(): SavedTabs {
   const raw = readPref(`${PREF}:${root}`);
-  if (raw === null) return { places: [], views: [], splits: [], active: 0 };
+  if (raw === null) return NO_TABS;
   try {
-    const saved = JSON.parse(raw) as { places?: Place[]; views?: string[]; splits?: (SavedSplit | null)[]; active?: number };
-    return { places: Array.isArray(saved.places) ? saved.places : [], views: Array.isArray(saved.views) ? saved.views : [], splits: Array.isArray(saved.splits) ? saved.splits : [], active: saved.active ?? 0 };
+    const saved = JSON.parse(raw) as Partial<SavedTabs>;
+    const list = <T>(v: T[] | undefined): T[] => (Array.isArray(v) ? v : []);
+    return { places: list(saved.places), views: list(saved.views), splits: list(saved.splits), shown: list(saved.shown), active: saved.active ?? 0 };
   } catch (e) {
     console.warn("Saved tabs are unreadable", e);
-    return { places: [], views: [], splits: [], active: 0 };
+    return NO_TABS;
   }
 }
 
 // The current tab stays as it is, because the launch restores its place on its own.
 function loadTabs(): void {
-  const saved = state.settings.onLaunch === "continue" ? readSaved() : { places: [], views: [], splits: [], active: 0 };
+  const saved = state.settings.onLaunch === "continue" ? readSaved() : NO_TABS;
   const usable = saved.places.map((place, i) => ({ place, i })).filter(({ place }) => place.virtual === null || isVirtualShown(place.virtual));
   const current = tabs[active] ?? newTab(currentPlace(), state.expanded);
   const at = usable.findIndex(({ i }) => i === saved.active);
@@ -80,11 +97,12 @@ function loadTabs(): void {
   tabs.forEach((tab, i) => {
     const split = saved.splits[usable[i]?.i ?? -1];
     if (split) tab.split = parkedSplit(split);
+    if (tab !== current) tab.shown = saved.shown[usable[i]?.i ?? -1] ?? undefined;
   });
   restoreSplit(tabs[active]?.split ?? null);
 }
 
-const saveTabs = () => savePref(`${PREF}:${root}`, JSON.stringify({ places: tabs.map((t) => t.place), views: tabs.map((t) => t.view), splits: tabs.map((t) => savedSplit(t.split)), active }));
+const saveTabs = () => savePref(`${PREF}:${root}`, JSON.stringify({ places: tabs.map((t) => t.place), views: tabs.map((t) => t.view), splits: tabs.map((t) => savedSplit(t.split)), shown: tabs.map((t) => t.shown ?? null), active }));
 
 // Follows the store after every change, so the labels and what the next launch restores stay current.
 export function syncTabs(): void {
@@ -99,6 +117,8 @@ export function syncTabs(): void {
     tab.place = currentPlace();
     tab.view = currentView();
     tab.split = currentSplit();
+    tab.shown = shownFolder();
+    state.shownNow = tab.shown;
   }
   saveTabs();
 }
@@ -132,6 +152,9 @@ async function activate(index: number): Promise<void> {
   views?.switchTo(tab.view);
   unparkReplay(tab.replay ?? null);
   tab.replay = null;
+  // A tab from an older save has no shown folder, so it shows the one around its selection.
+  state.showing = tab.shown !== undefined ? tab.shown : tab.place.virtual === null && tab.place.key !== null ? (tab.place.key.split("/").slice(0, -1).join("/") || null) : undefined;
+  state.entering = null;
   try {
     await navigator.enter(tab.trail, tab.place);
   } catch (e) {
@@ -168,7 +191,7 @@ export function openTab(parts?: string[]): Promise<void> {
   return activate(tabs.length - 1);
 }
 
-export function duplicateTab(index: number): void {
+export function duplicateTab(index = active): void {
   if (moving) return;
   capture();
   const tab = tabs[index];
@@ -204,10 +227,14 @@ export function closeTab(index = active): void {
   void activate(previous ? tabs.indexOf(previous) : Math.min(index, tabs.length - 1));
 }
 
+// Tabs are narrow, so the id prefix ("01.", "PR.051_") gives way to the title; the tooltip keeps the full name.
+const withoutId = (name: string): string => name.replace(/^(?:[A-Za-z]{2,4}\.)?\d+[._]/, "") || name;
+
 // A tab names where it stands, not what is selected: the project around the selection, else the folder holding it.
-function labelOf(place: Place): string {
-  if (place.key !== null) {
-    const parts = place.key.split("/");
+function labelOf(place: Place, shown?: string | null): string {
+  const key = shown === undefined ? place.key : shown;
+  if (key !== null) {
+    const parts = key.split("/");
     const project = parts.findIndex((_, i) => {
       const n = findNode(parts.slice(0, i + 1));
       return n !== null && n !== undefined && isWorknode(n);
@@ -221,7 +248,7 @@ function labelOf(place: Place): string {
 }
 
 export const tabViews = (): TabView[] =>
-  tabs.map((t, i) => ({ label: labelOf(t.place), title: t.place.key ?? labelOf(t.place), active: i === active, split: t.split ? (t.split.right ? "right" : "left") : null }));
+  tabs.map((t, i) => ({ label: withoutId(labelOf(t.place, t.shown)), title: (t.shown === undefined ? t.place.key : t.shown) ?? labelOf(t.place, t.shown), active: i === active, split: t.split ? (t.split.right ? "right" : "left") : null }));
 
 export const tabStates = () =>
   tabs.map((t, i) => ({ label: labelOf(t.place), relParts: t.place.key?.split("/") ?? [], virtual: t.place.virtual, view: t.view, active: i === active }));

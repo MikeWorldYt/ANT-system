@@ -1,4 +1,4 @@
-// Lists the system Downloads folder as tree rows, so the root can browse a folder that lives outside the storage.
+// Lists the system Downloads folder and the other native folders as tree rows, so the root can browse folders that live outside the storage.
 use std::path::{Path, PathBuf};
 
 use crate::domain::error::R;
@@ -7,6 +7,17 @@ use crate::services::tree::tree_node::{stamps_of, NodeActions, TreeNode};
 
 // ':' cannot appear in a Windows file name, so no storage folder can share this first part.
 pub const ROOT: &str = "::Downloads";
+// The other native folders, in the order they close the root; they browse and change as Downloads does, without its automations.
+pub const SYSTEM_ROOTS: [&str; 5] = ["::Documents", "::Pictures", "::Music", "::Videos", "::Desktop"];
+
+pub fn is_root(first: &str) -> bool {
+    first == ROOT || SYSTEM_ROOTS.contains(&first)
+}
+
+// A path inside any native folder: its root marker, then the names below it.
+pub fn split_root(parts: &[String]) -> Option<(&str, &[String])> {
+    parts.split_first().filter(|(first, _)| is_root(first)).map(|(first, rest)| (first.as_str(), rest))
+}
 
 // The MCP process has no Tauri path resolver, so it asks the OS for the user's Downloads folder itself.
 #[cfg(windows)]
@@ -33,15 +44,15 @@ pub fn path_of(base: &Path, rel: &[String]) -> R<PathBuf> {
     resolve(base, rel)
 }
 
-pub fn list(base: &Path, rel: &[String]) -> R<Vec<TreeNode>> {
+pub fn list(base: &Path, root: &str, rel: &[String]) -> R<Vec<TreeNode>> {
     let dir = path_of(base, rel)?;
     let mut rows = Vec::new();
-    for entry in dir_entries(&dir, "read the Downloads folder")? {
+    for entry in dir_entries(&dir, "read the folder")? {
         let entry = entry?;
         let name = entry.file_name().to_string_lossy().into_owned();
-        let kind = entry.file_type().map_err(|e| io_err("read the Downloads folder", &dir, &e))?;
+        let kind = entry.file_type().map_err(|e| io_err("read the folder", &dir, &e))?;
         let concealed = is_concealed(&entry);
-        rows.push(TreeNode { concealed, ..node(rel, name, entry.path(), !kind.is_dir()) });
+        rows.push(TreeNode { concealed, ..node(root, rel, name, entry.path(), !kind.is_dir()) });
     }
     rows.sort_by(|a, b| a.file.cmp(&b.file).then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())));
     Ok(rows)
@@ -66,8 +77,8 @@ fn is_system_hidden(_entry: &std::fs::DirEntry) -> bool {
     false
 }
 
-fn node(parent: &[String], name: String, abs: PathBuf, file: bool) -> TreeNode {
-    let mut rel_parts = vec![ROOT.to_string()];
+fn node(root: &str, parent: &[String], name: String, abs: PathBuf, file: bool) -> TreeNode {
+    let mut rel_parts = vec![root.to_string()];
     rel_parts.extend_from_slice(parent);
     rel_parts.push(name.clone());
     TreeNode {
@@ -132,7 +143,7 @@ mod tests {
         dir.mkdir(".hidden-folder");
         std::fs::write(dir.path().join("a.txt"), "x").unwrap();
         std::fs::write(dir.path().join("desktop.ini"), "x").unwrap();
-        let all = list(dir.path(), &[]).unwrap();
+        let all = list(dir.path(), ROOT, &[]).unwrap();
         assert_eq!(all.iter().filter(|r| r.concealed).map(|r| r.name.as_str()).collect::<Vec<_>>(), [".hidden-folder", "desktop.ini"]);
         let rows: Vec<_> = all.into_iter().filter(|r| !r.concealed).collect();
         let names: Vec<_> = rows.iter().map(|r| r.name.as_str()).collect();
@@ -147,15 +158,27 @@ mod tests {
         let dir = TempDir::new("downloads-sub");
         dir.mkdir("pics");
         std::fs::write(dir.path().join("pics").join("cat.png"), "x").unwrap();
-        let rows = list(dir.path(), &rel(&["pics"])).unwrap();
+        let rows = list(dir.path(), ROOT, &rel(&["pics"])).unwrap();
         assert_eq!(rows[0].rel_parts, rel(&[ROOT, "pics", "cat.png"]));
     }
 
     #[test]
     fn paths_that_climb_out_or_name_separators_are_refused() {
         let dir = TempDir::new("downloads-escape");
-        assert!(list(dir.path(), &rel(&[".."])).is_err());
-        assert!(list(dir.path(), &rel(&["a/b"])).is_err());
-        assert!(list(dir.path(), &rel(&["C:"])).is_err());
+        assert!(list(dir.path(), ROOT, &rel(&[".."])).is_err());
+        assert!(list(dir.path(), ROOT, &rel(&["a/b"])).is_err());
+        assert!(list(dir.path(), ROOT, &rel(&["C:"])).is_err());
+    }
+
+    #[test]
+    fn every_native_folder_lists_under_its_own_root_and_only_markers_split() {
+        let dir = TempDir::new("system-folder-list");
+        std::fs::write(dir.path().join("song.mp3"), "x").unwrap();
+        let rows = list(dir.path(), "::Music", &[]).unwrap();
+        assert_eq!(rows[0].rel_parts, rel(&["::Music", "song.mp3"]));
+        let parts = rel(&["::Desktop", "a", "b.txt"]);
+        assert_eq!(split_root(&parts), Some(("::Desktop", &parts[1..])));
+        assert_eq!(split_root(&rel(&[ROOT])), Some((ROOT, &[][..])));
+        assert!(split_root(&rel(&["Desktop", "a"])).is_none() && split_root(&rel(&["::Other"])).is_none() && split_root(&[]).is_none());
     }
 }

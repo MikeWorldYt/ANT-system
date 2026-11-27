@@ -82,11 +82,7 @@ pub fn size_of(path: &Path) -> u64 {
     bytes
 }
 
-// A copy counts every file it carries; a deletion counts the items it was given, since each goes to the bin whole.
-pub fn begin(sources: &[PathBuf], to: &str) -> Job {
-    begin_as("Copying", sources, to, false)
-}
-
+// A copy or move counts every file it carries; a deletion counts the items it was given, since each goes to the bin whole.
 pub fn begin_as(action: &str, sources: &[PathBuf], to: &str, per_item: bool) -> Job {
     let (mut bytes_total, mut files_total) = (0, 0);
     for s in sources {
@@ -164,7 +160,7 @@ mod tests {
         let dir = TempDir::new("transfer");
         let a = dir.path().join("a.bin");
         fs::write(&a, vec![7u8; 3000]).unwrap();
-        let job = begin(&[a.clone()], "Dest");
+        let job = begin_as("Copying", &[a.clone()], "Dest", false);
         assert_eq!(snapshot().map(|p| (p.bytes_total, p.files_total)), Some((3000, 1)));
         copy(&a, &dir.path().join("b.bin")).unwrap();
         // Other tests copy in parallel through the same meter, so only a floor is certain.

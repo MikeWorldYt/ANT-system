@@ -16,9 +16,30 @@ const SHORTCUTS: Record<string, string | KeyCombo> = {
   "Collapse side panel": "toggleSidePanel",
   "Expand side panel": "toggleSidePanel",
   "Edit details": "editDetails",
-  "Move down": "moveDown",
   Delete: { code: "Delete", mod: false, alt: false },
 };
+
+// Menu items show the same hints beside their label, keyed by the label the menu gives them.
+const MENU_SHORTCUTS: Record<string, string | KeyCombo> = {
+  Open: { code: "KeyO", mod: true, alt: false },
+  "Open in new tab": { code: "KeyT", mod: true, alt: false },
+  "Open in split tab": "splitTab",
+  "Split tab": "splitTab",
+  "Duplicate tab": "duplicateTab",
+  Rename: { code: "F2", mod: false, alt: false },
+  Copy: { code: "KeyC", mod: true, alt: false },
+  Cut: { code: "KeyX", mod: true, alt: false },
+  Paste: { code: "KeyV", mod: true, alt: false },
+  "Add to favorites": "toggleFavorite",
+  "Remove from favorites": "toggleFavorite",
+  "New node": "newNode",
+  "New folder": "newNode",
+  "New worknode": "newWorknode",
+  Delete: { code: "Delete", mod: false, alt: false },
+};
+
+const keysOf = (s: string | KeyCombo | undefined): string[] => (s === undefined ? [] : comboKeys(typeof s === "string" ? comboOf(s) : s));
+export const menuKeys = (label: string): string[] => keysOf(MENU_SHORTCUTS[label]);
 
 const keysFor = (text: string): string[] => {
   const s = SHORTCUTS[text];

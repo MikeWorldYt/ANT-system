@@ -74,6 +74,9 @@ pub(crate) fn rename_no_replace(op: &str, from: &Path, to: &Path) -> R<()> {
         io::ErrorKind::AlreadyExists => FmError::AlreadyExists {
             name: to.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
         },
+        io::ErrorKind::PermissionDenied if op == "rename" => FmError::Internal {
+            message: format!("Windows blocked the rename of {}. Close programs using the folder and check its permissions.", from.display()),
+        },
         _ => io_err(op, from, &e),
     })
 }

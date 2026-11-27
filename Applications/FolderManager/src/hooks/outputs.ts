@@ -1,5 +1,5 @@
 // Deliverable helpers: the delivery date stamp and a picker that keeps the chosen path inside its worknode.
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickInsideDialog } from "../components/organisms/dialogs/pick-inside/pick-inside-dialog";
 import { findNode } from "../services/store/state";
 import type { TreeNode } from "../services/ipc/types";
 
@@ -15,21 +15,17 @@ export function todayStamp(): string {
 }
 
 // The sibling Outcomes folder names where outputs usually live, so the picker starts in that folder of the worknode.
-function startPath(node: TreeNode): string {
+function startPath(node: TreeNode): string[] {
   const siblings = findNode(node.relParts.slice(0, -1))?.children ?? [];
   const output = siblings
     .find((n) => n.nodeType?.base === "OUT")
     ?.info?.fields.find((f) => f.key === "defaultOutput")?.value;
-  const known = output && node.children?.some((c) => !c.file && c.name.toLowerCase() === output.toLowerCase());
-  return known ? `${node.absPath}\\${output}` : node.absPath;
+  const known = output ? node.children?.find((c) => !c.file && c.name.toLowerCase() === output.toLowerCase()) : undefined;
+  return known ? [known.name] : [];
 }
 
-// The path relative to the worknode, or null when the pick lies outside it; a cancelled dialog gives undefined.
+// The path relative to the worknode; a cancelled pick gives undefined. The picker never leaves the worknode, so the path is never null.
 export async function pickInside(node: TreeNode, directory: boolean): Promise<{ relative: string | null } | undefined> {
-  const picked = await open({ directory, multiple: false, defaultPath: startPath(node) });
-  if (typeof picked !== "string") return undefined;
-  const base = node.absPath.replace(/\\/g, "/").replace(/\/+$/, "");
-  const path = picked.replace(/\\/g, "/").replace(/\/+$/, "");
-  const inside = path.toLowerCase().startsWith(`${base.toLowerCase()}/`);
-  return { relative: inside ? path.slice(base.length + 1) : null };
+  const relative = await pickInsideDialog(node, directory, startPath(node));
+  return relative === undefined ? undefined : { relative };
 }

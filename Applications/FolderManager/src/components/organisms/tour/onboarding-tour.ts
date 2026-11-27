@@ -6,10 +6,16 @@ import { refresh } from "../../../hooks/ops";
 import { setDemoHandler } from "../../../services/ipc/api";
 import { createDemoStorage, type DemoStorage } from "../../../services/demo/demo-storage";
 import { fakeExplorer, type FakeExplorer } from "./fake-explorer";
-import { findNode, select, state } from "../../../services/store/state";
+import { findNode, keyOf, notify, select, state } from "../../../services/store/state";
 import type { TreeNode } from "../../../services/ipc/types";
+import nodeReviewGif from "../../../assets/tour/node-review.gif";
+import allowFilesGif from "../../../assets/tour/allow-files.gif";
+import newWorknodeGif from "../../../assets/tour/new-worknode.gif";
+import worknodeStatusGif from "../../../assets/tour/worknode-status.gif";
+import outcomesGif from "../../../assets/tour/outcomes.gif";
 
 const DONE_KEY = "fm.tour.done";
+const GUARDED = ["pointerdown", "mousedown", "click", "dblclick", "contextmenu"] as const;
 
 // A step lights every element `targets` gives; a click on `advanceOn` (by default the targets) moves on, and Next runs `onNext` instead.
 interface Step {
@@ -28,10 +34,20 @@ interface Step {
   confirmText?: string;
   // Once shown (a menu item), the tip sits beside it and points there instead of at the targets.
   pointAt?: () => Element | null;
+  // The tip points at this element instead of the lit targets.
+  anchor?: () => Element | null;
+  // Shortcuts the step teaches, which the keyboard lock lets through.
+  keys?: (ev: KeyboardEvent) => boolean;
+  // A looping clip under the text that acts out what the step explains.
+  media?: string;
+  // The lit targets are only shown: the shield covers them too.
+  inert?: boolean;
   // Lights each target on its own instead of one box around all of them.
   separate?: boolean;
   // Forces the tip to the left of the targets, for the side panel whose fields sit below them.
   left?: boolean;
+  // Puts the tip right of the targets when it fits, where the empty view leaves room.
+  right?: boolean;
   // A pick in the menu or popup this control opens closes it, so the tour opens it again to let the user keep trying.
   reopen?: () => HTMLElement | null;
   // Runs when the tour moves past the step or ends.
@@ -53,21 +69,28 @@ const rowsIn = (column: number) => (): Element[] => [...(document.querySelectorA
 // Only numbered user categories count; Downloads, Recordings, Screenshots and the 9xx system folders come later.
 const categories = (): Element[] => rowsIn(0)().filter((r) => /^[1-8]\d\d\./.test((r as HTMLElement).dataset.key ?? ""));
 
-// Columns open a folder on a double-click of its arrow (on the name it starts an edit), so Next sends one there.
+// Columns open a folder with a click on its arrow (on the name it starts an edit), so Next sends one there.
 const openRow = (rows: Element[], prefer?: string): void => {
   const row = (prefer ? rows.find((r) => r.textContent?.trim().startsWith(prefer)) : undefined) ?? rows[0];
-  row?.querySelector(".chevron")?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+  row?.querySelector(".chevron")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 };
-const selectRow = (rows: Element[]): void => {
-  if (rows[0] instanceof HTMLElement) rows[0].click();
-};
-const depth = (): number => state.selectedKey?.split("/").length ?? 0;
 
-const menuChoice = (label: string) => (): Element[] => menuItems(false)().filter((e) => e.textContent?.trim() === label);
-const newNode = menuChoice("New node");
+// A closed flyout keeps its items with an empty box at the corner, so only shown items count.
+const menuChoice = (label: string) => (): Element[] => menuItems(false)().filter((e) => e.getBoundingClientRect().width > 0 && [...e.childNodes].filter((c) => !(c instanceof Element && c.classList.contains("ctx-keys"))).map((c) => c.textContent).join("").trim() === label);
+const allowFiles = menuChoice("Allow files");
+// The level 3 list is whichever level 2 node the user opened; every one holds a review node and folders with files inside.
+const levelList = (): HTMLElement | null => document.querySelectorAll<HTMLElement>(".tree-host .column")[2] ?? null;
+const listRows = (): HTMLElement[] => [...(levelList()?.querySelectorAll<HTMLElement>(".col-item[data-key]") ?? [])];
+const upperKey = (): string | null => levelList()?.dataset.key || null;
+const reviewRow = (): Element[] => listRows().filter((r) => /\/REV\.[^/]*$/.test(r.dataset.key ?? "")).slice(0, 1);
+// A project shows files best; a list without one, as in PERSONAL, falls back to its first node that has contents.
+const filledKey = (): string | null => {
+  const rows = listRows().filter((r) => !/\/REV\./.test(r.dataset.key ?? "") && r.querySelector(".chevron"));
+  return (rows.find((r) => /\/PJ\./.test(r.dataset.key ?? "")) ?? rows[0])?.dataset.key ?? null;
+};
 const newWorknode = menuChoice("New worknode");
 
-// The first worknode of the demo (PJ.001_Example-Project) is selected, so its folder opens beside the projects list.
+// The first worknode of the demo (PJ.001_Portfolio-Web) is selected, so its folder opens beside the projects list.
 function firstWorknode(nodes: TreeNode[]): string[] | null {
   for (const n of nodes) {
     if (n.nodeType?.base === "WKB") return n.relParts;
@@ -76,16 +99,22 @@ function firstWorknode(nodes: TreeNode[]): string[] | null {
   }
   return null;
 }
-const openProjects = (): void => select(firstWorknode(state.tree?.nodes ?? []));
+// The Projects chapter works in the video projects, whose made-up render shows a delivery best.
+const VIDEO = "200.WORK/03.Video-edition";
+const VIDEO_PROJECTS = ["PJ.005_Product-Teaser", "PJ.006_Wedding-Film"];
+const OUTCOMES = `${VIDEO}/00.Outcomes`;
+const VIDEO_RENDER = ["footage/", "footage/A001_C001.mp4", "footage/A001_C002.mp4", "audio/", "audio/music.wav", "project.prproj", "render/", "render/render.mp4"];
+const videoList = (): Element[] => [...document.querySelectorAll(`.tree-host .column[data-key="${CSS.escape(VIDEO)}"]`)];
 
+// Fixed menus and dialogs have no offsetParent, so they are told apart by their box.
+const hasBox = (e: Element): boolean => e.getBoundingClientRect().width > 0;
 const visible = (e: Element): boolean => (e as HTMLElement).offsetParent !== null;
 const editButton = (): Element[] => [...document.querySelectorAll('button[aria-label="Edit details"]')].filter(visible).slice(0, 1);
-const nameField = (): Element[] => [...document.querySelectorAll(".details-name")].filter((e) => e.querySelector(".name-fixed") && visible(e)).slice(0, 1);
+const detailsPanel = (): Element[] => [...document.querySelectorAll(".details-panel")].filter(visible).slice(0, 1);
 const saveButton = (): Element[] => [...document.querySelectorAll(".details-panel .btn-primary")].filter((e) => e.textContent?.trim() === "Save" && visible(e)).slice(0, 1);
+// The whole row, label and field, so a tip beside it never covers the label.
+const statusField = (): Element | null => [...document.querySelectorAll(".details-panel dt")].find((t) => t.textContent?.trim() === "Status" && visible(t))?.closest(".detail-field") ?? null;
 const selectedStatus = (): string | null => (state.selectedKey ? (findNode(state.selectedKey.split("/"))?.status ?? null) : null);
-
-// The confirmation's Delete button once it is open, else the context menu's Delete item.
-const deleteControl = (): Element | null => document.querySelector("dialog[open] .btn-danger") ?? document.querySelector(".ctx-menu .ctx-item.danger");
 
 // Columns shows the project and its contents side by side, so a drop is easy to see.
 const easyDropView = (): void => {
@@ -93,96 +122,125 @@ const easyDropView = (): void => {
 };
 // Opens the project's column through its arrow, so the dropped files show beside it.
 const openColumnOf = (key: string | null): void => {
-  if (key) document.querySelector(`.tree-host .col-item[data-key="${CSS.escape(key)}"] .chevron`)?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+  if (key) document.querySelector(`.tree-host .col-item[data-key="${CSS.escape(key)}"] .chevron`)?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 };
 // The project row and, once open, the column listing its contents both take a drop.
 const dropZones = (key: string | null): Element[] => (key ? [...itemOf(key), ...document.querySelectorAll(`.tree-host .column[data-key="${CSS.escape(key)}"]`)] : []);
 const itemOf = (key: string | null): Element[] => (key ? [...document.querySelectorAll(`.tree-host [data-key="${CSS.escape(key)}"]`)].slice(0, 1) : []);
 
 function steps(): Step[] {
-  let parent: string | null = null;
   let project: string | null = null;
+  let example: string | null = null;
+  let upper: string | null = null;
   let explorer: FakeExplorer | null = null;
   const projectKey = (): string | null => project ?? firstWorknode(state.tree?.nodes ?? [])?.join("/") ?? null;
-  let doomed: string | null = null;
-  // Only the node made during the tour is offered for deletion, never a folder of the demo template.
-  const created = (): string | null => {
-    const key = state.selectedKey;
-    return parent && key?.startsWith(`${parent}/`) && key.endsWith(".New-Node") ? key : null;
-  };
   return [
-    { targets: categories, part: 0, title: "Main categories", text: "These are the main categories of your Storage, the top level of everything you keep. Double-click the arrow of one to open it.", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0 },
-    { targets: rowsIn(1), part: 0, title: "Subcategories (Level 2)", text: "Each category holds its subcategories. Click one to select level 2.", onNext: selectRow, done: () => depth() >= 2 },
-    {
-      targets: one(".nav-add"),
-      part: 0, title: "Create a node",
-      text: "Press + and choose New node. A numbered folder appears next to the open subcategory.",
-      advanceOn: newNode,
-      allow: newNode,
-      when: () => {
-        const parts = state.selectedKey?.split("/") ?? [];
-        parent = parts.length >= 2 ? parts.slice(0, -1).join("/") : null;
-        return parent !== null;
+    { targets: categories, part: 0, title: "Main categories", text: "Here is the ==Level 1== of your Storage, there are the **Main Categories**. `TASK:` **Try opening one.**", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0, right: true,
+      // Coming back from a later step, the open levels would already meet `done`, so the view starts over at the categories.
+      enter: () => {
+        state.expanded.clear();
+        select(null);
       },
     },
+    { targets: rowsIn(1), part: 0, title: "Level 2", text: "Each folder you open takes you one level deeper. You are on ==Level 2==, where we suggest keeping the **subcategories** of the one before. `TASK:` **Try going to level 3.**", onNext: (rows) => openRow(rows, "01."), done: () => rowsIn(2)().length > 0 },
+    { targets: rowsIn(2), part: 0, title: "Nodes", text: "This is ==Level 3==, by default the **deepest level** we suggest. In ANT, ==folders are called Nodes.==", advanceOn: () => [] },
+    { targets: reviewRow, part: 0, title: "Review Nodes", text: "By default index levels **refuse any files** and send them to the ==Review Node== of the same level until you sort them.", advanceOn: () => [], inert: true, media: nodeReviewGif },
     {
-      targets: () => rowOf(doomed),
-      part: 0, title: "Delete a node",
-      text: "Right-click your new node and choose Delete. In a real Storage it goes to the Recycle Bin.",
-      confirmText: "Confirm with Delete. Here it only leaves the tutorial Storage.",
-      pointAt: deleteControl,
-      allow: () => [deleteControl()].filter((e): e is Element => e !== null),
-      when: () => {
-        doomed = created();
-        return doomed !== null;
+      targets: () => dropZones(example ?? filledKey()),
+      separate: true,
+      part: 0, title: "Files",
+      right: true,
+      // The last of the contents, above the support nodes that close the list.
+      anchor: () => [...document.querySelectorAll<HTMLElement>(`.tree-host .column[data-key="${CSS.escape(example ?? "")}"] > .col-item[data-key]`)].filter((r) => !/\/(REV|RES|TPL|SS|REC)\.[^/]*$/.test(r.dataset.key ?? "")).at(-1) ?? null,
+      text: "==Your files== should live on the levels past the index. The default depth is 3, so your files stay on **level 4 or deeper**.",
+      enter: () => {
+        example = filledKey();
+        openColumnOf(example);
       },
-      // Done once the node is gone, so a cancelled confirmation keeps the step.
-      done: () => doomed !== null && rowOf(doomed).length === 0 && !document.querySelector("dialog[open]"),
+      advanceOn: () => [],
+      inert: true,
     },
     {
-      targets: one(".nav-add"),
-      part: 1, title: "Create a worknode",
-      text: "Projects live in worknodes. Press + and choose New worknode; it takes the next project number.",
-      enter: openProjects,
-      advanceOn: newWorknode,
+      targets: () => rowOf(upper ?? upperKey()),
+      enter: () => {
+        upper = upperKey();
+      },
+      part: 0, title: "Allow files",
+      text: "Even so, you can always ==Allow Files== in a node inside the index when you need to. `TASK:` **Try it with a right-click to open its context menu and choose Allow files.**",
+      media: allowFilesGif,
+      pointAt: () => allowFiles()[0] ?? null,
+      allow: allowFiles,
+      done: () => upper !== null && (findNode(upper.split("/"))?.flags.includes("data") ?? false),
+    },
+    {
+      targets: videoList,
+      part: 1, title: "Worknode",
+      media: newWorknodeGif,
+      text: "==Worknodes== are designed to store your homework, practices or **any project**. `TASK:` **Try creating one: choose New worknode in the context menu or press** `Ctrl` + `Alt` + `N`",
+      enter: () => {
+        const keys = VIDEO_PROJECTS.map((name) => `${VIDEO}/${name}`);
+        select(keys[keys.length - 1]?.split("/") ?? null);
+        state.selectedKeys = keys;
+        notify();
+      },
       allow: newWorknode,
-    },
-    {
-      targets: () => rowOf(state.selectedKey?.endsWith("_New-Worknode") ? state.selectedKey : null),
-      part: 1, title: "Your project",
-      when: () => {
-        if (state.selectedKey?.endsWith("_New-Worknode")) project = state.selectedKey;
-        return true;
-      },
-      text: "This is your new project, numbered right after the example. Worknodes track a status from start to done.",
-    },
-    {
-      targets: editButton,
-      part: 1, title: "Edit your project",
-      text: "Press the pencil to edit the details of your project.",
-      onNext: (els) => (els[0] as HTMLElement | undefined)?.click(),
-      done: () => nameField().length > 0,
-    },
-    { targets: nameField, part: 1, title: "Name it", text: "Type a name you like. The PJ number stays; it is how ANT tracks the project. Then press Next.", advanceOn: () => [], left: true },
-    {
-      targets: one(".details-panel .status-picker"),
-      part: 1, title: "Set the status",
-      left: true,
-      text: "Open the status list and choose In progress.",
-      allow: () => [...document.querySelectorAll(".ctx-menu .ctx-status.st-in-progress")],
-      pointAt: () => document.querySelector(".ctx-menu .ctx-status.st-in-progress"),
-      done: () => document.querySelector(".details-panel .status-picker.st-in-progress") !== null,
-    },
-    {
-      targets: saveButton,
-      part: 1, title: "Save",
-      left: true,
-      text: "Save to apply the new name and status.",
+      pointAt: () => newWorknode()[0] ?? null,
+      keys: (ev) => ev.ctrlKey && ev.altKey && ev.code === "KeyN",
       done: () => {
-        const saved = selectedStatus() === "in-progress" && saveButton().length === 0;
-        if (saved) project = state.selectedKey;
-        return saved;
+        const made = findNode(VIDEO.split("/"))?.children?.find((c) => c.name.endsWith("_New-Worknode"));
+        if (made) project = keyOf(made.relParts);
+        return made !== undefined;
       },
+    },
+    {
+      targets: detailsPanel,
+      part: 1, title: "Worknode Metadata Details",
+      text: "Each one keeps ==Metadata==: **owner** (client), **status**, created and modified **dates**, etc.",
+      enter: () => {
+        if (project) select(project.split("/"));
+        document.querySelector<HTMLElement>(".side-rail:not([hidden]) .side-rail-expand")?.click();
+      },
+      advanceOn: () => [],
+      left: true,
+    },
+    {
+      targets: detailsPanel,
+      part: 1, title: "Status",
+      media: worknodeStatusGif,
+      text: "This stores the ==Project's State==. `TASK:` **Try changing it to \"In progress\" to show your project is coming.**",
+      enter: () => (editButton()[0] as HTMLElement | undefined)?.click(),
+      left: true,
+      pointAt: statusField,
+      // Next sets the status the task asks for, so the later steps find the project as the user would have left it.
+      onNext: () => {
+        [...document.querySelectorAll<HTMLElement>(".details-panel button")].find((b) => b.textContent?.trim() === "Cancel")?.click();
+        if (!project || !activeDemo) return;
+        void Promise.resolve(activeDemo.handle("set_node_details", { relParts: project.split("/"), status: "in-progress", owner: null })).then(reloadWhenIdle);
+      },
+      done: () => selectedStatus() === "in-progress" && saveButton().length === 0,
+    },
+    {
+      targets: () => rowOf(project),
+      part: 1, title: "Outcomes",
+      media: outcomesGif,
+      text: "When you finish a project and get a result (export, render, dist or any outcome). ==Outcomes Node== keeps them together, _file or folder picked as Output previously moves there by itself._ `TASK:` **Try changing its status to Done and select the rendered video.**",
+      enter: () => {
+        if (!project || !activeDemo) return;
+        const key = project;
+        activeDemo.fill(key.split("/"), VIDEO_RENDER);
+        void reloadWhenIdle().then(() => openColumnOf(key));
+      },
+      left: true,
+      // The tip follows the user to Change status, then Done, then the output dialog's Choose a file.
+      pointAt: () => menuChoice("Done")()[0] ?? menuChoice("Change status")()[0] ?? [...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent?.trim() === "Choose a file") ?? null,
+      done: () => project !== null && findNode(project.split("/"))?.status === "done" && !document.querySelector("dialog[open]"),
+    },
+    {
+      targets: () => rowOf(OUTCOMES),
+      part: 1, title: "Outcomes",
+      text: "`TASK:` **Open the folder to see the rest of the deliverables.**",
+      onNext: () => openColumnOf(OUTCOMES),
+      done: () => document.querySelector(`.tree-host .column[data-key="${CSS.escape(OUTCOMES)}"]`) !== null,
     },
     {
       targets: one(".sort-btn"),
@@ -239,6 +297,24 @@ function steps(): Step[] {
   ];
 }
 
+// Tip texts take a little Markdown: **bold**, _italic_ and `key` drawn as a keyboard key, as in the tooltips.
+// ==text== marks what the user should do, so the instruction stands out from the explanation around it.
+function richText(into: HTMLElement, source: string): void {
+  into.dataset.source = source;
+  // A task always starts on its own paragraph, under the explanation before it.
+  const laid = source.replace(/\s*(?=`TASK:`)/, (gap, at: number) => (at > 0 ? "\n\n" : gap));
+  into.replaceChildren(...laid.split(/(==[^=]+==)/).filter(Boolean).flatMap((part) => (part.startsWith("==") && part.endsWith("==") && part.length > 4 ? [el("mark", { class: "tour-do" }, ...inline(part.slice(2, -2)))] : inline(part))));
+}
+
+function inline(source: string): Node[] {
+  return source.split(/(\*\*[^*]+\*\*|_[^_]+_|`[^`]+`)/).filter(Boolean).map((part) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) return el("strong", {}, part.slice(2, -2));
+    if (part.startsWith("_") && part.endsWith("_") && part.length > 2) return el("em", {}, part.slice(1, -1));
+    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) return el("kbd", { class: "tour-key" }, part.slice(1, -1));
+    return document.createTextNode(part);
+  });
+}
+
 function union(elements: Element[]): DOMRect | null {
   const rects = elements.map((e) => e.getBoundingClientRect());
   if (!rects.length) return null;
@@ -258,6 +334,7 @@ function cheer(then: () => void): void {
 }
 
 export const tourSeen = (): boolean => readPref(DONE_KEY) === "true";
+export const skipTour = (): void => savePref(DONE_KEY, "true");
 
 // The main window owns the views: it puts the tour's own view in place, and lets a step read or change the active one.
 interface TourHost {
@@ -266,8 +343,31 @@ interface TourHost {
   showView(id: string): void;
 }
 let host: TourHost = { prepare: () => {}, currentView: () => "", showView: () => {} };
+// Dev only: the step survives a Vite reload, so a step can be reworked without walking the tour again.
+const DEV_STEP = "fm.devTourStep";
+const devStep = (): number | null => {
+  if (!import.meta.env.DEV) return null;
+  try {
+    const raw = sessionStorage.getItem(DEV_STEP);
+    return raw === null ? null : Number(raw);
+  } catch (e) {
+    console.warn("Dev tour step unreadable", e);
+    return null;
+  }
+};
+const saveDevStep = (i: number | null): void => {
+  if (!import.meta.env.DEV) return;
+  try {
+    if (i === null) sessionStorage.removeItem(DEV_STEP);
+    else sessionStorage.setItem(DEV_STEP, String(i));
+  } catch (e) {
+    console.warn("Dev tour step not saved", e);
+  }
+};
+
 export function onTourStart(next: TourHost): void {
   host = next;
+  if (devStep() !== null) void startTour();
 }
 
 // The tour runs on a demo Storage from the bundled template; the real one is read again when it ends.
@@ -321,12 +421,27 @@ export async function startTour(): Promise<void> {
   dim.setAttribute("class", "tour-dim");
   const rim = document.createElementNS(SVG, "path");
   rim.setAttribute("class", "tour-rim");
-  spot.append(dim, rim);
+  // Overlapping holes would cross each other's outlines, so the rim only shows outside every hole and draws their merged shape.
+  const mask = document.createElementNS(SVG, "mask");
+  mask.setAttribute("id", "tour-rim-mask");
+  mask.setAttribute("maskUnits", "userSpaceOnUse");
+  const maskAll = document.createElementNS(SVG, "rect");
+  Object.entries({ x: "0", y: "0", width: "100%", height: "100%", fill: "#fff" }).forEach(([k, v]) => maskAll.setAttribute(k, v));
+  const maskHoles = document.createElementNS(SVG, "path");
+  maskHoles.setAttribute("fill", "#000");
+  mask.append(maskAll, maskHoles);
+  const defs = document.createElementNS(SVG, "defs");
+  defs.append(mask);
+  rim.setAttribute("mask", "url(#tour-rim-mask)");
+  spot.append(defs, dim, rim);
   // One pane with the same holes cut out takes every click outside them, so only the lit controls can be used.
   const shield = el("div", { class: "tour-shield", "aria-hidden": "true" });
   const shields = [shield];
   const title = el("h2", { id: "tour-title" });
   const text = el("p", { class: "tour-text", id: "tour-text" });
+  const media = el("img", { class: "tour-media", alt: "", hidden: "" });
+  // The tip grows once the clip loads, so it is placed again.
+  media.addEventListener("load", () => place());
   const next = textButton("Next", "btn-primary", () => {
     const step = all[index];
     // onNext acts on a target itself, and the click or the `done` check it causes moves the tour on.
@@ -342,7 +457,7 @@ export async function startTour(): Promise<void> {
     else jumpTo(part + 1);
   });
   skip.addEventListener("click", finish);
-  const tip = el("div", { class: "tour-tip", role: "dialog", tabindex: "-1", "aria-labelledby": "tour-title", "aria-describedby": "tour-text" }, el("div", { class: "tour-arrow" }), el("div", { class: "tour-head" }, title, count), text, el("div", { class: "tour-actions" }, skip, el("span", { class: "tour-forward" }, skipPart, next)));
+  const tip = el("div", { class: "tour-tip", role: "dialog", tabindex: "-1", "aria-labelledby": "tour-title", "aria-describedby": "tour-text" }, el("div", { class: "tour-arrow" }), el("div", { class: "tour-head" }, title, count), text, media, el("div", { class: "tour-actions" }, skip, el("span", { class: "tour-forward" }, skipPart, next)));
 
   // The chapter checklist: done chapters are ticked, any chapter can be opened again, and the bar shows how far the user got.
   const finished = new Set<number>();
@@ -357,6 +472,8 @@ export async function startTour(): Promise<void> {
     chapters,
   );
   let jumping = false;
+  // A step that sets up its own view (opens a list, the side panel) is shown before its targets exist; the tip is placed once they appear.
+  const usable = (s: Step): boolean => (s.when?.() ?? true) && (s.enter !== undefined || s.targets().length > 0);
   const jumpTo = (part: number): void => {
     const first = all.findIndex((s) => s.part === part);
     if (first < 0) return;
@@ -397,22 +514,34 @@ export async function startTour(): Promise<void> {
     spot.setAttribute("viewBox", `0 0 ${w} ${h}`);
     dim.setAttribute("d", frame);
     rim.setAttribute("d", cut);
-    shield.style.clipPath = `path(evenodd, "${frame}")`;
+    maskHoles.setAttribute("d", cut);
+    shield.style.clipPath = all[index]?.inert ? "none" : `path(evenodd, "${frame}")`;
     // A menu the control opened is kept clear too, so its choices and the tip show together.
-    const menu = document.querySelector(".ctx-menu, .view-segment");
+    // Closed flyouts stay in the DOM with an empty box, which would stretch the span to the corner.
+    const menus = [...document.querySelectorAll(".ctx-menu, .view-segment")].filter(hasBox);
     const pointed = all[index]?.pointAt?.() ?? null;
     pointed?.classList.add("tour-point");
-    const r = pointed ? pointed.getBoundingClientRect() : ((menu ? union([...(all[index]?.targets() ?? []), menu]) : null) ?? lit);
-    const t = tip.getBoundingClientRect();
+    const anchored = all[index]?.anchor?.() ?? null;
+    // A menu item is pointed at from beside the whole menu and its submenus, so the tip never covers a choice.
+    const menuSpan = pointed?.closest(".ctx-menu") ? union(menus) : null;
+    const p = pointed?.getBoundingClientRect();
+    const r = p && menuSpan ? new DOMRect(menuSpan.left, p.top, menuSpan.width, p.height) : p ? p : anchored ? anchored.getBoundingClientRect() : ((menus.length ? union([...(all[index]?.targets() ?? []), ...menus]) : null) ?? lit);
+    let t = tip.getBoundingClientRect();
     const margin = 12;
     // Below the target when it fits, else beside it for tall targets such as the tree and the rail.
     const inDialog = pointed?.closest("dialog") !== null && pointed !== null;
     const wanted = (inDialog ? all[index]?.confirmText : undefined) ?? all[index]?.text ?? "";
-    if (text.textContent !== wanted) text.textContent = wanted;
-    // Beside a menu item, so the menu stays readable; under a dialog button, so the dialog's other buttons stay clear.
+    if (text.dataset.source !== wanted) richText(text, wanted);
+    // While a menu is open the clip is hidden, so the shorter tip fits beside it with its arrow on the choice.
+    const busy = pointed?.closest(".ctx-menu") != null;
+    if (media.hidden !== (!all[index]?.media || busy)) {
+      media.hidden = !all[index]?.media || busy;
+      t = tip.getBoundingClientRect();
+    }
+    // Beside a menu item, so the menu stays readable; beside a dialog button when it fits, else under it, so the dialog's other buttons stay clear.
     const forceLeft = all[index]?.left === true && !pointed;
-    const below = !forceLeft && (inDialog || !pointed) && r.bottom + margin + t.height <= window.innerHeight;
     const right = !forceLeft && r.right + margin + t.width <= window.innerWidth;
+    const below = !forceLeft && !(all[index]?.right && right && !pointed) && ((inDialog && !right) || !pointed) && r.bottom + margin + t.height <= window.innerHeight;
     let left: number;
     let top: number;
     let side: string;
@@ -421,8 +550,8 @@ export async function startTour(): Promise<void> {
     else [left, top, side] = [r.left - margin - t.width, r.top + Math.min(r.height / 2, 120) - 24, "right"];
     left = Math.max(margin, Math.min(left, window.innerWidth - t.width - margin));
     top = Math.max(margin, Math.min(top, window.innerHeight - t.height - margin));
-    // The tip keeps clear of the pretend explorer: the first spot around the target that it does not cover wins.
-    const blockers = [...document.querySelectorAll(".fx-window, .tour-checklist")].map((e) => e.getBoundingClientRect());
+    // The tip keeps clear of the pretend explorer and of open menus and submenus: the first spot around the target that it does not cover wins.
+    const blockers = [...document.querySelectorAll(`.fx-window, .tour-checklist, .ctx-menu${inDialog ? "" : ", dialog[open]"}`)].filter(hasBox).map((e) => e.getBoundingClientRect());
     const hits = (x: number, y: number): boolean => blockers.some((b) => x < b.right && x + t.width > b.left && y < b.bottom && y + t.height > b.top);
     if (hits(left, top)) {
       const spots: [number, number, string][] = [
@@ -430,7 +559,7 @@ export async function startTour(): Promise<void> {
         [r.left - margin - t.width, r.top, "right"],
         [r.left, r.bottom + margin, "top"],
         [r.left, r.top - margin - t.height, "bottom"],
-        [margin, window.innerHeight - t.height - margin, "none"],
+        [margin, margin, "none"],
       ];
       const fits = (x: number, y: number): boolean => x >= margin && y >= margin && x + t.width <= window.innerWidth - margin && y + t.height <= window.innerHeight - margin;
       const free = spots.find(([x, y]) => fits(x, y) && !hits(x, y)) ?? spots[spots.length - 1];
@@ -478,9 +607,10 @@ export async function startTour(): Promise<void> {
 
   // A "Good job" card may call back after the user already left the tour.
   let over = false;
+  let fadeIn = 0;
   function show(from: number): void {
     if (over) return;
-    const i = all.findIndex((s, n) => n >= from && (s.when?.() ?? true) && s.targets().length > 0);
+    const i = all.findIndex((s, n) => n >= from && usable(s));
     const step = all[i];
     if (!step) return finish();
     if (i !== index) all[index]?.leave?.();
@@ -498,11 +628,24 @@ export async function startTour(): Promise<void> {
       }
     }
     jumping = false;
+    // Between steps the tip vanishes at once and fades in where the next step puts it, once its view has settled.
+    if (i !== index) {
+      tip.classList.add("tour-switching");
+      window.clearTimeout(fadeIn);
+      fadeIn = window.setTimeout(() => {
+        place();
+        tip.classList.remove("tour-switching");
+      }, 250);
+    }
     index = i;
+    saveDevStep(i);
     step.enter?.();
     watching = Boolean(step.done);
     title.textContent = step.title;
-    text.textContent = step.text;
+    richText(text, step.text);
+    media.hidden = !step.media;
+    if (step.media) media.src = step.media;
+    else media.removeAttribute("src");
     next.textContent = i === all.length - 1 ? "Finish" : "Next";
     // The count runs inside the chapter; a one-step chapter needs none.
     const inPart = all.filter((s) => s.part === step.part);
@@ -514,12 +657,54 @@ export async function startTour(): Promise<void> {
     tip.focus();
   }
 
+  // Rows outside the lit targets act as if they were not there: no pointer, no keyboard reaches them.
+  const litRows = (): HTMLElement[] => (all[index]?.inert ? [] : (all[index]?.targets() ?? []).flatMap((e) => (e.matches(".col-item") ? [e as HTMLElement] : [...e.querySelectorAll<HTMLElement>(":scope > .col-item[data-key]")])));
+  const lit = (t: Element): boolean => (all[index]?.targets() ?? []).some((e) => e.contains(t)) && !all[index]?.inert;
+  function guardPointer(ev: Event): void {
+    // The tour's own synthetic clicks, such as opening a column for a step, must get through.
+    if (!ev.isTrusted) return;
+    const t = ev.target instanceof Element ? ev.target : null;
+    const row = t?.closest(".tree-host [data-key], .tree-host [data-entry]");
+    if (!row || lit(row)) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+  }
+
+  // Up and Down step between the lit rows, Right or Enter opens the focused one; other keys work only in the tip, a menu, a dialog or a lit field.
+  function guardKeys(ev: KeyboardEvent): void {
+    if (ev.key === "Escape" || all[index]?.keys?.(ev)) return;
+    const t = ev.target instanceof Element ? ev.target : null;
+    const rows = litRows();
+    const row = t?.closest<HTMLElement>(".col-item");
+    const at = row ? rows.indexOf(row) : -1;
+    const stop = (): void => {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+    };
+    if (rows.length > 0 && (ev.key === "ArrowDown" || ev.key === "ArrowUp") && (at >= 0 || t?.closest(".tour-tip"))) {
+      stop();
+      const step = ev.key === "ArrowDown" ? 1 : -1;
+      rows[at < 0 ? (step > 0 ? 0 : rows.length - 1) : (at + step + rows.length) % rows.length]?.focus();
+      return;
+    }
+    if (at >= 0 && (ev.key === "ArrowRight" || ev.key === "Enter")) {
+      stop();
+      rows[at]?.querySelector(".chevron")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      return;
+    }
+    const field = t?.matches("input, textarea, [contenteditable='true']") && lit(t);
+    if (t?.closest(".tour-tip, dialog, .ctx-menu, .view-segment, .tour-checklist") || field) return;
+    stop();
+  }
+
   function onKey(ev: KeyboardEvent): void {
     if (ev.key === "Escape" && !document.querySelector("dialog[open], .ctx-menu")) finish();
   }
 
   function finish(): void {
     over = true;
+    saveDevStep(null);
+    devBar?.remove();
     document.querySelector(".tour-cheer")?.remove();
     savePref(DONE_KEY, "true");
     all[index]?.leave?.();
@@ -535,6 +720,8 @@ export async function startTour(): Promise<void> {
     window.removeEventListener("resize", place);
     window.removeEventListener("tour-explorer-moved", place);
     document.removeEventListener("keydown", onKey);
+    window.removeEventListener("keydown", guardKeys, true);
+    for (const type of GUARDED) window.removeEventListener(type, guardPointer, true);
     void leaveDemo();
   }
 
@@ -545,13 +732,37 @@ export async function startTour(): Promise<void> {
     const moved = (r: MutationRecord): boolean => r.type === "attributes" || ![...r.addedNodes, ...r.removedNodes].every(ours);
     if (records.some((r) => !ours(r.target) && moved(r))) place();
   });
-  menus.observe(document.body, { childList: true, subtree: true, attributeFilter: ["open"] });
+  menus.observe(document.body, { childList: true, subtree: true, attributeFilter: ["open", "hidden"] });
   document.body.append(...shields, spot, checklist, tip);
   document.body.classList.add("touring");
   window.addEventListener("resize", place);
   window.addEventListener("tour-explorer-moved", place);
   document.addEventListener("keydown", onKey);
+  window.addEventListener("keydown", guardKeys, true);
+  for (const type of GUARDED) window.addEventListener(type, guardPointer, true);
   document.addEventListener("click", onClick, true);
   document.addEventListener("click", onPicked);
-  show(0);
+  const resume = devStep();
+  const devBar = import.meta.env.DEV ? debugBar() : null;
+  if (devBar) document.body.append(devBar);
+  jumping = resume !== null;
+  show(resume ?? 0);
+
+  // Dev only, unstyled on purpose: steps back and forth while debugging the tour.
+  function debugBar(): HTMLElement {
+    const usableAt = (i: number): boolean => (all[i] ? usable(all[i]) : false);
+    const step = (dir: -1 | 1) => () => {
+      for (let i = index + dir; i >= 0 && i < all.length; i += dir) {
+        if (!usableAt(i)) continue;
+        jumping = true;
+        show(i);
+        return;
+      }
+    };
+    const back = el("button", { type: "button" }, "◀ Prev step");
+    const ahead = el("button", { type: "button" }, "Next step ▶");
+    back.addEventListener("click", step(-1));
+    ahead.addEventListener("click", step(1));
+    return el("div", { style: "position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;gap:8px" }, back, ahead);
+  }
 }

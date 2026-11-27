@@ -1,0 +1,46 @@
+/* The in-app output picker: an Explorer-like browser kept inside one worknode. */
+dialog.pick-inside { width: min(720px, calc(100vw - 32px)); }
+dialog.pick-inside form { position: relative; }
+.pick-bar { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
+.pick-bar .icon-btn:disabled { opacity: 0.35; }
+.pick-address { flex: 1; min-width: 0; height: 30px; display: flex; align-items: center; padding: 0 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--field-bg); cursor: text; }
+.pick-crumbs { display: flex; align-items: center; gap: 2px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.pick-crumb { padding: 2px 6px; border: none; border-radius: var(--radius-sm); background: none; color: var(--text); font: inherit; cursor: pointer; }
+.pick-crumb:hover, .pick-crumb:focus-visible { background: var(--highlight); }
+.pick-sep { color: var(--muted); }
+.pick-typed { width: 100%; border: none; background: none; color: var(--text); font: inherit; outline: none; }
+.pick-search { display: flex; align-items: center; gap: 6px; width: 200px; height: 30px; padding: 0 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--field-bg); color: var(--muted); }
+.pick-search .gui-icon { width: 14px; height: 14px; flex: none; }
+.pick-search-input { flex: 1; min-width: 0; border: none; background: none; color: var(--text); font: inherit; outline: none; }
+.pick-tools { position: absolute; top: -4px; right: 0; display: flex; gap: 2px; }
+.pick-tools .icon-btn[aria-pressed="true"] { background: var(--highlight); }
+.pick-list { height: 300px; overflow: auto; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
+.pick-list:focus-visible { outline-offset: -2px; }
+.pick-row { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 8px; padding: 4px 8px; border-radius: var(--radius-sm); cursor: default; user-select: none; }
+.pick-list.view-details .pick-row { grid-template-columns: minmax(0, 1fr) 140px 110px 70px; }
+.pick-list.view-details .pick-row > span:not(.pick-name-cell) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.pick-head-row { position: sticky; top: -4px; z-index: 1; background: var(--bg); color: var(--muted); font-size: var(--fs-label); border-bottom: 1px solid var(--border); border-radius: 0; }
+.pick-row[data-path]:hover, .pick-row[data-path]:focus-visible { background: var(--highlight); outline: none; }
+.pick-row[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+.pick-row.is-disabled .pick-name-cell { opacity: 0.45; }
+.pick-name-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pick-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-where { display: block; color: var(--muted); font-size: var(--fs-label); }
+.pick-empty { margin: 12px; color: var(--muted); }
+.pick-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.pick-field { display: flex; flex: 1; align-items: center; gap: 8px; white-space: nowrap; }
+.pick-file-name { flex: 1; }
+.pick-filter { width: 200px; }
+.pick-list.view-grid, .pick-list.view-cards { display: grid; align-content: start; gap: 4px; }
+.pick-list.view-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+.pick-list.view-grid .pick-name-cell { flex-direction: column; gap: 4px; text-align: center; }
+.pick-list.view-grid .pick-name-cell .icon { width: 40px; height: 40px; }
+.pick-list.view-grid .pick-name { max-width: 100%; }
+.pick-list.view-cards { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.pick-list.view-cards .pick-row { padding: 8px; }
+.pick-list.view-cards .pick-name-cell .icon { width: 32px; height: 32px; }
+.pick-list.view-columns { display: flex; padding: 0; overflow-x: auto; }
+.pick-column { flex: none; width: 200px; padding: 4px; overflow-y: auto; border-right: 1px solid var(--border); }
+.pick-list.view-columns .pick-row { grid-template-columns: minmax(0, 1fr) 10px; }
+.pick-list.view-columns .pick-row > .gui-icon { width: 10px; height: 10px; color: var(--muted); }
+.pick-row.on-path { background: var(--highlight); }

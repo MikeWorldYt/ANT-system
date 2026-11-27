@@ -7,6 +7,7 @@ import { textInput } from "../../atoms/text-input";
 import { statusLabeled } from "../../atoms/status-mark";
 import { isWorknode, nodeDetails, outputOf, ownerOf, UNKNOWN } from "../../../services/store/node-info";
 import { renameTo, setDetails, setOutput, setUserFlag } from "../../../hooks/ops";
+import { refocusSelection } from "../../../hooks/focus-return";
 import { pickInside } from "../../../hooks/outputs";
 import { setStatus } from "./status-line";
 import { extensionArea } from "../../../extensions/panel";
@@ -14,6 +15,10 @@ import { detailFields, onDetailsChange, runDetailsAction } from "../../../extens
 import { keyOf, selectedNode } from "../../../services/store/state";
 import { shownEntry } from "../../molecules/virtual-entry";
 import { statusPicker, type StatusPicker } from "../../molecules/status-picker";
+import { tourSeen } from "../tour/onboarding-tour";
+import { welcomeCard } from "./welcome-card";
+import { suggestSearch } from "../../../services/ipc/api";
+import { reportError } from "./status-line";
 import type { TreeNode, WkbStatus } from "../../../services/ipc/types";
 
 // Status and owner live in info.json, so a broken file blocks them but not the rename.
@@ -23,12 +28,9 @@ const termId = (label: string) => `details-term-${label.toLowerCase()}`;
 const fieldId = (label: string) => `details-field-${label.toLowerCase()}`;
 const labelled = (label: string) => ({ id: fieldId(label), "aria-labelledby": termId(label) });
 const detailField = (...children: HTMLElement[]) => el("div", { class: "detail-field" }, ...children);
-// A break is allowed only between folders, so each folder stays whole and the line fills before it wraps.
-const pathSegments = (path: string): (HTMLElement | string)[] =>
-  path.split("/").flatMap((folder, i, all) => (i < all.length - 1 ? [el("span", { class: "seg" }, `${folder}/`), "​"] : [el("span", { class: "seg" }, folder)]));
-
 export interface DetailsSection {
   element: HTMLElement;
+  welcome: HTMLElement;
   render(): void;
   startEdit(): boolean;
 }
@@ -38,6 +40,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
   const edit = iconButton("Edit details", "pencil", () => startEdit());
   const head = el("div", { class: "details-head" }, el("h3", { id: "details-title", class: "side-label" }, "Details"), edit);
   const empty = el("p", { class: "details-empty" }, "Select a folder to see its details.");
+  const welcome = welcomeCard();
   const element = el("section", { class: "side-section", "aria-labelledby": "details-title" }, head, list, empty, extensionArea());
   let editing: string | null = null;
   // Built once per editing key, so store notifications do not discard what was typed.
@@ -46,7 +49,8 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
   const stop = () => {
     editing = null;
     render();
-    if (!edit.hidden) edit.focus();
+    // Save and Cancel hand the keys back to the view; behind the board no view item can take them, so the pencil does.
+    if (!refocusSelection(true) && !edit.hidden) edit.focus();
   };
 
   function controls(n: TreeNode): Record<string, Node> {
@@ -75,7 +79,29 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
       owner = textInput({ class: "details-input", ...labelled("Owner"), placeholder: UNKNOWN });
       owner.value = ownerOf(n) ?? "";
       inputs.Status = status.button;
-      inputs.Owner = owner;
+      const ownerChoices = el("div", { class: "owner-choices", hidden: "" });
+      const ownerBox = el("div", { class: "owner-autocomplete" }, owner, ownerChoices);
+      inputs.Owner = ownerBox;
+      let ownerNames: string[] = [];
+      const updateOwners = () => {
+        const query = owner!.value.trim().toLowerCase();
+        const matches = ownerNames.filter((value) => value.toLowerCase().includes(query) && value !== owner!.value).slice(0, 5);
+        ownerChoices.hidden = matches.length === 0;
+        ownerChoices.replaceChildren(...matches.map((value) => {
+          const choice = el("button", { type: "button", class: "owner-choice" }, value);
+          choice.addEventListener("mousedown", (event) => event.preventDefault());
+          choice.addEventListener("click", () => { owner!.value = value; ownerChoices.hidden = true; });
+          return choice;
+        }));
+      };
+      owner.addEventListener("input", updateOwners);
+      owner.addEventListener("focus", updateOwners);
+      owner.addEventListener("blur", () => { ownerChoices.hidden = true; });
+      void suggestSearch("owner", "")
+        .then((owners) => {
+          ownerNames = [...new Set(owners.map((item) => item.value).filter(Boolean))];
+        })
+        .catch((e: unknown) => reportError("warning", e));
       first ??= owner;
       const outputField = textInput({ class: "details-input", ...labelled("Output"), placeholder: UNKNOWN });
       outputField.value = outputOf(n) ?? "";
@@ -85,6 +111,7 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
         if (picked.relative === null) setStatus("warning", "Pick a folder inside the worknode");
         else outputField.value = picked.relative;
       });
+      pick.classList.add("details-output-pick");
       output = outputField;
       inputs.Output = el("div", { class: "details-name" }, outputField, pick);
     }
@@ -93,19 +120,25 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     const save = textButton("Save", "btn-primary", async () => {
       // The store may have refreshed the node since the form was built.
       const current = selectedNode();
+      const requestedName = name?.value.trim() ?? "";
       stop();
       if (!current) return;
       if (files && files.checked !== current.flags.includes("data") && !(await setUserFlag(current, files.checked))) return;
       if (output && output.value.trim() !== (outputOf(current) ?? "") && !(await setOutput(current, output.value.trim() || null))) return;
-      const fieldsChanged = (status?.value && status.value !== current.status) || (owner && owner.value.trim() !== (ownerOf(current) ?? ""));
-      if (fieldsChanged && !(await setDetails(current, (status?.value || null) as WkbStatus | null, owner?.value ?? null))) return;
+      const nextOwner = owner ? owner.value.trim() || UNKNOWN : null;
+      const fieldsChanged = (status?.value && status.value !== current.status) || (nextOwner !== null && nextOwner !== (ownerOf(current) ?? UNKNOWN));
+      if (fieldsChanged && !(await setDetails(current, (status?.value || null) as WkbStatus | null, nextOwner))) return;
       // A details save re-selects the node, so the rename works on its fresh copy.
       const fresh = selectedNode();
-      if (name && fresh && name.value.trim() !== fresh.editableName) await renameTo(fresh, name.value);
+      if (name && fresh && requestedName && requestedName !== fresh.editableName) await renameTo(fresh, requestedName);
     });
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") stop();
-      else if (ev.key === "Enter" && ev.target !== status?.button) save.click();
+      else if (ev.key === "Enter") {
+        ev.preventDefault();
+        ev.stopPropagation();
+        save.click();
+      }
     };
     const fields: (HTMLElement | null)[] = [name, status?.button ?? null, owner, output, files];
     for (const field of fields) field?.addEventListener("keydown", onKey);
@@ -119,16 +152,18 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
     if (!n || (editing !== null && (editing !== keyOf(n.relParts) || !canEdit(n)))) editing = null;
     edit.hidden = !n || !canEdit(n);
     const entry = n ? null : shownEntry();
-    empty.hidden = n !== null || entry !== null;
+    const idle = n === null && entry === null;
+    list.toggleAttribute("data-editing", editing !== null);
+    // The card stays until the tour is taken or skipped, whatever is selected meanwhile.
+    welcome.hidden = tourSeen();
+    empty.hidden = !idle || !welcome.hidden;
     list.hidden = n === null && entry === null;
     const ended = editing === null && form !== null;
     if (editing === null) form = null;
     else if (n && form?.key !== editing) form = { key: editing, inputs: controls(n) };
     const inputs = form?.inputs ?? {};
     const rows = (n ? nodeDetails(n) : entry ? [["Name", entry.label]] as [string, string][] : []).map(([k, v]) =>
-      k === "Path"
-        ? detailField(el("dt", { id: termId(k) }, k), el("dd", { class: "path" }, ...pathSegments(v)))
-        : detailField(el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))),
+      detailField(el("dt", { id: termId(k) }, k), el("dd", k === "Status" && n?.status ? { class: `st-${n.status}` } : {}, inputs[k] ?? (k === "Status" && n?.status ? statusLabeled(n.status) : v))),
     );
     if (inputs["Allow files"]) rows.push(detailField(el("dt", { id: termId("Allow files") }, "Allow files"), el("dd", {}, inputs["Allow files"])));
     if (inputs[""]) rows.push(detailField(el("dd", {}, inputs[""])));
@@ -159,5 +194,5 @@ export function createDetailsPanel(onEditEnd: () => void): DetailsSection {
   }
 
   onDetailsChange(render);
-  return { element, render, startEdit };
+  return { element, welcome, render, startEdit };
 }

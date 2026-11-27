@@ -16,7 +16,7 @@ use crate::services::debug_log;
 use crate::domain::error::R;
 
 pub(crate) use guard::{local_data_dir, storage_key};
-pub use downloads::watch_downloads;
+pub use downloads::watch_system_folder;
 pub use gui::GuiWatch;
 pub use headless::run_headless;
 pub use watcher::watch;

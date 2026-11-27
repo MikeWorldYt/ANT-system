@@ -2,7 +2,7 @@
 import { readPref, savePref } from "./prefs";
 import { notify } from "./state";
 
-export const RAIL_IDS = ["settings", "board", "downloads", "recordings", "screenshots", "review", "favorite", "edit", "moveUp", "moveDown", "delete"] as const;
+export const RAIL_IDS = ["settings", "board", "favorite", "edit", "delete"] as const;
 export type RailId = (typeof RAIL_IDS)[number];
 
 export interface RailItem {
@@ -13,7 +13,7 @@ export interface RailItem {
 const QUICK_PREF = "fm.quickActions";
 const RAIL_PREF = "fm.rail";
 
-const RAIL_OFF_BY_DEFAULT: readonly RailId[] = ["moveUp", "moveDown"];
+const RAIL_OFF_BY_DEFAULT: readonly RailId[] = [];
 const defaultRail = (): RailItem[] => RAIL_IDS.map((id) => ({ id, shown: !RAIL_OFF_BY_DEFAULT.includes(id) }));
 
 function readRail(): RailItem[] {

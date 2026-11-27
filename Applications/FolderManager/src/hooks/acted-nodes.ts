@@ -1,15 +1,14 @@
 // Commands on the marked items, shared by the side panel and the shortcuts so both read a selection the same way.
-import { actedNodes, state } from "../services/store/state";
-import { hideNode, move, remove, removeDownloads, removeMany, setFavorite, setImportant } from "./ops";
-import { inDownloads, type MoveDirection, type NodeActions, type TreeNode } from "../services/ipc/types";
-
-const allDownloads = (nodes: TreeNode[]): boolean => nodes.length > 0 && nodes.every((n) => inDownloads(n.relParts));
+import { actedNodes } from "../services/store/state";
+import { hideNode, remove, removeDownloads, removeMany, setFavorite, setImportant } from "./ops";
+import { allInSystem } from "../services/store/system-folders";
+import { inSystem, type NodeActions } from "../services/ipc/types";
 
 // Only delete has a batch form so far; every other command needs exactly one item.
 export function canActOn(action: keyof NodeActions): boolean {
   const nodes = actedNodes();
-  if (action === "delete" && allDownloads(nodes)) return true;
-  if (action === "delete" && nodes.length > 1) return !nodes.some((n) => inDownloads(n.relParts));
+  if (action === "delete" && allInSystem(nodes)) return true;
+  if (action === "delete" && nodes.length > 1) return !nodes.some((n) => inSystem(n.relParts));
   return nodes.length === 1 && !!nodes[0]?.actions[action];
 }
 
@@ -32,11 +31,6 @@ export function importantActed(): void {
   if (canMarkImportant()) void setImportant(actedNodes(), !allImportant());
 }
 
-export function moveActed(dir: MoveDirection): void {
-  const node = actedNodes()[0];
-  if (node && canActOn(dir === "up" ? "moveUp" : "moveDown") && !state.busy) void move(node, dir);
-}
-
 export function hideActed(): void {
   const node = actedNodes()[0];
   if (node && canActOn("hide")) void hideNode(node);
@@ -45,7 +39,7 @@ export function hideActed(): void {
 export function deleteActed(): void {
   const nodes = actedNodes();
   if (!canActOn("delete")) return;
-  if (allDownloads(nodes)) void removeDownloads(nodes);
+  if (allInSystem(nodes)) void removeDownloads(nodes);
   else if (nodes.length > 1) void removeMany(nodes);
   else if (nodes[0]) void remove(nodes[0]);
 }

@@ -1,9 +1,13 @@
 /* Footer status line, colored by level. */
-.status-line { display: flex; gap: 12px; min-height: 28px; padding: 6px 12px; font-size: 9pt; color: var(--muted); border-top: 1px solid var(--border); }
+.status-line { display: flex; gap: 12px; min-height: 28px; padding: 6px 12px; font-size: var(--fs-label); color: var(--muted); border-top: 1px solid var(--border); }
 .status-text[data-level="info"] { color: var(--text); }
 .status-text[data-level="warning"] { color: var(--st-review); }
 .status-text[data-level="error"] { color: var(--delete-hover); }
 .status-text[data-level="warning"]::before { content: "Warning: "; }
 .status-text[data-level="error"]::before { content: "Error: "; }
-.status-text { flex: 1; }
+.status-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status-dismiss { flex: none; align-self: center; width: 24px; height: 24px; margin: -4px 0; padding: 0; border: 0; border-radius: var(--radius-xs); background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
+.status-dismiss:hover { color: var(--text); background: var(--field-bg); }
+.status-dismiss:focus-visible { outline: 2px solid var(--button); outline-offset: -2px; }
+.status-dismiss[hidden] { display: none; }
 .status-count { color: var(--accent); white-space: nowrap; }

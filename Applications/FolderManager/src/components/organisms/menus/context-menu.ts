@@ -1,9 +1,11 @@
 // Context menu shared by every view; item enablement comes only from node.actions.
 import { el } from "../../dom";
 import { guiIcon } from "../../atoms/gui-icons";
+import { kindIcon } from "../../atoms/icons";
+import { menuKeys } from "../tooltip/tooltip";
 import { statusIcon } from "../../atoms/status-mark";
 import { importantLabel, isWorknode, ownerOf, STATUSES, TYPES } from "../../../services/store/node-info";
-import { addChild, hideMany, hideNode, pasteFiles, remove, removeDownloads, removeMany, setDetails, setFavorite, setFavorites, setImportant, setLinkHidden, setManyDetails, setType, setUserFlag } from "../../../hooks/ops";
+import { hideMany, hideNode, remove, removeDownloads, removeMany, setDetails, setFavorite, setFavorites, setImportant, setLinkHidden, setManyDetails, setType } from "../../../hooks/ops";
 import { suggestSearch } from "../../../services/ipc/api";
 import { reportError } from "../bars/status-line";
 import { createShortcut, putOnClipboard } from "../../../hooks/folder-share";
@@ -11,10 +13,12 @@ import { openTab } from "../../../hooks/tabs";
 import { copyPath, openFolder, openInApp, openInSplit } from "../../../hooks/path-actions";
 import { isSelected, keyOf, selectedNodes, startEdit, state } from "../../../services/store/state";
 import { menuItems, runMenuItem } from "../../../extensions/host";
-import { autoDismiss, focusInitial, closingItem, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
+import { autoDismiss, menuIcon, focusInitial, closingItem, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
 import { boardMenu, type MenuParts } from "./board-menu";
+import { folderFlagItems } from "./folder-flags";
 import type { ViewPicker } from "../bars/toolbar";
-import { inDownloads, type TreeNode } from "../../../services/ipc/types";
+import { allInSystem } from "../../../services/store/system-folders";
+import { inSystem, type TreeNode } from "../../../services/ipc/types";
 
 interface MenuRequest {
   node: TreeNode;
@@ -99,7 +103,7 @@ function downloadsBackground(folder: TreeNode, close: (restore?: boolean) => voi
 
 function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts {
   const action = closingItem(close);
-  if (inDownloads(node.relParts)) return downloadsMenu([node], close);
+  if (inSystem(node.relParts)) return downloadsMenu([node], close);
   const a = node.actions;
 
   const open = action(node.file ? "Open" : "Open folder location", a.open, () => void openFolder(node));
@@ -123,29 +127,31 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   const copy = action("Copy", true, () => void putOnClipboard([node], false));
   // The backend refuses a cut that is not allowed, such as a folder that holds no loose data.
   const cut = action("Cut", true, () => void putOnClipboard([node], true));
-  // Enabled even on locked folders: the backend picks the real target and explains a refusal.
-  const paste = action("Paste", true, () => void pasteFiles(node.relParts));
   // A review link only opens its owner folder, so the actions that change the folder do not apply.
   if (node.linked) {
-    return { items: [open, copyPathItem, favorite, ...hideItems, copy, paste], subs: [], content: [open, copyPathItem, favorite, ...hideItems, separator(), copy, paste] };
+    return { items: [open, copyPathItem, favorite, ...hideItems, copy], subs: [], content: [open, copyPathItem, favorite, ...hideItems, separator(), copy] };
   }
   const shortcut = action("Create shortcut", true, () => void createShortcut(node));
+  for (const [item, icon] of [[rename, "pencil"], [copy, "duplicate"], [cut, "cut"], [shortcut, "link"]] as const) item.prepend(guiIcon(icon));
   const openHere = action("Open", true, () => void openInApp(node));
   const newTab = action("Open in new tab", true, () => openTab(node.relParts));
   const splitTab = action("Open in split tab", true, () => void openInSplit(node));
-  const shareItems = node.reserved || node.ghost ? [] : [paste, shortcut];
-  const allowsFiles = node.flags.includes("data");
-  const files = action(allowsFiles ? "Deny files" : "Allow files", a.editFlags, () => void setUserFlag(node, !allowsFiles));
-  const automated = node.flags.includes("autom");
-  const autom = action(automated ? "Deactivate automations" : "Activate automations", !node.ghost && !node.locked && !node.reserved && node.relParts.length > 1, () => void setUserFlag(node, !automated, "autom"));
-  const base = node.nodeType?.base ?? "";
-  const fileItems = [...(base === "NODE" ? [files] : []), ...(["REV", "SS", "REC", "RES"].includes(base) ? [] : [autom])];
-  const typeChoices = TYPES.map(([base, label]) =>
-    menuItem(label, "menuitemradio", a.changeType, () => {
+  for (const [item, icon] of [[newTab, "add"], [splitTab, "split"]] as const) {
+    item.classList.add("ctx-iconed");
+    item.prepend(menuIcon(icon));
+  }
+  const shareItems = node.reserved || node.ghost ? [] : [shortcut];
+  const fileItems = folderFlagItems(node, action);
+  const typeChoices = TYPES.map(([base, label]) => {
+    const item = menuItem(label, "menuitemradio", a.changeType, () => {
       close();
       void setType(node, base, node.status ?? "in-progress");
-    }, "ctx-item", node.nodeType?.base === base),
-  );
+    }, "ctx-item ctx-iconed", node.nodeType?.base === base);
+    const icon = kindIcon(base === "WKB" ? "wkb" : "folder");
+    icon.classList.add("ctx-icon");
+    item.prepend(icon);
+    return item;
+  });
   const statusChoices = STATUSES.map(([value, label]) => {
     const item = menuItem(label, "menuitemradio", a.editDetails, () => {
       close();
@@ -154,10 +160,10 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
     item.replaceChildren(guiIcon(statusIcon(value)), label);
     return item;
   });
+  // Rarely used actions sit one level down, so the everyday ones stay short to scan.
+  const openIn = submenu("Open in", [newTab, splitTab], true);
   const subs: Submenu[] = [submenu("Change type", typeChoices, a.changeType)];
   if (node.nodeType?.base === "WKB") subs.push(submenu("Change status", statusChoices, a.editDetails));
-  const newNode = action(a.addFolder ? "New folder" : "New node", a.addChild || a.addFolder, () => void addChild(node, "node"));
-  const newWorknode = action("New worknode", (a.addChild || a.addFolder) && node.relParts.length > 1, () => void addChild(node, "worknode"));
   const del = menuItem("Delete", "menuitem", a.delete, () => {
     close();
     void remove(node);
@@ -180,13 +186,12 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [openHere, open, newTab, splitTab, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, newNode, newWorknode, hideElement, del, ...extras],
-    subs,
+    items: [openHere, open, openIn.trigger, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, hideElement, del, ...extras],
+    subs: [openIn, ...subs],
     content: [
-      openHere, open, newTab, splitTab, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
+      openHere, open, openIn.element, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
       rename, copy, cut, ...shareItems, separator(),
       ...subs.map((s) => s.element), ...fileItems, separator(),
-      newNode, newWorknode, separator(),
       hideElement, del, ...(extras.length > 0 ? [separator(), ...extras] : []),
     ],
   };
@@ -265,7 +270,7 @@ function selectionMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
 function openMenu({ node, nodes, x, y, folderOnly }: MenuRequest, restoreFocus: () => void, views: ViewPicker): void {
   const group = nodes !== undefined && nodes.length > 1 ? nodes : null;
   const label = group ? `Actions for ${group.length} items` : `Actions for ${node.name}`;
-  const downloads = (group ?? [node]).every((n) => inDownloads(n.relParts));
+  const downloads = allInSystem(group ?? [node]);
   openMenuWith(
     (close) => (group && downloads ? downloadsMenu(group, close) : folderOnly && downloads ? downloadsBackground(node, close) : folderOnly && !downloads ? boardMenu(node, views, close) : group ? selectionMenu(group, close) : nodeMenu(node, close)),
     label,
@@ -278,6 +283,10 @@ function openMenu({ node, nodes, x, y, folderOnly }: MenuRequest, restoreFocus: 
 export function openMenuWith(build: (close: (restore?: boolean) => void) => MenuParts, label: string, x: number, y: number, restoreFocus: () => void): void {
   dismissOpen?.();
   const { items, subs, content } = build(close);
+  for (const item of [...items, ...subs.flatMap((s) => s.choices)]) {
+    const keys = subs.some((s) => s.trigger === item) ? [] : menuKeys(item.textContent?.trim() ?? "");
+    if (keys.length > 0) item.append(el("span", { class: "app-tooltip-keys ctx-keys", "aria-hidden": "true" }, ...keys.map((k) => el("kbd", {}, k))));
+  }
   const closeSubs = () => subs.filter((s) => !s.element.contains(document.activeElement)).forEach((s) => s.close());
   items.forEach((item) => item.addEventListener("mouseenter", closeSubs));
   subs.forEach((s) => s.trigger.addEventListener("mouseenter", s.open));

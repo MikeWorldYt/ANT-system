@@ -13,5 +13,7 @@ export interface SettingsPage {
   group: string;
   title: string;
   icon: GuiIcon;
+  // Drawn above the rows, outside the search, for a page header such as About's app identity.
+  intro?(ctx: PageContext): HTMLElement;
   rows(ctx: PageContext): SettingRow[];
 }

@@ -1,8 +1,8 @@
-// Screenshots and recordings have one home: a global folder at the root and a support folder in each main category.
+// Screenshots and recordings have one home: a global folder at the root and a support folder in each main category; templates have the root one only.
 use std::fs;
 use std::path::Path;
 
-use crate::domain::config::MEDIA_NODES;
+use crate::domain::config::{MEDIA_NODES, TEMPLATES_ROOT};
 use crate::domain::error::R;
 use crate::domain::names::{editable_part, is_main_category, support_kind};
 use crate::infra::fs_safe::io_err;
@@ -15,6 +15,9 @@ fn make(dir: &Path) -> R<()> {
 // A category that already has its support folder, under any title, keeps it.
 pub fn ensure(root: &Path) -> R<()> {
     let top = list_subdirs(root)?;
+    if !top.iter().any(|name| name.eq_ignore_ascii_case(TEMPLATES_ROOT)) {
+        make(&root.join(TEMPLATES_ROOT))?;
+    }
     for (word, kind, global) in MEDIA_NODES {
         if !top.iter().any(|name| name.eq_ignore_ascii_case(global)) {
             make(&root.join(global))?;
@@ -41,7 +44,7 @@ mod tests {
         dir.mkdir("Loose");
         ensure(dir.path()).unwrap();
         ensure(dir.path()).unwrap();
-        for path in ["ANT.SCREENSHOTS", "ANT.RECORDINGS", "200.WORK/SS.WORK", "200.WORK/REC.Meetings"] {
+        for path in ["ANT.SCREENSHOTS", "ANT.RECORDINGS", "ANT.TEMPLATES", "200.WORK/SS.WORK", "200.WORK/REC.Meetings"] {
             assert!(dir.path().join(path).is_dir(), "{path}");
         }
         assert!(!dir.path().join("200.WORK/REC.WORK").exists());

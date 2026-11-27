@@ -1,14 +1,32 @@
 /* Connect AI dialog: one row per client plus the manual-config section. */
-.ai-clients { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
-.ai-client-main { display: flex; align-items: center; gap: 8px; }
-.ai-client-main strong { flex: 1; }
-.ai-client-status { color: var(--muted); }
-.ai-client-note { margin: 4px 0 0; color: var(--accent); }
-.ai-client-restart { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+/* Each client's brand color and the connected green stay fixed whatever accent the user picks. */
+dialog.confirm.ai-connect { width: min(440px, calc(100vw - 32px)); max-width: none; padding: 24px; }
+.ai-connect-btn { --client-brand: #d97757; --client-ink: #ffffff; }
+.ai-connect-btn[data-client="codex"], .ai-connect-btn[data-client="opencode"] { --client-brand: #f2f2f2; --client-ink: #111111; }
+.ai-connect h2 { margin-bottom: 16px; text-align: center; }
+.ai-clients { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ai-client-main { display: flex; }
+.ai-connect-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 8px 24px; border: 0; border-radius: var(--radius-full); font: inherit; font-weight: 700; color: var(--client-ink); background: var(--client-brand); cursor: pointer; }
+.ai-connect-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.ai-connect-btn:focus-visible { outline: 2px solid var(--title); outline-offset: 2px; }
+.ai-connect-btn.is-connected { color: var(--client-brand); background: transparent; box-shadow: inset 0 0 0 1px var(--client-brand); }
+.ai-connect-btn.is-connected:not(:hover):not(:focus-visible) .ai-connected-word { color: #16c89c; }
+.ai-connect-btn.is-connected:hover:not(:disabled), .ai-connect-btn.is-connected:focus-visible { color: #ffffff; background: var(--delete-hover); box-shadow: none; filter: none; }
+.ai-connect-btn.is-missing:disabled { color: var(--muted); background: transparent; box-shadow: inset 0 0 0 1px var(--border); font-weight: 400; cursor: not-allowed; }
+.ai-connect-btn.is-missing .ai-connect-icon { opacity: 0.6; }
+.ai-connect-btn[aria-busy="true"] { cursor: progress; opacity: 0.7; }
+.ai-connect-icon { display: inline-flex; }
+.ai-connect-icon svg { width: 18px; height: 18px; }
+.ai-hint { margin-left: 8px; font-size: var(--fs-label); font-weight: 400; }
+.ai-client-note { margin: 0; font-size: var(--fs-label); color: var(--accent); }
+.ai-client-restart { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .ai-client-restart[hidden] { display: none; }
-.ai-client-restart .ai-client-note { flex: 1; margin: 0; }
-.ai-client-error, .ai-feedback.is-error { margin: 4px 0 0; color: var(--delete-hover); }
+.ai-client-restart .ai-client-note { flex: 1; }
+.ai-client-error, .ai-feedback.is-error { margin: 8px 0 0; font-size: var(--fs-label); color: var(--delete-hover); }
 .ai-client-error:empty, .ai-client-note:empty { display: none; }
-.ai-other h3 { margin: 12px 0 4px; font-size: 10pt; color: var(--title); }
-.ai-feedback { margin: 4px 0 0; color: var(--muted); }
-.ai-client .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ai-other { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); font-size: var(--fs-label); color: var(--muted); }
+.ai-other-caption { margin: 0; flex: 1; }
+.ai-link { padding: 4px 8px; font-size: var(--fs-label); color: var(--title); background: transparent; text-decoration: underline; }
+.ai-feedback { flex-basis: 100%; margin: 0; font-size: var(--fs-label); color: var(--muted); }
+.ai-feedback:empty { display: none; }
+.ai-connect .dialog-buttons { margin-top: 16px; }

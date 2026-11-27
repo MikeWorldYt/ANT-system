@@ -4,12 +4,11 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value};
 
+use super::shared::{io_err, read_text, same_exe, write_checked};
 use super::{exe_path, internal, server_entry, AiClient, SERVER_NAME};
 use crate::domain::error::{FmError, R};
-use crate::infra::fs_safe::{write_atomic, write_atomic_io};
 
 const FILE: &str = "claude_desktop_config.json";
-const BACKUP: &str = "claude_desktop_config.json.bak";
 
 fn first_dir(parent: &Path, prefix: &str, sub: &[&str]) -> Option<PathBuf> {
     fs::read_dir(parent).ok()?.flatten().filter(|e| e.file_name().to_string_lossy().starts_with(prefix)).map(|e| sub.iter().fold(e.path(), |p, s| p.join(s))).find(|p| p.is_dir())
@@ -27,18 +26,6 @@ fn current_dir() -> Option<PathBuf> {
     config_dir(local.as_deref(), roaming.as_deref()).filter(|d| d.is_dir())
 }
 
-fn io_err(op: &str, path: &Path, e: std::io::Error) -> FmError {
-    FmError::Io { op: op.into(), path: path.display().to_string(), message: e.to_string(), os_code: e.raw_os_error() }
-}
-
-fn read_text(file: &Path) -> R<Option<String>> {
-    match fs::read_to_string(file) {
-        Ok(text) => Ok(Some(text)),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-        Err(e) => Err(io_err("read", file, e)),
-    }
-}
-
 // Returns the text it parsed too, so a write can tell whether Claude Desktop changed the file meanwhile.
 fn read_config(file: &Path) -> R<(Map<String, Value>, Option<String>)> {
     let text = read_text(file)?;
@@ -50,17 +37,8 @@ fn read_config(file: &Path) -> R<(Map<String, Value>, Option<String>)> {
     }
 }
 
-// Claude Desktop rewrites this file itself, so a change since the read wins and the user's previous file stays in the .bak.
 pub(super) fn write_config(file: &Path, read: Option<&str>, config: &Map<String, Value>) -> R<()> {
-    let text = serde_json::to_string_pretty(config).map_err(|e| internal(e.to_string()))?;
-    if read_text(file)?.as_deref() != read {
-        return Err(internal(format!("{} changed while Folder Manager was updating it; nothing was written, try again", file.display())));
-    }
-    if let Some(previous) = read.filter(|t| !t.trim().is_empty()) {
-        let backup = file.with_file_name(BACKUP);
-        write_atomic_io(&backup, previous.as_bytes()).map_err(|e| io_err("back up", &backup, e))?;
-    }
-    write_atomic(file, text.as_bytes())
+    write_checked(file, read, &serde_json::to_string_pretty(config).map_err(|e| internal(e.to_string()))?)
 }
 
 fn not_object(file: &Path) -> FmError {
@@ -87,10 +65,6 @@ pub(crate) fn disconnect_in(dir: &Path) -> R<()> {
         Some(_) => return Err(not_object(&file)),
     };
     if removed { write_config(&file, read.as_deref(), &config) } else { Ok(()) }
-}
-
-fn same_exe(a: &str, b: &str) -> bool {
-    if cfg!(windows) { a.eq_ignore_ascii_case(b) } else { a == b }
 }
 
 pub(crate) fn is_connected_in(dir: &Path, exe: &str) -> R<bool> {

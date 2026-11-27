@@ -57,7 +57,7 @@ pub(super) fn status() -> R<AiClient> {
     Ok(client(cli.as_deref(), connected))
 }
 
-fn required_cli() -> R<PathBuf> {
+pub(super) fn required_cli() -> R<PathBuf> {
     find_cli().ok_or_else(|| internal("Claude Code is not installed"))
 }
 

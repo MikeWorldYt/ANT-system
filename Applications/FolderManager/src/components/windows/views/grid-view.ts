@@ -9,16 +9,32 @@ import { nodeToggle } from "../../atoms/node-toggle";
 import { sortedForColumns } from "../../../services/store/sort";
 import { expand } from "../../../hooks/ops";
 import { isManagedFolder, manageBox, manageHeader, managedNodes, manageSnapshot, sameManage, type ManageSnapshot } from "../../molecules/manage-row";
-import { findNode, keyOf, listed, select, selectedNode, notify, sortOf, startEdit, state, type VirtualId } from "../../../services/store/state";
+import { findNode, keyOf, listed, select, selectedNode, notify, sortOf, startEdit, state, virtualRoot, type VirtualId } from "../../../services/store/state";
 import { virtualNodes } from "../../../services/store/virtual";
+import { isMainCategory } from "../../../services/store/node-info";
 import { openVirtual } from "../../../hooks/virtual-nav";
 import { isTail } from "../../../services/store/sort";
-import { openEntry, placeEntries, rootEntries, virtualEntries, type VirtualEntry } from "../../molecules/virtual-entry";
+import { entryType, openEntry, placeEntries, rootEntries, virtualEntries, type VirtualEntry } from "../../molecules/virtual-entry";
 import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
-import { DOWNLOADS_ROOT, type TreeNode } from "../../../services/ipc/types";
+import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
+import { isTemplatesHome, newTemplateItem } from "../../molecules/new-template-item";
 import type { ViewMode } from "./view-mode";
-import { detailCells, detailsHeader, fileKind } from "./details-cells";
+import { requestFolderSizes } from "../../../hooks/folder-sizes";
+import { focusItem } from "../../../hooks/focus-return";
+import { detailCells, detailsHeader, entryCells, detailTemplate, fileKind } from "./details-cells";
+
+// One line under each root tile in the grid says what it is for, so a new Storage explains itself.
+const ENTRY_HINTS: Record<string, string> = { favorites: "Pinned folders", downloads: "Your downloads", review: "Files to sort", documents: "System documents", pictures: "System pictures", music: "System music", videos: "System videos", desktop: "System desktop" };
+const ROOT_HINTS: Record<string, string> = { REC: "Screen recordings", SS: "Captures", TPL: "Worknode templates" };
+const rootHint = (n: TreeNode): string | null => (n.file ? null : (ROOT_HINTS[n.nodeType?.base ?? ""] ?? (isMainCategory(n) ? "Your area" : null)));
+// In Details an entry lines up as a row: its icon and label take the Name column and its kind the Type column.
+function asDetailRow(entry: HTMLElement): HTMLElement {
+  entry.replaceChildren(el("span", { class: "detail-lead" }, ...entry.childNodes), ...entryCells(entryType(entry.dataset.entry as VirtualId)));
+  return entry;
+}
+
+const hintLine = (text: string) => el("span", { class: "tile-hint" }, text);
 
 function createFolderView(id: string, label: string, rootClass: string, detail?: (n: TreeNode) => string, columns = false): ViewMode {
   const root = el("div", { class: rootClass, role: "listbox", "aria-label": "Folder contents" });
@@ -38,13 +54,21 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
     const parent = parts.length > 1 ? parts.slice(0, -1).join("/") : null;
     if (key === state.entering) {
       state.entering = null;
-      if (selectedNode()?.hasChildren) {
+      if (selectedNode()?.file === false) {
         folder = key;
         return;
       }
     }
+    // A restored tab or launch shows the folder it showed, not the folder selected in it.
+    if (state.showing !== undefined && (state.showing === parent || state.showing === key)) {
+      folder = state.showing;
+      state.showing = undefined;
+      return;
+    }
     if (key === folder || parent === folder) return;
-    folder = selectedNode()?.hasChildren ? key : parent;
+    const next = selectedNode()?.hasChildren ? key : parent;
+    // A native folder itself is no node, so a selection left on a deleted entry falls back to its list.
+    folder = next !== null && next === virtualRoot(state.virtual) ? null : next;
   }
 
   let built: ManageSnapshot | null = null;
@@ -70,7 +94,7 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
   }
 
   function enter(n: TreeNode): void {
-    if (!n.hasChildren) return;
+    if (n.file) return;
     folder = keyOf(n.relParts);
     select(n.relParts);
   }
@@ -87,10 +111,16 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
     if (n.favorite) art.append(favoriteMark());
     if (n.important) art.append(importantMark());
     if (n.status) art.append(statusMark(n.status));
-    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...hideBox(n), art, detail ? el("div", { class: "card-text" }, nameCell(n, false), el("span", { class: "card-detail" }, detail(n))) : nameCell(n, false, false, !columns));
+    const lead = [...hideBox(n), art, detail ? el("div", { class: "card-text" }, nameCell(n, false), el("span", { class: "card-detail" }, detail(n))) : nameCell(n, false, false, !columns)];
+    // In Details the icon, its marks and the name share the Name column, so every row lines up under the header.
+    const leadBox = columns ? el("span", { class: "detail-lead" }, ...lead) : null;
+    const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...(leadBox ? [leadBox] : lead));
     if (columns) item.append(...detailCells(n));
     markNodeItem(item, n);
-    item.prepend(...manageBox(n, item));
+    // Card names truncate, so the tooltip leads with the full one.
+    if (detail) item.title = `${n.name}
+${item.title}`;
+    (leadBox ?? item).prepend(...manageBox(n, item));
     onItemClick(item, n, () => shownNodes().map((s) => keyOf(s.relParts)), () => select(n.relParts));
     // As in Explorer, a double click opens; the name renames on a slow second click.
     item.addEventListener("dblclick", () => (n.file ? openOnDouble(n) : enter(n)));
@@ -186,6 +216,10 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
   return {
     id,
     label,
+    openFolder() {
+      syncFolder();
+      return folderNode();
+    },
     mount(host) {
       root.addEventListener("keydown", onKey);
       root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, folderNode(), root));
@@ -207,20 +241,31 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
       const open = folderNode();
       const empty = nodes.length === 0 && open !== null && open.children !== null;
       const legend = listing && nodes.length === 0 ? listing.empty : empty ? "Empty" : null;
-      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns ? [detailsHeader(folder ?? (state.virtual === "downloads" ? DOWNLOADS_ROOT : ""))] : [])];
+      const columnKey = folder ?? virtualRoot(state.virtual) ?? "";
+      if (columns) root.style.setProperty("--detail-cols", detailTemplate(columnKey));
+      const header = [...(isManagedFolder(folder ?? "") ? [manageHeader("manage-bar")] : []), ...(columns ? [detailsHeader(columnKey)] : [])];
       const entryOptions = { tabbable: entryTabbable, mark: markEntry };
       const items = nodes.map((n) => buildItem(n, n === tabbable));
       const tail = nodes.findIndex((n) => !n.file && isTail(n.name));
-      const placed = listing ? items : folder === null ? placeEntries(virtualEntries("grid-item", "option", entryOptions), items, tail < 0 ? items.length : tail) : items;
-      root.replaceChildren(...header, ...placed, ...(legend ? [el("p", { class: "grid-legend" }, legend)] : []));
+      const placed = listing ? items : folder === null ? placeEntries(virtualEntries("grid-item", "option", entryOptions).map((e) => (columns ? asDetailRow(e) : e)), items, tail < 0 ? items.length : tail) : items;
+      if (id === "grid" && folder === null && !listing) {
+        for (const tile of placed) {
+          const node = tile.dataset.key ? findNode(tile.dataset.key.split("/")) : null;
+          const hint = tile.dataset.entry ? ENTRY_HINTS[tile.dataset.entry] : node ? rootHint(node) : null;
+          if (hint) tile.append(hintLine(hint));
+        }
+      }
+      const creator = !listing && isTemplatesHome(open) ? [newTemplateItem(open, "grid-item", "option")] : [];
+      root.replaceChildren(...header, ...creator, ...placed, ...(legend && creator.length === 0 ? [el("p", { class: "grid-legend" }, legend)] : []));
       built = manageSnapshot();
       showMark();
       root.querySelector(".grid-item.selected")?.scrollIntoView({ block: "nearest" });
       if (hadFocus) root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus({ preventScroll: true });
       loadChildren();
+      if (columns) requestFolderSizes(nodes);
     },
     focus() {
-      root.querySelector<HTMLElement>('.grid-item[tabindex="0"]')?.focus();
+      focusItem(root.querySelector<HTMLElement>('.grid-item[tabindex="0"]'));
     },
     destroy() {
       root.remove();

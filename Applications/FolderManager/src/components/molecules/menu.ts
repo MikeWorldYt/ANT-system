@@ -45,18 +45,25 @@ export function rove(items: HTMLElement[], ev: KeyboardEvent): boolean {
 
 export const focusInitial = (items: HTMLElement[]) => (items.find((b) => b.getAttribute("aria-checked") === "true") ?? items[0])?.focus();
 
+// A window pushed past the screen's work area hides its lower part, so a menu only counts the part the user can see.
+const visibleBottom = (): number => Math.min(window.innerHeight, screen.availHeight + ((screen as Screen & { availTop?: number }).availTop ?? 0) - window.screenY - (window.outerHeight - window.innerHeight));
+
 // The menu must already be in the document so it can be measured.
 export function place(menu: HTMLElement, x: number, y: number): void {
   const { width, height } = menu.getBoundingClientRect();
-  menu.style.left = `${Math.max(EDGE, Math.min(x, window.innerWidth - width - EDGE))}px`;
-  menu.style.top = `${Math.max(EDGE, Math.min(y, window.innerHeight - height - EDGE))}px`;
+  // Past an edge it opens from its other corner, as native menus do, instead of sliding under the pointer.
+  const left = x + width > window.innerWidth - EDGE && x - width >= EDGE ? x - width : x;
+  const bottom = visibleBottom();
+  const top = y + height > bottom - EDGE && y - height >= EDGE ? y - height : y;
+  menu.style.left = `${Math.max(EDGE, Math.min(left, window.innerWidth - width - EDGE))}px`;
+  menu.style.top = `${Math.max(EDGE, Math.min(top, bottom - height - EDGE))}px`;
 }
 
 // Under the anchor when it fits, else above it as long as that stays on screen.
 export function placeUnder(popup: HTMLElement, anchor: DOMRect): void {
   const { height } = popup.getBoundingClientRect();
   const below = anchor.bottom + EDGE;
-  place(popup, anchor.left, below + height <= window.innerHeight || anchor.top - EDGE - height < EDGE ? below : anchor.top - EDGE - height);
+  place(popup, anchor.left, below + height <= visibleBottom() || anchor.top - EDGE - height < EDGE ? below : anchor.top - EDGE - height);
 }
 
 export function autoDismiss(inside: (target: Node) => boolean, dismiss: (restore: boolean) => void, onBlur = false): () => void {

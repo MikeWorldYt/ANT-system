@@ -12,6 +12,11 @@ interface Draft {
   stamp?: number;
   file?: boolean;
   size?: number;
+  plain?: boolean;
+  outcomes?: boolean;
+  output?: string;
+  support?: "REV" | "REC" | "RES" | "SS";
+  data?: boolean;
 }
 
 const DAY = 86_400_000;
@@ -30,7 +35,7 @@ const SAMPLE_STATUSES: (WkbStatus | null)[] = ["in-progress", "hold", "for-revie
 const kebab = (text: string): string => text.trim().replace(/\s+/g, "-");
 const pad = (n: number, width: number): string => String(n).padStart(width, "0");
 // The fixed part of a name: the number of a node, or the tracker and number of a worknode.
-const prefixOf = (name: string): string => /^(?:PJ\.\d+_|\d+\.)/.exec(name)?.[0] ?? "";
+const prefixOf = (name: string): string => /^(?:PJ\.\d+_|\d+\.|(?:REV|REC|RES|SS)\.)/.exec(name)?.[0] ?? "";
 
 // Same reading as CreateNewStorage: `##` categories, `-` subcategories, indented `-` topics and `PJ:` projects; support folders are left out.
 function parse(text: string): Draft[] {
@@ -56,11 +61,89 @@ function parse(text: string): Draft[] {
   return cats;
 }
 
-function actions(level: number): NodeActions {
+// Every project of a WORK, STUDY or HOBBIES area gets the same made-up skeleton of that trade; a path ending in "/" is a plain folder.
+const SKELETONS: Record<string, string[]> = {
+  Development: ["dist/", "dist/index.html", "dist/assets.js", "public/", "public/favicon.ico", "src/", "src/components/", "src/App.tsx", "src/main.tsx", "package.json", "README.md"],
+  Design: ["exports/", "exports/logo.png", "exports/banner.png", "sources/", "sources/logo.ai", "sources/layout.fig", "fonts/", "brief.pdf"],
+  "Video-edition": ["footage/", "footage/A001_C001.mp4", "footage/A001_C002.mp4", "audio/", "audio/music.wav", "graphics/", "graphics/title.psd", "project.prproj", "render.mp4"],
+  Architecture: ["plans/", "plans/floor-plan.dwg", "plans/elevations.dwg", "renders/", "renders/exterior.jpg", "model.skp", "specs.pdf"],
+  "Computer-Science": ["labs/", "labs/lab1.py", "labs/lab2.py", "notes/", "notes/week1.md", "assignments/", "assignments/hw1.pdf", "syllabus.pdf"],
+  "Data-Analysis": ["data/", "data/raw.csv", "data/clean.csv", "notebooks/", "notebooks/analysis.ipynb", "charts/", "charts/trend.png", "report.pdf"],
+  "Digital-Arts": ["sketches/", "sketches/draft-01.png", "references/", "references/palette.jpg", "final.psd", "export.png"],
+  Business: ["research/", "research/market.pdf", "slides.pptx", "plan.docx", "budget.xlsx"],
+  Medicine: ["papers/", "papers/study-2026.pdf", "images/", "images/x-ray.png", "patient-notes.docx", "dosage.xlsx"],
+  Languages: ["vocabulary/", "vocabulary/unit1.xlsx", "audio/", "audio/lesson1.mp3", "exercises.docx", "notes.pdf"],
+  Math: ["notes/", "notes/lecture1.pdf", "exercises/", "exercises/set1.pdf", "formulas.pdf", "homework.tex"],
+  Music: ["stems/", "stems/drums.wav", "stems/bass.wav", "mix.flp", "master.mp3", "lyrics.docx"],
+  Reading: ["ebooks/", "ebooks/novel.epub", "notes/", "notes/chapter-summary.docx", "reading-list.xlsx", "review.pdf"],
+  Photography: ["raw/", "raw/DSC_0101.jpg", "raw/DSC_0102.jpg", "edits/", "edits/DSC_0101-edit.jpg", "preset.xmp", "contact-sheet.pdf"],
+  Cooking: ["recipes/", "recipes/paella.pdf", "photos/", "photos/plated.jpg", "shopping-list.xlsx", "menu.docx"],
+  Fitness: ["logs/", "logs/week1.xlsx", "photos/", "photos/progress.jpg", "plan.pdf", "meal-prep.docx"],
+};
+// The first game looks like a real fan's folder, so the tour has a full one to open.
+const ENDFIELD = ["Mods/", "Mods/reshade-preset.ini", "Mods/ui-tweaks.zip", "Arts/", "Arts/endministrator-fanart.png", "Arts/talos-ii-wallpaper.jpg", "Arts/perlica-sketch.psd", "Builds/", "Builds/team-comps.xlsx", "Builds/gear-planner.xlsx", "Clips/", "Clips/boss-clear.mp4", "base-layout.png", "gacha-log.csv"];
+// PERSONAL keeps documents, not projects, so its topics hold the files themselves.
+const PERSONAL_FILES: Record<string, string[]> = {
+  Identity: ["passport.pdf", "id-card.jpg"], Certificates: ["birth-certificate.pdf", "diploma.pdf"], Legal: ["rental-contract.pdf"], Insurance: ["home-policy.pdf", "car-policy.pdf"],
+  Bank: ["statement-2026-10.pdf", "statement-2026-11.pdf"], Taxes: ["tax-return-2025.pdf"], Invoices: ["invoice-0012.pdf", "invoice-0013.pdf"], Budget: ["budget-2026.xlsx"],
+  Records: ["blood-test.pdf", "check-up-2026.pdf"], Prescriptions: ["prescription.pdf"], Vaccines: ["vaccination-card.jpg"], Appointments: ["dentist.pdf"],
+  Bills: ["electricity-2026-10.pdf", "water-2026-10.pdf"], Rent: ["receipt-2026-11.pdf"], Appliances: ["fridge-manual.pdf"], Vehicle: ["registration.pdf"],
+  Photos: ["IMG_0001.jpg", "IMG_0002.jpg"], Videos: ["VID_0001.mp4"], Family: ["birthday.jpg"], Events: ["graduation.jpg"],
+  Tickets: ["flight-MAD-NRT.pdf"], Bookings: ["hotel.pdf"], Itineraries: ["trip-plan.xlsx"], Visas: ["visa.pdf"],
+};
+// The tour shows loose files waiting in a review folder next to the projects.
+const LOOSE = ["scan_0042.pdf", "IMG_20261103.png", "invoice-final-v2.pdf", "notes (1).docx", "budget_copy.xlsx"];
+
+function skeleton(paths: string[]): Draft[] {
+  const root: Draft[] = [];
+  for (const [i, path] of paths.entries()) {
+    const folder = path.endsWith("/");
+    const parts = path.replace(/\/$/, "").split("/");
+    const name = parts.pop() ?? "";
+    const parent = parts.reduce((list, part) => list.find((d) => d.name === part)?.kids ?? list, root);
+    parent.push(folder ? { name, kids: [], project: false, plain: true } : { name, kids: [], project: false, file: true, size: 20_000 * (i + 2), stamp: Date.now() - i * DAY });
+  }
+  return root;
+}
+
+function addSamples(cats: Draft[]): void {
+  for (const area of cats.filter((c) => c.name === "200.WORK" || c.name === "300.STUDY" || c.name === "400.HOBBIES").flatMap((c) => c.kids)) {
+    const paths = SKELETONS[area.name.slice(prefixOf(area.name).length)];
+    if (paths) for (const pj of area.kids.filter((k) => k.project)) pj.kids.push(...skeleton(paths));
+    // A list of projects delivers its finished work to the Outcomes folder beside them.
+    if (area.kids.some((k) => k.project)) area.kids.unshift({ name: "00.Outcomes", kids: [], project: false, outcomes: true });
+  }
+  // Gaming holds one node per game, each with its mods and fan art.
+  for (const game of cats.find((c) => c.name === "400.HOBBIES")?.kids.find((a) => a.name.endsWith(".Gaming"))?.kids.filter((k) => !k.support) ?? []) {
+    game.kids.push(...skeleton(game.name.endsWith("Arknights-Endfield") ? ENDFIELD : ["Mods/", "Mods/texture-pack.zip", "Mods/config.ini", "Arts/", "Arts/wallpaper.png", "Arts/fan-art.jpg"]));
+  }
+  for (const topic of cats.find((c) => c.name === "100.PERSONAL")?.kids.flatMap((a) => a.kids) ?? []) {
+    const names = PERSONAL_FILES[topic.name.slice(prefixOf(topic.name).length)];
+    if (names) topic.kids.push(...skeleton(names));
+  }
+  const first = cats.find((c) => c.name === "200.WORK")?.kids[0];
+  const file = (name: string, i: number): Draft => ({ name, kids: [], project: false, file: true, size: 40_000 * (i + 3), stamp: Date.now() - i * DAY });
+  first?.kids.find((k) => k.support === "REV")?.kids.push(...LOOSE.map(file));
+}
+
+// As CreateNewStorage does: each category gets its Recordings, Resources, Review and Screenshots, and each subcategory and topic its Review.
+function addSupports(list: Draft[], level: number): void {
+  for (const d of list.filter((k) => !k.project && !k.file && !k.support && !k.plain)) {
+    addSupports(d.kids, level + 1);
+    const title = d.name.slice(prefixOf(d.name).length);
+    const support = (kind: "REV" | "REC" | "RES" | "SS", name = title): Draft => ({ name: `${kind}.${name}`, kids: [], project: false, support: kind });
+    if (level === 1) d.kids.push(support("REC"), support("SS"), support("RES", "Resources"), support("REV"));
+    else if (level < 4) d.kids.push(support("REV"));
+  }
+}
+
+// Only the user's own project is renamed, from its details, so an inline rename never catches the user off guard.
+function actions(level: number, project: boolean): NodeActions {
   const editable = level > 1;
   return {
-    rename: editable,
-    changeType: editable,
+    editFlags: editable,
+    rename: editable && project,
+    changeType: false,
     addNext: true,
     addChild: true,
     addFolder: false,
@@ -71,8 +154,7 @@ function actions(level: number): NodeActions {
     open: false,
     favorite: false,
     important: false,
-    editDetails: false,
-    editFlags: false,
+    editDetails: project,
     hideLink: false,
     hide: false,
   };
@@ -81,7 +163,7 @@ function actions(level: number): NodeActions {
 function node(draft: Draft, parent: string[]): TreeNode {
   const relParts = [...parent, draft.name];
   const level = relParts.length;
-  const prefix = draft.file ? "" : prefixOf(draft.name);
+  const prefix = draft.file || draft.plain ? "" : prefixOf(draft.name);
   const children = draft.kids.map((k) => node(k, relParts));
   return {
     name: draft.name,
@@ -89,14 +171,15 @@ function node(draft: Draft, parent: string[]): TreeNode {
     depth: parent.length,
     ghost: false,
     inYaml: true,
-    nodeType: draft.file ? null : draft.project ? { raw: "WKB", base: "WKB", level: null } : { raw: `NODE-L${level}`, base: "NODE", level },
+    nodeType: draft.file || draft.plain ? null : draft.outcomes ? { raw: "OUT", base: "OUT", level: null } : draft.project ? { raw: "WKB", base: "WKB", level: null } : draft.support ? { raw: draft.support, base: draft.support, level: null } : { raw: `NODE-L${level}`, base: "NODE", level },
     status: draft.status ?? null,
     statusRaw: draft.status ?? null,
     locked: false,
     reserved: false,
     linked: false,
     linkPath: null,
-    flags: [],
+    // As the backend does, a node made on level 3, the edge of the default index, takes files.
+    flags: draft.data || (level === 3 && !draft.project && !draft.support && !draft.file && !draft.plain) ? ["data"] : [],
     hasChildren: children.length > 0,
     isGit: false,
     fixedPrefix: prefix,
@@ -106,10 +189,10 @@ function node(draft: Draft, parent: string[]): TreeNode {
     hidden: false,
     concealed: false,
     file: draft.file === true,
-    info: null,
+    info: draft.output ? { fields: [{ key: "Output", value: draft.output }], error: null } : null,
     children,
     absPath: [ROOT, ...relParts].join("\\"),
-    actions: actions(level),
+    actions: actions(level, draft.project),
     stamps: { modified: draft.stamp ?? null, created: draft.stamp ? draft.stamp - 30 * DAY : null, size: draft.size ?? null },
   };
 }
@@ -119,11 +202,14 @@ export interface DemoStorage {
   // Fills a folder with made-up worknodes in mixed statuses and dates, so sorting has something to show.
   seedProjects(parent: string[]): void;
   addFile(folder: string[], name: string, size: number): void;
+  fill(folder: string[], paths: string[]): void;
 }
 
 // A level-1 sibling would be a new category, which the tutorial does not offer, so new nodes go next to a deeper one.
 export function createDemoStorage(): DemoStorage {
   const cats = parse(template);
+  addSupports(cats, 1);
+  addSamples(cats);
   const find = (parts: string[]): { list: Draft[]; at: number } | null => {
     let list = cats;
     for (const [i, part] of parts.entries()) {
@@ -145,7 +231,7 @@ export function createDemoStorage(): DemoStorage {
   function addNext(relParts: string[], kind: unknown): Mutation {
     const spot = find(relParts);
     if (!spot || relParts.length < 2) throw { kind: "internal", message: "The tutorial adds nodes inside a category." };
-    const used = spot.list.filter((d) => !d.project).length;
+    const used = spot.list.filter((d) => !d.project && !d.support && !d.file && !d.outcomes).length;
     const draft: Draft =
       kind === "worknode"
         ? { name: `PJ.${pad(nextProject(spot.list), 3)}_New-Worknode`, kids: [], project: true }
@@ -181,6 +267,72 @@ export function createDemoStorage(): DemoStorage {
     return mutation(relParts);
   }
 
+  function addChild(relParts: string[], kind: unknown): Mutation {
+    const spot = find(relParts);
+    const folder = spot?.list[spot.at];
+    if (!folder || relParts.length < 2) throw { kind: "internal", message: "The tutorial adds nodes inside a category." };
+    const used = folder.kids.filter((d) => !d.project && !d.support && !d.file && !d.outcomes).length;
+    const draft: Draft = kind === "worknode" ? { name: `PJ.${pad(nextProject(folder.kids), 3)}_New-Worknode`, kids: [], project: true } : { name: `${pad(used + 1, 2)}.New-Node`, kids: [], project: false };
+    const tail = folder.kids.findIndex((d) => d.support);
+    folder.kids.splice(tail < 0 ? folder.kids.length : tail, 0, draft);
+    return mutation([...relParts, draft.name]);
+  }
+
+  // A path inside a worknode, as the output and the picker give it.
+  const inside = (root: Draft, path: string): { list: Draft[]; at: number } | null => {
+    let list = root.kids;
+    const parts = path.split("/");
+    for (const [i, part] of parts.entries()) {
+      const at = list.findIndex((d) => d.name === part);
+      if (at < 0) return null;
+      if (i === parts.length - 1) return { list, at };
+      list = list[at]?.kids ?? [];
+    }
+    return null;
+  };
+
+  function setOutput(relParts: string[], output: unknown): Mutation {
+    const spot = find(relParts);
+    const draft = spot?.list[spot.at];
+    if (draft) draft.output = typeof output === "string" ? output : undefined;
+    return mutation(relParts);
+  }
+
+  // As the backend does: the output moves into `(date)_Title` inside the Outcomes folder beside the worknode, and a link stays behind.
+  function deliver(relParts: string[], date: unknown, all: unknown): Mutation {
+    const spot = find(relParts);
+    const worknode = spot?.list[spot.at];
+    const outcomes = spot?.list.find((d) => d.outcomes);
+    if (!worknode || !outcomes) throw { kind: "internal", message: "No Outcomes folder beside this worknode." };
+    const name = `(${String(date)})_${worknode.name.slice(prefixOf(worknode.name).length)}`;
+    const out = worknode.output ? inside(worknode, worknode.output) : null;
+    const picked = out?.list[out.at];
+    let moved: Draft[];
+    let linkHome = worknode.kids;
+    if (all === true || !picked || !out) moved = worknode.kids.splice(0);
+    else if (picked.plain) {
+      moved = picked.kids.splice(0);
+      linkHome = picked.kids;
+    } else moved = out.list.splice(out.at, 1);
+    outcomes.kids.push({ name, kids: moved, project: false, plain: true });
+    linkHome.push({ name: `${name}.lnk`, kids: [], project: false, file: true, size: 1_024, stamp: Date.now() });
+    return mutation(relParts);
+  }
+
+  // The tutorial hands the user's new project a believable set of files to deliver.
+  function fill(relParts: string[], paths: string[]): void {
+    const spot = find(relParts);
+    const draft = spot?.list[spot.at];
+    if (draft && draft.kids.length === 0) draft.kids.push(...skeleton(paths));
+  }
+
+  function setFlag(relParts: string[], on: unknown, flag: unknown): Mutation {
+    const spot = find(relParts);
+    const draft = spot?.list[spot.at];
+    if (draft && flag === "data") draft.data = on === true;
+    return mutation(relParts);
+  }
+
   const listed = (relParts: string[]): TreeNode[] => {
     if (!relParts.length) return cats.map((c) => node(c, []));
     const spot = find(relParts);
@@ -209,6 +361,7 @@ export function createDemoStorage(): DemoStorage {
   return {
     seedProjects,
     addFile,
+    fill,
     async handle(cmd, args) {
       switch (cmd) {
         case "load_tree":
@@ -222,6 +375,16 @@ export function createDemoStorage(): DemoStorage {
           return rename(parts(args), args?.newEditable);
         case "set_node_details":
           return setStatus(parts(args), args?.status);
+        case "add_child":
+          return addChild(parts(args), args?.kind);
+        case "set_node_output":
+          return setOutput(parts(args), args?.output);
+        case "deliver_output":
+          return deliver(parts(args), args?.date, args?.all);
+        case "restore_output":
+          return mutation(parts(args));
+        case "set_user_flag":
+          return setFlag(parts(args), args?.on, args?.flag);
         case "inspect_delete":
           return { ghost: false, files: 0, dirs: 0 };
         case "delete_node":
@@ -244,6 +407,7 @@ export function createDemoStorage(): DemoStorage {
           return name.includes(".") ? fileIcon(name) : null;
         }
         case "download_image":
+        case "folder_sizes":
           return null;
         default:
           throw { kind: "internal", message: "Not available in the tutorial." };

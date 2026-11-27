@@ -21,6 +21,7 @@
 @import "./components/atoms/checkbox.css";
 @import "./components/molecules/side-action.css";
 @import "./components/organisms/bars/details-panel.css";
+@import "./components/organisms/bars/welcome-card.css";
 @import "./components/atoms/button.css";
 @import "./components/organisms/bars/status-line.css";
 @import "./components/organisms/bars/toolbar.css";
@@ -40,6 +41,7 @@
 @import "./components/organisms/dialogs/invalid-dialog.css";
 @import "./components/organisms/dialogs/ai-connect-dialog.css";
 @import "./components/organisms/dialogs/storage-picker.css";
+@import "./components/organisms/dialogs/pick-inside.css";
 @import "./components/organisms/transfer-panel.css";
 @import "./components/organisms/tour/onboarding-tour.css";
 @import "./components/molecules/setting-row.css";

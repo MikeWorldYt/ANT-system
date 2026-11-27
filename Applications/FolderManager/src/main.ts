@@ -6,7 +6,7 @@ import { onDownloadsChanged, onDownloadsDictionary, onFileDrag, onReviewIndex, o
 import { rememberSelection, state, subscribe } from "./services/store/state";
 import { clearStatus, currentOperationStatus, setStatus, reportError } from "./components/organisms/bars/status-line";
 import { init, refresh, relistLevels } from "./hooks/ops";
-import { relistDownloads } from "./hooks/relist";
+import { relistSystem } from "./hooks/relist";
 import { installTooltips } from "./components/organisms/tooltip/tooltip";
 import { autoRefresh } from "./hooks/auto-refresh";
 import { startIdleRefresh } from "./hooks/idle-refresh";
@@ -70,11 +70,12 @@ function followBatch(): void {
 subscribe(() => {
   if (isRenderingOther()) return;
   followBatch();
+  // The view settles which folder it shows first, so the breadcrumb and the tab read that folder.
+  views.current().render();
   toolbar.render();
   navigator.render();
   syncTabs();
   tabBar.render();
-  views.current().render();
   nav.render();
   renderOther();
   board.render();
@@ -101,16 +102,21 @@ onReviewIndex((e) => {
     else clearStatus();
   }
 }).catch((e) => reportError("warning", e, "Review index updates unavailable"));
-trackFieldFocus();
+trackFieldFocus(() => views.current().focus());
+// The webview's own focus events need no backend round trip, so arrows work at once; the backend's one repeats it after the relist.
+window.addEventListener("focus", restoreFocus);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") restoreFocus();
+});
 const FOCUS_GAP_MS = 5_000;
 let lastFocusAt = 0;
 onWindowFocus(() => {
   const quick = Date.now() - lastFocusAt < FOCUS_GAP_MS;
   lastFocusAt = Date.now();
-  void (quick ? Promise.resolve() : relistLevels(null)).finally(() => restoreFocus(() => views.current().focus()));
+  void (quick ? Promise.resolve() : relistLevels(null)).finally(restoreFocus);
 }).catch((e) => reportError("warning", e, "Refresh on focus unavailable"));
 
-onDownloadsChanged(() => void relistDownloads()).catch((e) => reportError("warning", e, "Live Downloads updates unavailable"));
+onDownloadsChanged((root) => void relistSystem(root)).catch((e) => reportError("warning", e, "Live Downloads updates unavailable"));
 
 onDownloadsDictionary(replanAfterDictionary).catch((e) => reportError("warning", e, "Downloads dictionary updates unavailable"));
 
@@ -159,5 +165,6 @@ void init().then((ready) => {
         toolbar.render();
       }
     });
-  if (state.settings.autoUpdate) void checkForUpdates();
+  // Every launch looks for a newer version; the setting only decides whether it installs unasked.
+  void checkForUpdates();
 });

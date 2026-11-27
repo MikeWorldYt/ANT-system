@@ -1,7 +1,7 @@
 // Groups of pressed-state buttons that pick one value: text segments, or color swatches such as the accent.
 import { el } from "../dom";
 
-function pressGroup<T>(cls: string, label: string, choices: [value: T, button: HTMLButtonElement][], value: T, onChange: (value: T) => void): HTMLElement {
+export function pressGroup<T>(cls: string, label: string, choices: [value: T, button: HTMLButtonElement][], value: T, onChange: (value: T) => void): HTMLElement {
   const buttons = choices.map(([, b]) => b);
   for (const [v, button] of choices) {
     button.setAttribute("aria-pressed", String(v === value));
@@ -17,11 +17,16 @@ export function segControl<T extends string>(label: string, options: [value: T, 
   return pressGroup("sw-seg", label, options.map(([v, text]) => [v, el("button", { type: "button" }, text)]), value, onChange);
 }
 
-export function dotsControl<T extends string>(label: string, options: { value: T; label: string; color: string }[], value: T, onChange: (value: T) => void): HTMLElement {
-  const choices = options.map((o): [T, HTMLButtonElement] => {
+export type Dot<T> = { value: T; label: string; color: string };
+
+export function dotChoices<T>(options: Dot<T>[]): [T, HTMLButtonElement][] {
+  return options.map((o): [T, HTMLButtonElement] => {
     const button = el("button", { type: "button", title: o.label, "aria-label": o.label });
     button.style.background = o.color;
     return [o.value, button];
   });
-  return pressGroup("sw-dots", label, choices, value, onChange);
+}
+
+export function dotsControl<T extends string>(label: string, options: Dot<T>[], value: T, onChange: (value: T) => void): HTMLElement {
+  return pressGroup("sw-dots", label, dotChoices(options), value, onChange);
 }

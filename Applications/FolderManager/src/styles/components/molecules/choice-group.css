@@ -1,8 +1,13 @@
 /* Segmented control and color swatches. */
-.sw-seg { display: flex; padding: 2px; background: var(--field-bg); border-radius: 7px; }
-.sw-seg button { padding: 4px 12px; font: inherit; color: var(--muted); background: none; border: 0; border-radius: 5px; cursor: pointer; }
+.sw-seg { display: flex; padding: 2px; background: var(--field-bg); border-radius: var(--radius-sm); }
+.sw-seg button { padding: 4px 12px; font: inherit; color: var(--muted); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
 .sw-seg button[aria-pressed="true"] { color: var(--text); background: var(--highlight); }
-.sw-dots { display: flex; gap: 8px; }
+.sw-dots { display: flex; align-items: center; gap: 8px; }
 .sw-dots button { width: 22px; height: 22px; border: 0; border-radius: 50%; cursor: pointer; }
 .sw-dots button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
+.sw-custom { position: relative; display: inline-flex; }
+.sw-picker { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+.sw-hex { width: 76px; padding: 3px 6px; font: inherit; color: var(--text); background: var(--field-bg); border: 1px solid transparent; border-radius: var(--radius-sm); }
+.sw-hex[aria-invalid="true"] { border-color: var(--delete-hover); }
+.sw-hex-note { font-size: 12px; color: var(--delete-hover); }
 .sw-seg button:focus-visible, .sw-dots button:focus-visible { outline: 2px solid var(--button); outline-offset: 2px; }

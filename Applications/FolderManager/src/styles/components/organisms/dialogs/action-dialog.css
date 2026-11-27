@@ -1,6 +1,6 @@
 /* Scrolling table body of the action dialogs that settle one row per folder. */
 .dialog-table-scroll { max-height: min(420px, 60vh); overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
-.dialog-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+.dialog-table { width: 100%; border-collapse: collapse; font-size: var(--fs-body); }
 .dialog-table th, .dialog-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
 .dialog-table thead th { position: sticky; top: 0; background: var(--input-bg); color: var(--muted); font-weight: 600; }
 .dialog-table td:not(:first-child) { text-align: center; }
@@ -10,3 +10,26 @@
 .dialog-table input[type="radio"]:disabled { opacity: 0.35; }
 .dialog-table thead tr + tr th { top: 30px; }
 .dialog-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+/* Rows of the reorder-by-id dialog, moved by pointer or Alt+Arrow. */
+.reorder-scroll { max-height: min(420px, 60vh); overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.reorder-list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 4px; list-style: none; }
+.reorder-list li { position: relative; display: flex; align-items: center; gap: 10px; padding: 4px 8px; border-radius: var(--radius-sm); cursor: grab; user-select: none; }
+.reorder-list li:hover { background: var(--field-bg); }
+.reorder-list li:focus-visible { outline: 2px solid var(--button); outline-offset: 0; }
+.reorder-group + .reorder-group { margin-top: 8px; }
+.reorder-group h3 { margin: 6px 8px 2px; font-size: var(--fs-body); color: var(--muted); font-weight: 600; }
+.reorder-input { width: 7ch; padding: 2px 4px; font-variant-numeric: tabular-nums; }
+.reorder-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.reorder-input[aria-invalid="true"], .reorder-input.is-bad-key { outline: 2px solid var(--delete-hover); outline-offset: 1px; }
+.reorder-was { min-width: 9ch; color: var(--muted); font-variant-numeric: tabular-nums; }
+.reorder-tracker { padding: 2px 4px; }
+.reorder-tracker:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.reorder-list li.is-selected { background: var(--highlight); }
+.reorder-problem { color: var(--delete-hover); font-size: var(--fs-caption); }
+.reorder-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reorder-list li:not(.is-unchanged) .reorder-input { font-weight: 600; }
+.reorder-list.is-sorting, .reorder-list.is-sorting * { cursor: grabbing; }
+.reorder-list li.is-lifted { opacity: 0.5; background: var(--field-bg); }
+.reorder-list li.drop-before::before, .reorder-list li.drop-after::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: var(--accent); border-radius: var(--radius-xs); pointer-events: none; }
+.reorder-list li.drop-before::before { top: -2px; }
+.reorder-list li.drop-after::after { bottom: -2px; }

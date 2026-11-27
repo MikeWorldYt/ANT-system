@@ -1,7 +1,7 @@
 // Text buttons: the submit buttons a dialog closes with, and the plain, outline or danger buttons used everywhere else.
 import { el } from "../dom";
 
-export type ButtonTone = "primary" | "danger";
+export type ButtonTone = "primary" | "danger" | "danger-soft";
 
 const btnClass = (extra?: string): string => (extra ? `btn ${extra}` : "btn");
 

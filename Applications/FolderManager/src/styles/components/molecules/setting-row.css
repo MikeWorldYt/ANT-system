@@ -3,4 +3,4 @@
 .sw-row:last-child { border-bottom: 0; }
 .sw-text { flex: 1 1 200px; min-width: 0; }
 .sw-title { font-weight: 500; }
-.sw-desc { max-width: 52ch; margin-top: 1px; font-size: 9pt; color: var(--muted); overflow-wrap: anywhere; }
+.sw-desc { max-width: 52ch; margin-top: 1px; font-size: var(--fs-label); color: var(--muted); overflow-wrap: anywhere; }

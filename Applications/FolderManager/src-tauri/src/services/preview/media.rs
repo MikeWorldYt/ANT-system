@@ -1,12 +1,12 @@
-// Serves the storage's and Downloads' videos and pictures to the views, with byte ranges so videos can seek.
+// Serves the storage's and the native folders' videos and pictures to the views, with byte ranges so videos can seek.
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use tauri::http::{Request, Response, StatusCode};
 
 use crate::infra::fs_safe::resolve;
-use crate::services::downloads::ROOT as DOWNLOADS_ROOT;
+use crate::services::downloads::is_root;
 
 pub const SCHEME: &str = "fmmedia";
 
@@ -24,17 +24,18 @@ pub fn mime(path: &Path) -> Option<&'static str> {
     TYPES.iter().find(|(e, _)| *e == ext).map(|(_, m)| *m)
 }
 
-pub fn response(root: Option<&Path>, downloads: Option<&Path>, request: &Request<Vec<u8>>) -> Response<Vec<u8>> {
-    serve(root, downloads, request).unwrap_or_else(|status| Response::builder().status(status).body(Vec::new()).unwrap_or_default())
+// `system` finds the folder a native root marker stands for.
+pub fn response(root: Option<&Path>, system: impl Fn(&str) -> Option<PathBuf>, request: &Request<Vec<u8>>) -> Response<Vec<u8>> {
+    serve(root, &system, request).unwrap_or_else(|status| Response::builder().status(status).body(Vec::new()).unwrap_or_default())
 }
 
-fn serve(root: Option<&Path>, downloads: Option<&Path>, request: &Request<Vec<u8>>) -> Result<Response<Vec<u8>>, StatusCode> {
+fn serve(root: Option<&Path>, system: &dyn Fn(&str) -> Option<PathBuf>, request: &Request<Vec<u8>>) -> Result<Response<Vec<u8>>, StatusCode> {
     let rel: Vec<String> = decode(request.uri().path().trim_start_matches('/')).ok_or(StatusCode::BAD_REQUEST)?.split('/').map(str::to_string).collect();
     let (base, rel) = match rel.split_first() {
-        Some((first, rest)) if first == DOWNLOADS_ROOT => (downloads, rest),
-        _ => (root, &rel[..]),
+        Some((first, rest)) if is_root(first) => (system(first), rest),
+        _ => (root.map(Path::to_path_buf), &rel[..]),
     };
-    let path = resolve(base.ok_or(StatusCode::NOT_FOUND)?, rel).map_err(|_| StatusCode::FORBIDDEN)?;
+    let path = resolve(&base.ok_or(StatusCode::NOT_FOUND)?, rel).map_err(|_| StatusCode::FORBIDDEN)?;
     let mime = mime(&path).ok_or(StatusCode::UNSUPPORTED_MEDIA_TYPE)?;
     let mut file = File::open(&path).map_err(|_| StatusCode::NOT_FOUND)?;
     let size = file.metadata().map_err(|_| StatusCode::NOT_FOUND)?.len();

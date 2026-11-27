@@ -1,11 +1,13 @@
 // Every global keyboard shortcut in one table, so adding or changing one never means hunting through the views.
 import { undoLast } from "./undo";
 import { actedNodes, selectedNode, state, type KeyCombo } from "../services/store/state";
-import { deleteActed, favoriteActed, moveActed } from "./acted-nodes";
+import { deleteActed, favoriteActed } from "./acted-nodes";
 import { addNext } from "./ops";
 import { pasteHere } from "./paste-target";
 import { selectAll } from "./select-all";
 import { putOnClipboard } from "./folder-share";
+import { openSplit } from "./split";
+import { duplicateTab } from "./tabs";
 
 export interface ShortcutTargets {
   focusSearch(): void;
@@ -41,12 +43,13 @@ export const EDITABLE_SHORTCUTS: { id: string; label: string; combo: KeyCombo }[
   { id: "goUp", label: "Go up one level", combo: { code: "ArrowUp", mod: false, alt: true } },
   { id: "toggleSidePanel", label: "Collapse/Expand side panel", combo: { code: "ArrowRight", mod: true, alt: false } },
   { id: "toggleNavPane", label: "Show/Hide navigation pane", combo: { code: "ArrowLeft", mod: true, alt: false } },
-  { id: "moveDown", label: "Move down", combo: { code: "ArrowDown", mod: false, alt: true } },
   { id: "toggleFavorite", label: "Add/remove to favorite", combo: { code: "KeyD", mod: true, alt: false } },
   { id: "editDetails", label: "Edit details", combo: { code: "KeyE", mod: true, alt: false } },
+  { id: "splitTab", label: "Split tab", combo: { code: "KeyS", mod: true, alt: true } },
+  { id: "duplicateTab", label: "Duplicate tab", combo: { code: "KeyD", mod: true, alt: true } },
 ];
 
-const NOT_IN_FIELDS = new Set(["toggleSidePanel", "toggleNavPane", "moveDown", "toggleFavorite", "editDetails"]);
+const NOT_IN_FIELDS = new Set(["toggleSidePanel", "toggleNavPane", "toggleFavorite", "editDetails"]);
 
 // The folder views own these keys, so the settings page never offers them.
 const FIXED_SHORTCUTS: KeyCombo[] = [
@@ -80,7 +83,7 @@ export const isField = (t: EventTarget | null) =>
 
 const onViews = (t: EventTarget | null) => t === document.body || (t instanceof Element && t.closest(".tree-host, .nav-pane") !== null);
 
-const overlayOpen = () => document.querySelector('dialog[open], [role="menu"]') !== null;
+export const overlayOpen = () => document.querySelector('dialog[open], [role="menu"]') !== null;
 
 function bindings(go: ShortcutTargets): Binding[] {
   const withSelected = (fn: (n: NonNullable<ReturnType<typeof selectedNode>>) => void) => () => {
@@ -91,8 +94,9 @@ function bindings(go: ShortcutTargets): Binding[] {
     ...go,
     newNode: withSelected((n) => n.actions.addNext && void addNext(n, "node")),
     newWorknode: withSelected((n) => n.actions.addNext && n.relParts.length > 1 && void addNext(n, "worknode")),
-    moveDown: () => moveActed("down"),
     toggleFavorite: favoriteActed,
+    splitTab: openSplit,
+    duplicateTab: () => duplicateTab(),
   };
   return [
     ...EDITABLE_SHORTCUTS.map((s) => ({ ...comboOf(s.id), plain: false, inFields: !NOT_IN_FIELDS.has(s.id), run: runs[s.id]! })),

@@ -6,7 +6,7 @@
 
 ## The user's OK in the window
 These wait up to 60 s for the user to confirm in the open window; with the app closed they are refused, and declined means no: do not retry unless the user asks.
-- Always: `move`, `move_files`, `reorder`, `delete`, `delete_file`, `delete_downloads`, `apply_project_groups`, `undo_project_sort`, `apply_automations`, `set_dictionary`, `set_setting`, `install_extension`, `set_extension_enabled`, `remove_extension`.
+- Always: `move`, `move_files`, `reorder`, `delete`, `delete_file`, `delete_downloads`, `apply_project_groups`, `undo_project_sort`, `apply_automations`, `set_dictionary`, `build_dictionary`, `set_setting`, `install_extension`, `set_extension_enabled`, `remove_extension`.
 - Any other write tool when one call touches more than one item (e.g. `copy_files` with several files).
 - Reads, `plan_automations` and `preview_project_groups` never ask.
 

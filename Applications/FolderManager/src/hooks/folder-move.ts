@@ -3,17 +3,15 @@ import { dropFiles, moveFiles, moveFolders } from "./ops";
 import { dwell, redwell, stopDwell } from "./drag-dwell";
 import { dragSources, ITEM } from "./drag-out";
 import { cancelOnEscape, leftWindow, modsOf, mousePress, moveGhost, pastThreshold, pointOf, released, type Mods, type Point } from "./pointer";
-import { warningConfirmDialog } from "../components/organisms/dialogs/info-dialog/info-dialog";
 import { findNode, keyOf, outermost } from "../services/store/state";
-import { nameWithoutIdentifier } from "../services/store/node-info";
-import { readPref, savePref } from "../services/store/prefs";
 import { el } from "../components/dom";
 import { notifyDesktop } from "../services/desktop-notify";
 import { noteTrip } from "./file-trips";
 import { plural } from "../services/plural";
 import { reportError } from "../components/organisms/bars/status-line";
 import { folderIcon } from "../components/atoms/icons";
-import { DOWNLOADS_ROOT, inDownloads, type TreeNode } from "../services/ipc/types";
+import { takesFiles } from "../services/store/system-folders";
+import { inSystem, type TreeNode } from "../services/ipc/types";
 
 export const HIGHLIGHT = "drop-target";
 export const DROP_TARGET = "[data-key]:not(.graph-file)";
@@ -23,7 +21,7 @@ type Movable = Pick<TreeNode, "relParts" | "nodeType" | "reserved" | "ghost" | "
 // A folder the database does not track moves on disk like a file, even when its name makes it a worknode.
 const isPlain = (n: Movable): boolean => !n.file && !n.inYaml;
 
-// Main categories never move; an unflagged node moves only after a warning.
+// Main categories never move.
 export const canMove = (n: Movable | null): boolean =>
   n !== null &&
   !n.reserved &&
@@ -36,7 +34,7 @@ export const canMove = (n: Movable | null): boolean =>
 export const canDropOn = (n: Movable | null): boolean =>
   n !== null &&
   !n.file &&
-  !inDownloads(n.relParts) &&
+  takesFiles(n.relParts) &&
   !n.reserved &&
   !n.ghost &&
   ((!n.locked && (isPlain(n) || n.nodeType?.base === "NODE" || n.nodeType?.base === "WKB")) || ["REV", "SS", "REC"].includes(n.nodeType?.base ?? ""));
@@ -44,32 +42,11 @@ export const canDropOn = (n: Movable | null): boolean =>
 // Neither a folder nor anything inside it can become its own destination.
 const holds = (source: string[], target: string[]): boolean => source.length <= target.length && source.every((part, i) => part === target[i]);
 
-const SKIP_KEY = "fm.skipNodeMoveWarning";
-
-// Level 2 holds the parent's subcategories, so only a move there gets the structure reminder.
-async function confirmNodeMove(count: number, target: string[]): Promise<boolean> {
-  if (readPref(SKIP_KEY) === "1") return true;
-  const level = target.length + 1;
-  const parent = findNode(target);
-  const subject = count === 1 ? "this node" : `these ${count} nodes`;
-  const skip = el("input", { type: "checkbox", id: "skip-node-move" }) as HTMLInputElement;
-  const paragraphs: (string | HTMLElement)[] = [
-    ...(level === 2 ? [`Level 2 must use subcategories of the parent (${parent ? nameWithoutIdentifier(parent) : "the storage"}).`] : []),
-    `${level === 2 ? "Also, recent" : "Recent"} files and other apps that point inside it will stop finding their files once it moves, and you will need to relink them.`,
-    "Move it only if you are reorganizing your storage.",
-    el("label", { class: "warning-skip", for: "skip-node-move" }, skip, "Don't show this again, I know the risks"),
-  ];
-  const ok = await warningConfirmDialog(`Move ${subject} to level ${level}?`, paragraphs, "Move anyway", "danger");
-  if (ok && skip.checked) savePref(SKIP_KEY, "1");
-  return ok;
-}
-
-// An unflagged node can break its paths in other apps, so moving it asks first; copies never do.
 export async function moveDragged(sources: string[][], target: string[], copy: boolean): Promise<void> {
-  // Downloads lies outside the storage, so its items arrive like files dropped from Explorer, by their absolute path.
-  const external = outermost(sources.filter(inDownloads)).flatMap((parts) => findNode(parts)?.absPath ?? []);
+  // The native folders lie outside the storage, so their items arrive like files dropped from Explorer, by their absolute path.
+  const external = outermost(sources.filter(inSystem)).flatMap((parts) => findNode(parts)?.absPath ?? []);
   if (external.length > 0) await dropFiles(target, external);
-  const nodes = outermost(sources.filter((parts) => !inDownloads(parts)))
+  const nodes = outermost(sources.filter((parts) => !inSystem(parts)))
     .filter((parts) => !holds(parts, target))
     .flatMap((parts) => {
       const node = findNode(parts);
@@ -80,11 +57,9 @@ export async function moveDragged(sources: string[][], target: string[], copy: b
   // A folder dropped on a review folder lands in its owner, so a drop where it already sits is a cancel, not an error.
   const folderTarget = findNode(target)?.nodeType?.base === "REV" ? target.slice(0, -1) : target;
   const folders = nodes.filter(({ node, parts }) => !node.file && !isPlain(node) && (copy || keyOf(parts.slice(0, -1)) !== keyOf(folderTarget)));
-  const unflagged = folders.filter(({ node }) => node.nodeType?.base === "NODE" && !node.flags.includes("data"));
-  if (unflagged.length > 0 && !copy && !(await confirmNodeMove(unflagged.length, folderTarget))) return;
   if (files.length > 0) await moveFiles(files, target, copy);
   if (folders.length > 0) await moveFolders(folders.map(({ parts }) => parts), target, copy);
-  if (files.length > 0 || external.length > 0) announceDrop(target, files.length + external.length, files[0]?.slice(0, -1) ?? (external.length > 0 ? [DOWNLOADS_ROOT] : null));
+  if (files.length > 0 || external.length > 0) announceDrop(target, files.length + external.length, files[0]?.slice(0, -1) ?? (external.length > 0 ? (sources.find(inSystem)?.slice(0, 1) ?? null) : null));
 }
 
 // Views that draw where files went, like the graph's packets, listen for this. A node that keeps no files passes them to its review folder,

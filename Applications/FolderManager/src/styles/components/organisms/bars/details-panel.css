@@ -1,24 +1,33 @@
 /* Details block of the side panel and its edit form. */
-.details { margin: 4px 0 0; font-size: 9pt; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.details { margin: 4px 0 0; font-size: var(--fs-label); display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px 12px; }
 .details dt { color: var(--muted); }
 .details dd { margin: 0; word-break: break-word; white-space: pre-line; }
 .details dd.path { word-break: normal; }
 .details dd.path .seg { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
-.detail-field { display: flex; flex-direction: column; min-width: 0; }
+.detail-field { display: grid; grid-template-columns: clamp(45px, 30%, 80px) minmax(0, 1fr); align-items: baseline; gap: 8px; min-width: 0; }
 .detail-field:first-child, .detail-field:has(> dd.path), .detail-field:has(> #details-term-output), .detail-field:has(> #details-term-status) { grid-column: 1 / -1; }
+.details:not([data-editing]) .detail-field { grid-template-columns: clamp(45px, 30%, 80px) minmax(0, 1fr); gap: 8px; }
 .details-head .icon-btn { color: var(--title); }
 .details-head { display: flex; align-items: center; justify-content: space-between; }
 .details-head .side-label { margin: 0; }
 .details[hidden] { display: none; }
 .details-input {
   box-sizing: border-box; width: 100%; padding: 2px 4px; font: inherit; color: var(--text); background: var(--field-bg);
-  border: 1px solid var(--border); border-radius: 3px; outline: none;
+  border: 1px solid var(--border); border-radius: var(--radius-xs); outline: none;
 }
 .details-input:focus { border-color: var(--button); box-shadow: 0 0 0 1px var(--button); }
 .details-name { display: flex; align-items: center; }
+.details[data-editing] .details-name .name-fixed { display: none; }
 .details-name .details-input { flex: 1; min-width: 0; width: auto; }
+.owner-autocomplete { position: relative; min-width: 0; }
+.owner-choices { position: absolute; z-index: 5; top: calc(100% + 2px); left: 0; right: 0; max-height: 132px; overflow-y: auto; background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-xs); box-shadow: var(--shadow-pop); }
+.owner-choices[hidden] { display: none; }
+.owner-choice { display: block; width: 100%; padding: 4px 6px; border: 0; background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.owner-choice:hover, .owner-choice:focus-visible { background: var(--highlight); outline: none; }
+.details-output-pick { flex: none; width: 28px; height: 28px; background: transparent; }
 .details-actions { display: flex; gap: 6px; margin-top: 4px; }
-.details-actions .btn { flex: 1; min-width: 0; }
+.details-actions .btn { flex: 1; min-width: 0; white-space: nowrap; }
 .details-actions .btn:not(.btn-primary):hover { background: var(--delete-hover); }
 .detail-field:has(> dd > .details-actions) { grid-column: 1 / -1; }
+.detail-field:has(> dd > .details-actions) > dd { grid-column: 1 / -1; }
 .details-empty { margin: 0; color: var(--muted); }

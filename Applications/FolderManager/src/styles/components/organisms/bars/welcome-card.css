@@ -1,0 +1,16 @@
+/* First-run card that replaces the empty details text until the tour is taken or skipped. */
+.welcome-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--input-bg); }
+.welcome-card[hidden] { display: none; }
+.welcome-title { margin: 0; font-size: var(--fs-title); color: var(--text); }
+.welcome-lead { margin: 0; color: var(--muted); font-size: var(--fs-label); }
+.welcome-points { display: flex; flex-direction: column; gap: 8px; margin: 4px 0; padding: 0; list-style: none; font-size: var(--fs-label); }
+.welcome-points li { display: flex; gap: 10px; align-items: flex-start; }
+.welcome-points strong { display: block; font-weight: 600; }
+.welcome-icon { display: inline-flex; flex: none; color: var(--accent); }
+.welcome-icon .gui-icon { width: 16px; height: 16px; }
+.welcome-text { color: var(--muted); }
+.welcome-tour, .welcome-skip { width: 100%; min-height: 32px; }
+.btn.welcome-skip { background: transparent; font-weight: normal; }
+.welcome-last { white-space: nowrap; }
+.welcome-sparkles { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -0.15em; }
+.details-panel > .welcome-card { margin-bottom: 8px; }

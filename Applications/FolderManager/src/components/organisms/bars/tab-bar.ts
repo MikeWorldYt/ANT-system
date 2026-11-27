@@ -2,7 +2,7 @@
 import { el } from "../../dom";
 import { iconButton } from "../../atoms/icon-button";
 import { closeSplit, openSplit } from "../../../hooks/split";
-import { closingItem } from "../../molecules/menu";
+import { closingItem, menuIcon } from "../../molecules/menu";
 import { openMenuWith } from "../menus/context-menu";
 import { closeTab, duplicateTab, moveTab, openTab, selectTab, tabViews, type TabView } from "../../../hooks/tabs";
 
@@ -21,6 +21,10 @@ function tabMenu(ev: MouseEvent, index: number, split: boolean): void {
   openMenuWith((close) => {
     const action = closingItem(close);
     const items = [action("Split tab", !split, openSplit), action("Duplicate tab", true, () => duplicateTab(index))];
+    for (const [item, icon] of [[items[0], "split"], [items[1], "duplicate"]] as const) {
+      item?.classList.add("ctx-iconed");
+      item?.prepend(menuIcon(icon));
+    }
     return { items, subs: [], content: items };
   }, "Tab", ev.clientX, ev.clientY, () => undefined);
 }
@@ -49,6 +53,13 @@ export function createTabBar(): { element: HTMLElement; render(): void } {
   const list = el("div", { class: "tab-list", role: "tablist", "aria-label": "Open folders" });
   const element = el("div", { class: "tab-bar" }, list, iconButton("New tab", "add", () => openTab()));
   let shown = "";
+
+  const fades = (): void => {
+    list.classList.toggle("fade-start", list.scrollLeft > 1);
+    list.classList.toggle("fade-end", list.scrollLeft + list.clientWidth < list.scrollWidth - 1);
+  };
+  list.addEventListener("scroll", fades, { passive: true });
+  new ResizeObserver(fades).observe(list);
 
   // Pointer events, because the window's native file drop swallows HTML drag events. Transforms show the new order; the store changes on release.
   function drag(down: PointerEvent, item: HTMLElement): void {
@@ -103,6 +114,7 @@ export function createTabBar(): { element: HTMLElement; render(): void } {
     shown = next;
     list.replaceChildren(...tabs.map((t, i) => tabItem(t, i, tabs.length > 1, drag)));
     list.querySelector(".tab.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    fades();
   }
 
   return { element, render };

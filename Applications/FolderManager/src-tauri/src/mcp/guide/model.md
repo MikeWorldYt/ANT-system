@@ -15,6 +15,7 @@
 - OUT: the Outcomes (Portfolio) folder `00.<Title>` next to worknodes.
 - REV, RES, TPL: support folders of a node, `REV.<Title>` (review), `RES.<Title>` (resources), `TPL.<Title>` (templates). Older storages use `98.`, `90.`, `97.`.
 - SS, REC: screenshots and recordings, `SS.<Title>` / `REC.<Title>`; the root holds `ANT.SCREENSHOTS` and `ANT.RECORDINGS`.
+- The root `ANT.TEMPLATES` (type TPL) holds worknode templates, one unnumbered folder each, named `<identifier><Title>` such as `PJ.Video-Short`. An Outcomes folder's `defaultTemplate` picks one: each new worknode of that node takes its identifier and a copy of its contents.
 - CFG: app settings.
 - REV, RES, TPL, CFG, SS and REC are locked: they cannot be renamed, moved, retyped or deleted by hand; they follow their node.
 - `.ant/` folders hold app data (`ant.db`, `info.json`, `dictionary.md`); `.ant-trash` is staging. Never treat either as nodes.

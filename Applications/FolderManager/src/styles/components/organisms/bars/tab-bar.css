@@ -1,13 +1,17 @@
 /* Strip of open tabs above the navigation bar. */
-.tab-bar { --tab-outline: var(--disabled-text); display: flex; align-items: flex-end; gap: 6px; padding: 8px 12px 0; background: var(--tab-back); box-shadow: inset 0 -1px var(--tab-outline); }
+.tab-bar { --tab-outline: var(--disabled-text); display: flex; align-items: flex-end; gap: 6px; margin-bottom: -12px; padding: 8px 12px 12px; background: var(--tab-back); }
 .tab-bar .icon-btn { width: 26px; height: 26px; margin-bottom: 2px; background: transparent; }
 .tab-list { min-width: 0; display: flex; overflow-x: auto; scrollbar-width: none; }
+/* Edge fades hint at tabs scrolled out of view; the bar script sets the classes. */
+.tab-list.fade-start { mask-image: linear-gradient(to right, transparent, #000 20px); }
+.tab-list.fade-end { mask-image: linear-gradient(to left, transparent, #000 20px); }
+.tab-list.fade-start.fade-end { mask-image: linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 20px), transparent); }
 .tab { --tab-fill: var(--tab-back); --tab-base: var(--tab-outline); position: relative; z-index: 0; flex: 0 1 190px; min-width: 100px; display: flex; align-items: center; padding: 0 12px; }
 .tab + .tab { margin-left: -8px; }
 .tab:hover { --tab-fill: var(--input-bg); }
 .tab.dragging { z-index: 2; opacity: 0.85; }
 .tab-list.reordering .tab:not(.dragging) { transition: transform 0.15s ease; }
-.tab.active { --tab-fill: var(--bg); --tab-base: var(--bg); z-index: 1; }
+.tab.active { --tab-fill: var(--bg); --tab-base: var(--bg); z-index: 1; flex: 0 0 auto; min-width: 140px; max-width: 260px; }
 /* Two halves skewed apart draw the slanted sides, keeping the rounded top corners a clip-path would lose. */
 .tab::before, .tab::after { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; width: 50%; background: var(--tab-fill); border: solid var(--tab-outline); border-width: 1px 0; border-bottom-color: var(--tab-base); }
 .tab::before { left: 0; border-left-width: 1px; border-radius: var(--radius-md) 0 0 0; transform: skewX(-18deg); transform-origin: left bottom; }
@@ -18,6 +22,6 @@
 .tab-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 .tab-dot.on { background: var(--button); }
 .tab-dots-bar { width: 1px; height: 14px; background: var(--tab-outline); }
-.tab-close { margin-right: 4px; padding: 0 5px; border: 0; border-radius: 3px; background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
-.tab-close:hover { color: var(--text); }
+.tab-close { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; margin-right: 2px; padding: 0; border: 0; border-radius: var(--radius-xs); background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
+.tab-close:hover { color: var(--text); background: var(--field-bg); }
 .tab-name:focus-visible, .tab-close:focus-visible { outline: 2px solid var(--button); outline-offset: -2px; }

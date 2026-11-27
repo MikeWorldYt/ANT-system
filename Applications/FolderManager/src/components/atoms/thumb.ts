@@ -13,11 +13,11 @@ export function loaderMark(): HTMLElement {
 // A file's picture once it is in, the loader while it is on its way, and the fallback icon when there is none.
 export function fileThumb(n: TreeNode, fallback: () => Element, attrs: Record<string, string> = {}): Element {
   const src = nativeImage(n, true);
-  if (src) return thumb(src, attrs);
+  if (src) return thumb(src, attrs, fallback);
   return imagePending(n, true) ? loaderMark() : fallback();
 }
 
-export function thumb(src: string, attrs: Record<string, string> = {}): HTMLElement {
+export function thumb(src: string, attrs: Record<string, string> = {}, fallback?: () => Element): HTMLElement {
   const img = el("img", { class: "thumb", src, alt: "", ...attrs });
   const wrap = el("span", { class: "thumb-wrap loading" }, loaderMark(), img);
   const done = (): void => {
@@ -26,6 +26,6 @@ export function thumb(src: string, attrs: Record<string, string> = {}): HTMLElem
   };
   if (img.complete && img.naturalWidth > 0) done();
   img.addEventListener("load", done, { once: true });
-  img.addEventListener("error", done, { once: true });
+  img.addEventListener("error", () => (fallback ? wrap.replaceWith(fallback()) : done()), { once: true });
   return wrap;
 }

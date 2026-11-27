@@ -59,7 +59,7 @@ pub fn rename_node(root: &Path, rel: &[String], new_editable: &str) -> R<Mutatio
 }
 
 // Linked folders follow best-effort: a clash or failure becomes a warning and its tree key stays.
-fn cascade_linked(
+pub(super) fn cascade_linked(
     journal: &mut Journal,
     data: &mut Mapping,
     node_abs: &Path,

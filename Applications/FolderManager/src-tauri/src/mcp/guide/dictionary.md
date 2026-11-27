@@ -1,6 +1,6 @@
 # Dictionary
 
-`<folder>/.ant/dictionary.md` groups the files of review folders at or below that folder. A closer dictionary adds to the farther ones and replaces their entries of the same name. Read with `get_dictionary`, write with `set_dictionary` (it replaces the whole file; send every entry back).
+`<folder>/.ant/dictionary.md` groups the files of review folders at or below that folder. A closer dictionary adds to the farther ones and replaces their entries of the same name. Read with `get_dictionary`, write with `set_dictionary` (it replaces the whole file; send every entry back). `build_dictionary` has the connected AI client (Claude Code, Codex or OpenCode) write it from the words the review folder's file names share, keeping the entries already there.
 
 Each entry is a `## Heading` naming where its files go, refined by keys:
 - `term`: matches and is removed from the name.

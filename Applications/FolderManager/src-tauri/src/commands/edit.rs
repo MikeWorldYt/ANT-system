@@ -4,11 +4,11 @@ use std::path::{Path, PathBuf};
 use serde_yaml::Mapping;
 use tauri::{AppHandle, Manager};
 
-use super::{locked, off_thread, review_emitter, run_locked};
+use super::{locked, off_thread, review_emitter, run_locked, run_unlocked};
 use crate::app::storage_session::Storage;
 use crate::platform::shortcuts::create_shortcuts;
 use crate::domain::config::{EditableType, NewKind, WkbStatus};
-use crate::services::mutations::{self, CopyAnswer, DeletePreview, MoveDirection, Mutation};
+use crate::services::mutations::{self, CopyAnswer, DeletePreview, IdTarget, MoveDirection, Mutation, ReorderPlan};
 use crate::domain::error::R;
 use crate::services::{automations, edit, held_trash};
 use crate::services::index::{review_index, Emit};
@@ -107,6 +107,11 @@ pub async fn set_outcome_default(app: AppHandle, rel_parts: Vec<String>, key: St
 }
 
 #[tauri::command]
+pub async fn create_template(app: AppHandle, identifier: String, name: String, description: Option<String>) -> R<Vec<String>> {
+    run_locked(app, move |root| mutations::create_template(root, &identifier, &name, description.as_deref())).await
+}
+
+#[tauri::command]
 pub async fn set_node_output(app: AppHandle, rel_parts: Vec<String>, output: Option<String>) -> R<Mutation> {
     run_search_indexed(app, move |root| mutations::set_output(root, &rel_parts, output.as_deref())).await
 }
@@ -182,10 +187,20 @@ pub async fn move_node(app: AppHandle, rel_parts: Vec<String>, direction: MoveDi
 }
 
 #[tauri::command]
+pub async fn reorder_plan(app: AppHandle, parent_rel_parts: Vec<String>) -> R<ReorderPlan> {
+    run_unlocked(app, move |_, root| mutations::reorder_plan(root, &parent_rel_parts)).await
+}
+
+#[tauri::command]
+pub async fn reorder_ids(app: AppHandle, parent_rel_parts: Vec<String>, targets: Vec<IdTarget>) -> R<Mutation> {
+    run_indexed(app, move |root| mutations::reorder_ids(root, &parent_rel_parts, &targets)).await
+}
+
+#[tauri::command]
 pub async fn move_folder(app: AppHandle, source: Vec<String>, destination: Vec<String>, copy: bool) -> R<Mutation> {
     let sender = app.clone();
     run_indexed(app, move |root| {
-        let _progress = super::transfer::track(&sender, &[mutations::source_path(root, &source)?], &super::file_drop::place_name(root, &destination));
+        let _progress = super::transfer::track(&sender, &[crate::infra::fs_safe::resolve(root, &source)?], &super::file_drop::place_name(root, &destination), copy);
         let done = mutations::move_folder(root, &source, &destination, copy);
         crate::services::ops_log::outcome(root, if copy { "copy folder" } else { "move folder" }, &format!("{} → {}", source.join("/"), destination.join("/")), &done);
         done

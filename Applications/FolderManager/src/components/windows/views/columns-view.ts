@@ -16,11 +16,13 @@ import { findNode, keyOf, leaveVirtual, listed, select, selectedNode, sortOf, st
 import { reviewFilter, reviewGroup } from "../../../services/store/review-list";
 import { virtualNodes } from "../../../services/store/virtual";
 import { openVirtual } from "../../../hooks/virtual-nav";
-import { entryBeside, headEntry, openEntry, placeEntries, rootEntries, virtualEntries } from "../../molecules/virtual-entry";
+import { entryBeside, headEntry, leadEntries, openEntry, placeEntries, virtualEntries } from "../../molecules/virtual-entry";
 import { markNodeItem, onItemClick, openOnDouble } from "../../molecules/node-item";
 import type { TreeNode } from "../../../services/ipc/types";
 import { openFolder } from "../../../hooks/path-actions";
+import { focusItem } from "../../../hooks/focus-return";
 import type { ViewMode } from "./view-mode";
+import { isTemplatesHome, newTemplateItem } from "../../molecules/new-template-item";
 
 // Why an empty column is empty: a filter hides the review list, or the folder has no content.
 function emptyLegend(parent: TreeNode | null): string | null {
@@ -33,6 +35,8 @@ export function createColumnsView(): ViewMode {
   const root = el("div", { class: "columns", role: "group", "aria-label": "Storage columns" });
   const loading = new Set<string>();
   let openKey: string | null = null;
+  // The deepest column stepped back from with Left; it stays open until the selection leaves its path.
+  let held: string | null = null;
   let built: ManageSnapshot | null = null;
   let revealed: string | null = null;
   // A pane that opens or changes width shows the deepest column, which is the one in use.
@@ -52,7 +56,8 @@ export function createColumnsView(): ViewMode {
   }
 
   function pick(n: TreeNode): void {
-    if (n.hasChildren && state.settings.autoOpenColumns) openColumn(n);
+    // A review entry always lists its contents beside the list, like a favorite.
+    if (n.hasChildren && (state.settings.autoOpenColumns || state.virtual === "review")) openColumn(n);
     else select(n.relParts);
   }
 
@@ -73,7 +78,10 @@ export function createColumnsView(): ViewMode {
       lead.addEventListener("dblclick", () => openColumn(n));
       const chevron = nodeToggle(`Show contents of ${n.name}`, null, guiIcon("chevronRight"));
       chevron.classList.add("chevron");
-      chevron.addEventListener("dblclick", () => openColumn(n));
+      chevron.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        openColumn(n);
+      });
       item.append(chevron);
     }
     onItemClick(item, n, () => siblings, () => pick(n));
@@ -121,24 +129,33 @@ export function createColumnsView(): ViewMode {
       const prev = nodes[i - 1];
       // Review links are grouped by category, so a change of category gets a line between the groups.
       const groupStart = prev && (listing?.id === "review" ? reviewGroup(prev) !== reviewGroup(n) : prev.linked && n.linked && linkCategory(prev) !== linkCategory(n));
-      const tailStart = prev && !prev.file && !n.file && !isTailNode(prev) && isTailNode(n);
+      const tailStart = prev && !n.file && !isTailNode(prev) && isTailNode(n);
       const item = buildItem(n, n === onPath, keyOf(n.relParts) === tabbableKey, siblings);
       return groupStart || tailStart ? [el("div", { class: "col-sep", role: "separator" }), item] : [item];
     });
+    const creator = !listing && isTemplatesHome(parentNode) ? newTemplateItem(parentNode, "col-item", "option") : null;
     column.append(
       ...(listing ? [] : [columnSortToggle(column.dataset.key ?? "")]),
       ...(managed ? [manageHeader("col-item")] : []),
+      ...(creator ? [creator] : []),
       ...(index === 0 ? placeEntries(virtualEntries("col-item", "option", { tabbable: state.selectedKey === null, marker: "chevron" }), rows, sepCut(rows)) : rows),
-      ...(legend ? [el("p", { class: "column-legend" }, legend)] : []),
+      ...(legend && !creator ? [el("p", { class: "column-legend" }, legend)] : []),
     );
     return column;
   }
 
 
   async function enterChildren(n: TreeNode): Promise<void> {
+    if (n.file) return;
+    if (!n.hasChildren) {
+      openColumn(n);
+      if (isTemplatesHome(n)) requestAnimationFrame(() => root.querySelector<HTMLElement>(".new-template")?.focus());
+      return;
+    }
     if (n.children === null) await expand(n);
     const first = sortedForColumns(listed(n.children ?? []), sortOf(keyOf(n.relParts)), state.settings.pinFavorites)[0];
     if (first) select(first.relParts);
+    else openColumn(n);
   }
 
   // The entries sit between the root folders, so the root column steps in the order it is drawn.
@@ -170,7 +187,7 @@ export function createColumnsView(): ViewMode {
       ev.preventDefault();
       return;
     }
-    const cols = buildColumns(openKey);
+    const cols = buildColumns(openKey, held);
     if ((ev.key === "ArrowDown" || ev.key === "ArrowUp") && stepRoot(n, cols[0]?.nodes ?? [], ev.key === "ArrowDown" ? 1 : -1)) {
       ev.preventDefault();
       return;
@@ -223,7 +240,7 @@ export function createColumnsView(): ViewMode {
         move(i + 1 >= siblings.length ? 0 : i + 1);
         break;
       case "ArrowUp":
-        if (head && i === 0 && siblings === cols[0]?.nodes) void openVirtual(rootEntries().at(-1)?.id ?? head.id);
+        if (head && i === 0 && siblings === cols[0]?.nodes) void openVirtual(leadEntries().at(-1)?.id ?? head.id);
         else move(i < 0 ? 0 : i === 0 ? siblings.length - 1 : i - 1);
         break;
       case "Home":
@@ -233,7 +250,7 @@ export function createColumnsView(): ViewMode {
         move(siblings.length - 1);
         break;
       case "ArrowRight":
-        if (n?.hasChildren) void enterChildren(n);
+        if (n) void enterChildren(n);
         break;
       case "ArrowLeft": {
         // A listed entry steps back to its virtual list, not to the real folder it lives in.
@@ -242,8 +259,11 @@ export function createColumnsView(): ViewMode {
           break;
         }
         const parent = n && n.relParts.length > 1 ? findNode(n.relParts.slice(0, -1)) : null;
-        // The column just left stays visible beside its folder.
-        if (parent) openColumn(parent);
+        if (!n || !parent) break;
+        const from = keyOf(n.relParts);
+        const keep = openKey === from ? from : keyOf(parent.relParts);
+        if (held === null || !held.startsWith(`${keep}/`)) held = keep;
+        select(parent.relParts);
         break;
       }
       case "F2":
@@ -251,6 +271,7 @@ export function createColumnsView(): ViewMode {
         break;
       case "Enter":
         if (n?.file) void openFolder(n);
+        else if (n) void enterChildren(n);
         else go(Math.max(i, 0));
         break;
       case " ":
@@ -276,22 +297,35 @@ export function createColumnsView(): ViewMode {
   return {
     id: "columns",
     label: "Columns",
+    // A selected folder whose column is not open is only selected, so the folder shown is the deepest column's.
+    openFolder() {
+      // While stepping back, the folder shown is the column holding the selection.
+      if (held !== null) return state.selectedKey === null ? null : findNode(state.selectedKey.split("/").slice(0, -1));
+      return buildColumns(openKey === state.selectedKey ? openKey : null).at(-1)?.parent ?? null;
+    },
     mount(host) {
       root.addEventListener("keydown", onKey);
       // Space beside the columns belongs to the deepest one.
-      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, buildColumns(openKey).at(-1)?.parent ?? null, root));
+      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, buildColumns(openKey, held).at(-1)?.parent ?? null, root));
       host.append(root);
       resized.observe(root);
     },
     render() {
       // An opened column lasts only while its folder stays selected; selecting another row closes it.
+      // A folder opened from elsewhere, such as the navigation pane, shows its column.
+      if (state.entering !== null && state.entering === state.selectedKey) {
+        openKey = state.entering;
+        state.entering = null;
+      }
       if (openKey !== state.selectedKey) openKey = null;
+      const sel = state.selectedKey;
+      if (held !== null && (sel === null || (held !== sel && !held.startsWith(`${sel}/`)))) held = null;
       if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
       // Rebuilding the columns resets every scroll offset, so each one is kept by its folder key.
       const offsets = new Map(Array.from(root.querySelectorAll<HTMLElement>(".column[data-key]"), (c): [string, number] => [c.dataset.key ?? "", c.scrollTop]));
       const left = root.scrollLeft;
-      root.replaceChildren(...buildColumns(openKey).map(buildColumn));
+      root.replaceChildren(...buildColumns(openKey, held).map(buildColumn));
       built = manageSnapshot();
       root.scrollLeft = left;
       root.querySelectorAll<HTMLElement>(".column[data-key]").forEach((c) => {
@@ -311,7 +345,7 @@ export function createColumnsView(): ViewMode {
       loadSelectedChildren();
     },
     focus() {
-      root.querySelector<HTMLElement>('.col-item[tabindex="0"]')?.focus();
+      focusItem(root.querySelector<HTMLElement>('.col-item[tabindex="0"]'));
     },
     destroy() {
       revealed = null;

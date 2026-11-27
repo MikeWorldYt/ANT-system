@@ -18,24 +18,30 @@ export interface Column {
 const sorted = (nodes: TreeNode[], parent: TreeNode | null) => sortedForColumns(listed(nodes), sortOf(parent ? keyOf(parent.relParts) : ""), state.settings.pinFavorites);
 
 // The keys along the selected path, one per column; inside a virtual entry they start at the entry it went through.
-function chainOf(): string[] {
-  const parts = state.selectedKey?.split("/") ?? [];
+function chainOf(held: string | null): string[] {
+  const parts = (held ?? state.selectedKey)?.split("/") ?? [];
   const from = state.virtual === null ? 1 : state.via === null ? parts.length + 1 : state.via.split("/").length;
   return parts.slice(from - 1).map((_, i) => keyOf(parts.slice(0, from + i)));
 }
 
 // `opened` is the selected folder whose child column the user opened; selecting alone shows none.
-export function buildColumns(opened: string | null): Column[] {
-  const chain = chainOf();
+// `held` is the deepest folder stepped back from, whose columns stay open while the selection is on its path.
+export function buildColumns(opened: string | null, held: string | null = null): Column[] {
+  const chain = chainOf(held);
   const rootNodes = state.tree?.nodes ?? [];
   const cols: Column[] = [{ nodes: sorted(rootNodes, null), loading: false, parent: null, listing: false, pathKey: state.virtual === null ? (chain[0] ?? null) : null }];
   // An open virtual entry lists its folders beside the root, wherever they live, and its path continues from there.
   if (state.virtual !== null) cols.push({ nodes: virtualNodes(), loading: false, parent: null, listing: true, pathKey: chain[0] ?? null });
   for (const [i, key] of chain.entries()) {
     const open = findNode(key.split("/"));
-    if (!open || !open.hasChildren) break;
+    if (!open) break;
+    // An empty folder still opens when entered, so its column says it is empty.
+    if (!open.hasChildren) {
+      if (!open.file && key === opened) cols.push({ nodes: [], loading: false, parent: open, listing: false, pathKey: null });
+      break;
+    }
     // The review folder's list stays open while it is selected, so its filter legend has a column to sit in.
-    if (key === state.selectedKey && key !== opened && !isReviewRoot(open)) break;
+    if (key === state.selectedKey && key !== opened && key !== held && !isReviewRoot(open)) break;
     if (open.children === null) {
       cols.push({ nodes: [], loading: true, parent: open, listing: false, pathKey: null });
       break;

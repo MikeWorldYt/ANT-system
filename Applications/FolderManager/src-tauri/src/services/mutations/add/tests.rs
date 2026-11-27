@@ -169,3 +169,29 @@ fn past_the_depth_limit_a_given_name_is_the_folder_name_and_never_clashes() {
     assert_eq!(wkb.select, Some(child_rel(&leaf, "PJ.001_Sprint-one")));
     assert!(matches!(add_node_named(dir.path(), &leaf, NewKind::Node, Some("status")), Err(FmError::InvalidName { .. })));
 }
+
+#[test]
+fn the_outcomes_template_names_and_fills_a_new_worknode() {
+    let dir = storage("add-template", &["100.WORK/00.Outcomes", "ANT.TEMPLATES/PR.Video-Short/Footage", "ANT.TEMPLATES/PR.Video-Short/.ant"], "100.WORK:\n  type: NODE-L1\n  00.Outcomes: {type: OUT-L2}\n");
+    std::fs::write(dir.path().join("ANT.TEMPLATES/PR.Video-Short/edit.prproj"), "base").unwrap();
+    crate::services::mutations::set_default(dir.path(), &rel(&["100.WORK", "00.Outcomes"]), "defaultTemplate", Some("PR.Video-Short")).unwrap();
+    let m = add_node(dir.path(), &rel(&["100.WORK"]), NewKind::Worknode).unwrap();
+    assert_eq!(m.select, Some(rel(&["100.WORK", "PR.001_New-Worknode"])));
+    let wkb = dir.path().join("100.WORK/PR.001_New-Worknode");
+    assert!(wkb.join("Footage").is_dir());
+    assert_eq!(std::fs::read_to_string(wkb.join("edit.prproj")).unwrap(), "base");
+    assert!(wkb.join(".ant/info.json").is_file(), "the worknode keeps its own marker");
+    let missing = crate::services::mutations::set_default(dir.path(), &rel(&["100.WORK", "00.Outcomes"]), "defaultTemplate", Some("PJ.Gone"));
+    assert!(matches!(missing, Err(FmError::InvalidPath { .. })));
+}
+
+#[test]
+fn a_new_template_is_named_by_its_identifier_and_keeps_its_description_apart() {
+    let dir = storage("new-template", &["100.WORK"], "100.WORK:\n  type: NODE-L1\n");
+    let rel_parts = crate::services::mutations::create_template(dir.path(), "PR", "video short", Some("Edits under a minute")).unwrap();
+    assert_eq!(rel_parts, rel(&["ANT.TEMPLATES", "PR.Video-short"]));
+    let info = std::fs::read_to_string(dir.path().join("ANT.TEMPLATES/PR.Video-short/.ant/info.json")).unwrap();
+    assert!(info.contains("Edits under a minute"), "{info}");
+    assert!(matches!(crate::services::mutations::create_template(dir.path(), "PR.", "Video short", None), Err(FmError::AlreadyExists { .. })));
+    assert!(matches!(crate::services::mutations::create_template(dir.path(), "ZZ", "x", None), Err(FmError::InvalidName { .. })));
+}

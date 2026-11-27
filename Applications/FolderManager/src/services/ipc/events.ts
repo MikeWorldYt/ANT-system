@@ -19,7 +19,11 @@ export const onFileDrag = (fn: (e: DragDropEvent) => void) =>
 export const onStorageChanged =(fn: (e: StorageChangedEvent) => void) =>
   listen<StorageChangedEvent>("storage-changed", (ev) => fn(ev.payload));
 
-export const onDownloadsChanged = (fn: () => void) => listen("fm://downloads-changed", () => fn());
+// The payload is the root marker of the native folder that changed.
+export const onDownloadsChanged = (fn: (root: string) => void) => listen<string>("fm://downloads-changed", (ev) => fn(ev.payload));
+
+export const onFolderSize = (fn: (relParts: string[], size: number) => void) =>
+  listen<{ relParts: string[]; size: number }>("fm://folder-size", (ev) => fn(ev.payload.relParts, ev.payload.size));
 
 export const onDownloadsDictionary = (fn: () => void) => listen("fm://downloads-dictionary", () => fn());
 

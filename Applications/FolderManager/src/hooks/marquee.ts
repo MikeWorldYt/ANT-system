@@ -25,7 +25,8 @@ function hits(host: HTMLElement, a: Point, b: Point): string[] {
   return [...host.querySelectorAll<HTMLElement>(ITEM)].flatMap((item) => {
     const rect = item.getBoundingClientRect();
     const key = item.dataset.key;
-    return key && rect.left < right && rect.right > left && rect.top < bottom && rect.bottom > top ? [key] : [];
+    // Level 1 folders are the fixed frame of the storage, so a band never takes them.
+    return key && key.includes("/") && rect.left < right && rect.right > left && rect.top < bottom && rect.bottom > top ? [key] : [];
   });
 }
 

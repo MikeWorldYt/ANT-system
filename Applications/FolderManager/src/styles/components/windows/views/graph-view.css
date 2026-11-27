@@ -7,7 +7,7 @@
 .graph-canvas { position: relative; width: max-content; }
 .graph-branch { display: flex; align-items: center; }
 .graph-kids { display: flex; flex-direction: column; gap: 10px; margin-left: 56px; }
-.graph-node-box { transition: transform 320ms ease, border-color 320ms ease; position: relative; display: flex; align-items: center; gap: 6px; min-width: 120px; max-width: 240px; padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); cursor: pointer; }
+.graph-node-box { transition: transform 320ms ease, border-color 320ms ease; position: relative; display: flex; align-items: center; gap: 6px; min-width: 120px; max-width: 240px; padding: 8px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-md); background: var(--input-bg); cursor: pointer; }
 .graph-node-box:hover { border-color: var(--button); }
 .graph-node-box.selected { border-color: var(--button); background: var(--highlight); }
 .graph:focus-visible .graph-node-box.selected { outline: 2px solid var(--button); outline-offset: 2px; }
@@ -18,8 +18,8 @@
 .graph-node-box[data-status="hold"] { border-color: var(--st-hold); }
 .graph-node-box[data-status="for-review"] { border-color: var(--st-review); }
 .graph-node-box[data-status="done"] { border-color: var(--st-done); }
-.graph-files-box { list-style: none; margin: 0; padding: 12px; min-width: 200px; width: var(--auto-w, auto); max-height: 320px; overflow: auto; border: 1.5px solid var(--border); border-radius: 10px; background: var(--input-bg); }
-.graph-file { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+.graph-files-box { list-style: none; margin: 0; padding: 12px; min-width: 200px; width: var(--auto-w, auto); max-height: 320px; overflow: auto; border: 1.5px solid var(--border); border-radius: var(--radius-md); background: var(--input-bg); }
+.graph-file { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: var(--radius-sm); cursor: pointer; }
 .graph-file:hover, .graph-file.selected { background: var(--highlight); }
 .graph-file.selected { box-shadow: inset 0 0 0 1px var(--button); }
 .graph-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -40,7 +40,7 @@
 .graph-kids.behind > .graph-branch { filter: blur(2px); opacity: 0.3; pointer-events: none; }
 .graph-kids[data-support] { display: grid; grid-template-columns: max-content; align-items: center; justify-items: start; }
 .graph-support { grid-column: 1; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-left: 28px; }
-.graph-support .graph-files-box, .graph-support .graph-node-box { background: var(--bg, var(--input-bg)); box-shadow: 0 6px 24px rgb(0 0 0 / 0.45); }
+.graph-support .graph-files-box, .graph-support .graph-node-box { background: var(--bg, var(--input-bg)); box-shadow: var(--elev-3); }
 @media (prefers-reduced-motion: reduce) { .graph-kids > .graph-branch, .graph-support { transition: none; } }
 .graph-lines path.graph-path-faded { opacity: 0.3; filter: blur(2px); }
 .graph.panning, .graph.panning * { cursor: grab; }
@@ -61,13 +61,13 @@
 .graph-files-box.loading { min-width: 140px; animation: graph-loading 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .graph-files-box.loading { animation: none; } }
 .graph-entry { color: var(--text); }
-.graph-packet { position: absolute; top: 0; left: 0; z-index: 3; display: grid; place-items: center; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--button); color: var(--button-text, #fff); font-size: 8pt; font-weight: 600; box-shadow: 0 0 8px 2px var(--button); pointer-events: none; }
+.graph-packet { position: absolute; top: 0; left: 0; z-index: 3; display: grid; place-items: center; min-width: 14px; height: 14px; padding: 0 3px; border-radius: var(--radius-sm); background: var(--button); color: var(--button-text, #fff); font-size: var(--fs-caption); font-weight: 600; box-shadow: 0 0 8px 2px var(--button); pointer-events: none; }
 @keyframes graph-land { 0% { box-shadow: 0 0 0 0 var(--button); } 40% { box-shadow: 0 0 14px 4px var(--button); } 100% { box-shadow: 0 0 0 0 transparent; } }
 .graph-node-box.graph-landed { animation: graph-land 700ms ease-out; }
 .graph-files-box.drop-target, .graph-node-box.drop-target { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Inside a files box: List is one line a file, Cards adds the kind under the name, Grid shows tiles with pictures. */
 .graph-file-text { display: flex; flex-direction: column; min-width: 0; }
-.graph-file-kind { color: var(--muted); font-size: 11px; }
+.graph-file-kind { color: var(--muted); font-size: var(--fs-caption); }
 .graph-files-box.view-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; align-content: start; }
 .graph-files-box.view-cards .graph-file { padding: 6px; }
 .graph-files-box.view-cards .graph-file > svg, .graph-files-box.view-cards .graph-file > .gui-icon { width: 28px; height: 28px; flex: none; }

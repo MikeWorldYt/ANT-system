@@ -1,22 +1,23 @@
 /* Side panel and its collapsed icon rail. */
 .details-panel {
-  width: var(--panel-w); flex: none; display: flex; flex-direction: column; gap: 14px;
-  overflow-y: auto; background: var(--input-bg); padding: 12px; border-radius: var(--radius-md);
+  width: var(--panel-w); flex: none; display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto; background: var(--tree-bg); padding: 10px 12px; border-radius: var(--radius-md);
 }
-.side-head { display: flex; align-items: center; gap: 2px; }
-.side-title { flex: 1; min-width: 0; margin: 0; font-size: 11pt; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.side-head .icon-btn, .details-head .icon-btn { width: 26px; height: 26px; background: transparent; }
+/* The head is as tall as the Details header, so the first section line meets the view's header line. */
+.side-head { display: flex; align-items: center; gap: 2px; height: 28px; margin-bottom: -2px; }
+.side-title { flex: 1; min-width: 0; margin: 0; font-size: var(--fs-title); font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-head .icon-btn, .details-head .icon-btn { width: 28px; height: 28px; background: transparent; }
 .side-head .side-collapse { background: var(--accent); color: var(--bg); }
-.side-section { display: flex; flex-direction: column; gap: 2px; padding-top: 10px; border-top: 1px solid var(--border); }
-.side-label { margin: 0 0 4px; font-size: 8pt; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.side-section { display: flex; flex-direction: column; gap: 2px; padding-top: 8px; border-top: 1px solid var(--border); }
+.side-label { margin: 0 0 4px; font-size: var(--fs-caption); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .side-categories { display: flex; flex-direction: column; }
-.side-category { display: flex; align-items: center; gap: 8px; padding: 3px 6px; font-size: 9pt; color: var(--text); cursor: pointer; }
-.side-link { display: block; padding: 3px 6px; font-size: 9pt; color: var(--accent); text-decoration: none; }
+.side-category { display: flex; align-items: center; gap: 8px; padding: 3px 6px; font-size: var(--fs-label); color: var(--text); cursor: pointer; }
+.side-link { display: block; padding: 3px 6px; font-size: var(--fs-label); color: var(--accent); text-decoration: none; }
 .side-link:hover, .side-link.is-active { text-decoration: underline; }
-.side-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
+.side-foot { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
 .side-rail { flex: none; width: 40px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0; background: var(--input-bg); border-radius: var(--radius-md); }
 /* Inner radius = rail radius minus the 5px inset of each button (rail 40px, button 30px). */
-.side-rail .icon-btn { width: 30px; height: 30px; background: transparent; border-radius: calc(var(--radius-md) - 5px); }
+.side-rail .icon-btn { width: 36px; height: 36px; background: transparent; border-radius: calc(var(--radius-md) - 5px); }
 .side-rail .side-rail-expand { background: var(--accent); color: var(--bg); }
 .side-rail-sep { flex: none; width: 22px; height: 1px; margin: 2px 0; background: var(--border); }
 .side-rail .is-favorite { color: var(--st-progress); }
@@ -25,19 +26,25 @@
 .details-panel[hidden], .side-rail[hidden], .side-section[hidden] { display: none; }
 .side-preview { min-width: 0; overflow: hidden; }
 .side-preview img, .side-preview video { display: block; width: 100%; max-width: 100%; height: auto; max-height: 240px; object-fit: contain; border-radius: var(--radius-md); background: var(--input-bg); }
-.side-preview-note { margin: 6px 0 0; font-size: 11px; opacity: 0.75; }
+.side-preview-note { margin: 6px 0 0; font-size: var(--fs-caption); opacity: 0.75; }
 /* Automatic run: a box apart from the automation picks, so its state reads at a glance and can be stopped from there. */
 .automation-auto { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: var(--radius-md); }
-.automation-auto-state { color: var(--accent); font-size: 9pt; }
-.automation-auto-list { margin: 0; padding-left: 18px; color: var(--muted); font-size: 9pt; overflow-wrap: anywhere; }
+.automation-auto-state { color: var(--accent); font-size: var(--fs-label); }
+.automation-auto-list { margin: 0; padding-left: 18px; color: var(--muted); font-size: var(--fs-label); overflow-wrap: anywhere; }
 .automation-auto-actions { display: flex; gap: 6px; }
 .automation-auto-actions .side-action { flex: 1; }
 .side-action.accent.automation-run-auto, .automation-run-auto .side-action-icon, .automation-run-auto .side-action-label { color: var(--st-review); }
-.automation-dictionary { margin-bottom: 6px; }
+.automation-dictionary { display: flex; gap: 6px; margin-bottom: 6px; }
+.automation-dictionary > .side-action { flex: 1; min-width: 0; }
+.automation-build { flex: none; align-self: stretch; width: 32px; }
+.automation-build[aria-busy="true"] { color: var(--accent); cursor: progress; }
+.automation-build[aria-busy="true"] .gui-icon { animation: automation-build-busy 1.2s ease-in-out infinite; }
+@keyframes automation-build-busy { 0%, 100% { opacity: 0.45; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .automation-build[aria-busy="true"] .gui-icon { animation: none; } }
 .automation-auto[hidden] { display: none; }
 .automation-batch { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-md); }
 .automation-batch[hidden] { display: none; }
-.automation-batch .side-action.automation-run-small { padding: 3px 6px; font-size: 8.5pt; }
+.automation-batch .side-action.automation-run-small { padding: 3px 6px; font-size: var(--fs-caption); }
 .automation-batch .automation-run-small .side-action-icon .gui-icon { width: 12px; height: 12px; }
 .automation-batch label:last-of-type { margin-bottom: 4px; }
 .side-preview audio { display: block; width: 100%; }
@@ -46,4 +53,4 @@
 .pdf-bar[hidden] { display: none; }
 .pdf-turn { min-width: 28px; padding: 2px 8px; border: 1px solid var(--border, #444); border-radius: var(--radius-md); background: var(--input-bg); color: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
 .pdf-turn:disabled { opacity: 0.4; cursor: default; }
-.pdf-count { font-size: 12px; min-width: 48px; text-align: center; }
+.pdf-count { font-size: var(--fs-label); min-width: 48px; text-align: center; }

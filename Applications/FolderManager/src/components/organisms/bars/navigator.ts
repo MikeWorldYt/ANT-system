@@ -4,20 +4,25 @@ import { guiIcon } from "../../atoms/gui-icons";
 import { iconButton } from "../../atoms/icon-button";
 import { createPathInput, rootName } from "./path-input";
 import { currentPlace, folderOf, samePlace, type Place } from "../../../services/store/place";
-import { findNode, select, selectedNode, state } from "../../../services/store/state";
+import { boardCategory, findNode, keyOf, select, selectedNode, setBoardCategory, state } from "../../../services/store/state";
+import { isMainCategory } from "../../../services/store/node-info";
+import { attachMenu } from "../menus/anchored-menu";
+import { folderIcon } from "../../atoms/icons";
 import { goToPlace, openVirtual } from "../../../hooks/virtual-nav";
 import { openEntry } from "../../molecules/virtual-entry";
 import { reportError } from "./status-line";
 import type { Trail } from "../../../hooks/tabs";
+import type { TreeNode } from "../../../services/ipc/types";
 import { currentSplit, focusPane, paneOn, type Split } from "../../../hooks/split";
 
 interface Crumb {
   label: string;
   go(): void;
   depth?: number;
+  parts?: string[];
 }
 
-export function createNavigator(): { element: HTMLElement; render(): void; editPath(): void; goUp(): void; trail(): Trail; setTrail(trail: Trail): void; enter(trail: Trail, place: Place): Promise<void> } {
+export function createNavigator(shownFolder: () => TreeNode | null | undefined): { element: HTMLElement; render(): void; editPath(): void; goUp(): void; trail(): Trail; setTrail(trail: Trail): void; enter(trail: Trail, place: Place): Promise<void> } {
   let history: Place[] = [];
   let at = -1;
   // Restoring a place passes through others (the entry, its favorite), which must not become entries.
@@ -151,34 +156,65 @@ export function createNavigator(): { element: HTMLElement; render(): void; editP
 
   // Inside a virtual entry the trail runs through it and the entry the selection went through, not the real folders.
   function trail(): Crumb[] {
-    // A selected file cannot be opened as a folder, so the trail ends at the folder that holds it.
-    const parts = (state.selectedKey?.split("/") ?? []).slice(0, selectedNode()?.file ? -1 : undefined);
-    const crumb = (end: number): Crumb => ({ label: parts[end - 1] ?? "", go: () => select(parts.slice(0, end)), depth: end });
+    // The trail is the folder on screen; a view with no single folder falls back to the selection, minus a selected file.
+    const shown = shownFolder();
+    const parts = shown !== undefined ? (shown?.relParts ?? []) : (state.selectedKey?.split("/") ?? []).slice(0, selectedNode()?.file ? -1 : undefined);
+    const crumb = (end: number): Crumb => ({ label: parts[end - 1] ?? "", go: () => select(parts.slice(0, end)), depth: end, parts: parts.slice(0, end) });
     const entry = openEntry();
     if (entry === null) return parts.map((_, i) => crumb(i + 1));
     const head: Crumb = { label: entry.label, go: () => void openVirtual(entry.id) };
-    if (state.via === null) return [head];
+    if (state.via === null || parts.length === 0) return [head];
     const from = state.via.split("/").length;
     return [head, ...parts.slice(from - 1).map((_, i) => crumb(from + i))];
+  }
+
+  // The board's separator lists the main categories; picking one narrows the board and shows after BOARD.
+  function categorySep(): HTMLElement {
+    const b = el("button", { type: "button", class: "crumb-sep crumb-menu", "aria-label": "Board categories" }, guiIcon("separator"));
+    const categories = () => (state.tree?.nodes ?? []).filter(isMainCategory);
+    attachMenu(b, "Board categories", () => [
+      { label: "All categories", checked: boardCategory() === null, run: () => setBoardCategory(null) },
+      ...categories().map((n, i) => ({ label: n.name, checked: n.name === boardCategory(), divider: i === 0, lead: () => folderIcon(n), run: () => setBoardCategory(n.name) })),
+    ], false, true);
+    return b;
   }
 
   function crumbs(): (Node | string)[] {
     const out: (Node | string)[] = [];
     // Steps inside the levels the database indexes are marked, so where its scope ends shows.
-    const sep = (depth = 1) => el("span", { class: depth <= state.depthLimit ? "crumb-sep db-edge" : "crumb-sep", "aria-hidden": "true" }, guiIcon("separator"));
+    const sepClass = (depth: number) => (depth <= state.depthLimit ? "crumb-sep db-edge" : "crumb-sep");
+    // A separator after a real folder lists its subfolders, as Explorer's address bar does, to jump sideways without leaving the bar.
+    const sep = (depth = 1, parent?: string[], next?: string) => {
+      if (!parent) return el("span", { class: sepClass(depth), "aria-hidden": "true" }, guiIcon("separator"));
+      const b = el("button", { type: "button", class: `${sepClass(depth)} crumb-menu`, "aria-label": `Folders in ${parent.at(-1) ?? rootName(state.tree?.root)}` }, guiIcon("separator"));
+      const folders = () => (parent.length === 0 ? (state.tree?.nodes ?? []) : (findNode(parent)?.children ?? [])).filter((n) => !n.file);
+      attachMenu(b, "Folders", () => folders().map((n) => ({ label: n.name, checked: n.name === next, lead: () => folderIcon(n), run: () => {
+        state.entering = keyOf(n.relParts);
+        select(n.relParts);
+      } })), false, true);
+      return b;
+    };
     const rootBtn = el("button", { type: "button", class: "crumb crumb-btn crumb-root", title: state.tree?.root ?? "" }, rootName(state.tree?.root));
     rootBtn.addEventListener("click", () => select(null));
     out.push(rootBtn);
     const steps = trail();
-    if (steps.length > 0) out.push(sep());
+    const onBoard = state.virtual === "board" && steps.length === 1;
+    const category = onBoard ? boardCategory() : null;
+    if (steps.length > 0) out.push(steps[0]?.parts ? sep(1, [], steps[0].parts.at(-1)) : sep());
     steps.forEach((s, i) => {
-      const leaf = i === steps.length - 1;
+      const leaf = i === steps.length - 1 && category === null;
       const b = el("button", { type: "button", class: leaf ? "crumb crumb-btn current" : "crumb crumb-btn" }, s.label);
       if (leaf) b.setAttribute("aria-current", "location");
-      b.addEventListener("click", s.go);
+      b.addEventListener("click", onBoard && category !== null ? () => setBoardCategory(null) : s.go);
       out.push(b);
-      if (!leaf) out.push(sep(steps[i + 1]?.depth));
+      if (!leaf && !onBoard) out.push(sep(steps[i + 1]?.depth, s.parts, steps[i + 1]?.parts?.at(-1)));
     });
+    if (onBoard) {
+      out.push(categorySep());
+      if (category !== null) {
+        out.push(el("button", { type: "button", class: "crumb crumb-btn current", "aria-current": "location" }, category));
+      }
+    }
     return out;
   }
 

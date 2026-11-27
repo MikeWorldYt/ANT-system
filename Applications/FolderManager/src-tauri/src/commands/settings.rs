@@ -21,8 +21,8 @@ const RELEASES_URL: &str = "https://github.com/MikeWorldYt/ANT-system/releases/t
 const DOCS_URL: &str = "https://ant.mikeworld.dev";
 const MAIL_ADDRESS: &str = "info@mikeworld.dev";
 // A new key is added here before the UI can write it: on/off switches, the launch choice and the shortcut overrides.
-const BOOLEAN_SETTINGS: [&str; 16] = [
-    "pinFavorites", "hideDone", "hideDirectoryIdentifiers", "confirmDelete", "autoUpdate", "installUpdates", "betaUpdates", "debugLogging", "backupAuto", "watchExternal", "autoOpenColumns", "showFavorites", "showDownloads", "showReview", "mcpWrites", "batchDropToGroup",
+const BOOLEAN_SETTINGS: [&str; 18] = [
+    "pinFavorites", "hideDone", "hideDirectoryIdentifiers", "confirmDelete", "autoUpdate", "installUpdates", "betaUpdates", "debugLogging", "backupAuto", "watchExternal", "autoOpenColumns", "showFavorites", "showDownloads", "showReview", "showSystemFolders", "mcpWrites", "batchDropToGroup", "adminIdentifiers",
 ];
 const ON_LAUNCH_VALUES: [&str; 2] = ["continue", "root"];
 const START_VIEW_VALUES: [&str; 7] = ["continue", "columns", "grid", "list", "details", "cards", "graph"];
@@ -64,6 +64,11 @@ fn link_target(link: Link, version: &str) -> String {
     }
 }
 
+// A custom accent is stored as lowercase #rrggbb, the one form the UI writes.
+fn hex_color(value: &str) -> bool {
+    value.len() == 7 && value.starts_with('#') && value[1..].bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+}
+
 fn shortcuts_valid(value: &str) -> bool {
     let Ok(combos) = serde_yaml::from_str::<HashMap<String, Combo>>(value) else { return false };
     let mut seen = HashSet::new();
@@ -84,7 +89,7 @@ pub(crate) fn check(key: &str, value: &str) -> R<()> {
         "startView" => START_VIEW_VALUES.contains(&value),
         "tabView" => TAB_VIEW_VALUES.contains(&value),
         "theme" => THEME_VALUES.contains(&value),
-        "accent" | "iconColor" => ACCENT_VALUES.contains(&value),
+        "accent" | "iconColor" => ACCENT_VALUES.contains(&value) || hex_color(value),
         "textSize" => TEXT_SIZE_VALUES.contains(&value),
         "shortcuts" => shortcuts_valid(value),
         "backupFrequency" => BACKUP_FREQUENCIES.contains(&value),
@@ -173,7 +178,7 @@ mod tests {
         assert!(check("pinFavorites", "yes").is_err());
         assert!(check("other", "true").is_err());
         assert!(check("debugLogging", "false").is_ok());
-        assert!(check("showFavorites", "false").is_ok() && check("showDownloads", "true").is_ok() && check("showReview", "false").is_ok());
+        assert!(check("showFavorites", "false").is_ok() && check("showDownloads", "true").is_ok() && check("showReview", "false").is_ok() && check("showSystemFolders", "true").is_ok());
         assert!(check("showDownloads", "off").is_err());
     }
 
@@ -188,6 +193,10 @@ mod tests {
         assert!(check("tabView", "wall").is_err());
         assert!(check("theme", "light").is_ok() && check("theme", "sepia").is_err());
         assert!(check("accent", "coral").is_ok() && check("accent", "#fff").is_err());
+        assert!(check("accent", "#1a2b3c").is_ok() && check("iconColor", "#ff6b9d").is_ok());
+        for bad in ["#1A2B3C", "#12345", "#1234567", "1a2b3c", "#gggggg", "#1a2b3é", "#1a2b3c; x"] {
+            assert!(check("accent", bad).is_err() && check("iconColor", bad).is_err(), "{bad}");
+        }
         assert!(check("textSize", "large").is_ok() && check("textSize", "huge").is_err());
         assert!(check("shortcuts", "{}").is_ok());
         assert!(check("shortcuts", r#"{"goUp": {"code": "ArrowUp", "mod": false, "alt": true}}"#).is_ok());
