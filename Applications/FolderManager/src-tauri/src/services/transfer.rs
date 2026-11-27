@@ -160,7 +160,7 @@ mod tests {
         let dir = TempDir::new("transfer");
         let a = dir.path().join("a.bin");
         fs::write(&a, vec![7u8; 3000]).unwrap();
-        let job = begin(&[a.clone()], "Dest");
+        let job = begin_as("Copying", &[a.clone()], "Dest", false);
         assert_eq!(snapshot().map(|p| (p.bytes_total, p.files_total)), Some((3000, 1)));
         copy(&a, &dir.path().join("b.bin")).unwrap();
         // Other tests copy in parallel through the same meter, so only a floor is certain.
