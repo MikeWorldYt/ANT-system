@@ -20,6 +20,7 @@ import { keyOf, selectedNode, state } from "../../services/store/state";
 import { openSettings } from "./settings";
 import { createBatchView } from "./views/batch-view";
 import { createBoardView } from "./views/board-view";
+import { createSplitOverlay } from "./split-overlay";
 import { createColumnsView } from "./views/columns-view";
 import { createCardsView, createDetailsView, createGridView, createListView } from "./views/grid-view";
 import { createGraphView } from "./views/graph-view";
@@ -61,6 +62,7 @@ export function createMainWindow(app: HTMLElement) {
   const navigator = createNavigator(() => views.current().openFolder?.());
   bindPanes({ host, views: leftViews }, { host: rightHost, views: rightViews }, navigator);
   bindTabs(navigator, views);
+  const splitOverlay = createSplitOverlay(panes, host, rightHost);
   const tabBar = createTabBar();
   const search = createSearchBar();
   navigator.element.prepend(...toolbar.navLead);
@@ -78,5 +80,5 @@ export function createMainWindow(app: HTMLElement) {
   app.append(tabBar.element, navigator.element, main, createStatusLine());
   installContextMenu(panes, () => views.current().focus(), viewPicker);
   installNavMenu(nav.element, () => nav.element.querySelector<HTMLElement>(".tree")?.focus({ preventScroll: true }));
-  return { views, toolbar, navigator, tabBar, search, panel, board, batch, nav, openSelected };
+  return { views, toolbar, navigator, tabBar, splitOverlay, search, panel, board, batch, nav, openSelected };
 }

@@ -1,7 +1,7 @@
 // Copying a node's path and opening it here or in Explorer, shared by the node menus and the board cards.
 import { openNode } from "../services/ipc/api";
 import { keyOf, state } from "../services/store/state";
-import { focusPane, openSplit } from "./split";
+import { focusPane, openSplitOnCurrent } from "./split";
 import { goToReal } from "./virtual-nav";
 import { setStatus, reportError } from "../components/organisms/bars/status-line";
 import type { TreeNode } from "../services/ipc/types";
@@ -22,7 +22,7 @@ export async function openInApp(node: Pick<TreeNode, "relParts">): Promise<void>
 }
 
 export async function openInSplit(node: Pick<TreeNode, "relParts">): Promise<void> {
-  openSplit();
+  openSplitOnCurrent();
   focusPane(true);
   await openInApp(node);
 }

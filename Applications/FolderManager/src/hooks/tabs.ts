@@ -4,8 +4,9 @@ import { rootName } from "../components/organisms/bars/path-input";
 import { reportError } from "../components/organisms/bars/status-line";
 import { currentPlace, type Place } from "../services/store/place";
 import { isWorknode } from "../services/store/node-info";
+import { systemName, systemRootOf } from "../services/ipc/types";
 import { readPref, savePref } from "../services/store/prefs";
-import { currentSplit, parkedSplit, restoreSplit, savedSplit, type SavedSplit, type Split } from "./split";
+import { currentSplit, fillOther, parkedSplit, restoreSplit, savedSplit, type SavedSplit, type Split } from "./split";
 import { parkBatch, unparkBatch, type ParkedBatch } from "./automations/batch";
 import { parkReplay, unparkReplay, type ParkedReplay } from "./automations/batch-replay";
 import type { ViewSwitcher } from "./view-switch";
@@ -227,11 +228,21 @@ export function closeTab(index = active): void {
   void activate(previous ? tabs.indexOf(previous) : Math.min(index, tabs.length - 1));
 }
 
+// The picked tab leaves the bar: its place becomes the split's empty half.
+export function joinTab(index: number): void {
+  const tab = tabs[index];
+  if (moving || !tab || index === active || tab.split || !currentSplit()?.empty) return;
+  tabs.splice(index, 1);
+  if (index < active) active--;
+  recent = recent.filter((t) => t !== tab);
+  fillOther(tab.place, tab.expanded, tab.trail, tab.view);
+}
+
 // Tabs are narrow, so the id prefix ("01.", "PR.051_") gives way to the title; the tooltip keeps the full name.
 const withoutId = (name: string): string => name.replace(/^(?:[A-Za-z]{2,4}\.)?\d+[._]/, "") || name;
 
 // A tab names where it stands, not what is selected: the project around the selection, else the folder holding it.
-function labelOf(place: Place, shown?: string | null): string {
+export function labelOf(place: Place, shown?: string | null): string {
   const key = shown === undefined ? place.key : shown;
   if (key !== null) {
     const parts = key.split("/");
@@ -241,6 +252,8 @@ function labelOf(place: Place, shown?: string | null): string {
     });
     if (project >= 0) return parts[project] ?? "";
     const folder = findNode(parts)?.file ? parts.slice(0, -1) : parts;
+    // A native folder's own root is keyed "::Name"; it shows the entry label the breadcrumb uses.
+    if (folder.length === 1 && systemRootOf(folder) !== null) return systemName(folder).toUpperCase();
     if (folder.length > 0) return folder[folder.length - 1] ?? "";
     return rootName(state.tree?.root);
   }

@@ -1,0 +1,25 @@
+/* Floating chrome over each split half: the place chip and the empty half's tab picker. */
+.panes { position: relative; }
+.pane-chrome { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.pane-chrome[hidden], .pane-chip[hidden], .pane-picker[hidden], .pane-chip-name[hidden] { display: none; }
+.pane-chip { position: absolute; box-sizing: border-box; display: flex; align-items: center; gap: 2px; height: 24px; padding: 0 3px 0 10px; border: 1px solid var(--border); border-width: 1px 0 0 1px; border-radius: var(--radius-sm) 0 0 0; background: var(--bg); color: var(--muted); font-size: var(--fs-caption); line-height: 1; pointer-events: auto; }
+.pane-chip.empty { padding-left: 3px; }
+.pane-chip:hover, .pane-chip:focus-within { color: var(--text); }
+/* The chip owns the pane's bottom-right corner, so the vertical scrollbar track stops above it. */
+.panes.split .tree-host::-webkit-scrollbar-track:vertical, .panes.split .tree-host > *::-webkit-scrollbar-track:vertical { margin-bottom: 28px; }
+.pane-chip-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pane-chip-close { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 18px; height: 18px; padding: 0; border: 0; border-radius: var(--radius-xs); background: transparent; color: inherit; font: inherit; font-size: 15px; cursor: pointer; }
+.pane-chip-close:hover { background: var(--field-bg); color: var(--text); }
+.pane-chip-close:focus-visible, .pane-picker-item:focus-visible { outline: 2px solid var(--button); outline-offset: -2px; }
+.pane-picker { position: absolute; display: flex; box-sizing: border-box; padding: 16px 16px 40px; overflow: auto; border-radius: var(--radius-md); background: var(--tree-bg); pointer-events: auto; }
+.pane-picker-box { box-sizing: border-box; width: min(100%, 420px); max-height: 100%; margin: auto; display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--input-bg); box-shadow: var(--elev-2); }
+.pane-picker-title { margin: 0; padding: 0 4px 6px; color: var(--title); font-size: var(--fs-label); font-weight: 600; }
+.pane-picker-list { display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow-y: auto; }
+.pane-picker-item { min-width: 0; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.pane-picker-item:hover { background: var(--state-hover); }
+.pane-picker-item[aria-selected="true"], .pane-picker-item:focus-visible { background: var(--highlight); }
+.pane-picker-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--field-bg); color: var(--muted); }
+.pane-picker-icon .gui-icon { width: 16px; height: 16px; }
+.pane-picker-text { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.pane-picker-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pane-picker-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: var(--fs-caption); }

@@ -2,7 +2,8 @@
 import { el } from "../components/dom";
 import { reportError } from "../components/organisms/bars/status-line";
 import { listChildren } from "../services/ipc/api";
-import { findNode, notify, state } from "../services/store/state";
+import type { Place } from "../services/store/place";
+import { findNode, notify, state, type VirtualId } from "../services/store/state";
 import { virtualKeys } from "../services/store/virtual";
 import type { ViewSwitcher } from "./view-switch";
 import type { TabNavigator, Trail } from "./tabs";
@@ -16,6 +17,8 @@ export interface Split {
   right: boolean;
   // Width of the left pane, in percent.
   ratio: number;
+  // The parked pane has no place yet and shows the picker; the focused pane is never the empty one.
+  empty: boolean;
 }
 
 export interface SavedSplit {
@@ -23,6 +26,7 @@ export interface SavedSplit {
   view: string;
   right: boolean;
   ratio: number;
+  empty?: boolean;
 }
 
 interface Pane {
@@ -75,6 +79,9 @@ function showPanes(): void {
   if (right) right.host.hidden = split === null;
   divider.hidden = split === null;
   divider.setAttribute("aria-valuenow", String(Math.round(split?.ratio ?? 50)));
+  const hollow = split?.empty ? otherPane() : null;
+  if (left) left.host.inert = left === hollow;
+  if (right) right.host.inert = right === hollow;
   if (left) left.host.style.flex = split ? `0 0 calc(${split.ratio}% - 5px)` : "";
   left?.host.classList.toggle("focused", split !== null && !split.right);
   right?.host.classList.toggle("focused", split !== null && split.right);
@@ -112,7 +119,7 @@ export const currentSplit = () => split;
 export const paneOn = (onRight: boolean): Pane | null => (onRight ? (split ? right : null) : left);
 
 // Where a pane stands: the store holds the focused one, the split keeps the other parked.
-export function paneLocation(onRight: boolean): { key: string | null; virtual: string | null } {
+export function paneLocation(onRight: boolean): { key: string | null; virtual: VirtualId | null } {
   const here = !split || split.right === onRight ? state : split.other;
   return { key: here.selectedKey, virtual: here.virtual };
 }
@@ -126,12 +133,12 @@ export function restoreSplit(next: Split | null): void {
   void loadOther();
 }
 
-export const savedSplit = (s: Split | null): SavedSplit | null => s && { key: s.other.selectedKey, view: s.view, right: s.right, ratio: s.ratio };
+export const savedSplit = (s: Split | null): SavedSplit | null => s && { key: s.other.selectedKey, view: s.view, right: s.right, ratio: s.ratio, empty: s.empty };
 
-export function parkedSplit({ key, view, right: onRight, ratio }: SavedSplit): Split {
+export function parkedSplit({ key, view, right: onRight, ratio, empty }: SavedSplit): Split {
   const parts = key?.split("/") ?? [];
   const expanded = new Set(parts.map((_, i) => parts.slice(0, i + 1).join("/")));
-  return { other: { selectedKey: key, selectedKeys: key === null ? [] : [key], expanded, virtual: null, virtualKeys: [], via: null, pasteKey: null, editing: null }, trail: { history: [], at: -1 }, view, right: onRight, ratio };
+  return { other: { selectedKey: key, selectedKeys: key === null ? [] : [key], expanded, virtual: null, virtualKeys: [], via: null, pasteKey: null, editing: null }, trail: { history: [], at: -1 }, view, right: onRight, ratio, empty: empty ?? false };
 }
 
 // The parked pane may stand deeper than anything the focused pane loaded.
@@ -159,21 +166,42 @@ export async function loadOtherVirtual(): Promise<void> {
   if (split?.other.virtual === id) split.other.virtualKeys = keys;
 }
 
-export function openSplit(): void {
-  if (split || !focusedPane()) return;
-  const here = read();
-  const current = focusedPane()?.views.current().id ?? "";
-  // The graph is too wide for half a window, so the new pane opens in the default view instead.
+// The graph is too wide for half a window, so a half opens in the default view instead.
+function halfView(id: string): string {
   const fallback = state.settings.startView === "continue" || state.settings.startView === "graph" ? "columns" : state.settings.startView;
-  const view = current === "graph" ? fallback : current;
-  split = { other: { ...here, expanded: new Set(here.expanded), editing: null }, trail: { history: [], at: -1 }, view, right: false, ratio: 50 };
+  return id === "graph" ? fallback : id;
+}
+
+function createSplit(empty: boolean): void {
+  if (split || !focusedPane()) return;
+  const view = halfView(focusedPane()?.views.current().id ?? "");
+  const other = empty ? parkedSplit({ key: null, view, right: false, ratio: 50 }).other : { ...read(), expanded: new Set(state.expanded), editing: null };
+  split = { other, trail: { history: [], at: -1 }, view, right: false, ratio: 50, empty };
   otherPane()?.views.switchTo(view);
   showPanes();
   notify();
 }
 
+export const openSplit = (): void => createSplit(true);
+// A place is about to be opened in the new half, so it starts on the current one instead of the picker.
+export const openSplitOnCurrent = (): void => createSplit(false);
+
+// Puts a place in the empty half; the tab it came from is the caller's to remove.
+export function fillOther(place: Place, expanded: Set<string>, trail: Trail, view?: string): void {
+  if (!split?.empty) return;
+  const { key } = place;
+  split.other = { selectedKey: key, selectedKeys: key === null ? [] : [key], expanded: new Set(expanded), virtual: place.virtual, virtualKeys: [], via: place.via, pasteKey: null, editing: null };
+  split.trail = trail;
+  split.view = halfView(view ?? split.view);
+  split.empty = false;
+  otherPane()?.views.switchTo(split.view);
+  showPanes();
+  notify();
+  Promise.all([loadOther(), loadOtherVirtual()]).then(notify).catch((e) => reportError("warning", e));
+}
+
 export function focusPane(toRight: boolean): void {
-  if (!split || !navigator || split.right === toRight) return;
+  if (!split || !navigator || split.right === toRight || split.empty) return;
   const here = read();
   const trail = navigator.trail();
   const view = focusedPane()?.views.current().id ?? split.view;
@@ -194,8 +222,20 @@ export function closeSplit(): void {
   notify();
 }
 
+// Closing a half leaves the other one as the plain tab; with an empty half there is nothing to keep but the filled one.
+export function closeHalf(onRight: boolean): void {
+  if (!split || !right || !left) return;
+  if (split.empty || onRight) return closeSplit();
+  focusPane(true);
+  const view = right.views.current().id;
+  split = null;
+  left.views.switchTo(view);
+  showPanes();
+  notify();
+}
+
 export function renderOther(): void {
-  if (!split) return;
+  if (!split || split.empty) return;
   const here = read();
   renderingOther = true;
   Object.assign(state, split.other);

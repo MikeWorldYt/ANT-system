@@ -30,7 +30,7 @@ import { onTourStart } from "./components/organisms/tour/onboarding-tour";
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("Missing #app mount point");
 
-const { views, toolbar, navigator, tabBar, search, panel, board, batch, nav, openSelected } = createMainWindow(app);
+const { views, toolbar, navigator, tabBar, splitOverlay, search, panel, board, batch, nav, openSelected } = createMainWindow(app);
 bindReplay({ viewChanged: () => toolbar.render() });
 installShortcuts({
   focusSearch: () => search.focus("folders"),
@@ -76,6 +76,7 @@ subscribe(() => {
   navigator.render();
   syncTabs();
   tabBar.render();
+  splitOverlay.render();
   nav.render();
   renderOther();
   board.render();

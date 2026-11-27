@@ -11,6 +11,7 @@
 @import "./components/molecules/search-chips.css";
 @import "./components/atoms/icon-button.css";
 @import "./components/windows/main-window.css";
+@import "./components/windows/split-overlay.css";
 @import "./components/windows/views/tree-view.css";
 @import "./components/molecules/node-item.css";
 @import "./components/atoms/icons.css";
