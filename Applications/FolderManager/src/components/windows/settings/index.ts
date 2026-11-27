@@ -77,7 +77,7 @@ export async function openSettings(pageId?: string): Promise<void> {
     currentId = id;
     const page = PAGES.find((p) => p.id === id)!;
     title.textContent = page.title;
-    body.replaceChildren(...sections(page.rows(ctx)));
+    body.replaceChildren(...(page.intro ? [page.intro(ctx)] : []), ...sections(page.rows(ctx)));
     body.scrollTop = 0;
     nav.forEach((button, pageId) => {
       button.classList.remove("dim");

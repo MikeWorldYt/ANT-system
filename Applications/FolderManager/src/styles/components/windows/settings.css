@@ -42,3 +42,8 @@ dialog.settings-window::backdrop { background: rgb(0 0 0 / 0.6); }
 .sw-rail li.drop-before::before, .sw-rail li.drop-after::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: var(--accent); border-radius: var(--radius-xs); pointer-events: none; }
 .sw-rail li.drop-before::before { top: -2px; }
 .sw-rail li.drop-after::after { bottom: -2px; }
+.sw-about-head { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+.sw-about-logo { flex: none; width: 40px; height: 40px; }
+.sw-about-head > div { display: flex; flex-direction: column; gap: 2px; }
+.sw-about-name { font-size: var(--fs-title); color: var(--title); }
+.sw-about-version { color: var(--muted); }

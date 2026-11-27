@@ -19,7 +19,8 @@ export function clientRow(initial: AiClient): HTMLElement {
   const showLabel = (): void => {
     const off = client.connected && (connect.matches(":hover") || connect.matches(":focus-visible"));
     if (client.installed && client.connected && !off) label.replaceChildren(el("span", { class: "ai-connected-word" }, "Connected"), ` with ${client.name}`);
-    else label.textContent = !client.installed ? `${client.name} is not installed` : off ? `Disconnect ${client.name}` : `Connect with ${client.name}`;
+    else if (!client.installed) label.replaceChildren(client.name, el("span", { class: "ai-hint" }, "Not installed"));
+    else label.textContent = off ? `Disconnect ${client.name}` : `Connect with ${client.name}`;
   };
   for (const type of ["pointerenter", "pointerleave", "focus", "blur"]) connect.addEventListener(type, showLabel);
   const restart = textButton(`Restart ${client.name}`, undefined, () => void run(() => aiRestartClient(client.id)));
@@ -30,7 +31,8 @@ export function clientRow(initial: AiClient): HTMLElement {
     icon.replaceChildren(guiIcon(ICONS[client.id]));
     connect.classList.toggle("is-connected", client.connected);
     connect.disabled = !client.installed;
-    connect.setAttribute("aria-label", client.connected ? `Connected with ${client.name}, press to disconnect` : `Connect with ${client.name}`);
+    connect.classList.toggle("is-missing", !client.installed);
+    connect.setAttribute("aria-label", !client.installed ? `${client.name} is not installed` : client.connected ? `Connected with ${client.name}, press to disconnect` : `Connect with ${client.name}`);
     restart.disabled = false;
     note.textContent = `${client.name} loads ANT only when it starts. Restarting closes all its windows, including chats still answering.`;
     restartBox.hidden = !client.restartNeeded;

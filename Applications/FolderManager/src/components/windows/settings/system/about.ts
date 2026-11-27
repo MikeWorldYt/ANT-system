@@ -1,4 +1,4 @@
-// About page: app and storage info, the update check, the changelog and the ways to report a bug.
+// About page: the app identity header, the update check, the changelog and the ways to report a bug.
 import { changeSetting } from "../../../../hooks/ops";
 import { checkForUpdates, type UpdateOutcome } from "../../../../hooks/updates";
 import { openLink } from "../../../../services/ipc/api";
@@ -6,7 +6,8 @@ import { state } from "../../../../services/store/state";
 import { reportError } from "../../../organisms/bars/status-line";
 import { startTour, tourSeen } from "../../../organisms/tour/onboarding-tour";
 import { buttonControl } from "../../../atoms/button";
-import { pathControl, valueControl } from "../../../atoms/label";
+import { el } from "../../../dom";
+import antLogo from "../../../../assets/ant-logo.svg";
 import { switchControl } from "../../../atoms/switch";
 import { actions } from "../../../molecules/button-row";
 import type { RowHandle } from "../../../molecules/setting-row";
@@ -33,11 +34,35 @@ export const aboutPage: SettingsPage = {
   group: "System",
   title: "About",
   icon: "pageAbout",
-  rows: (ctx) => [
-    { title: "App", control: () => valueControl("ANT System Manager") },
-    { title: "Version", control: () => valueControl(ctx.storage?.appVersion ?? "Unknown") },
-    { title: "Storage", control: () => pathControl(ctx.storage?.root ?? "Unknown") },
+  intro: (ctx) =>
+    el("header", { class: "sw-about-head" }, el("img", { class: "sw-about-logo", src: antLogo, alt: "", width: "40", height: "40" }), el("div", {}, el("strong", { class: "sw-about-name" }, "ANT System Manager"), el("span", { class: "sw-about-version" }, `Version ${ctx.storage?.appVersion ?? "unknown"}`))),
+  rows: () => [
     {
+      section: "Updates",
+      title: "Check for updates",
+      description: "Look for a newer version.",
+      control: (row: RowHandle) =>
+        buttonControl("Check now", () => void checkForUpdates(true).then((outcome) => row.describe(UPDATE_TEXT[outcome])), "outline"),
+    },
+    {
+      section: "Updates",
+      title: "Check for updates automatically",
+      control: () => switchControl("Check for updates automatically", state.settings.autoUpdate, (on) => changeSetting("autoUpdate", on)),
+    },
+    {
+      section: "Updates",
+      title: "Install updates automatically",
+      description: "At launch, a newer version is installed without asking.",
+      control: () => switchControl("Install updates automatically", state.settings.installUpdates, (on) => changeSetting("installUpdates", on)),
+    },
+    {
+      section: "Updates",
+      title: "Receive beta updates",
+      description: "Get beta versions as soon as they are out. Off, only stable versions arrive.",
+      control: () => switchControl("Receive beta updates", state.settings.betaUpdates, (on) => changeSetting("betaUpdates", on)),
+    },
+    {
+      section: "Help",
       title: "Tutorial",
       description: "Walk through the basic controls again.",
       control: () => {
@@ -49,33 +74,13 @@ export const aboutPage: SettingsPage = {
         return button;
       },
     },
-    {
-      title: "Updates",
-      description: "Look for a newer version.",
-      control: (row: RowHandle) =>
-        buttonControl("Check for updates", () => void checkForUpdates(true).then((outcome) => row.describe(UPDATE_TEXT[outcome])), "outline"),
-    },
-    {
-      title: "Check for updates automatically",
-      control: () => switchControl("Check for updates automatically", state.settings.autoUpdate, (on) => changeSetting("autoUpdate", on)),
-    },
-    {
-      title: "Install updates automatically",
-      description: "At launch, a newer version is installed without asking.",
-      control: () => switchControl("Install updates automatically", state.settings.installUpdates, (on) => changeSetting("installUpdates", on)),
-    },
-    {
-      title: "Receive beta updates",
-      description: "Get beta versions as soon as they are out. Off, only stable versions arrive.",
-      control: () => switchControl("Receive beta updates", state.settings.betaUpdates, (on) => changeSetting("betaUpdates", on)),
-    },
-    { title: "Documentation", description: "Guides and reference for ANT.", control: () => buttonControl("Open documentation", () => void openOrReport("docs")) },
-    { title: "What’s new in this version", control: () => buttonControl("View changelog", () => void openOrReport("changelog")) },
+    { section: "Help", title: "Documentation", description: "Guides and reference for ANT.", control: () => buttonControl("Open documentation", () => void openOrReport("docs")) },
+    { section: "Help", title: "What’s new in this version", control: () => buttonControl("View changelog", () => void openOrReport("changelog")) },
     {
       section: "Report a bug",
       title: `On GitHub, or by mail to ${MAIL}`,
       description: "The app version is added for you.",
-      control: () => actions(buttonControl("Report on GitHub", () => void openOrReport("issues")), buttonControl("Email us", () => void openOrReport("mail"))),
+      control: () => actions(buttonControl("Report on GitHub", () => void openOrReport("issues"), "outline"), buttonControl("Email us", () => void openOrReport("mail"))),
     },
   ],
 };
