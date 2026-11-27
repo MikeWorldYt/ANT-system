@@ -163,10 +163,26 @@ pub fn storage_locations(app: AppHandle) -> Vec<StorageLocation> {
     location::locations(app.path().home_dir().ok()).into_iter().map(|(label, p)| StorageLocation { label, path: p.to_string_lossy().into_owned() }).collect()
 }
 
+// A missing bundled sample (dev run without resources) leaves the new Storage empty; the reason is logged.
+fn sample_template(app: &AppHandle) -> Option<PathBuf> {
+    match app.path().resolve("template-storage", tauri::path::BaseDirectory::Resource) {
+        Ok(dir) if dir.is_dir() => Some(dir),
+        Ok(dir) => {
+            eprintln!("The sample Storage is not bundled at {}; the new Storage starts empty.", dir.display());
+            None
+        }
+        Err(e) => {
+            eprintln!("Could not locate the sample Storage: {e}");
+            None
+        }
+    }
+}
+
 #[tauri::command]
 pub async fn create_storage(window: WebviewWindow, parent: String, name: String) -> R<String> {
+    let template = sample_template(window.app_handle());
     switched(window, move |storage| {
-        let root = location::create(&location::clean_path(&parent)?, &name)?;
+        let root = location::create(&location::clean_path(&parent)?, &name, template.as_deref())?;
         change_flow(storage, &root.to_string_lossy())
     })
     .await

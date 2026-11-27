@@ -46,8 +46,8 @@ pub fn check_name(name: &str) -> R<&str> {
     Ok(name)
 }
 
-// An empty Storage is only its folder and .ant/; the scan that follows builds the database.
-pub fn create(parent: &Path, name: &str) -> R<PathBuf> {
+// A new Storage is its folder and .ant/ plus a copy of the bundled sample, when there is one; the scan that follows builds the database.
+pub fn create(parent: &Path, name: &str, template: Option<&Path>) -> R<PathBuf> {
     let name = check_name(name)?;
     if !parent.is_dir() {
         return Err(invalid(&parent.display().to_string(), "the parent folder does not exist"));
@@ -57,7 +57,26 @@ pub fn create(parent: &Path, name: &str) -> R<PathBuf> {
         return Err(invalid(name, "a folder with that name already exists there"));
     }
     std::fs::create_dir_all(root.join(crate::domain::config::DATA_DIR)).map_err(|e| crate::infra::fs_safe::io_err("create the Storage", &root, &e))?;
+    if let Some(template) = template {
+        copy_template(template, &root)?;
+    }
     Ok(root)
+}
+
+// Existing files are never overwritten; .gitkeep only keeps empty sample folders alive in git and in the installer.
+fn copy_template(from: &Path, to: &Path) -> R<()> {
+    let io = |e: std::io::Error, p: &Path| crate::infra::fs_safe::io_err("copy the sample Storage", p, &e);
+    std::fs::create_dir_all(to).map_err(|e| io(e, to))?;
+    for entry in std::fs::read_dir(from).map_err(|e| io(e, from))? {
+        let entry = entry.map_err(|e| io(e, from))?;
+        let (source, target) = (entry.path(), to.join(entry.file_name()));
+        if source.is_dir() {
+            copy_template(&source, &target)?;
+        } else if entry.file_name() != ".gitkeep" && !target.exists() {
+            std::fs::copy(&source, &target).map_err(|e| io(e, &source))?;
+        }
+    }
+    Ok(())
 }
 
 // Rename and move of a listed Storage: a plain rename, so a move to another drive is refused instead of copied.
@@ -127,18 +146,36 @@ mod tests {
     #[test]
     fn an_empty_storage_is_created_once() {
         let dir = TempDir::new("create-storage");
-        assert!(create(dir.path(), "a/b").is_err());
-        assert!(create(dir.path(), " ").is_err());
-        assert!(create(&dir.path().join("missing"), "S").is_err());
-        let root = create(dir.path(), " My Storage ").unwrap();
+        assert!(create(dir.path(), "a/b", None).is_err());
+        assert!(create(dir.path(), " ", None).is_err());
+        assert!(create(&dir.path().join("missing"), "S", None).is_err());
+        let root = create(dir.path(), " My Storage ", None).unwrap();
         assert_eq!(find_root(&root).as_deref(), Some(root.as_path()));
-        assert!(create(dir.path(), "My Storage").is_err());
+        assert!(create(dir.path(), "My Storage", None).is_err());
+    }
+
+    #[test]
+    fn a_new_storage_gets_the_sample_without_overwriting() {
+        let dir = TempDir::new("create-template");
+        dir.mkdir("tpl/.ant");
+        dir.mkdir("tpl/100.A/REV.A");
+        std::fs::write(dir.path().join("tpl/.ant/done"), "done").unwrap();
+        std::fs::write(dir.path().join("tpl/100.A/REV.A/.gitkeep"), "").unwrap();
+        std::fs::write(dir.path().join("tpl/100.A/note.txt"), "sample").unwrap();
+        let tpl = dir.path().join("tpl");
+        let root = create(dir.path(), "S", Some(&tpl)).unwrap();
+        assert_eq!(std::fs::read_to_string(root.join("100.A/note.txt")).unwrap(), "sample");
+        assert!(root.join(".ant/done").is_file() && root.join("100.A/REV.A").is_dir() && !root.join("100.A/REV.A/.gitkeep").exists());
+        std::fs::write(root.join("100.A/note.txt"), "mine").unwrap();
+        copy_template(&tpl, &root).unwrap();
+        assert_eq!(std::fs::read_to_string(root.join("100.A/note.txt")).unwrap(), "mine");
+        assert!(create(dir.path(), "T", Some(&dir.path().join("gone"))).is_err());
     }
 
     #[test]
     fn a_storage_is_renamed_on_the_same_drive_only() {
         let dir = TempDir::new("relocate");
-        let root = create(dir.path(), "S").unwrap();
+        let root = create(dir.path(), "S", None).unwrap();
         assert!(relocate(&dir.path().join("missing"), &dir.path().join("T")).is_err());
         dir.mkdir("Taken");
         assert!(relocate(&root, &dir.path().join("Taken")).is_err());

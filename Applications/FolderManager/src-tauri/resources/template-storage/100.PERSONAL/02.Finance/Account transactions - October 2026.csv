@@ -1,0 +1,17 @@
+date;description;debit;credit;balance
+2026-10-01;Online purchase;108000;;742000
+2026-10-03;ATM withdrawal;115000;;627000
+2026-10-05;ATM withdrawal;39000;;588000
+2026-10-07;Online purchase;33000;;555000
+2026-10-09;Transfer received;;47000;602000
+2026-10-11;Streaming subscription;33000;;569000
+2026-10-13;Restaurant;66000;;503000
+2026-10-15;Restaurant;9000;;494000
+2026-10-17;Restaurant;58000;;436000
+2026-10-19;Transfer received;;96000;532000
+2026-10-21;Supermarket;11000;;521000
+2026-10-23;Fuel;77000;;444000
+2026-10-25;Pharmacy;65000;;379000
+2026-10-27;Transfer received;;50000;429000
+2026-10-29;Streaming subscription;108000;;321000
+2026-10-31;Transfer received;;61000;382000
