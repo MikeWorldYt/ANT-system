@@ -314,7 +314,7 @@ export function isFmError(e: unknown): e is FmError {
   return typeof e === "object" && e !== null && typeof (e as { kind?: unknown }).kind === "string";
 }
 
-export type AiClientId = "claudeDesktop" | "claudeCode";
+export type AiClientId = "claudeDesktop" | "claudeCode" | "codex" | "opencode";
 
 export interface AiClient {
   id: AiClientId;

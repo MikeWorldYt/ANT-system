@@ -1,8 +1,20 @@
 /* Connect AI dialog: one row per client plus the manual-config section. */
+/* Each client's brand color and the connected green stay fixed whatever accent the user picks. */
+.ai-connect-btn { --client-brand: #d97757; --client-ink: #ffffff; }
+.ai-connect-btn[data-client="codex"], .ai-connect-btn[data-client="opencode"] { --client-brand: #f2f2f2; --client-ink: #111111; }
+.ai-connect h2, .ai-other { text-align: center; }
 .ai-clients { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
 .ai-client-main { display: flex; align-items: center; gap: 8px; }
-.ai-client-main strong { flex: 1; }
-.ai-client-status { color: var(--muted); }
+.ai-connect-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 10px 18px; border: 0; border-radius: 999px; font: inherit; font-weight: 700; color: var(--client-ink); background: var(--client-brand); cursor: pointer; }
+.ai-connect-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.ai-connect-btn:focus-visible { outline: 2px solid var(--title); outline-offset: 2px; }
+.ai-connect-btn.is-connected { color: var(--client-brand); background: transparent; box-shadow: inset 0 0 0 1px var(--client-brand); }
+.ai-connect-btn.is-connected:not(:hover):not(:focus-visible) .ai-connected-word { color: #16c89c; }
+.ai-connect-btn.is-connected:hover:not(:disabled), .ai-connect-btn.is-connected:focus-visible { color: #ffffff; background: var(--delete-hover); box-shadow: none; filter: none; }
+.ai-connect-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ai-connect-btn[aria-busy="true"] { cursor: progress; opacity: 0.7; }
+.ai-connect-icon { display: inline-flex; }
+.ai-connect-icon svg { width: 18px; height: 18px; }
 .ai-client-note { margin: 4px 0 0; color: var(--accent); }
 .ai-client-restart { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .ai-client-restart[hidden] { display: none; }
@@ -11,4 +23,3 @@
 .ai-client-error:empty, .ai-client-note:empty { display: none; }
 .ai-other h3 { margin: 12px 0 4px; font-size: var(--fs-body); color: var(--title); }
 .ai-feedback { margin: 4px 0 0; color: var(--muted); }
-.ai-client .btn:disabled { opacity: 0.5; cursor: not-allowed; }

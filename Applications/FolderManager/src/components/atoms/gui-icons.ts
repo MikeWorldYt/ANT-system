@@ -57,6 +57,11 @@ import paste from "../../assets/gui/paste.svg?raw";
 import board from "../../assets/gui/board.svg?raw";
 import sparkles from "../../assets/gui/sparkles.svg?raw";
 import aiReady from "../../assets/gui/ai-ready.svg?raw";
+import claude from "../../assets/gui/claude.svg?raw";
+import claudeCode from "../../assets/gui/claude-code.svg?raw";
+import codex from "../../assets/gui/codex.svg?raw";
+import chatgpt from "../../assets/gui/chatgpt.svg?raw";
+import opencode from "../../assets/gui/opencode.svg?raw";
 import viewCards from "../../assets/gui/view-cards.svg?raw";
 import viewGrid from "../../assets/gui/view-grid.svg?raw";
 import viewDetails from "../../assets/gui/view-details.svg?raw";
@@ -65,7 +70,7 @@ import viewGraph from "../../assets/gui/view-graph.svg?raw";
 import viewTree from "../../assets/gui/view-tree.svg?raw";
 import warning from "../../assets/gui/warning.svg?raw";
 
-const SOURCES = { add, aiConnect, aiReady, back, board, chevronDown, chevronRight, chevronsLeft, chevronsRight, cut, desktop, documents, download, duplicate, forward, hide, important, layout, link, moveDown, moveUp, music, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, paste, pencil, pictures, play, recordings, refresh, screenshots, search, separator, settings, sparkle, sparkles, split, sortCreated, sortModified, sortName, sortSize, sortStatus, sortTrack, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, videos, viewColumns, viewCards, viewDetails, viewGrid, viewList, viewGraph, viewTree, warning };
+const SOURCES = { add, aiConnect, aiReady, back, board, chevronDown, chatgpt, claude, claudeCode, codex, opencode, chevronRight, chevronsLeft, chevronsRight, cut, desktop, documents, download, duplicate, forward, hide, important, layout, link, moveDown, moveUp, music, pageAbout, pageAdvanced, pageAppearance, pageBackup, pageExtensions, pageGeneral, pageStorage, pageShortcuts, paste, pencil, pictures, play, recordings, refresh, screenshots, search, separator, settings, sparkle, sparkles, split, sortCreated, sortModified, sortName, sortSize, sortStatus, sortTrack, starred, statusDone, statusHold, statusProgress, statusReview, trash, up, videos, viewColumns, viewCards, viewDetails, viewGrid, viewList, viewGraph, viewTree, warning };
 
 export type GuiIcon = keyof typeof SOURCES;
 

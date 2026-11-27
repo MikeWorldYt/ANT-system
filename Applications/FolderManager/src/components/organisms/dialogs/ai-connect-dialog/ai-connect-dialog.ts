@@ -24,7 +24,8 @@ export async function aiConnectDialog(): Promise<void> {
   const list = el("ul", { class: "ai-clients" });
   const loading = el("p", { role: "status" }, "Looking for AI clients...");
   const close = cancelButton("Close");
-  openDialog({ title: "Connect AI", body: [dialogText("Let your AI assistant use ANT: search, create and organize folders and projects."), loading, list, otherClients()], buttons: [close], focus: () => close.focus() });
+  const { dialog } = openDialog({ title: "Connect with your AI Client", body: [loading, list, otherClients()], buttons: [close], focus: () => close.focus() });
+  dialog.classList.add("ai-connect");
   try {
     list.replaceChildren(...(await aiClients()).map(clientRow));
     loading.remove();
