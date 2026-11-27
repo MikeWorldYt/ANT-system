@@ -1,9 +1,11 @@
 /* Sort and view pickers of the toolbar and the view popup. */
 .view-picker {
-  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: var(--radius-xs);
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
   background: var(--input-bg); color: var(--text); font: inherit; cursor: pointer;
 }
 .view-picker:hover { background: var(--field-bg); }
+.view-picker:focus-visible { outline: 2px solid var(--button); outline-offset: 2px; }
+.view-picker .picker-caret { width: 12px; height: 12px; color: var(--muted); }
 .view-picker .gui-icon { width: 16px; height: 16px; }
 .view-picker[hidden] { display: none; }
 .icon-btn[aria-pressed="true"], .icon-btn[aria-pressed="true"]:hover { background: var(--highlight); color: var(--title); }
@@ -18,4 +20,4 @@
 .view-segment .view-choice, .view-choices .view-choice { width: 58px; height: auto; flex-direction: column; gap: 3px; padding: 6px 2px; background: transparent; }
 .view-segment .view-choice[aria-pressed="true"], .view-choices .view-choice[aria-pressed="true"] { background: var(--highlight); color: var(--text); }
 .view-choice-label { font-size: var(--fs-caption); white-space: nowrap; }
-.sort-btn[data-dir="desc"] .gui-icon:last-child { transform: rotate(180deg); }
+.sort-btn[data-dir="desc"] .sort-dir { transform: rotate(180deg); }

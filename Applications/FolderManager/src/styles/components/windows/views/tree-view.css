@@ -3,7 +3,7 @@
 .row { padding: 3px 8px 3px calc(8px + var(--depth, 0) * 18px); }
 .tree:focus-visible .row.selected { outline: 2px solid var(--button); outline-offset: -2px; }
 .row:hover { background: var(--state-hover); }
-.row.selected { background: var(--highlight); }
+.row.selected { background: var(--highlight); box-shadow: inset 3px 0 0 var(--button); }
 .row.ghost .name { color: var(--ghost-text); font-style: italic; }
 .tree-legend { padding: 3px 8px 3px calc(8px + var(--depth, 0) * 18px); color: var(--muted); font-size: var(--fs-label); }
 .row.marked:not(.selected) { background: color-mix(in srgb, var(--highlight) 55%, transparent); }

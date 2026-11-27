@@ -117,6 +117,9 @@ function createFolderView(id: string, label: string, rootClass: string, detail?:
     const item = el("div", { class: "grid-item", role: "option", tabindex: tabbable ? "0" : "-1" }, ...(leadBox ? [leadBox] : lead));
     if (columns) item.append(...detailCells(n));
     markNodeItem(item, n);
+    // Card names truncate, so the tooltip leads with the full one.
+    if (detail) item.title = `${n.name}
+${item.title}`;
     (leadBox ?? item).prepend(...manageBox(n, item));
     onItemClick(item, n, () => shownNodes().map((s) => keyOf(s.relParts)), () => select(n.relParts));
     // As in Explorer, a double click opens; the name renames on a slow second click.

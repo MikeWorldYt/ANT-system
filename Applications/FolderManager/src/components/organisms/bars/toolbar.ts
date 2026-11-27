@@ -53,7 +53,14 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
 
   // ─────────♦ SORT AND VIEW ────────────────────────────────────────────────────
   const sortLabel = el("span", {});
-  const sortBtn = el("button", { type: "button", class: "view-picker sort-btn" }, sortLabel, guiIcon("up"));
+  const sortDir = guiIcon("up");
+  sortDir.classList.add("sort-dir");
+  const caret = (): SVGElement => {
+    const icon = guiIcon("chevronDown");
+    icon.classList.add("picker-caret");
+    return icon;
+  };
+  const sortBtn = el("button", { type: "button", class: "view-picker sort-btn" }, sortLabel, sortDir, caret());
   attachMenu(sortBtn, "Sort by", () => {
     const column = activeColumnKey();
     const { by, dir } = sortOf(column);
@@ -110,7 +117,7 @@ export function createToolbar(views: ViewPicker): { navLead: HTMLElement[]; trai
       const mode = views.modes.find((m) => m.id === views.active())?.label ?? "";
       viewLabel.textContent = mode;
       viewBtn.setAttribute("aria-label", `View: ${mode}`);
-      viewBtn.replaceChildren(viewLabel, guiIcon(VIEW_ICONS[views.active()] ?? "layout"));
+      viewBtn.replaceChildren(viewLabel, guiIcon(VIEW_ICONS[views.active()] ?? "layout"), caret());
       modeButtons.forEach(([id, b]) => {
         b.setAttribute("aria-pressed", String(id === views.active()));
         setDisabled(b, batch !== null && !BATCH_VIEWS.includes(id));

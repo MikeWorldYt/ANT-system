@@ -12,5 +12,7 @@
 .app-tooltip-keys { display: inline-flex; flex: none; gap: 4px; }
 .app-tooltip-keys kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; font: inherit; font-size: var(--fs-caption); line-height: 16px; color: #ffffff; background: var(--tip-key); border-radius: var(--radius-xs); }
 .ctx-menu { --tip-key: #656c76; }
+/* Menu keycaps are outlined and muted so the labels stay the loudest text. */
+.ctx-menu .app-tooltip-keys kbd { color: var(--muted); background: transparent; box-shadow: inset 0 0 0 1px var(--disabled-text); }
 .ctx-item:has(> .ctx-keys) { display: flex; align-items: center; gap: 16px; }
 .ctx-keys { margin-left: auto; }

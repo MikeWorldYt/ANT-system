@@ -12,7 +12,12 @@ export const onStatus = (fn: (level: "warning" | "error", text: string) => void)
   sink = fn;
 };
 
+const WARNING_MS = 10000;
+
 const line = el("span", { class: "status-text", role: "status", "aria-live": "polite" });
+const dismiss = el("button", { type: "button", class: "status-dismiss", "aria-label": "Dismiss message", title: "Dismiss message", hidden: "" }, "×");
+dismiss.addEventListener("click", clearStatus);
+let fade: ReturnType<typeof setTimeout> | undefined;
 const count = el("span", { class: "status-count" });
 
 // Only a group of marked items is counted; a single selection is already visible.
@@ -21,19 +26,28 @@ export function createStatusLine(): HTMLElement {
     const n = state.selectedKeys.length;
     count.textContent = n > 1 ? `${n} items selected` : "";
   });
-  return el("footer", { class: "status-line" }, line, count);
+  return el("footer", { class: "status-line" }, line, dismiss, count);
 }
 
-export function setStatus(level: Level, text: string): void {
+// The visible line stays short; detail keeps the technical text in the tooltip and the log.
+export function setStatus(level: Level, text: string, detail?: string): void {
+  clearTimeout(fade);
   line.setAttribute("aria-live", level === "error" ? "assertive" : "polite");
   line.dataset.level = level;
   line.textContent = text;
-  if (level !== "info") sink?.(level, text);
+  line.title = detail ? `${text} (${detail})` : text;
+  dismiss.hidden = level === "info";
+  if (level !== "info") sink?.(level, detail ? `${text} (${detail})` : text);
+  // Info lines belong to running operations, which clear them; only warnings expire on their own.
+  if (level === "warning") fade = setTimeout(clearStatus, WARNING_MS);
 }
 
 export function clearStatus(): void {
+  clearTimeout(fade);
   line.dataset.level = "";
   line.textContent = "";
+  line.removeAttribute("title");
+  dismiss.hidden = true;
 }
 
 export function beginOperationStatus(text: string): void {

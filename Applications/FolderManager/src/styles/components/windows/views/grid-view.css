@@ -4,7 +4,8 @@
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); align-content: start; gap: 8px; height: 100%; overflow-y: auto; padding: 12px; }
 .grid-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border-radius: var(--radius-sm); cursor: default; user-select: none; }
 .grid-item:hover { background: var(--state-hover); }
-.grid-item.selected { background: var(--highlight); }
+.grid-item.selected { background: var(--highlight); box-shadow: inset 0 0 0 1px var(--button); }
+.grid-item:focus-visible { outline: 2px solid var(--button); outline-offset: -2px; }
 .grid-item.ghost { opacity: 0.7; }
 .concealed { opacity: 0.5; }
 .grid-item.ghost .name { color: var(--ghost-text); font-style: italic; }
@@ -21,7 +22,7 @@
 .grid.list .grid-art .status-mark { position: static; }
 .grid.list .grid-item .name { justify-content: flex-start; }
 .grid.list .grid-item .name-text { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
-.grid.cards { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 4px 8px; }
+.grid.cards { grid-template-columns: repeat(auto-fill, minmax(240px, 300px)); justify-content: start; gap: 4px 8px; }
 .grid.cards .grid-item { flex-direction: row; gap: 10px; padding: 6px 8px; }
 .grid.cards .grid-art .icon, .grid.cards .grid-art .thumb, .grid.cards .grid-item .virtual-icon .gui-icon { width: 44px; height: 44px; }
 .card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }

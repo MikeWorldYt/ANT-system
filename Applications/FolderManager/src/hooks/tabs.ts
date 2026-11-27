@@ -227,6 +227,9 @@ export function closeTab(index = active): void {
   void activate(previous ? tabs.indexOf(previous) : Math.min(index, tabs.length - 1));
 }
 
+// Tabs are narrow, so the id prefix ("01.", "PR.051_") gives way to the title; the tooltip keeps the full name.
+const withoutId = (name: string): string => name.replace(/^(?:[A-Za-z]{2,4}\.)?\d+[._]/, "") || name;
+
 // A tab names where it stands, not what is selected: the project around the selection, else the folder holding it.
 function labelOf(place: Place, shown?: string | null): string {
   const key = shown === undefined ? place.key : shown;
@@ -245,7 +248,7 @@ function labelOf(place: Place, shown?: string | null): string {
 }
 
 export const tabViews = (): TabView[] =>
-  tabs.map((t, i) => ({ label: labelOf(t.place, t.shown), title: (t.shown === undefined ? t.place.key : t.shown) ?? labelOf(t.place, t.shown), active: i === active, split: t.split ? (t.split.right ? "right" : "left") : null }));
+  tabs.map((t, i) => ({ label: withoutId(labelOf(t.place, t.shown)), title: (t.shown === undefined ? t.place.key : t.shown) ?? labelOf(t.place, t.shown), active: i === active, split: t.split ? (t.split.right ? "right" : "left") : null }));
 
 export const tabStates = () =>
   tabs.map((t, i) => ({ label: labelOf(t.place), relParts: t.place.key?.split("/") ?? [], virtual: t.place.virtual, view: t.view, active: i === active }));

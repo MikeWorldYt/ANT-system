@@ -1,11 +1,11 @@
 /* Navigation bar row and its breadcrumb or typed path. */
 .nav-bar { position: relative; display: flex; align-items: center; gap: 6px; padding: 10px 12px; background: var(--bg); border-radius: var(--radius-md) var(--radius-md) 0 0; }
-.nav-bar .icon-btn { width: 30px; height: 30px; background: transparent; }
-.nav-bar .nav-add { background: var(--accent); color: var(--bg); border-radius: calc(var(--radius-md) - 5px); }
+.nav-bar .icon-btn { width: 32px; height: 32px; background: transparent; }
+.nav-bar .nav-add { background: var(--accent); color: var(--bg); }
 .breadcrumb {
-  flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 5px 12px;
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px;
   overflow-x: auto; white-space: nowrap; scrollbar-width: none; background: var(--input-bg);
-  border: 1px solid var(--border); border-radius: var(--radius-md);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
 }
 .breadcrumb.editing { padding: 0; }
 .breadcrumb-other[hidden] { display: none; }
@@ -16,7 +16,7 @@
 .path-input[aria-invalid="true"] { color: var(--delete-hover); }
 .crumb { color: var(--text); }
 .crumb-root { color: var(--title); }
-.crumb-sep { color: var(--disabled-text); }
+.crumb-sep { color: var(--muted); }
 .crumb-btn { border: 0; background: transparent; padding: 0 2px; font: inherit; cursor: pointer; border-radius: var(--radius-xs); }
 .crumb-btn:hover { background: var(--state-hover); }
 .crumb-btn.current { font-weight: 600; }

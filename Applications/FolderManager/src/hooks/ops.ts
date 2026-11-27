@@ -169,7 +169,7 @@ async function reportTaskProblems(): Promise<void> {
     const problems = await api.scheduledTaskProblems();
     if (problems.length > 0) setStatus("warning", problems.join(". "));
   } catch (e) {
-    reportError("warning", e, "Scheduled tasks");
+    setStatus("warning", "Could not check the scheduled tasks.", api.describeError(e));
   }
 }
 

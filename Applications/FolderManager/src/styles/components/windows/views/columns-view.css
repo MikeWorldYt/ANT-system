@@ -11,7 +11,7 @@
 .col-item .name { flex: 1; }
 .col-item:hover { background: var(--state-hover); }
 .col-item.on-path { background: var(--input-bg); }
-.col-item.selected { background: var(--highlight); }
+.col-item.selected { background: var(--highlight); box-shadow: inset 3px 0 0 var(--button); }
 .col-item.ghost { opacity: 0.7; }
 .col-item.ghost .name { color: var(--ghost-text); font-style: italic; }
 /* Only the top third of the edge is yellow; the background stays put while the column scrolls. */
