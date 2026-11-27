@@ -13,6 +13,7 @@ pub mod index;
 pub mod intake;
 pub mod mutations;
 pub mod preview;
+pub mod properties;
 pub mod rename;
 pub mod scheduler;
 pub mod snapshot;

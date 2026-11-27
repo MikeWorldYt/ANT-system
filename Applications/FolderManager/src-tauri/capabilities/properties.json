@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "properties",
+  "description": "Properties windows, one per item, which close themselves from the OK and Cancel buttons",
+  "windows": ["properties-*"],
+  "permissions": ["core:default", "core:window:allow-close"]
+}

@@ -1,6 +1,7 @@
 // Background menu of a native folder: the storage board menu's pieces, minus what only a storage can do.
 import { newNativeFolder, pasteFiles, refreshNative } from "../../../hooks/ops";
 import { openNode } from "../../../services/ipc/api";
+import { showFolderProperties } from "../../../hooks/properties";
 import { state } from "../../../services/store/state";
 import { reportError } from "../bars/status-line";
 import { guiIcon } from "../../atoms/gui-icons";
@@ -15,6 +16,7 @@ export function nativeBackgroundMenu(parts: string[], views: ViewPicker, close: 
   const subs = [viewSubmenu(views, close), sortSubmenu(parts, close)];
   const reload = action("Refresh", !state.busy, () => void refreshNative(parts));
   // The rename that follows takes the focus, so the menu does not hand it back to the view.
+  const properties = action("Properties", true, () => showFolderProperties(parts));
   const add = menuItem("New folder", "menuitem", !state.busy, () => {
     close(false);
     void newNativeFolder(parts);
@@ -23,8 +25,8 @@ export function nativeBackgroundMenu(parts: string[], views: ViewPicker, close: 
   reload.prepend(guiIcon("refresh"));
   add.prepend(guiIcon("add"));
   return {
-    items: [open, paste, ...subs.map((s) => s.trigger), reload, add],
+    items: [open, paste, ...subs.map((s) => s.trigger), reload, add, properties],
     subs,
-    content: [open, separator(), paste, separator(), ...subs.map((s) => s.element), reload, separator(), add],
+    content: [open, separator(), paste, separator(), ...subs.map((s) => s.element), reload, separator(), add, separator(), properties],
   };
 }

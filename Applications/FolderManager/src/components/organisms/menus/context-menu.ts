@@ -11,6 +11,7 @@ import { reportError } from "../bars/status-line";
 import { createShortcut, putOnClipboard } from "../../../hooks/folder-share";
 import { openTab } from "../../../hooks/tabs";
 import { copyPath, openFolder, openInApp, openInSplit } from "../../../hooks/path-actions";
+import { showProperties } from "../../../hooks/properties";
 import { isSelected, keyOf, selectedNodes, startEdit, state, virtualRoot } from "../../../services/store/state";
 import { menuItems, runMenuItem } from "../../../extensions/host";
 import { autoDismiss, menuIcon, focusInitial, closingItem, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
@@ -108,7 +109,8 @@ function downloadsMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
     startEdit(one.relParts);
   });
   const locate = one.file ? [revealItem(one, action)] : [];
-  return { items: [open, ...locate, copyPathItem, copy, cut, rename, del], subs: [], content: [open, ...locate, copyPathItem, separator(), copy, cut, rename, separator(), del] };
+  const properties = action("Properties", true, () => showProperties(one));
+  return { items: [open, ...locate, copyPathItem, copy, cut, rename, del, properties], subs: [], content: [open, ...locate, copyPathItem, separator(), copy, cut, rename, separator(), del, separator(), properties] };
 }
 
 // Shows the file in the system explorer with it selected inside its folder.
@@ -142,9 +144,10 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   const copy = action("Copy", true, () => void putOnClipboard([node], false));
   // The backend refuses a cut that is not allowed, such as a folder that holds no loose data.
   const cut = action("Cut", true, () => void putOnClipboard([node], true));
+  const properties = action("Properties", true, () => showProperties(node));
   // A review link only opens its owner folder, so the actions that change the folder do not apply.
   if (node.linked) {
-    return { items: [open, copyPathItem, favorite, ...hideItems, copy], subs: [], content: [open, copyPathItem, favorite, ...hideItems, separator(), copy] };
+    return { items: [open, copyPathItem, favorite, ...hideItems, copy, properties], subs: [], content: [open, copyPathItem, favorite, ...hideItems, separator(), copy, separator(), properties] };
   }
   const shortcut = action("Create shortcut", true, () => void createShortcut(node));
   for (const [item, icon] of [[rename, "pencil"], [copy, "duplicate"], [cut, "cut"], [shortcut, "link"]] as const) item.prepend(guiIcon(icon));
@@ -191,9 +194,9 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   if (node.file) {
     const revealFile = revealItem(node, action);
     return {
-      items: [open, revealFile, copyPathItem, rename, copy, cut, shortcut, del],
+      items: [open, revealFile, copyPathItem, rename, copy, cut, shortcut, del, properties],
       subs: [],
-      content: [open, revealFile, copyPathItem, separator(), rename, copy, cut, shortcut, separator(), del],
+      content: [open, revealFile, copyPathItem, separator(), rename, copy, cut, shortcut, separator(), del, separator(), properties],
     };
   }
 
@@ -202,13 +205,13 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
   );
 
   return {
-    items: [openHere, open, openIn.trigger, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, hideElement, del, ...extras],
+    items: [openHere, open, openIn.trigger, copyPathItem, favorite, ...importantItems, ...hideItems, rename, copy, cut, ...shareItems, ...subs.map((s) => s.trigger), ...fileItems, hideElement, del, ...extras, properties],
     subs: [openIn, ...subs],
     content: [
       openHere, open, openIn.element, copyPathItem, favorite, ...importantItems, ...hideItems, separator(),
       rename, copy, cut, ...shareItems, separator(),
       ...subs.map((s) => s.element), ...fileItems, separator(),
-      hideElement, del, ...(extras.length > 0 ? [separator(), ...extras] : []),
+      hideElement, del, ...(extras.length > 0 ? [separator(), ...extras] : []), separator(), properties,
     ],
   };
 }
@@ -353,8 +356,9 @@ function navMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts 
   newTab.prepend(guiIcon("add"));
   splitTab.prepend(guiIcon("split"));
   hide.prepend(guiIcon("hide"));
-  const items = [openHere, location, newTab, splitTab, copyPathItem, hide];
-  return { items, subs: [], content: [openHere, location, separator(), newTab, splitTab, separator(), copyPathItem, separator(), hide] };
+  const properties = action("Properties", true, () => showProperties(node));
+  const items = [openHere, location, newTab, splitTab, copyPathItem, hide, properties];
+  return { items, subs: [], content: [openHere, location, separator(), newTab, splitTab, separator(), copyPathItem, separator(), hide, separator(), properties] };
 }
 
 export function installNavMenu(nav: HTMLElement, restoreFocus: () => void): void {

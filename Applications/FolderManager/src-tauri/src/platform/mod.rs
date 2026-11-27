@@ -6,5 +6,6 @@ pub mod recycle;
 pub mod shortcuts;
 #[cfg(not(windows))]
 mod unix_trash;
+pub mod volume;
 #[cfg(windows)]
 pub mod windows;

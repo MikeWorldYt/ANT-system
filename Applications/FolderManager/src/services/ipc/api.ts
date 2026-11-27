@@ -29,6 +29,8 @@ import type {
   Picks,
   PlannedFile,
   DictionaryIssue,
+  ItemFacts,
+  ItemTotals,
 } from "./types";
 
 // The tutorial serves its in-memory Storage here, so while it runs no command reaches the backend.
@@ -189,6 +191,10 @@ export const createFileShortcutIn = (target: string[], folder: string) =>
 export const setReviewAutomation = (relParts: string[], automation: keyof Picks, on: boolean) => call<Mutation>("set_review_automation", { relParts, automation, on });
 export const planAutomations = (folder: string[], only: string[], picks: Picks) => call<PlannedFile[]>("plan_automations", { folder, only, ...picks });
 export const openDictionaryWindow = (folder: string[]) => call<void>("open_dictionary_window", { folder });
+export const openPropertiesWindow = (relParts: string[], icon: string) => call<void>("open_properties_window", { relParts, icon });
+export const itemProperties = (relParts: string[]) => call<ItemFacts>("item_properties", { relParts });
+// Null when the window closed before the walk ended; partial totals arrive as events meanwhile.
+export const itemTotals = (relParts: string[]) => call<ItemTotals | null>("item_totals", { relParts });
 export const readDictionary = (folder: string[]) => call<string>("read_dictionary", { folder });
 export const checkDictionary = (text: string) => call<DictionaryIssue[]>("check_dictionary", { text });
 export const saveDictionary = (folder: string[], text: string) => call<DictionaryIssue[]>("save_dictionary", { folder, text });

@@ -105,6 +105,28 @@ export interface DictionaryIssue {
   message: string;
 }
 
+export interface ItemTotals {
+  size: number;
+  onDisk: number;
+  files: number;
+  folders: number;
+}
+
+// Milliseconds since the epoch; size and onDisk only for files, whose totals are known at once.
+export interface ItemFacts {
+  name: string;
+  folder: boolean;
+  kind: string;
+  location: string;
+  size: number | null;
+  onDisk: number | null;
+  created: number | null;
+  modified: number | null;
+  accessed: number | null;
+  readOnly: boolean;
+  hidden: boolean;
+}
+
 export interface Picks {
   reduce: boolean;
   sort: boolean;
