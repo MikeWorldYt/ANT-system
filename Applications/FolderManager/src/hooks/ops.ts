@@ -13,7 +13,7 @@ import { checkSupportUpgrade } from "./support-upgrade";
 import { relist, relistSystem, visibleLevels } from "./relist";
 import { loadOther, loadOtherVirtual } from "./split";
 import { dropNotice, type Notice } from "./drop-summary";
-import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, state, virtualRoot, type Settings } from "../services/store/state";
+import { applySettings, findNode, followExpanded, hydrate, isVirtualShown, keyOf, lastSelection, leaveVirtual, listed, notify, outermost, patchLevels, pruneSelection, reveal, select, selectedNode, serializeSetting, setBusy, setTree, sortOf, startEdit, state, virtualRoot, type Settings } from "../services/store/state";
 import { sortedForColumns } from "../services/store/sort";
 import { followReorder } from "../services/store/id-order";
 import { loadVirtual, virtualNodes } from "../services/store/virtual";
@@ -538,7 +538,36 @@ export const dropFiles = async (target: string[], paths: string[]): Promise<void
   if (ok) await revalidate();
 };
 
+// The folder's own listing and the open level below it are both read again, since the level may not be among the expanded keys.
+async function relistNative(folder: string[]): Promise<void> {
+  await relistSystem(folder[0]);
+  if (folder.length > 1) await relist([folder], true);
+}
+
+const pasteIntoNative = (target: string[]) =>
+  run(async () => {
+    await api.pasteIntoDownloads(target);
+    await relistNative(target);
+  }, "Pasting files…");
+
+// A native folder is not the storage, so refreshing it reads only the disk.
+export const refreshNative = (folder: string[]) => run(() => relistNative(folder));
+
+// The new folder is named by the user right away, so the edit starts once the operation lets go of the busy flag.
+export async function newNativeFolder(parent: string[]): Promise<void> {
+  let made = "";
+  const ok = await run(async () => {
+    made = await api.createDownloadFolder(parent, "New folder");
+    await relistNative(parent);
+  }, "Creating a folder…");
+  if (ok) startEdit([...parent, made]);
+}
+
 export const pasteFiles = async (target: string[]): Promise<void> => {
+  if (inSystem(target)) {
+    await pasteIntoNative(target);
+    return;
+  }
   if (refusedAsNative(target)) return;
   const ok = await run(
     async () => {

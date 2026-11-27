@@ -132,7 +132,7 @@ export function boxMenu(box: HTMLElement, n: TreeNode): void {
           }, "ctx-item", v === now),
         );
         const view = submenu("View in box", choices, true);
-        const sort = sortSubmenu(n, close);
+        const sort = sortSubmenu(n.relParts, close);
         const files = (n.children ?? []).filter((c) => c.file).map((c) => keyOf(c.relParts));
         const all = action("Select All", files.length > 0, () => selectKeys(files));
         return { items: [paste, view.trigger, sort.trigger, all], subs: [view, sort], content: [paste, separator(), view.element, sort.element, separator(), all] };

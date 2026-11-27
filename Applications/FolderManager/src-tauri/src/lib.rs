@@ -171,6 +171,8 @@ pub fn run() {
             commands::copy_downloads,
             commands::reveal_download,
             commands::rename_download,
+            commands::create_download_folder,
+            commands::paste_into_downloads,
             commands::delete_downloads,
             commands::drop_into_downloads,
             commands::pin_dictionary_file,

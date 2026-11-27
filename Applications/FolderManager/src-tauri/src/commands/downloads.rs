@@ -1,5 +1,5 @@
 // Commands for the system Downloads folder and the other native folders; they take a root marker and only names below it, and never touch the storage lock.
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager};
 
@@ -7,8 +7,10 @@ use super::off_thread;
 use super::open::{launcher, revealer};
 use crate::domain::error::{FmError, R};
 use crate::infra::fs_safe::validate_component;
+use crate::platform::clipboard::Paste;
 use crate::platform::{clipboard, recycle::send_to_recycle_bin};
 use crate::services::downloads;
+use crate::services::mutations::copy_whole;
 use crate::services::preview;
 use crate::services::tree::tree_node::TreeNode;
 
@@ -126,6 +128,77 @@ pub async fn drop_into_downloads(app: AppHandle, root: Option<String>, rel_parts
         Ok(added)
     })
     .await?
+}
+
+// The first of "name", "name (2)"... not taken in the folder; a file keeps its extension after the number.
+fn free_name(dir: &Path, name: &str, file: bool) -> String {
+    let (stem, ext) = match name.rfind('.').filter(|&i| file && i > 0) {
+        Some(i) => name.split_at(i),
+        None => (name, ""),
+    };
+    (1..).map(|n| if n == 1 { name.to_string() } else { format!("{stem} ({n}){ext}") }).find(|c| !dir.join(c).exists()).unwrap_or_default()
+}
+
+// Never overwrites: a name already taken gets a number, so the new folder is always a fresh one.
+#[tauri::command]
+pub async fn create_download_folder(app: AppHandle, root: Option<String>, rel_parts: Vec<String>, name: String) -> R<String> {
+    off_thread(move || {
+        let dir = downloads::path_of(&root_of(&app, root)?, &rel_parts)?;
+        validate_component(&name)?;
+        let made = free_name(&dir, &name, false);
+        std::fs::create_dir(dir.join(&made)).map_err(|e| FmError::Internal { message: format!("Could not create the folder {made}: {e}") })?;
+        Ok(made)
+    })
+    .await?
+}
+
+// What the clipboard holds is copied, or moved after a cut; a name already taken gets a number, so nothing is replaced.
+#[tauri::command]
+pub async fn paste_into_downloads(app: AppHandle, root: Option<String>, rel_parts: Vec<String>) -> R<Vec<String>> {
+    off_thread(move || {
+        let root = root.unwrap_or_else(|| downloads::ROOT.to_string());
+        let dir = downloads::path_of(&base_of(&app, &root)?, &rel_parts)?;
+        let Paste { paths, copy } = clipboard::paste_plan(clipboard::read()?)?;
+        let _progress = super::transfer::track(&app, &paths, root.trim_start_matches(':'), copy);
+        let mut added = Vec::new();
+        for from in &paths {
+            let Some(name) = from.file_name().map(|n| n.to_string_lossy().into_owned()) else { continue };
+            if dir.starts_with(from) {
+                return Err(FmError::InvalidName { name, reason: "a folder cannot be pasted into itself".to_string() });
+            }
+            if !copy && from.parent() == Some(dir.as_path()) {
+                continue;
+            }
+            let made = free_name(&dir, &name, from.is_file());
+            place_pasted(from, &dir.join(&made), copy)?;
+            added.push(made);
+        }
+        Ok(added)
+    })
+    .await?
+}
+
+// A cut tries a plain rename first; across drives it becomes a copy whose original then goes to the Recycle Bin.
+fn place_pasted(from: &Path, to: &Path, copy: bool) -> R<()> {
+    if !copy && std::fs::rename(from, to).is_ok() {
+        return Ok(());
+    }
+    let copied = if from.is_dir() {
+        copy_whole(from, to)
+    } else {
+        crate::services::transfer::copy(from, to).map(|_| ()).map_err(|e| {
+            // A cancelled or failed copy leaves no half-written file behind.
+            if let Err(r) = std::fs::remove_file(to) {
+                eprintln!("Could not remove the partial copy {}: {r}", to.display());
+            }
+            e.to_string()
+        })
+    };
+    copied.map_err(|e| FmError::Internal { message: format!("Could not copy {}: {e}", from.display()) })?;
+    if !copy {
+        send_to_recycle_bin(from).map_err(|e| FmError::Internal { message: format!("Copied {}, but the original could not be removed: {e}", from.display()) })?;
+    }
+    Ok(())
 }
 
 #[tauri::command]

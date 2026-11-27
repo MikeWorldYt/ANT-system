@@ -17,8 +17,8 @@ export interface MenuParts {
 }
 
 // The folder's contents are sorted under its own key, not under the column its row stands in.
-export function sortSubmenu(node: TreeNode, close: (restore?: boolean) => void): Submenu {
-  const column = keyOf(node.relParts);
+export function sortSubmenu(relParts: string[], close: (restore?: boolean) => void): Submenu {
+  const column = keyOf(relParts);
   const { by, dir } = sortOf(column);
   const sortChoice = (label: string, icon: GuiIcon, checked: boolean, patch: Partial<ColumnSort>, flip = false) => {
     const item = menuItem(label, "menuitemradio", true, () => {
@@ -35,14 +35,8 @@ export function sortSubmenu(node: TreeNode, close: (restore?: boolean) => void):
   return sort;
 }
 
-export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: boolean) => void): MenuParts {
-  const action = closingItem(close);
-  const idle = !state.busy;
-  // Enabled even on locked folders: the backend picks the real target and explains a refusal.
-  const paste = action("Paste", true, () => void pasteFiles(node.relParts));
-  const pasteItems = node.reserved || node.ghost ? [] : [paste];
-
-  const viewChoices = orderedModes(views).map((m) => {
+export function viewSubmenu(views: ViewPicker, close: (restore?: boolean) => void): Submenu {
+  const choices = orderedModes(views).map((m) => {
     const item = menuItem(m.label, "menuitemradio", true, () => {
       views.onSelect(m.id);
       close();
@@ -50,9 +44,17 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
     item.prepend(menuIcon(VIEW_ICONS[m.id] ?? "layout"));
     return item;
   });
-  const subs: Submenu[] = [submenu("Change View", viewChoices, true)];
+  return submenu("Change View", choices, true);
+}
 
-  subs.push(sortSubmenu(node, close));
+export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: boolean) => void): MenuParts {
+  const action = closingItem(close);
+  const idle = !state.busy;
+  // Enabled even on locked folders: the backend picks the real target and explains a refusal.
+  const paste = action("Paste", true, () => void pasteFiles(node.relParts));
+  const pasteItems = node.reserved || node.ghost ? [] : [paste];
+
+  const subs: Submenu[] = [viewSubmenu(views, close), sortSubmenu(node.relParts, close)];
 
   const reload = action("Refresh", idle, () => void refresh());
   const canAdd = node.actions.addChild || node.actions.addFolder;

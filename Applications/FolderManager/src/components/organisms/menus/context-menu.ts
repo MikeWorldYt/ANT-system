@@ -6,15 +6,16 @@ import { menuKeys } from "../tooltip/tooltip";
 import { statusIcon } from "../../atoms/status-mark";
 import { importantLabel, isWorknode, ownerOf, STATUSES, TYPES } from "../../../services/store/node-info";
 import { hideMany, hideNode, remove, removeDownloads, removeMany, setDetails, setFavorite, setFavorites, setImportant, setLinkHidden, setManyDetails, setType } from "../../../hooks/ops";
-import { suggestSearch } from "../../../services/ipc/api";
+import { revealNode, suggestSearch } from "../../../services/ipc/api";
 import { reportError } from "../bars/status-line";
 import { createShortcut, putOnClipboard } from "../../../hooks/folder-share";
 import { openTab } from "../../../hooks/tabs";
 import { copyPath, openFolder, openInApp, openInSplit } from "../../../hooks/path-actions";
-import { isSelected, keyOf, selectedNodes, startEdit, state } from "../../../services/store/state";
+import { isSelected, keyOf, selectedNodes, startEdit, state, virtualRoot } from "../../../services/store/state";
 import { menuItems, runMenuItem } from "../../../extensions/host";
 import { autoDismiss, menuIcon, focusInitial, closingItem, menuItem, place, rove, separator, submenu, type Submenu } from "../../molecules/menu";
 import { boardMenu, type MenuParts } from "./board-menu";
+import { nativeBackgroundMenu } from "./native-menu";
 import { folderFlagItems } from "./folder-flags";
 import type { ViewPicker } from "../bars/toolbar";
 import { allInSystem } from "../../../services/store/system-folders";
@@ -29,9 +30,16 @@ interface MenuRequest {
   folderOnly?: boolean;
 }
 
+interface NativeMenuRequest {
+  parts: string[];
+  x: number;
+  y: number;
+}
+
 declare global {
   interface HTMLElementEventMap {
     "fm:node-menu": CustomEvent<MenuRequest>;
+    "fm:native-menu": CustomEvent<NativeMenuRequest>;
   }
 }
 
@@ -61,7 +69,14 @@ export function nodeContextMenu(ev: MouseEvent, node: TreeNode, host: Element): 
 export function folderContextMenu(ev: MouseEvent, folder: TreeNode | null, host: Element): void {
   ev.preventDefault();
   ev.stopPropagation();
-  if (ev.button !== 2 || !folder) return;
+  if (ev.button !== 2) return;
+  const native = virtualRoot(state.virtual);
+  // A native folder's own list has no node, so its menu is built from the root marker alone.
+  if (!folder && native !== null) {
+    host.dispatchEvent(new CustomEvent<NativeMenuRequest>("fm:native-menu", { bubbles: true, detail: { parts: [native], x: ev.clientX, y: ev.clientY } }));
+    return;
+  }
+  if (!folder) return;
   // The background menu acts on its folder without selecting it, so the open columns stay put.
   dispatch(host, { node: folder, x: ev.clientX, y: ev.clientY, folderOnly: true });
 }
@@ -92,13 +107,13 @@ function downloadsMenu(nodes: TreeNode[], close: (restore?: boolean) => void): M
     close(false);
     startEdit(one.relParts);
   });
-  return { items: [open, copyPathItem, copy, cut, rename, del], subs: [], content: [open, copyPathItem, separator(), copy, cut, rename, separator(), del] };
+  const locate = one.file ? [revealItem(one, action)] : [];
+  return { items: [open, ...locate, copyPathItem, copy, cut, rename, del], subs: [], content: [open, ...locate, copyPathItem, separator(), copy, cut, rename, separator(), del] };
 }
 
-// Empty space in a Downloads folder offers the folder itself, never its deletion.
-function downloadsBackground(folder: TreeNode, close: (restore?: boolean) => void): MenuParts {
-  const open = closingItem(close)("Open folder location", folder.actions.open, () => void openFolder(folder));
-  return { items: [open], subs: [], content: [open] };
+// Shows the file in the system explorer with it selected inside its folder.
+function revealItem(file: TreeNode, action: ReturnType<typeof closingItem>): HTMLButtonElement {
+  return action("Open folder location", true, () => void revealNode(file.relParts).catch((e: unknown) => reportError("error", e)));
 }
 
 function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts {
@@ -174,10 +189,11 @@ function nodeMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts
 
   // A file offers only the actions that apply to one file.
   if (node.file) {
+    const revealFile = revealItem(node, action);
     return {
-      items: [open, copyPathItem, rename, copy, cut, shortcut, del],
+      items: [open, revealFile, copyPathItem, rename, copy, cut, shortcut, del],
       subs: [],
-      content: [open, copyPathItem, separator(), rename, copy, cut, shortcut, separator(), del],
+      content: [open, revealFile, copyPathItem, separator(), rename, copy, cut, shortcut, separator(), del],
     };
   }
 
@@ -272,7 +288,7 @@ function openMenu({ node, nodes, x, y, folderOnly }: MenuRequest, restoreFocus: 
   const label = group ? `Actions for ${group.length} items` : `Actions for ${node.name}`;
   const downloads = allInSystem(group ?? [node]);
   openMenuWith(
-    (close) => (group && downloads ? downloadsMenu(group, close) : folderOnly && downloads ? downloadsBackground(node, close) : folderOnly && !downloads ? boardMenu(node, views, close) : group ? selectionMenu(group, close) : nodeMenu(node, close)),
+    (close) => (group && downloads ? downloadsMenu(group, close) : folderOnly && downloads ? nativeBackgroundMenu(node.relParts, views, close) : folderOnly && !downloads ? boardMenu(node, views, close) : group ? selectionMenu(group, close) : nodeMenu(node, close)),
     label,
     x,
     y,
@@ -333,4 +349,5 @@ export function installContextMenu(host: HTMLElement, restoreFocus: () => void, 
     ev.preventDefault();
   });
   host.addEventListener("fm:node-menu", (ev) => openMenu(ev.detail, restoreFocus, views));
+  host.addEventListener("fm:native-menu", ({ detail }) => openMenuWith((close) => nativeBackgroundMenu(detail.parts, views, close), "Folder", detail.x, detail.y, restoreFocus));
 }
