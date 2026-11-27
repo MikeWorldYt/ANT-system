@@ -1,6 +1,6 @@
 /* Shared look of every modal built by the dialog shell, info and action dialogs alike. */
 dialog.confirm {
-  max-width: 380px; padding: 16px; border: 1px solid var(--border);
+  max-width: 380px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md);
   background: var(--input-bg); color: var(--text);
 }
 dialog.confirm::backdrop { background: rgb(0 0 0 / 0.6); }

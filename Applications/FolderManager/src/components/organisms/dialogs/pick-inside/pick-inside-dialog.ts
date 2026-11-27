@@ -71,10 +71,6 @@ export async function pickInsideDialog(worknode: TreeNode, directory: boolean, s
     focus: () => list.focus(),
   });
   dialog.classList.add("pick-inside");
-  // A press on the backdrop, outside the box, cancels as Escape does.
-  dialog.addEventListener("pointerdown", (ev) => {
-    if (ev.target === dialog) dialog.close("cancel");
-  });
 
   const usable = (n: TreeNode): boolean => (directory ? !n.file : n.file && (filter.value === ALL || extOf(n.name) === filter.value));
 

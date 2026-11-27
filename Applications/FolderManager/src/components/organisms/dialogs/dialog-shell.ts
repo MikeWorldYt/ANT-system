@@ -32,6 +32,11 @@ export function showModal(dialog: HTMLDialogElement, onClosed?: () => void): Pro
       resolve(dialog.returnValue);
     });
   });
+  // A press on the backdrop cancels as Escape does; one that starts inside, like a text selection, keeps it open.
+  dialog.addEventListener("pointerdown", (ev) => {
+    const r = dialog.getBoundingClientRect();
+    if (ev.target === dialog && (ev.clientX < r.left || ev.clientX > r.right || ev.clientY < r.top || ev.clientY > r.bottom)) dialog.close();
+  });
   document.body.append(dialog);
   dialog.showModal();
   return closed;
