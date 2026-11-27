@@ -35,6 +35,8 @@ export function createColumnsView(): ViewMode {
   const root = el("div", { class: "columns", role: "group", "aria-label": "Storage columns" });
   const loading = new Set<string>();
   let openKey: string | null = null;
+  // The deepest column stepped back from with Left; it stays open until the selection leaves its path.
+  let held: string | null = null;
   let built: ManageSnapshot | null = null;
   let revealed: string | null = null;
   // A pane that opens or changes width shows the deepest column, which is the one in use.
@@ -185,7 +187,7 @@ export function createColumnsView(): ViewMode {
       ev.preventDefault();
       return;
     }
-    const cols = buildColumns(openKey);
+    const cols = buildColumns(openKey, held);
     if ((ev.key === "ArrowDown" || ev.key === "ArrowUp") && stepRoot(n, cols[0]?.nodes ?? [], ev.key === "ArrowDown" ? 1 : -1)) {
       ev.preventDefault();
       return;
@@ -257,8 +259,11 @@ export function createColumnsView(): ViewMode {
           break;
         }
         const parent = n && n.relParts.length > 1 ? findNode(n.relParts.slice(0, -1)) : null;
-        // The column just left stays visible beside its folder.
-        if (parent) openColumn(parent);
+        if (!n || !parent) break;
+        const from = keyOf(n.relParts);
+        const keep = openKey === from ? from : keyOf(parent.relParts);
+        if (held === null || !held.startsWith(`${keep}/`)) held = keep;
+        select(parent.relParts);
         break;
       }
       case "F2":
@@ -294,12 +299,14 @@ export function createColumnsView(): ViewMode {
     label: "Columns",
     // A selected folder whose column is not open is only selected, so the folder shown is the deepest column's.
     openFolder() {
+      // While stepping back, the folder shown is the column holding the selection.
+      if (held !== null) return state.selectedKey === null ? null : findNode(state.selectedKey.split("/").slice(0, -1));
       return buildColumns(openKey === state.selectedKey ? openKey : null).at(-1)?.parent ?? null;
     },
     mount(host) {
       root.addEventListener("keydown", onKey);
       // Space beside the columns belongs to the deepest one.
-      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, buildColumns(openKey).at(-1)?.parent ?? null, root));
+      root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, buildColumns(openKey, held).at(-1)?.parent ?? null, root));
       host.append(root);
       resized.observe(root);
     },
@@ -311,12 +318,14 @@ export function createColumnsView(): ViewMode {
         state.entering = null;
       }
       if (openKey !== state.selectedKey) openKey = null;
+      const sel = state.selectedKey;
+      if (held !== null && (sel === null || (held !== sel && !held.startsWith(`${sel}/`)))) held = null;
       if (sameManage(built)) return;
       const hadFocus = root.contains(document.activeElement);
       // Rebuilding the columns resets every scroll offset, so each one is kept by its folder key.
       const offsets = new Map(Array.from(root.querySelectorAll<HTMLElement>(".column[data-key]"), (c): [string, number] => [c.dataset.key ?? "", c.scrollTop]));
       const left = root.scrollLeft;
-      root.replaceChildren(...buildColumns(openKey).map(buildColumn));
+      root.replaceChildren(...buildColumns(openKey, held).map(buildColumn));
       built = manageSnapshot();
       root.scrollLeft = left;
       root.querySelectorAll<HTMLElement>(".column[data-key]").forEach((c) => {
