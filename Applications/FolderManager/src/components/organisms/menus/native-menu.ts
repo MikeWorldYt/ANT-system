@@ -15,8 +15,8 @@ export function nativeBackgroundMenu(parts: string[], views: ViewPicker, close: 
   const paste = action("Paste", true, () => void pasteFiles(parts));
   const subs = [viewSubmenu(views, close), sortSubmenu(parts, close)];
   const reload = action("Refresh", !state.busy, () => void refreshNative(parts));
-  // The rename that follows takes the focus, so the menu does not hand it back to the view.
   const properties = action("Properties", true, () => showFolderProperties(parts));
+  // The rename that follows takes the focus, so the menu does not hand it back to the view.
   const add = menuItem("New folder", "menuitem", !state.busy, () => {
     close(false);
     void newNativeFolder(parts);
