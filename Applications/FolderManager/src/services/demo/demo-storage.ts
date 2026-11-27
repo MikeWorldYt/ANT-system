@@ -143,7 +143,7 @@ function actions(level: number, project: boolean): NodeActions {
   return {
     editFlags: editable,
     rename: editable && project,
-    changeType: editable,
+    changeType: false,
     addNext: true,
     addChild: true,
     addFolder: false,

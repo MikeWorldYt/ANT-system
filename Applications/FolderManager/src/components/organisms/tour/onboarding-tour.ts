@@ -75,7 +75,8 @@ const openRow = (rows: Element[], prefer?: string): void => {
   row?.querySelector(".chevron")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 };
 
-const menuChoice = (label: string) => (): Element[] => menuItems(false)().filter((e) => [...e.childNodes].filter((c) => !(c instanceof Element && c.classList.contains("ctx-keys"))).map((c) => c.textContent).join("").trim() === label);
+// A closed flyout keeps its items with an empty box at the corner, so only shown items count.
+const menuChoice = (label: string) => (): Element[] => menuItems(false)().filter((e) => e.getBoundingClientRect().width > 0 && [...e.childNodes].filter((c) => !(c instanceof Element && c.classList.contains("ctx-keys"))).map((c) => c.textContent).join("").trim() === label);
 const allowFiles = menuChoice("Allow files");
 // The level 3 list is whichever level 2 node the user opened; every one holds a review node and folders with files inside.
 const levelList = (): HTMLElement | null => document.querySelectorAll<HTMLElement>(".tree-host .column")[2] ?? null;
@@ -105,10 +106,14 @@ const OUTCOMES = `${VIDEO}/00.Outcomes`;
 const VIDEO_RENDER = ["footage/", "footage/A001_C001.mp4", "footage/A001_C002.mp4", "audio/", "audio/music.wav", "project.prproj", "render/", "render/render.mp4"];
 const videoList = (): Element[] => [...document.querySelectorAll(`.tree-host .column[data-key="${CSS.escape(VIDEO)}"]`)];
 
+// Fixed menus and dialogs have no offsetParent, so they are told apart by their box.
+const hasBox = (e: Element): boolean => e.getBoundingClientRect().width > 0;
 const visible = (e: Element): boolean => (e as HTMLElement).offsetParent !== null;
 const editButton = (): Element[] => [...document.querySelectorAll('button[aria-label="Edit details"]')].filter(visible).slice(0, 1);
 const detailsPanel = (): Element[] => [...document.querySelectorAll(".details-panel")].filter(visible).slice(0, 1);
 const saveButton = (): Element[] => [...document.querySelectorAll(".details-panel .btn-primary")].filter((e) => e.textContent?.trim() === "Save" && visible(e)).slice(0, 1);
+// The whole row, label and field, so a tip beside it never covers the label.
+const statusField = (): Element | null => [...document.querySelectorAll(".details-panel dt")].find((t) => t.textContent?.trim() === "Status" && visible(t))?.closest(".detail-field") ?? null;
 const selectedStatus = (): string | null => (state.selectedKey ? (findNode(state.selectedKey.split("/"))?.status ?? null) : null);
 
 // Columns shows the project and its contents side by side, so a drop is easy to see.
@@ -130,7 +135,7 @@ function steps(): Step[] {
   let explorer: FakeExplorer | null = null;
   const projectKey = (): string | null => project ?? firstWorknode(state.tree?.nodes ?? [])?.join("/") ?? null;
   return [
-    { targets: categories, part: 0, title: "Main categories", text: "These are the ==Main Categories== of your Storage, the top level of everything you keep. `TASK:` **Try opening one.**", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0, right: true,
+    { targets: categories, part: 0, title: "Main categories", text: "Here is the ==Level 1== of your Storage, there are the **Main Categories**. `TASK:` **Try opening one.**", onNext: (rows) => openRow(rows, "200."), done: () => rowsIn(1)().length > 0, right: true,
       // Coming back from a later step, the open levels would already meet `done`, so the view starts over at the categories.
       enter: () => {
         state.expanded.clear();
@@ -138,16 +143,16 @@ function steps(): Step[] {
       },
     },
     { targets: rowsIn(1), part: 0, title: "Level 2", text: "Each folder you open takes you one level deeper. You are on ==Level 2==, where we suggest keeping the **subcategories** of the one before. `TASK:` **Try going to level 3.**", onNext: (rows) => openRow(rows, "01."), done: () => rowsIn(2)().length > 0 },
-    { targets: rowsIn(2), part: 0, title: "Nodes", text: "This is ==Level 3==, by default the **deepest level** we suggest. In ANT, folders are called **nodes**.", advanceOn: () => [] },
+    { targets: rowsIn(2), part: 0, title: "Nodes", text: "This is ==Level 3==, by default the **deepest level** we suggest. In ANT, ==folders are called Nodes.==", advanceOn: () => [] },
     { targets: reviewRow, part: 0, title: "Review Nodes", text: "By default index levels **refuse any files** and send them to the ==Review Node== of the same level until you sort them.", advanceOn: () => [], inert: true, media: nodeReviewGif },
     {
       targets: () => dropZones(example ?? filledKey()),
       separate: true,
       part: 0, title: "Files",
-      left: true,
+      right: true,
       // The last of the contents, above the support nodes that close the list.
       anchor: () => [...document.querySelectorAll<HTMLElement>(`.tree-host .column[data-key="${CSS.escape(example ?? "")}"] > .col-item[data-key]`)].filter((r) => !/\/(REV|RES|TPL|SS|REC)\.[^/]*$/.test(r.dataset.key ?? "")).at(-1) ?? null,
-      text: "Your ==Files== should live on the levels past the index. The default depth is 3, so your files stay on **level 4 or deeper**.",
+      text: "==Your files== should live on the levels past the index. The default depth is 3, so your files stay on **level 4 or deeper**.",
       enter: () => {
         example = filledKey();
         openColumnOf(example);
@@ -179,6 +184,7 @@ function steps(): Step[] {
         notify();
       },
       allow: newWorknode,
+      pointAt: () => newWorknode()[0] ?? null,
       keys: (ev) => ev.ctrlKey && ev.altKey && ev.code === "KeyN",
       done: () => {
         const made = findNode(VIDEO.split("/"))?.children?.find((c) => c.name.endsWith("_New-Worknode"));
@@ -204,13 +210,20 @@ function steps(): Step[] {
       text: "This stores the ==Project's State==. `TASK:` **Try changing it to \"In progress\" to show your project is coming.**",
       enter: () => (editButton()[0] as HTMLElement | undefined)?.click(),
       left: true,
+      pointAt: statusField,
+      // Next sets the status the task asks for, so the later steps find the project as the user would have left it.
+      onNext: () => {
+        [...document.querySelectorAll<HTMLElement>(".details-panel button")].find((b) => b.textContent?.trim() === "Cancel")?.click();
+        if (!project || !activeDemo) return;
+        void Promise.resolve(activeDemo.handle("set_node_details", { relParts: project.split("/"), status: "in-progress", owner: null })).then(reloadWhenIdle);
+      },
       done: () => selectedStatus() === "in-progress" && saveButton().length === 0,
     },
     {
       targets: () => rowOf(project),
       part: 1, title: "Outcomes",
       media: outcomesGif,
-      text: "When you finish a project, the app expects the result (export, render, dist or any outcome). The ==Outcomes Node== gathers them and keeps them together; a file or folder picked as **Output** previously **moves there by itself**. `TASK:` **Try changing its status to Done and select the rendered video.**",
+      text: "When you finish a project and get a result (export, render, dist or any outcome). ==Outcomes Node== keeps them together, _file or folder picked as Output previously moves there by itself._ `TASK:` **Try changing its status to Done and select the rendered video.**",
       enter: () => {
         if (!project || !activeDemo) return;
         const key = project;
@@ -218,6 +231,8 @@ function steps(): Step[] {
         void reloadWhenIdle().then(() => openColumnOf(key));
       },
       left: true,
+      // The tip follows the user to Change status, then Done, then the output dialog's Choose a file.
+      pointAt: () => menuChoice("Done")()[0] ?? menuChoice("Change status")()[0] ?? [...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent?.trim() === "Choose a file") ?? null,
       done: () => project !== null && findNode(project.split("/"))?.status === "done" && !document.querySelector("dialog[open]"),
     },
     {
@@ -406,7 +421,19 @@ export async function startTour(): Promise<void> {
   dim.setAttribute("class", "tour-dim");
   const rim = document.createElementNS(SVG, "path");
   rim.setAttribute("class", "tour-rim");
-  spot.append(dim, rim);
+  // Overlapping holes would cross each other's outlines, so the rim only shows outside every hole and draws their merged shape.
+  const mask = document.createElementNS(SVG, "mask");
+  mask.setAttribute("id", "tour-rim-mask");
+  mask.setAttribute("maskUnits", "userSpaceOnUse");
+  const maskAll = document.createElementNS(SVG, "rect");
+  Object.entries({ x: "0", y: "0", width: "100%", height: "100%", fill: "#fff" }).forEach(([k, v]) => maskAll.setAttribute(k, v));
+  const maskHoles = document.createElementNS(SVG, "path");
+  maskHoles.setAttribute("fill", "#000");
+  mask.append(maskAll, maskHoles);
+  const defs = document.createElementNS(SVG, "defs");
+  defs.append(mask);
+  rim.setAttribute("mask", "url(#tour-rim-mask)");
+  spot.append(defs, dim, rim);
   // One pane with the same holes cut out takes every click outside them, so only the lit controls can be used.
   const shield = el("div", { class: "tour-shield", "aria-hidden": "true" });
   const shields = [shield];
@@ -487,23 +514,34 @@ export async function startTour(): Promise<void> {
     spot.setAttribute("viewBox", `0 0 ${w} ${h}`);
     dim.setAttribute("d", frame);
     rim.setAttribute("d", cut);
+    maskHoles.setAttribute("d", cut);
     shield.style.clipPath = all[index]?.inert ? "none" : `path(evenodd, "${frame}")`;
     // A menu the control opened is kept clear too, so its choices and the tip show together.
-    const menus = [...document.querySelectorAll(".ctx-menu, .view-segment")];
+    // Closed flyouts stay in the DOM with an empty box, which would stretch the span to the corner.
+    const menus = [...document.querySelectorAll(".ctx-menu, .view-segment")].filter(hasBox);
     const pointed = all[index]?.pointAt?.() ?? null;
     pointed?.classList.add("tour-point");
     const anchored = all[index]?.anchor?.() ?? null;
-    const r = pointed ? pointed.getBoundingClientRect() : anchored ? anchored.getBoundingClientRect() : ((menus.length ? union([...(all[index]?.targets() ?? []), ...menus]) : null) ?? lit);
-    const t = tip.getBoundingClientRect();
+    // A menu item is pointed at from beside the whole menu and its submenus, so the tip never covers a choice.
+    const menuSpan = pointed?.closest(".ctx-menu") ? union(menus) : null;
+    const p = pointed?.getBoundingClientRect();
+    const r = p && menuSpan ? new DOMRect(menuSpan.left, p.top, menuSpan.width, p.height) : p ? p : anchored ? anchored.getBoundingClientRect() : ((menus.length ? union([...(all[index]?.targets() ?? []), ...menus]) : null) ?? lit);
+    let t = tip.getBoundingClientRect();
     const margin = 12;
     // Below the target when it fits, else beside it for tall targets such as the tree and the rail.
     const inDialog = pointed?.closest("dialog") !== null && pointed !== null;
     const wanted = (inDialog ? all[index]?.confirmText : undefined) ?? all[index]?.text ?? "";
     if (text.dataset.source !== wanted) richText(text, wanted);
-    // Beside a menu item, so the menu stays readable; under a dialog button, so the dialog's other buttons stay clear.
+    // While a menu is open the clip is hidden, so the shorter tip fits beside it with its arrow on the choice.
+    const busy = pointed?.closest(".ctx-menu") != null;
+    if (media.hidden !== (!all[index]?.media || busy)) {
+      media.hidden = !all[index]?.media || busy;
+      t = tip.getBoundingClientRect();
+    }
+    // Beside a menu item, so the menu stays readable; beside a dialog button when it fits, else under it, so the dialog's other buttons stay clear.
     const forceLeft = all[index]?.left === true && !pointed;
     const right = !forceLeft && r.right + margin + t.width <= window.innerWidth;
-    const below = !forceLeft && !(all[index]?.right && right && !pointed) && (inDialog || !pointed) && r.bottom + margin + t.height <= window.innerHeight;
+    const below = !forceLeft && !(all[index]?.right && right && !pointed) && ((inDialog && !right) || !pointed) && r.bottom + margin + t.height <= window.innerHeight;
     let left: number;
     let top: number;
     let side: string;
@@ -513,7 +551,7 @@ export async function startTour(): Promise<void> {
     left = Math.max(margin, Math.min(left, window.innerWidth - t.width - margin));
     top = Math.max(margin, Math.min(top, window.innerHeight - t.height - margin));
     // The tip keeps clear of the pretend explorer and of open menus and submenus: the first spot around the target that it does not cover wins.
-    const blockers = [...document.querySelectorAll(".fx-window, .tour-checklist, .ctx-menu")].map((e) => e.getBoundingClientRect());
+    const blockers = [...document.querySelectorAll(`.fx-window, .tour-checklist, .ctx-menu${inDialog ? "" : ", dialog[open]"}`)].filter(hasBox).map((e) => e.getBoundingClientRect());
     const hits = (x: number, y: number): boolean => blockers.some((b) => x < b.right && x + t.width > b.left && y < b.bottom && y + t.height > b.top);
     if (hits(left, top)) {
       const spots: [number, number, string][] = [
@@ -521,7 +559,7 @@ export async function startTour(): Promise<void> {
         [r.left - margin - t.width, r.top, "right"],
         [r.left, r.bottom + margin, "top"],
         [r.left, r.top - margin - t.height, "bottom"],
-        [margin, window.innerHeight - t.height - margin, "none"],
+        [margin, margin, "none"],
       ];
       const fits = (x: number, y: number): boolean => x >= margin && y >= margin && x + t.width <= window.innerWidth - margin && y + t.height <= window.innerHeight - margin;
       const free = spots.find(([x, y]) => fits(x, y) && !hits(x, y)) ?? spots[spots.length - 1];
@@ -623,6 +661,8 @@ export async function startTour(): Promise<void> {
   const litRows = (): HTMLElement[] => (all[index]?.inert ? [] : (all[index]?.targets() ?? []).flatMap((e) => (e.matches(".col-item") ? [e as HTMLElement] : [...e.querySelectorAll<HTMLElement>(":scope > .col-item[data-key]")])));
   const lit = (t: Element): boolean => (all[index]?.targets() ?? []).some((e) => e.contains(t)) && !all[index]?.inert;
   function guardPointer(ev: Event): void {
+    // The tour's own synthetic clicks, such as opening a column for a step, must get through.
+    if (!ev.isTrusted) return;
     const t = ev.target instanceof Element ? ev.target : null;
     const row = t?.closest(".tree-host [data-key], .tree-host [data-entry]");
     if (!row || lit(row)) return;
@@ -692,7 +732,7 @@ export async function startTour(): Promise<void> {
     const moved = (r: MutationRecord): boolean => r.type === "attributes" || ![...r.addedNodes, ...r.removedNodes].every(ours);
     if (records.some((r) => !ours(r.target) && moved(r))) place();
   });
-  menus.observe(document.body, { childList: true, subtree: true, attributeFilter: ["open"] });
+  menus.observe(document.body, { childList: true, subtree: true, attributeFilter: ["open", "hidden"] });
   document.body.append(...shields, spot, checklist, tip);
   document.body.classList.add("touring");
   window.addEventListener("resize", place);
