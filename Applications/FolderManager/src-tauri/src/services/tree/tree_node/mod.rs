@@ -23,7 +23,7 @@ use crate::services::tree::depth;
 use crate::services::tree::review_links;
 use crate::services::tree::tree_store::{get_node, is_locked_type};
 use actions::{compute_actions, file_actions, link_actions, mark_moves};
-use entries::{level_entries, Entry};
+use entries::{is_untracked_review, level_entries, Entry};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -129,7 +129,7 @@ pub fn fill_children(root: &Path, data: &Mapping, nodes: &mut [TreeNode]) -> R<(
 
 fn children_at(root: &Path, data: &Mapping, parent: &[String], limit: usize) -> R<Vec<TreeNode>> {
     let mut nodes = Vec::new();
-    for entry in level_entries(root, data, parent)? {
+    for entry in level_entries(root, data, parent, limit)? {
         if entry.file {
             nodes.push(file_node(root, parent, entry.name, entry.concealed));
         } else {
@@ -206,7 +206,9 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
     let yaml_entry = get_node(data, &rel_parts);
     // The tree only indexes down to the depth limit; a worknode-named folder it does not hold is still a worknode.
     let untracked_wkb = yaml_entry.is_none() && entry.on_disk && entry.link.is_none() && is_worknode_name(&entry.name);
-    let raw_type = if untracked_wkb { "WKB" } else { yaml_entry.and_then(|m| m.get("type")).and_then(Value::as_str).unwrap_or("") };
+    let untracked_rev = yaml_entry.is_none() && entry.on_disk && entry.link.is_none() && is_untracked_review(&entry.name, parent.len(), limit);
+    let rev_type = format!("REV-L{}", parent.len() + 1);
+    let raw_type = if untracked_wkb { "WKB" } else if untracked_rev { rev_type.as_str() } else { yaml_entry.and_then(|m| m.get("type")).and_then(Value::as_str).unwrap_or("") };
     // A review link stands for its owner's review folder, so that is where its path and drops point.
     let abs_path = match &entry.link {
         Some(owner) => review_links::rev_folder(root, owner),
@@ -234,7 +236,7 @@ fn make_node(root: &Path, data: &Mapping, parent: &[String], entry: Entry, limit
 
     let (fixed_prefix, editable_name) = name_parts(&entry.name, is_wkb);
     let mut actions = if linked { link_actions() } else { compute_actions(depth, limit, ghost, raw_type, reserved, info_broken) };
-    if untracked_wkb {
+    if untracked_wkb || untracked_rev {
         // These edit the tree entry, which an untracked folder does not have.
         actions.change_type = false;
         actions.add_next = false;

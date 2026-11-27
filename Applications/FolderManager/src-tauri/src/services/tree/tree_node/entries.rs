@@ -28,7 +28,7 @@ pub(super) struct Entry {
     pub(super) concealed: bool,
 }
 
-pub(super) fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R<Vec<Entry>> {
+pub(super) fn level_entries(root: &Path, data: &Mapping, parent: &[String], limit: usize) -> R<Vec<Entry>> {
     let disk_dir = join_rel(root, parent);
     let disk = if disk_dir.is_dir() { list_subdirs(&disk_dir)? } else { Vec::new() };
     let yaml: Vec<&str> = get_node(data, parent)
@@ -93,7 +93,7 @@ pub(super) fn level_entries(root: &Path, data: &Mapping, parent: &[String]) -> R
             file: false,
             concealed: false,
         })
-        .filter(|e| !(e.on_disk && !e.in_yaml && is_linked_folder(&e.name)))
+        .filter(|e| !(e.on_disk && !e.in_yaml && is_linked_folder(&e.name) && !is_untracked_review(&e.name, parent.len(), limit)))
         .chain(link_entries)
         .chain(file_entries)
         .collect();
@@ -122,6 +122,11 @@ fn tail_rank(name: &str) -> usize {
         return 0;
     }
     support_kind(name).and_then(|kind| SUPPORT_ORDER.iter().position(|k| *k == kind)).map_or(SUPPORT_ORDER.len() + 1, |at| at + 1)
+}
+
+// The tree stops at the depth limit, so the review folder of a deepest node lives on disk only and is listed from there.
+pub(super) fn is_untracked_review(name: &str, parent_len: usize, limit: usize) -> bool {
+    parent_len >= limit && support_kind(name) == Some("REV")
 }
 
 fn is_linked_folder(name: &str) -> bool {

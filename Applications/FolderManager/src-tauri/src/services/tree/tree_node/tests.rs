@@ -397,3 +397,13 @@ fn snapshot_serialises_in_camel_case() {
         assert!(text.contains(key), "{key}");
     }
 }
+
+#[test]
+fn the_review_folder_of_a_deepest_node_shows_though_the_tree_does_not_hold_it() {
+    let dir = storage("review-deepest", &["100.A/01.B/01.C/REV.C", "100.A/01.B/01.C/RES.C"], "100.A:\n  01.B:\n    type: NODE-L2\n    01.C: {type: NODE-L3}\n");
+    let data = crate::test_support::yaml(dir.path());
+    let kids = build_children(dir.path(), &data, &rel(&["100.A", "01.B", "01.C"])).unwrap();
+    assert_eq!(names(&kids), ["REV.C"]);
+    let review = find(&kids, "REV.C");
+    assert!(review.has_children && review.node_type.as_ref().is_some_and(|t| t.base == TypeBase::Rev) && !review.actions.add_next);
+}
