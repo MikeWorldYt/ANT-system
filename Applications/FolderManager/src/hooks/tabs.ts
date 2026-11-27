@@ -40,6 +40,8 @@ export interface TabView {
   title: string;
   active: boolean;
   split: "left" | "right" | null;
+  // Left and right half labels of a split tab; an empty half has none.
+  halves: [string, string] | null;
 }
 
 const PREF = "fm.tabs";
@@ -167,14 +169,14 @@ async function activate(index: number): Promise<void> {
   notify();
 }
 
-export function selectTab(index: number): void {
+export async function selectTab(index: number): Promise<void> {
   if (moving || index === active) return;
   capture();
-  void activate(index);
+  await activate(index);
 }
 
 export function nextTab(): void {
-  selectTab((active + 1) % tabs.length);
+  void selectTab((active + 1) % tabs.length);
 }
 
 // A tab opens on the folder it was asked for, else on the storage root.
@@ -261,7 +263,13 @@ export function labelOf(place: Place, shown?: string | null): string {
 }
 
 export const tabViews = (): TabView[] =>
-  tabs.map((t, i) => ({ label: withoutId(labelOf(t.place, t.shown)), title: (t.shown === undefined ? t.place.key : t.shown) ?? labelOf(t.place, t.shown), active: i === active, split: t.split ? (t.split.right ? "right" : "left") : null }));
+  tabs.map((t, i) => {
+    const label = withoutId(labelOf(t.place, t.shown));
+    const s = t.split;
+    const other = s === null || s.empty ? "" : withoutId(labelOf({ virtual: s.other.virtual, via: s.other.via, key: s.other.selectedKey }));
+    const halves: [string, string] | null = s === null ? null : s.right ? [other, label] : [label, other];
+    return { label, title: (t.shown === undefined ? t.place.key : t.shown) ?? labelOf(t.place, t.shown), active: i === active, split: s ? (s.right ? "right" : "left") : null, halves };
+  });
 
 export const tabStates = () =>
   tabs.map((t, i) => ({ label: labelOf(t.place), relParts: t.place.key?.split("/") ?? [], virtual: t.place.virtual, view: t.view, active: i === active }));
