@@ -341,6 +341,29 @@ export function openMenuWith(build: (close: (restore?: boolean) => void) => Menu
   items[0]?.focus();
 }
 
+// The navigation pane only moves around, so its menu offers where to open a folder, never changes to it.
+function navMenu(node: TreeNode, close: (restore?: boolean) => void): MenuParts {
+  const action = closingItem(close);
+  const openHere = action("Open", true, () => void openInApp(node));
+  const location = action("Open folder location", node.actions.open, () => void openFolder(node));
+  const newTab = action("Open in new tab", true, () => openTab(node.relParts));
+  const splitTab = action("Open in split tab", true, () => void openInSplit(node));
+  const copyPathItem = action("Copy path", node.actions.copyPath, () => void copyPath(node));
+  const hide = action("Hide element", node.actions.hide, () => void hideNode(node));
+  newTab.prepend(guiIcon("add"));
+  splitTab.prepend(guiIcon("split"));
+  hide.prepend(guiIcon("hide"));
+  const items = [openHere, location, newTab, splitTab, copyPathItem, hide];
+  return { items, subs: [], content: [openHere, location, separator(), newTab, splitTab, separator(), copyPathItem, separator(), hide] };
+}
+
+export function installNavMenu(nav: HTMLElement, restoreFocus: () => void): void {
+  nav.addEventListener("fm:node-menu", ({ detail }) => {
+    if (detail.folderOnly) return;
+    openMenuWith((close) => navMenu(detail.node, close), detail.node.name, detail.x, detail.y, restoreFocus);
+  });
+}
+
 export function installContextMenu(host: HTMLElement, restoreFocus: () => void, views: ViewPicker): void {
   // Suppresses the WebView2 default menu everywhere except text fields, which keep copy and paste.
   document.addEventListener("contextmenu", (ev) => {
