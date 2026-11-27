@@ -1,8 +1,8 @@
 // Storage page: the Storage folder's name and location, the tree depth, reindexing and the daily check for outside changes.
 import { localStamp } from "../../../../services/stamp";
 import { changeSetting, changeTreeDepth, refresh } from "../../../../hooks/ops";
-import { startDebugLog } from "../../../../hooks/debug-log";
-import { backupSchedule, describeError, prepareScan, renameStorage, revertStorageRename, storageRenameStatus, syncSchedule } from "../../../../services/ipc/api";
+import { afterPick, followNewPath } from "../../../../hooks/follow-storage";
+import { describeError, renameStorage, revertStorageRename, storageRenameStatus, syncSchedule } from "../../../../services/ipc/api";
 import { state } from "../../../../services/store/state";
 import { confirmDialog } from "../../../organisms/dialogs/info-dialog/info-dialog";
 import { promptDialog } from "../../../organisms/dialogs/action-dialog/form-dialog";
@@ -30,17 +30,6 @@ async function toggleWatch(on: boolean): Promise<boolean> {
     reportError("warning", e);
   }
   return true;
-}
-
-// The scheduled tasks and the open debug log still point at the old path.
-async function followNewPath(): Promise<void> {
-  try {
-    if (state.settings.backupAuto) await backupSchedule(true);
-    if (state.settings.watchExternal) await syncSchedule(true);
-  } catch (e) {
-    reportError("warning", e, "Scheduled tasks");
-  }
-  if (state.settings.debugLogging) await startDebugLog();
 }
 
 async function rename(current: string, row: RowHandle, done: () => void): Promise<void> {
@@ -72,18 +61,21 @@ async function switchStorage(current: string | null, row: RowHandle, done: () =>
   const picked = await storagePicker(current);
   if (!picked) return;
   try {
-    if (picked === "created") await prepareScan(localStamp());
-    await refresh();
-    await followNewPath();
+    await afterPick(picked);
     done();
   } catch (e) {
     row.describe(describeError(e));
   }
 }
 
+const fixed = (button: HTMLButtonElement): HTMLButtonElement => {
+  button.classList.add("sw-fixed");
+  return button;
+};
+
 function renameControl(root: string | undefined, row: RowHandle, done: () => void): HTMLElement {
   const name = folderName(root);
-  const undo = buttonControl("Revert last rename", () => void revert(row, done));
+  const undo = fixed(buttonControl("Revert last rename", () => void revert(row, done)));
   undo.disabled = true;
   void storageRenameStatus().then(
     (status) => {
@@ -96,7 +88,7 @@ function renameControl(root: string | undefined, row: RowHandle, done: () => voi
   const chip = valueControl(name);
   chip.classList.add("sw-name");
   chip.title = name;
-  return actions(chip, buttonControl("Rename", () => void rename(name, row, done)), undo);
+  return actions(chip, fixed(buttonControl("Rename", () => void rename(name, row, done))), undo);
 }
 
 function depthControl(storage: StorageInfo | null, row: RowHandle, done: () => void): HTMLElement {
@@ -118,31 +110,38 @@ export const storagePage: SettingsPage = {
   icon: "pageStorage",
   rows: (ctx) => [
     {
+      section: "Storage",
       title: "Storage name",
       control: (row: RowHandle) => renameControl(ctx.storage?.root, row, ctx.refresh),
     },
     {
+      section: "Storage",
       title: "Storage location",
-      description: "Folder where the app init your storage",
-      control: (row: RowHandle) => actions(pathControl(ctx.storage?.root ?? "Unknown"), buttonControl("Switch", () => void switchStorage(ctx.storage?.root ?? null, row, ctx.refresh))),
+      description: "Folder where the app opens your storage",
+      control: (row: RowHandle) => actions(pathControl(ctx.storage?.root ?? "Unknown"), fixed(buttonControl("Switch", () => void switchStorage(ctx.storage?.root ?? null, row, ctx.refresh)))),
     },
     {
+      section: "Index",
       title: "Index",
-      description: "Depth levels of the tree indexing in DB, more levels mean more folders read on each refresh",
+      description: "How many tree levels are indexed in the database; more levels read more folders on each refresh",
       control: (row: RowHandle) => depthControl(ctx.storage, row, ctx.refresh),
     },
     {
+      section: "Index",
       title: "Reindex Storage",
-      description: "Use for force the indexation",
+      description: "Rebuild the index from disk",
       control: (row: RowHandle) =>
-        buttonControl("Reindex", () => {
-          row.describe("Reindexing…");
-          void refresh().then((ok) => row.describe(ok ? "Reindexed." : "The reindex failed."));
-        }),
+        fixed(
+          buttonControl("Reindex", () => {
+            row.describe("Reindexing…");
+            void refresh().then((ok) => row.describe(ok ? "Reindexed." : "The reindex failed."));
+          }),
+        ),
     },
     {
+      section: "External changes",
       title: "Watch for external changes",
-      description: "Autocheck every day if files changed on disk and update DB",
+      description: "Check once a day for changes made on disk and update the database",
       control: () => switchControl("Watch for external changes", state.settings.watchExternal, toggleWatch),
     },
   ],

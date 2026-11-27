@@ -2,18 +2,28 @@
 dialog.picker-dialog { padding: 0; overflow: hidden; }
 dialog.picker-dialog form { padding: 0; }
 .picker { display: grid; grid-template-columns: minmax(220px, 280px) 1fr; min-height: 460px; width: min(820px, calc(100vw - 32px)); }
-.picker-side { background: var(--tree-bg); border-right: 1px solid var(--border); padding: 16px 8px; overflow: auto; }
+.picker-side { background: var(--tree-bg); border-right: 1px solid var(--border); padding: 16px 10px; overflow: auto; }
+.picker-side-title { margin: 0 8px 8px; font-size: var(--fs-caption); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .picker-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.picker-item { display: flex; align-items: stretch; gap: 2px; }
-.picker-open { flex: 1; display: grid; gap: 2px; text-align: left; padding: 8px 10px; border: 1px solid transparent; border-radius: var(--radius-md); background: none; color: inherit; cursor: pointer; min-width: 0; }
-.picker-open:hover:not(:disabled), .picker-open:focus-visible { background: var(--highlight); }
-.picker-open:disabled { cursor: default; opacity: 0.6; }
-.picker-path { color: var(--muted); font-size: var(--fs-label); overflow-wrap: anywhere; }
-.picker-tag { color: var(--accent); font-size: var(--fs-label); }
-.picker-more { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0 8px; border-radius: var(--radius-md); font-size: 14pt; line-height: 1; }
-.picker-more:hover, .picker-more:focus-visible, .picker-more[aria-expanded="true"] { color: var(--title); background: none; }
-.picker-empty { color: var(--muted); padding: 8px 10px; }
-.picker-main { display: flex; flex-direction: column; align-items: center; padding: 32px 32px 24px; gap: 16px; }
+.picker-item { position: relative; display: flex; align-items: center; gap: 2px; border-radius: var(--radius-md); }
+.picker-item:hover, .picker-item:focus-within { background: var(--state-hover); }
+.picker-item.is-current { background: var(--highlight); box-shadow: inset 0 0 0 1px var(--button); }
+.picker-item.is-missing .picker-open { opacity: 0.6; }
+.picker-open { flex: 1; display: grid; gap: 2px; min-width: 0; text-align: left; padding: 8px 4px 8px 10px; border: 0; border-radius: var(--radius-md); background: none; color: inherit; cursor: pointer; }
+.picker-open:disabled { cursor: default; color: inherit; }
+.picker-open:focus-visible { outline: 2px solid var(--button); outline-offset: -2px; }
+.picker-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.picker-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-path, .picker-row-path { color: var(--muted); font-size: var(--fs-label); }
+.picker-path { overflow-wrap: anywhere; }
+.picker-row-path { display: block; overflow: hidden; direction: rtl; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.picker-tag { flex: none; padding: 1px 8px; border-radius: var(--radius-full); background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-size: var(--fs-caption); font-weight: 600; }
+.picker-tag-warn { background: color-mix(in srgb, var(--delete-hover) 18%, transparent); color: var(--delete-hover); }
+.picker-more { flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin-right: 6px; padding: 0; background: none; border: none; color: var(--muted); cursor: pointer; border-radius: var(--radius-sm); font-size: 14pt; line-height: 1; }
+.picker-more:hover, .picker-more:focus-visible, .picker-more[aria-expanded="true"] { color: var(--title); background: var(--state-press); }
+.picker-more:focus-visible { outline: 2px solid var(--button); outline-offset: 1px; }
+.picker-empty { color: var(--muted); padding: 8px 10px; font-size: var(--fs-label); }
+.picker-main { display: flex; flex-direction: column; align-items: center; padding: 32px 32px 24px; gap: 20px; }
 .picker-brand { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
 .picker-logo { width: 96px; height: 96px; }
 .picker-welcome { margin: 8px 0 0; font-size: 20pt; font-weight: 600; color: var(--text); }
@@ -21,10 +31,14 @@ dialog.picker-dialog .picker-brand h2 { margin: 0; font-size: var(--fs-headline)
 .picker-version { margin: 0; color: var(--muted); font-size: var(--fs-label); }
 .picker-panel { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 10px; }
 .picker-panel h3 { margin: 0; font-size: var(--fs-title); color: var(--title); }
-.picker-card { display: grid; background: var(--field-bg); border-radius: var(--radius-md); padding: 4px 16px; }
+.picker-card { display: grid; background: var(--field-bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 4px 16px; }
+.picker-card .btn { min-width: 88px; }
+.picker-secondary { background: var(--input-bg); box-shadow: inset 0 0 0 1px var(--border); }
+.picker-secondary:hover:not(:disabled) { background: var(--highlight); box-shadow: inset 0 0 0 1px var(--button); }
 .picker-option { display: flex; align-items: center; gap: 16px; padding: 12px 0; }
 .picker-option + .picker-option { border-top: 1px solid var(--border); }
 .picker-option > div { flex: 1; }
+.picker-option strong { color: var(--title); }
 .picker-option p { margin: 2px 0 0; color: var(--muted); font-size: var(--fs-label); }
 .picker-option .dialog-input, .picker-location .sw-select { background-color: var(--input-bg); border: 1px solid var(--border); }
 .picker-option .dialog-input { width: 180px; }
@@ -35,7 +49,7 @@ dialog.picker-dialog .picker-brand h2 { margin: 0; font-size: var(--fs-headline)
 .picker-submit { display: flex; justify-content: center; }
 .picker-feedback { margin: 0; color: var(--delete-hover); text-align: center; }
 .picker-feedback:empty { display: none; }
-dialog.picker-dialog .dialog-buttons { padding: 0 16px 16px; }
+dialog.picker-dialog .dialog-buttons { margin-top: 0; padding: 10px 16px; border-top: 1px solid var(--border); }
 dialog.picker-dialog .dialog-buttons:empty { display: none; }
 dialog.picker-onboarding { width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; border: none; border-radius: 0; background: var(--bg); }
 dialog.picker-onboarding::backdrop { background: var(--bg); }
