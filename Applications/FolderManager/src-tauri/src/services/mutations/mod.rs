@@ -38,6 +38,7 @@ pub use shortcut_plan::{link_in, shortcut_plan};
 pub use file_ops::{add_folder, delete_file, file_path, rename_file, source_path};
 pub use link_hidden::set_link_hidden;
 pub use file_drop::{drop_files, move_in, DropOutcome};
+pub(crate) use file_drop::copy_whole;
 pub use move_folder::{move_folder, move_to_review};
 pub use user_flags::set_user_flag;
 pub use rename::rename_node;

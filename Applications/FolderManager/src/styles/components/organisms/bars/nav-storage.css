@@ -1,0 +1,16 @@
+/* Storage footer of the navigation pane and its menu, which opens above it. */
+.nav-footer { flex: none; display: flex; align-items: center; gap: 4px; padding: 4px; border-top: 1px solid var(--border); }
+.nav-store { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 8px; font: inherit; text-align: left; color: var(--text); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+.nav-store:hover, .nav-store[aria-expanded="true"] { background: var(--state-hover); }
+.nav-store:focus-visible { outline: 2px solid var(--button); outline-offset: -2px; }
+.nav-store-icon { flex: none; display: flex; color: var(--accent); }
+.nav-store-icon .gui-icon { width: 16px; height: 16px; }
+.nav-store-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-store-menu { max-width: 320px; border-radius: var(--radius-sm); }
+.nav-store-menu .ctx-item { padding-right: 36px; overflow-wrap: anywhere; }
+.nav-store-menu .ctx-item.ctx-current[aria-checked="true"] { background: none; box-shadow: none; }
+.nav-store-menu .ctx-item.ctx-current[aria-checked="true"]:hover, .nav-store-menu .ctx-item.ctx-current[aria-checked="true"]:focus-visible { background: var(--highlight); }
+.nav-store-menu .ctx-trail { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: var(--fs-caption); }
+.nav-store-menu .ctx-trail.picker-tag { color: var(--accent); }
+.nav-store-menu .ctx-item:has(.ctx-trail) { padding-right: 76px; }
+.nav-store-settings { flex: none; }

@@ -16,7 +16,7 @@ import logo from "../../../../../src-tauri/icons/128x128.png";
 
 export type PickResult = "opened" | "created" | null;
 
-const sameFolder = (a: string, b: string): boolean => a.replace(/[\\/]+$/, "").toLowerCase() === b.replace(/[\\/]+$/, "").toLowerCase();
+export const sameFolder = (a: string, b: string): boolean => a.replace(/[\\/]+$/, "").toLowerCase() === b.replace(/[\\/]+$/, "").toLowerCase();
 
 const option = (title: string, text: string, control: HTMLElement): HTMLElement =>
   el("div", { class: "picker-option" }, el("div", {}, el("strong", {}, title), el("p", {}, text)), control);
@@ -91,12 +91,16 @@ export async function storagePicker(current: string | null, onboarding = false):
 
   function row(storage: KnownStorage): HTMLElement {
     const isCurrent = current !== null && sameFolder(storage.path, current);
-    const main = el("button", { type: "button", class: "picker-open" }, el("strong", {}, storage.name), el("span", { class: "picker-path" }, storage.path));
-    if (!storage.exists) main.append(el("span", { class: "picker-tag" }, "Not found"));
-    else if (isCurrent) main.append(el("span", { class: "picker-tag" }, "Open now"));
+    const top = el("span", { class: "picker-top" }, el("strong", { class: "picker-name" }, storage.name));
+    if (!storage.exists) top.append(el("span", { class: "picker-tag picker-tag-warn" }, "Not found"));
+    else if (isCurrent) top.append(el("span", { class: "picker-tag" }, "Current"));
+    const main = el("button", { type: "button", class: "picker-open", title: storage.path }, top, el("span", { class: "picker-row-path" }, el("bdi", { dir: "ltr" }, storage.path)));
     main.disabled = !storage.exists || isCurrent;
     main.addEventListener("click", () => void run(async () => (await changeStoragePath(storage.path), "opened")));
-    return el("li", { class: "picker-item" }, main, storageMenu(storage, storage.exists && !isCurrent));
+    const item = el("li", { class: "picker-item" }, main, storageMenu(storage, storage.exists && !isCurrent));
+    item.classList.toggle("is-current", isCurrent);
+    item.classList.toggle("is-missing", !storage.exists);
+    return item;
   }
 
   async function fill(): Promise<void> {
@@ -118,7 +122,7 @@ export async function storagePicker(current: string | null, onboarding = false):
       "div",
       { class: "picker-card" },
       option("Create new Storage", "Create a new ANT Storage under a folder.", textButton("Create", "btn-primary", showCreate)),
-      option("Open folder as Storage", "Choose an existing ANT Storage folder.", textButton("Open", undefined, () => void openFolder())),
+      option("Open folder as Storage", "Choose an existing ANT Storage folder.", textButton("Open", "picker-secondary", () => void openFolder())),
     );
     panel.replaceChildren(card);
     card.querySelector("button")?.focus();
@@ -129,7 +133,7 @@ export async function storagePicker(current: string | null, onboarding = false):
     let parent: string | null = null;
     const name = textInput({ class: "dialog-input", placeholder: "Storage name", "aria-label": "Storage name" });
     const where = el("div", { class: "picker-location" });
-    const browse = textButton("Browse", undefined, async () => {
+    const browse = textButton("Browse", "picker-secondary", async () => {
       const picked = await open({ directory: true, multiple: false, title: "Where to create the Storage" });
       if (typeof picked !== "string") return;
       parent = picked;
@@ -167,7 +171,7 @@ export async function storagePicker(current: string | null, onboarding = false):
 
   const brand = el("div", { class: "picker-brand" }, el("img", { src: logo, alt: "", class: "picker-logo" }), el("p", { class: "picker-welcome" }, "Welcome"), version);
   const main = el("div", { class: "picker-main" }, brand, panel, feedback);
-  const shell = openDialog({ title: "ANT System Manager", wide: true, body: [el("div", { class: "picker" }, el("aside", { class: "picker-side" }, list), main)], buttons: onboarding ? [] : [cancelButton("Close")] });
+  const shell = openDialog({ title: "ANT System Manager", wide: true, body: [el("div", { class: "picker" }, el("aside", { class: "picker-side" }, el("p", { class: "picker-side-title" }, "Your Storages"), list), main)], buttons: onboarding ? [] : [cancelButton("Close")] });
   shell.dialog.classList.add("picker-dialog");
   if (onboarding) {
     shell.dialog.classList.add("picker-onboarding");

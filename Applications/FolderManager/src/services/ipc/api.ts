@@ -84,6 +84,8 @@ export const openNode = (relParts: string[]) =>
 export const revealNode = (relParts: string[]) =>
   inSystem(relParts) ? call<void>("reveal_download", native(relParts)) : call<void>("reveal_node", { relParts });
 export const renameDownload = (relParts: string[], newName: string) => call<void>("rename_download", { ...native(relParts), newName });
+export const createDownloadFolder = (relParts: string[], name: string) => call<string>("create_download_folder", { ...native(relParts), name });
+export const pasteIntoDownloads = (relParts: string[]) => call<string[]>("paste_into_downloads", native(relParts));
 export const pinDictionaryFile = (folder: string[], entry: string | null, file: string) => call<void>("pin_dictionary_file", { folder, entry, file });
 export const dropIntoDownloads = (relParts: string[], paths: string[]) => call<string[]>("drop_into_downloads", { ...native(relParts), paths });
 export const deleteDownloads = async (targets: string[][]): Promise<void> => {

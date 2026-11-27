@@ -42,63 +42,26 @@ The main app **FolderManager**, tho looks like another File explorer, **it's an 
 
 ## Quick start
 
-Three minutes from nothing to a working storage.
+### 1. Install FolderManager
 
-### 1. Create a storage
+`FolderManager` is the desktop app for Manage your storages: views, rename in place, status tracking, search, automations and backups.
 
-`CreateNewStorage` is a ~400 KB command-line tool for Windows, Linux and macOS. It builds the whole ANT structure for you.
+| Platform | Installer | Portable |
+| --- | --- | --- |
+| Windows | [`FolderManager_installer.exe`](https://github.com/MikeWorldYt/ANT-system/releases/download/folder-manager-v2.5.2/FolderManager_installer.exe) | [`FolderManager_portable.exe`](https://github.com/MikeWorldYt/ANT-system/releases/download/folder-manager-v2.5.2/FolderManager_portable.exe) |
+| Linux | [`FolderManager-linux_installer.deb`](https://github.com/MikeWorldYt/ANT-system/releases/download/folder-manager-v2.5.2/FolderManager-linux_installer.deb) | [`FolderManager-linux_portable.tar.gz`](https://github.com/MikeWorldYt/ANT-system/releases/download/folder-manager-v2.5.2/FolderManager-linux_portable.tar.gz) |
+| macOS | [`FolderManager-macos_installer.dmg`](https://github.com/MikeWorldYt/ANT-system/releases/download/folder-manager-v2.5.2/FolderManager-macos_installer.dmg) | [`FolderManager-macos_portable.tar.gz`](https://github.com/MikeWorldYt/ANT-system/releases/download/folder-manager-v2.5.2/FolderManager-macos_portable.tar.gz) |
 
-| Platform | Download |
-| --- | --- |
-| Windows | [`CreateNewStorage.exe`](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage.exe) |
-| Linux | [`CreateNewStorage-linux.tar.gz`](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage-linux.tar.gz) |
-| macOS | [`CreateNewStorage-macos.tar.gz`](https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage-macos.tar.gz) |
+The installer keeps the app up to date by itself. All versions are on the [releases page](https://github.com/MikeWorldYt/ANT-system/releases).
 
-Or from a terminal.
+### 2. Create your storage
 
-<details open>
-<summary><b>Linux</b> (use <code>CreateNewStorage-macos.tar.gz</code> on macOS)</summary>
+Open FolderManager and choose **Create new Storage**: pick a folder, give it a name, and the app builds the whole ANT structure for you. A short tour shows the basics the first time.
 
-```bash
-curl -L -o cns.tar.gz https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage-linux.tar.gz
-tar -xzf cns.tar.gz        # extracts the "create-new-storage" executable, already runnable
-./create-new-storage --help
-./create-new-storage ~ --name "My-name-storage"   # change the name to yours
-```
+<p align="center"><img src=".github/assets/readme/quick-start-create-storage.gif" alt="Creating a storage named Mari from the FolderManager welcome screen" width="720"></p>
 
-</details>
-
-<details open>
-<summary><b>Windows</b> (PowerShell)</summary>
-
-```powershell
-Invoke-WebRequest -Uri https://github.com/MikeWorldYt/ANT-system/releases/download/create-new-storage-v3.3.0/CreateNewStorage.exe -OutFile CreateNewStorage.exe
-.\CreateNewStorage.exe --help
-.\CreateNewStorage.exe $HOME --name "My-name-storage"   # change the name to yours
-```
-
-</details>
-
-`<path>` is where the storage goes and `--name` creates a sanitized subfolder inside it. You get the standard top level:
-
-```
-📁 My-Name-Storage
- ├── 📁 100.PERSONAL
- ├── 📁 200.WORK
- ├── 📁 300.PROJECTS
- ├── 📁 400.ACADEMIC
- ├── 📁 500.HOBBIES
- ├── 📁 900.Resources
- ├── 📁 998.Review
- └── 📁 999.Settings
-```
-
-### 2. Manage it with FolderManager
-
-`FolderManager` is a desktop app (Tauri 2 and Rust) to browse and organize the storage in tree or column views, rename in place, track status, search and back up, without touching the terminal. Open it from inside the storage, or point it at the folder.
-
-🔽 [Download FolderManager.exe](https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe) (Windows; Linux and macOS are in progress)
-
+> Prefer the terminal or need to script it? [`CreateNewStorage`](https://ant-system.vercel.app/en/advanced/cli) builds the same storage from the command line.
+>
 > Coming from an existing setup? Follow the [Getting Started guide](https://ant-system.vercel.app/en/start-here/getting-started).
 
 ## Utilities
@@ -106,7 +69,7 @@ Invoke-WebRequest -Uri https://github.com/MikeWorldYt/ANT-system/releases/downlo
 | Tool | What it does | Platforms | |
 | --- | --- | --- | --- |
 | **CreateNewStorage** | Generates a ready-to-use ANT storage from the official template, with the review shortcuts and the starter database. Fast, dependency-free CLI written in Rust. | Windows · Linux · macOS | [Download](https://github.com/MikeWorldYt/ANT-system/releases/tag/create-new-storage-v3.3.0) · [Source](Applications/CreateNewStorage) |
-| **FolderManager** | Day-to-day management of a storage: tree and column views, favorites, status colors, details, search, scheduled backups, extensions and a settings window. | Windows | [Download](https://github.com/MikeWorldYt/ANT-system/raw/main/Applications/FolderManager/dist/FolderManager.exe) · [Source](Applications/FolderManager) |
+| **FolderManager** | Creates and manages a storage day to day: several views, favorites, status colors, details, search, automations, scheduled backups, extensions and AI integration. | Windows · Linux · macOS | [Download](https://github.com/MikeWorldYt/ANT-system/releases/tag/folder-manager-v2.5.2) · [Source](Applications/FolderManager) |
 | **Reformatter** | Batch renames existing files to the ANT naming format, with a preview mode, safety filters and automatic skipping of system and hidden files. | Windows | [Download](https://github.com/MikeWorldYt/ANT-system/releases/download/v0.2.1/reformatter.v.0.2.1.exe) · [Source](Applications/Reformatter) |
 
 ## Repository layout

@@ -4,8 +4,9 @@ import { rootName } from "../components/organisms/bars/path-input";
 import { reportError } from "../components/organisms/bars/status-line";
 import { currentPlace, type Place } from "../services/store/place";
 import { isWorknode } from "../services/store/node-info";
+import { systemName, systemRootOf } from "../services/ipc/types";
 import { readPref, savePref } from "../services/store/prefs";
-import { currentSplit, parkedSplit, restoreSplit, savedSplit, type SavedSplit, type Split } from "./split";
+import { currentSplit, fillOther, parkedSplit, restoreSplit, savedSplit, type SavedSplit, type Split } from "./split";
 import { parkBatch, unparkBatch, type ParkedBatch } from "./automations/batch";
 import { parkReplay, unparkReplay, type ParkedReplay } from "./automations/batch-replay";
 import type { ViewSwitcher } from "./view-switch";
@@ -39,6 +40,8 @@ export interface TabView {
   title: string;
   active: boolean;
   split: "left" | "right" | null;
+  // Left and right half labels of a split tab; an empty half has none.
+  halves: [string, string] | null;
 }
 
 const PREF = "fm.tabs";
@@ -166,14 +169,14 @@ async function activate(index: number): Promise<void> {
   notify();
 }
 
-export function selectTab(index: number): void {
+export async function selectTab(index: number): Promise<void> {
   if (moving || index === active) return;
   capture();
-  void activate(index);
+  await activate(index);
 }
 
 export function nextTab(): void {
-  selectTab((active + 1) % tabs.length);
+  void selectTab((active + 1) % tabs.length);
 }
 
 // A tab opens on the folder it was asked for, else on the storage root.
@@ -227,11 +230,21 @@ export function closeTab(index = active): void {
   void activate(previous ? tabs.indexOf(previous) : Math.min(index, tabs.length - 1));
 }
 
+// The picked tab leaves the bar: its place becomes the split's empty half.
+export function joinTab(index: number): void {
+  const tab = tabs[index];
+  if (moving || !tab || index === active || tab.split || !currentSplit()?.empty) return;
+  tabs.splice(index, 1);
+  if (index < active) active--;
+  recent = recent.filter((t) => t !== tab);
+  fillOther(tab.place, tab.expanded, tab.trail, tab.view);
+}
+
 // Tabs are narrow, so the id prefix ("01.", "PR.051_") gives way to the title; the tooltip keeps the full name.
 const withoutId = (name: string): string => name.replace(/^(?:[A-Za-z]{2,4}\.)?\d+[._]/, "") || name;
 
 // A tab names where it stands, not what is selected: the project around the selection, else the folder holding it.
-function labelOf(place: Place, shown?: string | null): string {
+export function labelOf(place: Place, shown?: string | null): string {
   const key = shown === undefined ? place.key : shown;
   if (key !== null) {
     const parts = key.split("/");
@@ -241,6 +254,8 @@ function labelOf(place: Place, shown?: string | null): string {
     });
     if (project >= 0) return parts[project] ?? "";
     const folder = findNode(parts)?.file ? parts.slice(0, -1) : parts;
+    // A native folder's own root is keyed "::Name"; it shows the entry label the breadcrumb uses.
+    if (folder.length === 1 && systemRootOf(folder) !== null) return systemName(folder).toUpperCase();
     if (folder.length > 0) return folder[folder.length - 1] ?? "";
     return rootName(state.tree?.root);
   }
@@ -248,7 +263,13 @@ function labelOf(place: Place, shown?: string | null): string {
 }
 
 export const tabViews = (): TabView[] =>
-  tabs.map((t, i) => ({ label: withoutId(labelOf(t.place, t.shown)), title: (t.shown === undefined ? t.place.key : t.shown) ?? labelOf(t.place, t.shown), active: i === active, split: t.split ? (t.split.right ? "right" : "left") : null }));
+  tabs.map((t, i) => {
+    const label = withoutId(labelOf(t.place, t.shown));
+    const s = t.split;
+    const other = s === null || s.empty ? "" : withoutId(labelOf({ virtual: s.other.virtual, via: s.other.via, key: s.other.selectedKey }));
+    const halves: [string, string] | null = s === null ? null : s.right ? [other, label] : [label, other];
+    return { label, title: (t.shown === undefined ? t.place.key : t.shown) ?? labelOf(t.place, t.shown), active: i === active, split: s ? (s.right ? "right" : "left") : null, halves };
+  });
 
 export const tabStates = () =>
   tabs.map((t, i) => ({ label: labelOf(t.place), relParts: t.place.key?.split("/") ?? [], virtual: t.place.virtual, view: t.view, active: i === active }));

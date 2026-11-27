@@ -27,7 +27,7 @@ dialog.settings-window::backdrop { background: rgb(0 0 0 / 0.6); }
 .sw-body h3 { margin: 22px 0 2px; font-size: var(--fs-label); font-weight: 600; color: var(--title); }
 .sw-keys { display: flex; align-items: center; gap: 4px; color: var(--muted); margin-right: 16px; }
 .sw-keys kbd { padding: 1px 6px; font: 9pt "Cascadia Mono", Consolas, monospace; color: var(--text); background: var(--field-bg); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: var(--radius-xs); }
-.sw-name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw-name { box-sizing: border-box; max-width: 220px; padding: 6px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--field-bg); border-radius: var(--radius-sm); }
 .sw-empty { padding: 40px 0; color: var(--muted); text-align: center; }
 .sw-search-input:focus-visible, .sw-nav:focus-visible { outline: 2px solid var(--button); outline-offset: 2px; }
 .sw-rail { flex: 0 1 300px; min-width: 240px; }
@@ -47,3 +47,4 @@ dialog.settings-window::backdrop { background: rgb(0 0 0 / 0.6); }
 .sw-about-head > div { display: flex; flex-direction: column; gap: 2px; }
 .sw-about-name { font-size: var(--fs-title); color: var(--title); }
 .sw-about-version { color: var(--muted); }
+.sw-fixed { min-width: 88px; padding: 6px 14px; }

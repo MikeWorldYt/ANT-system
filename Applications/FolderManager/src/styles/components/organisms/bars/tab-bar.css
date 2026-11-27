@@ -21,7 +21,12 @@
 .tab-dots { display: flex; align-items: center; justify-content: space-around; }
 .tab-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 .tab-dot.on { background: var(--button); }
-.tab-dots-bar { width: 1px; height: 14px; background: var(--tab-outline); }
+.tab-dots-bar { flex: none; width: 1px; height: 14px; background: var(--tab-outline); }
+/* Two titles share a split tab, so it gets more room than a plain one. */
+.tab:has(.tab-half) { flex-basis: 320px; min-width: 180px; max-width: 360px; }
+.tab-half { flex: 1; min-width: 0; }
+.tab-half-label { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.tab-half-label.on { color: var(--accent); }
 .tab-close { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; margin-right: 2px; padding: 0; border: 0; border-radius: var(--radius-xs); background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
 .tab-close:hover { color: var(--text); background: var(--field-bg); }
 .tab-name:focus-visible, .tab-close:focus-visible { outline: 2px solid var(--button); outline-offset: -2px; }

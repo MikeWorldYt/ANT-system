@@ -63,7 +63,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     railExpand.focus();
   });
   collapse.classList.add("side-collapse");
-  const head = el("div", { class: "side-head" }, title, board, settings, collapse);
+  const head = el("div", { class: "side-head" }, title, board, collapse);
 
   const open = sideAction("Open", null, openSelected, "");
   const favorite = sideAction(favoriteLabel(null), "starred", favoriteActed);
@@ -71,7 +71,13 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
   const quick = section("side-quick", "Quick actions", open.button, favorite.button, important.button);
   const hideButton = sideAction("Hide element", "hide", hideActed);
   const remover = sideAction("Delete", "trash", deleteActed, "danger");
-  const foot = el("div", { class: "side-foot" }, hideButton.button, remover.button);
+  // App-wide entries close the panel's foot at the far right, apart from the item tools, as on the collapsed rail.
+  const footTools = el("div", { class: "side-foot-tools" }, hideButton.button, remover.button);
+  const appRow = el("div", { class: "side-foot-app" },
+    iconButton("Connect AI", "aiConnect", () => void aiConnectDialog()),
+    iconButton("About", "pageAbout", () => openSettings("about")),
+    settings);
+  const foot = el("div", { class: "side-foot" }, footTools, appRow);
   const categories = el("div", { class: "side-categories" });
   const hideLinks = el("a", { href: "#", class: "side-link" }, "Select elements to hide");
   hideLinks.addEventListener("click", (ev) => {
@@ -108,10 +114,13 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
 
   // Rebuilt only when the layout changes, since replacing the buttons drops keyboard focus.
   function layoutRail(): void {
-    const ids = railLayout()
+    const shown = railLayout()
       .filter((i) => i.shown)
       .map((i) => i.id);
-    const key = ids.join(",");
+    // Settings is app-wide, so it sits with About at the rail's foot instead of among the item actions.
+    const ids = shown.filter((id) => id !== "settings");
+    const foot = shown.includes("settings") ? [railButtons.settings] : [];
+    const key = shown.join(",");
     if (key === railKey) return;
     railKey = key;
     const children: HTMLElement[] = [railExpand];
@@ -122,7 +131,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
       children.push(railButtons[id]);
       previous = RAIL_GROUP[id];
     }
-    rail.replaceChildren(...children, connectAi, about);
+    rail.replaceChildren(...children, connectAi, about, ...foot);
   }
 
   function section(id: string, label: string, ...actions: HTMLElement[]): HTMLElement {
@@ -204,7 +213,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     if (filtered) syncCategories();
     hideLinks.classList.toggle("is-active", state.hidingLinks);
     // The review root and its links have no delete: their folders are the app's or the owners'.
-    foot.hidden = n === null || review || n.linked;
+    footTools.hidden = n === null || review || n.linked;
     quick.hidden = n === null || !quickActionsShown();
     open.setLabel(n?.file ? "Open" : "Open folder location");
     favorite.setLabel(favoriteLabel(n));
@@ -225,7 +234,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     ];
     // An action the node does not offer is removed, not greyed out.
     for (const [buttons, on] of available) for (const b of buttons) b.hidden = !on;
-    foot.hidden ||= !(canActOn("delete") || canActOn("hide"));
+    footTools.hidden ||= !(canActOn("delete") || canActOn("hide"));
     tidySeparators();
   }
 

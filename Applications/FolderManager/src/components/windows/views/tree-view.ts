@@ -205,6 +205,8 @@ export function createTreeView(): ViewMode {
     ev.preventDefault();
   }
 
+  let revealed: string | null = null;
+
   return {
     id: "tree",
     label: "Tree",
@@ -217,11 +219,17 @@ export function createTreeView(): ViewMode {
       const own = visibleRows().filter(isFolder).map((n): Item => ({ node: n, depth: n.depth, list: null, via: null }));
       // Quick access heads the pane, as in Explorer: Favorites, Downloads and Review, then the storage tree, then the other native folders.
       items = [...leadEntries().flatMap(group), ...own, ...tailEntries().flatMap(group)];
+      const scroller = tree.parentElement;
+      const top = scroller?.scrollTop ?? 0;
       tree.replaceChildren(...items.flatMap((it, i) => ("entry" in it ? [buildEntry(it.entry, i), ...listLegend(it.entry)] : [buildRow(it, i), ...emptyLegend(it.node, it.depth)])));
+      if (scroller) scroller.scrollTop = top;
       const i = current();
       if (i >= 0) {
         tree.setAttribute("aria-activedescendant", `row-${i}`);
-        tree.querySelector(`#row-${i}`)?.scrollIntoView({ block: "nearest" });
+        // Only a new selection is brought into view; expanding or collapsing rows leaves the scroll where the user put it.
+        const shown = `${state.virtual}|${state.selectedKey}`;
+        if (shown !== revealed) tree.querySelector(`#row-${i}`)?.scrollIntoView({ block: "nearest" });
+        revealed = shown;
       } else {
         tree.removeAttribute("aria-activedescendant");
       }

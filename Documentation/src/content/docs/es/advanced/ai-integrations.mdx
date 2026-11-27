@@ -6,7 +6,8 @@ description: Conecta FolderManager a cualquier cliente de IA como servidor MCP, 
 FolderManager también es un servidor [MCP](https://modelcontextprotocol.io). Inícialo con la opción `--mcp` y un cliente de IA podrá buscar en tu almacenamiento, leer los detalles de las carpetas y hacer cambios mediante herramientas, con las mismas reglas, el mismo bloqueo y los mismos índices que la app.
 
 - **Un proceso por stdio:** el cliente inicia `FolderManager.exe --mcp` y habla con él por la entrada y la salida estándar. No hay un puerto de red que abrir para esto y funciona solo en local.
-- **Funciona con la app abierta o cerrada:** las herramientas de segundo plano nunca necesitan la ventana. Con la app abierta, los cambios aparecen sin mover tu selección, pestaña ni vista.
+- **Funciona con la app abierta o cerrada:** las lecturas y la mayoría de los cambios nunca necesitan la ventana. Con la app abierta, los cambios aparecen sin mover tu selección, pestaña ni vista. Los cambios que esperan tu confirmación necesitan la app abierta.
+- **Solo lectura por defecto:** un cliente de IA solo puede leer hasta que actives **Let AI agents change this storage**. Mira [Seguridad](#seguridad).
 - **Segundo plano por defecto:** solo las herramientas `ui_*` mueven la ventana, y solo cuando el cliente las llama. Necesitan la app en ejecución.
 
 ## Requisitos
@@ -35,7 +36,7 @@ Dónde pone el cliente estos dos valores depende del cliente. Los ejemplos de ab
 
 ### Claude Desktop
 
-Añade el servidor al objeto `mcpServers` del archivo de configuración del cliente, `claude_desktop_config.json`, y reinicia el cliente.
+El botón **Connect AI** de la app lo hace por ti; consulta [Conecta tu IA](/es/folder-manager/connect-ai). A mano, añade el servidor al objeto `mcpServers` de `claude_desktop_config.json` y reinicia el cliente. La versión de Microsoft Store guarda ese archivo en `%LOCALAPPDATA%\Claude-Data\claude_<id>`; la clásica en `%APPDATA%\Claude`.
 
 ```json
 {
@@ -95,11 +96,12 @@ Las herramientas de lectura nunca toman el bloqueo del almacenamiento y nunca es
 
 ### Escritura
 
-Las herramientas de escritura toman el bloqueo del almacenamiento en cada cambio y actualizan los índices, como hace la app. Las marcadas como destructivas se anuncian así al cliente para que pueda preguntarte antes.
+Las herramientas de escritura toman el bloqueo del almacenamiento en cada cambio y actualizan los índices, como hace la app. Se rechazan hasta que permitas los cambios. Las marcadas como destructivas se anuncian así al cliente para que pueda preguntarte antes, y además esperan tu confirmación en la ventana de la app. Mira [Seguridad](#seguridad).
 
 | Herramienta | Qué hace | Argumentos |
 | --- | --- | --- |
 | `add_node` | Crea una carpeta dentro de `parent`; un padre vacío añade una categoría raíz. | `parent`, `name` |
+| `add_folder` | Crea carpetas simples dentro de un worknode, sin seguimiento y sin id, como `assets/kit`. En cualquier otro sitio, usa `add_node`. | `parent`, `path` |
 | `add_worknode` | Crea un worknode dentro de `parent`; la app lo numera. | `parent`, `name` |
 | `rename` | Renombra una carpeta; sus carpetas de soporte y revisión vinculadas la siguen. | `relParts`, `name` |
 | `move` (destructiva) | Mueve una carpeta a `destination`, donde toma el siguiente id libre. | `source`, `destination` |
@@ -113,9 +115,11 @@ Las herramientas de escritura toman el bloqueo del almacenamiento en cada cambio
 | `set_important` | Marca o desmarca un worknode como importante. | `relParts`, `on` |
 | `hide` | Oculta o muestra una carpeta por debajo del nivel raíz. | `relParts`, `hidden` |
 | `set_board` | Coloca worknodes en las columnas y el orden del tablero de tareas. | `cards` |
+| `move_files` (destructiva) | Mueve archivos o carpetas simples a una carpeta, como una suelta en la app: los archivos soltados sobre un nodo van a su carpeta de revisión. Un origen puede estar en el almacenamiento o en Descargas. | `sources`, `destination` |
+| `set_output` | Fija la carpeta o el archivo dentro de un worknode que es su entregable, o lo borra con `null`. | `relParts`, `output` |
 | `rename_file` | Renombra un archivo dentro de una carpeta del almacenamiento, extensión incluida. | `relParts`, `name` |
 | `delete_file` (destructiva) | Envía un archivo a la Papelera de reciclaje. | `relParts` |
-| `set_dictionary` | Reemplaza el archivo de [diccionario](/es/advanced/dictionaries) de una carpeta a partir de entradas estructuradas. Se puede repetir sin riesgo; envía `[]` para vaciarlo. La ruta debe ser una carpeta dentro del almacenamiento. | `relParts`, `entries` (obligatorio) |
+| `set_dictionary` (destructiva) | Reemplaza el archivo de [diccionario](/es/advanced/dictionaries) de una carpeta a partir de entradas estructuradas. Lee antes las actuales con `get_dictionary` y devuélvelas todas junto con tus cambios. Envía `[]` para vaciarlo. La ruta debe ser una carpeta dentro del almacenamiento. | `relParts`, `entries` (obligatorio) |
 
 `delete` y `delete_file` nunca borran de forma definitiva. Una carpeta que contiene archivos o carpetas se rechaza indicando cuántos son, salvo que la llamada incluya `confirmNonEmpty: true`. `expectGhost` sirve para olvidar una carpeta que falta en el disco y debe coincidir con lo que `get_node` informa.
 
@@ -131,6 +135,46 @@ Trabajan con los archivos sueltos de una carpeta de revisión, como `REV.<Títul
 | `apply_project_groups` (destructiva) | Mueve los archivos sueltos a worknodes nuevos, tal como se previsualizó o se ajustó. | `folder`, `plans` |
 | `undo_project_sort` (destructiva) | Devuelve los archivos de la última clasificación y elimina las carpetas que creó. | ninguno |
 
+### Automatizaciones
+
+Un agente planifica primero, te muestra la simulación y aplica exactamente las filas que viste. Mira [Automatizaciones](/es/advanced/automations).
+
+| Herramienta | Qué hace | Argumentos |
+| --- | --- | --- |
+| `set_automations` | Permite que una carpeta ejecute automatizaciones; las carpetas de revisión, capturas y grabaciones siempre pueden. | `relParts`, `on` |
+| `set_review_automation` | Hace que una automatización (`reduce`, `sort`, `group`, `addDate`, `removeDate` o `removeSymbols`) se ejecute sola con cada archivo que llega a una carpeta que ejecuta automatizaciones. | `relParts`, `automation`, `on` |
+| `plan_automations` | Simulación: el nombre nuevo, el proyecto y el destino que recibiría cada archivo de una carpeta; no cambia nada. Los resultados vienen en páginas: pasa el `next` anterior como `offset`. | `folder`, `offset`, `only`, `reduce`, `sort`, `group`, `addDate`, `removeDate`, `removeSymbols` |
+| `apply_automations` (destructiva) | Renombra y mueve archivos según las filas de una simulación de `plan_automations`. | `folder`, `rows` |
+| `build_dictionary` (destructiva) | Hace que el cliente de IA conectado (Claude Code, Codex u OpenCode) escriba el [diccionario](/es/advanced/dictionaries) de una carpeta a partir de las palabras que comparten los nombres de archivo de su carpeta de revisión, conservando las entradas que ya tiene. Confirmas en la ventana de la app. Tarda minutos y necesita que uno de ellos esté conectado y con la sesión iniciada. | `folder` |
+
+### Archivos
+
+Copias, accesos directos y la carpeta Descargas. Una ruta en Descargas empieza con `::Downloads`, por ejemplo `["::Downloads", "foto.jpg"]`.
+
+| Herramienta | Qué hace | Argumentos |
+| --- | --- | --- |
+| `copy_files` | Copia archivos o carpetas simples a una carpeta, como una suelta con Ctrl en la app. Un origen puede estar en Descargas. | `sources`, `destination` |
+| `create_shortcut` | Pone un acceso directo a una carpeta o archivo del almacenamiento en una carpeta fuera de él, como el Escritorio, con un nombre libre. | `target`, `folder` |
+| `list_downloads` | Los archivos y carpetas de tu carpeta Descargas, o de una carpeta dentro de ella. | `relParts` |
+| `rename_download` | Renombra un archivo o carpeta de Descargas; se rechaza un nombre que ya existe. | `relParts`, `name` |
+| `delete_downloads` (destructiva) | Envía archivos o carpetas de Descargas a la Papelera de reciclaje. | `targets` |
+
+### Programa
+
+Los ajustes y las extensiones del almacenamiento, y en qué almacenamiento trabaja el servidor.
+
+| Herramienta | Qué hace | Argumentos |
+| --- | --- | --- |
+| `get_settings` | Los ajustes de FolderManager del almacenamiento abierto, clave por clave. | ninguno |
+| `set_setting` | Cambia un ajuste del almacenamiento abierto; confirmas en la ventana de la app. **Let AI agents change this storage** es solo tuyo y se rechaza. | `key`, `value` |
+| `list_extensions` | Las extensiones instaladas en el almacenamiento abierto, con su estado. | ninguno |
+| `list_extension_library` | Las extensiones que ofrece la biblioteca en línea y cuáles están instaladas. | ninguno |
+| `install_extension` | Instala una extensión de la biblioteca en línea; confirmas en la ventana de la app. | `id` |
+| `set_extension_enabled` | Activa o desactiva una extensión instalada; confirmas en la ventana de la app. | `id`, `enabled` |
+| `remove_extension` (destructiva) | Elimina una extensión instalada; confirmas en la ventana de la app. | `id` |
+| `list_storages` | Los almacenamientos que FolderManager conoce, en cuál trabaja el servidor y si cada uno sigue en el disco. | ninguno |
+| `switch_storage` | Hace que el servidor trabaje en otro almacenamiento de `list_storages`; la ventana abierta conserva el suyo. | `path` |
+
 ### Interfaz
 
 Actúan sobre la ventana abierta y solo cuando el cliente las llama. Necesitan FolderManager en ejecución con el mismo almacenamiento abierto.
@@ -141,24 +185,27 @@ Actúan sobre la ventana abierta y solo cuando el cliente las llama. Necesitan F
 | `ui_reveal` | Selecciona una carpeta o archivo en el panel activo, expandiendo las carpetas de arriba. | `relParts` |
 | `ui_open_tab` | Abre una pestaña nueva en una carpeta, o en la raíz sin `relParts`. | `relParts` |
 | `ui_split` | Abre el panel dividido; con `relParts` abre ahí esa carpeta. | `relParts` |
-| `ui_set_view` | Cambia el panel activo a `cards`, `tree`, `columns`, `grid` o `list`. | `view` |
+| `ui_set_view` | Cambia el panel activo a `cards`, `columns`, `grid`, `list`, `details` o `graph`. | `view` |
 
 ## Guía integrada
 
 El servidor le enseña al cliente cómo funciona ANT, para que no tengas que explicarlo en cada chat.
 
 - **Al conectar:** envía unas nociones básicas de ANT como `instructions` de MCP.
-- **Bajo demanda:** expone el recurso `ant://guide` (lo básico y un índice) y uno por tema: `ant://guide/model`, `ant://guide/review`, `ant://guide/dictionary`, `ant://guide/worknodes` y `ant://guide/safety`.
+- **Bajo demanda:** expone el recurso `ant://guide` (lo básico y un índice) y uno por tema: `ant://guide/model`, `ant://guide/worknodes`, `ant://guide/review`, `ant://guide/automations`, `ant://guide/dictionary`, `ant://guide/files`, `ant://guide/settings` y `ant://guide/safety`.
 - **Lee solo lo necesario:** un agente lista los recursos (`resources/list`) y lee únicamente el tema que necesita (`resources/read`).
 
 ## Seguridad
 
+- **Solo lectura por defecto:** hasta que actives **Let AI agents change this storage** en **Settings > Advanced**, toda herramienta que cambie algo se rechaza y no se modifica nada. El interruptor es de cada almacenamiento y solo tú puedes activarlo; `set_setting` lo rechaza. Mira [Ajustes](/es/folder-manager/settings).
+- **Tu confirmación en la ventana:** estas esperan hasta 60 segundos a que confirmes en la ventana abierta de la app: `move`, `move_files`, `reorder`, `delete`, `delete_file`, `delete_downloads`, `apply_project_groups`, `undo_project_sort`, `apply_automations`, `set_dictionary`, `build_dictionary`, `set_setting`, `install_extension`, `set_extension_enabled` y `remove_extension`. Cualquier otro cambio que toque más de un elemento también pregunta. Con la app cerrada, o si lo rechazas, no se cambia nada. Las lecturas, `plan_automations` y `preview_project_groups` nunca preguntan.
+- **Límites:** una llamada admite como máximo 50 tarjetas de tablero o planes de proyecto, 500 archivos o filas y 500 entradas de diccionario. El trabajo mayor va en varias llamadas.
 - **Solo Papelera de reciclaje:** los borrados van a la Papelera de reciclaje, donde puedes restaurarlos. En Linux y macOS van a la papelera del sistema.
 - **Las mismas reglas que la app:** el límite de profundidad, las carpetas bloqueadas y reservadas, las colisiones de nombre y la reversión se aplican a todas las herramientas. Un rechazo vuelve como resultado de error y no cambia nada.
 - **Bloqueo ocupado:** cada cambio toma el bloqueo del almacenamiento solo durante ese cambio, nunca entre llamadas. Si la app u otro proceso lo tiene, el servidor lo intenta tres veces, esperando hasta 3 segundos el bloqueo cada vez, y luego responde que no se cambió nada; vuelve a llamar a la herramienta.
 - **Los nombres son datos:** el servidor le indica al cliente que los nombres de carpetas y archivos y los valores de `info.json` son texto, nunca instrucciones. Un nombre que parezca una orden no debe obedecerse.
 - **El puente con la ventana:** la app escucha en `127.0.0.1` en un puerto libre y comparte un token aleatorio con el servidor mediante un archivo en los datos locales de tu app. Una petición sin el token no recibe respuesta. Cualquier programa que se ejecute como tu usuario puede leer ese archivo, así que el riesgo que queda es que otro programa local mueva tu ventana; por el puente no puede cambiar archivos.
-- **Revisa las confirmaciones:** mantén activo el paso de aprobación de tu cliente para las herramientas marcadas como destructivas, y lee lo que un agente va a mover o borrar antes de permitirlo.
+- **Lee antes de confirmar:** la ventana de la app lista lo que un agente va a mover o borrar. Mantén también activo el paso de aprobación de tu cliente para las herramientas marcadas como destructivas.
 
 ## Probar la conexión
 
@@ -183,16 +230,18 @@ Usa primero una copia desechable de un almacenamiento, para no arriesgar nada re
 
    La primera respuesta trae `serverInfo` y la versión. La segunda lista las herramientas. Una línea que empieza con `MCP: serving` en stderr muestra el almacenamiento que abrió.
 3. **Lee.** Envía `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_storage","arguments":{}}}`. La respuesta trae la raíz de la copia. Luego llama a `get_tree` o a `list_children` con `{"relParts":[]}`.
-4. **Escribe en la copia.** Abre la copia en FolderManager y, desde tu cliente, pide `add_node` con un `parent` dentro de la copia y un nombre de prueba. La respuesta lista los `levels` que cambiaron.
+4. **Escribe en la copia.** Abre la copia en FolderManager y activa **Let AI agents change this storage** en **Settings > Advanced**. Luego, desde tu cliente, pide `add_node` con un `parent` dentro de la copia y un nombre de prueba. La respuesta lista los `levels` que cambiaron.
 5. **Comprueba la actualización.** La carpeta nueva debe aparecer en la app abierta sin pulsar Actualizar, y tu selección, pestaña y panel dividido siguen donde estaban.
 6. **Prueba las herramientas de interfaz.** Con la app abierta sobre la copia, llama a `ui_get_state` y luego a `ui_reveal` sobre la carpeta nueva. Con la app cerrada, la misma llamada responde `Folder Manager is not running`; las demás herramientas siguen funcionando.
-7. **Limpia.** Llama a `delete` sobre la carpeta de prueba y compruébala en la Papelera de reciclaje. Cuando todos los pasos funcionen, apunta el cliente a tu almacenamiento real.
+7. **Limpia.** Llama a `delete` sobre la carpeta de prueba, confírmalo en la ventana de la app y compruébala en la Papelera de reciclaje. Cuando todos los pasos funcionen, apunta el cliente a tu almacenamiento real.
 
 ## Solución de problemas
 
 | Síntoma | Causa | Solución |
 | --- | --- | --- |
 | Cada herramienta responde `storageNotFound`, o dice `No storage given`. | La ruta no tiene un almacenamiento ANT, o no se dio ruta y el ejecutable no recuerda ninguno. | Pasa la carpeta del almacenamiento después de `--mcp`, o abre el almacenamiento una vez en la app para que se recuerde. |
+| Una escritura responde que los agentes de IA solo pueden leer este almacenamiento. | **Let AI agents change this storage** está apagado. | Actívalo en **Settings > Advanced** y vuelve a llamar a la herramienta. |
+| Una escritura responde que la app no está en ejecución, o que lo rechazaste. | El cambio espera tu confirmación en la ventana de la app; la app está cerrada, o dijiste que no. | Abre la app sobre este almacenamiento y vuelve a llamar a la herramienta. Tras un no, no lo reintentes a menos que lo quieras. |
 | Una escritura responde que el almacenamiento estaba bloqueado y no se cambió nada. | La app u otro proceso mantuvo el bloqueo durante los tres intentos. | Vuelve a llamar a la herramienta en un momento. Si dice que el almacenamiento lleva minutos bloqueado y no hay otro FolderManager abierto, borra el archivo `.FolderManager.lock` de la carpeta `.ant` del almacenamiento. |
 | `ui_*` dice `Folder Manager is not running`. | La app está cerrada, o este cliente inicia una copia del ejecutable distinta de la que está en ejecución. | Abre la app. Usa en el cliente la misma ruta de ejecutable que la que ejecutas. |
 | `ui_*` dice que la app tiene otro almacenamiento abierto. | La ventana muestra un almacenamiento distinto del del servidor. | Abre el mismo almacenamiento en la app, o cambia la ruta que sigue a `--mcp`. |

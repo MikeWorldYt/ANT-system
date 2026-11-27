@@ -127,7 +127,7 @@ export function createNavigator(shownFolder: () => TreeNode | null | undefined):
   const BOTH_MIN = 640;
   function placeOther(): void {
     const split = currentSplit();
-    other.hidden = split === null || element.clientWidth < BOTH_MIN;
+    other.hidden = split === null || split.empty || element.clientWidth < BOTH_MIN;
     path.style.flex = other.style.flex = "";
     if (!split || other.hidden) return;
     if (split.right) path.before(other);

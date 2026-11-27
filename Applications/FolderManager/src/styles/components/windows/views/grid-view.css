@@ -58,3 +58,11 @@
 .batch-scroll .detail-owner { width: var(--col-owner); }
 .batch-scroll .details-head .detail-name { flex: 1; min-width: 0; }
 .grid.details > .details-head { top: -10px; }
+.jump-selection {
+  position: fixed; z-index: 50; display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid var(--accent); border-radius: 50%;
+  background: var(--bg); color: var(--accent); box-shadow: var(--elev-2); cursor: pointer;
+}
+.jump-selection[hidden] { display: none; }
+.jump-selection:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.jump-selection .gui-icon { width: 14px; height: 14px; }
+.jump-selection.down .gui-icon { transform: rotate(180deg); }

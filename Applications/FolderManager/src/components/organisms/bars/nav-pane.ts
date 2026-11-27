@@ -1,6 +1,7 @@
 // The navigation pane left of the views: quick access entries above the storage tree, shown or hidden with Ctrl+Left.
 import { el } from "../../dom";
 import { createTreeView } from "../../windows/views/tree-view";
+import { createStorageFooter } from "./storage-footer";
 import { readPref, savePref } from "../../../services/store/prefs";
 
 const PREF = "fm.navPane";
@@ -28,14 +29,19 @@ export function createNavPane(): NavPane {
   const element = el("aside", { class: "nav-pane", "aria-label": "Navigation" });
   const handle = el("div", { class: "nav-resize", role: "separator", "aria-orientation": "vertical", "aria-label": "Resize navigation pane", tabindex: "0" });
   const tree = createTreeView();
-  tree.mount(element);
+  const footer = createStorageFooter();
+  const scroll = el("div", { class: "nav-scroll" });
+  tree.mount(scroll);
+  element.append(scroll, footer.element);
   let width = savedWidth();
   element.style.width = `${width}px`;
   element.hidden = handle.hidden = readPref(PREF) === "hidden";
 
   // A hidden pane skips its rows, so it costs nothing while closed.
   const render = (): void => {
-    if (!element.hidden) tree.render();
+    if (element.hidden) return;
+    tree.render();
+    footer.update();
   };
 
   function show(on: boolean): void {

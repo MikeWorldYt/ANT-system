@@ -50,7 +50,7 @@ fn matches_copy(from: &Path, to: &Path) -> Result<(), String> {
 }
 
 // A folder copied in part is removed again; `to` is created first, so that removal only ever takes what this copy made.
-pub(super) fn copy_whole(from: &Path, to: &Path) -> Result<(), String> {
+pub(crate) fn copy_whole(from: &Path, to: &Path) -> Result<(), String> {
     fs::create_dir(to).map_err(|e| io_err("create folder", to, &e).to_string())?;
     if let Err(why) = copy_contents(from, to) {
         return match fs::remove_dir_all(to) {

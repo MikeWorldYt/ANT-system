@@ -7,6 +7,7 @@ mod transfer;
 mod worknode;
 
 pub(super) use transfer::copy_tree;
+pub(crate) use transfer::copy_whole;
 
 use std::fs;
 use std::path::{Path, PathBuf};

@@ -6,7 +6,7 @@ import { createSidePanel } from "../organisms/bars/side-panel";
 import { createStatusLine } from "../organisms/bars/status-line";
 import { createTabBar } from "../organisms/bars/tab-bar";
 import { createToolbar, type ViewPicker } from "../organisms/bars/toolbar";
-import { installContextMenu } from "../organisms/menus/context-menu";
+import { installContextMenu, installNavMenu } from "../organisms/menus/context-menu";
 import { installDragOut } from "../../hooks/drag-out";
 import { installFolderMove } from "../../hooks/folder-move";
 import { installMarquee } from "../../hooks/marquee";
@@ -20,6 +20,7 @@ import { keyOf, selectedNode, state } from "../../services/store/state";
 import { openSettings } from "./settings";
 import { createBatchView } from "./views/batch-view";
 import { createBoardView } from "./views/board-view";
+import { createSplitOverlay } from "./split-overlay";
 import { createColumnsView } from "./views/columns-view";
 import { createCardsView, createDetailsView, createGridView, createListView } from "./views/grid-view";
 import { createGraphView } from "./views/graph-view";
@@ -61,6 +62,7 @@ export function createMainWindow(app: HTMLElement) {
   const navigator = createNavigator(() => views.current().openFolder?.());
   bindPanes({ host, views: leftViews }, { host: rightHost, views: rightViews }, navigator);
   bindTabs(navigator, views);
+  const splitOverlay = createSplitOverlay(panes, host, rightHost);
   const tabBar = createTabBar();
   const search = createSearchBar();
   navigator.element.prepend(...toolbar.navLead);
@@ -77,5 +79,6 @@ export function createMainWindow(app: HTMLElement) {
   const main = el("main", { class: "app-main" }, nav.element, nav.handle, panes, board.element, ...batchViews.map((b) => b.element), ...panel.elements);
   app.append(tabBar.element, navigator.element, main, createStatusLine());
   installContextMenu(panes, () => views.current().focus(), viewPicker);
-  return { views, toolbar, navigator, tabBar, search, panel, board, batch, nav, openSelected };
+  installNavMenu(nav.element, () => nav.element.querySelector<HTMLElement>(".tree")?.focus({ preventScroll: true }));
+  return { views, toolbar, navigator, tabBar, splitOverlay, search, panel, board, batch, nav, openSelected };
 }

@@ -14,7 +14,13 @@
 .side-category { display: flex; align-items: center; gap: 8px; padding: 3px 6px; font-size: var(--fs-label); color: var(--text); cursor: pointer; }
 .side-link { display: block; padding: 3px 6px; font-size: var(--fs-label); color: var(--accent); text-decoration: none; }
 .side-link:hover, .side-link.is-active { text-decoration: underline; }
-.side-foot { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+.side-foot { margin-top: auto; padding-top: 4px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
+.side-foot-tools { display: block; }
+.side-foot-tools[hidden] { display: none; }
+.side-foot-app { display: flex; justify-content: flex-end; gap: 4px; }
+/* Only Settings keeps its box, so it stands out from the two quieter app entries. */
+.side-foot-app .icon-btn:not(:last-child) { background: transparent; }
+.side-foot-app .icon-btn:not(:last-child):hover { background: var(--state-hover); }
 .side-rail { flex: none; width: 40px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0; background: var(--input-bg); border-radius: var(--radius-md); }
 /* Inner radius = rail radius minus the 5px inset of each button (rail 40px, button 30px). */
 .side-rail .icon-btn { width: 36px; height: 36px; background: transparent; border-radius: calc(var(--radius-md) - 5px); }

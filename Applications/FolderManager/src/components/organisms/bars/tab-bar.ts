@@ -1,7 +1,7 @@
 // Strip of open tabs above the navigation bar.
 import { el } from "../../dom";
 import { iconButton } from "../../atoms/icon-button";
-import { closeSplit, openSplit } from "../../../hooks/split";
+import { closeHalf, focusPane, openSplit } from "../../../hooks/split";
 import { closingItem, menuIcon } from "../../molecules/menu";
 import { openMenuWith } from "../menus/context-menu";
 import { closeTab, duplicateTab, moveTab, openTab, selectTab, tabViews, type TabView } from "../../../hooks/tabs";
@@ -10,10 +10,8 @@ const DRAG_START_PX = 5;
 // Matches the negative margin in tab-bar.css.
 const TAB_OVERLAP_PX = 8;
 
-function splitDots(focused: "left" | "right"): HTMLElement {
-  const dot = (on: boolean) => el("span", { class: on ? "tab-dot on" : "tab-dot" });
-  return el("span", { class: "tab-dots" }, dot(focused === "left"), el("span", { class: "tab-dots-bar" }), dot(focused === "right"));
-}
+// The focused half's title takes the accent, so the tab says which side the keyboard and toolbar act on.
+const splitDot = (on: boolean, label: string): HTMLElement => el("span", { class: on ? "tab-half-label on" : "tab-half-label" }, label);
 
 function tabMenu(ev: MouseEvent, index: number, split: boolean): void {
   ev.preventDefault();
@@ -30,13 +28,24 @@ function tabMenu(ev: MouseEvent, index: number, split: boolean): void {
 }
 
 function tabItem(tab: TabView, index: number, closable: boolean, drag: (ev: PointerEvent, item: HTMLElement) => void): HTMLElement {
-  const name = el("button", { type: "button", class: "tab-name", role: "tab", "aria-selected": String(tab.active), title: tab.title, "aria-label": tab.split ? `Split: ${tab.label}` : tab.label }, tab.split ? splitDots(tab.split) : tab.label);
-  name.addEventListener("click", () => selectTab(index));
+  const name = el("button", { type: "button", class: "tab-name", role: "tab", "aria-selected": String(tab.active), title: tab.title, "aria-label": tab.split ? `Split: ${tab.label}` : tab.label }, tab.split ? splitDot(tab.split === "left", tab.halves?.[0] ?? "") : tab.label);
+  name.addEventListener("click", () => void selectTab(index).then(() => {
+    if (tab.split) focusPane(false);
+  }));
   const item = el("div", { class: tab.active ? "tab active" : "tab", role: "presentation" }, name);
-  if (closable || tab.split) {
-    const closeLabel = tab.split ? "Close split" : "Close tab";
-    const close = el("button", { type: "button", class: "tab-close", "aria-label": tab.split ? closeLabel : `Close ${tab.label}`, title: closeLabel }, "×");
-    close.addEventListener("click", () => (tab.split ? closeSplit() : closeTab(index)));
+  if (tab.split) {
+    // Each half owns its dot and its ×, so either side can be shown or closed from the tab itself.
+    const half = (onRight: boolean) => {
+      const close = el("button", { type: "button", class: "tab-close", "aria-label": `Close ${onRight ? "right" : "left"} half`, title: `Close ${onRight ? "right" : "left"} half` }, "×");
+      close.addEventListener("click", () => void selectTab(index).then(() => closeHalf(onRight)));
+      return close;
+    };
+    const right = el("button", { type: "button", class: "tab-name tab-half", "aria-label": "Show right half", title: tab.title }, splitDot(tab.split === "right", tab.halves?.[1] ?? ""));
+    right.addEventListener("click", () => void selectTab(index).then(() => focusPane(true)));
+    item.append(half(false), el("span", { class: "tab-dots-bar" }), right, half(true));
+  } else if (closable) {
+    const close = el("button", { type: "button", class: "tab-close", "aria-label": `Close ${tab.label}`, title: "Close tab" }, "×");
+    close.addEventListener("click", () => closeTab(index));
     item.append(close);
   }
   item.addEventListener("pointerdown", (ev) => {

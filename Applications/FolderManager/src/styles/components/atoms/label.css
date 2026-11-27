@@ -1,6 +1,6 @@
 /* Read-only value and path labels. */
 .sw-value { font-weight: 500; }
 .sw-path {
-  max-width: 260px; padding: 5px 9px; overflow: hidden; font-size: var(--fs-label); color: var(--muted); text-align: left; text-overflow: ellipsis; white-space: nowrap;
+  box-sizing: border-box; max-width: 280px; padding: 8px 10px; overflow: hidden; font: var(--fs-label) "Cascadia Mono", Consolas, monospace; color: var(--muted); text-align: left; text-overflow: ellipsis; white-space: nowrap;
   direction: rtl; background: var(--field-bg); border-radius: var(--radius-sm);
 }

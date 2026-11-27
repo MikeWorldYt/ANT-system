@@ -8,7 +8,8 @@
 .tree-host.batch-covered { display: none; }
 .tree-host.focused { box-shadow: inset 0 1px 0 var(--button), inset 0 -1px 0 var(--button); }
 .tree-host { flex: 1; min-width: 0; background: var(--tree-bg); overflow: auto; border-radius: var(--radius-md); }
-.nav-pane { flex: none; width: 260px; min-width: 0; overflow: auto; background: var(--tree-bg); border-radius: var(--radius-md); }
+.nav-pane { flex: none; display: flex; flex-direction: column; width: 260px; min-width: 0; overflow: hidden; background: var(--tree-bg); border-radius: var(--radius-md); }
+.nav-scroll { flex: 1; min-height: 0; overflow: auto; }
 .nav-pane .tree:focus-visible { outline: none; }
 .nav-pane[hidden] { display: none; }
 .nav-resize { flex: 0 0 10px; margin: 0 -10px; cursor: col-resize; touch-action: none; }
