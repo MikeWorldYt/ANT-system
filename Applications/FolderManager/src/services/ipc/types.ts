@@ -135,6 +135,15 @@ export interface SupportRow {
   empty: boolean;
 }
 
+// The Outcomes folder a node's worknode defaults live in, each saved value as written (empty when unset).
+export interface OutcomeDefaults {
+  outcomes: string[];
+  output: string;
+  status: string;
+  owner: string;
+  template: string;
+}
+
 export interface Picks {
   reduce: boolean;
   sort: boolean;

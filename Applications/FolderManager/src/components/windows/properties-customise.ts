@@ -1,19 +1,26 @@
-// The Customise tab: one row per support folder the node may hold, each set to Add or Quit, applied together from the window's Apply button.
+// The Customise tab: the support folders a node may hold (Add or Quit) and the defaults of its new worknodes, applied together from the window's Apply button.
 import { el } from "../dom";
 import { radio } from "../atoms/checkbox";
 import { addSupportNode, describeError, removeSupportNode, supportNodes } from "../../services/ipc/api";
-import type { SupportRow } from "../../services/ipc/types";
+import { worknodeSection } from "./properties-worknode";
+import type { OutcomeDefaults, SupportRow } from "../../services/ipc/types";
 
 const LABELS: Record<string, string> = { REV: "Review", RES: "Resources", TPL: "Templates", SS: "Screenshots", REC: "Recordings" };
 
-export interface Customise {
-  panel: HTMLElement;
+export interface Section {
+  group: HTMLFieldSetElement;
   changed(): boolean;
   // The text of what went wrong, or null once every change is made.
   apply(): Promise<string | null>;
 }
 
-export function customise(relParts: string[], first: SupportRow[], onChange: () => void): Customise {
+export interface Customise {
+  panel: HTMLElement;
+  changed(): boolean;
+  apply(): Promise<string | null>;
+}
+
+function supportSection(relParts: string[], first: SupportRow[], onChange: () => void): Section {
   let rows = first;
   let want = rows.map((r) => r.exists);
   const body = el("tbody");
@@ -21,7 +28,6 @@ export function customise(relParts: string[], first: SupportRow[], onChange: () 
   const heads = el("tr", {}, el("th", { scope: "col" }, "Support node"), el("th", { scope: "col", class: "prop-sn-col" }, "Add"), el("th", { scope: "col", class: "prop-sn-col" }, "Quit"));
   const list = el("div", { class: "prop-sn-list" }, el("table", { class: "prop-sn" }, el("thead", {}, heads), body));
   group.append(list);
-  const panel = el("div", { class: "prop-body" }, group);
 
   const render = (): void => {
     body.replaceChildren(
@@ -79,5 +85,21 @@ export function customise(relParts: string[], first: SupportRow[], onChange: () 
     return failure;
   }
 
-  return { panel, changed, apply };
+  return { group, changed, apply };
+}
+
+export function customise(relParts: string[], support: SupportRow[] | null, defaults: OutcomeDefaults | null, onChange: () => void, warn: (text: string) => void): Customise {
+  const sections = [support && supportSection(relParts, support, onChange), defaults && worknodeSection(defaults, onChange, warn)].filter((s) => s !== null);
+  const panel = el("div", { class: "prop-body" }, ...sections.map((s) => s.group));
+
+  async function apply(): Promise<string | null> {
+    const failures: string[] = [];
+    for (const s of sections) {
+      const failure = s.changed() ? await s.apply() : null;
+      if (failure) failures.push(failure);
+    }
+    return failures.length > 0 ? failures.join(" ") : null;
+  }
+
+  return { panel, changed: () => sections.some((s) => s.changed()), apply };
 }

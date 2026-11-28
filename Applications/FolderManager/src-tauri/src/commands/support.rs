@@ -8,7 +8,7 @@ use crate::app::storage_session::Storage;
 use crate::domain::error::R;
 use crate::platform::shortcuts::create_shortcuts;
 use crate::services::index::review_index;
-use crate::services::mutations::{self, Mutation, SupportRow};
+use crate::services::mutations::{self, Mutation, OutcomeDefaults, SupportRow};
 use crate::services::{downloads, edit, held_trash};
 
 #[derive(Serialize, Clone)]
@@ -34,6 +34,15 @@ pub async fn support_nodes(app: AppHandle, rel_parts: Vec<String>) -> R<Option<V
         return Ok(None);
     }
     run_locked(app, move |root| mutations::support_rows(root, &rel_parts)).await
+}
+
+// Null when the item is neither a node holding an Outcomes folder nor one, so the window shows no Worknode Settings.
+#[tauri::command]
+pub async fn outcome_defaults(app: AppHandle, rel_parts: Vec<String>) -> R<Option<OutcomeDefaults>> {
+    if downloads::split_root(&rel_parts).is_some() {
+        return Ok(None);
+    }
+    run_locked(app, move |root| mutations::outcome_defaults(root, &rel_parts)).await
 }
 
 #[tauri::command]

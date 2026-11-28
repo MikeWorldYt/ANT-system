@@ -20,7 +20,8 @@ function startPath(node: TreeNode): string[] {
   const output = siblings
     .find((n) => n.nodeType?.base === "OUT")
     ?.info?.fields.find((f) => f.key === "defaultOutput")?.value;
-  const known = output ? node.children?.find((c) => !c.file && c.name.toLowerCase() === output.toLowerCase()) : undefined;
+  const first = output?.replace(/^[\\/]+/, "").split(/[\\/]/)[0];
+  const known = first ? node.children?.find((c) => !c.file && c.name.toLowerCase() === first.toLowerCase()) : undefined;
   return known ? [known.name] : [];
 }
 

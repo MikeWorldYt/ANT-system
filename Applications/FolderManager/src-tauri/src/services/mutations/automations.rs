@@ -2,18 +2,19 @@
 use std::fs;
 use std::path::Path;
 
+use serde::Serialize;
 use serde_yaml::{Mapping, Value};
 
-use super::{editable_target, finish, locate, scope, load_synced_at, parent_of, Mutation};
-use crate::domain::config::{AUTO_ADD_DATE_FLAG, AUTO_GROUP_FLAG, AUTO_REDUCE_FLAG, AUTO_REMOVE_DATE_FLAG, AUTO_REMOVE_SYMBOLS_FLAG, AUTO_SORT_FLAG, FOOTPRINT_FILENAME, OWNER_KEYS, TEMPLATES_ROOT, WKB_IDENTIFIERS, DATA_DIR};
+use super::{child_rel, editable_target, finish, locate, scope, load_synced_at, parent_of, Mutation};
+use crate::domain::config::{is_hidden_dir, AUTO_ADD_DATE_FLAG, AUTO_GROUP_FLAG, AUTO_REDUCE_FLAG, AUTO_REMOVE_DATE_FLAG, AUTO_REMOVE_SYMBOLS_FLAG, AUTO_SORT_FLAG, FOOTPRINT_FILENAME, OWNER_KEYS, TEMPLATES_ROOT, WKB_IDENTIFIERS, DATA_DIR};
 use crate::domain::error::{FmError, R};
 use crate::domain::names::sanitize_train_case;
 use crate::domain::tree_types::{child_entries, flags_in, runs_automations, type_base};
-use crate::infra::fs_safe::{io_err, validate_component, StorageLock};
+use crate::infra::fs_safe::{io_err, resolve, validate_component, StorageLock};
 use crate::infra::footprint_file::mirror_flags;
 use crate::infra::storage::info::{field_of, read_info, write_info, NodeInfo};
-use crate::services::tree::tree_store::{self, get_node_mut, set_flag};
-use crate::services::tree::tree_node::parse_status;
+use crate::services::tree::tree_store::{self, get_node, get_node_mut, set_flag};
+use crate::services::tree::tree_node::{is_reserved, parse_status};
 
 pub const DEFAULT_OUTPUT: &str = "defaultOutput";
 pub const DEFAULT_STATUS: &str = "defaultStatus";
@@ -30,18 +31,24 @@ pub fn set_default(root: &Path, rel: &[String], key: &str, value: Option<&str>) 
         return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "only an Outcomes folder has automations".to_string() });
     }
     let value = value.map(str::trim).filter(|v| !v.is_empty());
+    let normalized;
+    let value = if key == DEFAULT_OUTPUT {
+        normalized = match value.map(output_parts) {
+            Some(None) => return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the output must be a path inside the worknode".to_string() }),
+            Some(Some(parts)) if !parts.is_empty() => Some(format!("/{}", parts.join("/"))),
+            _ => None,
+        };
+        normalized.as_deref()
+    } else {
+        value
+    };
     match key {
         DEFAULT_STATUS => {
             if value.is_some_and(|v| v != NO_STATUS && parse_status(v).is_none()) {
                 return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "unknown status".to_string() });
             }
         }
-        DEFAULT_OUTPUT => {
-            if value.is_some_and(|v| v.contains("..") || Path::new(v).is_absolute()) {
-                return Err(FmError::InvalidPath { rel_parts: rel.to_vec(), reason: "the output must be a folder inside the worknode".to_string() });
-            }
-        }
-        DEFAULT_OWNER => {}
+        DEFAULT_OWNER | DEFAULT_OUTPUT => {}
         DEFAULT_TEMPLATE => {
             if let Some(name) = value {
                 validate_component(name)?;
@@ -54,6 +61,49 @@ pub fn set_default(root: &Path, rel: &[String], key: &str, value: Option<&str>) 
     }
     write_info(&target.abs, &[(&[key][..], key, value.map(Value::from))])?;
     Ok(finish(root, &data, false, Some(rel.to_vec()), Vec::new(), scope(&synced, vec![rel.to_vec()])))
+}
+
+// The parts of an output path with either slash and any leading or trailing ones dropped; None when a part could leave the worknode.
+fn output_parts(raw: &str) -> Option<Vec<String>> {
+    let parts: Vec<String> = raw.replace('\\', "/").split('/').map(str::trim).filter(|p| !p.is_empty()).map(str::to_string).collect();
+    parts.iter().all(|p| validate_component(p).is_ok() && !is_hidden_dir(p)).then_some(parts)
+}
+
+// What the Properties window shows: the Outcomes folder the defaults live in, with each saved value as written ("" when unset).
+#[derive(Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct OutcomeDefaults {
+    pub outcomes: Vec<String>,
+    pub output: String,
+    pub status: String,
+    pub owner: String,
+    pub template: String,
+}
+
+// A node maps to its own Outcomes child, and an Outcomes folder to itself; anything else has no defaults to set.
+pub fn outcome_defaults(root: &Path, rel: &[String]) -> R<Option<OutcomeDefaults>> {
+    if rel.is_empty() || is_reserved(rel) {
+        return Ok(None);
+    }
+    let (data, _) = load_synced_at(root, rel)?;
+    let target = locate(root, &data, rel)?;
+    if target.ghost {
+        return Ok(None);
+    }
+    let outcomes = if type_base(&target.node_type) == "OUT" {
+        rel.to_vec()
+    } else {
+        let Some(node) = get_node(&data, rel) else { return Ok(None) };
+        let Some((name, _)) = child_entries(node).find(|(_, c)| type_base(c.get("type").and_then(Value::as_str).unwrap_or("")) == "OUT") else { return Ok(None) };
+        child_rel(rel, name)
+    };
+    let folder = locate(root, &data, &outcomes)?;
+    if folder.ghost {
+        return Ok(None);
+    }
+    let info = read_info(&folder.abs);
+    let saved = |key: &str| info.as_ref().and_then(|i| info_field(i, key)).unwrap_or_default();
+    Ok(Some(OutcomeDefaults { outcomes, output: saved(DEFAULT_OUTPUT), status: saved(DEFAULT_STATUS), owner: saved(DEFAULT_OWNER), template: saved(DEFAULT_TEMPLATE) }))
 }
 
 pub fn set_review_automation(root: &Path, rel: &[String], automation: &str, on: bool) -> R<Mutation> {
@@ -159,10 +209,17 @@ pub(super) fn apply_defaults(root: &Path, parent_dir: &Path, parent_yaml: &Mappi
     if let Some(owner) = field(DEFAULT_OWNER) {
         updates.push((&OWNER_KEYS, "owner", Some(owner.into())));
     }
-    if let Some(output) = field(DEFAULT_OUTPUT) {
-        let dir = worknode.join(&output);
-        fs::create_dir_all(&dir).map_err(|e| io_err("create output folder", &dir, &e))?;
-        updates.push((&["output"], "output", Some(output.into())));
+    // Both the old `render` and the `/render` form read the same.
+    if let Some(mut parts) = field(DEFAULT_OUTPUT).and_then(|o| output_parts(&o)).filter(|p| !p.is_empty()) {
+        updates.push((&["output"], "output", Some(parts.join("/").into())));
+        // A last part with an extension names the deliverable file, which is never created; only the folders above it are.
+        if parts.last().is_some_and(|last| Path::new(last).extension().is_some()) {
+            parts.pop();
+        }
+        if !parts.is_empty() {
+            let dir = resolve(worknode, &parts)?;
+            fs::create_dir_all(&dir).map_err(|e| io_err("create output folder", &dir, &e))?;
+        }
     }
     if updates.is_empty() {
         return Ok(());

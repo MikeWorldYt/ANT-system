@@ -157,6 +157,7 @@ pub fn run() {
             commands::item_properties,
             commands::item_totals,
             commands::support_nodes,
+            commands::outcome_defaults,
             commands::add_support_node,
             commands::remove_support_node,
             commands::open_dictionary_window,

@@ -1,4 +1,4 @@
-/* Properties window: a tab row (General, and Customise for support nodes), the tab's panel, and OK, Cancel and Apply at the bottom. */
+/* Properties window: a tab row (General, and Customise for support nodes and worknode defaults), the tab's panel, and OK, Cancel and Apply at the bottom. */
 .prop-window { display: flex; flex-direction: column; height: 100vh; font-size: var(--fs-label); background: var(--tree-bg); color: var(--text); }
 .prop-tabs { display: flex; gap: 2px; margin: 8px 10px 0; }
 .prop-tab { padding: 4px 12px; font: inherit; font-weight: 600; color: var(--muted); background: none; border: 1px solid transparent; border-bottom: 2px solid transparent; border-radius: var(--radius-xs) var(--radius-xs) 0 0; cursor: pointer; }
@@ -31,3 +31,11 @@
 .prop-sn input { margin: 0; accent-color: var(--accent); }
 .prop-sn input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .prop-sn-kind { display: block; }
+.prop-support + .prop-support { border-top: 1px solid var(--border); }
+.prop-setting { display: flex; align-items: center; gap: 10px; padding: 2px 0; }
+.prop-setting-label { flex: none; width: 56px; color: var(--muted); }
+.prop-input { flex: 1; min-width: 0; box-sizing: border-box; padding: 2px 4px; font: inherit; color: var(--text); background: var(--field-bg); border: 1px solid var(--border); border-radius: var(--radius-xs); }
+.prop-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.prop-status[class*=" st-"] { color: var(--st); }
+.prop-status option { color: var(--text); }
+.prop-status option[class*="st-"] { color: var(--st); }

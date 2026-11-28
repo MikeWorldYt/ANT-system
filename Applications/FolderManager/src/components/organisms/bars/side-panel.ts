@@ -11,7 +11,6 @@ import { quickActionsShown, railLayout, type RailId } from "../../../services/st
 import { selectedNode, state, toggleHidingLinks } from "../../../services/store/state";
 import { shownEntry } from "../../molecules/virtual-entry";
 import { canEdit, createDetailsPanel } from "./details-panel";
-import { createAutomationsPanel } from "./automations-panel";
 import { createPreviewPanel } from "./preview-panel";
 import { createReviewAutomations } from "./review-automations";
 import { toggleBoard } from "../../../hooks/virtual-nav";
@@ -43,7 +42,6 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
   // Set when the rail pencil expanded the panel, so the end of that edit returns to the rail.
   let collapseAfterEdit = false;
 
-  const automations = createAutomationsPanel();
   const reviewTools = createReviewAutomations();
   const preview = createPreviewPanel();
   const details = createDetailsPanel(() => {
@@ -85,7 +83,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     toggleHidingLinks();
   });
   const categoriesSection = section("side-categories", "Filters", categories, hideLinks);
-  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, details.welcome, quick, categoriesSection, reviewTools.element, details.element, automations.element, preview.element, foot);
+  const panel = el("aside", { class: "details-panel", "aria-label": "Side panel" }, head, details.welcome, quick, categoriesSection, reviewTools.element, details.element, preview.element, foot);
 
   // ─────────♦ COLLAPSED RAIL ───────────────────────────────────────────────────
   const railExpand = iconButton("Expand side panel", "chevronsLeft", () => {
@@ -197,7 +195,6 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
   function render(): void {
     about.classList.toggle("tour-pulse", !tourSeen());
     details.render();
-    automations.render();
     reviewTools.render();
     preview.render();
     layoutRail();
@@ -207,7 +204,7 @@ export function createSidePanel({ openSelected, openSettings }: SidePanelActions
     // The review root keeps its filter but no details; its links show the same filter above their details.
     const review = n !== null && isReviewRoot(n);
     const filtered = state.virtual === "review";
-    // Outcomes and review folders belong to the app: they show their automations instead of details.
+    // Outcomes and review folders belong to the app: they show no details, and a review folder shows its automations instead.
     details.element.hidden = review || n?.nodeType?.base === "OUT" || n?.nodeType?.base === "REV";
     categoriesSection.hidden = !filtered;
     if (filtered) syncCategories();

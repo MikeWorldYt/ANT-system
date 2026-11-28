@@ -1,11 +1,11 @@
-// The Properties window: Explorer's General tab for one item, read-only, with a folder's totals filling in as they are counted, and a Customise tab for the support nodes a node may hold.
+// The Properties window: Explorer's General tab for one item, read-only, with a folder's totals filling in as they are counted, and a Customise tab for the support nodes and worknode defaults a node may hold.
 import "../../styles/index.css";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { el } from "../dom";
 import { checkbox } from "../atoms/checkbox";
 import { textButton } from "../atoms/button";
 import { textInput } from "../atoms/text-input";
-import { describeError, itemProperties, itemTotals, supportNodes } from "../../services/ipc/api";
+import { describeError, itemProperties, itemTotals, outcomeDefaults, supportNodes } from "../../services/ipc/api";
 import { onItemTotals } from "../../services/ipc/events";
 import { customise } from "./properties-customise";
 import type { Customise } from "./properties-customise";
@@ -92,17 +92,24 @@ export async function mountPropertiesWindow(target: PropertiesTarget): Promise<v
   });
   ok.focus();
 
-  // Only a storage node that can hold support nodes gets the tab.
-  const attachCustomise = async (): Promise<void> => {
+  const read = async <T>(what: string, load: () => Promise<T | null>): Promise<T | null> => {
     try {
-      const rows = await supportNodes(target.relParts);
-      if (!rows) return;
-      custom = customise(target.relParts, rows, sync);
-      general.after(custom.panel);
-      pages.add("Customise", custom.panel);
+      return await load();
     } catch (e) {
-      error.textContent = `Could not read the support nodes: ${describeError(e)}`;
+      error.textContent = `Could not read the ${what}: ${describeError(e)}`;
+      return null;
     }
+  };
+
+  // Only a node that can hold support nodes or has an Outcomes folder gets the tab.
+  const attachCustomise = async (): Promise<void> => {
+    const [rows, defaults] = await Promise.all([read("support nodes", () => supportNodes(target.relParts)), read("worknode settings", () => outcomeDefaults(target.relParts))]);
+    if (!rows && !defaults) return;
+    custom = customise(target.relParts, rows, defaults, sync, (text) => {
+      error.textContent = text;
+    });
+    general.after(custom.panel);
+    pages.add("Customise", custom.panel);
   };
 
   const showTotals = (t: ItemTotals): void => {

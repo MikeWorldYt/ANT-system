@@ -31,6 +31,7 @@ import type {
   DictionaryIssue,
   ItemFacts,
   ItemTotals,
+  OutcomeDefaults,
   SupportRow,
 } from "./types";
 
@@ -198,6 +199,8 @@ export const itemProperties = (relParts: string[]) => call<ItemFacts>("item_prop
 export const itemTotals = (relParts: string[]) => call<ItemTotals | null>("item_totals", { relParts });
 // Null when the item cannot hold support folders.
 export const supportNodes = (relParts: string[]) => call<SupportRow[] | null>("support_nodes", { relParts });
+// Null when the item has no Outcomes folder to hold worknode defaults.
+export const outcomeDefaults = (relParts: string[]) => call<OutcomeDefaults | null>("outcome_defaults", { relParts });
 export const addSupportNode = (relParts: string[], kind: string) => call<Mutation>("add_support_node", { relParts, kind });
 export const removeSupportNode = (relParts: string[], name: string) => call<Mutation>("remove_support_node", { relParts, name });
 export const readDictionary = (folder: string[]) => call<string>("read_dictionary", { folder });
