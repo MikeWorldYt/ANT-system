@@ -75,6 +75,7 @@ export default defineConfig({
 							{ label: 'Settings', slug: 'folder-manager/settings', translations: { es: 'Ajustes' } },
 							{ label: 'Backups', slug: 'folder-manager/backups', translations: { es: 'Respaldos' } },
 							{ label: 'Extensions', slug: 'folder-manager/extensions', translations: { es: 'Extensiones' } },
+							{ label: 'Connect your AI', slug: 'folder-manager/connect-ai', translations: { es: 'Conecta tu IA' } },
 							{ label: 'Updates', slug: 'folder-manager/updates', translations: { es: 'Actualizaciones' } },
 							{ label: 'Data and troubleshooting', slug: 'folder-manager/troubleshooting', translations: { es: 'Datos y solución de problemas' } },
 						],
