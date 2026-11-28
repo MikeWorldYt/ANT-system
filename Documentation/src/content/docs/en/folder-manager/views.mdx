@@ -1,20 +1,14 @@
 ---
 title: Views and sorting
-description: Switch between the seven views of FolderManager and sort your folders.
+description: Switch between the six views of FolderManager, move around with the navigation pane and sort your folders.
 ---
 import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
 
 ## Views
 
-Use the view button in the toolbar, or right-click the background, to switch between seven views of the same storage: Tree, List, Details, Cards, Grid, Columns and Graph.
+Use the view button in the toolbar, or right-click the background, to switch between six views of the same storage: List, Details, Cards, Grid, Columns and Graph.
 
-The breadcrumb shows the selected path. Double-click it, or press `Ctrl+L`, to type a path. The back, forward and up buttons walk your selection history. The details panel on the right shows the selected folder and can be hidden with its toolbar button.
-
-### Tree
-
-Expandable, indented rows: the whole storage in one list. Use it to move around deep structures without leaving the page. Move with the arrow keys, collapse and expand with left and right, open with `Enter` and rename with `F2`.
-
-<ImagePlaceholder label="Screenshot: Tree view" />
+The breadcrumb shows the open folder. Double-click it, or press `Ctrl+L`, to type a path. The separators between its names list the sibling folders. The back, forward and up buttons walk your history. The side panel on the right shows the details and a preview of the selected item; collapse it with its button or `Ctrl+Right`.
 
 ### List
 
@@ -24,7 +18,14 @@ The contents of one folder as plain rows. Use it for a compact, quiet listing. D
 
 ### Details
 
-Like List, with columns beside each name: date modified, type, size and date created. Click a column header to sort by it; click it again to flip the direction. Use it when you need to compare dates or sizes.
+Like List, with columns beside each name: **Date created**, **Date modified**, **Type** and **Size**. Use it when you need to compare dates or sizes.
+
+- **Sort** by clicking a column header; click it again to flip the direction. **Type** and **Owner** do not sort.
+- **Resize** a column by dragging the right edge of its header. Double-click the edge to fit the column to its contents.
+- **Right-click** the header to pick **Size column to fit**, **Size all columns to fit**, or to show and hide columns. **Status** and **Owner** are hidden by default; **Name** always stays.
+- **Folder sizes** are summed in the background, so they appear a moment after the list opens.
+
+Column widths are remembered per folder.
 
 <ImagePlaceholder label="Screenshot: Details view" />
 
@@ -62,11 +63,44 @@ The graph remembers which folders you left open, per storage. Opening a split fr
 
 ### Default view
 
-In **Settings → General → Default View** choose the view that new windows and tabs start with: Last used, Tree, List, Details, Cards, Grid, Columns or Graph. With **On launch: Continue where I left off**, the app reopens the last view you used.
+In **Settings → General → Default View** choose the view that new windows and tabs start with: Last used, List, Details, Cards, Grid, Columns or Graph. With **On launch: Continue where I left off**, the app reopens the last view you used.
+
+## Navigation pane
+
+The pane on the left of the views charts where things are. It never lists files; they stay in the views.
+
+- **Quick access** heads the pane: **FAVORITES**, **DOWNLOADS** and **REVIEW**, each of which can be turned off in **Settings → General**.
+- **The storage folders** follow, as an indented tree. Click the caret to unfold or fold a folder without opening it.
+- **The native folders** (Documents, Pictures, Music, Videos and Desktop) close the pane when **Show all native System folders** is on.
+
+A click only marks a row. Double-click it, or press `Enter`, to open it in the views. A slow second click on a name renames it, as does `F2`. Move with the arrow keys: right unfolds, left folds or goes to the parent.
+
+Press `Ctrl+Left` to show or hide the pane. Drag its right edge, or focus the edge and press the left and right arrows, to resize it. Dragging it too narrow closes it. The width is remembered.
+
+Right-click a folder for **Open**, **Open folder location**, **Open in new tab**, **Open in split tab**, **Copy path** and **Hide element**. The pane only moves around, so the menu has no actions that change a folder.
+
+<ImagePlaceholder label="Screenshot: Navigation pane" />
+
+### Switching storage
+
+The footer shows the name of the open storage. Click it, or press `Up` or `Down` on it, to open a menu with every storage you know. Pick one to switch to it. A storage that moved is marked **Not found**. **Manage storages…** opens the storage picker. The gear beside it opens **Settings**.
+
+## Preview
+
+Select one file and the side panel shows its preview below the details. These types are supported:
+
+- **Images**: PNG, JPG, JFIF, GIF, WebP, BMP, SVG and AVIF.
+- **PDF**: one page at a time, turned with the buttons below it or the arrow keys.
+- **Video**: MP4, M4V, WebM, MOV and OGV. It plays on its own and starts muted. If Windows lacks the video's codec, a still frame shows instead.
+- **Audio**: MP3, WAV, M4A, AAC, OGG, OGA and FLAC. It plays on its own and starts muted.
+
+Once you turn the sound on, the next previews keep it on for five minutes.
+
+<ImagePlaceholder label="Screenshot: Preview in the side panel" />
 
 ## Sorting
 
-In the Columns view, the sort button in the toolbar sorts the active column by **Name**, **Type** or **Status**, ascending or descending. Every column keeps its own sort.
+The sort button in the toolbar sorts the open list by **Track**, **Name**, **Status**, **Date created**, **Date modified** or **Size**, ascending or descending. Every list keeps its own sort; in the Columns view, every column does.
 
 <ImagePlaceholder label="Screenshot: Sorting" />
 

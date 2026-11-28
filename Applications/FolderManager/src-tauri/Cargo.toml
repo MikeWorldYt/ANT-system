@@ -1,6 +1,6 @@
 [package]
 name = "folder-manager"
-version = "2.5.3"
+version = "2.5.4"
 license = "AGPL-3.0-only"
 edition = "2021"
 

@@ -26,7 +26,7 @@ const ACTIONS: [Choice, string[]][] = [
   ["worknode", ["Convert to", "Worknode"]],
   ["ignore", ["Ignore"]],
 ];
-const TRACKERS = ["PJ", "PR", "HW", "CR", "TK"];
+const TRACKERS = ["PJ", "PR", "HW", "CR", "TK", "TH"];
 // Matches --name-cycle in invalid-dialog.css.
 const NAME_CYCLE_MS = 8000;
 

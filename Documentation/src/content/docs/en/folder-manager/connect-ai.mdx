@@ -1,0 +1,65 @@
+---
+title: Connect your AI
+description: Link FolderManager to Claude Desktop or Claude Code with one click, then manage folders and projects from your chats.
+---
+import Callout from "/src/components/ui/Callout.astro";
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+Once connected, your AI assistant can work with your ANT storage from any chat: find a folder, create a project, move or rename things, or tell you what is waiting in a review folder. It follows the same rules as the app, so it cannot break your structure.
+
+You do not need to edit any file or type any command. FolderManager does the setup for you.
+
+## Before you start
+
+- **FolderManager 2.4.4-beta or later.** **About** shows the version you have.
+- **Claude Desktop or Claude Code** installed on the same computer.
+- **Your storage opened once in FolderManager.** The assistant works on the storage the app opened last.
+
+## Connect
+
+1. **Open FolderManager** with your storage.
+2. **Click the plug button** at the bottom of the right side rail, just above **About**. The **Connect AI** window opens.
+
+   <ImagePlaceholder label="Screenshot: Connect AI button in the side rail" />
+
+3. **Click Connect** next to your assistant. Its status changes to **Connected**.
+
+   <ImagePlaceholder label="Screenshot: Connect AI window" />
+
+4. **Click Restart Claude Desktop** if that is the one you connected. Claude loads ANT only when it starts, so FolderManager closes it and opens it again for you. This closes every Claude window, so wait until no chat is still answering. Claude Code needs no restart; start a new session.
+
+## Check that it works
+
+- **Claude Desktop:** **Ant system** appears in the **Connectors** list.
+- **Any assistant:** ask *"Which ANT storage are you using?"*. It answers with the folder of your storage.
+
+Then try something real:
+
+- *"Find my folders about invoices."*
+- *"Create a project called Website Redesign under 200.WORK."*
+- *"What files are waiting to be sorted in Review?"*
+- *"Show me that folder in FolderManager."* (this one moves the open window, and only when you ask)
+
+<Callout type="info" title="Your work stays safe">
+Deleted folders go to the Recycle Bin, never removed for good. Deleting is marked as a risky action, so your assistant asks you before it runs. If FolderManager is open, changes appear in it right away without moving what you are looking at.
+</Callout>
+
+## Disconnect
+
+Open **Connect AI** again and click **Disconnect** next to your assistant. For Claude Desktop, click **Restart Claude Desktop** as above.
+
+## Other assistants
+
+Any assistant that supports MCP can use FolderManager. In **Connect AI**, **Copy config** copies the settings; paste them where your assistant keeps its MCP servers. Each one does it differently: see [AI integrations](/en/advanced/ai-integrations) for the details.
+
+## If something goes wrong
+
+| What you see | What to do |
+| --- | --- |
+| **Connect** is disabled and says **Not installed**. | Install the assistant, then open **Connect AI** again. |
+| **Ant system** does not show up in Claude Desktop. | Click **Restart Claude Desktop** again. If it still does not show, right-click the Claude icon next to the clock, choose **Quit** and open Claude again. |
+| The assistant says no storage was found. | Open your storage once in FolderManager, then ask again. |
+| The assistant uses the wrong storage. | Open the right storage in FolderManager; the assistant follows the last one opened. |
+| It stopped working after you moved FolderManager to another folder. | Open **Connect AI** from the new location and click **Connect** again. |
+
+For more, see [AI integrations](/en/advanced/ai-integrations) and [Data and troubleshooting](/en/folder-manager/troubleshooting).

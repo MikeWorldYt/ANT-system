@@ -105,6 +105,45 @@ export interface DictionaryIssue {
   message: string;
 }
 
+export interface ItemTotals {
+  size: number;
+  onDisk: number;
+  files: number;
+  folders: number;
+}
+
+// Milliseconds since the epoch; size and onDisk only for files, whose totals are known at once.
+export interface ItemFacts {
+  name: string;
+  folder: boolean;
+  kind: string;
+  location: string;
+  size: number | null;
+  onDisk: number | null;
+  created: number | null;
+  modified: number | null;
+  accessed: number | null;
+  readOnly: boolean;
+  hidden: boolean;
+}
+
+// One support folder a node may hold: the one it has, or the name it would get; empty tells whether it can be quit.
+export interface SupportRow {
+  kind: string;
+  name: string;
+  exists: boolean;
+  empty: boolean;
+}
+
+// The Outcomes folder a node's worknode defaults live in, each saved value as written (empty when unset).
+export interface OutcomeDefaults {
+  outcomes: string[];
+  output: string;
+  status: string;
+  owner: string;
+  template: string;
+}
+
 export interface Picks {
   reduce: boolean;
   sort: boolean;

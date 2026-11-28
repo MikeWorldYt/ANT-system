@@ -1,0 +1,65 @@
+---
+title: Conecta tu IA
+description: Conecta FolderManager con Claude Desktop o Claude Code en un clic y gestiona carpetas y proyectos desde tus chats.
+---
+import Callout from "/src/components/ui/Callout.astro";
+import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
+
+Una vez conectado, tu asistente de IA puede trabajar con tu almacenamiento ANT desde cualquier chat: buscar una carpeta, crear un proyecto, mover o renombrar cosas, o decirte qué espera en una carpeta de revisión. Sigue las mismas reglas que la app, así que no puede romper tu estructura.
+
+No necesitas editar ningún archivo ni escribir comandos. FolderManager hace la configuración por ti.
+
+## Antes de empezar
+
+- **FolderManager 2.4.4-beta o posterior.** **About** muestra tu versión.
+- **Claude Desktop o Claude Code** instalado en el mismo equipo.
+- **Tu almacenamiento abierto al menos una vez en FolderManager.** El asistente trabaja con el último almacenamiento que abrió la app.
+
+## Conectar
+
+1. **Abre FolderManager** con tu almacenamiento.
+2. **Haz clic en el botón del enchufe** al final de la barra lateral derecha, justo encima de **About**. Se abre la ventana **Connect AI**.
+
+   <ImagePlaceholder label="Captura: botón Connect AI en la barra lateral" />
+
+3. **Haz clic en Connect** junto a tu asistente. Su estado cambia a **Connected**.
+
+   <ImagePlaceholder label="Captura: ventana Connect AI" />
+
+4. **Haz clic en Restart Claude Desktop** si es el que conectaste. Claude carga ANT solo al iniciar, así que FolderManager lo cierra y lo vuelve a abrir por ti. Esto cierra todas las ventanas de Claude, así que espera a que ningún chat siga respondiendo. Claude Code no necesita reinicio; abre una sesión nueva.
+
+## Comprueba que funciona
+
+- **Claude Desktop:** **Ant system** aparece en la lista de **Connectors**.
+- **Cualquier asistente:** pregúntale *"¿Qué almacenamiento ANT estás usando?"*. Responde con la carpeta de tu almacenamiento.
+
+Después prueba algo real:
+
+- *"Busca mis carpetas de facturas."*
+- *"Crea un proyecto llamado Rediseño Web dentro de 200.WORK."*
+- *"¿Qué archivos esperan ser ordenados en Review?"*
+- *"Muéstrame esa carpeta en FolderManager."* (esta mueve la ventana abierta, y solo cuando lo pides)
+
+<Callout type="info" title="Tu trabajo está a salvo">
+Las carpetas borradas van a la Papelera de reciclaje, nunca se eliminan para siempre. Borrar está marcado como acción de riesgo, así que tu asistente te pregunta antes de hacerlo. Si FolderManager está abierto, los cambios aparecen al momento sin mover lo que estás viendo.
+</Callout>
+
+## Desconectar
+
+Abre de nuevo **Connect AI** y haz clic en **Disconnect** junto a tu asistente. Para Claude Desktop, haz clic en **Restart Claude Desktop** como arriba.
+
+## Otros asistentes
+
+Cualquier asistente compatible con MCP puede usar FolderManager. En **Connect AI**, **Copy config** copia la configuración; pégala donde tu asistente guarda sus servidores MCP. Cada uno lo hace distinto: consulta [Integraciones de IA](/es/advanced/ai-integrations) para los detalles.
+
+## Si algo falla
+
+| Lo que ves | Qué hacer |
+| --- | --- |
+| **Connect** está desactivado y dice **Not installed**. | Instala el asistente y vuelve a abrir **Connect AI**. |
+| **Ant system** no aparece en Claude Desktop. | Haz clic otra vez en **Restart Claude Desktop**. Si sigue sin aparecer, haz clic derecho en el icono de Claude junto al reloj, elige **Quit** y vuelve a abrir Claude. |
+| El asistente dice que no encontró ningún almacenamiento. | Abre tu almacenamiento una vez en FolderManager y pregunta de nuevo. |
+| El asistente usa otro almacenamiento. | Abre el correcto en FolderManager; el asistente sigue al último abierto. |
+| Dejó de funcionar tras mover FolderManager a otra carpeta. | Abre **Connect AI** desde la nueva ubicación y vuelve a hacer clic en **Connect**. |
+
+Para más, consulta [Integraciones de IA](/es/advanced/ai-integrations) y [Datos y solución de problemas](/es/folder-manager/troubleshooting).

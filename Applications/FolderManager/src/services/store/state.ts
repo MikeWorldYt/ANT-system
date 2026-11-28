@@ -28,7 +28,7 @@ interface State {
   // The folder whose children the side panel lists for hiding, with each child's hidden state.
   managing: string[] | null;
   hiddenChoices: HiddenChoice[];
-  editing: { key: string; draft: string; focused: boolean } | null;
+  editing: { key: string; draft: string; focused: boolean; view?: Element | null } | null;
   // Order of each column, keyed by its parent's path ("" for the first one); the tree view has its own.
   sorts: Record<string, ColumnSort>;
   settings: Settings;

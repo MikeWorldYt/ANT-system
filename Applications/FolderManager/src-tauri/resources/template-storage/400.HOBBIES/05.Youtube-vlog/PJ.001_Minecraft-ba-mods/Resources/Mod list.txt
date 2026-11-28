@@ -1,0 +1,6 @@
+Mod list - Episode 1
+
+- Better Biomes 2.1
+- Sample Furniture Pack 1.4
+- Quality Shaders 0.9
+- Mini HUD 3.0

@@ -12,7 +12,7 @@ type DeleteInvalid = (relParts: string[]) => Promise<boolean>;
 
 let checking = false;
 // Later and Escape give the user this long before the dialog and its announcement come back.
-const SNOOZE_MS = 5 * 60_000;
+const SNOOZE_MS = 60 * 60_000;
 let snoozedUntil = 0;
 
 const dialogOpen = () => document.querySelector("dialog[open]") !== null;

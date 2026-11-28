@@ -14,3 +14,4 @@
 .nav-store-menu .ctx-trail.picker-tag { color: var(--accent); }
 .nav-store-menu .ctx-item:has(.ctx-trail) { padding-right: 76px; }
 .nav-store-settings { flex: none; }
+.nav-footer .nav-store-settings { background: var(--tree-bg); }

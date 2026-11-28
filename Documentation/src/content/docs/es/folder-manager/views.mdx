@@ -1,20 +1,14 @@
 ---
 title: Vistas y orden
-description: Cambia entre las siete vistas de FolderManager y ordena tus carpetas.
+description: Cambia entre las seis vistas de FolderManager, muévete con el panel de navegación y ordena tus carpetas.
 ---
 import ImagePlaceholder from "/src/components/ui/ImagePlaceholder.astro";
 
 ## Vistas
 
-Usa el botón de vista de la barra de herramientas, o haz clic derecho en el fondo, para cambiar entre siete vistas del mismo almacenamiento: Tree, List, Details, Cards, Grid, Columns y Graph.
+Usa el botón de vista de la barra de herramientas, o haz clic derecho en el fondo, para cambiar entre seis vistas del mismo almacenamiento: List, Details, Cards, Grid, Columns y Graph.
 
-La ruta de navegación muestra el camino seleccionado. Haz doble clic, o pulsa `Ctrl+L`, para escribir una ruta. Los botones atrás, adelante y subir recorren el historial de tu selección. El panel de detalles de la derecha muestra la carpeta seleccionada y se oculta con su botón de la barra.
-
-### Tree (Árbol)
-
-Filas expandibles e indentadas: todo el almacenamiento en una sola lista. Úsala para moverte por estructuras profundas sin salir de la página. Muévete con las flechas, contrae y expande con izquierda y derecha, abre con `Enter` y renombra con `F2`.
-
-<ImagePlaceholder label="Captura: Vista Tree" />
+La ruta de navegación muestra la carpeta abierta. Haz doble clic, o pulsa `Ctrl+L`, para escribir una ruta. Los separadores entre sus nombres listan las carpetas hermanas. Los botones atrás, adelante y subir recorren tu historial. El panel lateral de la derecha muestra los detalles y una vista previa del elemento seleccionado; contráelo con su botón o con `Ctrl+Right`.
 
 ### List (Lista)
 
@@ -24,7 +18,14 @@ El contenido de una carpeta como filas simples. Úsala para un listado compacto 
 
 ### Details (Detalles)
 
-Como List, con columnas junto a cada nombre: fecha de modificación, tipo, tamaño y fecha de creación. Haz clic en el encabezado de una columna para ordenar por ella; otro clic invierte la dirección. Úsala cuando necesites comparar fechas o tamaños.
+Como List, con columnas junto a cada nombre: **Date created**, **Date modified**, **Type** y **Size**. Úsala cuando necesites comparar fechas o tamaños.
+
+- **Ordena** con un clic en el encabezado de una columna; otro clic invierte la dirección. **Type** y **Owner** no ordenan.
+- **Cambia el ancho** de una columna arrastrando el borde derecho de su encabezado. Haz doble clic en el borde para ajustarla a su contenido.
+- **Clic derecho** en el encabezado para elegir **Size column to fit**, **Size all columns to fit**, o para mostrar y ocultar columnas. **Status** y **Owner** están ocultas por defecto; **Name** siempre se queda.
+- **Los tamaños de carpeta** se suman en segundo plano, así que aparecen un momento después de abrir la lista.
+
+El ancho de las columnas se recuerda por carpeta.
 
 <ImagePlaceholder label="Captura: Vista Details" />
 
@@ -62,11 +63,44 @@ El grafo recuerda qué carpetas dejaste abiertas, por almacenamiento. Abrir un p
 
 ### Vista predeterminada
 
-En **Settings → General → Default View** elige la vista con la que empiezan las ventanas y pestañas nuevas: Last used, Tree, List, Details, Cards, Grid, Columns o Graph. Con **On launch: Continue where I left off**, la aplicación reabre la última vista que usaste.
+En **Settings → General → Default View** elige la vista con la que empiezan las ventanas y pestañas nuevas: Last used, List, Details, Cards, Grid, Columns o Graph. Con **On launch: Continue where I left off**, la aplicación reabre la última vista que usaste.
+
+## Panel de navegación
+
+El panel a la izquierda de las vistas muestra dónde está cada cosa. Nunca lista archivos; esos se quedan en las vistas.
+
+- **El acceso rápido** encabeza el panel: **FAVORITES**, **DOWNLOADS** y **REVIEW**, y cada uno se puede desactivar en **Settings → General**.
+- **Las carpetas del almacenamiento** siguen, como un árbol indentado. Haz clic en la flecha para desplegar o plegar una carpeta sin abrirla.
+- **Las carpetas nativas** (Documents, Pictures, Music, Videos y Desktop) cierran el panel cuando **Show all native System folders** está activado.
+
+Un clic solo marca una fila. Haz doble clic, o pulsa `Enter`, para abrirla en las vistas. Un segundo clic lento sobre un nombre lo renombra, igual que `F2`. Muévete con las flechas: derecha despliega, izquierda pliega o va al padre.
+
+Pulsa `Ctrl+Left` para mostrar u ocultar el panel. Arrastra su borde derecho, o enfoca el borde y pulsa las flechas izquierda y derecha, para cambiar su ancho. Si lo dejas demasiado estrecho, se cierra. El ancho se recuerda.
+
+Haz clic derecho en una carpeta para ver **Open**, **Open folder location**, **Open in new tab**, **Open in split tab**, **Copy path** y **Hide element**. El panel solo sirve para moverse, así que su menú no tiene acciones que cambien una carpeta.
+
+<ImagePlaceholder label="Captura: Panel de navegación" />
+
+### Cambiar de almacenamiento
+
+El pie muestra el nombre del almacenamiento abierto. Haz clic en él, o pulsa `Up` o `Down` sobre él, para abrir un menú con todos los almacenamientos que conoces. Elige uno para cambiar a él. Uno que se movió aparece marcado como **Not found**. **Manage storages…** abre el selector de almacenamientos. El engranaje a su lado abre **Settings**.
+
+## Vista previa
+
+Selecciona un archivo y el panel lateral muestra su vista previa bajo los detalles. Se admiten estos tipos:
+
+- **Imágenes**: PNG, JPG, JFIF, GIF, WebP, BMP, SVG y AVIF.
+- **PDF**: una página a la vez, que pasas con los botones de debajo o con las flechas.
+- **Vídeo**: MP4, M4V, WebM, MOV y OGV. Se reproduce solo y empieza sin sonido. Si Windows no tiene el códec del vídeo, se muestra un fotograma fijo.
+- **Audio**: MP3, WAV, M4A, AAC, OGG, OGA y FLAC. Se reproduce solo y empieza sin sonido.
+
+Cuando activas el sonido, las siguientes vistas previas lo mantienen cinco minutos.
+
+<ImagePlaceholder label="Captura: Vista previa en el panel lateral" />
 
 ## Orden
 
-En la vista de Columnas, el botón de orden de la barra ordena la columna activa por **Name**, **Type** o **Status**, ascendente o descendente. Cada columna conserva su propio orden.
+El botón de orden de la barra ordena la lista abierta por **Track**, **Name**, **Status**, **Date created**, **Date modified** o **Size**, ascendente o descendente. Cada lista conserva su propio orden; en la vista de Columnas, cada columna.
 
 <ImagePlaceholder label="Captura: Orden" />
 

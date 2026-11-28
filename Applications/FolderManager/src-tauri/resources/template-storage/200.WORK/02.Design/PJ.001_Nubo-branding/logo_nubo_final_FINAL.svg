@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 260" width="640" height="260">
+  <rect width="640" height="260" rx="28" fill="#F8FAFC"/>
+  <g transform="translate(40 40)">
+    <circle cx="70" cy="110" r="50" fill="#38BDF8"/>
+    <circle cx="125" cy="80" r="65" fill="#38BDF8"/>
+    <circle cx="185" cy="110" r="50" fill="#38BDF8"/>
+    <rect x="70" y="110" width="115" height="50" fill="#38BDF8"/>
+    <circle cx="105" cy="115" r="9" fill="#F8FAFC"/>
+    <circle cx="150" cy="115" r="9" fill="#F8FAFC"/>
+  </g>
+  <text x="290" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="92" font-weight="700" fill="#0F172A">nubo</text>
+</svg>

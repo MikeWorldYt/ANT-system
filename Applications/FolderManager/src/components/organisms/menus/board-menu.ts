@@ -1,4 +1,5 @@
 // Background menu of the open folder: paste into it, switch the view, sort its contents and add folders.
+import { showProperties } from "../../../hooks/properties";
 import { addChild, manageHidden, pasteFiles, refresh } from "../../../hooks/ops";
 import { openFolder } from "../../../hooks/path-actions";
 import { canReorderIds, reorderIds } from "../../../hooks/reorder-ids";
@@ -69,11 +70,12 @@ export function boardMenu(node: TreeNode, views: ViewPicker, close: (restore?: b
   const manage = action("Manage hidden nodes", true, () => void manageHidden(node.relParts));
   const open = action("Open folder location", node.actions.open, () => void openFolder(node));
   const flagItems = folderFlagItems(node, action);
+  const properties = action("Properties", true, () => showProperties(node));
   const reorderItems = canReorderIds(node) ? [action("Reorder by id…", true, () => void reorderIds(node))] : [];
 
   return {
-    items: [open, ...pasteItems, ...subs.map((s) => s.trigger), reload, ...flagItems, manage, ...reorderItems, ...addItems],
+    items: [open, ...pasteItems, ...subs.map((s) => s.trigger), reload, ...flagItems, manage, ...reorderItems, ...addItems, properties],
     subs,
-    content: [open, separator(), ...pasteItems, ...(pasteItems.length > 0 ? [separator()] : []), ...subs.map((s) => s.element), reload, separator(), ...flagItems, manage, ...reorderItems, separator(), ...addItems],
+    content: [open, separator(), ...pasteItems, ...(pasteItems.length > 0 ? [separator()] : []), ...subs.map((s) => s.element), reload, separator(), ...flagItems, manage, ...reorderItems, separator(), ...addItems, separator(), properties],
   };
 }

@@ -6,7 +6,7 @@ import { textInput } from "../../../atoms/text-input";
 import { dialogText } from "../dialog-shell";
 import { fieldDialog } from "./action-dialog";
 
-const IDENTIFIERS: [string, string][] = [["PJ", "PJ. Project"], ["PR", "PR. Production"], ["HW", "HW. Homework"], ["CR", "CR. Course"], ["TK", "TK. Task"]];
+const IDENTIFIERS: [string, string][] = [["PJ", "PJ. Project"], ["PR", "PR. Production"], ["HW", "HW. Homework"], ["CR", "CR. Course"], ["TK", "TK. Task"], ["TH", "TH. Thesis"]];
 
 export interface TemplateAnswer {
   identifier: string;

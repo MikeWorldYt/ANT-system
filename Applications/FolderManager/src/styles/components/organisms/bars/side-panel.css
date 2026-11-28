@@ -1,30 +1,31 @@
 /* Side panel and its collapsed icon rail. */
 .details-panel {
   width: var(--panel-w); flex: none; display: flex; flex-direction: column; gap: 8px;
-  overflow-y: auto; background: var(--tree-bg); padding: 10px 12px; border-radius: var(--radius-md);
+  overflow-y: auto; background: var(--bg); padding: 10px 0; border-radius: var(--radius-md);
 }
 /* The head is as tall as the Details header, so the first section line meets the view's header line. */
 .side-head { display: flex; align-items: center; gap: 2px; height: 28px; margin-bottom: -2px; }
 .side-title { flex: 1; min-width: 0; margin: 0; font-size: var(--fs-title); font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-head .icon-btn, .details-head .icon-btn { width: 28px; height: 28px; background: transparent; }
-.side-head .side-collapse { background: var(--accent); color: var(--bg); }
+.side-head .side-collapse { margin-right: 6px; background: var(--accent); color: var(--bg); }
 .side-section { display: flex; flex-direction: column; gap: 2px; padding-top: 8px; border-top: 1px solid var(--border); }
 .side-label { margin: 0 0 4px; font-size: var(--fs-caption); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .side-categories { display: flex; flex-direction: column; }
 .side-category { display: flex; align-items: center; gap: 8px; padding: 3px 6px; font-size: var(--fs-label); color: var(--text); cursor: pointer; }
 .side-link { display: block; padding: 3px 6px; font-size: var(--fs-label); color: var(--accent); text-decoration: none; }
 .side-link:hover, .side-link.is-active { text-decoration: underline; }
-.side-foot { margin-top: auto; padding-top: 4px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
+.side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
 .side-foot-tools { display: block; }
+.side-foot-tools:not([hidden]):has(> :not([hidden]) + :not([hidden])) { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .side-foot-tools[hidden] { display: none; }
-.side-foot-app { display: flex; justify-content: flex-end; gap: 4px; }
+.side-foot-app { display: flex; justify-content: flex-end; gap: 4px; padding-top: 4px; border-top: 1px solid var(--border); }
 /* Only Settings keeps its box, so it stands out from the two quieter app entries. */
 .side-foot-app .icon-btn:not(:last-child) { background: transparent; }
 .side-foot-app .icon-btn:not(:last-child):hover { background: var(--state-hover); }
-.side-rail { flex: none; width: 40px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0; background: var(--input-bg); border-radius: var(--radius-md); }
+.side-rail { flex: none; width: 40px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 12px; background: var(--input-bg); border-radius: var(--radius-md); }
 /* Inner radius = rail radius minus the 5px inset of each button (rail 40px, button 30px). */
 .side-rail .icon-btn { width: 36px; height: 36px; background: transparent; border-radius: calc(var(--radius-md) - 5px); }
-.side-rail .side-rail-expand { background: var(--accent); color: var(--bg); }
+.side-rail .side-rail-expand { width: 28px; height: 28px; margin-bottom: 8px; background: var(--accent); color: var(--bg); }
 .side-rail-sep { flex: none; width: 22px; height: 1px; margin: 2px 0; background: var(--border); }
 .side-rail .is-favorite { color: var(--st-progress); }
 .side-rail-end { margin-top: auto; }
@@ -60,3 +61,4 @@
 .pdf-turn { min-width: 28px; padding: 2px 8px; border: 1px solid var(--border, #444); border-radius: var(--radius-md); background: var(--input-bg); color: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
 .pdf-turn:disabled { opacity: 0.4; cursor: default; }
 .pdf-count { font-size: var(--fs-label); min-width: 48px; text-align: center; }
+.side-foot-app .icon-btn:last-child, .details-panel .automation-build { background: var(--tree-bg); }

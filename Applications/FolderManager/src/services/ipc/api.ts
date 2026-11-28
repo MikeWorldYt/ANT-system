@@ -29,6 +29,10 @@ import type {
   Picks,
   PlannedFile,
   DictionaryIssue,
+  ItemFacts,
+  ItemTotals,
+  OutcomeDefaults,
+  SupportRow,
 } from "./types";
 
 // The tutorial serves its in-memory Storage here, so while it runs no command reaches the backend.
@@ -189,6 +193,16 @@ export const createFileShortcutIn = (target: string[], folder: string) =>
 export const setReviewAutomation = (relParts: string[], automation: keyof Picks, on: boolean) => call<Mutation>("set_review_automation", { relParts, automation, on });
 export const planAutomations = (folder: string[], only: string[], picks: Picks) => call<PlannedFile[]>("plan_automations", { folder, only, ...picks });
 export const openDictionaryWindow = (folder: string[]) => call<void>("open_dictionary_window", { folder });
+export const openPropertiesWindow = (relParts: string[], icon: string) => call<void>("open_properties_window", { relParts, icon });
+export const itemProperties = (relParts: string[]) => call<ItemFacts>("item_properties", { relParts });
+// Null when the window closed before the walk ended; partial totals arrive as events meanwhile.
+export const itemTotals = (relParts: string[]) => call<ItemTotals | null>("item_totals", { relParts });
+// Null when the item cannot hold support folders.
+export const supportNodes = (relParts: string[]) => call<SupportRow[] | null>("support_nodes", { relParts });
+// Null when the item has no Outcomes folder to hold worknode defaults.
+export const outcomeDefaults = (relParts: string[]) => call<OutcomeDefaults | null>("outcome_defaults", { relParts });
+export const addSupportNode = (relParts: string[], kind: string) => call<Mutation>("add_support_node", { relParts, kind });
+export const removeSupportNode = (relParts: string[], name: string) => call<Mutation>("remove_support_node", { relParts, name });
 export const readDictionary = (folder: string[]) => call<string>("read_dictionary", { folder });
 export const checkDictionary = (text: string) => call<DictionaryIssue[]>("check_dictionary", { text });
 export const saveDictionary = (folder: string[], text: string) => call<DictionaryIssue[]>("save_dictionary", { folder, text });

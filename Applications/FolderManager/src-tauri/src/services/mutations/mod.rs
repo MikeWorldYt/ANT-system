@@ -26,6 +26,7 @@ mod result;
 mod resolve;
 mod retype;
 mod save;
+mod support;
 mod target;
 
 pub use add::{add_next, add_node, add_node_named};
@@ -51,8 +52,9 @@ pub use hidden::{hidden_choices, set_hidden, set_hidden_children, HiddenChoice};
 pub use outputs::{deliver, restore, set_output};
 pub use folder_groups::move_into_folders;
 pub use project_groups::{apply_project_groups, can_undo_project_sort, preview_project_groups, undo_project_sort, ProjectPlan};
-pub use automations::{create_template, set_default, set_review_automation};
+pub use automations::{create_template, outcome_defaults, set_default, set_review_automation, OutcomeDefaults};
 pub use retype::{set_details, set_node_type};
+pub use support::{add_support, remove_support, support_rows, SupportRow};
 pub use mutation::Mutation;
 pub(crate) use mutation::subtrees;
 pub(crate) use checks::{editable_target, ensure_free, guard_frozen};

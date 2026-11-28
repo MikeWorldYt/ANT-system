@@ -14,7 +14,7 @@ use crate::services::{automations, edit, held_trash};
 use crate::services::index::{review_index, Emit};
 
 // Mutations that can add, move or drop 998.Review links rebuild that index along with the search fields.
-async fn run_indexed<F>(app: AppHandle, f: F) -> R<Mutation>
+pub(super) async fn run_indexed<F>(app: AppHandle, f: F) -> R<Mutation>
 where
     F: FnOnce(&Path) -> R<Mutation> + Send + 'static,
 {

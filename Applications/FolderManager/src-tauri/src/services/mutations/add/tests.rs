@@ -195,3 +195,83 @@ fn a_new_template_is_named_by_its_identifier_and_keeps_its_description_apart() {
     assert!(matches!(crate::services::mutations::create_template(dir.path(), "PR.", "Video short", None), Err(FmError::AlreadyExists { .. })));
     assert!(matches!(crate::services::mutations::create_template(dir.path(), "ZZ", "x", None), Err(FmError::InvalidName { .. })));
 }
+
+#[test]
+fn a_node_and_its_outcomes_folder_share_the_same_defaults() {
+    let dir = storage("outcome-defaults", &["100.WORK/00.Outcomes", "100.WORK/01.Plain"], "100.WORK:
+  type: NODE-L1
+  00.Outcomes: {type: OUT-L2}
+  01.Plain: {type: NODE-L2}
+");
+    let outcomes = rel(&["100.WORK", "00.Outcomes"]);
+    crate::services::mutations::set_default(dir.path(), &outcomes, "defaultOwner", Some("Ana")).unwrap();
+    let from_node = crate::services::mutations::outcome_defaults(dir.path(), &rel(&["100.WORK"])).unwrap().unwrap();
+    assert_eq!((from_node.outcomes.clone(), from_node.owner.as_str(), from_node.status.as_str()), (outcomes.clone(), "Ana", ""));
+    assert_eq!(crate::services::mutations::outcome_defaults(dir.path(), &outcomes).unwrap(), Some(from_node));
+    assert_eq!(crate::services::mutations::outcome_defaults(dir.path(), &rel(&["100.WORK", "01.Plain"])).unwrap(), None);
+}
+
+fn output_fixture(tag: &str) -> crate::test_support::TempDir {
+    let dir = storage(tag, &["100.WORK/00.Outcomes", "ANT.TEMPLATES/PR.Base/Footage", "ANT.TEMPLATES/PR.Base/.ant"], "100.WORK:\n  type: NODE-L1\n  00.Outcomes: {type: OUT-L2}\n");
+    std::fs::write(dir.path().join("ANT.TEMPLATES/PR.Base/Footage/clip.txt"), "raw").unwrap();
+    dir
+}
+
+fn new_worknode_with_output(dir: &std::path::Path, output: &str) -> std::path::PathBuf {
+    crate::services::mutations::set_default(dir, &rel(&["100.WORK", "00.Outcomes"]), "defaultOutput", Some(output)).unwrap();
+    add_node(dir, &rel(&["100.WORK"]), NewKind::Worknode).unwrap();
+    dir.join("100.WORK/PJ.001_New-Worknode")
+}
+
+#[test]
+fn an_output_preset_is_saved_with_one_leading_slash_and_creates_its_folder() {
+    let dir = output_fixture("output-folder");
+    let wkb = new_worknode_with_output(dir.path(), " render\\ ");
+    assert!(wkb.join("render").is_dir());
+    let saved = crate::services::mutations::outcome_defaults(dir.path(), &rel(&["100.WORK"])).unwrap().unwrap();
+    assert_eq!(saved.output, "/render");
+    assert!(std::fs::read_to_string(wkb.join(".ant/info.json")).unwrap().contains("\"output\": \"render\""));
+    crate::services::mutations::set_default(dir.path(), &rel(&["100.WORK", "00.Outcomes"]), "defaultOutput", Some("  ")).unwrap();
+    assert_eq!(crate::services::mutations::outcome_defaults(dir.path(), &rel(&["100.WORK"])).unwrap().unwrap().output, "");
+}
+
+#[test]
+fn a_nested_output_preset_creates_every_folder() {
+    let dir = output_fixture("output-nested");
+    let wkb = new_worknode_with_output(dir.path(), "//dist\\build//");
+    assert!(wkb.join("dist/build").is_dir());
+}
+
+#[test]
+fn an_output_preset_naming_a_file_does_not_create_it() {
+    let dir = output_fixture("output-file");
+    let wkb = new_worknode_with_output(dir.path(), "/executable.exe");
+    assert!(!wkb.join("executable.exe").exists());
+    assert_eq!(names(&wkb), [".ant"]);
+}
+
+#[test]
+fn an_output_preset_naming_a_file_creates_its_parent_folders() {
+    let dir = output_fixture("output-file-parent");
+    let wkb = new_worknode_with_output(dir.path(), "/dist/app.exe");
+    assert!(wkb.join("dist").is_dir());
+    assert!(!wkb.join("dist/app.exe").exists());
+}
+
+#[test]
+fn an_output_preset_keeps_the_template_folder_it_names() {
+    let dir = output_fixture("output-template");
+    crate::services::mutations::set_default(dir.path(), &rel(&["100.WORK", "00.Outcomes"]), "defaultTemplate", Some("PR.Base")).unwrap();
+    crate::services::mutations::set_default(dir.path(), &rel(&["100.WORK", "00.Outcomes"]), "defaultOutput", Some("/Footage")).unwrap();
+    add_node(dir.path(), &rel(&["100.WORK"]), NewKind::Worknode).unwrap();
+    assert_eq!(std::fs::read_to_string(dir.path().join("100.WORK/PR.001_New-Worknode/Footage/clip.txt")).unwrap(), "raw");
+}
+
+#[test]
+fn an_output_preset_cannot_leave_the_worknode() {
+    let dir = output_fixture("output-escape");
+    for bad in ["/../outside", "..\\x", "/a/../b", "C:/x"] {
+        let denied = crate::services::mutations::set_default(dir.path(), &rel(&["100.WORK", "00.Outcomes"]), "defaultOutput", Some(bad));
+        assert!(matches!(denied, Err(FmError::InvalidPath { .. })), "{bad}: {denied:?}");
+    }
+}

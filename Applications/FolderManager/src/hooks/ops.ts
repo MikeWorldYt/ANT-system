@@ -401,9 +401,6 @@ export async function setChildHidden(name: string, on: boolean): Promise<boolean
   return saved;
 }
 
-export const setOutcomeDefault = (node: TreeNode, key: string, value: string | null) =>
-  mutate(() => api.setOutcomeDefault(node.relParts, key, value), node.relParts);
-
 export const setOutput = (node: TreeNode, output: string | null) =>
   mutate(() => api.setNodeOutput(node.relParts, output), node.relParts);
 
