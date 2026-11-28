@@ -246,7 +246,7 @@ ${item.title}`;
       root.addEventListener("keydown", onKey);
       root.addEventListener("contextmenu", (ev) => folderContextMenu(ev, folderNode(), root));
       root.addEventListener("scroll", updateJump, { passive: true });
-      jump.append(guiIcon("up"));
+      jump.replaceChildren(guiIcon("up"));
       host.append(root, jump);
     },
     render() {
